@@ -38,9 +38,17 @@ impl CachedPriceFetcher {
         }
 
         // Fetch from API with circuit breaker
-        let price = self.circuit_breaker.call(|| async {
-            self.fetcher.fetch_price(crypto_type).await
-                .map_err(|e| ServiceError::InternalError(e))
+        let (symbol, category) = match crypto_type {
+            CryptoType::Sol => ("SOLUSDT", "spot"),
+            CryptoType::UsdtSpl => ("USDTUSDT", "spot"),
+            CryptoType::UsdtBep20 => ("USDTUSDT", "spot"),
+            CryptoType::UsdtArbitrum => ("USDTUSDT", "spot"),
+            CryptoType::UsdtPolygon => ("USDTUSDT", "spot"),
+        };
+
+        let price: Decimal = self.circuit_breaker.call(|| async {
+            self.fetcher.get_price(symbol, category).await
+                .map_err(|e| ServiceError::InternalError(e.to_string()))
         }).await?;
 
         // Cache for 30 seconds

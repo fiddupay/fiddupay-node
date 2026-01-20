@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT invoice_id, merchant_id, customer_email, customer_name, status, items, \n                      subtotal, tax, total, payment_id, due_date, notes, created_at, paid_at\n               FROM invoices WHERE invoice_id = $1 AND merchant_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "invoice_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "merchant_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "customer_email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "customer_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "items",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "subtotal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "tax",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "total",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "payment_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "due_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 11,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "paid_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "76d2374385ee166d5ce86389320e5c3fcc83b986cb7ac01869a53688abb0df71"
+}

@@ -1,31 +1,78 @@
-# Crypto Payment Gateway - Docker Deployment
+# PayFlow - Production Deployment Guide
 
 ## Quick Start
 
 ```bash
-# 1. Set environment variables
-cp .env.example .env
-# Edit .env with your configuration
+# 1. Run infrastructure setup
+./setup_infrastructure.sh
 
-# 2. Start all services
-docker-compose up -d
+# 2. Update .env.production
+nano .env.production
 
-# 3. Run migrations
-docker-compose exec gateway sqlx migrate run
+# 3. Setup database
+sudo -u postgres psql -c "CREATE USER payflow_user WITH PASSWORD 'STRONG_PASSWORD';"
+sudo -u postgres psql -c "CREATE DATABASE payflow_production OWNER payflow_user;"
+DATABASE_URL='postgresql://payflow_user:PASSWORD@localhost:5432/payflow_production' sqlx migrate run
 
-# 4. Check health
+# 4. Build and deploy
+SQLX_OFFLINE=true cargo build --release
+sudo cp payflow.service /etc/systemd/system/
+sudo systemctl enable payflow
+sudo systemctl start payflow
+
+# 5. Check health
 curl http://localhost:8080/health
 ```
 
-## Services
+## Pre-Deployment Checklist
 
-- **gateway**: Main application (port 8080)
-- **postgres**: PostgreSQL database (port 5432)
-- **redis**: Redis cache (port 6379)
+### 1. Configuration (30 min)
+- [ ] Review .env.production
+- [ ] Update DATABASE_URL password
+- [ ] Configure SMTP credentials
+- [ ] Update domain name
+- [ ] Configure RPC endpoints
+
+### 2. Database Setup (15 min)
+- [ ] Create production database
+- [ ] Run migrations
+- [ ] Verify schema
+
+### 3. Redis (10 min)
+- [ ] Enable persistence
+- [ ] Restart Redis
+
+### 4. SSL Certificate (30 min)
+- [ ] Get Let's Encrypt cert OR
+- [ ] Use Cloudflare
+
+### 5. Firewall (10 min)
+```bash
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+```
+
+### 6. Service (15 min)
+```bash
+sudo cp payflow.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable payflow
+sudo systemctl start payflow
+```
+
+### 7. Nginx (20 min) - Optional
+```bash
+sudo cp payflow.nginx /etc/nginx/sites-available/payflow
+sudo ln -s /etc/nginx/sites-available/payflow /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+```
 
 ## Environment Variables
 
-Required variables in `.env`:
+Required in `.env.production`:
 
 ```bash
 # Database
@@ -70,12 +117,60 @@ POLYGON_RPC_URL=https://polygon-rpc.com
 
 ### 3. Secure Your Deployment
 
-- Change default passwords
-- Use strong `WEBHOOK_SIGNING_KEY`
-- Enable SSL/TLS (use reverse proxy like nginx)
-- Set up firewall rules
-- Use managed database (AWS RDS, etc.)
-- Use managed Redis (AWS ElastiCache, etc.)
+**Generate Production Keys:**
+```bash
+# Generate encryption key (32 bytes)
+openssl rand -hex 32
+
+# Generate webhook signing key (32 bytes)
+openssl rand -hex 32
+```
+
+**Security Features Built-In:**
+- ✅ Argon2 password hashing (OWASP recommended)
+- ✅ AES-256-GCM encryption for sensitive data
+- ✅ API key authentication
+- ✅ TOTP 2FA support
+- ✅ Webhook signature verification (HMAC-SHA256)
+- ✅ IP whitelisting
+- ✅ Rate limiting (configurable)
+- ✅ Audit logging
+
+**Production Checklist:**
+- [ ] Change default passwords
+- [ ] Generate new ENCRYPTION_KEY
+- [ ] Generate new WEBHOOK_SIGNING_KEY
+- [ ] Enable SSL/TLS (use reverse proxy like nginx)
+- [ ] Set up firewall rules (ports 22, 80, 443 only)
+- [ ] Use managed database (AWS RDS, etc.)
+- [ ] Use managed Redis (AWS ElastiCache, etc.)
+- [ ] Configure backup strategy
+- [ ] Setup monitoring and alerts
+- [ ] Run security audit: `./security_audit.sh`
+
+**Infrastructure Setup:**
+```bash
+# Run automated setup
+./setup_infrastructure.sh
+
+# This generates:
+# - .env.production (with secure keys)
+# - payflow.service (systemd service)
+# - payflow.nginx (reverse proxy config)
+```
+
+**Security Audit:**
+```bash
+# Run comprehensive security check
+./security_audit.sh
+
+# Checks:
+# - No hardcoded secrets
+# - Proper encryption usage
+# - Secure password hashing
+# - File permissions
+# - Dependency vulnerabilities
+```
 
 ### 4. Scale with Kubernetes
 

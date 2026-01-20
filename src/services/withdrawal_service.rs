@@ -21,7 +21,7 @@ pub struct WithdrawalRequest {
 #[derive(Debug, Serialize)]
 pub struct Withdrawal {
     pub withdrawal_id: String,
-    pub merchant_id: i32,
+    pub merchant_id: i64,
     pub crypto_type: String,
     pub amount: Decimal,
     pub destination_address: String,
@@ -44,7 +44,7 @@ impl WithdrawalService {
         Self { pool, balance_service }
     }
 
-    pub async fn create_withdrawal(&self, merchant_id: i32, req: WithdrawalRequest) -> Result<Withdrawal, ServiceError> {
+    pub async fn create_withdrawal(&self, merchant_id: i64, req: WithdrawalRequest) -> Result<Withdrawal, ServiceError> {
         // Validate minimum
         let amount_f64 = req.amount.to_string().parse::<f64>().unwrap_or(0.0);
         if amount_f64 < MIN_WITHDRAWAL {
@@ -113,7 +113,7 @@ impl WithdrawalService {
         })
     }
 
-    pub async fn get_withdrawal(&self, merchant_id: i32, withdrawal_id: &str) -> Result<Withdrawal, ServiceError> {
+    pub async fn get_withdrawal(&self, merchant_id: i64, withdrawal_id: &str) -> Result<Withdrawal, ServiceError> {
         let record = sqlx::query!(
             r#"SELECT withdrawal_id, merchant_id, crypto_type, amount, destination_address, status, 
                       fee, net_amount, transaction_hash, requires_approval, created_at
@@ -140,7 +140,7 @@ impl WithdrawalService {
         })
     }
 
-    pub async fn list_withdrawals(&self, merchant_id: i32, limit: i64) -> Result<Vec<Withdrawal>, ServiceError> {
+    pub async fn list_withdrawals(&self, merchant_id: i64, limit: i64) -> Result<Vec<Withdrawal>, ServiceError> {
         let records = sqlx::query!(
             r#"SELECT withdrawal_id, merchant_id, crypto_type, amount, destination_address, status, 
                       fee, net_amount, transaction_hash, requires_approval, created_at
@@ -166,7 +166,7 @@ impl WithdrawalService {
         }).collect())
     }
 
-    pub async fn cancel_withdrawal(&self, merchant_id: i32, withdrawal_id: &str) -> Result<(), ServiceError> {
+    pub async fn cancel_withdrawal(&self, merchant_id: i64, withdrawal_id: &str) -> Result<(), ServiceError> {
         let withdrawal = self.get_withdrawal(merchant_id, withdrawal_id).await?;
 
         if withdrawal.status != "PENDING" {

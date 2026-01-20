@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE two_factor_auth SET is_enabled = false WHERE merchant_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "85d3a0728a21d0080eeef121f0906f22bb2960c2902c8f6516d5789902c3a0b6"
+}

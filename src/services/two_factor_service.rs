@@ -26,7 +26,7 @@ impl TwoFactorService {
         Ok(Self { pool, enabled, encryption })
     }
 
-    pub async fn setup_2fa(&self, merchant_id: i32, merchant_email: &str) -> Result<TwoFactorSetup, ServiceError> {
+    pub async fn setup_2fa(&self, merchant_id: i64, merchant_email: &str) -> Result<TwoFactorSetup, ServiceError> {
         if !self.enabled {
             return Err(ServiceError::ValidationError("2FA is disabled".to_string()));
         }
@@ -68,7 +68,7 @@ impl TwoFactorService {
         })
     }
 
-    pub async fn enable_2fa(&self, merchant_id: i32, code: &str) -> Result<(), ServiceError> {
+    pub async fn enable_2fa(&self, merchant_id: i64, code: &str) -> Result<(), ServiceError> {
         if !self.enabled {
             return Err(ServiceError::ValidationError("2FA is disabled".to_string()));
         }
@@ -88,7 +88,7 @@ impl TwoFactorService {
         Ok(())
     }
 
-    pub async fn disable_2fa(&self, merchant_id: i32, code: &str) -> Result<(), ServiceError> {
+    pub async fn disable_2fa(&self, merchant_id: i64, code: &str) -> Result<(), ServiceError> {
         if !self.verify_code(merchant_id, code).await? {
             return Err(ServiceError::ValidationError("Invalid 2FA code".to_string()));
         }
@@ -103,7 +103,7 @@ impl TwoFactorService {
         Ok(())
     }
 
-    pub async fn verify_code(&self, merchant_id: i32, code: &str) -> Result<bool, ServiceError> {
+    pub async fn verify_code(&self, merchant_id: i64, code: &str) -> Result<bool, ServiceError> {
         if !self.enabled {
             return Ok(true); // Skip verification if disabled
         }
@@ -130,7 +130,7 @@ impl TwoFactorService {
         self.verify_totp(&secret, code)
     }
 
-    pub async fn is_enabled(&self, merchant_id: i32) -> Result<bool, ServiceError> {
+    pub async fn is_enabled(&self, merchant_id: i64) -> Result<bool, ServiceError> {
         if !self.enabled {
             return Ok(false);
         }
@@ -173,12 +173,12 @@ impl TwoFactorService {
             .as_secs();
 
         // TOTP parameters: 30 second window, 6 digits
-        let time_step = 30;
+        let time_step: u64 = 30;
         let digits = 6;
 
         // Check current time window and ±1 window (90 seconds total)
         for offset in [-1, 0, 1] {
-            let time = (timestamp as i64 + (offset * time_step)) as u64 / time_step as u64;
+            let time = (timestamp as i64 + (offset * time_step as i64)) as u64 / time_step;
             let expected = totp_custom::<Sha1>(time_step, digits, &secret_bytes, time);
             
             if code == expected {

@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE merchant_balances SET available_balance = available_balance - $3, last_updated = NOW()\n             WHERE merchant_id = $1 AND crypto_type = $2\n             RETURNING available_balance + $3 as balance_before, available_balance as balance_after",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "balance_before",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 1,
+        "name": "balance_after",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      null,
+      false
+    ]
+  },
+  "hash": "b33fc44f047ab5e3ebf4b385a954e87af6411cc1696b238104f90d9c4c566984"
+}

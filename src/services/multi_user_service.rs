@@ -46,7 +46,7 @@ impl UserRole {
 #[derive(Debug, Serialize)]
 pub struct MerchantUser {
     pub id: i32,
-    pub merchant_id: i32,
+    pub merchant_id: i64,
     pub email: String,
     pub role: String,
     pub is_active: bool,
@@ -70,7 +70,7 @@ impl MultiUserService {
         Self { pool }
     }
 
-    pub async fn create_user(&self, merchant_id: i32, req: CreateUserRequest) -> Result<MerchantUser, ServiceError> {
+    pub async fn create_user(&self, merchant_id: i64, req: CreateUserRequest) -> Result<MerchantUser, ServiceError> {
         // Hash password
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
@@ -79,29 +79,32 @@ impl MultiUserService {
             .map_err(|e| ServiceError::InternalError(format!("Password hashing failed: {}", e)))?
             .to_string();
 
-        let record = sqlx::query!(
+        let record = sqlx::query_as::<_, (i32, i64, String, String, bool, Option<DateTime<Utc>>, DateTime<Utc>)>(
             r#"INSERT INTO merchant_users (merchant_id, email, password_hash, role)
-               VALUES ($1, $2, $3, $4)
-               RETURNING id, merchant_id, email, role, is_active, last_login, created_at"#,
-            merchant_id, req.email, password_hash, req.role
+               VALUES ($1, $2, $3, $4::user_role)
+               RETURNING id, merchant_id, email, role::text, is_active, last_login, created_at"#
         )
+        .bind(merchant_id)
+        .bind(&req.email)
+        .bind(&password_hash)
+        .bind(&req.role)
         .fetch_one(&self.pool)
         .await?;
 
         Ok(MerchantUser {
-            id: record.id,
-            merchant_id: record.merchant_id,
-            email: record.email,
-            role: record.role,
-            is_active: record.is_active,
-            last_login: record.last_login,
-            created_at: record.created_at,
+            id: record.0,
+            merchant_id: record.1,
+            email: record.2,
+            role: record.3,
+            is_active: record.4,
+            last_login: record.5,
+            created_at: record.6,
         })
     }
 
-    pub async fn list_users(&self, merchant_id: i32) -> Result<Vec<MerchantUser>, ServiceError> {
+    pub async fn list_users(&self, merchant_id: i64) -> Result<Vec<MerchantUser>, ServiceError> {
         let records = sqlx::query!(
-            "SELECT id, merchant_id, email, role, is_active, last_login, created_at
+            "SELECT id, merchant_id, email, role::text as \"role!\", is_active, last_login, created_at
              FROM merchant_users WHERE merchant_id = $1 ORDER BY created_at DESC",
             merchant_id
         )
@@ -119,19 +122,21 @@ impl MultiUserService {
         }).collect())
     }
 
-    pub async fn update_role(&self, merchant_id: i32, user_id: i32, new_role: &str) -> Result<(), ServiceError> {
-        sqlx::query!(
-            "UPDATE merchant_users SET role = $3, updated_at = NOW()
-             WHERE id = $1 AND merchant_id = $2",
-            user_id, merchant_id, new_role
+    pub async fn update_role(&self, merchant_id: i64, user_id: i32, new_role: &str) -> Result<(), ServiceError> {
+        sqlx::query(
+            "UPDATE merchant_users SET role = $3::user_role, updated_at = NOW()
+             WHERE id = $1 AND merchant_id = $2"
         )
+        .bind(user_id)
+        .bind(merchant_id)
+        .bind(new_role)
         .execute(&self.pool)
         .await?;
 
         Ok(())
     }
 
-    pub async fn deactivate_user(&self, merchant_id: i32, user_id: i32) -> Result<(), ServiceError> {
+    pub async fn deactivate_user(&self, merchant_id: i64, user_id: i32) -> Result<(), ServiceError> {
         sqlx::query!(
             "UPDATE merchant_users SET is_active = false, updated_at = NOW()
              WHERE id = $1 AND merchant_id = $2",
@@ -145,7 +150,7 @@ impl MultiUserService {
 
     pub async fn authenticate(&self, email: &str, password: &str) -> Result<MerchantUser, ServiceError> {
         let record = sqlx::query!(
-            "SELECT id, merchant_id, email, password_hash, role, is_active, last_login, created_at
+            "SELECT id, merchant_id, email, password_hash, role::text as \"role!\", is_active, last_login, created_at
              FROM merchant_users WHERE email = $1 AND is_active = true",
             email
         )

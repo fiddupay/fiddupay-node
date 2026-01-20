@@ -26,7 +26,7 @@ pub struct CreateInvoiceRequest {
 #[derive(Debug, Serialize)]
 pub struct Invoice {
     pub invoice_id: String,
-    pub merchant_id: i32,
+    pub merchant_id: i64,
     pub customer_email: Option<String>,
     pub customer_name: Option<String>,
     pub status: String,
@@ -50,7 +50,7 @@ impl InvoiceService {
         Self { pool }
     }
 
-    pub async fn create_invoice(&self, merchant_id: i32, req: CreateInvoiceRequest) -> Result<Invoice, ServiceError> {
+    pub async fn create_invoice(&self, merchant_id: i64, req: CreateInvoiceRequest) -> Result<Invoice, ServiceError> {
         // Calculate totals
         let subtotal: Decimal = req.items.iter().map(|item| item.amount).sum();
         let tax = req.tax.unwrap_or(Decimal::ZERO);
@@ -72,7 +72,7 @@ impl InvoiceService {
         self.get_invoice(merchant_id, &invoice_id).await
     }
 
-    pub async fn get_invoice(&self, merchant_id: i32, invoice_id: &str) -> Result<Invoice, ServiceError> {
+    pub async fn get_invoice(&self, merchant_id: i64, invoice_id: &str) -> Result<Invoice, ServiceError> {
         let record = sqlx::query!(
             r#"SELECT invoice_id, merchant_id, customer_email, customer_name, status, items, 
                       subtotal, tax, total, payment_id, due_date, notes, created_at, paid_at
@@ -103,7 +103,7 @@ impl InvoiceService {
         })
     }
 
-    pub async fn list_invoices(&self, merchant_id: i32, limit: i64) -> Result<Vec<Invoice>, ServiceError> {
+    pub async fn list_invoices(&self, merchant_id: i64, limit: i64) -> Result<Vec<Invoice>, ServiceError> {
         let records = sqlx::query!(
             r#"SELECT invoice_id, merchant_id, customer_email, customer_name, status, items,
                       subtotal, tax, total, payment_id, due_date, notes, created_at, paid_at

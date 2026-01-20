@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT payment_id, crypto_type, deposit_address, merchant_destination, expires_at, status\n             FROM deposit_addresses WHERE payment_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "payment_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "crypto_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "deposit_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "merchant_destination",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "status",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9ab7b2a4b6d1d57394a5e874c835754f662b62920c95cc1d1b83a36874c86ec3"
+}

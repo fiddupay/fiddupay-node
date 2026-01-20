@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO balance_history (merchant_id, crypto_type, amount, balance_type, change_type, reason, reference_id, balance_before, balance_after)\n             VALUES ($1, $2, $3, 'RESERVED', 'DEBIT', $4, $5, $3, 0)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Varchar",
+        "Numeric",
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d668dc8cbbab74484f92f853c4d766ffb2c7706928aec6da901de4a1075513db"
+}

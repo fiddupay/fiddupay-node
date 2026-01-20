@@ -7,7 +7,7 @@ ALTER TABLE merchants ADD COLUMN role user_role NOT NULL DEFAULT 'MERCHANT';
 -- Create users table for multi-user support
 CREATE TABLE merchant_users (
     id SERIAL PRIMARY KEY,
-    merchant_id INTEGER NOT NULL REFERENCES merchants(id),
+    merchant_id BIGINT NOT NULL REFERENCES merchants(id),
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role user_role NOT NULL DEFAULT 'USER',
@@ -36,7 +36,7 @@ CREATE TABLE deposit_addresses (
 CREATE TABLE invoices (
     id SERIAL PRIMARY KEY,
     invoice_id VARCHAR(100) UNIQUE NOT NULL,
-    merchant_id INTEGER NOT NULL REFERENCES merchants(id),
+    merchant_id BIGINT NOT NULL REFERENCES merchants(id),
     customer_email VARCHAR(255),
     customer_name VARCHAR(255),
     status VARCHAR(20) NOT NULL DEFAULT 'UNPAID', -- UNPAID, PAID, CANCELLED, OVERDUE
@@ -55,7 +55,7 @@ CREATE TABLE invoices (
 -- Create 2FA table
 CREATE TABLE two_factor_auth (
     id SERIAL PRIMARY KEY,
-    merchant_id INTEGER NOT NULL REFERENCES merchants(id) UNIQUE,
+    merchant_id BIGINT NOT NULL REFERENCES merchants(id) UNIQUE,
     secret_encrypted TEXT NOT NULL,
     recovery_codes_encrypted TEXT NOT NULL, -- JSON array of codes
     is_enabled BOOLEAN NOT NULL DEFAULT false,

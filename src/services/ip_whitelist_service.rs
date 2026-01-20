@@ -12,7 +12,7 @@ impl IpWhitelistService {
         Self { pool }
     }
 
-    pub async fn set_whitelist(&self, merchant_id: i32, ip_addresses: Vec<String>) -> Result<(), ServiceError> {
+    pub async fn set_whitelist(&self, merchant_id: i64, ip_addresses: Vec<String>) -> Result<(), ServiceError> {
         if ip_addresses.len() > 10 {
             return Err(ServiceError::ValidationError("Maximum 10 IP addresses allowed".to_string()));
         }
@@ -41,7 +41,7 @@ impl IpWhitelistService {
         Ok(())
     }
 
-    pub async fn get_whitelist(&self, merchant_id: i32) -> Result<Vec<String>, ServiceError> {
+    pub async fn get_whitelist(&self, merchant_id: i64) -> Result<Vec<String>, ServiceError> {
         let records = sqlx::query!("SELECT ip_address FROM ip_whitelist WHERE merchant_id = $1", merchant_id)
             .fetch_all(&self.pool)
             .await?;
@@ -49,7 +49,7 @@ impl IpWhitelistService {
         Ok(records.into_iter().map(|r| r.ip_address).collect())
     }
 
-    pub async fn is_ip_allowed(&self, merchant_id: i32, ip: &str) -> Result<bool, ServiceError> {
+    pub async fn is_ip_allowed(&self, merchant_id: i64, ip: &str) -> Result<bool, ServiceError> {
         let whitelist = self.get_whitelist(merchant_id).await?;
         
         // Empty whitelist = allow all
@@ -81,13 +81,17 @@ impl IpWhitelistService {
         Ok(false)
     }
 
-    pub async fn log_rejected_request(&self, merchant_id: i32, ip: &str, endpoint: &str) -> Result<(), ServiceError> {
+    pub async fn log_rejected_request(&self, merchant_id: i64, ip: &str, endpoint: &str) -> Result<(), ServiceError> {
+        let details = serde_json::json!({
+            "endpoint": endpoint,
+            "reason": "Non-whitelisted IP"
+        });
         sqlx::query!(
             "INSERT INTO audit_logs (merchant_id, action_type, ip_address, details) VALUES ($1, $2, $3, $4)",
             merchant_id,
             "IP_REJECTED",
             ip,
-            format!("Rejected request to {} from non-whitelisted IP", endpoint)
+            details
         )
         .execute(&self.pool)
         .await?;

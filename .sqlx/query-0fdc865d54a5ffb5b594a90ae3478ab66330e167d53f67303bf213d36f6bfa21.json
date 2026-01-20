@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT pt.status \n        FROM payment_transactions pt\n        JOIN payment_links pl ON pl.payment_id = pt.id\n        WHERE pl.link_id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0fdc865d54a5ffb5b594a90ae3478ab66330e167d53f67303bf213d36f6bfa21"
+}

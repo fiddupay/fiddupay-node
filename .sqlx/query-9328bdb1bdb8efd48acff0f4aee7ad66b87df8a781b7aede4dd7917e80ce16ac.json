@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT merchant_id, amount, crypto_type, fee_amount FROM payment_transactions \n             WHERE payment_id = $1 AND status = 'CONFIRMED'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "merchant_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "crypto_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "fee_amount",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9328bdb1bdb8efd48acff0f4aee7ad66b87df8a781b7aede4dd7917e80ce16ac"
+}

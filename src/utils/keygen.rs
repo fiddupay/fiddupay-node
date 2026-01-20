@@ -1,7 +1,7 @@
-use ed25519_dalek::{SigningKey, VerifyingKey};
-use secp256k1::{Secp256k1, SecretKey, PublicKey};
+use ed25519_dalek::SigningKey;
+use secp256k1::{Secp256k1, PublicKey};
 use rand::rngs::OsRng;
-use sha2::{Sha256, Digest};
+use rand::RngCore;
 
 pub struct KeyPair {
     pub address: String,
@@ -10,8 +10,10 @@ pub struct KeyPair {
 
 /// Generate Solana keypair (Ed25519)
 pub fn generate_solana_keypair() -> Result<KeyPair, String> {
-    let mut csprng = OsRng;
-    let signing_key = SigningKey::generate(&mut csprng);
+    let mut secret_bytes = [0u8; 32];
+    OsRng.fill_bytes(&mut secret_bytes);
+    
+    let signing_key = SigningKey::from_bytes(&secret_bytes);
     let verifying_key = signing_key.verifying_key();
 
     // Solana address is base58 encoded public key

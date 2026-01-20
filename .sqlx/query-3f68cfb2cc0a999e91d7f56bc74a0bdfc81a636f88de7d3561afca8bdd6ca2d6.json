@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT withdrawal_id, merchant_id, crypto_type, amount, destination_address, status, \n                      fee, net_amount, transaction_hash, requires_approval, created_at\n               FROM withdrawals WHERE withdrawal_id = $1 AND merchant_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "withdrawal_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "merchant_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "crypto_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "destination_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "fee",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "net_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "transaction_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "requires_approval",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "3f68cfb2cc0a999e91d7f56bc74a0bdfc81a636f88de7d3561afca8bdd6ca2d6"
+}

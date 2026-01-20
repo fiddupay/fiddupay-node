@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deposit_addresses SET status = 'USED', forwarded_at = NOW(), forward_tx_hash = $2\n             WHERE payment_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bea832258c9510955bfbc6179dbdf5635a1182bdfe6ec9a0c362e2260480a256"
+}

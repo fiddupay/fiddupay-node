@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE invoices SET status = 'PAID', payment_id = $2, paid_at = NOW() WHERE invoice_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1dc90d6421724cd4bd55d48f2aa7a3e6889f8fb230e6fa07880d9212ff9471c3"
+}

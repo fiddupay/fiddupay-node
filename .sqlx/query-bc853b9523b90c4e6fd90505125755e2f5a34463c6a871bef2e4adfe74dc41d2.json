@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE merchant_balances \n             SET reserved_balance = reserved_balance - $3, available_balance = available_balance + $3, last_updated = NOW()\n             WHERE merchant_id = $1 AND crypto_type = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Numeric"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bc853b9523b90c4e6fd90505125755e2f5a34463c6a871bef2e4adfe74dc41d2"
+}

@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT r.refund_id, r.merchant_id, r.payment_id, r.amount, r.amount_usd,\n                   r.reason, r.status, r.transaction_hash, r.created_at, r.completed_at,\n                   p.payment_id as public_payment_id\n            FROM refunds r\n            JOIN payment_transactions p ON r.payment_id = p.id\n            WHERE r.refund_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "refund_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "merchant_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "payment_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "amount_usd",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "transaction_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "completed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "public_payment_id",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "a413d504b1480b67067bbeeaea58ef15cb53a8ba43334aeaff8d8f9764527424"
+}

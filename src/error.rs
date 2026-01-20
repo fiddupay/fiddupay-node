@@ -14,6 +14,9 @@ pub enum ServiceError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
 
+    #[error("JSON error: {0}")]
+    Json(#[from] serde_json::Error),
+
     #[error("Invalid API key")]
     InvalidApiKey,
 
@@ -58,6 +61,15 @@ pub enum ServiceError {
 
     #[error("Internal server error: {0}")]
     Internal(String),
+
+    #[error("Validation error: {0}")]
+    ValidationError(String),
+
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
+
+    #[error("Internal error: {0}")]
+    InternalError(String),
 }
 
 #[derive(Debug, Serialize)]
@@ -135,10 +147,20 @@ impl IntoResponse for ServiceError {
                 "INVALID_REFUND_AMOUNT",
                 msg.as_str(),
             ),
-            ServiceError::Database(_) | ServiceError::Internal(_) => (
+            ServiceError::Database(_) | ServiceError::Json(_) | ServiceError::Internal(_) | ServiceError::InternalError(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "INTERNAL_SERVER_ERROR",
                 "Internal server error",
+            ),
+            ServiceError::ValidationError(ref msg) => (
+                StatusCode::BAD_REQUEST,
+                "VALIDATION_ERROR",
+                msg.as_str(),
+            ),
+            ServiceError::Unauthorized(ref msg) => (
+                StatusCode::UNAUTHORIZED,
+                "UNAUTHORIZED",
+                msg.as_str(),
             ),
             ServiceError::Forbidden(ref msg) => (
                 StatusCode::FORBIDDEN,
@@ -161,5 +183,11 @@ impl IntoResponse for ServiceError {
         };
 
         (status, Json(error_response)).into_response()
+    }
+}
+
+impl From<String> for ServiceError {
+    fn from(msg: String) -> Self {
+        ServiceError::InternalError(msg)
     }
 }

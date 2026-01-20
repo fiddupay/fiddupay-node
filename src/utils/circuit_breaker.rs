@@ -33,6 +33,7 @@ impl CircuitBreaker {
     where
         F: FnOnce() -> Fut,
         Fut: std::future::Future<Output = Result<T, E>>,
+        E: From<String>,
     {
         let state = *self.state.read().await;
 
@@ -44,7 +45,7 @@ impl CircuitBreaker {
                         info!("Circuit breaker transitioning to half-open");
                         *self.state.write().await = CircuitState::HalfOpen;
                     } else {
-                        return Err(self.create_circuit_open_error());
+                        return Err(E::from("Circuit breaker is open".to_string()));
                     }
                 }
             }
@@ -81,13 +82,6 @@ impl CircuitBreaker {
             *self.state.write().await = CircuitState::Open;
             *self.last_failure_time.write().await = Some(Instant::now());
         }
-    }
-
-    fn create_circuit_open_error<E>(&self) -> E
-    where
-        E: From<String>,
-    {
-        E::from("Circuit breaker is open".to_string())
     }
 
     pub async fn is_open(&self) -> bool {

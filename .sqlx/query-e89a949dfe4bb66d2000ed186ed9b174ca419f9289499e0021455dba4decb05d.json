@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deposit_addresses SET status = 'EXPIRED'\n             WHERE expires_at < NOW() AND status = 'ACTIVE'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "e89a949dfe4bb66d2000ed186ed9b174ca419f9289499e0021455dba4decb05d"
+}

@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
-use crate::services::balance_service::BalanceService;
-use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MerchantBalance {
@@ -48,7 +46,7 @@ impl BalanceService {
         Self { pool }
     }
 
-    pub async fn credit_available(&self, merchant_id: i32, crypto_type: &str, amount: Decimal, reason: &str, reference_id: Option<&str>) -> Result<(), ServiceError> {
+    pub async fn credit_available(&self, merchant_id: i64, crypto_type: &str, amount: Decimal, reason: &str, reference_id: Option<&str>) -> Result<(), ServiceError> {
         let mut tx = self.pool.begin().await?;
 
         // Get or create balance
@@ -68,8 +66,8 @@ impl BalanceService {
             "INSERT INTO balance_history (merchant_id, crypto_type, amount, balance_type, change_type, reason, reference_id, balance_before, balance_after)
              VALUES ($1, $2, $3, 'AVAILABLE', 'CREDIT', $4, $5, $6, $7)",
             merchant_id, crypto_type, amount, reason, reference_id,
-            balance.balance_before.unwrap_or(Decimal::ZERO),
-            balance.balance_after.unwrap_or(Decimal::ZERO)
+            balance.balance_before,
+            balance.balance_after
         )
         .execute(&mut *tx)
         .await?;
@@ -78,7 +76,7 @@ impl BalanceService {
         Ok(())
     }
 
-    pub async fn debit_available(&self, merchant_id: i32, crypto_type: &str, amount: Decimal, reason: &str, reference_id: Option<&str>) -> Result<(), ServiceError> {
+    pub async fn debit_available(&self, merchant_id: i64, crypto_type: &str, amount: Decimal, reason: &str, reference_id: Option<&str>) -> Result<(), ServiceError> {
         let mut tx = self.pool.begin().await?;
 
         // Check sufficient balance
@@ -109,8 +107,8 @@ impl BalanceService {
             "INSERT INTO balance_history (merchant_id, crypto_type, amount, balance_type, change_type, reason, reference_id, balance_before, balance_after)
              VALUES ($1, $2, $3, 'AVAILABLE', 'DEBIT', $4, $5, $6, $7)",
             merchant_id, crypto_type, amount, reason, reference_id,
-            result.balance_before.unwrap_or(Decimal::ZERO),
-            result.balance_after.unwrap_or(Decimal::ZERO)
+            result.balance_before,
+            result.balance_after
         )
         .execute(&mut *tx)
         .await?;
@@ -119,7 +117,7 @@ impl BalanceService {
         Ok(())
     }
 
-    pub async fn reserve(&self, merchant_id: i32, crypto_type: &str, amount: Decimal, reason: &str, reference_id: Option<&str>) -> Result<(), ServiceError> {
+    pub async fn reserve(&self, merchant_id: i64, crypto_type: &str, amount: Decimal, reason: &str, reference_id: Option<&str>) -> Result<(), ServiceError> {
         let mut tx = self.pool.begin().await?;
 
         // Move from available to reserved
@@ -156,7 +154,7 @@ impl BalanceService {
         Ok(())
     }
 
-    pub async fn release_reserve(&self, merchant_id: i32, crypto_type: &str, amount: Decimal, reason: &str, reference_id: Option<&str>) -> Result<(), ServiceError> {
+    pub async fn release_reserve(&self, merchant_id: i64, crypto_type: &str, amount: Decimal, reason: &str, reference_id: Option<&str>) -> Result<(), ServiceError> {
         let mut tx = self.pool.begin().await?;
 
         sqlx::query!(
@@ -180,7 +178,7 @@ impl BalanceService {
         Ok(())
     }
 
-    pub async fn get_balance(&self, merchant_id: i32) -> Result<BalanceResponse, ServiceError> {
+    pub async fn get_balance(&self, merchant_id: i64) -> Result<BalanceResponse, ServiceError> {
         let balances = sqlx::query!(
             "SELECT crypto_type, available_balance, reserved_balance, total_balance
              FROM merchant_balances WHERE merchant_id = $1",
@@ -212,7 +210,7 @@ impl BalanceService {
         })
     }
 
-    pub async fn get_history(&self, merchant_id: i32, limit: i64) -> Result<Vec<BalanceHistoryEntry>, ServiceError> {
+    pub async fn get_history(&self, merchant_id: i64, limit: i64) -> Result<Vec<BalanceHistoryEntry>, ServiceError> {
         let records = sqlx::query_as!(
             BalanceHistoryEntry,
             "SELECT id, crypto_type, amount, balance_type, change_type, reason, reference_id, balance_before, balance_after, created_at
@@ -237,7 +235,7 @@ impl BalanceService {
         .ok_or_else(|| ServiceError::NotFound("Payment not found or not confirmed".to_string()))?;
 
         // Credit the net amount (amount - fee)
-        let net_amount = payment.amount - payment.fee_amount.unwrap_or(Decimal::ZERO);
+        let net_amount = payment.amount - payment.fee_amount;
         
         self.credit_available(
             payment.merchant_id,

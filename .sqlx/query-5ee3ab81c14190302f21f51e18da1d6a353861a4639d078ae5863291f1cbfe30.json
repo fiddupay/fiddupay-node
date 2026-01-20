@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE refunds\n            SET transaction_hash = $1, status = $2, completed_at = $3\n            WHERE refund_id = $4\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5ee3ab81c14190302f21f51e18da1d6a353861a4639d078ae5863291f1cbfe30"
+}

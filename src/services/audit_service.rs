@@ -1,15 +1,16 @@
 use sqlx::PgPool;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use crate::error::ServiceError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AuditLog {
-    pub id: i32,
-    pub merchant_id: i32,
+    pub id: i64,
+    pub merchant_id: Option<i64>,
     pub action_type: String,
     pub ip_address: Option<String>,
-    pub details: Option<String>,
+    pub details: Option<JsonValue>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -32,10 +33,10 @@ impl AuditService {
 
     pub async fn log_event(
         &self,
-        merchant_id: i32,
+        merchant_id: i64,
         action_type: &str,
         ip_address: Option<&str>,
-        details: Option<&str>,
+        details: Option<JsonValue>,
     ) -> Result<(), ServiceError> {
         sqlx::query!(
             "INSERT INTO audit_logs (merchant_id, action_type, ip_address, details) VALUES ($1, $2, $3, $4)",
@@ -50,7 +51,7 @@ impl AuditService {
         Ok(())
     }
 
-    pub async fn get_logs(&self, merchant_id: i32, query: AuditLogQuery) -> Result<Vec<AuditLog>, ServiceError> {
+    pub async fn get_logs(&self, merchant_id: i64, query: AuditLogQuery) -> Result<Vec<AuditLog>, ServiceError> {
         let limit = query.limit.unwrap_or(100).min(1000);
         
         let logs = if let Some(action_type) = query.action_type {

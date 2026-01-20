@@ -342,7 +342,8 @@ mod tests {
     #[test]
     fn test_background_tasks_creation() {
         let pool = PgPool::connect_lazy("postgres://localhost/test").unwrap();
-        let tasks = BackgroundTasks::new(pool);
+        let signing_key = "test_signing_key_32_bytes_long!!".to_string();
+        let tasks = BackgroundTasks::new(pool, signing_key);
         // Just verify it compiles and creates
         assert!(true);
     }

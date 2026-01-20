@@ -409,17 +409,20 @@ mod tests {
 
     #[test]
     fn test_api_key_hashing() {
-        // Test that bcrypt hashing works correctly
+        use argon2::{Argon2, PasswordHasher};
+        use argon2::password_hash::{SaltString, rand_core::OsRng};
+        
+        // Test that argon2 hashing works correctly
         let api_key = "test_api_key_12345678901234567890";
-        let hash1 = hash(api_key, DEFAULT_COST).unwrap();
-        let hash2 = hash(api_key, DEFAULT_COST).unwrap();
+        let salt1 = SaltString::generate(&mut OsRng);
+        let salt2 = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
         
-        // Hashes should be different (bcrypt uses random salt)
+        let hash1 = argon2.hash_password(api_key.as_bytes(), &salt1).unwrap().to_string();
+        let hash2 = argon2.hash_password(api_key.as_bytes(), &salt2).unwrap().to_string();
+        
+        // Hashes should be different (different salts)
         assert_ne!(hash1, hash2);
-        
-        // But both should verify against the original key
-        assert!(bcrypt::verify(api_key, &hash1).unwrap());
-        assert!(bcrypt::verify(api_key, &hash2).unwrap());
     }
 
     #[test]

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO two_factor_auth (merchant_id, secret_encrypted, recovery_codes_encrypted)\n               VALUES ($1, $2, $3)\n               ON CONFLICT (merchant_id) DO UPDATE \n               SET secret_encrypted = $2, recovery_codes_encrypted = $3, is_enabled = false",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e588e26ef0cc156ed35b09ca3bf5ef41769a0a1c5a8e45337784d2ff8a185aa2"
+}

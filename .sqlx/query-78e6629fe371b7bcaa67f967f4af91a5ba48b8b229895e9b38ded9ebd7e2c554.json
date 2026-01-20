@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT payment_id, status, amount, amount_usd, crypto_type, network, \n               to_address, fee_amount_usd, expires_at, created_at, confirmed_at, \n               transaction_hash, partial_payments_enabled, total_paid, remaining_balance\n        FROM payment_transactions \n        WHERE id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "payment_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount_usd",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "crypto_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "network",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "to_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "fee_amount_usd",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "confirmed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "transaction_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "partial_payments_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "total_paid",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 14,
+        "name": "remaining_balance",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "78e6629fe371b7bcaa67f967f4af91a5ba48b8b229895e9b38ded9ebd7e2c554"
+}

@@ -2,7 +2,7 @@
 CREATE TABLE withdrawals (
     id SERIAL PRIMARY KEY,
     withdrawal_id VARCHAR(100) UNIQUE NOT NULL,
-    merchant_id INTEGER NOT NULL REFERENCES merchants(id),
+    merchant_id BIGINT NOT NULL REFERENCES merchants(id),
     crypto_type VARCHAR(50) NOT NULL,
     amount DECIMAL(36, 18) NOT NULL,
     destination_address VARCHAR(255) NOT NULL,

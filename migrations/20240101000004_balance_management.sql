@@ -1,7 +1,7 @@
 -- Create merchant_balances table
 CREATE TABLE merchant_balances (
     id SERIAL PRIMARY KEY,
-    merchant_id INTEGER NOT NULL REFERENCES merchants(id),
+    merchant_id BIGINT NOT NULL REFERENCES merchants(id),
     crypto_type VARCHAR(50) NOT NULL,
     available_balance DECIMAL(36, 18) NOT NULL DEFAULT 0,
     reserved_balance DECIMAL(36, 18) NOT NULL DEFAULT 0,
@@ -13,7 +13,7 @@ CREATE TABLE merchant_balances (
 -- Create balance_history table
 CREATE TABLE balance_history (
     id SERIAL PRIMARY KEY,
-    merchant_id INTEGER NOT NULL REFERENCES merchants(id),
+    merchant_id BIGINT NOT NULL REFERENCES merchants(id),
     crypto_type VARCHAR(50) NOT NULL,
     amount DECIMAL(36, 18) NOT NULL,
     balance_type VARCHAR(20) NOT NULL, -- 'AVAILABLE' or 'RESERVED'
