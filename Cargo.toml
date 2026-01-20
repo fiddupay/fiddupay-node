@@ -1,0 +1,84 @@
+[package]
+name = "crypto-payment-gateway"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = ["."]
+
+[dependencies]
+# Web framework
+axum = { version = "0.7", features = ["macros"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+tokio = { version = "1", features = ["full"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "rust_decimal", "migrate"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Decimal handling
+rust_decimal = { version = "1.33", features = ["serde-with-str"] }
+
+# Date/Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+
+# Redis
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Crypto/Hashing
+bcrypt = "0.15"
+sha2 = "0.10"
+hex = "0.4"
+hmac = "0.12"
+
+# UUID/ID generation
+uuid = { version = "1.6", features = ["v4", "serde"] }
+nanoid = "0.4"
+
+# URL parsing and validation
+url = "2.5"
+
+# Environment variables
+dotenvy = "0.15"
+
+# Async utilities
+async-trait = "0.1"
+futures = "0.3"
+
+# Rate limiting
+governor = "0.6"
+
+# QR code generation
+qrcode = "0.14"
+
+# Base58 encoding (for Solana addresses)
+bs58 = "0.5"
+
+# Ethereum address validation
+ethers = { version = "2.0", default-features = false }
+
+# Solana SDK (for address validation and RPC)
+solana-client = "1.17"
+solana-sdk = "1.17"
+
+# Prometheus metrics
+prometheus = "0.13"
+
+[dev-dependencies]
+proptest = "1.4"
+mockall = "0.12"
