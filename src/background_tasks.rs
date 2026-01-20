@@ -98,6 +98,8 @@ impl BackgroundTasks {
         info!("Found {} expired payments to process", expired_payments.len());
 
         for payment in expired_payments {
+            let payment_id_clone = payment.payment_id.clone();
+            
             // Update payment status to FAILED (expired)
             let result = sqlx::query!(
                 r#"
@@ -136,7 +138,7 @@ impl BackgroundTasks {
                     ).await {
                         error!(
                             "Failed to queue webhook for expired payment {}: {}",
-                            payment.payment_id, e
+                            payment_id_clone, e
                         );
                     }
                 }
@@ -150,7 +152,7 @@ impl BackgroundTasks {
                 Err(e) => {
                     error!(
                         "Failed to update payment {} status: {}",
-                        payment.payment_id, e
+                        payment_id_clone, e
                     );
                 }
             }

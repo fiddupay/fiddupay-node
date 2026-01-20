@@ -4,7 +4,10 @@
 use crate::error::ServiceError;
 use crate::models::merchant::{Merchant, MerchantRegistrationResponse, MerchantWallet};
 use crate::payment::models::CryptoType;
-use bcrypt::{hash, DEFAULT_COST};
+use argon2::{
+    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    Argon2,
+};
 use chrono::Utc;
 use nanoid::nanoid;
 use rust_decimal::Decimal;
@@ -42,9 +45,13 @@ impl MerchantService {
         // Generate a secure random API key (32 characters)
         let api_key = self.generate_api_key();
         
-        // Hash the API key using bcrypt before storing
-        let api_key_hash = hash(&api_key, DEFAULT_COST)
-            .map_err(|e| ServiceError::Internal(format!("Failed to hash API key: {}", e)))?;
+        // Hash the API key using Argon2 before storing
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        let api_key_hash = argon2
+            .hash_password(api_key.as_bytes(), &salt)
+            .map_err(|e| ServiceError::Internal(format!("Failed to hash API key: {}", e)))?
+            .to_string();
         
         // Default fee percentage is 1.50%
         let fee_percentage = Decimal::new(150, 2);
@@ -105,8 +112,10 @@ impl MerchantService {
         .ok_or(ServiceError::MerchantNotFound)?;
         
         // Verify the old API key matches
-        if !bcrypt::verify(&old_api_key, &merchant.api_key_hash)
-            .map_err(|e| ServiceError::Internal(format!("Failed to verify API key: {}", e)))? {
+        let parsed_hash = PasswordHash::new(&merchant.api_key_hash)
+            .map_err(|e| ServiceError::Internal(format!("Invalid hash format: {}", e)))?;
+        let argon2 = Argon2::default();
+        if argon2.verify_password(old_api_key.as_bytes(), &parsed_hash).is_err() {
             return Err(ServiceError::InvalidApiKey);
         }
         
@@ -114,8 +123,11 @@ impl MerchantService {
         let new_api_key = self.generate_api_key();
         
         // Hash the new API key
-        let new_api_key_hash = hash(&new_api_key, DEFAULT_COST)
-            .map_err(|e| ServiceError::Internal(format!("Failed to hash API key: {}", e)))?;
+        let salt = SaltString::generate(&mut OsRng);
+        let new_api_key_hash = argon2
+            .hash_password(new_api_key.as_bytes(), &salt)
+            .map_err(|e| ServiceError::Internal(format!("Failed to hash API key: {}", e)))?
+            .to_string();
         
         // Update the merchant's API key in the database
         sqlx::query(
@@ -160,9 +172,12 @@ impl MerchantService {
         .await?;
         
         // Check each merchant's API key hash
+        let argon2 = Argon2::default();
         for merchant in merchants {
-            if bcrypt::verify(api_key, &merchant.api_key_hash).unwrap_or(false) {
-                return Ok(merchant);
+            if let Ok(parsed_hash) = PasswordHash::new(&merchant.api_key_hash) {
+                if argon2.verify_password(api_key.as_bytes(), &parsed_hash).is_ok() {
+                    return Ok(merchant);
+                }
             }
         }
         

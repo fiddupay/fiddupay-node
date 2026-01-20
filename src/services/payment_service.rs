@@ -1,10 +1,13 @@
 // Payment Service
 // Business logic for payment operations
 
+use crate::error::ServiceError;
 use crate::payment::models::{
-    PaymentFilters, PaymentList, PaymentResponse, PaymentStatus, PaymentTransaction,
-    PartialPaymentInfo, PartialPaymentRecord, CryptoType,
+    CreatePaymentRequest, PaymentFilters, PaymentList, PaymentResponse, PaymentStatus,
+    PaymentTransaction, PartialPaymentInfo, PartialPaymentRecord, CryptoType,
 };
+use crate::payment::processor::PaymentProcessor;
+use crate::payment::verifier::PaymentVerifier;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use sqlx::PgPool;
@@ -17,15 +20,105 @@ pub enum PaymentServiceError {
     PaymentNotFound,
     #[error("Invalid filter parameters: {0}")]
     InvalidFilters(String),
+    #[error("Service error: {0}")]
+    ServiceError(#[from] ServiceError),
+    #[error("Verification error: {0}")]
+    VerificationError(String),
+    #[error("Payment has expired")]
+    PaymentExpired,
+    #[error("Payment already confirmed")]
+    PaymentAlreadyConfirmed,
 }
 
 pub struct PaymentService {
     db_pool: PgPool,
+    processor: PaymentProcessor,
+    verifier: PaymentVerifier,
 }
 
 impl PaymentService {
-    pub fn new(db_pool: PgPool) -> Self {
-        Self { db_pool }
+    pub fn new(db_pool: PgPool, payment_page_base_url: String) -> Self {
+        Self {
+            processor: PaymentProcessor::new(db_pool.clone(), payment_page_base_url),
+            verifier: PaymentVerifier::new(db_pool.clone()),
+            db_pool,
+        }
+    }
+
+    /// Create a new payment request
+    /// 
+    /// # Arguments
+    /// * `merchant_id` - The merchant creating the payment
+    /// * `request` - Payment creation request details
+    /// 
+    /// # Returns
+    /// * `PaymentResponse` with payment details
+    /// 
+    /// # Requirements
+    /// * 2.1: Generate unique payment identifier
+    /// * 2.2: Calculate crypto amount using real-time exchange rates
+    /// * 2.6: Include platform fee in total amount
+    pub async fn create_payment(
+        &self,
+        merchant_id: i64,
+        request: CreatePaymentRequest,
+    ) -> Result<PaymentResponse, PaymentServiceError> {
+        Ok(self.processor.create_payment(merchant_id, request).await?)
+    }
+
+    /// Verify a payment with transaction hash
+    /// 
+    /// # Arguments
+    /// * `payment_id` - Public payment ID (e.g., "pay_abc123")
+    /// * `transaction_hash` - Blockchain transaction hash
+    /// * `merchant_id` - Merchant ID for ownership verification
+    /// 
+    /// # Returns
+    /// * `true` if payment is confirmed
+    /// * `false` if payment is pending more confirmations
+    /// 
+    /// # Requirements
+    /// * 3.1: Verify transaction hash exists on blockchain
+    /// * 3.2: Confirm amount matches expected payment amount
+    /// * 3.3: Confirm recipient address matches merchant's wallet
+    pub async fn verify_payment(
+        &self,
+        payment_id: &str,
+        transaction_hash: &str,
+        merchant_id: i64,
+    ) -> Result<bool, PaymentServiceError> {
+        self.verifier
+            .verify_payment(payment_id, transaction_hash, merchant_id)
+            .await
+            .map_err(|e| PaymentServiceError::VerificationError(e.to_string()))
+    }
+
+    /// Get a single payment by payment ID
+    /// 
+    /// # Arguments
+    /// * `payment_id` - Public payment ID (e.g., "pay_abc123")
+    /// * `merchant_id` - Merchant ID for ownership verification
+    /// 
+    /// # Returns
+    /// * `PaymentResponse` with payment details
+    pub async fn get_payment(
+        &self,
+        payment_id: &str,
+        merchant_id: i64,
+    ) -> Result<PaymentResponse, PaymentServiceError> {
+        let payment = sqlx::query_as::<_, PaymentTransaction>(
+            "SELECT * FROM payment_transactions WHERE payment_id = $1"
+        )
+        .bind(payment_id)
+        .fetch_optional(&self.db_pool)
+        .await?
+        .ok_or(PaymentServiceError::PaymentNotFound)?;
+
+        if payment.merchant_id != merchant_id {
+            return Err(PaymentServiceError::PaymentNotFound);
+        }
+
+        self.convert_to_response(payment).await
     }
 
     /// List payments for a merchant with optional filters and pagination

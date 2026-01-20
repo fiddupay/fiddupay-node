@@ -1,0 +1,440 @@
+{
+  "info": {
+    "name": "Crypto Payment Gateway API",
+    "_postman_id": "crypto-gateway-v1",
+    "description": "Complete API collection for Crypto Payment Gateway",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "your_api_key_here",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Merchants",
+      "item": [
+        {
+          "name": "Register Merchant",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"merchant@example.com\",\n  \"business_name\": \"My Store\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "register"]
+            },
+            "description": "Register a new merchant account"
+          },
+          "response": []
+        },
+        {
+          "name": "Set Wallet Address",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"address\": \"7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/wallets",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "wallets"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Wallet Addresses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/wallets",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "wallets"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Set Webhook URL",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://merchant-site.com/webhooks/crypto-payments\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/webhook",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "webhook"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_usd\": 100.00,\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Order #12345\",\n  \"metadata\": {\n    \"order_id\": \"12345\",\n    \"customer_email\": \"customer@example.com\"\n  },\n  \"expiration_minutes\": 15\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payments"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments/:payment_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payments", ":payment_id"],
+              "variable": [
+                {
+                  "key": "payment_id",
+                  "value": "pay_abc123"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments?status=CONFIRMED&limit=100",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payments"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "CONFIRMED"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_hash\": \"5j7s...xyz\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments/:payment_id/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payments", ":payment_id", "verify"],
+              "variable": [
+                {
+                  "key": "payment_id",
+                  "value": "pay_abc123"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Refunds",
+      "item": [
+        {
+          "name": "Create Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_id\": \"pay_abc123\",\n  \"amount\": 50.00,\n  \"reason\": \"Customer request\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/refunds",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "refunds"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Refund",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/refunds/:refund_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "refunds", ":refund_id"],
+              "variable": [
+                {
+                  "key": "refund_id",
+                  "value": "ref_abc123"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Get Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics?from=2026-01-01T00:00:00Z&to=2026-01-31T23:59:59Z",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-01-01T00:00:00Z"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-01-31T23:59:59Z"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Export CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/export?from=2026-01-01T00:00:00Z&to=2026-01-31T23:59:59Z",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "export"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-01-01T00:00:00Z"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-01-31T23:59:59Z"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Security",
+      "item": [
+        {
+          "name": "Set IP Whitelist",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ip_addresses\": [\n    \"203.0.113.0/24\",\n    \"198.51.100.42\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/ip-whitelist",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "ip-whitelist"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get IP Whitelist",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/ip-whitelist",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "ip-whitelist"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs?limit=100",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit-logs"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sandbox",
+      "item": [
+        {
+          "name": "Enable Sandbox",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sandbox/enable",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sandbox", "enable"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Simulate Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMED\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/sandbox/payments/:payment_id/simulate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sandbox", "payments", ":payment_id", "simulate"],
+              "variable": [
+                {
+                  "key": "payment_id",
+                  "value": "pay_abc123"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -323,4 +323,71 @@ impl PaymentVerifier {
         warn!("❌ Payment {} marked as failed: {}", payment_id, reason);
         Ok(())
     }
+
+    /// Record a partial payment
+    /// 
+    /// # Requirements
+    /// * 20.2: Track total amount paid across multiple transactions
+    /// * 20.3: Update remaining balance
+    /// * 20.4: Mark payment as completed when total >= required amount
+    pub async fn record_partial_payment(
+        &self,
+        payment_id: i64,
+        transaction_hash: &str,
+        amount: rust_decimal::Decimal,
+        amount_usd: rust_decimal::Decimal,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        let mut tx = self.db_pool.begin().await?;
+
+        // Insert partial payment record
+        sqlx::query!(
+            r#"
+            INSERT INTO partial_payments (payment_id, transaction_hash, amount, amount_usd, confirmations, status, created_at)
+            VALUES ($1, $2, $3, $4, 0, 'CONFIRMED', $5)
+            "#,
+            payment_id,
+            transaction_hash,
+            amount,
+            amount_usd,
+            chrono::Utc::now()
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        // Update payment total_paid and remaining_balance
+        let payment = sqlx::query!(
+            r#"
+            UPDATE payment_transactions
+            SET total_paid = total_paid + $1,
+                remaining_balance = remaining_balance - $1,
+                expires_at = expires_at + INTERVAL '15 minutes'
+            WHERE id = $2
+            RETURNING amount, total_paid, remaining_balance
+            "#,
+            amount,
+            payment_id
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+
+        // Check if payment is now complete
+        let is_complete = payment.total_paid >= payment.amount;
+        
+        if is_complete {
+            sqlx::query!(
+                "UPDATE payment_transactions SET status = 'CONFIRMED', confirmed_at = $1 WHERE id = $2",
+                chrono::Utc::now(),
+                payment_id
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        tx.commit().await?;
+
+        info!("💰 Partial payment recorded for payment {}: {} (total: {}/{})", 
+            payment_id, amount, payment.total_paid, payment.amount);
+
+        Ok(is_complete)
+    }
 }

@@ -38,6 +38,12 @@ pub enum ServiceError {
     #[error("Rate limit exceeded")]
     RateLimitExceeded,
 
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
+
+    #[error("Not found: {0}")]
+    NotFound(String),
+
     #[error("IP not whitelisted")]
     IpNotWhitelisted,
 
@@ -84,7 +90,7 @@ impl IntoResponse for ServiceError {
                 "MERCHANT_NOT_FOUND",
                 "Merchant not found",
             ),
-            ServiceError::InvalidWalletAddress(msg) => (
+            ServiceError::InvalidWalletAddress(ref msg) => (
                 StatusCode::BAD_REQUEST,
                 "INVALID_WALLET_ADDRESS",
                 msg.as_str(),
@@ -94,12 +100,12 @@ impl IntoResponse for ServiceError {
                 "WALLET_NOT_FOUND",
                 "Wallet not found for this blockchain",
             ),
-            ServiceError::InvalidWebhookUrl(msg) => (
+            ServiceError::InvalidWebhookUrl(ref msg) => (
                 StatusCode::BAD_REQUEST,
                 "INVALID_WEBHOOK_URL",
                 msg.as_str(),
             ),
-            ServiceError::WebhookDeliveryFailed(msg) => (
+            ServiceError::WebhookDeliveryFailed(ref msg) => (
                 StatusCode::BAD_GATEWAY,
                 "WEBHOOK_DELIVERY_FAILED",
                 msg.as_str(),
@@ -114,7 +120,7 @@ impl IntoResponse for ServiceError {
                 "IP_NOT_WHITELISTED",
                 "IP address not whitelisted",
             ),
-            ServiceError::InvalidFeePercentage(msg) => (
+            ServiceError::InvalidFeePercentage(ref msg) => (
                 StatusCode::BAD_REQUEST,
                 "INVALID_FEE_PERCENTAGE",
                 msg.as_str(),
@@ -124,7 +130,7 @@ impl IntoResponse for ServiceError {
                 "REFUND_NOT_FOUND",
                 "Refund not found",
             ),
-            ServiceError::InvalidRefundAmount(msg) => (
+            ServiceError::InvalidRefundAmount(ref msg) => (
                 StatusCode::BAD_REQUEST,
                 "INVALID_REFUND_AMOUNT",
                 msg.as_str(),
@@ -133,6 +139,16 @@ impl IntoResponse for ServiceError {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "INTERNAL_SERVER_ERROR",
                 "Internal server error",
+            ),
+            ServiceError::Forbidden(ref msg) => (
+                StatusCode::FORBIDDEN,
+                "FORBIDDEN",
+                msg.as_str(),
+            ),
+            ServiceError::NotFound(ref msg) => (
+                StatusCode::NOT_FOUND,
+                "NOT_FOUND",
+                msg.as_str(),
             ),
         };
 
