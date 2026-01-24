@@ -4,91 +4,102 @@ import styles from './PricingPage.module.css'
 
 const PricingPage: React.FC = () => {
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.nav}>
-          <Link to="/" className={styles.logo}>
-            <h2>PayFlow</h2>
-            <span>by TechyTro</span>
-          </Link>
-          <div className={styles.navLinks}>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-            <Link to="/contact">Contact</Link>
-            <Link to="/login" className={styles.loginBtn}>Login</Link>
-          </div>
+    <div className={styles.pricingPage}>
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Simple, Transparent Pricing</h1>
+          <p className={styles.subtitle}>
+            Start free, scale as you grow. No hidden fees, no setup costs.
+          </p>
         </div>
-      </header>
 
-      {/* Hero */}
-      <section className={styles.hero}>
-        <div className={styles.heroContent}>
-          <h1>Simple, Transparent Pricing</h1>
-          <p>No setup fees. No monthly fees. Pay only when you earn.</p>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section className={styles.pricing}>
-        <div className={styles.pricingGrid}>
-          <div className={styles.pricingCard}>
-            <h3>Starter</h3>
-            <div className={styles.price}>
-              <span className={styles.priceNumber}>2.9%</span>
-              <span className={styles.priceUnit}>per transaction</span>
+        <div className={styles.plans}>
+          <div className={styles.plan}>
+            <div className={styles.planHeader}>
+              <h3 className={styles.planName}>Starter</h3>
+              <div className={styles.planPrice}>
+                <span className={styles.price}>Free</span>
+              </div>
+              <p className={styles.planDescription}>Perfect for testing and small businesses</p>
             </div>
             <ul className={styles.features}>
-              <li>✓ All supported cryptocurrencies</li>
-              <li>✓ Automatic forwarding</li>
-              <li>✓ Basic webhook notifications</li>
-              <li>✓ API access</li>
-              <li>✓ Email support</li>
+              <li>Up to $1,000/month volume</li>
+              <li>Basic dashboard</li>
+              <li>Email support</li>
+              <li>Standard processing speed</li>
             </ul>
-            <Link to="/register" className={styles.pricingBtn}>Get Started</Link>
+            <Link to="/login" className={styles.planBtn}>
+              Get Started
+            </Link>
           </div>
 
-          <div className={`${styles.pricingCard} ${styles.popular}`}>
+          <div className={`${styles.plan} ${styles.popular}`}>
             <div className={styles.popularBadge}>Most Popular</div>
-            <h3>Business</h3>
-            <div className={styles.price}>
-              <span className={styles.priceNumber}>2.4%</span>
-              <span className={styles.priceUnit}>per transaction</span>
+            <div className={styles.planHeader}>
+              <h3 className={styles.planName}>Professional</h3>
+              <div className={styles.planPrice}>
+                <span className={styles.price}>2.5%</span>
+                <span className={styles.period}>per transaction</span>
+              </div>
+              <p className={styles.planDescription}>For growing businesses and e-commerce</p>
             </div>
             <ul className={styles.features}>
-              <li>✓ Everything in Starter</li>
-              <li>✓ Advanced webhooks</li>
-              <li>✓ Priority support</li>
-              <li>✓ Custom integration help</li>
-              <li>✓ Volume discounts</li>
+              <li>Unlimited transaction volume</li>
+              <li>Advanced analytics dashboard</li>
+              <li>Priority support</li>
+              <li>Instant processing</li>
+              <li>Webhook notifications</li>
+              <li>Multi-network support</li>
             </ul>
-            <Link to="/register" className={styles.pricingBtn}>Start Free Trial</Link>
+            <Link to="/login" className={`${styles.planBtn} ${styles.primaryBtn}`}>
+              Start Free Trial
+            </Link>
           </div>
 
-          <div className={styles.pricingCard}>
-            <h3>Enterprise</h3>
-            <div className={styles.price}>
-              <span className={styles.priceNumber}>Custom</span>
-              <span className={styles.priceUnit}>pricing</span>
+          <div className={styles.plan}>
+            <div className={styles.planHeader}>
+              <h3 className={styles.planName}>Enterprise</h3>
+              <div className={styles.planPrice}>
+                <span className={styles.price}>Custom</span>
+              </div>
+              <p className={styles.planDescription}>For large-scale operations</p>
             </div>
             <ul className={styles.features}>
-              <li>✓ Everything in Business</li>
-              <li>✓ Dedicated support</li>
-              <li>✓ Custom features</li>
-              <li>✓ SLA guarantees</li>
-              <li>✓ White-label options</li>
+              <li>Custom transaction rates</li>
+              <li>Dedicated account manager</li>
+              <li>24/7 phone support</li>
+              <li>Custom integrations</li>
+              <li>SLA guarantees</li>
+              <li>White-label options</li>
             </ul>
-            <Link to="/contact" className={styles.pricingBtn}>Contact Sales</Link>
+            <a href="mailto:sales@payflow.com" className={styles.planBtn}>
+              Contact Sales
+            </a>
           </div>
         </div>
-      </section>
 
-      {/* Footer */}
-      <footer className={styles.footer}>
-        <div className={styles.footerContent}>
-          <p>&copy; 2026 TechyTro Software. All rights reserved.</p>
+        <div className={styles.faq}>
+          <h2>Frequently Asked Questions</h2>
+          <div className={styles.faqGrid}>
+            <div className={styles.faqItem}>
+              <h3>What cryptocurrencies do you support?</h3>
+              <p>We support SOL (Solana) and USDT across 5 major networks: Ethereum, BSC, Polygon, Arbitrum, and Solana.</p>
+            </div>
+            <div className={styles.faqItem}>
+              <h3>How fast are transactions processed?</h3>
+              <p>Transactions are confirmed in real-time and automatically forwarded to your designated wallets within seconds.</p>
+            </div>
+            <div className={styles.faqItem}>
+              <h3>Is there a setup fee?</h3>
+              <p>No setup fees, no monthly fees. You only pay when you process transactions.</p>
+            </div>
+            <div className={styles.faqItem}>
+              <h3>Can I integrate with my existing system?</h3>
+              <p>Yes, we provide comprehensive APIs and webhooks for seamless integration with any platform.</p>
+            </div>
+          </div>
         </div>
-      </footer>
+      </div>
     </div>
   )
 }

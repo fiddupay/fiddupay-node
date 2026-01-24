@@ -1,11 +1,10 @@
 import React, { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import Layout from '@/components/Layout'
 import AppLayout from '@/components/layout/AppLayout'
 import LoginPage from '@/pages/auth/LoginPage'
-import LandingPage from '@/pages/LandingPage'
-import AboutPage from '@/pages/AboutPage'
-import ContactPage from '@/pages/ContactPage'
+import HomePage from '@/pages/HomePage'
 import PricingPage from '@/pages/PricingPage'
 import '@/styles/globals.css'
 
@@ -44,10 +43,8 @@ const App: React.FC = () => {
     <Router>
       <Routes>
         {/* Public routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/" element={<Layout><HomePage /></Layout>} />
+        <Route path="/pricing" element={<Layout><PricingPage /></Layout>} />
         
         {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />

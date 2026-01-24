@@ -1,109 +1,57 @@
+.pricingPage {
+  padding: 3rem 0;
+}
+
 .container {
-  min-height: 100vh;
-  background: #ffffff;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
 .header {
-  background: white;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  padding: 1rem 0;
-}
-
-.nav {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 2rem;
-}
-
-.logo {
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.logo h2 {
-  margin: 0;
-  color: #4f46e5;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.logo span {
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-.navLinks {
-  display: flex;
-  gap: 2rem;
-  align-items: center;
-}
-
-.navLinks a {
-  color: #374151;
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-
-.navLinks a:hover {
-  color: #4f46e5;
-}
-
-.loginBtn {
-  background: #4f46e5;
-  color: white !important;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-}
-
-.hero {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 6rem 2rem 4rem;
   text-align: center;
+  margin-bottom: 4rem;
 }
 
-.heroContent h1 {
+.title {
   font-size: 3rem;
-  font-weight: 800;
+  font-weight: 700;
+  color: #1f2937;
   margin-bottom: 1rem;
 }
 
-.heroContent p {
+.subtitle {
   font-size: 1.25rem;
-  opacity: 0.9;
-}
-
-.pricing {
-  padding: 5rem 2rem;
-  background: #f9fafb;
-}
-
-.pricingGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  max-width: 1000px;
+  color: #6b7280;
+  max-width: 600px;
   margin: 0 auto;
 }
 
-.pricingCard {
+.plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 5rem;
+}
+
+.plan {
   background: white;
   border: 2px solid #e5e7eb;
   border-radius: 1rem;
   padding: 2rem;
-  text-align: center;
   position: relative;
+  transition: all 0.3s;
 }
 
-.pricingCard.popular {
+.plan:hover {
   border-color: #4f46e5;
-  box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1);
+}
+
+.popular {
+  border-color: #4f46e5;
+  transform: scale(1.05);
 }
 
 .popularBadge {
@@ -119,66 +67,132 @@
   font-weight: 600;
 }
 
-.pricingCard h3 {
+.planHeader {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.planName {
   font-size: 1.5rem;
   font-weight: 700;
   color: #1f2937;
   margin-bottom: 1rem;
 }
 
-.price {
-  margin-bottom: 2rem;
+.planPrice {
+  margin-bottom: 1rem;
 }
 
-.priceNumber {
-  display: block;
+.price {
   font-size: 3rem;
   font-weight: 800;
   color: #4f46e5;
-  line-height: 1;
 }
 
-.priceUnit {
+.period {
   color: #6b7280;
-  font-size: 0.875rem;
+  font-size: 1rem;
+  margin-left: 0.5rem;
+}
+
+.planDescription {
+  color: #6b7280;
+  line-height: 1.6;
 }
 
 .features {
   list-style: none;
   padding: 0;
-  margin: 0 0 2rem 0;
-  text-align: left;
+  margin-bottom: 2rem;
 }
 
 .features li {
-  padding: 0.5rem 0;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f3f4f6;
   color: #374151;
 }
 
-.pricingBtn {
-  background: #4f46e5;
-  color: white;
-  text-decoration: none;
-  font-weight: 600;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  display: inline-block;
-  width: 100%;
-  transition: background-color 0.2s;
+.features li:before {
+  content: "✓";
+  color: #10b981;
+  font-weight: bold;
+  margin-right: 0.75rem;
 }
 
-.pricingBtn:hover {
+.planBtn {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #4f46e5;
+  border-radius: 0.5rem;
+  background: white;
+  color: #4f46e5;
+  text-decoration: none;
+  font-weight: 600;
+  text-align: center;
+  display: block;
+  transition: all 0.2s;
+}
+
+.planBtn:hover {
+  background: #4f46e5;
+  color: white;
+}
+
+.primaryBtn {
+  background: #4f46e5;
+  color: white;
+}
+
+.primaryBtn:hover {
   background: #4338ca;
 }
 
-.footer {
-  background: #1f2937;
-  color: white;
-  padding: 2rem;
+.faq {
   text-align: center;
 }
 
-.footerContent {
-  max-width: 1200px;
-  margin: 0 auto;
+.faq h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 3rem;
+}
+
+.faqGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  text-align: left;
+}
+
+.faqItem {
+  background: #f9fafb;
+  padding: 2rem;
+  border-radius: 1rem;
+}
+
+.faqItem h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.faqItem p {
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 2rem;
+  }
+  
+  .plans {
+    grid-template-columns: 1fr;
+  }
+  
+  .popular {
+    transform: none;
+  }
 }
