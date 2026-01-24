@@ -1,1 +1,0 @@
-cargo:rustc-env=MIME_TYPES_GENERATED_PATH=/home/vibes/crypto-payment-gateway/target/release/build/mime_guess-cf42950af7c8115b/out/mime_types_generated.rs

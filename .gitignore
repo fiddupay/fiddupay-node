@@ -1,8 +1,17 @@
 # Rust Build Artifacts
 /target/
+backend/target/
 **/*.rs.bk
 *.pdb
-Cargo.lock
+
+# Cargo Files (keep Cargo.toml, ignore Cargo.lock for libraries, keep for applications)
+# Cargo.lock should be committed for applications but ignored for libraries
+# Since this is an application, we'll keep Cargo.lock
+# Cargo.lock
+
+# SQLx offline query data
+.sqlx/
+backend/.sqlx/
 
 # Environment Files (CRITICAL - Contains API keys and secrets)
 .env
@@ -10,6 +19,12 @@ Cargo.lock
 .env.production
 .env.staging
 .env.test
+backend/.env
+backend/.env.local
+backend/.env.production
+frontend/.env
+frontend/.env.local
+frontend/.env.production
 
 # Database Files
 *.db
@@ -20,6 +35,8 @@ Cargo.lock
 *.log
 server.log
 nohup.out
+backend/server.log
+backend/nohup.out
 
 # IDE and Editor Files
 .vscode/
@@ -58,22 +75,48 @@ fix_block.txt
 
 # Node.js (for frontend)
 node_modules/
+frontend/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 .npm
 .yarn-integrity
 
-# Frontend Build
+# Frontend Build and Cache
 frontend/dist/
 frontend/build/
 frontend/.vite/
+frontend/.cache/
+frontend/.parcel-cache/
 
 # Coverage and Testing
 coverage/
 .nyc_output/
 .coverage/
+backend/coverage/
+frontend/coverage/
 
 # Cache Directories
 .cache/
 .parcel-cache/
+
+# Rust-specific
+# Debug symbols
+*.dSYM/
+
+# Rust analyzer
+rust-project.json
+
+# Local configuration
+.cargo/config.toml
+
+# Test results and performance data
+scripts/*_results/
+scripts/*.log
+load_test_results/
+realistic_test_results/
+
+# Build outputs
+dist/
+build/
