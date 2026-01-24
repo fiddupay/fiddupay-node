@@ -1,0 +1,40 @@
+.layout {
+  min-height: 100vh;
+  background-color: var(--color-gray-50);
+}
+
+.loadingContainer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--color-gray-200);
+  border-top: 2px solid var(--color-primary-600);
+  border-radius: var(--radius-full);
+  animation: spin 1s linear infinite;
+}
+
+.mainContent {
+  margin-left: 16rem;
+}
+
+.main {
+  padding: var(--spacing-6) 0;
+}
+
+.container {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 var(--spacing-4);
+}
+
+@media (max-width: 1024px) {
+  .mainContent {
+    margin-left: 0;
+  }
+}

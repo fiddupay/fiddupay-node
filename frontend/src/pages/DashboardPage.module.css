@@ -1,0 +1,137 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: var(--spacing-8);
+}
+
+.title {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--color-gray-900);
+  margin-bottom: var(--spacing-2);
+}
+
+.subtitle {
+  font-size: var(--font-size-lg);
+  color: var(--color-gray-600);
+  margin: 0;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-6);
+  margin-bottom: var(--spacing-8);
+}
+
+.statCard {
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-gray-200);
+}
+
+.statContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-4);
+}
+
+.statInfo {
+  flex: 1;
+}
+
+.statName {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-gray-600);
+  margin: 0 0 var(--spacing-1) 0;
+}
+
+.statValue {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-gray-900);
+  margin: 0;
+}
+
+.statIcon {
+  width: 3rem;
+  height: 3rem;
+  background-color: var(--color-primary-50);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary-600);
+  font-size: 1.5rem;
+}
+
+.statFooter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.statChange {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.positive {
+  color: var(--color-success-600);
+}
+
+.negative {
+  color: var(--color-danger-600);
+}
+
+.statPeriod {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-500);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-8);
+}
+
+.section {
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-gray-200);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-gray-900);
+  margin-bottom: var(--spacing-4);
+}
+
+.placeholder {
+  padding: var(--spacing-8);
+  text-align: center;
+  color: var(--color-gray-500);
+  background-color: var(--color-gray-50);
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--color-gray-200);
+}
+
+@media (max-width: 768px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .content {
+    grid-template-columns: 1fr;
+  }
+}
