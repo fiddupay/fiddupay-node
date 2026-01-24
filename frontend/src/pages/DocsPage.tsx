@@ -268,6 +268,109 @@ $payment = \\PayFlow\\Payment::create([
           </div>
         )}
 
+        {activeTab === 'quickstart' && (
+          <div className={styles.section}>
+            <h1>Quick Start Guide</h1>
+            <p className={styles.lead}>
+              Get started with PayFlow in minutes. This guide will walk you through creating your first payment.
+            </p>
+
+            <h2 className={styles.bigTitle}>Step 1: Create Account</h2>
+            <div className={styles.step}>
+              <div className={styles.stepNumber}>1</div>
+              <div className={styles.stepContent}>
+                <h3>Sign Up</h3>
+                <p>Create your PayFlow merchant account and verify your email address.</p>
+                <div className={styles.codeExample}>
+                  <pre><code>curl -X POST https://api.payflow.com/v1/merchants/register \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "email": "merchant@example.com",
+    "business_name": "Your Business Name"
+  }'</code></pre>
+                </div>
+              </div>
+            </div>
+
+            <h2 className={styles.bigTitle}>Step 2: Get API Keys</h2>
+            <div className={styles.step}>
+              <div className={styles.stepNumber}>2</div>
+              <div className={styles.stepContent}>
+                <h3>Generate API Keys</h3>
+                <p>After registration, you'll receive your API keys. Start with test keys for development.</p>
+                <div className={styles.keyExample}>
+                  <strong>Test Keys:</strong><br/>
+                  <code>sk_test_...</code> (Secret Key)<br/>
+                  <code>pk_test_...</code> (Publishable Key)
+                </div>
+              </div>
+            </div>
+
+            <h2 className={styles.bigTitle}>Step 3: Create Your First Payment</h2>
+            <div className={styles.step}>
+              <div className={styles.stepNumber}>3</div>
+              <div className={styles.stepContent}>
+                <h3>Make API Call</h3>
+                <p>Create a payment request for $100 USDT on Ethereum:</p>
+                <div className={styles.codeExample}>
+                  <pre><code>curl -X POST https://api.payflow.com/v1/payments \\
+  -H "Authorization: Bearer sk_test_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "amount_usd": "100.00",
+    "crypto_type": "USDT_ETH",
+    "description": "Test Payment",
+    "expiration_minutes": 30
+  }'</code></pre>
+                </div>
+              </div>
+            </div>
+
+            <h2 className={styles.bigTitle}>Step 4: Handle the Response</h2>
+            <div className={styles.step}>
+              <div className={styles.stepNumber}>4</div>
+              <div className={styles.stepContent}>
+                <h3>Payment Created</h3>
+                <p>You'll receive a payment object with deposit address and QR code:</p>
+                <div className={styles.codeExample}>
+                  <pre><code>{`{
+  "payment_id": "pay_1234567890",
+  "status": "PENDING",
+  "amount": "100.00000000",
+  "amount_usd": "100.00",
+  "crypto_type": "USDT_ETH",
+  "deposit_address": "0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4",
+  "payment_link": "https://pay.payflow.com/pay_1234567890",
+  "qr_code_data": "ethereum:0x742d35Cc...",
+  "expires_at": "2026-01-25T00:30:52Z"
+}`}</code></pre>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.nextSteps}>
+              <h2 className={styles.bigTitle}>Next Steps</h2>
+              <div className={styles.nextStepGrid}>
+                <div className={styles.nextStep}>
+                  <i className="fas fa-cog"></i>
+                  <h3>Configure Wallets</h3>
+                  <p>Set up your wallet addresses for automatic forwarding</p>
+                </div>
+                <div className={styles.nextStep}>
+                  <i className="fas fa-flask"></i>
+                  <h3>Test in Sandbox</h3>
+                  <p>Use sandbox mode to test without real transactions</p>
+                </div>
+                <div className={styles.nextStep}>
+                  <i className="fas fa-rocket"></i>
+                  <h3>Go Live</h3>
+                  <p>Switch to production keys when ready</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'sandbox' && (
           <div className={styles.section}>
             <h1>Sandbox & Testing</h1>
@@ -755,6 +858,107 @@ $payment = \\PayFlow\\Payment::create([
           </div>
         )}
 
+        {activeTab === 'errors' && (
+          <div className={styles.section}>
+            <h1>Error Codes</h1>
+            <p className={styles.lead}>
+              PayFlow uses conventional HTTP response codes to indicate the success or failure of an API request.
+            </p>
+
+            <h2 className={styles.bigTitle}>HTTP Status Codes</h2>
+            <div className={styles.errorList}>
+              <div className={styles.errorItem}>
+                <code className={styles.successCode}>200</code>
+                <div>
+                  <h3>OK</h3>
+                  <p>Everything worked as expected.</p>
+                </div>
+              </div>
+              <div className={styles.errorItem}>
+                <code className={styles.successCode}>201</code>
+                <div>
+                  <h3>Created</h3>
+                  <p>Resource was successfully created.</p>
+                </div>
+              </div>
+              <div className={styles.errorItem}>
+                <code className={styles.errorCode}>400</code>
+                <div>
+                  <h3>Bad Request</h3>
+                  <p>The request was unacceptable, often due to missing a required parameter.</p>
+                </div>
+              </div>
+              <div className={styles.errorItem}>
+                <code className={styles.errorCode}>401</code>
+                <div>
+                  <h3>Unauthorized</h3>
+                  <p>No valid API key provided.</p>
+                </div>
+              </div>
+              <div className={styles.errorItem}>
+                <code className={styles.errorCode}>403</code>
+                <div>
+                  <h3>Forbidden</h3>
+                  <p>The API key doesn't have permissions to perform the request.</p>
+                </div>
+              </div>
+              <div className={styles.errorItem}>
+                <code className={styles.errorCode}>404</code>
+                <div>
+                  <h3>Not Found</h3>
+                  <p>The requested resource doesn't exist.</p>
+                </div>
+              </div>
+              <div className={styles.errorItem}>
+                <code className={styles.errorCode}>429</code>
+                <div>
+                  <h3>Too Many Requests</h3>
+                  <p>Too many requests hit the API too quickly. Rate limit exceeded.</p>
+                </div>
+              </div>
+              <div className={styles.errorItem}>
+                <code className={styles.errorCode}>500</code>
+                <div>
+                  <h3>Server Error</h3>
+                  <p>Something went wrong on PayFlow's end.</p>
+                </div>
+              </div>
+            </div>
+
+            <h2 className={styles.bigTitle}>Error Response Format</h2>
+            <div className={styles.codeExample}>
+              <pre><code>{`{
+  "error": {
+    "type": "invalid_request_error",
+    "code": "parameter_missing",
+    "message": "Missing required parameter: amount_usd",
+    "param": "amount_usd"
+  }
+}`}</code></pre>
+            </div>
+
+            <h2 className={styles.bigTitle}>Common Error Types</h2>
+            <div className={styles.errorTypeList}>
+              <div className={styles.errorType}>
+                <code>api_error</code>
+                <p>API errors cover any other type of problem (e.g., a temporary problem with PayFlow's servers)</p>
+              </div>
+              <div className={styles.errorType}>
+                <code>authentication_error</code>
+                <p>Failure to properly authenticate yourself in the request</p>
+              </div>
+              <div className={styles.errorType}>
+                <code>invalid_request_error</code>
+                <p>Invalid request errors arise when your request has invalid parameters</p>
+              </div>
+              <div className={styles.errorType}>
+                <code>rate_limit_error</code>
+                <p>Too many requests hit the API too quickly</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'sdks' && (
           <div className={styles.section}>
             <h1>Official SDKs</h1>
@@ -762,31 +966,62 @@ $payment = \\PayFlow\\Payment::create([
               Use our official libraries to integrate PayFlow into your application.
             </p>
 
-            <div className={styles.sdkGrid}>
+            <h2 className={styles.bigTitle}>Node.js SDK</h2>
+            <div className={styles.sdkHighlight}>
               <div className={styles.sdkCard}>
                 <i className="fab fa-node-js"></i>
-                <h3>Node.js</h3>
-                <code>npm install payflow-node</code>
-                <a href="#" className={styles.sdkLink}>View Documentation</a>
+                <h3>PayFlow Node.js</h3>
+                <p>Official Node.js library for PayFlow API integration</p>
+                <div className={styles.installCode}>
+                  <code>npm install payflow-node</code>
+                </div>
+                <div className={styles.codeExample}>
+                  <pre><code>{`const PayFlow = require('payflow-node');
+const payflow = new PayFlow('sk_test_...');
+
+// Create a payment
+const payment = await payflow.payments.create({
+  amount_usd: '100.00',
+  crypto_type: 'USDT_ETH',
+  description: 'Order #12345'
+});
+
+console.log(payment.payment_id);`}</code></pre>
+                </div>
               </div>
-              <div className={styles.sdkCard}>
+            </div>
+
+            <h2 className={styles.bigTitle}>Coming Soon</h2>
+            <div className={styles.comingSoonGrid}>
+              <div className={styles.comingSoonCard}>
                 <i className="fab fa-python"></i>
-                <h3>Python</h3>
-                <code>pip install payflow</code>
-                <a href="#" className={styles.sdkLink}>View Documentation</a>
+                <h3>Python SDK</h3>
+                <p>Coming Q2 2026</p>
+                <div className={styles.comingSoonBadge}>In Development</div>
               </div>
-              <div className={styles.sdkCard}>
+              <div className={styles.comingSoonCard}>
                 <i className="fab fa-php"></i>
-                <h3>PHP</h3>
-                <code>composer require payflow/payflow-php</code>
-                <a href="#" className={styles.sdkLink}>View Documentation</a>
+                <h3>PHP SDK</h3>
+                <p>Coming Q2 2026</p>
+                <div className={styles.comingSoonBadge}>Planned</div>
               </div>
-              <div className={styles.sdkCard}>
-                <i className="fab fa-java"></i>
-                <h3>Java</h3>
-                <code>implementation 'com.payflow:payflow-java'</code>
-                <a href="#" className={styles.sdkLink}>View Documentation</a>
+              <div className={styles.comingSoonCard}>
+                <i className="fab fa-rust"></i>
+                <h3>Rust SDK</h3>
+                <p>Coming Q3 2026</p>
+                <div className={styles.comingSoonBadge}>Planned</div>
               </div>
+              <div className={styles.comingSoonCard}>
+                <i className="fab fa-golang"></i>
+                <h3>Go SDK</h3>
+                <p>Coming Q3 2026</p>
+                <div className={styles.comingSoonBadge}>Planned</div>
+              </div>
+            </div>
+
+            <div className={styles.infoBox}>
+              <h3>Request an SDK</h3>
+              <p>Need an SDK for a specific language? Let us know at <strong>sdk@payflow.com</strong></p>
             </div>
           </div>
         )}
