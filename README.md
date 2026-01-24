@@ -135,6 +135,11 @@ curl -X POST http://localhost:8080/api/v1/merchants/register \
 | `BSC_RPC_URL` | BSC RPC endpoint | ✅ | - |
 | `POLYGON_RPC_URL` | Polygon RPC endpoint | ✅ | - |
 | `ARBITRUM_RPC_URL` | Arbitrum RPC endpoint | ✅ | - |
+| `ETHERSCAN_API_KEY` | Unified API key for 60+ blockchains | ✅ | - |
+
+**Note**: PayFlow now uses Etherscan's unified API for monitoring all 60+ supported blockchains with a single API key. This modernization eliminates the complexity of managing separate BSCScan, ArbiScan, and PolygonScan keys while providing better reliability and coverage.
+
+**✅ MODERNIZATION COMPLETE**: All legacy API code has been removed and replaced with the unified Etherscan API system. The system has been thoroughly tested and verified to work with all supported currencies.
 
 ### Supported Cryptocurrencies
 

@@ -70,11 +70,14 @@ BSC_RPC_URL=https://bsc-dataseed.binance.org
 POLYGON_RPC_URL=https://polygon-rpc.com
 ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
 
-# API Keys
+# API Keys (Unified)
 ETHERSCAN_API_KEY=your_etherscan_api_key
-BSCSCAN_API_KEY=your_bscscan_api_key
-POLYGONSCAN_API_KEY=your_polygonscan_api_key
-ARBISCAN_API_KEY=your_arbiscan_api_key
+
+**Benefits of Unified API:**
+- Single API key for all supported blockchains
+- Simplified configuration and management
+- Better rate limits and cost efficiency
+- Automatic support for new chains as Etherscan adds them
 
 # Email (Optional)
 SMTP_HOST=smtp.gmail.com

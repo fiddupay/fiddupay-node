@@ -41,7 +41,7 @@ impl AppState {
         payment_page_base_url: String,
         webhook_signing_key: String,
     ) -> Self {
-        let webhook_service = Arc::new(WebhookService::new(db_pool.clone(), webhook_signing_key));
+        let webhook_service = Arc::new(WebhookService::new(db_pool.clone(), webhook_signing_key.clone()));
         
         let price_service = Arc::new(PriceService::new());
         price_service.start_background_polling();
@@ -50,7 +50,7 @@ impl AppState {
 
         Self {
             merchant_service: Arc::new(MerchantService::new(db_pool.clone())),
-            payment_service: Arc::new(PaymentService::new(db_pool.clone(), payment_page_base_url, price_service.clone())),
+            payment_service: Arc::new(PaymentService::new(db_pool.clone(), payment_page_base_url, price_service.clone(), webhook_signing_key.clone())),
             refund_service: Arc::new(RefundService::new(db_pool.clone(), webhook_service.clone())),
             analytics_service: Arc::new(AnalyticsService::new(db_pool.clone())),
             sandbox_service: Arc::new(SandboxService::new(db_pool.clone())),

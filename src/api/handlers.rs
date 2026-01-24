@@ -614,11 +614,10 @@ pub async fn list_withdrawals(
 
 pub async fn cancel_withdrawal(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Path(withdrawal_id): Path<String>,
 ) -> impl IntoResponse {
-    let merchant_id = 1; // TODO: Get from auth middleware
-    
-    match state.withdrawal_service.cancel_withdrawal(merchant_id, &withdrawal_id).await {
+    match state.withdrawal_service.cancel_withdrawal(context.merchant_id, &withdrawal_id).await {
         Ok(_) => (StatusCode::OK, Json(json!({"message": "Withdrawal cancelled"}))).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }

@@ -23,9 +23,7 @@ pub struct Config {
     pub polygon_rpc_url: String,
 
     // API Keys (optional)
-    pub bscscan_api_key: Option<String>,
-    pub arbiscan_api_key: Option<String>,
-    pub polygonscan_api_key: Option<String>,
+    pub etherscan_api_key: Option<String>,
 
     // Price API
     pub bybit_price_api_url: String,
@@ -74,10 +72,7 @@ impl Config {
                 .unwrap_or_else(|_| "https://arb1.arbitrum.io/rpc".to_string()),
             polygon_rpc_url: env::var("POLYGON_RPC_URL")
                 .unwrap_or_else(|_| "https://polygon-rpc.com".to_string()),
-
-            bscscan_api_key: env::var("BSCSCAN_API_KEY").ok(),
-            arbiscan_api_key: env::var("ARBISCAN_API_KEY").ok(),
-            polygonscan_api_key: env::var("POLYGONSCAN_API_KEY").ok(),
+            etherscan_api_key: env::var("ETHERSCAN_API_KEY").ok(),
 
             bybit_price_api_url: env::var("BYBIT_PRICE_API_URL")
                 .unwrap_or_else(|_| "https://api.bybit.com".to_string()),
