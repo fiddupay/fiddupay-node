@@ -12,6 +12,8 @@ use crate::services::{
     audit_service::AuditService,
     balance_service::BalanceService,
     withdrawal_service::WithdrawalService,
+    currency_service::CurrencyService,
+    price_service::PriceService,
 };
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -29,6 +31,8 @@ pub struct AppState {
     pub audit_service: Arc<AuditService>,
     pub balance_service: Arc<BalanceService>,
     pub withdrawal_service: Arc<WithdrawalService>,
+    pub currency_service: Arc<CurrencyService>,
+    pub price_service: Arc<PriceService>,
 }
 
 impl AppState {
@@ -38,11 +42,15 @@ impl AppState {
         webhook_signing_key: String,
     ) -> Self {
         let webhook_service = Arc::new(WebhookService::new(db_pool.clone(), webhook_signing_key));
-        let balance_service = Arc::new(BalanceService::new(db_pool.clone()));
         
+        let price_service = Arc::new(PriceService::new());
+        price_service.start_background_polling();
+        
+        let balance_service = Arc::new(BalanceService::new(db_pool.clone(), price_service.clone()));
+
         Self {
             merchant_service: Arc::new(MerchantService::new(db_pool.clone())),
-            payment_service: Arc::new(PaymentService::new(db_pool.clone(), payment_page_base_url)),
+            payment_service: Arc::new(PaymentService::new(db_pool.clone(), payment_page_base_url, price_service.clone())),
             refund_service: Arc::new(RefundService::new(db_pool.clone(), webhook_service.clone())),
             analytics_service: Arc::new(AnalyticsService::new(db_pool.clone())),
             sandbox_service: Arc::new(SandboxService::new(db_pool.clone())),
@@ -51,6 +59,8 @@ impl AppState {
             audit_service: Arc::new(AuditService::new(db_pool.clone())),
             balance_service: balance_service.clone(),
             withdrawal_service: Arc::new(WithdrawalService::new(db_pool.clone(), balance_service)),
+            currency_service: Arc::new(CurrencyService::new(db_pool.clone())),
+            price_service,
             db_pool,
         }
     }

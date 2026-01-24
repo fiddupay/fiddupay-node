@@ -19,7 +19,8 @@ pub fn create_router(state: AppState) -> Router {
         .route("/health", get(handlers::health_check))
         .route("/pay/:link_id", get(handlers::payment_page))
         .route("/pay/:link_id/status", get(handlers::payment_status))
-        .route("/api/v1/merchants/register", post(handlers::register_merchant));
+        .route("/api/v1/merchants/register", post(handlers::register_merchant))
+        .route("/api/v1/currencies/supported", get(handlers::get_supported_currencies));
 
     // Protected routes (auth required)
     let protected_routes = Router::new()

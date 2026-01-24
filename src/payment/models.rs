@@ -32,6 +32,14 @@ pub enum CryptoType {
     UsdtEth,          // USDT on Ethereum (ERC20)
     #[serde(rename = "SOL")]
     Sol,              // Solana native
+    #[serde(rename = "ETH")]
+    Eth,              // Ethereum native
+    #[serde(rename = "ARB")]
+    Arb,              // Arbitrum native
+    #[serde(rename = "MATIC")]
+    Matic,            // Polygon native
+    #[serde(rename = "BNB")]
+    Bnb,              // Binance Smart Chain native
 }
 
 impl CryptoType {
@@ -43,6 +51,10 @@ impl CryptoType {
             CryptoType::UsdtPolygon => "USDT",
             CryptoType::UsdtEth => "USDT",
             CryptoType::Sol => "SOL",
+            CryptoType::Eth => "ETH",
+            CryptoType::Arb => "ARB",
+            CryptoType::Matic => "MATIC",
+            CryptoType::Bnb => "BNB",
         }
     }
 
@@ -54,6 +66,10 @@ impl CryptoType {
             CryptoType::UsdtPolygon => "POLYGON",
             CryptoType::UsdtEth => "ETHEREUM",
             CryptoType::Sol => "SOLANA",
+            CryptoType::Eth => "ETHEREUM",
+            CryptoType::Arb => "ARBITRUM",
+            CryptoType::Matic => "POLYGON",
+            CryptoType::Bnb => "BEP20",
         }
     }
 
@@ -65,6 +81,10 @@ impl CryptoType {
             CryptoType::UsdtPolygon => 128,  // Polygon: 128 blocks (~4 minutes)
             CryptoType::UsdtEth => 12,       // Ethereum: 12 blocks (~3 minutes)
             CryptoType::Sol => 32,           // Solana: 32 confirmations (~13 seconds)
+            CryptoType::Eth => 12,           // Ethereum: 12 confirmations (~3 minutes)
+            CryptoType::Arb => 1,            // Arbitrum: 1 confirmation (~1 second)
+            CryptoType::Matic => 30,         // Polygon: 30 confirmations (~1 minute)
+            CryptoType::Bnb => 15,           // BSC: 15 confirmations (~45 seconds)
         }
     }
 
@@ -76,6 +96,10 @@ impl CryptoType {
             CryptoType::UsdtPolygon => "https://polygonscan.com",
             CryptoType::UsdtEth => "https://etherscan.io",
             CryptoType::Sol => "https://solscan.io",
+            CryptoType::Eth => "https://etherscan.io",
+            CryptoType::Arb => "https://arbiscan.io",
+            CryptoType::Matic => "https://polygonscan.com",
+            CryptoType::Bnb => "https://bscscan.com",
         }
     }
 
@@ -87,6 +111,10 @@ impl CryptoType {
             CryptoType::UsdtPolygon => Some("0xc2132D05D31c914a87C6611C10748AEb04B58e8F"),
             CryptoType::UsdtEth => Some("0xdAC17F958D2ee523a2206206994597C13D831ec7"),
             CryptoType::Sol => None, // Native token
+            CryptoType::Eth => None, // Native token
+            CryptoType::Arb => None, // Native token
+            CryptoType::Matic => None, // Native token
+            CryptoType::Bnb => None, // Native token
         }
     }
 }

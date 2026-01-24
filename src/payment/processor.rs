@@ -8,23 +8,24 @@ use sqlx::PgPool;
 use tracing::info;
 
 use crate::error::ServiceError;
-use crate::services::merchant_service::MerchantService;
+use crate::services::{merchant_service::MerchantService, price_service::PriceService};
+use std::sync::Arc;
 use super::models::{CreatePaymentRequest, PaymentResponse, PaymentStatus, CryptoType};
-use super::price_fetcher::PriceFetcher;
+
 use super::fee_calculator::FeeCalculator;
 
 pub struct PaymentProcessor {
     db_pool: PgPool,
-    price_fetcher: PriceFetcher,
+    price_service: Arc<PriceService>,
     merchant_service: MerchantService,
     payment_page_base_url: String,
 }
 
 impl PaymentProcessor {
-    pub fn new(db_pool: PgPool, payment_page_base_url: String) -> Self {
+    pub fn new(db_pool: PgPool, payment_page_base_url: String, price_service: Arc<PriceService>) -> Self {
         Self {
             db_pool: db_pool.clone(),
-            price_fetcher: PriceFetcher::new(),
+            price_service,
             merchant_service: MerchantService::new(db_pool),
             payment_page_base_url,
         }
@@ -87,18 +88,20 @@ impl PaymentProcessor {
                 FeeCalculator::calculate_fee_crypto(fee_amount_usd, crypto_price)
             )
         } else {
-            // For non-stablecoins (SOL), get price and divide USD by price
-            let crypto_price = self.price_fetcher
-                .get_sol_price()
+            // For non-stablecoins, get price and divide USD by price
+            let crypto_price = self.price_service
+                .get_price(request.crypto_type)
                 .await
                 .map_err(|e| ServiceError::Internal(format!("Failed to fetch price: {}", e)))?;
             
+            let crypto_price_decimal = Decimal::from_f64_retain(crypto_price)
+                .ok_or_else(|| ServiceError::Internal("Invalid price conversion".to_string()))?;
+            
             (
-                total_amount_usd / crypto_price,
-                FeeCalculator::calculate_fee_crypto(fee_amount_usd, crypto_price)
+                total_amount_usd / crypto_price_decimal,
+                FeeCalculator::calculate_fee_crypto(fee_amount_usd, crypto_price_decimal)
             )
         };
-        
         // Calculate expiration time
         let expiration_minutes = request.expiration_minutes.unwrap_or(15);
         let expires_at = Utc::now() + Duration::minutes(expiration_minutes as i64);
@@ -257,7 +260,7 @@ impl PaymentProcessor {
                 // Solana URI format: solana:<address>?amount=<amount>
                 format!("solana:{}?amount={}", address, amount)
             }
-            CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon | CryptoType::UsdtEth => {
+            CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon | CryptoType::UsdtEth | CryptoType::Eth | CryptoType::Arb | CryptoType::Matic | CryptoType::Bnb => {
                 // Ethereum URI format: ethereum:<address>?value=<amount>
                 format!("ethereum:{}?value={}", address, amount)
             }

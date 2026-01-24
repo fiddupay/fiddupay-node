@@ -8,7 +8,8 @@ use crate::payment::models::{
 };
 use crate::payment::processor::PaymentProcessor;
 use crate::payment::verifier::PaymentVerifier;
-use crate::services::webhook_service::WebhookService;
+use crate::services::{webhook_service::WebhookService, price_service::PriceService};
+use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use sqlx::PgPool;
@@ -38,11 +39,11 @@ pub struct PaymentService {
 }
 
 impl PaymentService {
-    pub fn new(db_pool: PgPool, payment_page_base_url: String) -> Self {
+    pub fn new(db_pool: PgPool, payment_page_base_url: String, price_service: Arc<PriceService>) -> Self {
         let webhook_service = WebhookService::new(db_pool.clone(), "webhook_key".to_string());
         
         Self {
-            processor: PaymentProcessor::new(db_pool.clone(), payment_page_base_url),
+            processor: PaymentProcessor::new(db_pool.clone(), payment_page_base_url, price_service),
             verifier: PaymentVerifier::new(db_pool.clone(), webhook_service),
             db_pool,
         }
@@ -398,7 +399,12 @@ impl PaymentService {
             "USDT_ARBITRUM" => CryptoType::UsdtArbitrum,
             "USDT_SPL" => CryptoType::UsdtSpl,
             "USDT_POLYGON" => CryptoType::UsdtPolygon,
+            "USDT_ETH" => CryptoType::UsdtEth,
             "SOL" => CryptoType::Sol,
+            "ETH" => CryptoType::Eth,
+            "ARB" => CryptoType::Arb,
+            "MATIC" => CryptoType::Matic,
+            "BNB" => CryptoType::Bnb,
             _ => CryptoType::Sol, // Default fallback
         }
     }

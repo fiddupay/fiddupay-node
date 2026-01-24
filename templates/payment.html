@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayFlow - Payment</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .payment-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+            overflow: hidden;
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        
+        .logo { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+        .merchant { opacity: 0.9; font-size: 14px; }
+        
+        .payment-details {
+            padding: 30px 20px;
+            text-align: center;
+        }
+        
+        .amount {
+            font-size: 36px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+        
+        .crypto-amount {
+            font-size: 18px;
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+        
+        .qr-container {
+            background: #f9fafb;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            display: inline-block;
+        }
+        
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            border-radius: 10px;
+        }
+        
+        .address-container {
+            background: #f3f4f6;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            color: #374151;
+        }
+        
+        .copy-btn {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+        
+        .copy-btn:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+        
+        .status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status.confirmed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status.expired {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #92400e;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .timer {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .network-info {
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 15px 0;
+            font-size: 12px;
+            color: #1e40af;
+        }
+        
+        @media (max-width: 480px) {
+            .payment-container { margin: 10px; }
+            .qr-code { width: 150px; height: 150px; }
+            .amount { font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="header">
+            <div class="logo">PayFlow</div>
+            <div class="merchant">{{ merchant_name }}</div>
+        </div>
+        
+        <div class="payment-details">
+            <div class="amount">${{ amount_usd }}</div>
+            <div class="crypto-amount">{{ crypto_amount }} {{ crypto_type }}</div>
+            
+            <div class="qr-container">
+                <img src="data:image/png;base64,{{ qr_code }}" alt="Payment QR Code" class="qr-code">
+            </div>
+            
+            <div class="address-container">
+                <div>Send to:</div>
+                <div id="address">{{ deposit_address }}</div>
+                <button class="copy-btn" onclick="copyAddress()">Copy Address</button>
+            </div>
+            
+            <div class="network-info">
+                <strong>Network:</strong> {{ network_name }}<br>
+                <strong>Confirmations:</strong> {{ required_confirmations }}
+            </div>
+            
+            <div class="status pending" id="status">
+                <div class="spinner"></div>
+                <span>Waiting for payment...</span>
+            </div>
+            
+            <div class="timer" id="timer">
+                Expires in: <span id="countdown">{{ expires_in }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function copyAddress() {
+            const address = document.getElementById('address').textContent;
+            navigator.clipboard.writeText(address).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const original = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#10b981';
+                setTimeout(() => {
+                    btn.textContent = original;
+                    btn.style.background = '#4f46e5';
+                }, 2000);
+            });
+        }
+        
+        // Payment status polling
+        async function checkPaymentStatus() {
+            try {
+                const response = await fetch('/api/v1/payments/{{ payment_id }}/status');
+                const data = await response.json();
+                
+                const statusEl = document.getElementById('status');
+                if (data.status === 'CONFIRMED') {
+                    statusEl.className = 'status confirmed';
+                    statusEl.innerHTML = '<span>✓ Payment Confirmed!</span>';
+                    setTimeout(() => {
+                        window.location.href = '/payment/{{ payment_id }}/success';
+                    }, 2000);
+                } else if (data.status === 'EXPIRED') {
+                    statusEl.className = 'status expired';
+                    statusEl.innerHTML = '<span>⚠ Payment Expired</span>';
+                }
+            } catch (error) {
+                console.error('Status check failed:', error);
+            }
+        }
+        
+        // Countdown timer
+        let expiresAt = new Date('{{ expires_at }}');
+        function updateCountdown() {
+            const now = new Date();
+            const diff = expiresAt - now;
+            
+            if (diff <= 0) {
+                document.getElementById('countdown').textContent = 'Expired';
+                document.getElementById('status').className = 'status expired';
+                document.getElementById('status').innerHTML = '<span>⚠ Payment Expired</span>';
+                return;
+            }
+            
+            const minutes = Math.floor(diff / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            document.getElementById('countdown').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // Start polling and countdown
+        setInterval(checkPaymentStatus, 5000);
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+    </script>
+</body>
+</html>

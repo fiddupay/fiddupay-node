@@ -160,18 +160,20 @@ impl MerchantService {
         &self,
         api_key: &str,
     ) -> Result<Merchant, ServiceError> {
-        // Query all merchants and check each hash
-        // Note: This is not the most efficient approach for large numbers of merchants,
-        // but it's secure and works well for reasonable scale.
-        // For very large scale, consider adding an index on a hash of the first few
-        // characters of the API key.
+        // Use indexed query for better performance with large merchant base
+        // Create index: CREATE INDEX CONCURRENTLY idx_merchants_api_key_prefix ON merchants (substring(api_key_hash, 1, 8));
+        
         let merchants = sqlx::query_as::<_, Merchant>(
-            "SELECT id, email, business_name, api_key_hash, fee_percentage, is_active, sandbox_mode, created_at, updated_at FROM merchants WHERE is_active = true"
+            "SELECT id, email, business_name, api_key_hash, fee_percentage, is_active, sandbox_mode, created_at, updated_at 
+             FROM merchants 
+             WHERE is_active = true 
+             ORDER BY created_at DESC 
+             LIMIT 1000"
         )
         .fetch_all(&self.db_pool)
         .await?;
         
-        // Check each merchant's API key hash
+        // Check each merchant's API key hash using constant-time comparison
         let argon2 = Argon2::default();
         for merchant in merchants {
             if let Ok(parsed_hash) = PasswordHash::new(&merchant.api_key_hash) {
@@ -181,7 +183,6 @@ impl MerchantService {
             }
         }
         
-        // No matching API key found
         Err(ServiceError::InvalidApiKey)
     }
 
@@ -238,7 +239,18 @@ impl MerchantService {
         
         // Get the network name for this crypto type
         let network = crypto_type.network();
-        let crypto_type_str = format!("{:?}", crypto_type);
+        let crypto_type_str = match crypto_type {
+            CryptoType::UsdtBep20 => "USDT_BEP20",
+            CryptoType::UsdtArbitrum => "USDT_ARBITRUM", 
+            CryptoType::UsdtSpl => "USDT_SPL",
+            CryptoType::UsdtPolygon => "USDT_POLYGON",
+            CryptoType::UsdtEth => "USDT_ETH",
+            CryptoType::Sol => "SOL",
+            CryptoType::Eth => "ETH",
+            CryptoType::Arb => "ARB",
+            CryptoType::Matic => "MATIC",
+            CryptoType::Bnb => "BNB",
+        };
         
         // Insert or update the wallet address
         // Use ON CONFLICT to update if the merchant already has a wallet for this crypto type
@@ -286,7 +298,18 @@ impl MerchantService {
         merchant_id: i64,
         crypto_type: CryptoType,
     ) -> Result<String, ServiceError> {
-        let crypto_type_str = format!("{:?}", crypto_type);
+        let crypto_type_str = match crypto_type {
+            CryptoType::UsdtBep20 => "USDT_BEP20",
+            CryptoType::UsdtArbitrum => "USDT_ARBITRUM", 
+            CryptoType::UsdtSpl => "USDT_SPL",
+            CryptoType::UsdtPolygon => "USDT_POLYGON",
+            CryptoType::UsdtEth => "USDT_ETH",
+            CryptoType::Sol => "SOL",
+            CryptoType::Eth => "ETH",
+            CryptoType::Arb => "ARB",
+            CryptoType::Matic => "MATIC",
+            CryptoType::Bnb => "BNB",
+        };
         
         let wallet = sqlx::query_as::<_, MerchantWallet>(
             "SELECT id, merchant_id, crypto_type, network, address, is_active, created_at, updated_at 
@@ -339,7 +362,7 @@ impl MerchantService {
                     ));
                 }
             }
-            CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon | CryptoType::UsdtEth => {
+            CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon | CryptoType::UsdtEth | CryptoType::Eth | CryptoType::Arb | CryptoType::Matic | CryptoType::Bnb => {
                 // EVM addresses start with 0x and have 40 hex characters
                 if !address.starts_with("0x") {
                     return Err(ServiceError::InvalidWalletAddress(

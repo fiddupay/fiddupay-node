@@ -45,6 +45,10 @@ impl CachedPriceFetcher {
             CryptoType::UsdtArbitrum => ("USDTUSDT", "spot"),
             CryptoType::UsdtPolygon => ("USDTUSDT", "spot"),
             CryptoType::UsdtEth => ("USDTUSDT", "spot"),
+            CryptoType::Eth => ("ETHUSDT", "spot"),
+            CryptoType::Arb => ("ARBUSDT", "spot"),
+            CryptoType::Matic => ("MATICUSDT", "spot"),
+            CryptoType::Bnb => ("BNBUSDT", "spot"),
         };
 
         let price: Decimal = self.circuit_breaker.call(|| async {

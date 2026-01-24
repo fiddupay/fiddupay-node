@@ -58,15 +58,16 @@ dotenvy = "0.15"
 
 # Async utilities
 async-trait = "0.1"
+
+# Template engine and QR codes
+askama = { version = "0.12", features = ["with-axum"] }
+qrcode = "0.14"
+image = "0.24"
+base64 = "0.22"
 futures = "0.3"
 
 # Rate limiting
 governor = "0.6"
-
-# QR code generation
-qrcode = "0.14"
-image = "0.24"
-base64 = "0.21"
 
 # Base58 encoding (for Solana addresses)
 bs58 = "0.5"

@@ -3,7 +3,9 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use crate::error::ServiceError;
+use crate::services::price_service::PriceService;
 use crate::payment::models::CryptoType;
+use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MerchantBalance {
@@ -39,11 +41,12 @@ pub struct BalanceHistoryEntry {
 
 pub struct BalanceService {
     pool: PgPool,
+    price_service: Arc<PriceService>,
 }
 
 impl BalanceService {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(pool: PgPool, price_service: Arc<PriceService>) -> Self {
+        Self { pool, price_service }
     }
 
     pub async fn credit_available(&self, merchant_id: i64, crypto_type: &str, amount: Decimal, reason: &str, reference_id: Option<&str>) -> Result<(), ServiceError> {
@@ -269,12 +272,22 @@ impl BalanceService {
                 Some(*amount)
             }
             // For other cryptocurrencies, use price service
-            "SOL" | "BTC" | "ETH" => {
-                // In production, integrate with price service
-                // For now, return None to indicate price service needed
-                None
-            }
+            "SOL" => self.get_price_and_calculate(CryptoType::Sol, amount).await,
+            "ETH" => self.get_price_and_calculate(CryptoType::Eth, amount).await,
+            "ARB" => self.get_price_and_calculate(CryptoType::Arb, amount).await,
+            "MATIC" => self.get_price_and_calculate(CryptoType::Matic, amount).await,
+            "BNB" => self.get_price_and_calculate(CryptoType::Bnb, amount).await,
             _ => None,
+        }
+    }
+
+    async fn get_price_and_calculate(&self, crypto_type: CryptoType, amount: &Decimal) -> Option<Decimal> {
+        match self.price_service.get_price(crypto_type).await {
+            Ok(price) => {
+                let price_decimal = Decimal::from_f64_retain(price)?;
+                Some(*amount * price_decimal)
+            }
+            Err(_) => None,
         }
     }
 }

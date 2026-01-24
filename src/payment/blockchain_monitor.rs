@@ -341,5 +341,21 @@ pub fn get_blockchain_monitor(crypto_type: &CryptoType) -> Box<dyn BlockchainMon
             let api_key = std::env::var("ETHERSCAN_API_KEY").ok();
             Box::new(EvmMonitor::new_ethereum(api_key))
         }
+        CryptoType::Eth => {
+            let api_key = std::env::var("ETHERSCAN_API_KEY").ok();
+            Box::new(EvmMonitor::new_ethereum(api_key))
+        }
+        CryptoType::Arb => {
+            let api_key = std::env::var("ARBISCAN_API_KEY").ok();
+            Box::new(EvmMonitor::new_arbitrum(api_key))
+        }
+        CryptoType::Matic => {
+            let api_key = std::env::var("POLYGONSCAN_API_KEY").ok();
+            Box::new(EvmMonitor::new_polygon(api_key))
+        }
+        CryptoType::Bnb => {
+            let api_key = std::env::var("BSCSCAN_API_KEY").ok();
+            Box::new(EvmMonitor::new_bsc(api_key))
+        }
     }
 }

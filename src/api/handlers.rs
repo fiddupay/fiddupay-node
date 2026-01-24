@@ -55,11 +55,15 @@ pub async fn set_wallet(
 ) -> impl IntoResponse {
     let crypto_type = match req.crypto_type.as_str() {
         "SOL" => CryptoType::Sol,
-        "USDT_SPL" => CryptoType::UsdtSpl,
-        "USDT_BEP20" => CryptoType::UsdtBep20,
+        "USDT_SPL" | "USDT_SOL" => CryptoType::UsdtSpl,
+        "USDT_BEP20" | "USDT_BSC" => CryptoType::UsdtBep20,
         "USDT_ARBITRUM" => CryptoType::UsdtArbitrum,
         "USDT_POLYGON" => CryptoType::UsdtPolygon,
         "USDT_ETH" => CryptoType::UsdtEth,
+        "ETH" => CryptoType::Eth,
+        "ARB" => CryptoType::Arb,
+        "MATIC" => CryptoType::Matic,
+        "BNB" => CryptoType::Bnb,
         _ => return (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid crypto_type"}))).into_response(),
     };
     
@@ -312,16 +316,11 @@ pub async fn payment_page(
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("Error: {}", e))).into_response(),
     };
 
-    // Generate QR code
-    let qr_data = format!("{}:{}?amount={}", 
-        payment.network.to_lowercase(), 
-        payment.to_address, 
-        payment.amount
-    );
-    
-    let qr_code_base64 = match generate_qr_code(&qr_data) {
+    // Generate QR code for payment
+    let qr_data = format!("{}:{}", payment.crypto_type, payment.to_address);
+    let qr_code = match crate::utils::qr::generate_qr_code(&qr_data) {
         Ok(qr) => qr,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("QR code error: {}", e))).into_response(),
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Html("QR generation failed".to_string())).into_response(),
     };
 
     // Calculate time remaining
@@ -354,7 +353,7 @@ pub async fn payment_page(
         network: payment.network,
         deposit_address: payment.to_address,
         fee_amount_usd: payment.fee_amount_usd.to_string(),
-        qr_code: qr_code_base64,
+        qr_code: qr_code,
         time_remaining,
         expires_at: payment.expires_at.to_rfc3339(),
         transaction_hash: payment.transaction_hash,
@@ -467,11 +466,10 @@ pub struct SetIpWhitelistRequest {
 
 pub async fn set_ip_whitelist(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Json(req): Json<SetIpWhitelistRequest>,
 ) -> impl IntoResponse {
-    let merchant_id = 1; // TODO: Get from auth middleware
-    
-    match state.ip_whitelist_service.set_whitelist(merchant_id, req.ip_addresses).await {
+    match state.ip_whitelist_service.set_whitelist(context.merchant_id, req.ip_addresses).await {
         Ok(_) => (StatusCode::OK, Json(json!({"message": "IP whitelist updated"}))).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -479,10 +477,9 @@ pub async fn set_ip_whitelist(
 
 pub async fn get_ip_whitelist(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    let merchant_id = 1; // TODO: Get from auth middleware
-    
-    match state.ip_whitelist_service.get_whitelist(merchant_id).await {
+    match state.ip_whitelist_service.get_whitelist(context.merchant_id).await {
         Ok(ips) => (StatusCode::OK, Json(json!({"ip_addresses": ips}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -502,10 +499,9 @@ pub struct AuditLogQueryParams {
 
 pub async fn get_audit_logs(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Query(params): Query<AuditLogQueryParams>,
 ) -> impl IntoResponse {
-    let merchant_id = 1; // TODO: Get from auth middleware
-    
     let query = crate::services::audit_service::AuditLogQuery {
         from: params.from.and_then(|s| s.parse().ok()),
         to: params.to.and_then(|s| s.parse().ok()),
@@ -513,7 +509,7 @@ pub async fn get_audit_logs(
         limit: params.limit,
     };
     
-    match state.audit_service.get_logs(merchant_id, query).await {
+    match state.audit_service.get_logs(context.merchant_id, query).await {
         Ok(logs) => (StatusCode::OK, Json(logs)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -566,13 +562,33 @@ pub async fn create_withdrawal(
     }
 }
 
+pub async fn get_supported_currencies(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let currencies = state.currency_service.get_supported_currencies().await;
+    
+    let mut currency_groups = std::collections::HashMap::new();
+    
+    for (crypto_type, group, network) in currencies {
+        currency_groups.entry(group).or_insert_with(Vec::new).push(json!({
+            "crypto_type": crypto_type,
+            "network": network,
+            "confirmations": state.currency_service.get_required_confirmations(crypto_type)
+        }));
+    }
+    
+    (StatusCode::OK, Json(json!({
+        "currency_groups": currency_groups,
+        "description": "USDT can be accepted on multiple networks. Native currencies are network-specific."
+    }))).into_response()
+}
+
 pub async fn get_withdrawal(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Path(withdrawal_id): Path<String>,
 ) -> impl IntoResponse {
-    let merchant_id = 1; // TODO: Get from auth middleware
-    
-    match state.withdrawal_service.get_withdrawal(merchant_id, &withdrawal_id).await {
+    match state.withdrawal_service.get_withdrawal(context.merchant_id, &withdrawal_id).await {
         Ok(withdrawal) => (StatusCode::OK, Json(withdrawal)).into_response(),
         Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -585,12 +601,12 @@ pub struct WithdrawalListQuery {
 
 pub async fn list_withdrawals(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Query(params): Query<WithdrawalListQuery>,
 ) -> impl IntoResponse {
-    let merchant_id = 1; // TODO: Get from auth middleware
     let limit = params.limit.unwrap_or(100).min(1000);
     
-    match state.withdrawal_service.list_withdrawals(merchant_id, limit).await {
+    match state.withdrawal_service.list_withdrawals(context.merchant_id, limit).await {
         Ok(withdrawals) => (StatusCode::OK, Json(withdrawals)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }

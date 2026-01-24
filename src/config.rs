@@ -123,7 +123,7 @@ impl Config {
         }
 
         if self.webhook_signing_key == "change_me_in_production" {
-            tracing::warn!("⚠️  Using default webhook signing key - change this in production!");
+            return Err("WEBHOOK_SIGNING_KEY must be changed in production".to_string());
         }
 
         Ok(())
