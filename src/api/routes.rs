@@ -5,10 +5,15 @@ use crate::api::handlers;
 use crate::api::state::AppState;
 use crate::middleware::{auth, ip_whitelist, logging, rate_limit};
 use axum::{
+    http::{
+        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
+        HeaderValue, Method,
+    },
     middleware as axum_middleware,
     routing::{get, post, put},
     Router,
 };
+use tower_http::cors::CorsLayer;
 
 pub fn create_router(state: AppState) -> Router {
     // Create rate limiter
@@ -20,11 +25,13 @@ pub fn create_router(state: AppState) -> Router {
         .route("/pay/:link_id", get(handlers::payment_page))
         .route("/pay/:link_id/status", get(handlers::payment_status))
         .route("/api/v1/merchants/register", post(handlers::register_merchant))
+        .route("/api/v1/merchants/login", post(handlers::login_merchant))
         .route("/api/v1/currencies/supported", get(handlers::get_supported_currencies));
 
     // Protected routes (auth required)
     let protected_routes = Router::new()
         // Merchant endpoints
+        .route("/api/v1/merchants/profile", get(handlers::get_merchant_profile))
         .route("/api/v1/merchants/api-keys/rotate", post(handlers::rotate_api_key))
         .route("/api/v1/merchants/wallets", put(handlers::set_wallet))
         .route("/api/v1/merchants/webhook", put(handlers::set_webhook))
@@ -79,8 +86,15 @@ pub fn create_router(state: AppState) -> Router {
         }))
         .layer(axum_middleware::from_fn(logging::logging_middleware));
 
-    // Combine routes
+    // Combine routes with CORS
+    let cors = CorsLayer::new()
+        .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
+        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
+        .allow_credentials(true);
+
     public_routes
         .merge(protected_routes)
+        .layer(cors)
         .with_state(state)
 }

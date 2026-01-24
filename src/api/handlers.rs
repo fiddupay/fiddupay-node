@@ -20,16 +20,83 @@ use serde_json::json;
 pub struct RegisterMerchantRequest {
     pub email: String,
     pub business_name: String,
+    pub password: String,
+}
+
+#[derive(Deserialize)]
+pub struct LoginMerchantRequest {
+    pub email: String,
+    pub password: String,
+    pub two_factor_code: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct AuthResponse {
+    pub user: MerchantProfile,
+    pub api_key: String,
+}
+
+#[derive(Serialize)]
+pub struct MerchantProfile {
+    pub id: i64,
+    pub business_name: String,
+    pub email: String,
+    pub created_at: String,
+    pub two_factor_enabled: bool,
 }
 
 pub async fn register_merchant(
     State(state): State<AppState>,
     Json(req): Json<RegisterMerchantRequest>,
 ) -> impl IntoResponse {
-    match state.merchant_service.register_merchant(req.email, req.business_name).await {
-        Ok(response) => (StatusCode::CREATED, Json(response)).into_response(),
+    match state.merchant_service.register_merchant(req.email.clone(), req.business_name.clone()).await {
+        Ok(response) => {
+            let auth_response = AuthResponse {
+                user: MerchantProfile {
+                    id: response.merchant_id,
+                    business_name: req.business_name,
+                    email: req.email,
+                    created_at: chrono::Utc::now().to_rfc3339(),
+                    two_factor_enabled: false,
+                },
+                api_key: response.api_key,
+            };
+            (StatusCode::CREATED, Json(auth_response)).into_response()
+        },
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
+}
+
+pub async fn login_merchant(
+    State(_state): State<AppState>,
+    Json(req): Json<LoginMerchantRequest>,
+) -> impl IntoResponse {
+    // For now, return a mock response - implement proper authentication later
+    let auth_response = AuthResponse {
+        user: MerchantProfile {
+            id: 1,
+            business_name: "Demo Business".to_string(),
+            email: req.email,
+            created_at: chrono::Utc::now().to_rfc3339(),
+            two_factor_enabled: false,
+        },
+        api_key: "demo_api_key_12345".to_string(),
+    };
+    (StatusCode::OK, Json(auth_response)).into_response()
+}
+
+pub async fn get_merchant_profile(
+    State(_state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    let profile = MerchantProfile {
+        id: context.merchant_id,
+        business_name: "Demo Business".to_string(),
+        email: "demo@example.com".to_string(),
+        created_at: chrono::Utc::now().to_rfc3339(),
+        two_factor_enabled: false,
+    };
+    (StatusCode::OK, Json(profile)).into_response()
 }
 
 pub async fn rotate_api_key(
