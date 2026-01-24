@@ -47,13 +47,13 @@
 }
 
 .plan:hover {
-  border-color: #4f46e5;
+  border-color: #1e40af;
   transform: translateY(-4px);
   box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1);
 }
 
 .popular {
-  border-color: #4f46e5;
+  border-color: #1e40af;
 }
 
 .popularBadge {
@@ -61,7 +61,7 @@
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  background: #4f46e5;
+  background: #1e40af;
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 1rem;
@@ -88,7 +88,7 @@
 .price {
   font-size: 3rem;
   font-weight: 800;
-  color: #4f46e5;
+  color: #1e40af;
 }
 
 .period {
@@ -124,10 +124,10 @@
 .planBtn {
   width: 100%;
   padding: 1rem;
-  border: 2px solid #4f46e5;
+  border: 2px solid #1e40af;
   border-radius: 0.5rem;
   background: white;
-  color: #4f46e5;
+  color: #1e40af;
   text-decoration: none;
   font-weight: 600;
   text-align: center;
@@ -136,17 +136,17 @@
 }
 
 .planBtn:hover {
-  background: #4f46e5;
+  background: #1e40af;
   color: white;
 }
 
 .primaryBtn {
-  background: #4f46e5;
+  background: #1e40af;
   color: white;
 }
 
 .primaryBtn:hover {
-  background: #4338ca;
+  background: #1d4ed8;
 }
 
 .faq {

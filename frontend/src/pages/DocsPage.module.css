@@ -1,0 +1,153 @@
+.docsPage {
+  padding: 3rem 0;
+  background: #f9fafb;
+  min-height: 80vh;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.title {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  color: #6b7280;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.content {
+  display: grid;
+  gap: 3rem;
+}
+
+.quickStart, .apiExample, .resources {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.quickStart h2, .apiExample h2, .resources h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.quickStart h2 i {
+  color: #059669;
+}
+
+.apiExample h2 i {
+  color: #1e40af;
+}
+
+.resources h2 i {
+  color: #7c3aed;
+}
+
+.step {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.step:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.step h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.step p {
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.codeBlock {
+  background: #1f2937;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+
+.codeBlock pre {
+  color: #e5e7eb;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.resourceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.resource {
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.resource:hover {
+  border-color: #1e40af;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.resource i {
+  font-size: 2rem;
+  color: #1e40af;
+  margin-bottom: 1rem;
+}
+
+.resource h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.resource p {
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 2rem;
+  }
+  
+  .resourceGrid {
+    grid-template-columns: 1fr;
+  }
+}

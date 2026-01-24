@@ -53,22 +53,22 @@ const HomePage: React.FC = () => {
           <h2 className={styles.sectionTitle}>Why Choose PayFlow?</h2>
           <div className={styles.featuresGrid}>
             <div className={styles.feature}>
-              <div className={styles.featureIcon}>⚡</div>
+              <div className={styles.featureIcon}><i className="fas fa-bolt"></i></div>
               <h3>Instant Processing</h3>
               <p>Real-time payment confirmation and automatic forwarding to your wallets</p>
             </div>
             <div className={styles.feature}>
-              <div className={styles.featureIcon}>🔒</div>
+              <div className={styles.featureIcon}><i className="fas fa-shield-alt"></i></div>
               <h3>Bank-Level Security</h3>
               <p>Advanced encryption, rate limiting, and threat detection protect your transactions</p>
             </div>
             <div className={styles.feature}>
-              <div className={styles.featureIcon}>🌐</div>
+              <div className={styles.featureIcon}><i className="fas fa-network-wired"></i></div>
               <h3>Multi-Network Support</h3>
               <p>Accept USDT on Ethereum, BSC, Polygon, Arbitrum, and Solana networks</p>
             </div>
             <div className={styles.feature}>
-              <div className={styles.featureIcon}>📊</div>
+              <div className={styles.featureIcon}><i className="fas fa-chart-line"></i></div>
               <h3>Real-Time Dashboard</h3>
               <p>Monitor payments, track analytics, and manage your crypto business</p>
             </div>

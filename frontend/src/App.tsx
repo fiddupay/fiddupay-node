@@ -5,7 +5,10 @@ import Layout from '@/components/Layout'
 import AppLayout from '@/components/layout/AppLayout'
 import LoginPage from '@/pages/auth/LoginPage'
 import HomePage from '@/pages/HomePage'
+import FeaturesPage from '@/pages/FeaturesPage'
 import PricingPage from '@/pages/PricingPage'
+import DocsPage from '@/pages/DocsPage'
+import ContactPage from '@/pages/ContactPage'
 import '@/styles/globals.css'
 
 // Lazy load pages for better performance
@@ -32,7 +35,7 @@ const App: React.FC = () => {
           width: '2rem',
           height: '2rem',
           border: '2px solid #e5e7eb',
-          borderTop: '2px solid #3b82f6',
+          borderTop: '2px solid #1e40af',
           borderRadius: '50%'
         }} />
       </div>
@@ -44,7 +47,10 @@ const App: React.FC = () => {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Layout><HomePage /></Layout>} />
+        <Route path="/features" element={<Layout><FeaturesPage /></Layout>} />
         <Route path="/pricing" element={<Layout><PricingPage /></Layout>} />
+        <Route path="/docs" element={<Layout><DocsPage /></Layout>} />
+        <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
         
         {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />
