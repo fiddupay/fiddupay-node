@@ -419,6 +419,74 @@
   font-weight: bold;
 }
 
+.environmentGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.environmentCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.environmentCard h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.environmentCard ul {
+  list-style: none;
+  padding: 0;
+}
+
+.environmentCard li {
+  padding: 0.5rem 0;
+  color: #374151;
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.environmentCard li::before {
+  content: '✓';
+  color: #059669;
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+.testingTips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.tip {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.tip h3 {
+  color: #1e40af;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.tip p {
+  color: #1e40af;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
 .sdkCard code {
   background: #f3f4f6;
   color: #1f2937;

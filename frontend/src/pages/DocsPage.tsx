@@ -77,7 +77,10 @@ $payment = \\PayFlow\\Payment::create([
               <i className="fas fa-key"></i> Authentication
             </a>
             <a href="#quickstart" className={activeTab === 'quickstart' ? styles.active : ''} onClick={() => setActiveTab('quickstart')}>
-              <i className="fas fa-rocket"></i> Quick Start
+              Quick Start
+            </a>
+            <a href="#sandbox" className={activeTab === 'sandbox' ? styles.active : ''} onClick={() => setActiveTab('sandbox')}>
+              Sandbox & Testing
             </a>
           </div>
           <div className={styles.navSection}>
@@ -120,8 +123,9 @@ $payment = \\PayFlow\\Payment::create([
             </p>
 
             <div className={styles.infoBox}>
-              <h3>Base URL</h3>
-              <code>https://api.payflow.com/v1</code>
+              <h3>Base URLs</h3>
+              <p><strong>Sandbox:</strong> <code>https://api-sandbox.payflow.com/v1</code></p>
+              <p><strong>Production:</strong> <code>https://api.payflow.com/v1</code></p>
             </div>
 
             <h2 className={styles.bigTitle}>Supported Cryptocurrencies & Networks</h2>
@@ -260,6 +264,105 @@ $payment = \\PayFlow\\Payment::create([
                 <span>Authentication Header</span>
               </div>
               <pre><code>Authorization: Bearer sk_test_...</code></pre>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'sandbox' && (
+          <div className={styles.section}>
+            <h1>Sandbox & Testing</h1>
+            <p className={styles.lead}>
+              PayFlow provides a comprehensive sandbox environment for testing your integration without real transactions.
+            </p>
+
+            <h2 className={styles.bigTitle}>Sandbox Environment</h2>
+            <div className={styles.infoBox}>
+              <h3>Test Safely</h3>
+              <p>Use sandbox mode to test your integration without real cryptocurrency transactions or fees.</p>
+            </div>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>POST</span>
+                <span className={styles.url}>/v1/sandbox/enable</span>
+                <span className={styles.description}>Enable sandbox mode</span>
+              </div>
+
+              <h3>Response</h3>
+              <div className={styles.codeExample}>
+                <pre><code>{`{
+  "sandbox_mode": true,
+  "message": "Sandbox mode enabled. All transactions will be simulated."
+}`}</code></pre>
+              </div>
+            </div>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>POST</span>
+                <span className={styles.url}>/v1/sandbox/payments/:payment_id/simulate</span>
+                <span className={styles.description}>Simulate payment completion</span>
+              </div>
+
+              <h3>Parameters</h3>
+              <div className={styles.paramTable}>
+                <div className={styles.param}>
+                  <code>status</code>
+                  <span className={styles.required}>required</span>
+                  <p>Simulation status: "confirmed", "failed", "expired"</p>
+                </div>
+                <div className={styles.param}>
+                  <code>transaction_hash</code>
+                  <span className={styles.optional}>optional</span>
+                  <p>Mock transaction hash for testing</p>
+                </div>
+              </div>
+            </div>
+
+            <h2 className={styles.bigTitle}>Environment Differences</h2>
+            <div className={styles.environmentGrid}>
+              <div className={styles.environmentCard}>
+                <h3>🧪 Sandbox Mode</h3>
+                <ul>
+                  <li>API keys start with <code>sk_test_</code></li>
+                  <li>No real blockchain transactions</li>
+                  <li>Simulated payment confirmations</li>
+                  <li>Test webhook deliveries</li>
+                  <li>No actual fees charged</li>
+                  <li>Instant payment simulation</li>
+                </ul>
+              </div>
+              <div className={styles.environmentCard}>
+                <h3>🚀 Production Mode</h3>
+                <ul>
+                  <li>API keys start with <code>sk_live_</code></li>
+                  <li>Real blockchain transactions</li>
+                  <li>Actual cryptocurrency transfers</li>
+                  <li>Real webhook notifications</li>
+                  <li>Transaction fees apply</li>
+                  <li>Network confirmation times</li>
+                </ul>
+              </div>
+            </div>
+
+            <h2 className={styles.bigTitle}>Testing Best Practices</h2>
+            <div className={styles.testingTips}>
+              <div className={styles.tip}>
+                <h3>1. Start with Sandbox</h3>
+                <p>Always test your integration in sandbox mode before going live.</p>
+              </div>
+              <div className={styles.tip}>
+                <h3>2. Test All Scenarios</h3>
+                <p>Simulate successful payments, failures, and expirations.</p>
+              </div>
+              <div className={styles.tip}>
+                <h3>3. Webhook Testing</h3>
+                <p>Verify your webhook endpoints handle all event types correctly.</p>
+              </div>
+              <div className={styles.tip}>
+                <h3>4. Error Handling</h3>
+                <p>Test how your application handles API errors and network issues.</p>
+              </div>
             </div>
           </div>
         )}
@@ -639,6 +742,14 @@ $payment = \\PayFlow\\Payment::create([
                 <span className={styles.method}>GET</span>
                 <span className={styles.url}>/v1/merchants/balance</span>
                 <span className={styles.description}>Get account balance</span>
+              </div>
+            </div>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>POST</span>
+                <span className={styles.url}>/v1/sandbox/enable</span>
+                <span className={styles.description}>Enable sandbox mode</span>
               </div>
             </div>
           </div>
