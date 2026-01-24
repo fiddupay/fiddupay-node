@@ -10,50 +10,54 @@ const DocsPage: React.FC = () => {
   -H "Authorization: Bearer sk_test_..." \\
   -H "Content-Type: application/json" \\
   -d '{
-    "amount": "100.00",
-    "currency": "USDT",
-    "network": "ethereum",
-    "callback_url": "https://yoursite.com/webhook",
+    "amount_usd": "100.00",
+    "crypto_type": "USDT_ETH",
+    "description": "Order #12345",
     "metadata": {
-      "order_id": "order_123"
-    }
+      "order_id": "12345",
+      "customer_id": "cust_abc123"
+    },
+    "expiration_minutes": 30
   }'`,
     javascript: `const payflow = require('payflow-node');
 payflow.apiKey = 'sk_test_...';
 
 const payment = await payflow.payments.create({
-  amount: '100.00',
-  currency: 'USDT',
-  network: 'ethereum',
-  callback_url: 'https://yoursite.com/webhook',
+  amount_usd: '100.00',
+  crypto_type: 'USDT_ETH',
+  description: 'Order #12345',
   metadata: {
-    order_id: 'order_123'
-  }
+    order_id: '12345',
+    customer_id: 'cust_abc123'
+  },
+  expiration_minutes: 30
 });`,
     python: `import payflow
 payflow.api_key = "sk_test_..."
 
 payment = payflow.Payment.create(
-    amount="100.00",
-    currency="USDT",
-    network="ethereum",
-    callback_url="https://yoursite.com/webhook",
+    amount_usd="100.00",
+    crypto_type="USDT_ETH",
+    description="Order #12345",
     metadata={
-        "order_id": "order_123"
-    }
+        "order_id": "12345",
+        "customer_id": "cust_abc123"
+    },
+    expiration_minutes=30
 )`,
     php: `<?php
 require_once('vendor/autoload.php');
 \\PayFlow\\PayFlow::setApiKey('sk_test_...');
 
 $payment = \\PayFlow\\Payment::create([
-    'amount' => '100.00',
-    'currency' => 'USDT',
-    'network' => 'ethereum',
-    'callback_url' => 'https://yoursite.com/webhook',
+    'amount_usd' => '100.00',
+    'crypto_type' => 'USDT_ETH',
+    'description' => 'Order #12345',
     'metadata' => [
-        'order_id' => 'order_123'
-    ]
+        'order_id' => '12345',
+        'customer_id' => 'cust_abc123'
+    ],
+    'expiration_minutes' => 30
 ]);`
   }
 
@@ -84,8 +88,14 @@ $payment = \\PayFlow\\Payment::create([
             <a href="#webhooks" className={activeTab === 'webhooks' ? styles.active : ''} onClick={() => setActiveTab('webhooks')}>
               <i className="fas fa-webhook"></i> Webhooks
             </a>
-            <a href="#wallets" className={activeTab === 'wallets' ? styles.active : ''} onClick={() => setActiveTab('wallets')}>
-              <i className="fas fa-wallet"></i> Wallets
+            <a href="#refunds" className={activeTab === 'refunds' ? styles.active : ''} onClick={() => setActiveTab('refunds')}>
+              Refunds
+            </a>
+            <a href="#analytics" className={activeTab === 'analytics' ? styles.active : ''} onClick={() => setActiveTab('analytics')}>
+              Analytics
+            </a>
+            <a href="#merchants" className={activeTab === 'merchants' ? styles.active : ''} onClick={() => setActiveTab('merchants')}>
+              Merchants
             </a>
           </div>
           <div className={styles.navSection}>
@@ -106,25 +116,63 @@ $payment = \\PayFlow\\Payment::create([
             <h1>PayFlow API Documentation</h1>
             <p className={styles.lead}>
               The PayFlow API is organized around REST. Our API has predictable resource-oriented URLs, 
-              accepts form-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes.
+              accepts JSON request bodies, returns JSON-encoded responses, and uses standard HTTP response codes.
             </p>
 
             <div className={styles.infoBox}>
-              <h3><i className="fas fa-info-circle"></i> Base URL</h3>
+              <h3>Base URL</h3>
               <code>https://api.payflow.com/v1</code>
             </div>
 
             <h2>Supported Cryptocurrencies</h2>
             <div className={styles.cryptoGrid}>
               <div className={styles.cryptoCard}>
-                <i className="fab fa-bitcoin"></i>
                 <h4>SOL</h4>
                 <p>Solana Network</p>
+                <small>32 confirmations (~13 seconds)</small>
               </div>
               <div className={styles.cryptoCard}>
-                <i className="fas fa-coins"></i>
                 <h4>USDT</h4>
-                <p>5 Networks: ETH, BSC, Polygon, Arbitrum, Solana</p>
+                <p>Ethereum Network</p>
+                <small>12 confirmations (~3 minutes)</small>
+              </div>
+              <div className={styles.cryptoCard}>
+                <h4>USDT</h4>
+                <p>BSC Network</p>
+                <small>15 confirmations (~45 seconds)</small>
+              </div>
+              <div className={styles.cryptoCard}>
+                <h4>USDT</h4>
+                <p>Polygon Network</p>
+                <small>128 confirmations (~4 minutes)</small>
+              </div>
+              <div className={styles.cryptoCard}>
+                <h4>USDT</h4>
+                <p>Arbitrum Network</p>
+                <small>1 confirmation (~250ms)</small>
+              </div>
+              <div className={styles.cryptoCard}>
+                <h4>USDT</h4>
+                <p>Solana SPL</p>
+                <small>32 confirmations (~13 seconds)</small>
+              </div>
+            </div>
+
+            <h2>Payment Status Flow</h2>
+            <div className={styles.statusFlow}>
+              <div className={styles.statusItem}>
+                <code>PENDING</code>
+                <p>Payment created, waiting for transaction</p>
+              </div>
+              <div className={styles.statusArrow}>→</div>
+              <div className={styles.statusItem}>
+                <code>CONFIRMING</code>
+                <p>Transaction detected, waiting for confirmations</p>
+              </div>
+              <div className={styles.statusArrow}>→</div>
+              <div className={styles.statusItem}>
+                <code>CONFIRMED</code>
+                <p>Payment confirmed and verified</p>
               </div>
             </div>
           </div>
@@ -170,7 +218,7 @@ $payment = \\PayFlow\\Payment::create([
           <div className={styles.section}>
             <h1>Payments API</h1>
             <p className={styles.lead}>
-              Create and manage cryptocurrency payment requests.
+              Create and manage cryptocurrency payment requests with automatic forwarding and real-time notifications.
             </p>
 
             <div className={styles.endpoint}>
@@ -183,24 +231,34 @@ $payment = \\PayFlow\\Payment::create([
               <h3>Parameters</h3>
               <div className={styles.paramTable}>
                 <div className={styles.param}>
-                  <code>amount</code>
+                  <code>amount_usd</code>
                   <span className={styles.required}>required</span>
-                  <p>Payment amount in USD (string)</p>
+                  <p>Payment amount in USD (decimal)</p>
                 </div>
                 <div className={styles.param}>
-                  <code>currency</code>
+                  <code>crypto_type</code>
                   <span className={styles.required}>required</span>
-                  <p>Cryptocurrency: "SOL" or "USDT"</p>
+                  <p>Cryptocurrency: "SOL", "USDT_ETH", "USDT_BEP20", "USDT_POLYGON", "USDT_ARBITRUM", "USDT_SPL"</p>
                 </div>
                 <div className={styles.param}>
-                  <code>network</code>
+                  <code>description</code>
                   <span className={styles.optional}>optional</span>
-                  <p>Network for USDT: "ethereum", "bsc", "polygon", "arbitrum", "solana"</p>
+                  <p>Payment description for reference</p>
                 </div>
                 <div className={styles.param}>
-                  <code>callback_url</code>
+                  <code>metadata</code>
                   <span className={styles.optional}>optional</span>
-                  <p>Webhook URL for payment notifications</p>
+                  <p>Custom metadata object for your reference</p>
+                </div>
+                <div className={styles.param}>
+                  <code>expiration_minutes</code>
+                  <span className={styles.optional}>optional</span>
+                  <p>Payment expiration time in minutes (default: 20)</p>
+                </div>
+                <div className={styles.param}>
+                  <code>partial_payments_enabled</code>
+                  <span className={styles.optional}>optional</span>
+                  <p>Allow partial payments (default: false)</p>
                 </div>
               </div>
 
@@ -225,16 +283,71 @@ $payment = \\PayFlow\\Payment::create([
               <h3>Response</h3>
               <div className={styles.codeExample}>
                 <pre><code>{`{
-  "id": "pay_1234567890",
-  "amount": "100.00",
-  "currency": "USDT",
-  "network": "ethereum",
-  "status": "pending",
-  "payment_address": "0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4",
-  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+  "payment_id": "pay_1234567890",
+  "status": "PENDING",
+  "amount": "0.00234567",
+  "amount_usd": "100.00",
+  "crypto_type": "USDT_ETH",
+  "network": "ETHEREUM",
+  "deposit_address": "0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4",
+  "payment_link": "https://pay.payflow.com/pay_1234567890",
+  "qr_code_data": "ethereum:0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4?value=234567000000000000",
+  "fee_amount": "0.00001756",
+  "fee_amount_usd": "0.75",
   "expires_at": "2026-01-24T23:35:37Z",
-  "created_at": "2026-01-24T22:35:37Z"
+  "created_at": "2026-01-24T22:35:37Z",
+  "confirmed_at": null,
+  "transaction_hash": null,
+  "partial_payments": {
+    "enabled": false,
+    "total_paid": "0.00000000",
+    "remaining_balance": "0.00234567",
+    "payments": []
+  }
 }`}</code></pre>
+              </div>
+            </div>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>GET</span>
+                <span className={styles.url}>/v1/payments</span>
+                <span className={styles.description}>List payments</span>
+              </div>
+
+              <h3>Query Parameters</h3>
+              <div className={styles.paramTable}>
+                <div className={styles.param}>
+                  <code>page</code>
+                  <span className={styles.optional}>optional</span>
+                  <p>Page number (default: 1)</p>
+                </div>
+                <div className={styles.param}>
+                  <code>limit</code>
+                  <span className={styles.optional}>optional</span>
+                  <p>Items per page (default: 20, max: 100)</p>
+                </div>
+                <div className={styles.param}>
+                  <code>status</code>
+                  <span className={styles.optional}>optional</span>
+                  <p>Filter by status: PENDING, CONFIRMING, CONFIRMED, FAILED, REFUNDED</p>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>GET</span>
+                <span className={styles.url}>/v1/payments/:payment_id</span>
+                <span className={styles.description}>Get payment details</span>
+              </div>
+            </div>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>POST</span>
+                <span className={styles.url}>/v1/payments/:payment_id/verify</span>
+                <span className={styles.description}>Manually verify payment</span>
               </div>
             </div>
           </div>
@@ -245,48 +358,241 @@ $payment = \\PayFlow\\Payment::create([
             <h1>Webhooks</h1>
             <p className={styles.lead}>
               PayFlow sends webhooks to notify your application when events happen in your account.
+              Webhooks are delivered with automatic retry logic and delivery tracking.
             </p>
 
             <div className={styles.infoBox}>
-              <h3><i className="fas fa-bolt"></i> Real-time Notifications</h3>
-              <p>Receive instant notifications when payments are confirmed, failed, or expired.</p>
+              <h3>Webhook Configuration</h3>
+              <p>Configure your webhook URL in the merchant dashboard or via API:</p>
+              <code>PUT /v1/merchants/webhook</code>
             </div>
 
             <h2>Webhook Events</h2>
             <div className={styles.eventList}>
               <div className={styles.event}>
                 <code>payment.confirmed</code>
-                <p>Payment has been confirmed on the blockchain</p>
-              </div>
-              <div className={styles.event}>
-                <code>payment.failed</code>
-                <p>Payment has failed or been rejected</p>
+                <p>Payment has been confirmed on the blockchain with required confirmations</p>
               </div>
               <div className={styles.event}>
                 <code>payment.expired</code>
-                <p>Payment request has expired</p>
+                <p>Payment request has expired without receiving payment</p>
+              </div>
+              <div className={styles.event}>
+                <code>payment.failed</code>
+                <p>Payment has failed due to insufficient amount or other issues</p>
+              </div>
+              <div className={styles.event}>
+                <code>refund.completed</code>
+                <p>Refund has been successfully processed and sent</p>
+              </div>
+              <div className={styles.event}>
+                <code>refund.failed</code>
+                <p>Refund processing has failed</p>
               </div>
             </div>
 
             <h2>Webhook Payload</h2>
             <div className={styles.codeExample}>
               <pre><code>{`{
-  "event": "payment.confirmed",
-  "data": {
-    "id": "pay_1234567890",
-    "amount": "100.00",
-    "currency": "USDT",
-    "network": "ethereum",
-    "status": "confirmed",
-    "transaction_hash": "0x1234...abcd",
-    "confirmed_at": "2026-01-24T22:36:15Z"
-  }
+  "event_type": "payment.confirmed",
+  "payment_id": "pay_1234567890",
+  "merchant_id": 12345,
+  "status": "CONFIRMED",
+  "amount": "0.00234567",
+  "crypto_type": "USDT_ETH",
+  "transaction_hash": "0x1234...abcd",
+  "timestamp": 1706135777
 }`}</code></pre>
+            </div>
+
+            <h2>Webhook Security</h2>
+            <div className={styles.warningBox}>
+              <strong>Verify webhook signatures!</strong> Always verify the webhook signature to ensure the request is from PayFlow.
+            </div>
+
+            <h2>Delivery & Retries</h2>
+            <ul>
+              <li>Webhooks are delivered with a 10-second timeout</li>
+              <li>Failed deliveries are retried up to 5 times with exponential backoff</li>
+              <li>Delivery status is tracked and available in your dashboard</li>
+              <li>Webhooks expect a 2xx HTTP response to be considered successful</li>
+            </ul>
+          </div>
+        )}
+
+        {activeTab === 'refunds' && (
+          <div className={styles.section}>
+            <h1>Refunds API</h1>
+            <p className={styles.lead}>
+              Process refunds for confirmed payments. Refunds are processed automatically to the original payment address.
+            </p>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>POST</span>
+                <span className={styles.url}>/v1/refunds</span>
+                <span className={styles.description}>Create a refund</span>
+              </div>
+
+              <h3>Parameters</h3>
+              <div className={styles.paramTable}>
+                <div className={styles.param}>
+                  <code>payment_id</code>
+                  <span className={styles.required}>required</span>
+                  <p>ID of the payment to refund</p>
+                </div>
+                <div className={styles.param}>
+                  <code>amount</code>
+                  <span className={styles.optional}>optional</span>
+                  <p>Partial refund amount (defaults to full payment amount)</p>
+                </div>
+                <div className={styles.param}>
+                  <code>reason</code>
+                  <span className={styles.optional}>optional</span>
+                  <p>Reason for the refund</p>
+                </div>
+              </div>
+
+              <h3>Response</h3>
+              <div className={styles.codeExample}>
+                <pre><code>{`{
+  "refund_id": "ref_1234567890",
+  "payment_id": "pay_1234567890",
+  "amount": "0.00234567",
+  "amount_usd": "100.00",
+  "status": "pending",
+  "reason": "Customer requested refund",
+  "transaction_hash": null,
+  "created_at": "2026-01-24T22:35:37Z",
+  "completed_at": null
+}`}</code></pre>
+              </div>
+            </div>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>GET</span>
+                <span className={styles.url}>/v1/refunds/:refund_id</span>
+                <span className={styles.description}>Get refund details</span>
+              </div>
+            </div>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>POST</span>
+                <span className={styles.url}>/v1/refunds/:refund_id/complete</span>
+                <span className={styles.description}>Complete pending refund</span>
+              </div>
             </div>
           </div>
         )}
 
-        {activeTab === 'sdks' && (
+        {activeTab === 'analytics' && (
+          <div className={styles.section}>
+            <h1>Analytics API</h1>
+            <p className={styles.lead}>
+              Access detailed analytics and reporting data for your payments and business metrics.
+            </p>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>GET</span>
+                <span className={styles.url}>/v1/analytics</span>
+                <span className={styles.description}>Get analytics data</span>
+              </div>
+
+              <h3>Query Parameters</h3>
+              <div className={styles.paramTable}>
+                <div className={styles.param}>
+                  <code>start_date</code>
+                  <span className={styles.optional}>optional</span>
+                  <p>Start date for analytics (ISO 8601 format)</p>
+                </div>
+                <div className={styles.param}>
+                  <code>end_date</code>
+                  <span className={styles.optional}>optional</span>
+                  <p>End date for analytics (ISO 8601 format)</p>
+                </div>
+                <div className={styles.param}>
+                  <code>granularity</code>
+                  <span className={styles.optional}>optional</span>
+                  <p>Data granularity: "day", "week", "month"</p>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>GET</span>
+                <span className={styles.url}>/v1/analytics/export</span>
+                <span className={styles.description}>Export analytics data</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'merchants' && (
+          <div className={styles.section}>
+            <h1>Merchants API</h1>
+            <p className={styles.lead}>
+              Manage merchant account settings, wallets, and configuration.
+            </p>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>POST</span>
+                <span className={styles.url}>/v1/merchants/register</span>
+                <span className={styles.description}>Register new merchant</span>
+              </div>
+
+              <h3>Parameters</h3>
+              <div className={styles.paramTable}>
+                <div className={styles.param}>
+                  <code>email</code>
+                  <span className={styles.required}>required</span>
+                  <p>Merchant email address</p>
+                </div>
+                <div className={styles.param}>
+                  <code>business_name</code>
+                  <span className={styles.required}>required</span>
+                  <p>Business or company name</p>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>GET</span>
+                <span className={styles.url}>/v1/merchants/profile</span>
+                <span className={styles.description}>Get merchant profile</span>
+              </div>
+            </div>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>PUT</span>
+                <span className={styles.url}>/v1/merchants/wallets</span>
+                <span className={styles.description}>Set wallet addresses</span>
+              </div>
+            </div>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>PUT</span>
+                <span className={styles.url}>/v1/merchants/webhook</span>
+                <span className={styles.description}>Configure webhook URL</span>
+              </div>
+            </div>
+
+            <div className={styles.endpoint}>
+              <div className={styles.endpointHeader}>
+                <span className={styles.method}>GET</span>
+                <span className={styles.url}>/v1/merchants/balance</span>
+                <span className={styles.description}>Get account balance</span>
+              </div>
+            </div>
+          </div>
+        )}
           <div className={styles.section}>
             <h1>Official SDKs</h1>
             <p className={styles.lead}>
