@@ -754,6 +754,8 @@ $payment = \\PayFlow\\Payment::create([
             </div>
           </div>
         )}
+
+        {activeTab === 'sdks' && (
           <div className={styles.section}>
             <h1>Official SDKs</h1>
             <p className={styles.lead}>
