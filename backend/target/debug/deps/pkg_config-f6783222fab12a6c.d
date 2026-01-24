@@ -1,0 +1,7 @@
+/home/vibes/crypto-payment-gateway/target/debug/deps/pkg_config-f6783222fab12a6c.d: /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pkg-config-0.3.32/src/lib.rs
+
+/home/vibes/crypto-payment-gateway/target/debug/deps/libpkg_config-f6783222fab12a6c.rlib: /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pkg-config-0.3.32/src/lib.rs
+
+/home/vibes/crypto-payment-gateway/target/debug/deps/libpkg_config-f6783222fab12a6c.rmeta: /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pkg-config-0.3.32/src/lib.rs
+
+/home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pkg-config-0.3.32/src/lib.rs:

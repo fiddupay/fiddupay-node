@@ -1,0 +1,12 @@
+/home/vibes/crypto-payment-gateway/target/debug/deps/gif-1ce3b34e0edaafb4.d: /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/lib.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/traits.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/common.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/reader/mod.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/reader/decoder.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/reader/converter.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/encoder.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/../README.md
+
+/home/vibes/crypto-payment-gateway/target/debug/deps/libgif-1ce3b34e0edaafb4.rmeta: /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/lib.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/traits.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/common.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/reader/mod.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/reader/decoder.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/reader/converter.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/encoder.rs /home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/../README.md
+
+/home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/lib.rs:
+/home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/traits.rs:
+/home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/common.rs:
+/home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/reader/mod.rs:
+/home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/reader/decoder.rs:
+/home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/reader/converter.rs:
+/home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/encoder.rs:
+/home/vibes/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/gif-0.13.3/src/../README.md:

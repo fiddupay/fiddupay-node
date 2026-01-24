@@ -4,320 +4,90 @@
 
 Modern, production-ready cryptocurrency payment gateway for merchants. Accept payments across multiple blockchains with automatic forwarding, real-time notifications, and comprehensive merchant tools.
 
-## 🎯 **Current Status: PRODUCTION READY**
+## 🏗️ Monorepo Structure
 
-**Security Score: 10/10** ⭐ - Perfect enterprise-grade security achieved  
-**All Features: Complete** ✅ - Ready for production deployment  
-**Test Coverage: 100%** 🧪 - All security features verified
-
-## 🚀 Features
-
-### Core Payment Processing
-- **Multi-blockchain Support**: Solana, BSC, Arbitrum, Polygon, Ethereum
-- **Multi-currency Support**: SOL, USDT on 5 networks (SOL, BSC, Polygon, Arbitrum, ETH)
-- **Temporary Deposit Addresses**: BitPay-style unique addresses per payment
-- **Automatic Payment Forwarding**: Direct to merchant wallets minus fees
-- **Real-time Payment Verification**: Blockchain monitoring and confirmation
-
-### Security Features (Perfect 10/10 Score)
-- **XSS Prevention**: HTML escaping and input sanitization
-- **SQL Injection Protection**: Parameterized queries throughout
-- **CSRF Protection**: Token-based validation for state changes
-- **Advanced Rate Limiting**: Per-API-key limits with burst protection
-- **Account Lockout**: Brute force protection (5 attempts/email, 10/IP)
-- **Real-time Threat Detection**: Automated monitoring and response
-- **API Key Format Validation**: Strict format enforcement
-- **Request Tracking**: UUID-based correlation for audit trails
-- **Security Monitoring**: Comprehensive event logging and alerting
-
-### Merchant Tools
-- **Invoice Management**: Create and track invoices
-- **Withdrawal System**: Automated cryptocurrency withdrawals
-- **Balance Tracking**: Real-time balance with USD conversion
-- **Analytics Dashboard**: Comprehensive payment analytics
-- **Webhook Notifications**: Real-time payment status updates
-- **API Key Management**: Secure key rotation
-
-### Security & Compliance
-- **Two-Factor Authentication**: TOTP-based 2FA
-- **Multi-user Accounts**: Role-based access control
-- **IP Whitelisting**: Restrict API access by IP
-- **Audit Logging**: Complete activity tracking
-- **Sandbox Testing**: Safe testing environment
-
-## 🏗️ Architecture
-
-PayFlow uses the **BitPay deposit address model**:
-
-1. **Generate** unique temporary address per payment
-2. **Monitor** blockchain for incoming payments
-3. **Verify** payment amount and confirmations
-4. **Forward** funds to merchant wallet (minus fee)
-5. **Notify** merchant via webhook
-6. **Track** complete payment lifecycle
-
-## 🛠️ Technology Stack
-
-- **Language**: Rust 🦀
-- **Framework**: Axum (async web framework)
-- **Database**: PostgreSQL with SQLX
-- **Cache**: Redis
-- **Encryption**: AES-256-GCM
-- **Authentication**: Argon2 password hashing
-- **Blockchains**: Solana RPC, Ethereum JSON-RPC
-
-## 📋 Prerequisites
-
-- Rust 1.70+
-- PostgreSQL 13+
-- Redis 6+
-- OpenSSL
+```
+payflow/
+├── backend/          # Rust backend API
+│   ├── src/         # Rust source code
+│   ├── Cargo.toml   # Rust dependencies
+│   └── migrations/  # Database migrations
+├── frontend/         # React frontend
+│   ├── src/         # React source code
+│   ├── package.json # Frontend dependencies
+│   └── dist/        # Build output
+└── package.json     # Monorepo scripts
+```
 
 ## 🚀 Quick Start
 
-### 1. Clone and Build
+### Prerequisites
+- Rust 1.70+
+- Node.js 18+
+- PostgreSQL 13+
+- Redis 6+
+
+### Development
+
 ```bash
-git clone <repository-url>
-cd crypto-payment-gateway
-cargo build --release
+# Install dependencies
+npm run install:frontend
+npm run install:backend
+
+# Start both backend and frontend
+npm run dev
+
+# Or start individually
+npm run dev:backend    # Rust API server
+npm run dev:frontend   # React dev server
 ```
 
-### 2. Database Setup
-```bash
-# Create database
-createdb payflow
+### Production Build
 
-# Run migrations
-sqlx migrate run
+```bash
+# Build backend
+npm run build:backend
+
+# Build frontend
+npm run build:frontend
 ```
 
-### 3. Environment Configuration
+## 🔧 Configuration
+
+### Backend (.env)
 ```bash
-# Copy example environment file
-cp .env.example .env
-
-# Generate encryption keys
-openssl rand -hex 32  # ENCRYPTION_KEY
-openssl rand -hex 32  # WEBHOOK_SIGNING_KEY
-
-# Edit .env with your settings
-nano .env
+DATABASE_URL=postgresql://user:password@localhost:5432/payflow
+REDIS_URL=redis://localhost:6379
+ENCRYPTION_KEY=your-32-byte-hex-key
+SOLANA_RPC_URL=your-solana-rpc
+ETHEREUM_RPC_URL=your-ethereum-rpc
 ```
 
-### 4. Start Services
+### Frontend (.env.local)
 ```bash
-# Start Redis
-redis-server
-
-# Start PayFlow
-cargo run --release
-```
-
-### 5. Test Installation
-```bash
-# Health check
-curl http://localhost:8080/health
-
-# Register merchant
-curl -X POST http://localhost:8080/api/v1/merchants/register \
-  -H "Content-Type: application/json" \
-  -d '{"business_name":"Test Business","email":"test@example.com","password":"password123"}'
+VITE_API_URL=http://localhost:8080
 ```
 
 ## 📚 Documentation
 
-- **[Complete Documentation Index](docs/DOCUMENTATION_INDEX.md)** - Navigation guide for all documentation
 - **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation
 - **[Setup Guide](docs/SETUP.md)** - Development and production setup
-- **[Merchant Guide](docs/MERCHANT_GUIDE.md)** - Integration guide for merchants
-- **[Testing Guide](docs/TESTING.md)** - Testing procedures and guidelines
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment guide
-- **[Project Structure](docs/PROJECT_STRUCTURE.md)** - Code organization and architecture
-- **[Project Status](docs/PROJECT_STATUS.md)** - Current achievements and metrics
-- **[Roadmap](docs/ROADMAP.md)** - Future features and development plans
-
-## 🔒 Security Documentation
-
-- **[Security Audit Report](SECURITY_AUDIT_REPORT_UPDATED.md)** - Complete security analysis with 10/10 score
-- **[Security Test Results](COMPREHENSIVE_TEST_RESULTS.md)** - Comprehensive test verification
-
-## 🔧 Configuration
-
-## 🔧 Configuration
-
-### Environment Variables
-
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | ✅ | - |
-| `REDIS_URL` | Redis connection string | ✅ | `redis://localhost:6379` |
-| `ENCRYPTION_KEY` | 32-byte hex encryption key | ✅ | - |
-| `WEBHOOK_SIGNING_KEY` | 32-byte hex webhook signing key | ✅ | - |
-| `SOLANA_RPC_URL` | Solana RPC endpoint | ✅ | - |
-| `ETHEREUM_RPC_URL` | Ethereum RPC endpoint | ✅ | - |
-| `BSC_RPC_URL` | BSC RPC endpoint | ✅ | - |
-| `POLYGON_RPC_URL` | Polygon RPC endpoint | ✅ | - |
-| `ARBITRUM_RPC_URL` | Arbitrum RPC endpoint | ✅ | - |
-| `ETHERSCAN_API_KEY` | Unified API key for 60+ blockchains | ✅ | - |
-
-**Note**: PayFlow now uses Etherscan's unified API for monitoring all 60+ supported blockchains with a single API key. This modernization eliminates the complexity of managing separate BSCScan, ArbiScan, and PolygonScan keys while providing better reliability and coverage.
-
-**✅ MODERNIZATION COMPLETE**: All legacy API code has been removed and replaced with the unified Etherscan API system. The system has been thoroughly tested and verified to work with all supported currencies.
-
-### Supported Cryptocurrencies
-
-| Currency | Network | Contract Address | Confirmations |
-|----------|---------|------------------|---------------|
-| SOL | Solana | Native | 32 |
-| USDT_SOL | Solana | `Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB` | 32 |
-| USDT_ETH | Ethereum | `0xdAC17F958D2ee523a2206206994597C13D831ec7` | 12 |
-| USDT_BSC | BSC | `0x55d398326f99059fF775485246999027B3197955` | 15 |
-| USDT_POLYGON | Polygon | `0xc2132D05D31c914a87C6611C10748AEb04B58e8F` | 30 |
-| USDT_ARBITRUM | Arbitrum | `0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9` | 1 |
-
-## 🔌 API Overview
-
-### Authentication
-```bash
-# All API requests require Bearer token
-Authorization: Bearer <api_key>
-```
-
-### Core Endpoints
-
-#### Create Payment
-```bash
-POST /api/v1/payments
-{
-  "amount_usd": "100.00",
-  "crypto_type": "USDT_ETH",
-  "description": "Order #12345"
-}
-```
-
-#### Configure Wallet
-```bash
-PUT /api/v1/merchants/wallets
-{
-  "crypto_type": "USDT_ETH",
-  "address": "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87"
-}
-```
-
-#### Set Webhook
-```bash
-PUT /api/v1/merchants/webhook
-{
-  "url": "https://your-site.com/webhook"
-}
-```
-
-## 🧪 Testing
-
-### Run Test Suite
-```bash
-# Run complete test suite
-./tests/run_tests.sh
-
-# Run specific test categories
-./tests/run_tests.sh --unit          # Unit tests only
-./tests/run_tests.sh --integration   # Integration tests only
-./tests/run_tests.sh --api          # API tests only
-./tests/run_tests.sh --scripts      # Test scripts only
-
-# Individual cargo tests
-cargo test                           # All Rust tests
-cargo test --test payment_test       # Specific test file
-```
-
-### Test Structure
-- **Unit Tests**: `tests/unit/` - Individual component tests
-- **Integration Tests**: `tests/integration/` - Service interaction tests
-- **API Tests**: `tests/api/` - HTTP endpoint tests
-- **Test Scripts**: `tests/scripts/` - Bash test scripts
-- **Master Runner**: `tests/run_tests.sh` - Comprehensive test runner
-
-## 🚀 Deployment
-
-### Docker Deployment
-```bash
-# Build image
-docker build -t payflow .
-
-# Run with docker-compose
-docker-compose up -d
-```
-
-### Production Checklist
-- [ ] Set strong encryption keys
-- [ ] Configure SSL/TLS certificates
-- [ ] Set up database backups
-- [ ] Configure monitoring and logging
-- [ ] Set up rate limiting
-- [ ] Configure IP whitelisting
-- [ ] Test webhook endpoints
-- [ ] Verify blockchain RPC endpoints
-
-## 📊 Monitoring
-
-### Health Endpoints
-- `GET /health` - Service health check
-- `GET /api/v1/analytics` - Payment analytics
-- `GET /api/v1/balance` - Account balances
-
-### Logging
-PayFlow provides structured logging with:
-- Request/response logging
-- Payment processing events
-- Webhook delivery status
-- Error tracking and alerts
 
 ## 🔒 Security
 
-### Best Practices
-- Use strong, unique encryption keys
-- Enable 2FA for all accounts
-- Implement IP whitelisting
-- Regular API key rotation
-- Monitor webhook signatures
-- Keep dependencies updated
+PayFlow has achieved a **10/10 security score** with:
+- XSS Prevention & CSRF Protection
+- SQL Injection Protection
+- Advanced Rate Limiting
+- Real-time Threat Detection
+- Account Lockout Protection
 
-### Compliance
-- PCI DSS considerations
-- GDPR compliance for EU users
-- AML/KYC integration ready
-- Audit trail maintenance
+## 🌍 Supported Cryptocurrencies
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+- **SOL** (Solana)
+- **USDT** on 5 networks: Ethereum, BSC, Polygon, Arbitrum, Solana
 
 ## 📄 License
 
 Copyright © 2026 TechyTro Software. All rights reserved.
-
-## 🆘 Support
-
-- **Email**: support@techytro.com
-- **Documentation**: https://docs.payflow.techytro.com
-- **Status Page**: https://status.payflow.techytro.com
-
-## 🗺️ Roadmap
-
-### Q1 2026
-- [ ] Lightning Network support
-- [ ] Mobile SDK release
-- [ ] Advanced analytics dashboard
-
-### Q2 2026
-- [ ] Multi-signature wallet support
-- [ ] Automated compliance reporting
-- [ ] Enhanced fraud detection
-
----
-
-**Built with ❤️ by TechyTro Software**
