@@ -2,9 +2,10 @@
 // HTTP request handlers
 
 use crate::api::state::AppState;
-use crate::payment::models::{CreatePaymentRequest, PaymentFilters};
+use crate::middleware::auth::MerchantContext;
+use crate::payment::models::{CreatePaymentRequest, PaymentFilters, CryptoType};
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, Query, State, Request, Extension},
     http::StatusCode,
     response::{IntoResponse, Json},
 };
@@ -33,10 +34,12 @@ pub async fn register_merchant(
 
 pub async fn rotate_api_key(
     State(state): State<AppState>,
-    // TODO: Extract merchant_id from auth middleware
+    Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    // Placeholder - needs auth middleware
-    (StatusCode::NOT_IMPLEMENTED, Json(json!({"error": "Auth middleware required"}))).into_response()
+    match state.merchant_service.rotate_api_key(context.merchant_id, context.api_key.clone()).await {
+        Ok(new_api_key) => (StatusCode::OK, Json(json!({"api_key": new_api_key}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
 }
 
 #[derive(Deserialize)]
@@ -47,11 +50,23 @@ pub struct SetWalletRequest {
 
 pub async fn set_wallet(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Json(req): Json<SetWalletRequest>,
-    // TODO: Extract merchant_id from auth middleware
 ) -> impl IntoResponse {
-    // Placeholder - needs auth middleware
-    (StatusCode::NOT_IMPLEMENTED, Json(json!({"error": "Auth middleware required"}))).into_response()
+    let crypto_type = match req.crypto_type.as_str() {
+        "SOL" => CryptoType::Sol,
+        "USDT_SPL" => CryptoType::UsdtSpl,
+        "USDT_BEP20" => CryptoType::UsdtBep20,
+        "USDT_ARBITRUM" => CryptoType::UsdtArbitrum,
+        "USDT_POLYGON" => CryptoType::UsdtPolygon,
+        "USDT_ETH" => CryptoType::UsdtEth,
+        _ => return (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid crypto_type"}))).into_response(),
+    };
+    
+    match state.merchant_service.set_wallet_address(context.merchant_id, crypto_type, req.address).await {
+        Ok(_) => (StatusCode::OK, Json(json!({"success": true}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
 }
 
 #[derive(Deserialize)]
@@ -61,11 +76,13 @@ pub struct SetWebhookRequest {
 
 pub async fn set_webhook(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Json(req): Json<SetWebhookRequest>,
-    // TODO: Extract merchant_id from auth middleware
 ) -> impl IntoResponse {
-    // Placeholder - needs auth middleware
-    (StatusCode::NOT_IMPLEMENTED, Json(json!({"error": "Auth middleware required"}))).into_response()
+    match state.webhook_service.set_webhook_url(context.merchant_id, req.url).await {
+        Ok(_) => (StatusCode::OK, Json(json!({"success": true}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
 }
 
 // ============================================================================
@@ -74,13 +91,10 @@ pub async fn set_webhook(
 
 pub async fn create_payment(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Json(req): Json<CreatePaymentRequest>,
 ) -> impl IntoResponse {
-    use crate::middleware::auth::get_merchant_context;
-    
-    let merchant_id = 1i64; // TODO: Extract from auth context
-    
-    match state.payment_service.create_payment(merchant_id, req).await {
+    match state.payment_service.create_payment(context.merchant_id, req).await {
         Ok(response) => (StatusCode::CREATED, Json(response)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -88,12 +102,10 @@ pub async fn create_payment(
 
 pub async fn get_payment(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Path(payment_id): Path<String>,
-    // TODO: Extract merchant_id from auth middleware
 ) -> impl IntoResponse {
-    let merchant_id = 1i64;
-    
-    match state.payment_service.get_payment(&payment_id, merchant_id).await {
+    match state.payment_service.get_payment(&payment_id, context.merchant_id).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -106,13 +118,11 @@ pub struct VerifyPaymentRequest {
 
 pub async fn verify_payment(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Path(payment_id): Path<String>,
     Json(req): Json<VerifyPaymentRequest>,
-    // TODO: Extract merchant_id from auth middleware
 ) -> impl IntoResponse {
-    let merchant_id = 1i64;
-    
-    match state.payment_service.verify_payment(&payment_id, &req.transaction_hash, merchant_id).await {
+    match state.payment_service.verify_payment(&payment_id, &req.transaction_hash, context.merchant_id).await {
         Ok(confirmed) => (StatusCode::OK, Json(json!({"confirmed": confirmed}))).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -120,12 +130,10 @@ pub async fn verify_payment(
 
 pub async fn list_payments(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Query(filters): Query<PaymentFilters>,
-    // TODO: Extract merchant_id from auth middleware
 ) -> impl IntoResponse {
-    let merchant_id = 1i64;
-    
-    match state.payment_service.list_payments(merchant_id, filters).await {
+    match state.payment_service.list_payments(context.merchant_id, filters).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -144,12 +152,10 @@ pub struct CreateRefundRequest {
 
 pub async fn create_refund(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Json(req): Json<CreateRefundRequest>,
-    // TODO: Extract merchant_id from auth middleware
 ) -> impl IntoResponse {
-    let merchant_id = 1i64;
-    
-    match state.refund_service.create_refund(merchant_id, req.payment_id, req.amount, req.reason).await {
+    match state.refund_service.create_refund(context.merchant_id, req.payment_id, req.amount, req.reason).await {
         Ok(response) => (StatusCode::CREATED, Json(response)).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -193,14 +199,13 @@ pub struct AnalyticsQuery {
 
 pub async fn get_analytics(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Query(query): Query<AnalyticsQuery>,
-    // TODO: Extract merchant_id from auth middleware
 ) -> impl IntoResponse {
-    let merchant_id = 1i64;
     let from = query.from_date.unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
     let to = query.to_date.unwrap_or_else(|| chrono::Utc::now());
     
-    match state.analytics_service.get_analytics(merchant_id, from, to, None, None).await {
+    match state.analytics_service.get_analytics(context.merchant_id, from, to, None, None).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -208,14 +213,13 @@ pub async fn get_analytics(
 
 pub async fn export_analytics(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Query(query): Query<AnalyticsQuery>,
-    // TODO: Extract merchant_id from auth middleware
 ) -> impl IntoResponse {
-    let merchant_id = 1i64;
     let from = query.from_date.unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
     let to = query.to_date.unwrap_or_else(|| chrono::Utc::now());
     
-    match state.analytics_service.export_csv(merchant_id, from, to, None, None).await {
+    match state.analytics_service.export_csv(context.merchant_id, from, to, None, None).await {
         Ok(csv) => (StatusCode::OK, csv).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -227,11 +231,9 @@ pub async fn export_analytics(
 
 pub async fn enable_sandbox(
     State(state): State<AppState>,
-    // TODO: Extract merchant_id from auth middleware
+    Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    let merchant_id = 1i64;
-    
-    match state.sandbox_service.create_sandbox_credentials(merchant_id).await {
+    match state.sandbox_service.create_sandbox_credentials(context.merchant_id).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -244,13 +246,11 @@ pub struct SimulatePaymentRequest {
 
 pub async fn simulate_payment(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Path(payment_id): Path<String>,
     Json(req): Json<SimulatePaymentRequest>,
-    // TODO: Extract merchant_id from auth middleware
 ) -> impl IntoResponse {
-    let merchant_id = 1i64;
-    
-    match state.sandbox_service.simulate_confirmation(&payment_id, merchant_id, req.success).await {
+    match state.sandbox_service.simulate_confirmation(&payment_id, context.merchant_id, req.success).await {
         Ok(_) => (StatusCode::OK, Json(json!({"success": true}))).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }

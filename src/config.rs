@@ -106,7 +106,14 @@ impl Config {
                 .parse()?,
 
             payment_page_base_url: env::var("PAYMENT_PAGE_BASE_URL")
-                .unwrap_or_else(|_| "http://localhost:8080".to_string()),
+                .unwrap_or_else(|_| {
+                    // Use environment-appropriate default
+                    if env::var("ENVIRONMENT").unwrap_or_default() == "production" {
+                        "https://pay.yourdomain.com".to_string()
+                    } else {
+                        "http://localhost:8080".to_string()
+                    }
+                }),
         })
     }
 

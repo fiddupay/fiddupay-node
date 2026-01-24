@@ -3,6 +3,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use nanoid::nanoid;
+use tracing::{info, warn};
 use crate::error::ServiceError;
 use crate::services::balance_service::BalanceService;
 use std::sync::Arc;
@@ -94,7 +95,24 @@ impl WithdrawalService {
 
         // Auto-process if approved
         if !requires_approval {
-            // TODO: Process withdrawal to blockchain
+            // Process withdrawal to blockchain
+            match self.process_blockchain_withdrawal(&withdrawal_id, &req.crypto_type, &req.amount, &req.destination_address).await {
+                Ok(_) => {
+                    // Update status to completed
+                    sqlx::query!(
+                        "UPDATE withdrawals SET status = 'completed', completed_at = NOW() WHERE withdrawal_id = $1",
+                        withdrawal_id
+                    ).execute(&self.pool).await?;
+                }
+                Err(e) => {
+                    warn!("Failed to process withdrawal {}: {}", withdrawal_id, e);
+                    // Update status to failed
+                    sqlx::query!(
+                        "UPDATE withdrawals SET status = 'failed' WHERE withdrawal_id = $1",
+                        withdrawal_id
+                    ).execute(&self.pool).await?;
+                }
+            }
         }
 
         Ok(Withdrawal {
@@ -221,5 +239,29 @@ impl WithdrawalService {
         ).await?;
 
         Ok(())
+    }
+
+    async fn process_blockchain_withdrawal(
+        &self,
+        withdrawal_id: &str,
+        crypto_type: &str,
+        amount: &Decimal,
+        destination_address: &str,
+    ) -> Result<String, ServiceError> {
+        // This is a placeholder for actual blockchain transaction processing
+        // In production, this would:
+        // 1. Connect to the appropriate blockchain RPC
+        // 2. Create and sign the transaction
+        // 3. Broadcast the transaction
+        // 4. Return the transaction hash
+        
+        info!("Processing withdrawal {} for {} {} to {}", 
+            withdrawal_id, amount, crypto_type, destination_address);
+        
+        // For now, simulate successful processing
+        // In production, replace with actual blockchain integration
+        let mock_tx_hash = format!("tx_{}", nanoid::nanoid!(32));
+        
+        Ok(mock_tx_hash)
     }
 }

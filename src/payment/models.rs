@@ -28,6 +28,8 @@ pub enum CryptoType {
     UsdtSpl,          // USDT on Solana (SPL token)
     #[serde(rename = "USDT_POLYGON")]
     UsdtPolygon,      // USDT on Polygon
+    #[serde(rename = "USDT_ETH")]
+    UsdtEth,          // USDT on Ethereum (ERC20)
     #[serde(rename = "SOL")]
     Sol,              // Solana native
 }
@@ -39,6 +41,7 @@ impl CryptoType {
             CryptoType::UsdtArbitrum => "USDT",
             CryptoType::UsdtSpl => "USDT",
             CryptoType::UsdtPolygon => "USDT",
+            CryptoType::UsdtEth => "USDT",
             CryptoType::Sol => "SOL",
         }
     }
@@ -49,6 +52,7 @@ impl CryptoType {
             CryptoType::UsdtArbitrum => "ARBITRUM",
             CryptoType::UsdtSpl => "SOLANA_SPL",
             CryptoType::UsdtPolygon => "POLYGON",
+            CryptoType::UsdtEth => "ETHEREUM",
             CryptoType::Sol => "SOLANA",
         }
     }
@@ -59,6 +63,7 @@ impl CryptoType {
             CryptoType::UsdtArbitrum => 1,   // Arbitrum: 1 block (~250ms)
             CryptoType::UsdtSpl => 32,       // Solana SPL: 32 confirmations (~13 seconds)
             CryptoType::UsdtPolygon => 128,  // Polygon: 128 blocks (~4 minutes)
+            CryptoType::UsdtEth => 12,       // Ethereum: 12 blocks (~3 minutes)
             CryptoType::Sol => 32,           // Solana: 32 confirmations (~13 seconds)
         }
     }
@@ -69,6 +74,7 @@ impl CryptoType {
             CryptoType::UsdtArbitrum => "https://arbiscan.io",
             CryptoType::UsdtSpl => "https://solscan.io",
             CryptoType::UsdtPolygon => "https://polygonscan.com",
+            CryptoType::UsdtEth => "https://etherscan.io",
             CryptoType::Sol => "https://solscan.io",
         }
     }
@@ -79,6 +85,7 @@ impl CryptoType {
             CryptoType::UsdtArbitrum => Some("0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9"),
             CryptoType::UsdtSpl => Some("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"),
             CryptoType::UsdtPolygon => Some("0xc2132D05D31c914a87C6611C10748AEb04B58e8F"),
+            CryptoType::UsdtEth => Some("0xdAC17F958D2ee523a2206206994597C13D831ec7"),
             CryptoType::Sol => None, // Native token
         }
     }

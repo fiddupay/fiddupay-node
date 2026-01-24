@@ -257,7 +257,7 @@ impl PaymentProcessor {
                 // Solana URI format: solana:<address>?amount=<amount>
                 format!("solana:{}?amount={}", address, amount)
             }
-            CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon => {
+            CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon | CryptoType::UsdtEth => {
                 // Ethereum URI format: ethereum:<address>?value=<amount>
                 format!("ethereum:{}?value={}", address, amount)
             }

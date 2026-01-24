@@ -78,6 +78,19 @@ impl EvmMonitor {
             decimals: 6, // USDT on Polygon has 6 decimals
         }
     }
+
+    pub fn new_ethereum(api_key: Option<String>) -> Self {
+        let api_url = std::env::var("ETHERSCAN_API_URL")
+            .unwrap_or_else(|_| "https://api.etherscan.io/v2/api".to_string());
+
+        Self {
+            client: Client::new(),
+            api_url,
+            api_key,
+            chain_name: "Ethereum",
+            decimals: 6, // USDT on Ethereum has 6 decimals
+        }
+    }
 }
 
 #[async_trait]
@@ -323,6 +336,10 @@ pub fn get_blockchain_monitor(crypto_type: &CryptoType) -> Box<dyn BlockchainMon
         CryptoType::UsdtPolygon => {
             let api_key = std::env::var("POLYGONSCAN_API_KEY").ok();
             Box::new(EvmMonitor::new_polygon(api_key))
+        }
+        CryptoType::UsdtEth => {
+            let api_key = std::env::var("ETHERSCAN_API_KEY").ok();
+            Box::new(EvmMonitor::new_ethereum(api_key))
         }
     }
 }

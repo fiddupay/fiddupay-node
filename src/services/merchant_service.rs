@@ -339,7 +339,7 @@ impl MerchantService {
                     ));
                 }
             }
-            CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon => {
+            CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon | CryptoType::UsdtEth => {
                 // EVM addresses start with 0x and have 40 hex characters
                 if !address.starts_with("0x") {
                     return Err(ServiceError::InvalidWalletAddress(

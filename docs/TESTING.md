@@ -1,22 +1,295 @@
-# PayFlow - Comprehensive Testing Guide
+# PayFlow Testing Guide
 
-**TechyTro Software**
+Complete testing guide for PayFlow cryptocurrency payment gateway.
 
 ## Test Structure
 
 ```
 tests/
-├── unit/           # Unit tests for individual functions
-├── integration/    # Integration tests for services
-├── api/           # API endpoint tests
-└── e2e/           # End-to-end workflow tests
+├── api_endpoints_test.rs        # API endpoint tests
+├── payment_test.rs              # Payment flow tests
+├── withdrawal_test.rs           # Withdrawal tests
+├── services_test.rs             # Service layer tests
+├── utils_test.rs                # Utility tests
+├── workflows_test.rs            # End-to-end workflows
+├── complete_endpoint_test.rs    # Complete API tests
+├── comprehensive_service_test.rs # Service integration
+├── database_integration_test.rs # Database tests
+├── endpoints_test.rs            # Endpoint validation
+├── full_integration_test.rs     # Full integration
+├── payment_listing_tests.rs     # Payment listing
+├── analytics_service_tests.rs   # Analytics tests
+└── standalone_tests.rs          # Standalone tests
 ```
 
 ## Running Tests
 
+### Unit Tests
 ```bash
 # All tests
 cargo test
+
+# Specific test file
+cargo test --test payment_test
+
+# Specific test function
+cargo test test_create_payment
+```
+
+### Integration Tests
+```bash
+# All integration tests
+cargo test --test '*'
+
+# Service layer tests
+cargo test --test services_test
+
+# Database tests
+cargo test --test database_integration_test
+```
+
+### API Tests
+```bash
+# Complete endpoint tests
+cargo test --test complete_endpoint_test
+
+# API endpoint tests
+cargo test --test api_endpoints_test
+```
+
+### Test Scripts
+```bash
+# Make scripts executable
+chmod +x test_*.sh
+
+# Basic API functionality
+./test_basic_api.sh
+
+# Complete payment flow
+./test_complete_flow.sh
+
+# Service layer testing
+./test_service_layer.sh
+
+# Final comprehensive test
+./test_final_complete.sh
+```
+
+## Test Categories
+
+### 1. Unit Tests
+- Individual function testing
+- Service method validation
+- Utility function verification
+- Model serialization/deserialization
+
+### 2. Integration Tests
+- Service interaction testing
+- Database integration
+- External API mocking
+- Error handling validation
+
+### 3. API Tests
+- HTTP endpoint testing
+- Authentication validation
+- Request/response validation
+- Error response testing
+
+### 4. End-to-End Tests
+- Complete workflow testing
+- Multi-service integration
+- Real-world scenario simulation
+- Performance validation
+
+## Test Environment Setup
+
+### Database Setup
+```bash
+# Create test database
+createdb payflow_test
+
+# Run migrations
+DATABASE_URL=postgresql://localhost/payflow_test sqlx migrate run
+```
+
+### Redis Setup
+```bash
+# Start Redis for testing
+redis-server --port 6380 --daemonize yes
+```
+
+### Environment Variables
+```bash
+# Test environment
+export DATABASE_URL=postgresql://localhost/payflow_test
+export REDIS_URL=redis://localhost:6380
+export ENCRYPTION_KEY=test_key_32_bytes_long_for_testing
+export WEBHOOK_SIGNING_KEY=test_webhook_key_32_bytes_long
+```
+
+## Test Data
+
+### Test Addresses
+```bash
+# Ethereum (USDT_ETH)
+0x742d35Cc6634C0532925a3b8D4C9db96590c6C87
+
+# Solana (SOL/USDT_SOL)
+9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM
+
+# BSC (USDT_BSC)
+0x742d35Cc6634C0532925a3b8D4C9db96590c6C87
+```
+
+### Test Merchants
+```json
+{
+  "business_name": "Test Business",
+  "email": "test@example.com",
+  "password": "password123"
+}
+```
+
+## Continuous Integration
+
+### GitHub Actions
+```yaml
+name: Tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Run tests
+        run: cargo test --all-features
+```
+
+## Performance Testing
+
+### Load Testing
+```bash
+# Install wrk
+sudo apt install wrk
+
+# Test payment creation
+wrk -t12 -c400 -d30s \
+  --header "Authorization: Bearer test_api_key" \
+  --header "Content-Type: application/json" \
+  --body '{"amount_usd":"100.00","crypto_type":"USDT_ETH","description":"Load test"}' \
+  -s post.lua \
+  http://localhost:8080/api/v1/payments
+```
+
+### Memory Testing
+```bash
+# Run with memory profiling
+cargo test --release -- --nocapture
+
+# Check for memory leaks
+valgrind --tool=memcheck --leak-check=full cargo test
+```
+
+## Test Coverage
+
+### Generate Coverage Report
+```bash
+# Install cargo-tarpaulin
+cargo install cargo-tarpaulin
+
+# Generate coverage
+cargo tarpaulin --out Html --output-dir coverage
+
+# View coverage report
+open coverage/tarpaulin-report.html
+```
+
+### Coverage Targets
+- **Unit Tests**: >90% coverage
+- **Integration Tests**: >80% coverage
+- **API Tests**: 100% endpoint coverage
+- **Critical Paths**: 100% coverage
+
+## Troubleshooting Tests
+
+### Common Issues
+
+#### Database Connection
+```bash
+# Check PostgreSQL status
+sudo systemctl status postgresql
+
+# Reset test database
+dropdb payflow_test && createdb payflow_test
+DATABASE_URL=postgresql://localhost/payflow_test sqlx migrate run
+```
+
+#### Redis Connection
+```bash
+# Check Redis status
+redis-cli ping
+
+# Start Redis if not running
+redis-server --daemonize yes
+```
+
+#### Test Failures
+```bash
+# Run with verbose output
+cargo test -- --nocapture
+
+# Run single test with debug
+RUST_LOG=debug cargo test test_name -- --nocapture
+
+# Clean and rebuild
+cargo clean && cargo build --tests
+```
+
+## Best Practices
+
+### Test Organization
+- Group related tests in modules
+- Use descriptive test names
+- Include setup and teardown
+- Mock external dependencies
+
+### Test Data
+- Use realistic test data
+- Clean up after tests
+- Avoid hardcoded values
+- Use test fixtures
+
+### Assertions
+- Test both success and failure cases
+- Validate error messages
+- Check edge cases
+- Verify side effects
+
+### Performance
+- Keep tests fast
+- Run tests in parallel
+- Use test databases
+- Mock slow operations
 
 # Unit tests only
 cargo test --lib

@@ -1,22 +1,315 @@
-# Crypto Payment Gateway - Complete Merchant Flow Documentation
+# PayFlow Merchant Integration Guide
 
-## Table of Contents
-1. [Merchant Onboarding](#merchant-onboarding)
-2. [Payment Processing](#payment-processing)
-3. [Invoice Management](#invoice-management)
-4. [Balance & Withdrawals](#balance--withdrawals)
-5. [Receiving Payments](#receiving-payments)
-6. [Payment Links & QR Codes](#payment-links--qr-codes)
-7. [Security](#security)
-8. [Currency Support](#currency-support)
-9. [Webhooks & Notifications](#webhooks--notifications)
-10. [Analytics & Reporting](#analytics--reporting)
+Complete guide for merchants to integrate PayFlow cryptocurrency payment gateway.
 
----
+## Quick Start
 
-## 1. MERCHANT ONBOARDING
+### 1. Register Account
+```bash
+curl -X POST https://api.payflow.com/api/v1/merchants/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "business_name": "My Store",
+    "email": "merchant@example.com",
+    "password": "secure_password"
+  }'
+```
 
-### 1.1 Registration Flow
+Response:
+```json
+{
+  "merchant_id": 123,
+  "api_key": "your_api_key_here"
+}
+```
+
+### 2. Configure Wallets
+```bash
+curl -X PUT https://api.payflow.com/api/v1/merchants/wallets \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "crypto_type": "USDT_ETH",
+    "address": "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87"
+  }'
+```
+
+### 3. Set Webhook
+```bash
+curl -X PUT https://api.payflow.com/api/v1/merchants/webhook \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-site.com/webhook"
+  }'
+```
+
+### 4. Create Payment
+```bash
+curl -X POST https://api.payflow.com/api/v1/payments \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount_usd": "100.00",
+    "crypto_type": "USDT_ETH",
+    "description": "Order #12345"
+  }'
+```
+
+## Integration Patterns
+
+### E-commerce Integration
+
+#### WooCommerce Plugin
+```php
+<?php
+class PayFlow_Gateway extends WC_Payment_Gateway {
+    public function __construct() {
+        $this->id = 'payflow';
+        $this->title = 'Cryptocurrency';
+        $this->description = 'Pay with cryptocurrency';
+        $this->api_key = $this->get_option('api_key');
+    }
+    
+    public function process_payment($order_id) {
+        $order = wc_get_order($order_id);
+        
+        $payment = $this->create_payment([
+            'amount_usd' => $order->get_total(),
+            'crypto_type' => 'USDT_ETH',
+            'description' => "Order #{$order_id}",
+            'metadata' => ['order_id' => $order_id]
+        ]);
+        
+        return [
+            'result' => 'success',
+            'redirect' => $payment['payment_link']
+        ];
+    }
+}
+```
+
+#### Shopify Integration
+```javascript
+// Shopify checkout extension
+const payflowCheckout = {
+    async createPayment(orderData) {
+        const response = await fetch('/api/payflow/create-payment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify({
+                amount_usd: orderData.total,
+                crypto_type: 'USDT_ETH',
+                description: `Order #${orderData.order_number}`,
+                metadata: { order_id: orderData.id }
+            })
+        });
+        
+        const payment = await response.json();
+        window.location.href = payment.payment_link;
+    }
+};
+```
+
+### Custom Integration
+
+#### Node.js SDK
+```javascript
+const PayFlow = require('@payflow/node-sdk');
+
+const payflow = new PayFlow({
+    apiKey: 'your_api_key',
+    environment: 'production' // or 'sandbox'
+});
+
+// Create payment
+const payment = await payflow.payments.create({
+    amount_usd: '100.00',
+    crypto_type: 'USDT_ETH',
+    description: 'Order #12345',
+    metadata: {
+        order_id: '12345',
+        customer_id: 'cust_123'
+    }
+});
+
+console.log('Payment URL:', payment.payment_link);
+console.log('QR Code:', payment.qr_code_data);
+```
+
+#### Python SDK
+```python
+import payflow
+
+client = payflow.Client(
+    api_key='your_api_key',
+    environment='production'
+)
+
+# Create payment
+payment = client.payments.create(
+    amount_usd='100.00',
+    crypto_type='USDT_ETH',
+    description='Order #12345',
+    metadata={
+        'order_id': '12345',
+        'customer_id': 'cust_123'
+    }
+)
+
+print(f"Payment URL: {payment.payment_link}")
+print(f"QR Code: {payment.qr_code_data}")
+```
+
+## Webhook Handling
+
+### Webhook Security
+```python
+import hmac
+import hashlib
+
+def verify_webhook(payload, signature, secret):
+    expected = hmac.new(
+        secret.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(signature, expected)
+
+# Flask example
+@app.route('/webhook', methods=['POST'])
+def handle_webhook():
+    payload = request.get_data(as_text=True)
+    signature = request.headers.get('X-PayFlow-Signature')
+    
+    if not verify_webhook(payload, signature, WEBHOOK_SECRET):
+        return 'Invalid signature', 401
+    
+    event = request.get_json()
+    
+    if event['event'] == 'payment.confirmed':
+        # Update order status
+        update_order_status(event['metadata']['order_id'], 'paid')
+    
+    return 'OK'
+```
+
+### Event Types
+- `payment.created` - Payment request created
+- `payment.confirmed` - Payment confirmed on blockchain
+- `payment.failed` - Payment failed or expired
+- `withdrawal.completed` - Withdrawal processed
+
+## Payment Flow
+
+### 1. Customer Checkout
+```mermaid
+sequenceDiagram
+    Customer->>Merchant: Checkout
+    Merchant->>PayFlow: Create Payment
+    PayFlow->>Merchant: Payment Details
+    Merchant->>Customer: Payment Page
+    Customer->>Blockchain: Send Crypto
+    PayFlow->>Merchant: Webhook Notification
+    Merchant->>Customer: Order Confirmation
+```
+
+### 2. Payment States
+- **PENDING** - Waiting for payment
+- **CONFIRMED** - Payment received and confirmed
+- **FAILED** - Payment failed or insufficient
+- **EXPIRED** - Payment expired (default: 15 minutes)
+
+## Supported Cryptocurrencies
+
+| Currency | Network | Contract Address | Confirmations |
+|----------|---------|------------------|---------------|
+| SOL | Solana | Native | 32 |
+| USDT_SOL | Solana | `Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB` | 32 |
+| USDT_ETH | Ethereum | `0xdAC17F958D2ee523a2206206994597C13D831ec7` | 12 |
+| USDT_BSC | BSC | `0x55d398326f99059fF775485246999027B3197955` | 15 |
+| USDT_POLYGON | Polygon | `0xc2132D05D31c914a87C6611C10748AEb04B58e8F` | 30 |
+| USDT_ARBITRUM | Arbitrum | `0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9` | 1 |
+
+## Testing
+
+### Sandbox Mode
+```bash
+# Enable sandbox
+curl -X POST https://api.payflow.com/api/v1/merchants/sandbox/enable \
+  -H "Authorization: Bearer your_api_key"
+
+# Simulate payment
+curl -X POST https://api.payflow.com/api/v1/sandbox/simulate-payment \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "payment_id": "pay_abc123",
+    "action": "confirm"
+  }'
+```
+
+### Test Addresses
+Use these addresses for sandbox testing:
+- **Ethereum**: `0x742d35Cc6634C0532925a3b8D4C9db96590c6C87`
+- **Solana**: `9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM`
+
+## Error Handling
+
+### Common Errors
+```json
+{
+  "error": "Invalid API key",
+  "message": "The provided API key is not valid",
+  "code": "INVALID_API_KEY"
+}
+```
+
+### Error Codes
+- `INVALID_API_KEY` - API key is invalid or expired
+- `WALLET_NOT_FOUND` - Wallet not configured for crypto type
+- `INSUFFICIENT_BALANCE` - Insufficient balance for withdrawal
+- `PAYMENT_NOT_FOUND` - Payment ID not found
+- `PAYMENT_EXPIRED` - Payment has expired
+
+## Best Practices
+
+### Security
+- Store API keys securely (environment variables)
+- Verify webhook signatures
+- Use HTTPS for all communications
+- Implement proper error handling
+- Log all transactions
+
+### Performance
+- Cache payment status locally
+- Use webhooks instead of polling
+- Implement retry logic for API calls
+- Monitor API rate limits
+- Use connection pooling
+
+### User Experience
+- Show clear payment instructions
+- Display QR codes for mobile payments
+- Provide payment status updates
+- Handle payment timeouts gracefully
+- Offer multiple payment options
+
+## Support
+
+### Resources
+- **API Documentation**: https://docs.payflow.com
+- **SDKs**: https://github.com/payflow
+- **Status Page**: https://status.payflow.com
+- **Support**: support@payflow.com
+
+### Community
+- **Discord**: https://discord.gg/payflow
+- **GitHub**: https://github.com/payflow
+- **Stack Overflow**: Tag `payflow`
 
 ```
 Step 1: Sign Up

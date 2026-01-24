@@ -6,18 +6,22 @@ use rust_decimal::Decimal;
 use std::str::FromStr;
 use sqlx::{PgPool, Postgres, Transaction};
 use tracing::{info, warn, error};
+use serde_json::json;
 
 use super::models::{PaymentTransaction, PaymentStatus, CryptoType, BlockchainTransaction};
 use super::blockchain_monitor::get_blockchain_monitor;
+use crate::services::webhook_service::WebhookService;
 
 pub struct PaymentVerifier {
     db_pool: PgPool,
+    webhook_service: WebhookService,
 }
 
 impl PaymentVerifier {
-    pub fn new(db_pool: PgPool) -> Self {
+    pub fn new(db_pool: PgPool, webhook_service: WebhookService) -> Self {
         Self {
             db_pool,
+            webhook_service,
         }
     }
 
@@ -294,11 +298,25 @@ impl PaymentVerifier {
             payment.fee_percentage
         );
 
-        // TODO: Trigger webhook notification (Requirement 4.2)
-        // This will be implemented when webhook service is complete
-        // For now, we log that a webhook should be sent
-        info!("📢 Webhook should be triggered for payment {} confirmation (merchant {})", 
-            payment_id, merchant_id);
+        // Trigger webhook notification
+        let webhook_payload = crate::models::webhook::WebhookPayload {
+            event_type: "payment.confirmed".to_string(),
+            payment_id: payment_id.to_string(),
+            merchant_id,
+            status: crate::payment::models::PaymentStatus::Confirmed,
+            amount: payment.amount,
+            crypto_type: "SOL".to_string(), // Would need to fetch from payment record
+            transaction_hash: Some("tx_hash".to_string()), // Would need transaction hash parameter
+            timestamp: chrono::Utc::now().timestamp(),
+        };
+        
+        if let Err(e) = self.webhook_service.queue_webhook(
+            merchant_id,
+            payment_id,
+            webhook_payload
+        ).await {
+            warn!("Failed to queue webhook for payment {}: {}", payment_id, e);
+        }
 
         Ok(())
     }

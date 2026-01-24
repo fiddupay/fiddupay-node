@@ -8,6 +8,7 @@ use crate::payment::models::{
 };
 use crate::payment::processor::PaymentProcessor;
 use crate::payment::verifier::PaymentVerifier;
+use crate::services::webhook_service::WebhookService;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use sqlx::PgPool;
@@ -38,9 +39,11 @@ pub struct PaymentService {
 
 impl PaymentService {
     pub fn new(db_pool: PgPool, payment_page_base_url: String) -> Self {
+        let webhook_service = WebhookService::new(db_pool.clone(), "webhook_key".to_string());
+        
         Self {
             processor: PaymentProcessor::new(db_pool.clone(), payment_page_base_url),
-            verifier: PaymentVerifier::new(db_pool.clone()),
+            verifier: PaymentVerifier::new(db_pool.clone(), webhook_service),
             db_pool,
         }
     }
@@ -328,8 +331,22 @@ impl PaymentService {
             None
         };
 
-        // Generate payment link (placeholder - would use actual base URL from config)
-        let payment_link = format!("https://pay.example.com/{}", payment.payment_id);
+        // Fetch payment link from database
+        let payment_link = match sqlx::query!(
+            "SELECT link_id FROM payment_links WHERE payment_id = $1",
+            payment.id
+        )
+        .fetch_optional(&self.db_pool)
+        .await? {
+            Some(record) => format!("{}/pay/{}", 
+                std::env::var("PAYMENT_PAGE_BASE_URL").unwrap_or_else(|_| "http://localhost:8080".to_string()),
+                record.link_id
+            ),
+            None => format!("{}/pay/{}", 
+                std::env::var("PAYMENT_PAGE_BASE_URL").unwrap_or_else(|_| "http://localhost:8080".to_string()),
+                payment.payment_id
+            ),
+        };
 
         // Generate QR code data
         let qr_code_data = format!(

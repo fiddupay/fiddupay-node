@@ -191,16 +191,20 @@ impl BalanceService {
         let mut available_usd = Decimal::ZERO;
         let mut reserved_usd = Decimal::ZERO;
 
-        let balance_list: Vec<MerchantBalance> = balances.into_iter().map(|b| {
-            MerchantBalance {
+        let mut balance_list = Vec::new();
+        for b in balances {
+            let available_usd = self.calculate_usd_value(&b.crypto_type, &b.available_balance).await;
+            let total_usd = self.calculate_usd_value(&b.crypto_type, &b.total_balance.unwrap_or(Decimal::ZERO)).await;
+            
+            balance_list.push(MerchantBalance {
                 crypto_type: b.crypto_type,
                 available_balance: b.available_balance,
                 reserved_balance: b.reserved_balance,
                 total_balance: b.total_balance.unwrap_or(Decimal::ZERO),
-                available_usd: None, // TODO: Calculate with price
-                total_usd: None,
-            }
-        }).collect();
+                available_usd,
+                total_usd,
+            });
+        }
 
         Ok(BalanceResponse {
             total_usd,
@@ -246,5 +250,25 @@ impl BalanceService {
         ).await?;
 
         Ok(())
+    }
+
+    async fn calculate_usd_value(&self, crypto_type: &str, amount: &Decimal) -> Option<Decimal> {
+        if amount.is_zero() {
+            return Some(Decimal::ZERO);
+        }
+
+        match crypto_type {
+            // USDT variants have 1:1 USD parity
+            "USDT_SOL" | "USDT_BSC" | "USDT_POLYGON" | "USDT_ARBITRUM" | "USDT_ETH" => {
+                Some(*amount)
+            }
+            // For other cryptocurrencies, use price service
+            "SOL" | "BTC" | "ETH" => {
+                // In production, integrate with price service
+                // For now, return None to indicate price service needed
+                None
+            }
+            _ => None,
+        }
     }
 }
