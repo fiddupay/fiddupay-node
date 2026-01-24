@@ -126,16 +126,118 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section className={styles.pricing}>
+        <div className={styles.sectionContent}>
+          <h2 className={styles.sectionTitle}>Simple, Transparent Pricing</h2>
+          <p className={styles.pricingSubtitle}>No setup fees. No monthly fees. Pay only when you earn.</p>
+          <div className={styles.pricingGrid}>
+            <div className={styles.pricingCard}>
+              <h3 className={styles.pricingTitle}>Starter</h3>
+              <div className={styles.pricingPrice}>
+                <span className={styles.priceNumber}>2.9%</span>
+                <span className={styles.priceUnit}>per transaction</span>
+              </div>
+              <ul className={styles.pricingFeatures}>
+                <li>✓ All supported cryptocurrencies</li>
+                <li>✓ Automatic forwarding</li>
+                <li>✓ Basic webhook notifications</li>
+                <li>✓ API access</li>
+                <li>✓ Email support</li>
+              </ul>
+              <Link to="/register" className={styles.pricingBtn}>Get Started</Link>
+            </div>
+            <div className={`${styles.pricingCard} ${styles.popular}`}>
+              <div className={styles.popularBadge}>Most Popular</div>
+              <h3 className={styles.pricingTitle}>Business</h3>
+              <div className={styles.pricingPrice}>
+                <span className={styles.priceNumber}>2.4%</span>
+                <span className={styles.priceUnit}>per transaction</span>
+              </div>
+              <ul className={styles.pricingFeatures}>
+                <li>✓ Everything in Starter</li>
+                <li>✓ Advanced webhooks</li>
+                <li>✓ Priority support</li>
+                <li>✓ Custom integration help</li>
+                <li>✓ Volume discounts</li>
+              </ul>
+              <Link to="/register" className={styles.pricingBtn}>Start Free Trial</Link>
+            </div>
+            <div className={styles.pricingCard}>
+              <h3 className={styles.pricingTitle}>Enterprise</h3>
+              <div className={styles.pricingPrice}>
+                <span className={styles.priceNumber}>Custom</span>
+                <span className={styles.priceUnit}>pricing</span>
+              </div>
+              <ul className={styles.pricingFeatures}>
+                <li>✓ Everything in Business</li>
+                <li>✓ Dedicated support</li>
+                <li>✓ Custom features</li>
+                <li>✓ SLA guarantees</li>
+                <li>✓ White-label options</li>
+              </ul>
+              <a href="#contact" className={styles.pricingBtn}>Contact Sales</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className={styles.testimonials}>
+        <div className={styles.sectionContent}>
+          <h2 className={styles.sectionTitle}>Trusted by Businesses Worldwide</h2>
+          <div className={styles.testimonialsGrid}>
+            <div className={styles.testimonialCard}>
+              <p className={styles.testimonialText}>
+                "PayFlow's security and reliability have been game-changing for our e-commerce platform. 
+                The automatic forwarding saves us hours of manual processing."
+              </p>
+              <div className={styles.testimonialAuthor}>
+                <strong>Sarah Chen</strong>
+                <span>CTO, TechCommerce</span>
+              </div>
+            </div>
+            <div className={styles.testimonialCard}>
+              <p className={styles.testimonialText}>
+                "Integration was seamless, and the 10/10 security score gives our customers confidence. 
+                We've processed over $2M in crypto payments without any issues."
+              </p>
+              <div className={styles.testimonialAuthor}>
+                <strong>Marcus Rodriguez</strong>
+                <span>Founder, CryptoMarket</span>
+              </div>
+            </div>
+            <div className={styles.testimonialCard}>
+              <p className={styles.testimonialText}>
+                "The multi-blockchain support and instant notifications have streamlined our payment 
+                processing. PayFlow is essential for any serious crypto business."
+              </p>
+              <div className={styles.testimonialAuthor}>
+                <strong>Emily Watson</strong>
+                <span>CFO, BlockchainCorp</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section className={styles.cta}>
+      <section id="contact" className={styles.cta}>
         <div className={styles.ctaContent}>
           <h2 className={styles.ctaTitle}>Ready to Start?</h2>
           <p className={styles.ctaSubtitle}>
             Join businesses already using PayFlow to accept cryptocurrency payments
           </p>
-          <Link to="/register" className={styles.ctaBtn}>
-            Create Account - Free
-          </Link>
+          <div className={styles.ctaActions}>
+            <Link to="/register" className={styles.ctaBtn}>
+              Create Account - Free
+            </Link>
+            <div className={styles.contactInfo}>
+              <p>Need help? Contact our sales team:</p>
+              <a href="mailto:sales@techytro.com" className={styles.contactLink}>sales@techytro.com</a>
+              <a href="tel:+1-555-PAYFLOW" className={styles.contactLink}>+1 (555) PAY-FLOW</a>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -150,14 +252,16 @@ const LandingPage: React.FC = () => {
             <div className={styles.footerSection}>
               <h4>Product</h4>
               <a href="#features">Features</a>
+              <Link to="/pricing">Pricing</Link>
               <a href="/docs">Documentation</a>
               <a href="/api">API Reference</a>
             </div>
             <div className={styles.footerSection}>
               <h4>Company</h4>
-              <a href="/about">About</a>
-              <a href="/contact">Contact</a>
+              <Link to="/about">About</Link>
+              <Link to="/contact">Contact</Link>
               <a href="/support">Support</a>
+              <a href="/blog">Blog</a>
             </div>
           </div>
         </div>

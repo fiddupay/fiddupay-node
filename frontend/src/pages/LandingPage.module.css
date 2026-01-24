@@ -291,6 +291,13 @@
   opacity: 0.9;
 }
 
+.ctaActions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
 .ctaBtn {
   background: #10b981;
   color: white;
@@ -308,6 +315,181 @@
   background: #059669;
   transform: translateY(-2px);
   box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.5);
+}
+
+.contactInfo {
+  opacity: 0.9;
+}
+
+.contactInfo p {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.contactLink {
+  color: #fbbf24;
+  text-decoration: none;
+  font-weight: 500;
+  margin: 0 1rem;
+  transition: color 0.2s;
+}
+
+.contactLink:hover {
+  color: #f59e0b;
+}
+
+/* Pricing Section */
+.pricing {
+  background: white;
+  padding: 5rem 2rem;
+}
+
+.pricingSubtitle {
+  text-align: center;
+  color: #6b7280;
+  font-size: 1.125rem;
+  margin-bottom: 3rem;
+}
+
+.pricingGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.pricingCard {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+  position: relative;
+  transition: transform 0.2s;
+}
+
+.pricingCard:hover {
+  transform: translateY(-4px);
+}
+
+.pricingCard.popular {
+  border-color: #4f46e5;
+  background: white;
+  box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.1);
+}
+
+.popularBadge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4f46e5;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.pricingTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.pricingPrice {
+  margin-bottom: 2rem;
+}
+
+.priceNumber {
+  display: block;
+  font-size: 3rem;
+  font-weight: 800;
+  color: #4f46e5;
+  line-height: 1;
+}
+
+.priceUnit {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.pricingFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem 0;
+  text-align: left;
+}
+
+.pricingFeatures li {
+  padding: 0.5rem 0;
+  color: #374151;
+}
+
+.pricingBtn {
+  background: #4f46e5;
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  display: inline-block;
+  transition: background-color 0.2s;
+  width: 100%;
+}
+
+.pricingBtn:hover {
+  background: #4338ca;
+}
+
+.popular .pricingBtn {
+  background: #10b981;
+}
+
+.popular .pricingBtn:hover {
+  background: #059669;
+}
+
+/* Testimonials Section */
+.testimonials {
+  background: #f9fafb;
+  padding: 5rem 2rem;
+}
+
+.testimonialsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.testimonialCard {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.testimonialText {
+  color: #374151;
+  font-style: italic;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.testimonialAuthor strong {
+  display: block;
+  color: #1f2937;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.testimonialAuthor span {
+  color: #6b7280;
+  font-size: 0.875rem;
 }
 
 /* Footer */
