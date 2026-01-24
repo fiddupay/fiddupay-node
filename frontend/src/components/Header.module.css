@@ -24,13 +24,6 @@
   color: #1e40af;
   text-decoration: none;
   letter-spacing: -0.025em;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.logo i {
-  color: #059669;
 }
 
 .nav {
@@ -44,9 +37,6 @@
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   padding: 0.5rem 0;
   position: relative;
 }
@@ -69,10 +59,6 @@
   background: #1e40af;
 }
 
-.navLink i {
-  font-size: 0.875rem;
-}
-
 .loginBtn {
   background: #1e40af;
   color: white;
@@ -81,9 +67,6 @@
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .loginBtn:hover {
@@ -93,16 +76,23 @@
 
 .menuBtn {
   display: none;
+  flex-direction: column;
+  gap: 4px;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0.5rem;
-  color: #374151;
-  font-size: 1.25rem;
 }
 
-.menuBtn:hover {
-  color: #1e40af;
+.hamburger {
+  width: 20px;
+  height: 2px;
+  background: #374151;
+  transition: all 0.3s;
+}
+
+.menuBtn:hover .hamburger {
+  background: #1e40af;
 }
 
 @media (max-width: 768px) {
@@ -132,7 +122,6 @@
     width: 100%;
     padding: 1rem 0;
     border-bottom: 1px solid #f3f4f6;
-    justify-content: flex-start;
   }
 
   .navLink.active::after {
@@ -141,10 +130,9 @@
 
   .loginBtn {
     margin-top: 1rem;
-    justify-content: center;
   }
 
   .menuBtn {
-    display: block;
+    display: flex;
   }
 }

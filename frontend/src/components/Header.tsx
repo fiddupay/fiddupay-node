@@ -12,7 +12,6 @@ const Header: React.FC = () => {
     <header className={styles.header}>
       <div className={styles.container}>
         <Link to="/" className={styles.logo}>
-          <i className="fas fa-shield-alt"></i>
           PayFlow
         </Link>
         
@@ -22,7 +21,6 @@ const Header: React.FC = () => {
             className={`${styles.navLink} ${isActive('/') ? styles.active : ''}`}
             onClick={() => setIsMenuOpen(false)}
           >
-            <i className="fas fa-home"></i>
             Home
           </Link>
           <Link 
@@ -30,7 +28,6 @@ const Header: React.FC = () => {
             className={`${styles.navLink} ${isActive('/features') ? styles.active : ''}`}
             onClick={() => setIsMenuOpen(false)}
           >
-            <i className="fas fa-star"></i>
             Features
           </Link>
           <Link 
@@ -38,7 +35,6 @@ const Header: React.FC = () => {
             className={`${styles.navLink} ${isActive('/pricing') ? styles.active : ''}`}
             onClick={() => setIsMenuOpen(false)}
           >
-            <i className="fas fa-tags"></i>
             Pricing
           </Link>
           <Link 
@@ -46,7 +42,6 @@ const Header: React.FC = () => {
             className={`${styles.navLink} ${isActive('/docs') ? styles.active : ''}`}
             onClick={() => setIsMenuOpen(false)}
           >
-            <i className="fas fa-book"></i>
             Docs
           </Link>
           <Link 
@@ -54,7 +49,6 @@ const Header: React.FC = () => {
             className={`${styles.navLink} ${isActive('/contact') ? styles.active : ''}`}
             onClick={() => setIsMenuOpen(false)}
           >
-            <i className="fas fa-envelope"></i>
             Contact
           </Link>
           <Link 
@@ -62,7 +56,6 @@ const Header: React.FC = () => {
             className={styles.loginBtn}
             onClick={() => setIsMenuOpen(false)}
           >
-            <i className="fas fa-sign-in-alt"></i>
             Login
           </Link>
         </nav>
@@ -72,7 +65,9 @@ const Header: React.FC = () => {
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           aria-label="Toggle menu"
         >
-          <i className={`fas ${isMenuOpen ? 'fa-times' : 'fa-bars'}`}></i>
+          <span className={styles.hamburger}></span>
+          <span className={styles.hamburger}></span>
+          <span className={styles.hamburger}></span>
         </button>
       </div>
     </header>
