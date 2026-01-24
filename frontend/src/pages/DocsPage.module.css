@@ -107,6 +107,13 @@
   margin: 2rem 0 1rem;
 }
 
+.bigTitle {
+  font-size: 2rem !important;
+  font-weight: 700 !important;
+  color: #1e40af !important;
+  margin: 2rem 0 2rem !important;
+}
+
 .section h3 {
   font-size: 1.25rem;
   font-weight: 600;
@@ -320,6 +327,29 @@
   border-radius: 0.5rem;
   padding: 1.5rem;
   text-align: center;
+  transition: all 0.3s;
+}
+
+.cryptoCard:hover, .sdkCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border-color: #1e40af;
+}
+
+.cryptoIcon {
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cryptoIcon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
 }
 
 .cryptoCard i, .sdkCard i {

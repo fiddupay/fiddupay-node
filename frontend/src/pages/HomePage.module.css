@@ -149,6 +149,73 @@
   font-size: 0.875rem;
 }
 
+/* Crypto Section */
+.cryptoSection {
+  padding: 5rem 0;
+  background: white;
+}
+
+.sectionTitle {
+  text-align: center;
+  font-size: 3rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.sectionSubtitle {
+  text-align: center;
+  font-size: 1.25rem;
+  color: #6b7280;
+  margin-bottom: 3rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cryptoShowcase {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.cryptoItem {
+  text-align: center;
+  padding: 2rem 1rem;
+  background: #f8fafc;
+  border-radius: 1rem;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+}
+
+.cryptoItem:hover {
+  transform: translateY(-8px);
+  border-color: #1e40af;
+  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1);
+}
+
+.cryptoLogo {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  display: block;
+  border-radius: 50%;
+}
+
+.cryptoItem h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.cryptoItem p {
+  color: #6b7280;
+  font-weight: 500;
+}
+
 /* Features Section */
 .features {
   padding: 5rem 0;

@@ -12,11 +12,11 @@ const HomePage: React.FC = () => {
             <div className={`${styles.heroText} animate-slide-in-left`}>
               <h1 className={styles.heroTitle}>
                 Accept Crypto Payments
-                <span className={styles.highlight}> Instantly</span>
+                <span className={styles.highlight}> Across 5 Networks</span>
               </h1>
               <p className={styles.heroDescription}>
-                Modern payment gateway for cryptocurrency transactions. 
-                Accept SOL, USDT across multiple networks with automatic forwarding and real-time notifications.
+                Modern payment gateway supporting SOL, ETH, BNB, MATIC, ARB, and USDT across 
+                Ethereum, BSC, Polygon, Arbitrum, and Solana networks with automatic forwarding.
               </p>
               <div className={styles.heroActions}>
                 <Link to="/login" className={`${styles.primaryBtn} hover-lift`}>
@@ -44,6 +44,47 @@ const HomePage: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Supported Cryptocurrencies Section */}
+      <section className={styles.cryptoSection}>
+        <div className={styles.container}>
+          <h2 className={styles.sectionTitle}>Supported Cryptocurrencies</h2>
+          <p className={styles.sectionSubtitle}>Accept payments in multiple cryptocurrencies across 5 major blockchain networks</p>
+          
+          <div className={styles.cryptoShowcase}>
+            <div className={styles.cryptoItem}>
+              <img src="https://cryptologos.cc/logos/solana-sol-logo.png" alt="Solana" className={styles.cryptoLogo} />
+              <h3>SOL</h3>
+              <p>Solana</p>
+            </div>
+            <div className={styles.cryptoItem}>
+              <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" alt="Ethereum" className={styles.cryptoLogo} />
+              <h3>ETH</h3>
+              <p>Ethereum</p>
+            </div>
+            <div className={styles.cryptoItem}>
+              <img src="https://cryptologos.cc/logos/bnb-bnb-logo.png" alt="BNB" className={styles.cryptoLogo} />
+              <h3>BNB</h3>
+              <p>BSC</p>
+            </div>
+            <div className={styles.cryptoItem}>
+              <img src="https://cryptologos.cc/logos/polygon-matic-logo.png" alt="Polygon" className={styles.cryptoLogo} />
+              <h3>MATIC</h3>
+              <p>Polygon</p>
+            </div>
+            <div className={styles.cryptoItem}>
+              <img src="https://cryptologos.cc/logos/arbitrum-arb-logo.png" alt="Arbitrum" className={styles.cryptoLogo} />
+              <h3>ARB</h3>
+              <p>Arbitrum</p>
+            </div>
+            <div className={styles.cryptoItem}>
+              <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT" className={styles.cryptoLogo} />
+              <h3>USDT</h3>
+              <p>5 Networks</p>
             </div>
           </div>
         </div>

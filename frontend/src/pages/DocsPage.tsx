@@ -124,34 +124,84 @@ $payment = \\PayFlow\\Payment::create([
               <code>https://api.payflow.com/v1</code>
             </div>
 
-            <h2>Supported Cryptocurrencies</h2>
+            <h2 className={styles.bigTitle}>Supported Cryptocurrencies & Networks</h2>
             <div className={styles.cryptoGrid}>
               <div className={styles.cryptoCard}>
+                <div className={styles.cryptoIcon}>
+                  <img src="https://cryptologos.cc/logos/solana-sol-logo.png" alt="Solana" />
+                </div>
                 <h4>SOL</h4>
                 <p>Solana Network</p>
                 <small>32 confirmations (~13 seconds)</small>
               </div>
               <div className={styles.cryptoCard}>
+                <div className={styles.cryptoIcon}>
+                  <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" alt="Ethereum" />
+                </div>
+                <h4>ETH</h4>
+                <p>Ethereum Network</p>
+                <small>12 confirmations (~3 minutes)</small>
+              </div>
+              <div className={styles.cryptoCard}>
+                <div className={styles.cryptoIcon}>
+                  <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT" />
+                </div>
                 <h4>USDT</h4>
                 <p>Ethereum Network</p>
                 <small>12 confirmations (~3 minutes)</small>
               </div>
               <div className={styles.cryptoCard}>
+                <div className={styles.cryptoIcon}>
+                  <img src="https://cryptologos.cc/logos/bnb-bnb-logo.png" alt="BNB" />
+                </div>
+                <h4>BNB</h4>
+                <p>BSC Network</p>
+                <small>15 confirmations (~45 seconds)</small>
+              </div>
+              <div className={styles.cryptoCard}>
+                <div className={styles.cryptoIcon}>
+                  <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT BSC" />
+                </div>
                 <h4>USDT</h4>
                 <p>BSC Network</p>
                 <small>15 confirmations (~45 seconds)</small>
               </div>
               <div className={styles.cryptoCard}>
+                <div className={styles.cryptoIcon}>
+                  <img src="https://cryptologos.cc/logos/polygon-matic-logo.png" alt="Polygon" />
+                </div>
+                <h4>MATIC</h4>
+                <p>Polygon Network</p>
+                <small>30 confirmations (~1 minute)</small>
+              </div>
+              <div className={styles.cryptoCard}>
+                <div className={styles.cryptoIcon}>
+                  <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT Polygon" />
+                </div>
                 <h4>USDT</h4>
                 <p>Polygon Network</p>
                 <small>128 confirmations (~4 minutes)</small>
               </div>
               <div className={styles.cryptoCard}>
+                <div className={styles.cryptoIcon}>
+                  <img src="https://cryptologos.cc/logos/arbitrum-arb-logo.png" alt="Arbitrum" />
+                </div>
+                <h4>ARB</h4>
+                <p>Arbitrum Network</p>
+                <small>1 confirmation (~1 second)</small>
+              </div>
+              <div className={styles.cryptoCard}>
+                <div className={styles.cryptoIcon}>
+                  <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT Arbitrum" />
+                </div>
                 <h4>USDT</h4>
                 <p>Arbitrum Network</p>
                 <small>1 confirmation (~250ms)</small>
               </div>
               <div className={styles.cryptoCard}>
+                <div className={styles.cryptoIcon}>
+                  <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT Solana" />
+                </div>
                 <h4>USDT</h4>
                 <p>Solana SPL</p>
                 <small>32 confirmations (~13 seconds)</small>
