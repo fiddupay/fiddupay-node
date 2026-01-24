@@ -10,7 +10,7 @@ use crate::payment::processor::PaymentProcessor;
 use crate::payment::verifier::PaymentVerifier;
 use crate::services::{webhook_service::WebhookService, price_service::PriceService};
 use std::sync::Arc;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 

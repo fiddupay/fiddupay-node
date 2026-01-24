@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 use chrono::{DateTime, Utc, Duration};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use crate::error::ServiceError;
 use crate::utils::keygen::{generate_solana_keypair, generate_evm_keypair};
 use crate::utils::encryption::Encryption;
