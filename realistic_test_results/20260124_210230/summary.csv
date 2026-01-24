@@ -1,0 +1,6 @@
+Test Name,Success Rate %,Avg Response Time,P95 Response Time,RPS,200 OK,401 Auth,429 Rate Limited,5xx Errors
+Health Check,0.00,0.005,0.010537,50.00,0,0,0,50
+Merchants Endpoint (Auth Required),0.00,N/A,N/A,50.00,0,0,0,50
+Merchant Registration,0.00,0.205,0.490725,25.00,0,0,0,50
+Invalid Registration Data,0.00,0.002,0.005645,50.00,0,0,0,50
+404 Not Found,0.00,N/A,N/A,50.00,0,0,0,50

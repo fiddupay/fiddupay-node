@@ -16,7 +16,7 @@ BASE_URL="http://localhost:8080"
 TEST_EMAIL="withdrawal-test-$(date +%s)@example.com"
 TEST_BUSINESS="Withdrawal Test Business $(date +%s)"
 
-API_KEY=""
+API_KEY="${API_KEY:-}"
 MERCHANT_ID=""
 PAYMENT_ID=""
 WITHDRAWAL_ID=""

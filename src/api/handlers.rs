@@ -11,22 +11,37 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use validator::Validate;
+use html_escape::encode_text;
+
+// Import validation functions
+use crate::middleware::validation::{validate_business_email, validate_password_strength, validate_webhook_url};
 
 // ============================================================================
 // Merchant Endpoints
 // ============================================================================
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct RegisterMerchantRequest {
+    #[validate(email, custom(function = "validate_business_email"))]
     pub email: String,
+    
+    #[validate(length(min = 1, max = 100))]
     pub business_name: String,
+    
+    #[validate(length(min = 8), custom(function = "validate_password_strength"))]
     pub password: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct LoginMerchantRequest {
+    #[validate(email)]
     pub email: String,
+    
+    #[validate(length(min = 1))]
     pub password: String,
+    
+    #[validate(length(equal = 6))]
     pub two_factor_code: Option<String>,
 }
 
@@ -140,8 +155,9 @@ pub async fn set_wallet(
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct SetWebhookRequest {
+    #[validate(url, custom(function = "validate_webhook_url"))]
     pub url: String,
 }
 
@@ -494,19 +510,19 @@ struct PaymentPageData {
 fn render_payment_page(data: PaymentPageData) -> String {
     let template = include_str!("../../templates/payment_page.html");
     
-    // Simple template replacement (in production, use a proper template engine)
+    // HTML escape all user-controlled data to prevent XSS attacks
     template
-        .replace("{{payment_id}}", &data.payment_id)
-        .replace("{{amount}}", &data.amount)
-        .replace("{{amount_usd}}", &data.amount_usd)
-        .replace("{{crypto_type}}", &data.crypto_type)
-        .replace("{{network}}", &data.network)
-        .replace("{{deposit_address}}", &data.deposit_address)
-        .replace("{{fee_amount_usd}}", &data.fee_amount_usd)
-        .replace("{{qr_code}}", &data.qr_code)
-        .replace("{{time_remaining}}", &data.time_remaining)
-        .replace("{{expires_at}}", &data.expires_at)
-        .replace("{{transaction_hash}}", &data.transaction_hash.unwrap_or_default())
+        .replace("{{payment_id}}", &encode_text(&data.payment_id))
+        .replace("{{amount}}", &encode_text(&data.amount))
+        .replace("{{amount_usd}}", &encode_text(&data.amount_usd))
+        .replace("{{crypto_type}}", &encode_text(&data.crypto_type))
+        .replace("{{network}}", &encode_text(&data.network))
+        .replace("{{deposit_address}}", &encode_text(&data.deposit_address))
+        .replace("{{fee_amount_usd}}", &encode_text(&data.fee_amount_usd))
+        .replace("{{qr_code}}", &encode_text(&data.qr_code))
+        .replace("{{time_remaining}}", &encode_text(&data.time_remaining))
+        .replace("{{expires_at}}", &encode_text(&data.expires_at))
+        .replace("{{transaction_hash}}", &encode_text(&data.transaction_hash.unwrap_or_default()))
         .replace("{{#if is_pending}}", if data.is_pending { "" } else { "<!--" })
         .replace("{{/if}}", if data.is_pending { "" } else { "-->" })
         .replace("{{#if is_confirmed}}", if data.is_confirmed { "" } else { "<!--" })

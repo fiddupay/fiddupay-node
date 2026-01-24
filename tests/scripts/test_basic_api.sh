@@ -16,7 +16,7 @@ BASE_URL="http://localhost:8080"
 TEST_EMAIL="test-merchant-$(date +%s)@example.com"
 TEST_BUSINESS="Test Business $(date +%s)"
 
-API_KEY=""
+API_KEY="${API_KEY:-}"
 MERCHANT_ID=""
 
 log() {

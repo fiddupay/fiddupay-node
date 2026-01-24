@@ -39,8 +39,8 @@ impl MerchantService {
     /// * 1.2: Generates unique API key for authentication
     pub async fn register_merchant(
         &self,
-        email: String,
-        business_name: String,
+        email: &str,
+        business_name: &str,
     ) -> Result<MerchantRegistrationResponse, ServiceError> {
         // Generate a secure random API key (32 characters)
         let api_key = self.generate_api_key();
@@ -100,7 +100,7 @@ impl MerchantService {
     pub async fn rotate_api_key(
         &self,
         merchant_id: i64,
-        old_api_key: String,
+        old_api_key: &str,
     ) -> Result<String, ServiceError> {
         // First, verify the old API key is correct
         let merchant = sqlx::query_as::<_, Merchant>(

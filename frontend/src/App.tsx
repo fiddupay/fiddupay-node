@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthStore } from '@/stores/authStore'
 import AppLayout from '@/components/layout/AppLayout'
 import LoginPage from '@/pages/auth/LoginPage'
+import LandingPage from '@/pages/LandingPage'
 import '@/styles/globals.css'
 
 // Lazy load pages for better performance
@@ -39,12 +40,15 @@ const App: React.FC = () => {
   return (
     <Router>
       <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<LandingPage />} />
+        
         {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />
         
         {/* Protected routes */}
-        <Route path="/" element={<AppLayout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="/app" element={<AppLayout />}>
+          <Route index element={<Navigate to="/app/dashboard" replace />} />
           <Route 
             path="dashboard" 
             element={
@@ -72,7 +76,7 @@ const App: React.FC = () => {
         </Route>
         
         {/* Catch all route */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   )

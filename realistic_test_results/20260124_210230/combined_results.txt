@@ -1,0 +1,50 @@
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.001927,0.000181,0.001896,32
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.000841,0.000295,0.000790,76
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.006194,0.000341,0.006135,62
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.003905,0.003314,0.003846,50
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.000821,0.000278,0.000765,16
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.001286,0.000517,0.001186,67
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.002682,0.000313,0.002629,64
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.003174,0.000335,0.003116,83
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.004528,0.003663,0.004481,42
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.001477,0.001159,0.001432,16
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.005550,0.000170,0.005515,46
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.001041,0.000358,0.000986,25
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.001349,0.000597,0.001274,24
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.001929,0.000360,0.001861,92
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.001027,0.000664,0.000986,34
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.005526,0.000165,0.005494,41
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.002945,0.000861,0.002876,41
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.001255,0.000334,0.001193,20
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.002740,0.002227,0.002674,85
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.000688,0.000255,0.000640,35
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.001717,0.000395,0.001655,67
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.004957,0.000325,0.004905,66
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.010749,0.010228,0.010689,85
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.005018,0.004433,0.004969,48
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.003064,0.000278,0.003016,36
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.001148,0.000191,0.001116,71
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.004197,0.003538,0.004130,71
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.001993,0.000426,0.001926,99
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.005858,0.000248,0.005810,61
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.000942,0.000211,0.000885,16
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.002711,0.000167,0.002682,42
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.004809,0.000390,0.004738,85
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.003969,0.000399,0.003903,73
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.002880,0.002392,0.002820,55
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.002478,0.000259,0.002431,32
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.006825,0.000234,0.006786,47
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.001258,0.000621,0.001193,59
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.001364,0.000409,0.001288,23
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.001123,0.000720,0.001065,63
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.001738,0.000209,0.001697,28
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.002367,0.000175,0.002336,88
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.004287,0.001865,0.004235,70
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.003492,0.000362,0.003421,101
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.002792,0.000230,0.002753,35
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.000687,0.000316,0.000642,22
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.001524,0.000177,0.001491,47
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.005355,0.002948,0.005301,58
+{"error":"Missing or invalid Authorization header","message":"Expected format: Authorization: Bearer <api_key>"}401,0.001065,0.000310,0.000989,20
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.000973,0.000418,0.000908,30
+{"error":"Rate limit exceeded","message":"Too many requests. Limit: 100 requests per minute"}429,0.002771,0.002447,0.002724,53

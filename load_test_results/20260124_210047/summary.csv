@@ -1,0 +1,7 @@
+Test Name,Success Rate %,Avg Response Time,P95 Response Time,RPS
+Health Check,0.00,0.022,0.057631,0.00
+Metrics,0.00,0.000,"message":"Too many requests. Limit: 100 requests per minute"}429,0.00
+API Root,0.00,0.000,"message":"Too many requests. Limit: 100 requests per minute"}429,0.00
+Merchant Registration,0.00,1.141,2.059056,0.00
+404 Handling,0.00,0.000,"message":"Too many requests. Limit: 100 requests per minute"}429,0.00
+CORS Preflight,0.00,0.000,"message":"Too many requests. Limit: 100 requests per minute"}429,0.00

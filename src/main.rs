@@ -5,6 +5,7 @@ use crypto_payment_gateway::{
     api::{routes, state::AppState},
     background_tasks::BackgroundTasks,
     config::Config,
+    performance_advanced::HighPerformancePool,
 };
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
@@ -29,13 +30,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     config.validate()?;
     tracing::info!("✅ Configuration loaded");
 
-    // Initialize database connection pool
-    tracing::info!("📦 Connecting to database...");
-    let db_pool = PgPoolOptions::new()
-        .max_connections(config.database_max_connections)
-        .connect(&config.database_url)
-        .await?;
-    tracing::info!("✅ Database connected");
+    // Initialize high-performance database connection pool
+    tracing::info!("📦 Connecting to database with optimized pool...");
+    let hp_pool = HighPerformancePool::new(&config.database_url).await?;
+    let db_pool = hp_pool.pool().clone();
+    tracing::info!("✅ High-performance database pool connected");
 
     // Run migrations
     tracing::info!("🔄 Running database migrations...");

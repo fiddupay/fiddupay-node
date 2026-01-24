@@ -39,11 +39,11 @@ pub struct PaymentService {
 }
 
 impl PaymentService {
-    pub fn new(db_pool: PgPool, payment_page_base_url: String, price_service: Arc<PriceService>, webhook_signing_key: String) -> Self {
-        let webhook_service = WebhookService::new(db_pool.clone(), webhook_signing_key);
+    pub fn new(db_pool: PgPool, payment_page_base_url: &str, price_service: Arc<PriceService>, webhook_signing_key: &str) -> Self {
+        let webhook_service = WebhookService::new(db_pool.clone(), webhook_signing_key.to_string());
         
         Self {
-            processor: PaymentProcessor::new(db_pool.clone(), payment_page_base_url, price_service),
+            processor: PaymentProcessor::new(db_pool.clone(), payment_page_base_url.to_string(), price_service),
             verifier: PaymentVerifier::new(db_pool.clone(), webhook_service),
             db_pool,
         }
