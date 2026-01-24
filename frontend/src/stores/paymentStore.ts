@@ -39,7 +39,7 @@ const initialState: PaymentState = {
   filters: {},
 }
 
-export const usePaymentStore = create<PaymentState & PaymentActions>((set, get) => ({
+export const usePaymentStore = create<PaymentState & PaymentActions>((set: any, get: any) => ({
   ...initialState,
 
   fetchPayments: async (filters?: PaymentFilters) => {
@@ -74,7 +74,7 @@ export const usePaymentStore = create<PaymentState & PaymentActions>((set, get) 
       const payment = await apiService.createPayment(data)
       
       // Add new payment to the beginning of the list
-      set((state) => ({
+      set((state: any) => ({
         payments: [payment, ...state.payments],
         loading: false,
       }))

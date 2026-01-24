@@ -20,8 +20,8 @@ class ApiService {
   private api: AxiosInstance
 
   constructor() {
-    const baseURL = (import.meta.env as any).VITE_API_URL 
-      ? `${(import.meta.env as any).VITE_API_URL}/api/v1`
+    const baseURL = import.meta.env.VITE_API_URL 
+      ? `${import.meta.env.VITE_API_URL}/api/v1`
       : '/api/v1'
     
     this.api = axios.create({
@@ -30,7 +30,7 @@ class ApiService {
     })
 
     // Request interceptor to add auth token
-    this.api.interceptors.request.use((config) => {
+    this.api.interceptors.request.use((config: any) => {
       const token = localStorage.getItem('payflow_token')
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
@@ -40,8 +40,8 @@ class ApiService {
 
     // Response interceptor for error handling
     this.api.interceptors.response.use(
-      (response) => response,
-      (error) => {
+      (response: any) => response,
+      (error: any) => {
         if (error.response?.status === 401) {
           localStorage.removeItem('payflow_token')
           window.location.href = '/login'
