@@ -1,99 +1,113 @@
-import React from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import React, { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
-import Button from '@/components/ui/Button'
-import Input from '@/components/ui/Input'
 import styles from './LoginPage.module.css'
-
-const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  two_factor_code: z.string().optional(),
-})
-
-type LoginFormData = z.infer<typeof loginSchema>
 
 const LoginPage: React.FC = () => {
   const { login, loading, error, isAuthenticated } = useAuthStore()
-  
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    two_factor_code: ''
   })
 
   if (isAuthenticated) {
     return <Navigate to="/app/dashboard" replace />
   }
 
-  const onSubmit = async (data: LoginFormData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     try {
-      await login(data)
+      await login(formData)
     } catch (error) {
       // Error is handled by the store
     }
   }
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
+  }
+
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>PayFlow</h1>
-          <p className={styles.subtitle}>Sign in to your merchant account</p>
-        </div>
+    <div className={styles.loginPage}>
+      <div className={styles.container}>
+        <div className={styles.loginCard}>
+          <div className={styles.header}>
+            <Link to="/" className={styles.logo}>PayFlow</Link>
+            <h1 className={styles.title}>Welcome Back</h1>
+            <p className={styles.subtitle}>Sign in to your merchant account</p>
+          </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
-          {error && (
-            <div className={styles.errorAlert}>
-              {error}
+          <form onSubmit={handleSubmit} className={styles.form}>
+            {error && (
+              <div className={styles.errorAlert}>
+                {error}
+              </div>
+            )}
+
+            <div className={styles.inputGroup}>
+              <label htmlFor="email">Email Address</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Enter your email"
+                required
+              />
             </div>
-          )}
 
-          <Input
-            label="Email address"
-            type="email"
-            {...register('email')}
-            error={errors.email?.message}
-            placeholder="Enter your email"
-          />
+            <div className={styles.inputGroup}>
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                required
+              />
+            </div>
 
-          <Input
-            label="Password"
-            type="password"
-            {...register('password')}
-            error={errors.password?.message}
-            placeholder="Enter your password"
-          />
+            <div className={styles.inputGroup}>
+              <label htmlFor="two_factor_code">2FA Code (Optional)</label>
+              <input
+                type="text"
+                id="two_factor_code"
+                name="two_factor_code"
+                value={formData.two_factor_code}
+                onChange={handleChange}
+                placeholder="Enter 6-digit code"
+              />
+            </div>
 
-          <Input
-            label="2FA Code (if enabled)"
-            type="text"
-            {...register('two_factor_code')}
-            error={errors.two_factor_code?.message}
-            placeholder="Enter 6-digit code"
-          />
+            <button
+              type="submit"
+              className={styles.submitButton}
+              disabled={loading}
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
 
-          <Button
-            type="submit"
-            loading={loading}
-            className={styles.submitButton}
-          >
-            Sign in
-          </Button>
-        </form>
-
-        <div className={styles.footer}>
-          <p>
-            Don't have an account?{' '}
-            <Link to="/register" className={styles.link}>
-              Sign up
-            </Link>
-          </p>
+          <div className={styles.footer}>
+            <p>
+              Don't have an account?{' '}
+              <Link to="/register" className={styles.link}>
+                Create Account
+              </Link>
+            </p>
+            <p>
+              <Link to="/forgot-password" className={styles.link}>
+                Forgot your password?
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

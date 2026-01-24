@@ -4,11 +4,14 @@ import { useAuthStore } from '@/stores/authStore'
 import Layout from '@/components/Layout'
 import AppLayout from '@/components/layout/AppLayout'
 import LoginPage from '@/pages/auth/LoginPage'
+import RegisterPage from '@/pages/auth/RegisterPage'
 import HomePage from '@/pages/HomePage'
 import FeaturesPage from '@/pages/FeaturesPage'
 import PricingPage from '@/pages/PricingPage'
 import DocsPage from '@/pages/DocsPage'
 import ContactPage from '@/pages/ContactPage'
+import TermsPage from '@/pages/TermsPage'
+import PrivacyPage from '@/pages/PrivacyPage'
 import '@/styles/globals.css'
 
 // Lazy load pages for better performance
@@ -51,9 +54,12 @@ const App: React.FC = () => {
         <Route path="/pricing" element={<Layout><PricingPage /></Layout>} />
         <Route path="/docs" element={<Layout><DocsPage /></Layout>} />
         <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
+        <Route path="/terms" element={<Layout><TermsPage /></Layout>} />
+        <Route path="/privacy" element={<Layout><PrivacyPage /></Layout>} />
         
         {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         
         {/* Protected routes */}
         <Route path="/app" element={<AppLayout />}>
