@@ -83,7 +83,7 @@ const HomePage: React.FC = () => {
             <h2>Ready to Start Accepting Crypto?</h2>
             <p>Join thousands of businesses using PayFlow for secure cryptocurrency payments</p>
             <Link to="/login" className={styles.ctaBtn}>
-              Start Free Trial
+              Get Started
             </Link>
           </div>
         </div>

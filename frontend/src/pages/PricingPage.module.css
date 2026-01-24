@@ -29,9 +29,12 @@
 
 .plans {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: 2fr 1fr;
   gap: 2rem;
   margin-bottom: 5rem;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .plan {
@@ -51,7 +54,6 @@
 
 .popular {
   border-color: #4f46e5;
-  transform: scale(1.05);
 }
 
 .popularBadge {
@@ -190,9 +192,6 @@
   
   .plans {
     grid-template-columns: 1fr;
-  }
-  
-  .popular {
-    transform: none;
+    max-width: none;
   }
 }

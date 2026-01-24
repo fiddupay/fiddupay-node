@@ -16,43 +16,26 @@ const PricingPage: React.FC = () => {
         <div className={styles.plans}>
           <div className={styles.plan}>
             <div className={styles.planHeader}>
-              <h3 className={styles.planName}>Starter</h3>
+              <h3 className={styles.planName}>Pay-Per-Use</h3>
               <div className={styles.planPrice}>
-                <span className={styles.price}>Free</span>
-              </div>
-              <p className={styles.planDescription}>Perfect for testing and small businesses</p>
-            </div>
-            <ul className={styles.features}>
-              <li>Up to $1,000/month volume</li>
-              <li>Basic dashboard</li>
-              <li>Email support</li>
-              <li>Standard processing speed</li>
-            </ul>
-            <Link to="/login" className={styles.planBtn}>
-              Get Started
-            </Link>
-          </div>
-
-          <div className={`${styles.plan} ${styles.popular}`}>
-            <div className={styles.popularBadge}>Most Popular</div>
-            <div className={styles.planHeader}>
-              <h3 className={styles.planName}>Professional</h3>
-              <div className={styles.planPrice}>
-                <span className={styles.price}>2.5%</span>
+                <span className={styles.price}>0.75%</span>
                 <span className={styles.period}>per transaction</span>
               </div>
-              <p className={styles.planDescription}>For growing businesses and e-commerce</p>
+              <p className={styles.planDescription}>Simple, transparent pricing with no hidden fees</p>
             </div>
             <ul className={styles.features}>
-              <li>Unlimited transaction volume</li>
-              <li>Advanced analytics dashboard</li>
-              <li>Priority support</li>
-              <li>Instant processing</li>
-              <li>Webhook notifications</li>
+              <li>0.75% transaction fee</li>
+              <li>Minimum fee: $0.01</li>
+              <li>Maximum fee: $200.00</li>
+              <li>No setup or monthly fees</li>
+              <li>Real-time processing</li>
               <li>Multi-network support</li>
+              <li>Advanced dashboard</li>
+              <li>Webhook notifications</li>
+              <li>Email support</li>
             </ul>
             <Link to="/login" className={`${styles.planBtn} ${styles.primaryBtn}`}>
-              Start Free Trial
+              Get Started
             </Link>
           </div>
 
@@ -62,15 +45,17 @@ const PricingPage: React.FC = () => {
               <div className={styles.planPrice}>
                 <span className={styles.price}>Custom</span>
               </div>
-              <p className={styles.planDescription}>For large-scale operations</p>
+              <p className={styles.planDescription}>For high-volume businesses</p>
             </div>
             <ul className={styles.features}>
               <li>Custom transaction rates</li>
+              <li>Volume discounts available</li>
               <li>Dedicated account manager</li>
-              <li>24/7 phone support</li>
+              <li>24/7 priority support</li>
               <li>Custom integrations</li>
               <li>SLA guarantees</li>
               <li>White-label options</li>
+              <li>Advanced reporting</li>
             </ul>
             <a href="mailto:sales@payflow.com" className={styles.planBtn}>
               Contact Sales
