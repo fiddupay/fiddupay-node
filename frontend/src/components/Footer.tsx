@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import styles from './Footer.module.css'
 
 const Footer: React.FC = () => {
@@ -16,13 +17,15 @@ const Footer: React.FC = () => {
           <div className={styles.links}>
             <div className={styles.linkGroup}>
               <h4>Product</h4>
-              <a href="/pricing">Pricing</a>
-              <a href="/docs">Documentation</a>
+              <Link to="/pricing">Pricing</Link>
+              <Link to="/docs">Documentation</Link>
+              <Link to="/features">Features</Link>
             </div>
             <div className={styles.linkGroup}>
-              <h4>Support</h4>
-              <a href="mailto:support@payflow.com">Contact</a>
-              <a href="/status">Status</a>
+              <h4>Company</h4>
+              <Link to="/contact">Contact</Link>
+              <Link to="/terms">Terms</Link>
+              <Link to="/privacy">Privacy</Link>
             </div>
           </div>
         </div>
