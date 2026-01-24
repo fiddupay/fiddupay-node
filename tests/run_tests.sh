@@ -162,6 +162,12 @@ run_test_scripts() {
         log "Running service layer tests..."
         bash tests/scripts/test_service_layer.sh
     fi
+    
+    # Sandbox workflow test
+    if [ -f "tests/scripts/test_sandbox_workflow.sh" ]; then
+        log "Running sandbox workflow tests..."
+        bash tests/scripts/test_sandbox_workflow.sh
+    fi
 }
 
 # Main execution

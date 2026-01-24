@@ -193,16 +193,22 @@ impl BalanceService {
 
         let mut balance_list = Vec::new();
         for b in balances {
-            let available_usd = self.calculate_usd_value(&b.crypto_type, &b.available_balance).await;
-            let total_usd = self.calculate_usd_value(&b.crypto_type, &b.total_balance.unwrap_or(Decimal::ZERO)).await;
+            let balance_available_usd = self.calculate_usd_value(&b.crypto_type, &b.available_balance).await.unwrap_or(Decimal::ZERO);
+            let balance_total_usd = self.calculate_usd_value(&b.crypto_type, &b.total_balance.unwrap_or(Decimal::ZERO)).await.unwrap_or(Decimal::ZERO);
+            let balance_reserved_usd = self.calculate_usd_value(&b.crypto_type, &b.reserved_balance).await.unwrap_or(Decimal::ZERO);
+            
+            // Accumulate totals
+            available_usd += balance_available_usd;
+            total_usd += balance_total_usd;
+            reserved_usd += balance_reserved_usd;
             
             balance_list.push(MerchantBalance {
                 crypto_type: b.crypto_type,
                 available_balance: b.available_balance,
                 reserved_balance: b.reserved_balance,
                 total_balance: b.total_balance.unwrap_or(Decimal::ZERO),
-                available_usd,
-                total_usd,
+                available_usd: Some(balance_available_usd),
+                total_usd: Some(balance_total_usd),
             });
         }
 
@@ -259,7 +265,7 @@ impl BalanceService {
 
         match crypto_type {
             // USDT variants have 1:1 USD parity
-            "USDT_SOL" | "USDT_BSC" | "USDT_POLYGON" | "USDT_ARBITRUM" | "USDT_ETH" => {
+            "USDT" | "USDT_SOL" | "USDT_BSC" | "USDT_POLYGON" | "USDT_ARBITRUM" | "USDT_ETH" => {
                 Some(*amount)
             }
             // For other cryptocurrencies, use price service

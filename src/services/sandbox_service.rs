@@ -70,8 +70,9 @@ impl SandboxService {
             "SELECT sandbox_mode FROM merchants WHERE id = $1",
             merchant_id
         )
-        .fetch_one(&self.db_pool)
-        .await?;
+        .fetch_optional(&self.db_pool)
+        .await?
+        .ok_or_else(|| ServiceError::NotFound("Merchant not found".to_string()))?;
 
         Ok(merchant.sandbox_mode)
     }

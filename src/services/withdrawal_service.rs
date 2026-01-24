@@ -56,15 +56,29 @@ impl WithdrawalService {
         let fee = req.amount * Decimal::from_f64_retain(WITHDRAWAL_FEE_PERCENT / 100.0).unwrap();
         let net_amount = req.amount - fee;
 
-        // Check balance
-        let balance = self.balance_service.get_balance(merchant_id).await?;
+        // Check balance - handle crypto type variants
+        let balance = match self.balance_service.get_balance(merchant_id).await {
+            Ok(balance) => balance,
+            Err(e) => {
+                return Err(e);
+            }
+        };
+        
         let crypto_balance = balance.balances.iter()
-            .find(|b| b.crypto_type == req.crypto_type)
+            .find(|b| {
+                // Handle crypto type variants (USDT_ETH -> USDT, etc.)
+                b.crypto_type == req.crypto_type || 
+                (req.crypto_type.starts_with("USDT_") && b.crypto_type == "USDT") ||
+                (req.crypto_type == "SOL" && b.crypto_type == "SOL")
+            })
             .ok_or_else(|| ServiceError::ValidationError("No balance for this currency".to_string()))?;
 
         if crypto_balance.available_balance < req.amount {
+            println!("DEBUG: Balance check failed - available: {}, requested: {}", crypto_balance.available_balance, req.amount);
             return Err(ServiceError::ValidationError("Insufficient balance".to_string()));
         }
+        
+        println!("DEBUG: Balance check passed - available: {}, requested: {}", crypto_balance.available_balance, req.amount);
 
         // Determine if needs approval
         let requires_approval = amount_f64 >= AUTO_APPROVE_THRESHOLD;
@@ -84,10 +98,10 @@ impl WithdrawalService {
         .fetch_one(&self.pool)
         .await?;
 
-        // Reserve balance
+        // Reserve balance - use the crypto type from the balance record
         self.balance_service.reserve(
             merchant_id,
-            &req.crypto_type,
+            &crypto_balance.crypto_type, // Use the actual stored crypto type
             req.amount,
             "WITHDRAWAL_RESERVED",
             Some(&withdrawal_id)

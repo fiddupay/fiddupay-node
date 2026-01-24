@@ -251,7 +251,21 @@ pub async fn simulate_payment(
     Json(req): Json<SimulatePaymentRequest>,
 ) -> impl IntoResponse {
     match state.sandbox_service.simulate_confirmation(&payment_id, context.merchant_id, req.success).await {
-        Ok(_) => (StatusCode::OK, Json(json!({"success": true}))).into_response(),
+        Ok(_) => {
+            // If successful, credit the balance
+            if req.success {
+                match state.balance_service.credit_from_payment(&payment_id).await {
+                    Ok(_) => {
+                        (StatusCode::OK, Json(json!({"success": true, "balance_credited": true}))).into_response()
+                    },
+                    Err(e) => {
+                        (StatusCode::OK, Json(json!({"success": true, "balance_credited": false, "balance_error": e.to_string()}))).into_response()
+                    }
+                }
+            } else {
+                (StatusCode::OK, Json(json!({"success": true, "balance_credited": false}))).into_response()
+            }
+        },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -511,10 +525,9 @@ pub async fn get_audit_logs(
 
 pub async fn get_balance(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    let merchant_id = 1; // TODO: Get from auth middleware
-    
-    match state.balance_service.get_balance(merchant_id).await {
+    match state.balance_service.get_balance(context.merchant_id).await {
         Ok(balance) => (StatusCode::OK, Json(balance)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -527,12 +540,12 @@ pub struct BalanceHistoryQuery {
 
 pub async fn get_balance_history(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Query(params): Query<BalanceHistoryQuery>,
 ) -> impl IntoResponse {
-    let merchant_id = 1; // TODO: Get from auth middleware
     let limit = params.limit.unwrap_or(100).min(1000);
     
-    match state.balance_service.get_history(merchant_id, limit).await {
+    match state.balance_service.get_history(context.merchant_id, limit).await {
         Ok(history) => (StatusCode::OK, Json(history)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -544,11 +557,10 @@ pub async fn get_balance_history(
 
 pub async fn create_withdrawal(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Json(req): Json<crate::services::withdrawal_service::WithdrawalRequest>,
 ) -> impl IntoResponse {
-    let merchant_id = 1; // TODO: Get from auth middleware
-    
-    match state.withdrawal_service.create_withdrawal(merchant_id, req).await {
+    match state.withdrawal_service.create_withdrawal(context.merchant_id, req).await {
         Ok(withdrawal) => (StatusCode::CREATED, Json(withdrawal)).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }
