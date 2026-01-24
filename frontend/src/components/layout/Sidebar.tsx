@@ -32,7 +32,7 @@ const Sidebar: React.FC = () => {
     <div className={styles.sidebar}>
       <div className={styles.sidebarContent}>
         <div className={styles.logo}>
-          <h1>PayFlow</h1>
+          <h1>ChainPay</h1>
         </div>
         
         <nav className={styles.nav}>

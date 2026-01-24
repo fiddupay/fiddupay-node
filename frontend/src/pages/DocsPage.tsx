@@ -6,9 +6,9 @@ const DocsPage: React.FC = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('curl')
 
   const codeExamples = {
-    curl: `curl -X POST https://api.payflow.com/v1/payments \\
-  -H "Authorization: Bearer sk_test_..." \\
-  -H "Content-Type: application/json" \\
+    curl: `curl -X POST https://api.chainpay.com/v1/payments \\\\
+  -H "Authorization: Bearer sk_test_..." \\\\
+  -H "Content-Type: application/json" \\\\
   -d '{
     "amount_usd": "100.00",
     "crypto_type": "USDT_ETH",
@@ -19,7 +19,7 @@ const DocsPage: React.FC = () => {
     },
     "expiration_minutes": 30
   }'`,
-    javascript: `const payflow = require('payflow-node');
+    javascript: `const payflow = require('chainpay-node');
 payflow.apiKey = 'sk_test_...';
 
 const payment = await payflow.payments.create({
@@ -47,9 +47,9 @@ payment = payflow.Payment.create(
 )`,
     php: `<?php
 require_once('vendor/autoload.php');
-\\PayFlow\\PayFlow::setApiKey('sk_test_...');
+\\ChainPay\\ChainPay::setApiKey('sk_test_...');
 
-$payment = \\PayFlow\\Payment::create([
+$payment = \\ChainPay\\Payment::create([
     'amount_usd' => '100.00',
     'crypto_type' => 'USDT_ETH',
     'description' => 'Order #12345',
@@ -116,16 +116,16 @@ $payment = \\PayFlow\\Payment::create([
       <div className={styles.content}>
         {activeTab === 'overview' && (
           <div className={styles.section}>
-            <h1>PayFlow API Documentation</h1>
+            <h1>ChainPay API Documentation</h1>
             <p className={styles.lead}>
-              The PayFlow API is organized around REST. Our API has predictable resource-oriented URLs, 
+              The ChainPay API is organized around REST. Our API has predictable resource-oriented URLs, 
               accepts JSON request bodies, returns JSON-encoded responses, and uses standard HTTP response codes.
             </p>
 
             <div className={styles.infoBox}>
               <h3>Base URLs</h3>
-              <p><strong>Sandbox:</strong> <code>https://api-sandbox.payflow.com/v1</code></p>
-              <p><strong>Production:</strong> <code>https://api.payflow.com/v1</code></p>
+              <p><strong>Sandbox:</strong> <code>https://api-sandbox.chainpay.com/v1</code></p>
+              <p><strong>Production:</strong> <code>https://api.chainpay.com/v1</code></p>
             </div>
 
             <h2 className={styles.bigTitle}>Supported Cryptocurrencies & Networks</h2>
@@ -236,7 +236,7 @@ $payment = \\PayFlow\\Payment::create([
           <div className={styles.section}>
             <h1>Authentication</h1>
             <p className={styles.lead}>
-              PayFlow uses API keys to authenticate requests. You can view and manage your API keys in the Dashboard.
+              ChainPay uses API keys to authenticate requests. You can view and manage your API keys in the Dashboard.
             </p>
 
             <div className={styles.warningBox}>
@@ -272,7 +272,7 @@ $payment = \\PayFlow\\Payment::create([
           <div className={styles.section}>
             <h1>Quick Start Guide</h1>
             <p className={styles.lead}>
-              Get started with PayFlow in minutes. This guide will walk you through creating your first payment.
+              Get started with ChainPay in minutes. This guide will walk you through creating your first payment.
             </p>
 
             <h2 className={styles.bigTitle}>Step 1: Create Account</h2>
@@ -280,14 +280,14 @@ $payment = \\PayFlow\\Payment::create([
               <div className={styles.stepNumber}>1</div>
               <div className={styles.stepContent}>
                 <h3>Sign Up</h3>
-                <p>Create your PayFlow merchant account and verify your email address.</p>
+                <p>Create your ChainPay merchant account and verify your email address.</p>
                 <div className={styles.codeExample}>
-                  <pre><code>curl -X POST https://api.payflow.com/v1/merchants/register \\
+                  <pre><code>{`curl -X POST https://api.chainpay.com/v1/merchants/register \\
   -H "Content-Type: application/json" \\
   -d '{
     "email": "merchant@example.com",
     "business_name": "Your Business Name"
-  }'</code></pre>
+  }'`}</code></pre>
                 </div>
               </div>
             </div>
@@ -313,7 +313,7 @@ $payment = \\PayFlow\\Payment::create([
                 <h3>Make API Call</h3>
                 <p>Create a payment request for $100 USDT on Ethereum:</p>
                 <div className={styles.codeExample}>
-                  <pre><code>curl -X POST https://api.payflow.com/v1/payments \\
+                  <pre><code>{`curl -X POST https://api.chainpay.com/v1/payments \\
   -H "Authorization: Bearer sk_test_..." \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -321,7 +321,7 @@ $payment = \\PayFlow\\Payment::create([
     "crypto_type": "USDT_ETH",
     "description": "Test Payment",
     "expiration_minutes": 30
-  }'</code></pre>
+  }'`}</code></pre>
                 </div>
               </div>
             </div>
@@ -340,7 +340,7 @@ $payment = \\PayFlow\\Payment::create([
   "amount_usd": "100.00",
   "crypto_type": "USDT_ETH",
   "deposit_address": "0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4",
-  "payment_link": "https://pay.payflow.com/pay_1234567890",
+  "payment_link": "https://pay.chainpay.com/pay_1234567890",
   "qr_code_data": "ethereum:0x742d35Cc...",
   "expires_at": "2026-01-25T00:30:52Z"
 }`}</code></pre>
@@ -375,7 +375,7 @@ $payment = \\PayFlow\\Payment::create([
           <div className={styles.section}>
             <h1>Sandbox & Testing</h1>
             <p className={styles.lead}>
-              PayFlow provides a comprehensive sandbox environment for testing your integration without real transactions.
+              ChainPay provides a comprehensive sandbox environment for testing your integration without real transactions.
             </p>
 
             <h2 className={styles.bigTitle}>Sandbox Environment</h2>
@@ -546,7 +546,7 @@ $payment = \\PayFlow\\Payment::create([
   "crypto_type": "USDT_ETH",
   "network": "ETHEREUM",
   "deposit_address": "0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4",
-  "payment_link": "https://pay.payflow.com/pay_1234567890",
+  "payment_link": "https://pay.chainpay.com/pay_1234567890",
   "qr_code_data": "ethereum:0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4?value=234567000000000000",
   "fee_amount": "0.00001756",
   "fee_amount_usd": "0.75",
@@ -613,7 +613,7 @@ $payment = \\PayFlow\\Payment::create([
           <div className={styles.section}>
             <h1>Webhooks</h1>
             <p className={styles.lead}>
-              PayFlow sends webhooks to notify your application when events happen in your account.
+              ChainPay sends webhooks to notify your application when events happen in your account.
               Webhooks are delivered with automatic retry logic and delivery tracking.
             </p>
 
@@ -663,7 +663,7 @@ $payment = \\PayFlow\\Payment::create([
 
             <h2>Webhook Security</h2>
             <div className={styles.warningBox}>
-              <strong>Verify webhook signatures!</strong> Always verify the webhook signature to ensure the request is from PayFlow.
+              <strong>Verify webhook signatures!</strong> Always verify the webhook signature to ensure the request is from ChainPay.
             </div>
 
             <h2>Delivery & Retries</h2>
@@ -862,7 +862,7 @@ $payment = \\PayFlow\\Payment::create([
           <div className={styles.section}>
             <h1>Error Codes</h1>
             <p className={styles.lead}>
-              PayFlow uses conventional HTTP response codes to indicate the success or failure of an API request.
+              ChainPay uses conventional HTTP response codes to indicate the success or failure of an API request.
             </p>
 
             <h2 className={styles.bigTitle}>HTTP Status Codes</h2>
@@ -920,7 +920,7 @@ $payment = \\PayFlow\\Payment::create([
                 <code className={styles.errorCode}>500</code>
                 <div>
                   <h3>Server Error</h3>
-                  <p>Something went wrong on PayFlow's end.</p>
+                  <p>Something went wrong on ChainPay's end.</p>
                 </div>
               </div>
             </div>
@@ -941,7 +941,7 @@ $payment = \\PayFlow\\Payment::create([
             <div className={styles.errorTypeList}>
               <div className={styles.errorType}>
                 <code>api_error</code>
-                <p>API errors cover any other type of problem (e.g., a temporary problem with PayFlow's servers)</p>
+                <p>API errors cover any other type of problem (e.g., a temporary problem with ChainPay's servers)</p>
               </div>
               <div className={styles.errorType}>
                 <code>authentication_error</code>
@@ -963,21 +963,21 @@ $payment = \\PayFlow\\Payment::create([
           <div className={styles.section}>
             <h1>Official SDKs</h1>
             <p className={styles.lead}>
-              Use our official libraries to integrate PayFlow into your application.
+              Use our official libraries to integrate ChainPay into your application.
             </p>
 
             <h2 className={styles.bigTitle}>Node.js SDK</h2>
             <div className={styles.sdkHighlight}>
               <div className={styles.sdkCard}>
                 <i className="fab fa-node-js"></i>
-                <h3>PayFlow Node.js</h3>
-                <p>Official Node.js library for PayFlow API integration</p>
+                <h3>ChainPay Node.js</h3>
+                <p>Official Node.js library for ChainPay API integration</p>
                 <div className={styles.installCode}>
-                  <code>npm install payflow-node</code>
+                  <code>npm install chainpay-node</code>
                 </div>
                 <div className={styles.codeExample}>
-                  <pre><code>{`const PayFlow = require('payflow-node');
-const payflow = new PayFlow('sk_test_...');
+                  <pre><code>{`const ChainPay = require('chainpay-node');
+const payflow = new ChainPay('sk_test_...');
 
 // Create a payment
 const payment = await payflow.payments.create({
@@ -1021,7 +1021,7 @@ console.log(payment.payment_id);`}</code></pre>
 
             <div className={styles.infoBox}>
               <h3>Request an SDK</h3>
-              <p>Need an SDK for a specific language? Let us know at <strong>sdk@payflow.com</strong></p>
+              <p>Need an SDK for a specific language? Let us know at <strong>sdk@chainpay.com</strong></p>
             </div>
           </div>
         )}

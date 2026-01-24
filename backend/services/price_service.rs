@@ -185,7 +185,7 @@ impl PriceService {
         
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
-            .user_agent("Mozilla/5.0 (compatible; PayFlow/1.0)")
+            .user_agent("Mozilla/5.0 (compatible; ChainPay/1.0)")
             .build()
             .ok()?;
         
@@ -213,7 +213,7 @@ impl PriceService {
         
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
-            .user_agent("Mozilla/5.0 (compatible; PayFlow/1.0)")
+            .user_agent("Mozilla/5.0 (compatible; ChainPay/1.0)")
             .build()
             .ok()?;
         
@@ -241,7 +241,7 @@ impl PriceService {
         
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
-            .user_agent("Mozilla/5.0 (compatible; PayFlow/1.0)")
+            .user_agent("Mozilla/5.0 (compatible; ChainPay/1.0)")
             .build()
             .ok()?;
 
@@ -269,7 +269,7 @@ impl PriceService {
         
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
-            .user_agent("Mozilla/5.0 (compatible; PayFlow/1.0)")
+            .user_agent("Mozilla/5.0 (compatible; ChainPay/1.0)")
             .build()
             .ok()?;
 
@@ -297,7 +297,7 @@ impl PriceService {
         
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
-            .user_agent("Mozilla/5.0 (compatible; PayFlow/1.0)")
+            .user_agent("Mozilla/5.0 (compatible; ChainPay/1.0)")
             .build()
             .ok()?;
 
@@ -325,7 +325,7 @@ impl PriceService {
         
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
-            .user_agent("Mozilla/5.0 (compatible; PayFlow/1.0)")
+            .user_agent("Mozilla/5.0 (compatible; ChainPay/1.0)")
             .build()
             .ok()?;
         

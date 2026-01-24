@@ -8,7 +8,7 @@ const Footer: React.FC = () => {
       <div className={styles.container}>
         <div className={styles.content}>
           <div className={styles.brand}>
-            <h3 className={styles.logo}>PayFlow</h3>
+            <h3 className={styles.logo}>ChainPay</h3>
             <p className={styles.description}>
               Modern cryptocurrency payment gateway for businesses
             </p>
@@ -31,7 +31,7 @@ const Footer: React.FC = () => {
         </div>
         
         <div className={styles.bottom}>
-          <p>&copy; 2026 PayFlow. All rights reserved.</p>
+          <p>&copy; 2026 ChainPay. All rights reserved.</p>
         </div>
       </div>
     </footer>

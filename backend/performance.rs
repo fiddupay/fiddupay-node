@@ -1,4 +1,4 @@
-// Performance optimizations for PayFlow
+// Performance optimizations for ChainPay
 // This module contains performance-critical optimizations
 
 use std::sync::Arc;

@@ -9,7 +9,7 @@ const PricingPage: React.FC = () => {
       <header className={styles.header}>
         <div className={styles.nav}>
           <Link to="/" className={styles.logo}>
-            <h2>PayFlow</h2>
+            <h2>ChainPay</h2>
             <span>by TechyTro</span>
           </Link>
           <div className={styles.navLinks}>

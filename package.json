@@ -1,7 +1,7 @@
 {
-  "name": "payflow-monorepo",
+  "name": "chainpay-monorepo",
   "version": "1.0.0",
-  "description": "PayFlow - Cryptocurrency Payment Gateway",
+  "description": "ChainPay - Cryptocurrency Payment Gateway",
   "private": true,
   "workspaces": [
     "frontend"

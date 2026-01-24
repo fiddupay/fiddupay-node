@@ -57,7 +57,7 @@ const PricingPage: React.FC = () => {
               <li>White-label options</li>
               <li>Advanced reporting</li>
             </ul>
-            <a href="mailto:sales@payflow.com" className={styles.planBtn}>
+            <a href="mailto:sales@chainpay.com" className={styles.planBtn}>
               Contact Sales
             </a>
           </div>

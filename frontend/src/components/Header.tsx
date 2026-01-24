@@ -12,7 +12,7 @@ const Header: React.FC = () => {
     <header className={styles.header}>
       <div className={styles.container}>
         <Link to="/" className={styles.logo}>
-          PayFlow
+          ChainPay
         </Link>
         
         <nav className={`${styles.nav} ${isMenuOpen ? styles.navOpen : ''}`}>

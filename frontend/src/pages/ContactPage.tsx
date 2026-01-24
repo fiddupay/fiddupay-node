@@ -28,7 +28,7 @@ const ContactPage: React.FC = () => {
         <div className={styles.header}>
           <h1 className={styles.title}>Get in Touch</h1>
           <p className={styles.subtitle}>
-            Have questions? We're here to help you get started with PayFlow
+            Have questions? We're here to help you get started with ChainPay
           </p>
         </div>
 
@@ -40,7 +40,7 @@ const ContactPage: React.FC = () => {
               <i className="fas fa-envelope"></i>
               <div>
                 <h3>Email Support</h3>
-                <p>support@payflow.com</p>
+                <p>support@chainpay.com</p>
                 <span>Response within 24 hours</span>
               </div>
             </div>
@@ -67,7 +67,7 @@ const ContactPage: React.FC = () => {
               <i className="fas fa-building"></i>
               <div>
                 <h3>Enterprise Sales</h3>
-                <p>sales@payflow.com</p>
+                <p>sales@chainpay.com</p>
                 <span>Custom solutions</span>
               </div>
             </div>
