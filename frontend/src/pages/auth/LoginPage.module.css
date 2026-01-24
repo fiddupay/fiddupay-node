@@ -1,74 +1,61 @@
-.container {
+.loginPage {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-gray-50);
-  padding: var(--spacing-4);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem;
 }
 
-.card {
+.loginCard {
+  background: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 400px;
-  background-color: var(--color-white);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  padding: var(--spacing-8);
 }
 
-.header {
+.logo {
   text-align: center;
-  margin-bottom: var(--spacing-8);
+  margin-bottom: 2rem;
+}
+
+.logoText {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #4f46e5;
 }
 
 .title {
-  font-size: var(--font-size-3xl);
-  font-weight: 700;
-  color: var(--color-primary-600);
-  margin-bottom: var(--spacing-2);
-}
-
-.subtitle {
-  font-size: var(--font-size-base);
-  color: var(--color-gray-600);
-  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  color: #1f2937;
+  margin-bottom: 1.5rem;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
-}
-
-.errorAlert {
-  padding: var(--spacing-3);
-  background-color: var(--color-danger-50);
-  border: 1px solid var(--color-danger-200);
-  border-radius: var(--radius-md);
-  color: var(--color-danger-700);
-  font-size: var(--font-size-sm);
+  gap: 1rem;
 }
 
 .submitButton {
   width: 100%;
-  margin-top: var(--spacing-2);
+  margin-top: 1rem;
 }
 
 .footer {
-  margin-top: var(--spacing-6);
   text-align: center;
-}
-
-.footer p {
-  font-size: var(--font-size-sm);
-  color: var(--color-gray-600);
-  margin: 0;
+  margin-top: 1.5rem;
+  color: #6b7280;
+  font-size: 0.875rem;
 }
 
 .link {
-  color: var(--color-primary-600);
+  color: #4f46e5;
   text-decoration: none;
-  font-weight: 500;
 }
 
 .link:hover {

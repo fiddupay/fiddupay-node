@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Payment, PaymentData, PaymentFilters, PaginatedResponse } from '@/types'
+import { Payment, PaymentData, PaymentFilters } from '@/types'
 import apiService from '@/services/api'
 
 interface PaymentState {
@@ -51,7 +51,12 @@ export const usePaymentStore = create<PaymentState & PaymentActions>((set, get) 
       
       set({
         payments: response.data,
-        pagination: response.pagination,
+        pagination: {
+          page: response.pagination.page,
+          pageSize: response.pagination.page_size,
+          totalPages: response.pagination.total_pages,
+          totalCount: response.pagination.total_count,
+        },
         filters: currentFilters,
         loading: false,
       })

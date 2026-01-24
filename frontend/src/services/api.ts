@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios'
+import axios, { AxiosInstance } from 'axios'
 import { 
   LoginCredentials, 
   RegisterData, 
@@ -20,8 +20,8 @@ class ApiService {
   private api: AxiosInstance
 
   constructor() {
-    const baseURL = import.meta.env.VITE_API_URL 
-      ? `${import.meta.env.VITE_API_URL}/api/v1`
+    const baseURL = (import.meta.env as any).VITE_API_URL 
+      ? `${(import.meta.env as any).VITE_API_URL}/api/v1`
       : '/api/v1'
     
     this.api = axios.create({
