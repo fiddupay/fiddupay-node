@@ -736,44 +736,127 @@ const DocsPage: React.FC = () => {
 
         {activeTab === 'analytics' && (
           <div className={styles.section}>
-            <h1>Analytics API</h1>
+            <h1><i className="fas fa-chart-bar"></i> Analytics API</h1>
             <p className={styles.lead}>
               Access detailed analytics and reporting data for your payments and business metrics.
             </p>
 
-            <div className={styles.endpoint}>
-              <div className={styles.endpointHeader}>
-                <span className={styles.method}>GET</span>
-                <span className={styles.url}>/v1/analytics</span>
-                <span className={styles.description}>Get analytics data</span>
+            <div className={styles.endpointCard}>
+              <div 
+                className={styles.endpointHeader}
+                onClick={() => toggleEndpoint('get-analytics')}
+              >
+                <div className={styles.endpointMethod}>
+                  <span className={styles.methodGet}>GET</span>
+                  <code>/v1/analytics</code>
+                </div>
+                <div className={styles.endpointTitle}>Get Analytics Data</div>
+                <i className={`fas fa-chevron-${expandedEndpoint === 'get-analytics' ? 'up' : 'down'}`}></i>
               </div>
+              
+              {expandedEndpoint === 'get-analytics' && (
+                <div className={styles.endpointContent}>
+                  <h3><i className="fas fa-filter"></i> Query Parameters</h3>
+                  <div className={styles.paramTable}>
+                    <div className={styles.paramRow}>
+                      <code>start_date</code>
+                      <span className={styles.optional}>optional</span>
+                      <span>Start date for analytics (ISO 8601 format)</span>
+                    </div>
+                    <div className={styles.paramRow}>
+                      <code>end_date</code>
+                      <span className={styles.optional}>optional</span>
+                      <span>End date for analytics (ISO 8601 format)</span>
+                    </div>
+                    <div className={styles.paramRow}>
+                      <code>granularity</code>
+                      <span className={styles.optional}>optional</span>
+                      <span>Data granularity: day, week, month</span>
+                    </div>
+                    <div className={styles.paramRow}>
+                      <code>crypto_type</code>
+                      <span className={styles.optional}>optional</span>
+                      <span>Filter by cryptocurrency type</span>
+                    </div>
+                  </div>
 
-              <h3>Query Parameters</h3>
-              <div className={styles.paramTable}>
-                <div className={styles.param}>
-                  <code>start_date</code>
-                  <span className={styles.optional}>optional</span>
-                  <p>Start date for analytics (ISO 8601 format)</p>
+                  <h3><i className="fas fa-arrow-left"></i> Response</h3>
+                  <div className={styles.codeExample}>
+                    <pre><code>{`{
+  "period": {
+    "start_date": "2026-01-01T00:00:00Z",
+    "end_date": "2026-01-31T23:59:59Z",
+    "granularity": "day"
+  },
+  "summary": {
+    "total_payments": 1250,
+    "total_volume_usd": "125000.00",
+    "successful_payments": 1200,
+    "failed_payments": 50,
+    "success_rate": 96.0,
+    "average_payment_usd": "100.00"
+  },
+  "data": [
+    {
+      "date": "2026-01-01",
+      "payments": 45,
+      "volume_usd": "4500.00",
+      "success_rate": 95.6
+    }
+  ]
+}`}</code></pre>
+                  </div>
                 </div>
-                <div className={styles.param}>
-                  <code>end_date</code>
-                  <span className={styles.optional}>optional</span>
-                  <p>End date for analytics (ISO 8601 format)</p>
-                </div>
-                <div className={styles.param}>
-                  <code>granularity</code>
-                  <span className={styles.optional}>optional</span>
-                  <p>Data granularity: "day", "week", "month"</p>
-                </div>
-              </div>
+              )}
             </div>
 
-            <div className={styles.endpoint}>
-              <div className={styles.endpointHeader}>
-                <span className={styles.method}>GET</span>
-                <span className={styles.url}>/v1/analytics/export</span>
-                <span className={styles.description}>Export analytics data</span>
+            <div className={styles.endpointCard}>
+              <div 
+                className={styles.endpointHeader}
+                onClick={() => toggleEndpoint('export-analytics')}
+              >
+                <div className={styles.endpointMethod}>
+                  <span className={styles.methodGet}>GET</span>
+                  <code>/v1/analytics/export</code>
+                </div>
+                <div className={styles.endpointTitle}>Export Analytics Data</div>
+                <i className={`fas fa-chevron-${expandedEndpoint === 'export-analytics' ? 'up' : 'down'}`}></i>
               </div>
+              
+              {expandedEndpoint === 'export-analytics' && (
+                <div className={styles.endpointContent}>
+                  <h3><i className="fas fa-filter"></i> Query Parameters</h3>
+                  <div className={styles.paramTable}>
+                    <div className={styles.paramRow}>
+                      <code>format</code>
+                      <span className={styles.optional}>optional</span>
+                      <span>Export format: csv, json, xlsx (default: csv)</span>
+                    </div>
+                    <div className={styles.paramRow}>
+                      <code>start_date</code>
+                      <span className={styles.required}>required</span>
+                      <span>Start date for export</span>
+                    </div>
+                    <div className={styles.paramRow}>
+                      <code>end_date</code>
+                      <span className={styles.required}>required</span>
+                      <span>End date for export</span>
+                    </div>
+                  </div>
+
+                  <h3><i className="fas fa-arrow-left"></i> Response</h3>
+                  <div className={styles.codeExample}>
+                    <pre><code>{`{
+  "export_id": "exp_1234567890",
+  "status": "processing",
+  "format": "csv",
+  "download_url": null,
+  "expires_at": "2026-01-25T01:00:00Z",
+  "created_at": "2026-01-25T00:30:00Z"
+}`}</code></pre>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
