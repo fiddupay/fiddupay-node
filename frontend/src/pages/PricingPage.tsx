@@ -9,55 +9,83 @@ const PricingPage: React.FC = () => {
         <div className={styles.header}>
           <h1 className={styles.title}>Simple, Transparent Pricing</h1>
           <p className={styles.subtitle}>
-            Start free, scale as you grow. No hidden fees, no setup costs.
+            Start accepting crypto payments today with our straightforward pricing. 
+            No hidden fees, no setup costs, no monthly subscriptions.
           </p>
         </div>
 
         <div className={styles.plans}>
           <div className={styles.plan}>
+            <div className={styles.planBadge}>Most Popular</div>
             <div className={styles.planHeader}>
+              <div className={styles.planIcon}>
+                <i className="fas fa-rocket"></i>
+              </div>
               <h3 className={styles.planName}>Pay-Per-Use</h3>
               <div className={styles.planPrice}>
                 <span className={styles.price}>0.75%</span>
-                <span className={styles.period}>per transaction</span>
+                <span className={styles.period}>per successful transaction</span>
               </div>
-              <p className={styles.planDescription}>Simple, transparent pricing with no hidden fees</p>
+              <p className={styles.planDescription}>
+                Perfect for businesses of all sizes. Only pay when you receive payments.
+              </p>
             </div>
-            <ul className={styles.features}>
-              <li>0.75% transaction fee</li>
-              <li>Minimum fee: $0.01</li>
-              <li>Maximum fee: $200.00</li>
-              <li>No setup or monthly fees</li>
-              <li>Real-time processing</li>
-              <li>Multi-network support</li>
-              <li>Advanced dashboard</li>
-              <li>Webhook notifications</li>
-              <li>Email support</li>
-            </ul>
-            <Link to="/login" className={`${styles.planBtn} ${styles.primaryBtn}`}>
-              Get Started
+            
+            <div className={styles.planFeatures}>
+              <h4>What's included:</h4>
+              <ul className={styles.features}>
+                <li><i className="fas fa-check"></i> 0.75% transaction fee</li>
+                <li><i className="fas fa-check"></i> Minimum fee: $0.01</li>
+                <li><i className="fas fa-check"></i> Maximum fee: $200.00</li>
+                <li><i className="fas fa-check"></i> No setup or monthly fees</li>
+                <li><i className="fas fa-check"></i> 5 blockchain networks</li>
+                <li><i className="fas fa-check"></i> Real-time processing</li>
+                <li><i className="fas fa-check"></i> Advanced dashboard</li>
+                <li><i className="fas fa-check"></i> Webhook notifications</li>
+                <li><i className="fas fa-check"></i> API access</li>
+                <li><i className="fas fa-check"></i> Email support</li>
+              </ul>
+            </div>
+            
+            <Link to="/register" className={`${styles.planBtn} ${styles.primaryBtn}`}>
+              <i className="fas fa-arrow-right"></i>
+              Start Accepting Payments
             </Link>
           </div>
 
           <div className={styles.plan}>
             <div className={styles.planHeader}>
+              <div className={styles.planIcon}>
+                <i className="fas fa-building"></i>
+              </div>
               <h3 className={styles.planName}>Enterprise</h3>
               <div className={styles.planPrice}>
                 <span className={styles.price}>Custom</span>
+                <span className={styles.period}>volume-based pricing</span>
               </div>
-              <p className={styles.planDescription}>For high-volume businesses</p>
+              <p className={styles.planDescription}>
+                For high-volume businesses with custom requirements and dedicated support.
+              </p>
             </div>
-            <ul className={styles.features}>
-              <li>Custom transaction rates</li>
-              <li>Volume discounts available</li>
-              <li>Dedicated account manager</li>
-              <li>24/7 priority support</li>
-              <li>Custom integrations</li>
-              <li>SLA guarantees</li>
-              <li>White-label options</li>
-              <li>Advanced reporting</li>
-            </ul>
-            <a href="mailto:sales@fiddupay.com" className={styles.planBtn}>
+            
+            <div className={styles.planFeatures}>
+              <h4>Everything in Pay-Per-Use, plus:</h4>
+              <ul className={styles.features}>
+                <li><i className="fas fa-check"></i> Volume discounts available</li>
+                <li><i className="fas fa-check"></i> Dedicated account manager</li>
+                <li><i className="fas fa-check"></i> Priority support (24/7)</li>
+                <li><i className="fas fa-check"></i> Custom integrations</li>
+                <li><i className="fas fa-check"></i> Advanced analytics</li>
+                <li><i className="fas fa-check"></i> White-label options</li>
+                <li><i className="fas fa-check"></i> SLA guarantees</li>
+                <li><i className="fas fa-check"></i> Custom reporting</li>
+                <li><i className="fas fa-check"></i> Multi-user accounts</li>
+                <li><i className="fas fa-check"></i> Phone support</li>
+              </ul>
+            </div>
+            
+            <a href="mailto:sales@fiddupay.com" className={`${styles.planBtn} ${styles.secondaryBtn}`}>
+              <i className="fas fa-envelope"></i>
               Contact Sales
             </a>
           </div>
@@ -67,20 +95,20 @@ const PricingPage: React.FC = () => {
           <h2>Frequently Asked Questions</h2>
           <div className={styles.faqGrid}>
             <div className={styles.faqItem}>
-              <h3>What cryptocurrencies do you support?</h3>
-              <p>We support SOL (Solana) and USDT across 5 major networks: Ethereum, BSC, Polygon, Arbitrum, and Solana.</p>
+              <h3><i className="fas fa-question-circle"></i> Are there any hidden fees?</h3>
+              <p>No hidden fees whatsoever. You only pay the 0.75% transaction fee on successful payments. No setup fees, monthly fees, or cancellation fees.</p>
             </div>
             <div className={styles.faqItem}>
-              <h3>How fast are transactions processed?</h3>
-              <p>Transactions are confirmed in real-time and automatically forwarded to your designated wallets within seconds.</p>
+              <h3><i className="fas fa-question-circle"></i> When do I get charged?</h3>
+              <p>You're only charged when you successfully receive a payment. Failed or expired payments are never charged.</p>
             </div>
             <div className={styles.faqItem}>
-              <h3>Is there a setup fee?</h3>
-              <p>No setup fees, no monthly fees. You only pay when you process transactions.</p>
+              <h3><i className="fas fa-question-circle"></i> What cryptocurrencies do you support?</h3>
+              <p>We support SOL, ETH, BNB, MATIC, ARB, and USDT across Ethereum, BSC, Polygon, Arbitrum, and Solana networks.</p>
             </div>
             <div className={styles.faqItem}>
-              <h3>Can I integrate with my existing system?</h3>
-              <p>Yes, we provide comprehensive APIs and webhooks for seamless integration with any platform.</p>
+              <h3><i className="fas fa-question-circle"></i> Can I change plans later?</h3>
+              <p>Yes! You can upgrade to Enterprise at any time. Contact our sales team to discuss volume discounts and custom pricing.</p>
             </div>
           </div>
         </div>

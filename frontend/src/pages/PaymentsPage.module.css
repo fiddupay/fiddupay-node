@@ -1,21 +1,52 @@
 .paymentsPage {
   padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 2rem;
 }
 
 .header h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   font-size: 2rem;
   font-weight: 700;
   color: #1f2937;
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.5rem;
+}
+
+.header h1 i {
+  color: #1e40af;
 }
 
 .header p {
   color: #6b7280;
-  font-size: 1.125rem;
+  margin: 0;
+}
+
+.createBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #1e40af;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.createBtn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
 }
 
 .stats {
@@ -28,35 +59,44 @@
 .statCard {
   background: white;
   padding: 1.5rem;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.statCard h3 {
+.statIcon {
+  width: 3rem;
+  height: 3rem;
+  background: linear-gradient(135deg, #1e40af, #10b981);
+  color: white;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.statContent h3 {
   font-size: 0.875rem;
   font-weight: 500;
   color: #6b7280;
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.25rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .statValue {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: #1f2937;
-  margin-bottom: 0.25rem;
-}
-
-.statChange {
-  font-size: 0.875rem;
-  color: #059669;
 }
 
 .tableContainer {
   background: white;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e5e7eb;
   overflow: hidden;
@@ -68,75 +108,287 @@
   align-items: center;
   padding: 1.5rem;
   border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
 }
 
 .tableHeader h2 {
   font-size: 1.25rem;
   font-weight: 600;
   color: #1f2937;
+  margin: 0;
 }
 
-.createBtn {
-  background: #1e40af;
-  color: white;
+.filters {
+  display: flex;
+  gap: 1rem;
+}
+
+.filterSelect {
   padding: 0.5rem 1rem;
-  border: none;
+  border: 1px solid #d1d5db;
   border-radius: 0.375rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.createBtn:hover {
-  background: #1d4ed8;
+  background: white;
+  color: #374151;
+  font-size: 0.875rem;
 }
 
 .table {
-  width: 100%;
+  min-width: 100%;
 }
 
 .tableRow {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1.5fr 1fr 1fr 1.5fr 1fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
   border-bottom: 1px solid #f3f4f6;
+  align-items: center;
 }
 
 .tableRow:last-child {
   border-bottom: none;
 }
 
+.tableRow:hover {
+  background: #f9fafb;
+}
+
 .tableCell {
-  padding: 1rem 1.5rem;
   font-size: 0.875rem;
 }
 
-.tableRow:first-child .tableCell {
+.tableCell code {
+  background: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+  font-size: 0.75rem;
+}
+
+.amount div {
   font-weight: 600;
-  color: #374151;
-  background: #f9fafb;
+  color: #1f2937;
+}
+
+.amount small {
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+.cryptoBadge {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.statusBadge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.statusPending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.statusConfirming {
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .statusConfirmed {
   background: #d1fae5;
   color: #065f46;
-  padding: 0.25rem 0.75rem;
-  border-radius: 1rem;
-  font-size: 0.75rem;
-  font-weight: 500;
 }
 
-.statusPending {
-  background: #fef3cd;
-  color: #92400e;
-  padding: 0.25rem 0.75rem;
-  border-radius: 1rem;
-  font-size: 0.75rem;
-  font-weight: 500;
+.statusFailed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.statusExpired {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.actionBtn {
+  background: none;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-right: 0.5rem;
+}
+
+.actionBtn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #6b7280;
+}
+
+.emptyState i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #d1d5db;
+}
+
+.emptyState h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 500px;
+  margin: 1rem;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modalHeader h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+}
+
+.closeBtn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.form {
+  padding: 1.5rem;
+}
+
+.inputGroup {
+  margin-bottom: 1.5rem;
+}
+
+.inputGroup label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.inputGroup input,
+.inputGroup select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.inputGroup input:focus,
+.inputGroup select:focus {
+  outline: none;
+  border-color: #1e40af;
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+
+.modalActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.cancelBtn {
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+  background: #e5e7eb;
+}
+
+.submitBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #1e40af;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submitBtn:hover {
+  background: #1d4ed8;
 }
 
 @media (max-width: 768px) {
-  .paymentsPage {
-    padding: 1rem;
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .stats {
+    grid-template-columns: 1fr;
   }
   
   .tableRow {
@@ -145,6 +397,14 @@
   }
   
   .tableCell {
-    padding: 0.5rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .tableCell:before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #6b7280;
   }
 }

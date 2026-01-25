@@ -1,5 +1,7 @@
 .pricingPage {
-  padding: 3rem 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  padding: 2rem 0;
 }
 
 .container {
@@ -15,7 +17,7 @@
 
 .title {
   font-size: 3rem;
-  font-weight: 700;
+  font-weight: 800;
   color: #1f2937;
   margin-bottom: 1rem;
 }
@@ -25,46 +27,45 @@
   color: #6b7280;
   max-width: 600px;
   margin: 0 auto;
+  line-height: 1.6;
 }
 
 .plans {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 2rem;
   margin-bottom: 5rem;
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .plan {
   background: white;
-  border: 2px solid #e5e7eb;
   border-radius: 1rem;
   padding: 2rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
   position: relative;
-  transition: all 0.3s;
+  overflow: hidden;
+}
+
+.plan:first-child {
+  border-color: #10b981;
+  transform: scale(1.05);
 }
 
 .plan:hover {
-  border-color: #1e40af;
-  transform: translateY(-4px);
-  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1);
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
-.popular {
-  border-color: #1e40af;
-}
-
-.popularBadge {
+.planBadge {
   position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #1e40af;
+  top: 1rem;
+  right: 1rem;
+  background: #10b981;
   color: white;
   padding: 0.5rem 1rem;
-  border-radius: 1rem;
+  border-radius: 2rem;
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -72,6 +73,19 @@
 .planHeader {
   text-align: center;
   margin-bottom: 2rem;
+}
+
+.planIcon {
+  width: 4rem;
+  height: 4rem;
+  background: linear-gradient(135deg, #1e40af, #10b981);
+  color: white;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin: 0 auto 1.5rem;
 }
 
 .planName {
@@ -92,52 +106,57 @@
 }
 
 .period {
+  display: block;
   color: #6b7280;
   font-size: 1rem;
-  margin-left: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .planDescription {
   color: #6b7280;
   line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.planFeatures h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1rem;
 }
 
 .features {
   list-style: none;
   padding: 0;
-  margin-bottom: 2rem;
+  margin: 0 0 2rem;
 }
 
 .features li {
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
   color: #374151;
 }
 
-.features li:before {
-  content: "✓";
+.features li i {
   color: #10b981;
-  font-weight: bold;
-  margin-right: 0.75rem;
+  font-size: 0.875rem;
 }
 
 .planBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   width: 100%;
-  padding: 1rem;
-  border: 2px solid #1e40af;
+  padding: 1rem 2rem;
   border-radius: 0.5rem;
-  background: white;
-  color: #1e40af;
   text-decoration: none;
   font-weight: 600;
-  text-align: center;
-  display: block;
+  font-size: 1rem;
   transition: all 0.2s;
-}
-
-.planBtn:hover {
-  background: #1e40af;
-  color: white;
+  text-align: center;
 }
 
 .primaryBtn {
@@ -147,10 +166,23 @@
 
 .primaryBtn:hover {
   background: #1d4ed8;
+  transform: translateY(-2px);
+}
+
+.secondaryBtn {
+  background: #f3f4f6;
+  color: #1f2937;
+  border: 2px solid #e5e7eb;
+}
+
+.secondaryBtn:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
 }
 
 .faq {
   text-align: center;
+  margin-top: 5rem;
 }
 
 .faq h2 {
@@ -168,21 +200,30 @@
 }
 
 .faqItem {
-  background: #f9fafb;
+  background: white;
   padding: 2rem;
   border-radius: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .faqItem h3 {
-  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: #1f2937;
   margin-bottom: 1rem;
 }
 
+.faqItem h3 i {
+  color: #1e40af;
+}
+
 .faqItem p {
   color: #6b7280;
   line-height: 1.6;
+  margin: 0;
 }
 
 @media (max-width: 768px) {
@@ -192,6 +233,13 @@
   
   .plans {
     grid-template-columns: 1fr;
-    max-width: none;
+  }
+  
+  .plan:first-child {
+    transform: none;
+  }
+  
+  .faqGrid {
+    grid-template-columns: 1fr;
   }
 }
