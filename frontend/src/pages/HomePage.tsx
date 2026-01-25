@@ -53,7 +53,7 @@ const HomePage: React.FC = () => {
       <section className={styles.cryptoSection}>
         <div className={styles.container}>
           <h2 className={styles.sectionTitle}>Supported Cryptocurrencies</h2>
-          <p className={styles.sectionSubtitle}>Accept payments in multiple cryptocurrencies across 10 blockchain implementations</p>
+          <p className={styles.sectionSubtitle}>Accept payments in multiple cryptocurrencies across 5 major blockchain networks</p>
           
           <div className={styles.cryptoShowcase}>
             <div className={styles.cryptoItem}>

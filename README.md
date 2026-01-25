@@ -87,19 +87,14 @@ FidduPay has achieved a **10/10 security score** with:
 
 ## 🌍 Supported Cryptocurrencies
 
-### Native Network Tokens (5)
-- **ETH** (Ethereum)
-- **BNB** (Binance Smart Chain) 
-- **MATIC** (Polygon)
-- **ARB** (Arbitrum)
-- **SOL** (Solana)
+**5 Major Blockchain Networks:**
+- **Solana** - SOL + USDT (SPL)
+- **Ethereum** - ETH + USDT (ERC-20)
+- **Binance Smart Chain** - BNB + USDT (BEP-20)
+- **Polygon** - MATIC + USDT
+- **Arbitrum** - ARB + USDT
 
-### USDT Stablecoin (5 Networks)
-- **USDT** on Ethereum (ERC-20)
-- **USDT** on BSC (BEP-20)
-- **USDT** on Polygon
-- **USDT** on Arbitrum
-- **USDT** on Solana (SPL)
+**Total: 10 cryptocurrency options across 5 blockchains**
 
 ## 📄 License
 
