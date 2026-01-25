@@ -1,0 +1,65 @@
+{
+  "name": "@fiddupay/fiddupay-node",
+  "version": "1.0.0",
+  "description": "Official Node.js SDK for FidduPay cryptocurrency payment gateway",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "prepublishOnly": "npm run build && npm test",
+    "release": "semantic-release",
+    "release:dry": "semantic-release --dry-run"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "fiddupay",
+    "cryptocurrency",
+    "payments",
+    "blockchain",
+    "bitcoin",
+    "ethereum",
+    "solana",
+    "usdt",
+    "fintech",
+    "api"
+  ],
+  "author": "TechyTro Software",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fiddupay/fiddupay-node.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fiddupay/fiddupay-node/issues"
+  },
+  "homepage": "https://github.com/fiddupay/fiddupay-node#readme",
+  "dependencies": {
+    "axios": "^1.13.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
