@@ -1,10 +1,15 @@
 import React, { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { useToast } from '@/contexts/ToastContext'
+import { useLoading } from '@/contexts/LoadingContext'
 import styles from './LoginPage.module.css'
 
 const LoginPage: React.FC = () => {
-  const { login, loading, error, isAuthenticated } = useAuthStore()
+  const { login, error, isAuthenticated } = useAuthStore()
+  const { showToast } = useToast()
+  const { setLoading } = useLoading()
+  const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -17,10 +22,20 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!formData.email || !formData.password) {
+      showToast('Please fill in all required fields', 'error')
+      return
+    }
+
+    setLoading(true)
     try {
       await login(formData)
+      showToast('Login successful!', 'success')
     } catch (error) {
-      // Error is handled by the store
+      showToast('Login failed. Please check your credentials.', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -63,15 +78,27 @@ const LoginPage: React.FC = () => {
 
             <div className={styles.inputGroup}>
               <label htmlFor="password">Password</label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                required
-              />
+              <div className={styles.passwordWrapper}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  required
+                />
+                <button
+                  type="button"
+                  className={styles.passwordToggle}
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                </button>
+              </div>
+              <Link to="/forgot-password" className={styles.forgotPassword}>
+                Forgot your password?
+              </Link>
             </div>
 
             <div className={styles.inputGroup}>
@@ -89,9 +116,8 @@ const LoginPage: React.FC = () => {
             <button
               type="submit"
               className={styles.submitButton}
-              disabled={loading}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              Sign In
             </button>
           </form>
 

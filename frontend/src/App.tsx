@@ -1,10 +1,13 @@
 import React, { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { ToastProvider } from '@/contexts/ToastContext'
+import { LoadingProvider } from '@/contexts/LoadingContext'
 import Layout from '@/components/Layout'
 import AppLayout from '@/components/layout/AppLayout'
 import LoginPage from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
+import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage'
 import HomePage from '@/pages/HomePage'
 import FeaturesPage from '@/pages/FeaturesPage'
 import PricingPage from '@/pages/PricingPage'
@@ -46,54 +49,59 @@ const App: React.FC = () => {
   }
 
   return (
-    <Router>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Layout><HomePage /></Layout>} />
-        <Route path="/features" element={<Layout><FeaturesPage /></Layout>} />
-        <Route path="/pricing" element={<Layout><PricingPage /></Layout>} />
-        <Route path="/docs" element={<Layout><DocsPage /></Layout>} />
-        <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
-        <Route path="/terms" element={<Layout><TermsPage /></Layout>} />
-        <Route path="/privacy" element={<Layout><PrivacyPage /></Layout>} />
-        
-        {/* Auth routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        
-        {/* Protected routes */}
-        <Route path="/app" element={<AppLayout />}>
-          <Route index element={<Navigate to="/app/dashboard" replace />} />
-          <Route 
-            path="dashboard" 
-            element={
-              <React.Suspense fallback={<div>Loading...</div>}>
-                <DashboardPage />
-              </React.Suspense>
-            } 
-          />
-          <Route 
-            path="payments" 
-            element={
-              <React.Suspense fallback={<div>Loading...</div>}>
-                <PaymentsPage />
-              </React.Suspense>
-            } 
-          />
-          <Route 
-            path="wallets" 
-            element={
-              <React.Suspense fallback={<div>Loading...</div>}>
-                <WalletsPage />
-              </React.Suspense>
-            } 
-          />
-        </Route>
-        
-        {/* Catch all route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+    <ToastProvider>
+      <LoadingProvider>
+        <Router>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Layout><HomePage /></Layout>} />
+            <Route path="/features" element={<Layout><FeaturesPage /></Layout>} />
+            <Route path="/pricing" element={<Layout><PricingPage /></Layout>} />
+            <Route path="/docs" element={<Layout><DocsPage /></Layout>} />
+            <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
+            <Route path="/terms" element={<Layout><TermsPage /></Layout>} />
+            <Route path="/privacy" element={<Layout><PrivacyPage /></Layout>} />
+            
+            {/* Auth routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            
+            {/* Protected routes */}
+            <Route path="/app" element={<AppLayout />}>
+              <Route index element={<Navigate to="/app/dashboard" replace />} />
+              <Route 
+                path="dashboard" 
+                element={
+                  <React.Suspense fallback={<div>Loading...</div>}>
+                    <DashboardPage />
+                  </React.Suspense>
+                } 
+              />
+              <Route 
+                path="payments" 
+                element={
+                  <React.Suspense fallback={<div>Loading...</div>}>
+                    <PaymentsPage />
+                  </React.Suspense>
+                } 
+              />
+              <Route 
+                path="wallets" 
+                element={
+                  <React.Suspense fallback={<div>Loading...</div>}>
+                    <WalletsPage />
+                  </React.Suspense>
+                } 
+              />
+            </Route>
+            
+            {/* Catch all route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </LoadingProvider>
+    </ToastProvider>
   )
 }
 

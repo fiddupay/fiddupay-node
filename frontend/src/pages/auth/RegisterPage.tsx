@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useToast } from '@/contexts/ToastContext'
+import { useLoading } from '@/contexts/LoadingContext'
 import styles from './RegisterPage.module.css'
 
 const RegisterPage: React.FC = () => {
@@ -11,29 +13,42 @@ const RegisterPage: React.FC = () => {
     company: '',
     agreeToTerms: false
   })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const { showToast } = useToast()
+  const { setLoading } = useLoading()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
+
+    if (!formData.name || !formData.email || !formData.password) {
+      showToast('Please fill in all required fields', 'error')
+      return
+    }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
+      showToast('Passwords do not match', 'error')
+      return
+    }
+
+    if (formData.password.length < 8) {
+      showToast('Password must be at least 8 characters long', 'error')
       return
     }
 
     if (!formData.agreeToTerms) {
-      setError('Please agree to the terms and conditions')
+      showToast('Please agree to the terms and conditions', 'error')
       return
     }
 
     setLoading(true)
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      showToast('Registration successful! Please check your email to verify your account.', 'success')
+    } catch (error) {
+      showToast('Registration failed. Please try again.', 'error')
+    } finally {
       setLoading(false)
-      alert('Registration successful! Please check your email to verify your account.')
-    }, 2000)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,11 +70,6 @@ const RegisterPage: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className={styles.form}>
-            {error && (
-              <div className={styles.errorAlert}>
-                {error}
-              </div>
-            )}
 
             <div className={styles.inputRow}>
               <div className={styles.inputGroup}>
@@ -147,9 +157,8 @@ const RegisterPage: React.FC = () => {
             <button
               type="submit"
               className={styles.submitButton}
-              disabled={loading}
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              Create Account
             </button>
           </form>
 

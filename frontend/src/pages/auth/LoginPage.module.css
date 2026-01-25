@@ -73,6 +73,46 @@
   transition: all 0.2s;
 }
 
+.passwordWrapper {
+  position: relative;
+}
+
+.passwordWrapper input {
+  padding-right: 3rem;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: color 0.2s;
+}
+
+.passwordToggle:hover {
+  color: #374151;
+}
+
+.forgotPassword {
+  display: block;
+  margin-top: 0.5rem;
+  color: #1e40af;
+  text-decoration: none;
+  font-size: 0.875rem;
+  text-align: right;
+  transition: color 0.2s;
+}
+
+.forgotPassword:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
 .inputGroup input:focus {
   outline: none;
   border-color: #1e40af;
