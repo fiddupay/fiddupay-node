@@ -1,157 +1,112 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { MdSecurity, MdSpeed, MdPeople, MdTrendingUp } from 'react-icons/md'
 import styles from './AboutPage.module.css'
 
 const AboutPage: React.FC = () => {
-  const stats = [
-    { number: '10/10', label: 'Security Score' },
-    { number: '99.9%', label: 'Uptime' },
-    { number: '5', label: 'Blockchains' },
-    { number: '1000+', label: 'Businesses' }
-  ]
-
-  const team = [
-    {
-      name: 'Alex Chen',
-      role: 'CEO & Founder',
-      bio: 'Former blockchain architect at major fintech companies. 10+ years in cryptocurrency and payment systems.'
-    },
-    {
-      name: 'Sarah Rodriguez',
-      role: 'CTO',
-      bio: 'Security expert with extensive experience in enterprise payment processing and blockchain technology.'
-    },
-    {
-      name: 'Marcus Johnson',
-      role: 'Head of Product',
-      bio: 'Product strategist focused on creating seamless payment experiences for businesses of all sizes.'
-    }
-  ]
-
   return (
-    <div className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.nav}>
-          <Link to="/" className={styles.logo}>
-            <h2>FidduPay</h2>
-            <span>by TechyTro</span>
-          </Link>
-          <div className={styles.navLinks}>
-            <Link to="/">Home</Link>
-            <Link to="/contact">Contact</Link>
-            <Link to="/login" className={styles.loginBtn}>Login</Link>
-          </div>
-        </div>
-      </header>
-
-      {/* Hero */}
-      <section className={styles.hero}>
-        <div className={styles.heroContent}>
+    <div className={styles.aboutPage}>
+      <div className={styles.container}>
+        <div className={styles.hero}>
           <h1>About FidduPay</h1>
-          <p>We're building the future of cryptocurrency payments for businesses worldwide</p>
-        </div>
-      </section>
-
-      {/* Mission */}
-      <section className={styles.mission}>
-        <div className={styles.sectionContent}>
-          <h2>Our Mission</h2>
-          <p className={styles.missionText}>
-            At TechyTro Software, we believe cryptocurrency payments should be as simple and secure as traditional payments. 
-            FidduPay was born from the need to bridge the gap between complex blockchain technology and everyday business operations.
-          </p>
-          <p className={styles.missionText}>
-            We're committed to providing enterprise-grade security, seamless integration, and reliable service that businesses 
-            can trust with their most critical payment processing needs.
+          <p className={styles.heroSubtitle}>
+            We're building the future of cryptocurrency payments, making it simple 
+            for businesses to accept digital currencies securely and efficiently.
           </p>
         </div>
-      </section>
 
-      {/* Stats */}
-      <section className={styles.stats}>
-        <div className={styles.sectionContent}>
-          <div className={styles.statsGrid}>
-            {stats.map((stat, index) => (
-              <div key={index} className={styles.statCard}>
-                <span className={styles.statNumber}>{stat.number}</span>
-                <span className={styles.statLabel}>{stat.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Values */}
-      <section className={styles.values}>
-        <div className={styles.sectionContent}>
-          <h2>Our Values</h2>
-          <div className={styles.valuesGrid}>
-            <div className={styles.valueCard}>
-              <MdSecurity className={styles.valueIcon} />
-              <h3>Security First</h3>
-              <p>Every feature is built with security as the foundation, not an afterthought.</p>
+        <div className={styles.content}>
+          <div className={styles.section}>
+            <div className={styles.textContent}>
+              <h2>Our Mission</h2>
+              <p>
+                FidduPay was founded with a simple mission: to bridge the gap between 
+                traditional business operations and the revolutionary world of cryptocurrency. 
+                We believe that every business, regardless of size, should have access to 
+                secure, fast, and reliable crypto payment processing.
+              </p>
+              <p>
+                Our platform supports payments across 5 major blockchain networks, 
+                ensuring your customers can pay with their preferred cryptocurrency 
+                while you receive the security and reliability you need.
+              </p>
             </div>
-            <div className={styles.valueCard}>
-              <MdSpeed className={styles.valueIcon} />
-              <h3>Performance</h3>
-              <p>Lightning-fast processing with 99.9% uptime for mission-critical operations.</p>
-            </div>
-            <div className={styles.valueCard}>
-              <MdPeople className={styles.valueIcon} />
-              <h3>Customer Success</h3>
-              <p>Your success is our success. We provide the tools and support you need to thrive.</p>
-            </div>
-            <div className={styles.valueCard}>
-              <MdTrendingUp className={styles.valueIcon} />
-              <h3>Innovation</h3>
-              <p>Continuously evolving to support new blockchains and payment technologies.</p>
+            <div className={styles.imageContent}>
+              <img 
+                src="https://images.unsplash.com/photo-1551434678-e076c223a692?w=500&h=400&fit=crop" 
+                alt="Team collaboration" 
+              />
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Team */}
-      <section className={styles.team}>
-        <div className={styles.sectionContent}>
-          <h2>Leadership Team</h2>
-          <div className={styles.teamGrid}>
-            {team.map((member, index) => (
-              <div key={index} className={styles.teamCard}>
-                <div className={styles.teamAvatar}>
-                  {member.name.split(' ').map(n => n[0]).join('')}
-                </div>
-                <h3>{member.name}</h3>
-                <h4>{member.role}</h4>
-                <p>{member.bio}</p>
-              </div>
-            ))}
+          <div className={styles.section}>
+            <div className={styles.imageContent}>
+              <img 
+                src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=500&h=400&fit=crop" 
+                alt="Security and technology" 
+              />
+            </div>
+            <div className={styles.textContent}>
+              <h2>Security First</h2>
+              <p>
+                Security isn't just a feature for us—it's our foundation. With a 10/10 
+                security score, we implement bank-level encryption, advanced threat 
+                detection, and comprehensive monitoring to protect every transaction.
+              </p>
+              <p>
+                Our platform is SOC 2 compliant and undergoes regular security audits 
+                to ensure we meet the highest standards of data protection and 
+                financial security.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.stats}>
+            <div className={styles.statCard}>
+              <div className={styles.statNumber}>10/10</div>
+              <div className={styles.statLabel}>Security Score</div>
+            </div>
+            <div className={styles.statCard}>
+              <div className={styles.statNumber}>5</div>
+              <div className={styles.statLabel}>Blockchain Networks</div>
+            </div>
+            <div className={styles.statCard}>
+              <div className={styles.statNumber}>99.9%</div>
+              <div className={styles.statLabel}>Uptime</div>
+            </div>
+            <div className={styles.statCard}>
+              <div className={styles.statNumber}>24/7</div>
+              <div className={styles.statLabel}>Support</div>
+            </div>
+          </div>
+
+          <div className={styles.team}>
+            <h2>Built by TechyTro Software</h2>
+            <p>
+              FidduPay is proudly developed by TechyTro Software, a team of experienced 
+              developers and blockchain specialists dedicated to creating innovative 
+              financial technology solutions.
+            </p>
+            <p>
+              Our team combines years of experience in traditional finance, blockchain 
+              technology, and software development to deliver a platform that businesses 
+              can trust and rely on.
+            </p>
+          </div>
+
+          <div className={styles.cta}>
+            <h2>Ready to Get Started?</h2>
+            <p>Join thousands of businesses already using FidduPay for their crypto payments</p>
+            <div className={styles.ctaButtons}>
+              <Link to="/register" className={styles.primaryBtn}>
+                Start Accepting Payments
+              </Link>
+              <Link to="/contact" className={styles.secondaryBtn}>
+                Contact Sales
+              </Link>
+            </div>
           </div>
         </div>
-      </section>
-
-      {/* CTA */}
-      <section className={styles.cta}>
-        <div className={styles.ctaContent}>
-          <h2>Ready to Get Started?</h2>
-          <p>Join the businesses already using FidduPay for their cryptocurrency payments</p>
-          <Link to="/register" className={styles.ctaBtn}>Start Your Free Account</Link>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className={styles.footer}>
-        <div className={styles.footerContent}>
-          <p>&copy; 2026 TechyTro Software. All rights reserved.</p>
-          <div className={styles.footerLinks}>
-            <Link to="/">Home</Link>
-            <Link to="/contact">Contact</Link>
-            <a href="/privacy">Privacy</a>
-            <a href="/terms">Terms</a>
-          </div>
-        </div>
-      </footer>
+      </div>
     </div>
   )
 }

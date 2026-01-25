@@ -898,36 +898,77 @@ const DocsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className={styles.endpoint}>
-              <div className={styles.endpointHeader}>
-                <span className={styles.method}>PUT</span>
-                <span className={styles.url}>/v1/merchants/wallets</span>
-                <span className={styles.description}>Set wallet addresses</span>
+            <div className={styles.endpointCard}>
+              <div 
+                className={styles.endpointHeader}
+                onClick={() => toggleEndpoint('set-wallets')}
+              >
+                <div className={styles.endpointMethod}>
+                  <span className={styles.methodPut}>PUT</span>
+                  <code>/v1/merchants/wallets</code>
+                </div>
+                <div className={styles.endpointTitle}>Set Wallet Addresses</div>
+                <i className={`fas fa-chevron-${expandedEndpoint === 'set-wallets' ? 'up' : 'down'}`}></i>
               </div>
+              
+              {expandedEndpoint === 'set-wallets' && (
+                <div className={styles.endpointContent}>
+                  <h3><i className="fas fa-cog"></i> Request Parameters</h3>
+                  <div className={styles.paramTable}>
+                    <div className={styles.paramRow}>
+                      <code>wallets</code>
+                      <span className={styles.required}>required</span>
+                      <span>Object containing wallet addresses for each crypto type</span>
+                    </div>
+                  </div>
+
+                  <h3><i className="fas fa-arrow-left"></i> Response</h3>
+                  <div className={styles.codeExample}>
+                    <pre><code>{`{
+  "message": "Wallet addresses updated successfully",
+  "wallets": {
+    "USDT_ETH": "0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4",
+    "SOL": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"
+  }
+}`}</code></pre>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className={styles.endpoint}>
-              <div className={styles.endpointHeader}>
-                <span className={styles.method}>PUT</span>
-                <span className={styles.url}>/v1/merchants/webhook</span>
-                <span className={styles.description}>Configure webhook URL</span>
+            <div className={styles.endpointCard}>
+              <div 
+                className={styles.endpointHeader}
+                onClick={() => toggleEndpoint('set-webhook')}
+              >
+                <div className={styles.endpointMethod}>
+                  <span className={styles.methodPut}>PUT</span>
+                  <code>/v1/merchants/webhook</code>
+                </div>
+                <div className={styles.endpointTitle}>Configure Webhook URL</div>
+                <i className={`fas fa-chevron-${expandedEndpoint === 'set-webhook' ? 'up' : 'down'}`}></i>
               </div>
-            </div>
+              
+              {expandedEndpoint === 'set-webhook' && (
+                <div className={styles.endpointContent}>
+                  <h3><i className="fas fa-cog"></i> Request Parameters</h3>
+                  <div className={styles.paramTable}>
+                    <div className={styles.paramRow}>
+                      <code>url</code>
+                      <span className={styles.required}>required</span>
+                      <span>Webhook URL to receive payment notifications</span>
+                    </div>
+                  </div>
 
-            <div className={styles.endpoint}>
-              <div className={styles.endpointHeader}>
-                <span className={styles.method}>GET</span>
-                <span className={styles.url}>/v1/merchants/balance</span>
-                <span className={styles.description}>Get account balance</span>
-              </div>
-            </div>
-
-            <div className={styles.endpoint}>
-              <div className={styles.endpointHeader}>
-                <span className={styles.method}>POST</span>
-                <span className={styles.url}>/v1/sandbox/enable</span>
-                <span className={styles.description}>Enable sandbox mode</span>
-              </div>
+                  <h3><i className="fas fa-arrow-left"></i> Response</h3>
+                  <div className={styles.codeExample}>
+                    <pre><code>{`{
+  "message": "Webhook URL updated successfully",
+  "webhook_url": "https://example.com/webhooks/fiddupay"
+}`}</code></pre>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

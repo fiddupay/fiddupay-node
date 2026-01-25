@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useToast } from '@/contexts/ToastContext'
 import { useLoading } from '@/contexts/LoadingContext'
 import styles from './RegisterPage.module.css'
@@ -13,8 +13,11 @@ const RegisterPage: React.FC = () => {
     company: '',
     agreeToTerms: false
   })
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const { showToast } = useToast()
   const { setLoading } = useLoading()
+  const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,6 +47,10 @@ const RegisterPage: React.FC = () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000))
       showToast('Registration successful! Please check your email to verify your account.', 'success')
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        navigate('/login')
+      }, 2000)
     } catch (error) {
       showToast('Registration failed. Please try again.', 'error')
     } finally {
@@ -114,28 +121,46 @@ const RegisterPage: React.FC = () => {
             <div className={styles.inputRow}>
               <div className={styles.inputGroup}>
                 <label htmlFor="password">Password</label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Create password"
-                  required
-                />
+                <div className={styles.passwordWrapper}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Create password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className={styles.passwordToggle}
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
+                </div>
               </div>
 
               <div className={styles.inputGroup}>
                 <label htmlFor="confirmPassword">Confirm Password</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Confirm password"
-                  required
-                />
+                <div className={styles.passwordWrapper}>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="Confirm password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className={styles.passwordToggle}
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
+                </div>
               </div>
             </div>
 

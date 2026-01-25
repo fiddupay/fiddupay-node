@@ -1,8 +1,38 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import styles from './PricingPage.module.css'
 
+interface PricingData {
+  transaction_fee_percentage: number
+  minimum_fee_usd: string
+  maximum_fee_usd: string
+  supported_networks: number
+}
+
 const PricingPage: React.FC = () => {
+  const [pricingData, setPricingData] = useState<PricingData>({
+    transaction_fee_percentage: 0.75,
+    minimum_fee_usd: '0.01',
+    maximum_fee_usd: '200.00',
+    supported_networks: 5
+  })
+
+  useEffect(() => {
+    loadPricingData()
+  }, [])
+
+  const loadPricingData = async () => {
+    try {
+      const response = await fetch('/api/v1/pricing')
+      if (response.ok) {
+        const data = await response.json()
+        setPricingData(data)
+      }
+    } catch (error) {
+      console.error('Failed to load pricing data:', error)
+      // Use default values if API fails
+    }
+  }
   return (
     <div className={styles.pricingPage}>
       <div className={styles.container}>
@@ -19,11 +49,11 @@ const PricingPage: React.FC = () => {
             <div className={styles.planBadge}>Most Popular</div>
             <div className={styles.planHeader}>
               <div className={styles.planIcon}>
-                <i className="fas fa-rocket"></i>
+                <img src="https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=100&h=100&fit=crop&crop=center" alt="Rocket" />
               </div>
               <h3 className={styles.planName}>Pay-Per-Use</h3>
               <div className={styles.planPrice}>
-                <span className={styles.price}>0.75%</span>
+                <span className={styles.price}>{pricingData.transaction_fee_percentage}%</span>
                 <span className={styles.period}>per successful transaction</span>
               </div>
               <p className={styles.planDescription}>
@@ -34,11 +64,11 @@ const PricingPage: React.FC = () => {
             <div className={styles.planFeatures}>
               <h4>What's included:</h4>
               <ul className={styles.features}>
-                <li><i className="fas fa-check"></i> 0.75% transaction fee</li>
-                <li><i className="fas fa-check"></i> Minimum fee: $0.01</li>
-                <li><i className="fas fa-check"></i> Maximum fee: $200.00</li>
+                <li><i className="fas fa-check"></i> {pricingData.transaction_fee_percentage}% transaction fee</li>
+                <li><i className="fas fa-check"></i> Minimum fee: ${pricingData.minimum_fee_usd}</li>
+                <li><i className="fas fa-check"></i> Maximum fee: ${pricingData.maximum_fee_usd}</li>
                 <li><i className="fas fa-check"></i> No setup or monthly fees</li>
-                <li><i className="fas fa-check"></i> 5 blockchain networks</li>
+                <li><i className="fas fa-check"></i> {pricingData.supported_networks} blockchain networks</li>
                 <li><i className="fas fa-check"></i> Real-time processing</li>
                 <li><i className="fas fa-check"></i> Advanced dashboard</li>
                 <li><i className="fas fa-check"></i> Webhook notifications</li>
@@ -56,7 +86,7 @@ const PricingPage: React.FC = () => {
           <div className={styles.plan}>
             <div className={styles.planHeader}>
               <div className={styles.planIcon}>
-                <i className="fas fa-building"></i>
+                <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=100&h=100&fit=crop&crop=center" alt="Enterprise Building" />
               </div>
               <h3 className={styles.planName}>Enterprise</h3>
               <div className={styles.planPrice}>
@@ -96,7 +126,7 @@ const PricingPage: React.FC = () => {
           <div className={styles.faqGrid}>
             <div className={styles.faqItem}>
               <h3><i className="fas fa-question-circle"></i> Are there any hidden fees?</h3>
-              <p>No hidden fees whatsoever. You only pay the 0.75% transaction fee on successful payments. No setup fees, monthly fees, or cancellation fees.</p>
+              <p>No hidden fees whatsoever. You only pay the {pricingData.transaction_fee_percentage}% transaction fee on successful payments. No setup fees, monthly fees, or cancellation fees.</p>
             </div>
             <div className={styles.faqItem}>
               <h3><i className="fas fa-question-circle"></i> When do I get charged?</h3>

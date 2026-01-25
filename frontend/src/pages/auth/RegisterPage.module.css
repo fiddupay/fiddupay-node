@@ -79,6 +79,31 @@
   transition: all 0.2s;
 }
 
+.passwordWrapper {
+  position: relative;
+}
+
+.passwordWrapper input {
+  padding-right: 3rem;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: color 0.2s;
+}
+
+.passwordToggle:hover {
+  color: #374151;
+}
+
 .inputGroup input:focus {
   outline: none;
   border-color: #1e40af;

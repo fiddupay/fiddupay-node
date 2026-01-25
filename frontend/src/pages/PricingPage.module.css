@@ -78,14 +78,19 @@
 .planIcon {
   width: 4rem;
   height: 4rem;
-  background: linear-gradient(135deg, #1e40af, #10b981);
-  color: white;
   border-radius: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
   margin: 0 auto 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.planIcon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .planName {

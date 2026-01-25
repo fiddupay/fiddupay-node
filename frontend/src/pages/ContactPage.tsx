@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { useToast } from '@/contexts/ToastContext'
+import { useLoading } from '@/contexts/LoadingContext'
 import styles from './ContactPage.module.css'
 
 const ContactPage: React.FC = () => {
@@ -8,18 +10,75 @@ const ContactPage: React.FC = () => {
     subject: '',
     message: ''
   })
+  
+  const { showToast } = useToast()
+  const { setLoading } = useLoading()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Sanitize input to prevent XSS
+  const sanitizeInput = (input: string): string => {
+    return input
+      .replace(/[<>]/g, '') // Remove < and > characters
+      .replace(/javascript:/gi, '') // Remove javascript: protocol
+      .replace(/on\w+=/gi, '') // Remove event handlers
+      .trim()
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission
-    console.log('Form submitted:', formData)
+    
+    // Validate required fields
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+      showToast('Please fill in all required fields', 'error')
+      return
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      showToast('Please enter a valid email address', 'error')
+      return
+    }
+
+    setLoading(true)
+    try {
+      // Simulate API call to backend contact endpoint
+      const response = await fetch('/api/v1/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: sanitizeInput(formData.name),
+          email: sanitizeInput(formData.email),
+          subject: sanitizeInput(formData.subject),
+          message: sanitizeInput(formData.message)
+        })
+      })
+
+      if (response.ok) {
+        showToast('Message sent successfully! We\'ll get back to you soon.', 'success')
+        setFormData({
+          name: '',
+          email: '',
+          subject: '',
+          message: ''
+        })
+      } else {
+        throw new Error('Failed to send message')
+      }
+    } catch (error) {
+      showToast('Failed to send message. Please try again or contact us directly.', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: sanitizeInput(value)
+    }))
   }
 
   return (
