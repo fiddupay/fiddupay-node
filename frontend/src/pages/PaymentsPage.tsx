@@ -268,12 +268,16 @@ const PaymentsPage: React.FC = () => {
                   value={newPayment.crypto_type}
                   onChange={(e) => setNewPayment(prev => ({ ...prev, crypto_type: e.target.value }))}
                 >
+                  <option value="ETH">ETH (Ethereum)</option>
+                  <option value="BNB">BNB (BSC)</option>
+                  <option value="MATIC">MATIC (Polygon)</option>
+                  <option value="ARB">ARB (Arbitrum)</option>
+                  <option value="SOL">SOL (Solana)</option>
                   <option value="USDT_ETH">USDT (Ethereum)</option>
                   <option value="USDT_BSC">USDT (BSC)</option>
                   <option value="USDT_POLYGON">USDT (Polygon)</option>
                   <option value="USDT_ARBITRUM">USDT (Arbitrum)</option>
                   <option value="USDT_SPL">USDT (Solana)</option>
-                  <option value="SOL">SOL (Solana)</option>
                 </select>
               </div>
               

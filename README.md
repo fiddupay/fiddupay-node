@@ -68,8 +68,10 @@ ETHEREUM_RPC_URL=your-ethereum-rpc
 VITE_API_URL=http://localhost:8080
 ```
 
-## 📚 Documentation
+## 📋 Documentation
 
+- **[Platform Roadmap](ROADMAP.md)** - Strategic roadmap for dual-tier platform (Personal + Business)
+- **[Node.js SDK Guide](docs/NODE_SDK.md)** - Complete Node.js SDK development documentation
 - **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation
 - **[Setup Guide](docs/SETUP.md)** - Development and production setup
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment guide
@@ -85,8 +87,19 @@ FidduPay has achieved a **10/10 security score** with:
 
 ## 🌍 Supported Cryptocurrencies
 
+### Native Network Tokens (5)
+- **ETH** (Ethereum)
+- **BNB** (Binance Smart Chain) 
+- **MATIC** (Polygon)
+- **ARB** (Arbitrum)
 - **SOL** (Solana)
-- **USDT** on 5 networks: Ethereum, BSC, Polygon, Arbitrum, Solana
+
+### USDT Stablecoin (5 Networks)
+- **USDT** on Ethereum (ERC-20)
+- **USDT** on BSC (BEP-20)
+- **USDT** on Polygon
+- **USDT** on Arbitrum
+- **USDT** on Solana (SPL)
 
 ## 📄 License
 

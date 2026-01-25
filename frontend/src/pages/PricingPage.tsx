@@ -14,7 +14,7 @@ const PricingPage: React.FC = () => {
     transaction_fee_percentage: 0.75,
     minimum_fee_usd: '0.01',
     maximum_fee_usd: '200.00',
-    supported_networks: 5
+    supported_networks: 10
   })
 
   useEffect(() => {
