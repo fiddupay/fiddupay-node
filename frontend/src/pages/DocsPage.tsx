@@ -3,62 +3,10 @@ import styles from './DocsPage.module.css'
 
 const DocsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview')
-  const [selectedLanguage, setSelectedLanguage] = useState('curl')
+  const [expandedEndpoint, setExpandedEndpoint] = useState<string | null>(null)
 
-  const codeExamples = {
-    curl: `curl -X POST https://api.fiddupay.com/v1/payments \\\\
-  -H "Authorization: Bearer sk_test_..." \\\\
-  -H "Content-Type: application/json" \\\\
-  -d '{
-    "amount_usd": "100.00",
-    "crypto_type": "USDT_ETH",
-    "description": "Order #12345",
-    "metadata": {
-      "order_id": "12345",
-      "customer_id": "cust_abc123"
-    },
-    "expiration_minutes": 30
-  }'`,
-    javascript: `const payflow = require('fiddupay-node');
-payflow.apiKey = 'sk_test_...';
-
-const payment = await payflow.payments.create({
-  amount_usd: '100.00',
-  crypto_type: 'USDT_ETH',
-  description: 'Order #12345',
-  metadata: {
-    order_id: '12345',
-    customer_id: 'cust_abc123'
-  },
-  expiration_minutes: 30
-});`,
-    python: `import payflow
-payflow.api_key = "sk_test_..."
-
-payment = payflow.Payment.create(
-    amount_usd="100.00",
-    crypto_type="USDT_ETH",
-    description="Order #12345",
-    metadata={
-        "order_id": "12345",
-        "customer_id": "cust_abc123"
-    },
-    expiration_minutes=30
-)`,
-    php: `<?php
-require_once('vendor/autoload.php');
-\\FidduPay\\FidduPay::setApiKey('sk_test_...');
-
-$payment = \\FidduPay\\Payment::create([
-    'amount_usd' => '100.00',
-    'crypto_type' => 'USDT_ETH',
-    'description' => 'Order #12345',
-    'metadata' => [
-        'order_id' => '12345',
-        'customer_id' => 'cust_abc123'
-    ],
-    'expiration_minutes' => 30
-]);`
+  const toggleEndpoint = (endpointId: string) => {
+    setExpandedEndpoint(expandedEndpoint === endpointId ? null : endpointId)
   }
 
   return (
@@ -425,7 +373,7 @@ $payment = \\FidduPay\\Payment::create([
             <h2 className={styles.bigTitle}>Environment Differences</h2>
             <div className={styles.environmentGrid}>
               <div className={styles.environmentCard}>
-                <h3>🧪 Sandbox Mode</h3>
+                <h3><i className="fas fa-flask"></i> Sandbox Mode</h3>
                 <ul>
                   <li>API keys start with <code>sk_test_</code></li>
                   <li>No real blockchain transactions</li>
@@ -472,73 +420,58 @@ $payment = \\FidduPay\\Payment::create([
 
         {activeTab === 'payments' && (
           <div className={styles.section}>
-            <h1>Payments API</h1>
+            <h1><i className="fas fa-credit-card"></i> Payments API</h1>
             <p className={styles.lead}>
               Create and manage cryptocurrency payment requests with automatic forwarding and real-time notifications.
             </p>
 
-            <div className={styles.endpoint}>
-              <div className={styles.endpointHeader}>
-                <span className={styles.method}>POST</span>
-                <span className={styles.url}>/v1/payments</span>
-                <span className={styles.description}>Create a payment</span>
+            <div className={styles.endpointCard}>
+              <div 
+                className={styles.endpointHeader}
+                onClick={() => toggleEndpoint('create-payment')}
+              >
+                <div className={styles.endpointMethod}>
+                  <span className={styles.methodPost}>POST</span>
+                  <code>/v1/payments</code>
+                </div>
+                <div className={styles.endpointTitle}>Create Payment</div>
+                <i className={`fas fa-chevron-${expandedEndpoint === 'create-payment' ? 'up' : 'down'}`}></i>
               </div>
-
-              <h3>Parameters</h3>
-              <div className={styles.paramTable}>
-                <div className={styles.param}>
-                  <code>amount_usd</code>
-                  <span className={styles.required}>required</span>
-                  <p>Payment amount in USD (decimal)</p>
-                </div>
-                <div className={styles.param}>
-                  <code>crypto_type</code>
-                  <span className={styles.required}>required</span>
-                  <p>Cryptocurrency: "SOL", "USDT_ETH", "USDT_BEP20", "USDT_POLYGON", "USDT_ARBITRUM", "USDT_SPL"</p>
-                </div>
-                <div className={styles.param}>
-                  <code>description</code>
-                  <span className={styles.optional}>optional</span>
-                  <p>Payment description for reference</p>
-                </div>
-                <div className={styles.param}>
-                  <code>metadata</code>
-                  <span className={styles.optional}>optional</span>
-                  <p>Custom metadata object for your reference</p>
-                </div>
-                <div className={styles.param}>
-                  <code>expiration_minutes</code>
-                  <span className={styles.optional}>optional</span>
-                  <p>Payment expiration time in minutes (default: 20)</p>
-                </div>
-                <div className={styles.param}>
-                  <code>partial_payments_enabled</code>
-                  <span className={styles.optional}>optional</span>
-                  <p>Allow partial payments (default: false)</p>
-                </div>
-              </div>
-
-              <h3>Example Request</h3>
-              <div className={styles.codeExample}>
-                <div className={styles.codeHeader}>
-                  <div className={styles.languageTabs}>
-                    {Object.keys(codeExamples).map(lang => (
-                      <button
-                        key={lang}
-                        className={selectedLanguage === lang ? styles.active : ''}
-                        onClick={() => setSelectedLanguage(lang)}
-                      >
-                        {lang.toUpperCase()}
-                      </button>
-                    ))}
+              
+              {expandedEndpoint === 'create-payment' && (
+                <div className={styles.endpointContent}>
+                  <h3><i className="fas fa-cog"></i> Request Parameters</h3>
+                  <div className={styles.paramTable}>
+                    <div className={styles.paramRow}>
+                      <code>amount_usd</code>
+                      <span className={styles.required}>required</span>
+                      <span>Payment amount in USD (string)</span>
+                    </div>
+                    <div className={styles.paramRow}>
+                      <code>crypto_type</code>
+                      <span className={styles.required}>required</span>
+                      <span>Cryptocurrency: SOL, USDT_ETH, USDT_BEP20, USDT_POLYGON, USDT_ARBITRUM, USDT_SPL</span>
+                    </div>
+                    <div className={styles.paramRow}>
+                      <code>description</code>
+                      <span className={styles.optional}>optional</span>
+                      <span>Payment description for reference</span>
+                    </div>
+                    <div className={styles.paramRow}>
+                      <code>metadata</code>
+                      <span className={styles.optional}>optional</span>
+                      <span>Custom metadata object</span>
+                    </div>
+                    <div className={styles.paramRow}>
+                      <code>expiration_minutes</code>
+                      <span className={styles.optional}>optional</span>
+                      <span>Payment expiration time (default: 20)</span>
+                    </div>
                   </div>
-                </div>
-                <pre><code>{codeExamples[selectedLanguage as keyof typeof codeExamples]}</code></pre>
-              </div>
 
-              <h3>Response</h3>
-              <div className={styles.codeExample}>
-                <pre><code>{`{
+                  <h3><i className="fas fa-arrow-left"></i> Response</h3>
+                  <div className={styles.codeExample}>
+                    <pre><code>{`{
   "payment_id": "pay_1234567890",
   "status": "PENDING",
   "amount": "0.00234567",
@@ -551,60 +484,118 @@ $payment = \\FidduPay\\Payment::create([
   "fee_amount": "0.00001756",
   "fee_amount_usd": "0.75",
   "expires_at": "2026-01-24T23:35:37Z",
-  "created_at": "2026-01-24T22:35:37Z",
-  "confirmed_at": null,
-  "transaction_hash": null,
-  "partial_payments": {
-    "enabled": false,
-    "total_paid": "0.00000000",
-    "remaining_balance": "0.00234567",
-    "payments": []
+  "created_at": "2026-01-24T22:35:37Z"
+}`}</code></pre>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.endpointCard}>
+              <div 
+                className={styles.endpointHeader}
+                onClick={() => toggleEndpoint('get-payment')}
+              >
+                <div className={styles.endpointMethod}>
+                  <span className={styles.methodGet}>GET</span>
+                  <code>/v1/payments/:id</code>
+                </div>
+                <div className={styles.endpointTitle}>Get Payment</div>
+                <i className={`fas fa-chevron-${expandedEndpoint === 'get-payment' ? 'up' : 'down'}`}></i>
+              </div>
+              
+              {expandedEndpoint === 'get-payment' && (
+                <div className={styles.endpointContent}>
+                  <h3><i className="fas fa-route"></i> Path Parameters</h3>
+                  <div className={styles.paramTable}>
+                    <div className={styles.paramRow}>
+                      <code>id</code>
+                      <span className={styles.required}>required</span>
+                      <span>Payment ID</span>
+                    </div>
+                  </div>
+
+                  <h3><i className="fas fa-arrow-left"></i> Response</h3>
+                  <div className={styles.codeExample}>
+                    <pre><code>{`{
+  "payment_id": "pay_1234567890",
+  "status": "CONFIRMED",
+  "amount": "0.00234567",
+  "amount_usd": "100.00",
+  "crypto_type": "USDT_ETH",
+  "network": "ETHEREUM",
+  "deposit_address": "0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4",
+  "transaction_hash": "0xabc123def456...",
+  "confirmations": 12,
+  "confirmed_at": "2026-01-24T22:40:15Z",
+  "created_at": "2026-01-24T22:35:37Z"
+}`}</code></pre>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.endpointCard}>
+              <div 
+                className={styles.endpointHeader}
+                onClick={() => toggleEndpoint('list-payments')}
+              >
+                <div className={styles.endpointMethod}>
+                  <span className={styles.methodGet}>GET</span>
+                  <code>/v1/payments</code>
+                </div>
+                <div className={styles.endpointTitle}>List Payments</div>
+                <i className={`fas fa-chevron-${expandedEndpoint === 'list-payments' ? 'up' : 'down'}`}></i>
+              </div>
+              
+              {expandedEndpoint === 'list-payments' && (
+                <div className={styles.endpointContent}>
+                  <h3><i className="fas fa-filter"></i> Query Parameters</h3>
+                  <div className={styles.paramTable}>
+                    <div className={styles.paramRow}>
+                      <code>page</code>
+                      <span className={styles.optional}>optional</span>
+                      <span>Page number (default: 1)</span>
+                    </div>
+                    <div className={styles.paramRow}>
+                      <code>limit</code>
+                      <span className={styles.optional}>optional</span>
+                      <span>Items per page (default: 20, max: 100)</span>
+                    </div>
+                    <div className={styles.paramRow}>
+                      <code>status</code>
+                      <span className={styles.optional}>optional</span>
+                      <span>Filter by status: PENDING, CONFIRMING, CONFIRMED, FAILED, REFUNDED</span>
+                    </div>
+                    <div className={styles.paramRow}>
+                      <code>crypto_type</code>
+                      <span className={styles.optional}>optional</span>
+                      <span>Filter by cryptocurrency type</span>
+                    </div>
+                  </div>
+
+                  <h3><i className="fas fa-arrow-left"></i> Response</h3>
+                  <div className={styles.codeExample}>
+                    <pre><code>{`{
+  "payments": [
+    {
+      "payment_id": "pay_1234567890",
+      "status": "CONFIRMED",
+      "amount_usd": "100.00",
+      "crypto_type": "USDT_ETH",
+      "created_at": "2026-01-24T22:35:37Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "has_more": false
   }
 }`}</code></pre>
-              </div>
-            </div>
-
-            <div className={styles.endpoint}>
-              <div className={styles.endpointHeader}>
-                <span className={styles.method}>GET</span>
-                <span className={styles.url}>/v1/payments</span>
-                <span className={styles.description}>List payments</span>
-              </div>
-
-              <h3>Query Parameters</h3>
-              <div className={styles.paramTable}>
-                <div className={styles.param}>
-                  <code>page</code>
-                  <span className={styles.optional}>optional</span>
-                  <p>Page number (default: 1)</p>
+                  </div>
                 </div>
-                <div className={styles.param}>
-                  <code>limit</code>
-                  <span className={styles.optional}>optional</span>
-                  <p>Items per page (default: 20, max: 100)</p>
-                </div>
-                <div className={styles.param}>
-                  <code>status</code>
-                  <span className={styles.optional}>optional</span>
-                  <p>Filter by status: PENDING, CONFIRMING, CONFIRMED, FAILED, REFUNDED</p>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.endpoint}>
-              <div className={styles.endpointHeader}>
-                <span className={styles.method}>GET</span>
-                <span className={styles.url}>/v1/payments/:payment_id</span>
-                <span className={styles.description}>Get payment details</span>
-              </div>
-            </div>
-
-            <div className={styles.endpoint}>
-              <div className={styles.endpointHeader}>
-                <span className={styles.method}>POST</span>
-                <span className={styles.url}>/v1/payments/:payment_id/verify</span>
-                <span className={styles.description}>Manually verify payment</span>
-              </div>
+              )}
             </div>
           </div>
         )}
