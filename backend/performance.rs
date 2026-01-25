@@ -1,4 +1,4 @@
-// Performance optimizations for ChainPay
+// Performance optimizations for FidduPay
 // This module contains performance-critical optimizations
 
 use std::sync::Arc;

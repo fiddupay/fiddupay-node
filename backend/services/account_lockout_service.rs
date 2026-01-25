@@ -107,7 +107,7 @@ mod tests {
 
     async fn setup_test_db() -> PgPool {
         let database_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgresql://vibes:password@localhost:5432/chainpay_test".to_string());
+            .unwrap_or_else(|_| "postgresql://vibes:password@localhost:5432/fiddupay_test".to_string());
         PgPool::connect(&database_url).await.unwrap()
     }
 

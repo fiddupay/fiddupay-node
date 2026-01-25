@@ -33,7 +33,7 @@ const LandingPage: React.FC = () => {
       <header className={styles.header}>
         <div className={styles.nav}>
           <div className={styles.logo}>
-            <h2>ChainPay</h2>
+            <h2>FidduPay</h2>
             <span>by TechyTro</span>
           </div>
           <div className={styles.navLinks}>
@@ -82,7 +82,7 @@ const LandingPage: React.FC = () => {
       {/* Features Section */}
       <section id="features" className={styles.features}>
         <div className={styles.sectionContent}>
-          <h2 className={styles.sectionTitle}>Why Choose ChainPay?</h2>
+          <h2 className={styles.sectionTitle}>Why Choose FidduPay?</h2>
           <div className={styles.featuresGrid}>
             {features.map((feature, index) => (
               <div key={index} className={styles.featureCard}>
@@ -189,7 +189,7 @@ const LandingPage: React.FC = () => {
           <div className={styles.testimonialsGrid}>
             <div className={styles.testimonialCard}>
               <p className={styles.testimonialText}>
-                "ChainPay's security and reliability have been game-changing for our e-commerce platform. 
+                "FidduPay's security and reliability have been game-changing for our e-commerce platform. 
                 The automatic forwarding saves us hours of manual processing."
               </p>
               <div className={styles.testimonialAuthor}>
@@ -210,7 +210,7 @@ const LandingPage: React.FC = () => {
             <div className={styles.testimonialCard}>
               <p className={styles.testimonialText}>
                 "The multi-blockchain support and instant notifications have streamlined our payment 
-                processing. ChainPay is essential for any serious crypto business."
+                processing. FidduPay is essential for any serious crypto business."
               </p>
               <div className={styles.testimonialAuthor}>
                 <strong>Emily Watson</strong>
@@ -226,7 +226,7 @@ const LandingPage: React.FC = () => {
         <div className={styles.ctaContent}>
           <h2 className={styles.ctaTitle}>Ready to Start?</h2>
           <p className={styles.ctaSubtitle}>
-            Join businesses already using ChainPay to accept cryptocurrency payments
+            Join businesses already using FidduPay to accept cryptocurrency payments
           </p>
           <div className={styles.ctaActions}>
             <Link to="/register" className={styles.ctaBtn}>
@@ -245,7 +245,7 @@ const LandingPage: React.FC = () => {
       <footer className={styles.footer}>
         <div className={styles.footerContent}>
           <div className={styles.footerBrand}>
-            <h3>ChainPay</h3>
+            <h3>FidduPay</h3>
             <p>Enterprise cryptocurrency payment gateway</p>
           </div>
           <div className={styles.footerLinks}>

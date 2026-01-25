@@ -49,7 +49,7 @@ const RegisterPage: React.FC = () => {
       <div className={styles.container}>
         <div className={styles.registerCard}>
           <div className={styles.header}>
-            <Link to="/" className={styles.logo}>ChainPay</Link>
+            <Link to="/" className={styles.logo}>FidduPay</Link>
             <h1 className={styles.title}>Create Account</h1>
             <p className={styles.subtitle}>Start accepting crypto payments today</p>
           </div>

@@ -36,7 +36,7 @@ const LoginPage: React.FC = () => {
       <div className={styles.container}>
         <div className={styles.loginCard}>
           <div className={styles.header}>
-            <Link to="/" className={styles.logo}>ChainPay</Link>
+            <Link to="/" className={styles.logo}>FidduPay</Link>
             <h1 className={styles.title}>Welcome Back</h1>
             <p className={styles.subtitle}>Sign in to your merchant account</p>
           </div>

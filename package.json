@@ -1,7 +1,7 @@
 {
-  "name": "chainpay-monorepo",
+  "name": "fiddupay-monorepo",
   "version": "1.0.0",
-  "description": "ChainPay - Cryptocurrency Payment Gateway",
+  "description": "FidduPay - Cryptocurrency Payment Gateway",
   "private": true,
   "workspaces": [
     "frontend"

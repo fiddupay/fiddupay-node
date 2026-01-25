@@ -14,7 +14,7 @@ const PrivacyPage: React.FC = () => {
           <section className={styles.section}>
             <h2>1. Information We Collect</h2>
             <p>
-              ChainPay collects information necessary to provide our cryptocurrency payment services:
+              FidduPay collects information necessary to provide our cryptocurrency payment services:
             </p>
             <div className={styles.subsection}>
               <h3>Account Information</h3>
@@ -54,7 +54,7 @@ const PrivacyPage: React.FC = () => {
           <section className={styles.section}>
             <h2>3. Information Sharing</h2>
             <p>
-              ChainPay does not sell or rent your personal information. We may share information only in these circumstances:
+              FidduPay does not sell or rent your personal information. We may share information only in these circumstances:
             </p>
             <ul>
               <li>With your explicit consent</li>
@@ -113,7 +113,7 @@ const PrivacyPage: React.FC = () => {
           <section className={styles.section}>
             <h2>7. Cookies and Tracking</h2>
             <p>
-              ChainPay uses cookies and similar technologies to:
+              FidduPay uses cookies and similar technologies to:
             </p>
             <ul>
               <li>Maintain your login session</li>
@@ -144,7 +144,7 @@ const PrivacyPage: React.FC = () => {
               For privacy-related questions or to exercise your rights, contact us at:
             </p>
             <div className={styles.contactInfo}>
-              <p>Email: privacy@chainpay.com</p>
+              <p>Email: privacy@fiddupay.com</p>
               <p>Subject: Privacy Inquiry</p>
               <p>Response Time: Within 30 days</p>
             </div>

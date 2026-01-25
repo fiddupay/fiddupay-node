@@ -1,4 +1,4 @@
-# ChainPay - Cryptocurrency Payment Gateway
+# FidduPay - Cryptocurrency Payment Gateway
 
 **A TechyTro Software Product**
 
@@ -7,7 +7,7 @@ Modern, production-ready cryptocurrency payment gateway for merchants. Accept pa
 ## 🏗️ Monorepo Structure
 
 ```
-chainpay/
+fiddupay/
 ├── backend/          # Rust backend API
 │   ├── src/         # Rust source code
 │   ├── Cargo.toml   # Rust dependencies
@@ -56,7 +56,7 @@ npm run build:frontend
 
 ### Backend (.env)
 ```bash
-DATABASE_URL=postgresql://user:password@localhost:5432/chainpay
+DATABASE_URL=postgresql://user:password@localhost:5432/fiddupay
 REDIS_URL=redis://localhost:6379
 ENCRYPTION_KEY=your-32-byte-hex-key
 SOLANA_RPC_URL=your-solana-rpc
@@ -76,7 +76,7 @@ VITE_API_URL=http://localhost:8080
 
 ## 🔒 Security
 
-ChainPay has achieved a **10/10 security score** with:
+FidduPay has achieved a **10/10 security score** with:
 - XSS Prevention & CSRF Protection
 - SQL Injection Protection
 - Advanced Rate Limiting

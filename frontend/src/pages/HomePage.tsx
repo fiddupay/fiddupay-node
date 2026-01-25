@@ -93,7 +93,7 @@ const HomePage: React.FC = () => {
       {/* Features Section */}
       <section className={styles.features}>
         <div className={styles.container}>
-          <h2 className={styles.sectionTitle}>Why Choose ChainPay?</h2>
+          <h2 className={styles.sectionTitle}>Why Choose FidduPay?</h2>
           <div className={`${styles.featuresGrid} stagger-children`}>
             <div className={`${styles.feature} animate-slide-up hover-lift`} style={{'--index': 0} as React.CSSProperties}>
               <div className={styles.featureIcon}><i className="fas fa-bolt"></i></div>
@@ -124,7 +124,7 @@ const HomePage: React.FC = () => {
         <div className={styles.container}>
           <div className={styles.ctaContent}>
             <h2>Ready to Start Accepting Crypto?</h2>
-            <p>Join thousands of businesses using ChainPay for secure cryptocurrency payments</p>
+            <p>Join thousands of businesses using FidduPay for secure cryptocurrency payments</p>
             <Link to="/login" className={styles.ctaBtn}>
               Get Started
             </Link>

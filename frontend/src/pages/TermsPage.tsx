@@ -14,14 +14,14 @@ const TermsPage: React.FC = () => {
           <section className={styles.section}>
             <h2>1. Acceptance of Terms</h2>
             <p>
-              By accessing and using ChainPay's cryptocurrency payment gateway services, you accept and agree to be bound by the terms and provision of this agreement.
+              By accessing and using FidduPay's cryptocurrency payment gateway services, you accept and agree to be bound by the terms and provision of this agreement.
             </p>
           </section>
 
           <section className={styles.section}>
             <h2>2. Service Description</h2>
             <p>
-              ChainPay provides cryptocurrency payment processing services, including but not limited to:
+              FidduPay provides cryptocurrency payment processing services, including but not limited to:
             </p>
             <ul>
               <li>Payment request generation and processing</li>
@@ -48,7 +48,7 @@ const TermsPage: React.FC = () => {
           <section className={styles.section}>
             <h2>4. Fees and Payment</h2>
             <p>
-              ChainPay charges a transaction fee of 0.75% per successful payment, with a minimum fee of $0.01 and maximum fee of $200.00. Additional terms:
+              FidduPay charges a transaction fee of 0.75% per successful payment, with a minimum fee of $0.01 and maximum fee of $200.00. Additional terms:
             </p>
             <ul>
               <li>Fees are automatically deducted from processed payments</li>
@@ -61,7 +61,7 @@ const TermsPage: React.FC = () => {
           <section className={styles.section}>
             <h2>5. Prohibited Activities</h2>
             <p>
-              You agree not to use ChainPay services for:
+              You agree not to use FidduPay services for:
             </p>
             <ul>
               <li>Illegal activities or transactions</li>
@@ -75,7 +75,7 @@ const TermsPage: React.FC = () => {
           <section className={styles.section}>
             <h2>6. Security and Compliance</h2>
             <p>
-              ChainPay implements industry-standard security measures and complies with applicable regulations. However, you acknowledge that:
+              FidduPay implements industry-standard security measures and complies with applicable regulations. However, you acknowledge that:
             </p>
             <ul>
               <li>Cryptocurrency transactions are irreversible</li>
@@ -88,7 +88,7 @@ const TermsPage: React.FC = () => {
           <section className={styles.section}>
             <h2>7. Limitation of Liability</h2>
             <p>
-              ChainPay's liability is limited to the fees paid for our services. We are not liable for:
+              FidduPay's liability is limited to the fees paid for our services. We are not liable for:
             </p>
             <ul>
               <li>Cryptocurrency price fluctuations</li>
@@ -117,8 +117,8 @@ const TermsPage: React.FC = () => {
               For questions about these terms, please contact us at:
             </p>
             <div className={styles.contactInfo}>
-              <p>Email: legal@chainpay.com</p>
-              <p>Address: ChainPay Legal Department</p>
+              <p>Email: legal@fiddupay.com</p>
+              <p>Address: FidduPay Legal Department</p>
             </div>
           </section>
         </div>

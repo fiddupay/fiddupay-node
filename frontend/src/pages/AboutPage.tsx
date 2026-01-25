@@ -35,7 +35,7 @@ const AboutPage: React.FC = () => {
       <header className={styles.header}>
         <div className={styles.nav}>
           <Link to="/" className={styles.logo}>
-            <h2>ChainPay</h2>
+            <h2>FidduPay</h2>
             <span>by TechyTro</span>
           </Link>
           <div className={styles.navLinks}>
@@ -49,7 +49,7 @@ const AboutPage: React.FC = () => {
       {/* Hero */}
       <section className={styles.hero}>
         <div className={styles.heroContent}>
-          <h1>About ChainPay</h1>
+          <h1>About FidduPay</h1>
           <p>We're building the future of cryptocurrency payments for businesses worldwide</p>
         </div>
       </section>
@@ -60,7 +60,7 @@ const AboutPage: React.FC = () => {
           <h2>Our Mission</h2>
           <p className={styles.missionText}>
             At TechyTro Software, we believe cryptocurrency payments should be as simple and secure as traditional payments. 
-            ChainPay was born from the need to bridge the gap between complex blockchain technology and everyday business operations.
+            FidduPay was born from the need to bridge the gap between complex blockchain technology and everyday business operations.
           </p>
           <p className={styles.missionText}>
             We're committed to providing enterprise-grade security, seamless integration, and reliable service that businesses 
@@ -135,7 +135,7 @@ const AboutPage: React.FC = () => {
       <section className={styles.cta}>
         <div className={styles.ctaContent}>
           <h2>Ready to Get Started?</h2>
-          <p>Join the businesses already using ChainPay for their cryptocurrency payments</p>
+          <p>Join the businesses already using FidduPay for their cryptocurrency payments</p>
           <Link to="/register" className={styles.ctaBtn}>Start Your Free Account</Link>
         </div>
       </section>
