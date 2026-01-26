@@ -35,7 +35,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           set({ loading: true, error: null })
           const response = await apiService.login(credentials)
           
-          localStorage.setItem('payflow_token', response.api_key)
+          localStorage.setItem('fiddupay_token', response.api_key)
           
           set({
             user: response.user,
@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           set({ loading: true, error: null })
           const response = await apiService.register(data)
           
-          localStorage.setItem('payflow_token', response.api_key)
+          localStorage.setItem('fiddupay_token', response.api_key)
           
           set({
             user: response.user,
@@ -75,7 +75,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
 
       logout: () => {
-        localStorage.removeItem('payflow_token')
+        localStorage.removeItem('fiddupay_token')
         set({
           user: null,
           token: null,
@@ -89,7 +89,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
 
       loadUser: async () => {
-        const token = localStorage.getItem('payflow_token')
+        const token = localStorage.getItem('fiddupay_token')
         if (!token) return
 
         try {
@@ -102,7 +102,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
           })
         } catch (error) {
-          localStorage.removeItem('payflow_token')
+          localStorage.removeItem('fiddupay_token')
           set({
             user: null,
             token: null,
@@ -113,7 +113,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
     }),
     {
-      name: 'payflow-auth',
+      name: 'fiddupay-auth',
       partialize: (state) => ({
         user: state.user,
         token: state.token,

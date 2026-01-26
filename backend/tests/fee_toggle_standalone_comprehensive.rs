@@ -11,7 +11,7 @@ mod fee_toggle_standalone_tests {
 
     #[tokio::test]
     async fn test_comprehensive_fee_toggle_system() {
-        println!("🎯 **COMPREHENSIVE FEE TOGGLE E2E TEST**");
+        println!(" **COMPREHENSIVE FEE TOGGLE E2E TEST**");
         println!("==========================================");
 
         // Test 1: Customer Pays Fee Scenario
@@ -27,7 +27,7 @@ mod fee_toggle_standalone_tests {
             customer_pays_fee
         );
 
-        println!("📊 Customer Pays Fee Results:");
+        println!(" Customer Pays Fee Results:");
         println!("   Merchant Requests: ${}", requested_amount);
         println!("   Processing Fee (0.75%): ${}", processing_fee);
         println!("   Customer Pays Total: ${}", customer_amount);
@@ -36,7 +36,7 @@ mod fee_toggle_standalone_tests {
         assert_eq!(processing_fee, Decimal::from_str("0.75").unwrap());
         assert_eq!(customer_amount, Decimal::from_str("100.75").unwrap());
         assert_eq!(merchant_receives, Decimal::from_str("100.00").unwrap());
-        println!("✅ Customer pays fee calculations verified!");
+        println!(" Customer pays fee calculations verified!");
 
         // Test 2: Merchant Pays Fee Scenario
         println!("\n🧪 Test 2: Merchant Pays Fee Scenario");
@@ -48,7 +48,7 @@ mod fee_toggle_standalone_tests {
             customer_pays_fee
         );
 
-        println!("📊 Merchant Pays Fee Results:");
+        println!(" Merchant Pays Fee Results:");
         println!("   Merchant Requests: ${}", requested_amount);
         println!("   Processing Fee (0.75%): ${}", processing_fee);
         println!("   Customer Pays: ${}", customer_amount);
@@ -57,7 +57,7 @@ mod fee_toggle_standalone_tests {
         assert_eq!(processing_fee, Decimal::from_str("0.75").unwrap());
         assert_eq!(customer_amount, Decimal::from_str("100.00").unwrap());
         assert_eq!(merchant_receives, Decimal::from_str("99.25").unwrap());
-        println!("✅ Merchant pays fee calculations verified!");
+        println!(" Merchant pays fee calculations verified!");
 
         // Test 3: API Response Structures
         println!("\n🧪 Test 3: API Response Structures");
@@ -83,17 +83,17 @@ mod fee_toggle_standalone_tests {
         println!("\n🧪 Test 8: Payment Expiration Scenarios");
         test_expiration_scenarios().await;
 
-        println!("\n🎉 **ALL COMPREHENSIVE E2E TESTS PASSED!**");
+        println!("\n **ALL COMPREHENSIVE E2E TESTS PASSED!**");
         println!("==========================================");
-        println!("✅ Fee toggle system fully implemented and tested");
-        println!("✅ Customer and merchant fee payment modes working");
-        println!("✅ API endpoints and responses validated");
-        println!("✅ Webhook payloads include fee information");
-        println!("✅ WebSocket notifications support both modes");
-        println!("✅ Multi-cryptocurrency support verified");
-        println!("✅ Error handling and edge cases covered");
-        println!("✅ Payment expiration scenarios tested");
-        println!("\n🚀 **PRODUCTION READY: Fee Toggle System**");
+        println!(" Fee toggle system fully implemented and tested");
+        println!(" Customer and merchant fee payment modes working");
+        println!(" API endpoints and responses validated");
+        println!(" Webhook payloads include fee information");
+        println!(" WebSocket notifications support both modes");
+        println!(" Multi-cryptocurrency support verified");
+        println!(" Error handling and edge cases covered");
+        println!(" Payment expiration scenarios tested");
+        println!("\n **PRODUCTION READY: Fee Toggle System**");
     }
 
     // Helper function to calculate fee amounts based on who pays
@@ -118,7 +118,7 @@ mod fee_toggle_standalone_tests {
     }
 
     async fn test_api_response_structures() {
-        println!("📋 Testing API Response Structures");
+        println!(" Testing API Response Structures");
 
         // Customer pays fee response
         let customer_pays_response = json!({
@@ -156,9 +156,9 @@ mod fee_toggle_standalone_tests {
             "description": "Customer pays processing fee"
         });
 
-        println!("   ✅ Customer pays fee response structure validated");
-        println!("   ✅ Merchant pays fee response structure validated");
-        println!("   ✅ Fee setting API responses validated");
+        println!("    Customer pays fee response structure validated");
+        println!("    Merchant pays fee response structure validated");
+        println!("    Fee setting API responses validated");
 
         assert_eq!(customer_pays_response["customer_pays_fee"].as_bool().unwrap(), true);
         assert_eq!(merchant_pays_response["customer_pays_fee"].as_bool().unwrap(), false);
@@ -166,7 +166,7 @@ mod fee_toggle_standalone_tests {
     }
 
     async fn test_webhook_payload_structures() {
-        println!("📋 Testing Webhook Payload Structures");
+        println!(" Testing Webhook Payload Structures");
 
         // Customer pays fee webhook
         let customer_pays_webhook = json!({
@@ -202,8 +202,8 @@ mod fee_toggle_standalone_tests {
             "timestamp": "2026-01-26T02:53:00.000Z"
         });
 
-        println!("   ✅ Customer pays fee webhook structure validated");
-        println!("   ✅ Merchant pays fee webhook structure validated");
+        println!("    Customer pays fee webhook structure validated");
+        println!("    Merchant pays fee webhook structure validated");
 
         assert_eq!(customer_pays_webhook["forwarding_amount"].as_str().unwrap(), "100.00");
         assert_eq!(merchant_pays_webhook["forwarding_amount"].as_str().unwrap(), "99.25");
@@ -212,7 +212,7 @@ mod fee_toggle_standalone_tests {
     }
 
     async fn test_multi_crypto_scenarios() {
-        println!("📋 Testing Multi-Crypto Fee Scenarios");
+        println!(" Testing Multi-Crypto Fee Scenarios");
 
         let crypto_scenarios = vec![
             ("ETH", "0.05", "0.000375", "0.050375", "0.049625"), // ETH amounts
@@ -240,11 +240,11 @@ mod fee_toggle_standalone_tests {
             assert_eq!(amount_decimal - fee_decimal, merchant_net_decimal);
         }
 
-        println!("   ✅ All multi-crypto fee calculations verified");
+        println!("    All multi-crypto fee calculations verified");
     }
 
     async fn test_error_scenarios() {
-        println!("📋 Testing Error Scenarios");
+        println!(" Testing Error Scenarios");
 
         let error_scenarios = vec![
             ("Insufficient payment - customer pays", "100.75", "100.50", true, false),
@@ -266,17 +266,17 @@ mod fee_toggle_standalone_tests {
             assert_eq!(payment_sufficient, should_succeed);
             
             if payment_sufficient {
-                println!("     ✅ Payment sufficient - transaction would proceed");
+                println!("      Payment sufficient - transaction would proceed");
             } else {
-                println!("     ❌ Insufficient payment - transaction would fail");
+                println!("      Insufficient payment - transaction would fail");
             }
         }
 
-        println!("   ✅ All error scenarios validated");
+        println!("    All error scenarios validated");
     }
 
     async fn test_websocket_notifications() {
-        println!("📋 Testing WebSocket Notification Structures");
+        println!(" Testing WebSocket Notification Structures");
 
         let websocket_events = vec![
             ("payment_created", "PendingPayment", true),
@@ -306,11 +306,11 @@ mod fee_toggle_standalone_tests {
             assert_eq!(ws_message["data"]["customer_pays_fee"].as_bool().unwrap(), customer_pays_fee);
         }
 
-        println!("   ✅ All WebSocket notification structures validated");
+        println!("    All WebSocket notification structures validated");
     }
 
     async fn test_expiration_scenarios() {
-        println!("📋 Testing Payment Expiration Scenarios");
+        println!(" Testing Payment Expiration Scenarios");
 
         let expiration_scenarios = vec![
             ("Customer pays fee - expired", true, "Expired"),
@@ -333,9 +333,9 @@ mod fee_toggle_standalone_tests {
             assert_eq!(expiration_webhook["status"].as_str().unwrap(), final_status);
             assert_eq!(expiration_webhook["customer_pays_fee"].as_bool().unwrap(), customer_pays_fee);
             
-            println!("     ✅ Expiration scenario validated");
+            println!("      Expiration scenario validated");
         }
 
-        println!("   ✅ All expiration scenarios validated");
+        println!("    All expiration scenarios validated");
     }
 }

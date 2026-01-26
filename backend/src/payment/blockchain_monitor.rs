@@ -224,7 +224,7 @@ impl BlockchainMonitor for EvmMonitor {
             }
         }
 
-        info!("✅ Found {} {} transactions", transactions.len(), self.chain_name);
+        info!(" Found {} {} transactions", transactions.len(), self.chain_name);
         Ok(transactions)
     }
 

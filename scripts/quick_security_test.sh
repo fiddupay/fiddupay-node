@@ -1,7 +1,7 @@
 #!/bin/bash
 # Quick Security Verification Test
 
-echo "🧪 Quick Security Feature Verification"
+echo " Quick Security Feature Verification"
 echo ""
 
 PASSED=0
@@ -10,10 +10,10 @@ TOTAL=0
 check_feature() {
     ((TOTAL++))
     if eval "$2"; then
-        echo "✅ $1"
+        echo " $1"
         ((PASSED++))
     else
-        echo "❌ $1"
+        echo " $1"
     fi
 }
 
@@ -53,7 +53,7 @@ check_feature "API Version Security" "grep -q 'ApiVersionManager' src/middleware
 # Database Tests
 echo ""
 echo "=== DATABASE SECURITY ==="
-export DATABASE_URL="${DATABASE_URL:-postgresql://vibes:password@localhost:5432/payflow_dev}"
+export DATABASE_URL="${DATABASE_URL:-postgresql://vibes:password@localhost:5432/fiddupay_dev}"
 check_feature "Security Tables" "psql '$DATABASE_URL' -c 'SELECT 1 FROM information_schema.tables WHERE table_name = '\''security_events'\'';' | grep -q '1'"
 check_feature "Performance Indexes" "psql '$DATABASE_URL' -c 'SELECT 1 FROM pg_indexes WHERE indexname = '\''idx_merchants_api_key_hash'\'';' | grep -q '1'"
 
@@ -69,23 +69,23 @@ echo "╔═══════════════════════�
 echo "║                    TEST RESULTS                            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
-echo "✅ PASSED: $PASSED"
-echo "📊 TOTAL: $TOTAL"
+echo " PASSED: $PASSED"
+echo " TOTAL: $TOTAL"
 
 SCORE=$(awk "BEGIN {printf \"%.1f\", ($PASSED * 10.0) / $TOTAL}")
-echo "🎯 SECURITY SCORE: $SCORE/10"
+echo " SECURITY SCORE: $SCORE/10"
 
 if [ $PASSED -eq $TOTAL ]; then
     echo ""
-    echo "🎉 PERFECT SECURITY ACHIEVED!"
-    echo "✅ All security features implemented"
-    echo "🚀 Ready for production deployment"
+    echo " PERFECT SECURITY ACHIEVED!"
+    echo " All security features implemented"
+    echo " Ready for production deployment"
 elif [ $PASSED -ge $((TOTAL * 9 / 10)) ]; then
     echo ""
     echo "⚠️  NEAR PERFECT SECURITY"
-    echo "🔧 Minor optimizations possible"
+    echo " Minor optimizations possible"
 else
     echo ""
-    echo "❌ SECURITY GAPS DETECTED"
+    echo " SECURITY GAPS DETECTED"
     echo "🚨 Additional fixes needed"
 fi

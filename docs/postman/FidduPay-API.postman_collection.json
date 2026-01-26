@@ -1,0 +1,570 @@
+{
+  "info": {
+    "name": "FidduPay API v2.0",
+    "description": "Complete API collection for FidduPay cryptocurrency payment gateway. Supports 10 cryptocurrencies across 5 major blockchains with enterprise-grade security.",
+    "version": "2.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "sandboxUrl", 
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "productionUrl",
+      "value": "https://api.fiddupay.com",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "sandbox_test_key_12345",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiKey}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register Merchant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_name\": \"My Crypto Store\",\n  \"email\": \"merchant@example.com\",\n  \"password\": \"SecurePassword123!\",\n  \"website_url\": \"https://mycryptostore.com\",\n  \"business_type\": \"e-commerce\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "merchants", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login Merchant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"merchant@example.com\",\n  \"password\": \"SecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "merchants", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get API Keys",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/api-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "merchants", "api-keys"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.50,\n  \"currency\": \"USDT\",\n  \"network\": \"ethereum\",\n  \"description\": \"Premium subscription payment\",\n  \"metadata\": {\n    \"orderId\": \"order-123\",\n    \"customerId\": \"customer-456\",\n    \"productId\": \"premium-plan\"\n  },\n  \"webhook_url\": \"https://your-site.com/webhooks/fiddupay\",\n  \"redirect_url\": \"https://your-site.com/payment-success\",\n  \"expires_at\": \"2026-01-26T07:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Get Payment",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/:paymentId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", ":paymentId"],
+              "variable": [
+                {
+                  "key": "paymentId",
+                  "value": "payment_123"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Payments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/payments?limit=20&offset=0&status=pending&currency=USDT&network=ethereum&start_date=2026-01-01&end_date=2026-01-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset", 
+                  "value": "0"
+                },
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "currency",
+                  "value": "USDT"
+                },
+                {
+                  "key": "network",
+                  "value": "ethereum"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-01-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Payment",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/:paymentId/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", ":paymentId", "cancel"],
+              "variable": [
+                {
+                  "key": "paymentId",
+                  "value": "payment_123"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Refund Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50.25,\n  \"reason\": \"Customer requested partial refund\",\n  \"metadata\": {\n    \"refund_type\": \"partial\",\n    \"support_ticket\": \"TICKET-789\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/:paymentId/refund",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", ":paymentId", "refund"],
+              "variable": [
+                {
+                  "key": "paymentId",
+                  "value": "payment_123"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallets & Balances",
+      "item": [
+        {
+          "name": "List Wallets",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/wallets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallets"]
+            }
+          }
+        },
+        {
+          "name": "Create Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Business Wallet\",\n  \"currency\": \"USDT\",\n  \"network\": \"ethereum\",\n  \"address\": \"0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wallets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallets"]
+            }
+          }
+        },
+        {
+          "name": "Get Wallet Balance",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/wallets/:walletId/balance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallets", ":walletId", "balance"],
+              "variable": [
+                {
+                  "key": "walletId",
+                  "value": "wallet_123"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Balance History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/balances/history?currency=USDT&network=ethereum&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "balances", "history"],
+              "query": [
+                {
+                  "key": "currency",
+                  "value": "USDT"
+                },
+                {
+                  "key": "network",
+                  "value": "ethereum"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Withdrawals",
+      "item": [
+        {
+          "name": "Create Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500.00,\n  \"currency\": \"USDT\",\n  \"network\": \"ethereum\",\n  \"to_address\": \"0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82\",\n  \"description\": \"Monthly withdrawal to main wallet\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/withdrawals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "withdrawals"]
+            }
+          }
+        },
+        {
+          "name": "List Withdrawals",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/withdrawals?status=pending&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "withdrawals"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Withdrawal",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/withdrawals/:withdrawalId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "withdrawals", ":withdrawalId"],
+              "variable": [
+                {
+                  "key": "withdrawalId",
+                  "value": "withdrawal_123"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics & Reporting",
+      "item": [
+        {
+          "name": "Get Analytics Dashboard",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/dashboard?period=30d",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "analytics", "dashboard"],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "30d"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Payment Analytics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/payments?start_date=2026-01-01&end_date=2026-01-31&group_by=day",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "analytics", "payments"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-01-31"
+                },
+                {
+                  "key": "group_by",
+                  "value": "day"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export Transactions CSV",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/export/csv?start_date=2026-01-01&end_date=2026-01-31&type=payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "analytics", "export", "csv"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-01-31"
+                },
+                {
+                  "key": "type",
+                  "value": "payments"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "System & Utilities",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          }
+        },
+        {
+          "name": "System Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "status"]
+            }
+          }
+        },
+        {
+          "name": "Supported Currencies",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/currencies",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "currencies"]
+            }
+          }
+        },
+        {
+          "name": "Get Exchange Rates",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/rates?from=USDT&to=USD,EUR,GBP",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rates"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "USDT"
+                },
+                {
+                  "key": "to",
+                  "value": "USD,EUR,GBP"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validate Address",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": \"0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82\",\n  \"network\": \"ethereum\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/validate/address",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "validate", "address"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sandbox",
+      "item": [
+        {
+          "name": "Sandbox - Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50.25,\n  \"currency\": \"USDT\",\n  \"network\": \"ethereum\",\n  \"description\": \"Sandbox test payment\",\n  \"metadata\": {\n    \"testMode\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{sandboxUrl}}/payments",
+              "host": ["{{sandboxUrl}}"],
+              "path": ["payments"]
+            }
+          }
+        },
+        {
+          "name": "Sandbox - Test Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"payment.completed\",\n  \"payment_id\": \"payment_123\",\n  \"status\": \"completed\",\n  \"amount\": 100.50,\n  \"currency\": \"USDT\",\n  \"network\": \"ethereum\"\n}"
+            },
+            "url": {
+              "raw": "{{sandboxUrl}}/webhooks/test",
+              "host": ["{{sandboxUrl}}"],
+              "path": ["webhooks", "test"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -13,12 +13,12 @@ echo ""
 read -p "⚠️  This will DELETE ALL DATA. Are you sure? (type 'DELETE' to confirm): " confirmation
 
 if [ "$confirmation" != "DELETE" ]; then
-    echo "❌ Cleanup cancelled."
+    echo " Cleanup cancelled."
     exit 1
 fi
 
 echo ""
-echo "🧹 Starting database cleanup using sudo..."
+echo " Starting database cleanup using sudo..."
 
 # SQL cleanup commands
 CLEANUP_SQL="
@@ -67,9 +67,9 @@ echo "🗑️  Truncating tables..."
 echo "$CLEANUP_SQL" | sudo -u postgres psql -d "$DB_NAME"
 
 echo ""
-echo "✅ Database cleanup completed!"
+echo " Database cleanup completed!"
 echo ""
-echo "📊 Verification:"
+echo " Verification:"
 echo "================"
 
 # Verify cleanup
@@ -85,4 +85,4 @@ ORDER BY tablename;
 echo "$VERIFY_SQL" | sudo -u postgres psql -d "$DB_NAME"
 
 echo ""
-echo "🎯 Database is now clean and ready for fresh data!"
+echo " Database is now clean and ready for fresh data!"

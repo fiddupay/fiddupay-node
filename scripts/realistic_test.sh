@@ -1,8 +1,8 @@
 #!/bin/bash
-# Realistic PayFlow Performance Test
+# Realistic fiddupay Performance Test
 # Tests endpoints that don't require authentication and handles rate limiting
 
-echo "🚀 PayFlow Realistic Performance Test"
+echo " fiddupay Realistic Performance Test"
 echo "===================================="
 
 cd /home/vibes/crypto-payment-gateway
@@ -12,7 +12,7 @@ CONCURRENT_USERS=10  # Reduced to avoid rate limiting
 REQUESTS_PER_USER=5   # Reduced to avoid rate limiting
 DELAY_BETWEEN_REQUESTS=0.1  # Add delay to respect rate limits
 
-echo "📊 Test Configuration:"
+echo " Test Configuration:"
 echo "  Base URL: $BASE_URL"
 echo "  Concurrent Users: $CONCURRENT_USERS"
 echo "  Requests per User: $REQUESTS_PER_USER"
@@ -21,10 +21,10 @@ echo ""
 
 # Check server
 if ! curl -s "$BASE_URL/health" > /dev/null 2>&1; then
-    echo "❌ Server not running on $BASE_URL"
+    echo " Server not running on $BASE_URL"
     exit 1
 fi
-echo "✅ Server is running"
+echo " Server is running"
 
 # Create results directory
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -39,7 +39,7 @@ realistic_test() {
     local test_name=$4
     local expected_status=${5:-200}
     
-    echo "🔥 Testing: $test_name"
+    echo " Testing: $test_name"
     echo "   Endpoint: $method $endpoint"
     
     # Create test script
@@ -140,7 +140,7 @@ EOF
         fi
         
         echo "   ⏱️  Total Duration: ${TOTAL_DURATION}s"
-        echo "   📊 Results:"
+        echo "    Results:"
         echo "     Total Requests: $TOTAL_REQUESTS"
         echo "     Response Codes:"
         echo "       200 OK: $STATUS_200"
@@ -167,7 +167,7 @@ EOF
         fi
         
         if [ $STATUS_500 -gt 0 ]; then
-            echo "   ❌ Server errors detected ($STATUS_500 requests)"
+            echo "    Server errors detected ($STATUS_500 requests)"
         fi
         
         if [ $STATUS_401 -gt 0 ]; then
@@ -176,15 +176,15 @@ EOF
         
         # Overall assessment
         if (( $(echo "$SUCCESS_RATE >= 90" | bc -l 2>/dev/null || echo "0") )); then
-            echo "   ✅ Excellent success rate"
+            echo "    Excellent success rate"
         elif (( $(echo "$SUCCESS_RATE >= 70" | bc -l 2>/dev/null || echo "0") )); then
-            echo "   ✅ Good success rate"
+            echo "    Good success rate"
         else
             echo "   ⚠️  Low success rate"
         fi
         
     else
-        echo "   ❌ No valid responses received"
+        echo "    No valid responses received"
         SUCCESS_RATE="0"
         RPS="0"
         AVG_TIME="N/A"
@@ -221,7 +221,7 @@ realistic_test "/api/v1/merchants/register" "POST" "$INVALID_DATA" "Invalid Regi
 # Test 404 handling
 realistic_test "/api/v1/nonexistent" "GET" "" "404 Not Found" 404
 
-echo "🎯 Realistic Performance Test Summary"
+echo " Realistic Performance Test Summary"
 echo "===================================="
 
 printf "%-30s %-10s %-12s %-12s %-8s %-6s %-6s %-6s %-6s\n" "Test Name" "Success%" "Avg Time" "P95 Time" "RPS" "200" "401" "429" "5xx"
@@ -232,7 +232,7 @@ tail -n +2 "$RESULTS_DIR/summary.csv" | while IFS=',' read -r name success avg p
 done
 
 echo ""
-echo "📊 Performance Analysis:"
+echo " Performance Analysis:"
 
 # Check for rate limiting
 TOTAL_429=$(tail -n +2 "$RESULTS_DIR/summary.csv" | awk -F',' '{sum+=$8} END {print sum+0}')
@@ -244,37 +244,37 @@ fi
 # Check for server errors
 TOTAL_500=$(tail -n +2 "$RESULTS_DIR/summary.csv" | awk -F',' '{sum+=$9} END {print sum+0}')
 if [ $TOTAL_500 -gt 0 ]; then
-    echo "  ❌ Server errors detected: $TOTAL_500 requests failed"
+    echo "   Server errors detected: $TOTAL_500 requests failed"
 else
-    echo "  ✅ No server errors - excellent stability"
+    echo "   No server errors - excellent stability"
 fi
 
 # Check authentication
 TOTAL_401=$(tail -n +2 "$RESULTS_DIR/summary.csv" | awk -F',' '{sum+=$7} END {print sum+0}')
 if [ $TOTAL_401 -gt 0 ]; then
-    echo "  ✅ Authentication working: $TOTAL_401 requests properly rejected"
+    echo "   Authentication working: $TOTAL_401 requests properly rejected"
 fi
 
 echo ""
-echo "🏆 Overall Assessment:"
-echo "  ✅ Server handles concurrent requests without crashing"
-echo "  ✅ Rate limiting is active and working"
-echo "  ✅ Authentication is properly enforced"
-echo "  ✅ Error handling is working correctly"
+echo " Overall Assessment:"
+echo "   Server handles concurrent requests without crashing"
+echo "   Rate limiting is active and working"
+echo "   Authentication is properly enforced"
+echo "   Error handling is working correctly"
 
 if [ $TOTAL_500 -eq 0 ]; then
-    echo "  🚀 EXCELLENT: No server errors under concurrent load!"
+    echo "   EXCELLENT: No server errors under concurrent load!"
 else
     echo "  ⚠️  Server stability needs attention"
 fi
 
 echo ""
-echo "📁 Results saved to: $RESULTS_DIR/"
-echo "🏁 Realistic performance test complete!"
+echo " Results saved to: $RESULTS_DIR/"
+echo " Realistic performance test complete!"
 
 echo ""
-echo "💡 Key Findings:"
-echo "  - Your PayFlow server successfully handles concurrent requests"
+echo " Key Findings:"
+echo "  - Your fiddupay server successfully handles concurrent requests"
 echo "  - Rate limiting prevents abuse (good for production)"
 echo "  - Authentication is properly enforced on protected endpoints"
 echo "  - Error handling works correctly under load"

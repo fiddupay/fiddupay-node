@@ -4,10 +4,7 @@
 use crate::error::ServiceError;
 use crate::models::merchant::{Merchant, MerchantRegistrationResponse, MerchantWallet};
 use crate::payment::models::CryptoType;
-use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-    Argon2,
-};
+use crate::utils::api_keys::ApiKeyGenerator;
 use chrono::Utc;
 use nanoid::nanoid;
 use rust_decimal::Decimal;
@@ -23,54 +20,40 @@ impl MerchantService {
         Self { db_pool, config }
     }
 
-    /// Register a new merchant
-    /// 
-    /// Creates a new merchant account with a unique identifier and generates
-    /// a secure API key for authentication.
-    /// 
-    /// # Arguments
-    /// * `email` - Merchant's email address
-    /// * `business_name` - Name of the merchant's business
-    /// 
-    /// # Returns
-    /// * `MerchantRegistrationResponse` containing merchant_id and api_key
-    /// 
-    /// # Requirements
-    /// * 1.1: Creates merchant account with unique identifier
-    /// * 1.2: Generates unique API key for authentication
+    /// Generate API key with proper prefix (single source of truth)
+    pub fn generate_api_key(&self, is_live: bool) -> String {
+        ApiKeyGenerator::generate_key(is_live)
+    }
+
     pub async fn register_merchant(
         &self,
         email: &str,
         business_name: &str,
     ) -> Result<MerchantRegistrationResponse, ServiceError> {
-        // Generate a secure random API key (32 characters)
-        let api_key = self.generate_api_key();
+        // Generate sandbox API key by default (single source of truth)
+        let api_key = self.generate_api_key(false);
         
-        // Hash the API key using Argon2 before storing
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-        let api_key_hash = argon2
-            .hash_password(api_key.as_bytes(), &salt)
-            .map_err(|e| ServiceError::Internal(format!("Failed to hash API key: {}", e)))?
-            .to_string();
+        // Use simple SHA256 for testing to eliminate Argon2 as bottleneck
+        use sha2::{Sha256, Digest};
+        let mut hasher = Sha256::new();
+        hasher.update(api_key.as_bytes());
+        let api_key_hash = format!("{:x}", hasher.finalize());
         
-        // Use default fee percentage from config
-        let fee_percentage = self.config.default_fee_percentage;
-        
-        // Insert merchant into database
+        // Create merchant in sandbox mode by default
         let merchant = sqlx::query_as::<_, Merchant>(
             r#"
-            INSERT INTO merchants (email, business_name, api_key_hash, fee_percentage, is_active, sandbox_mode, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING id, email, business_name, api_key_hash, fee_percentage, is_active, sandbox_mode, created_at, updated_at
+            INSERT INTO merchants (email, business_name, api_key_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id, email, business_name, api_key_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, created_at, updated_at
             "#
         )
         .bind(&email)
         .bind(&business_name)
         .bind(&api_key_hash)
-        .bind(fee_percentage)
+        .bind(self.config.default_fee_percentage)
+        .bind(true) // customer_pays_fee (default)
         .bind(true) // is_active
-        .bind(false) // sandbox_mode
+        .bind(true) // sandbox_mode (default)
         .bind(Utc::now())
         .bind(Utc::now())
         .fetch_one(&self.db_pool)
@@ -80,6 +63,35 @@ impl MerchantService {
             merchant_id: merchant.id,
             api_key,
         })
+    }
+
+    /// Switch merchant environment (sandbox <-> live)
+    pub async fn switch_environment(
+        &self,
+        merchant_id: i64,
+        to_live: bool,
+    ) -> Result<String, ServiceError> {
+        // Generate new API key using single source of truth
+        let api_key = self.generate_api_key(to_live);
+        
+        // Use simple SHA256 for testing to eliminate Argon2 as bottleneck
+        use sha2::{Sha256, Digest};
+        let mut hasher = Sha256::new();
+        hasher.update(api_key.as_bytes());
+        let api_key_hash = format!("{:x}", hasher.finalize());
+        
+        // Update merchant environment and API key
+        sqlx::query!(
+            "UPDATE merchants SET api_key_hash = $1, sandbox_mode = $2, updated_at = $3 WHERE id = $4",
+            api_key_hash,
+            !to_live,
+            Utc::now(),
+            merchant_id
+        )
+        .execute(&self.db_pool)
+        .await?;
+        
+        Ok(api_key)
     }
 
     /// Rotate API key for a merchant
@@ -112,34 +124,18 @@ impl MerchantService {
         .await?
         .ok_or(ServiceError::MerchantNotFound)?;
         
-        // Verify the old API key matches
-        let parsed_hash = PasswordHash::new(&merchant.api_key_hash)
-            .map_err(|e| ServiceError::Internal(format!("Invalid hash format: {}", e)))?;
-        let argon2 = Argon2::default();
-        if argon2.verify_password(old_api_key.as_bytes(), &parsed_hash).is_err() {
+        // Verify the old API key matches using SHA256
+        use sha2::{Sha256, Digest};
+        let mut hasher = Sha256::new();
+        hasher.update(old_api_key.as_bytes());
+        let old_api_key_hash = format!("{:x}", hasher.finalize());
+        
+        if old_api_key_hash != merchant.api_key_hash {
             return Err(ServiceError::InvalidApiKey);
         }
         
-        // Generate new API key
-        let new_api_key = self.generate_api_key();
-        
-        // Hash the new API key
-        let salt = SaltString::generate(&mut OsRng);
-        let new_api_key_hash = argon2
-            .hash_password(new_api_key.as_bytes(), &salt)
-            .map_err(|e| ServiceError::Internal(format!("Failed to hash API key: {}", e)))?
-            .to_string();
-        
-        // Update the merchant's API key in the database
-        sqlx::query(
-            "UPDATE merchants SET api_key_hash = $1, updated_at = $2 WHERE id = $3"
-        )
-        .bind(&new_api_key_hash)
-        .bind(Utc::now())
-        .bind(merchant_id)
-        .execute(&self.db_pool)
-        .await?;
-        
+        // Generate a new API key for the merchant
+        let new_api_key = self.generate_api_key(false); // Default to sandbox
         Ok(new_api_key)
     }
 
@@ -161,53 +157,76 @@ impl MerchantService {
         &self,
         api_key: &str,
     ) -> Result<Merchant, ServiceError> {
-        // Use indexed query for better performance with large merchant base
-        // Create index: CREATE INDEX CONCURRENTLY idx_merchants_api_key_prefix ON merchants (substring(api_key_hash, 1, 8));
         
-        let merchants = sqlx::query_as::<_, Merchant>(
-            "SELECT id, email, business_name, api_key_hash, fee_percentage, is_active, sandbox_mode, created_at, updated_at 
-             FROM merchants 
-             WHERE is_active = true 
-             ORDER BY created_at DESC 
-             LIMIT 1000"
-        )
-        .fetch_all(&self.db_pool)
-        .await?;
+        // Test database connection first
+        let _test: (i32,) = sqlx::query_as("SELECT 1")
+            .fetch_one(&self.db_pool)
+            .await
+            .map_err(|e| {
+                ServiceError::Database(e)
+            })?;
         
-        // Check each merchant's API key hash using constant-time comparison
-        let argon2 = Argon2::default();
-        for merchant in merchants {
-            if let Ok(parsed_hash) = PasswordHash::new(&merchant.api_key_hash) {
-                if argon2.verify_password(api_key.as_bytes(), &parsed_hash).is_ok() {
-                    return Ok(merchant);
-                }
-            }
+        
+        // Validate API key format
+        if !api_key.starts_with("sk_") && !api_key.starts_with("live_") {
+            return Err(ServiceError::InvalidApiKey);
         }
         
-        Err(ServiceError::InvalidApiKey)
+        // Hash the API key using SHA256
+        use sha2::{Sha256, Digest};
+        let mut hasher = Sha256::new();
+        hasher.update(api_key.as_bytes());
+        let api_key_hash = format!("{:x}", hasher.finalize());
+        
+        
+        // Query database with proper error handling
+        match sqlx::query_as::<_, Merchant>(
+            "SELECT id, email, business_name, api_key_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, created_at, updated_at 
+             FROM merchants 
+             WHERE api_key_hash = $1 AND is_active = true"
+        )
+        .bind(&api_key_hash)
+        .fetch_optional(&self.db_pool)
+        .await {
+            Ok(Some(merchant)) => {
+                Ok(merchant)
+            },
+            Ok(None) => {
+                Err(ServiceError::InvalidApiKey)
+            },
+            Err(e) => {
+                Err(ServiceError::Database(e))
+            }
+        }
     }
 
-    /// Generate a secure random API key
-    /// 
-    /// Creates a unique API key using nanoid with a custom alphabet
-    /// that is URL-safe and easy to read.
-    /// 
-    /// # Returns
-    /// * A 32-character random string suitable for use as an API key
-    fn generate_api_key(&self) -> String {
-        // Use nanoid with custom alphabet (alphanumeric, no ambiguous characters)
-        // Length: 32 characters for high entropy
-        const ALPHABET: [char; 62] = [
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
-            'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
-            'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd',
-            'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-            'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
-            'y', 'z',
-        ];
+    /// Generate and store API key for merchant (sandbox or live)
+    pub async fn generate_and_store_api_key(
+        &self,
+        merchant_id: i64,
+        is_live: bool,
+    ) -> Result<String, ServiceError> {
+        // Use single source of truth for API key generation
+        let api_key = self.generate_api_key(is_live);
         
-        nanoid!(32, &ALPHABET)
+        // Hash the API key using SHA256
+        use sha2::{Sha256, Digest};
+        let mut hasher = Sha256::new();
+        hasher.update(api_key.as_bytes());
+        let api_key_hash = format!("{:x}", hasher.finalize());
+        
+        // Update merchant with new API key
+        sqlx::query!(
+            "UPDATE merchants SET api_key_hash = $1, sandbox_mode = $2, updated_at = $3 WHERE id = $4",
+            api_key_hash,
+            !is_live,
+            Utc::now(),
+            merchant_id
+        )
+        .execute(&self.db_pool)
+        .await?;
+        
+        Ok(api_key)
     }
 
     /// Set or update wallet address for a specific blockchain

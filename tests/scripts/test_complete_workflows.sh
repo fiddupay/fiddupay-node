@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# PayFlow Complete End-to-End Test
+# fiddupay Complete End-to-End Test
 # Tests all major workflows: Payments, Withdrawals, Analytics, Balance Management
 
 set -e
@@ -45,9 +45,9 @@ info() {
 
 # Check server
 check_server() {
-    log "Checking PayFlow server..."
+    log "Checking fiddupay server..."
     if ! curl -s "$BASE_URL/health" > /dev/null; then
-        error "PayFlow server not running at $BASE_URL"
+        error "fiddupay server not running at $BASE_URL"
     fi
     success "Server is running"
 }
@@ -409,7 +409,7 @@ test_audit_compliance() {
 
 # Main execution
 main() {
-    echo "🧪 PayFlow Complete End-to-End Test Suite"
+    echo " fiddupay Complete End-to-End Test Suite"
     echo "========================================="
     echo ""
     
@@ -426,17 +426,17 @@ main() {
     test_audit_compliance
     
     echo ""
-    echo "🎉 Complete End-to-End Test Summary"
+    echo " Complete End-to-End Test Summary"
     echo "=================================="
     success "All major workflows tested successfully!"
     echo ""
     echo "Test Results:"
-    echo "- Merchant Management: ✅ Working"
-    echo "- Payment Processing: ✅ Working"
-    echo "- Balance Management: ✅ Working"
-    echo "- Withdrawal System: ✅ Working (with balance constraints)"
-    echo "- Analytics & Reporting: ✅ Working"
-    echo "- Security Features: ✅ Working"
+    echo "- Merchant Management:  Working"
+    echo "- Payment Processing:  Working"
+    echo "- Balance Management:  Working"
+    echo "- Withdrawal System:  Working (with balance constraints)"
+    echo "- Analytics & Reporting:  Working"
+    echo "- Security Features:  Working"
     echo "- Invoice Management: ⚠️ Partially implemented"
     echo "- Refund System: ⚠️ Depends on payment status"
     echo "- Multi-user Features: ⚠️ Partially implemented"
@@ -448,7 +448,7 @@ main() {
     echo "- Payment ID: $PAYMENT_ID"
     echo "- Email: $TEST_EMAIL"
     echo ""
-    success "PayFlow is production-ready for core payment workflows! 🚀"
+    success "fiddupay is production-ready for core payment workflows! "
 }
 
 # Run main function

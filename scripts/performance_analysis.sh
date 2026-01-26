@@ -1,12 +1,12 @@
 #!/bin/bash
-# PayFlow Performance Analysis Script
+# fiddupay Performance Analysis Script
 
-echo "🚀 PayFlow Performance Analysis"
+echo " fiddupay Performance Analysis"
 echo "==============================="
 
 cd /home/vibes/crypto-payment-gateway
 
-echo "📊 Analyzing codebase for performance opportunities..."
+echo " Analyzing codebase for performance opportunities..."
 
 # 1. Database Query Analysis
 echo ""
@@ -25,7 +25,7 @@ N_PLUS_ONE=$(grep -r "for.*in\|while.*" src/ --include="*.rs" -A 5 | grep -c "sq
 if [ $N_PLUS_ONE -gt 0 ]; then
     echo "  ⚠️  Potential N+1 queries: $N_PLUS_ONE"
 else
-    echo "  ✅ No obvious N+1 patterns detected"
+    echo "   No obvious N+1 patterns detected"
 fi
 
 # 2. Memory Allocation Analysis
@@ -46,7 +46,7 @@ echo "  Vec allocations: $VEC_ALLOC"
 
 # 3. Async/Concurrency Analysis
 echo ""
-echo "⚡ Async/Concurrency Analysis:"
+echo " Async/Concurrency Analysis:"
 
 # Check for blocking operations in async context
 BLOCKING_OPS=$(grep -r "std::thread::sleep\|std::fs::\|std::io::" src/ --include="*.rs" | wc -l)
@@ -71,7 +71,7 @@ echo "  .expect() calls: $EXPECT_COUNT"
 if [ $UNWRAP_COUNT -gt 10 ]; then
     echo "  ⚠️  High unwrap usage - consider proper error handling"
 else
-    echo "  ✅ Reasonable unwrap usage"
+    echo "   Reasonable unwrap usage"
 fi
 
 # 5. Serialization Analysis
@@ -84,7 +84,7 @@ echo "  JSON operations: $JSON_OPS"
 
 # 6. HTTP Client Analysis
 echo ""
-echo "🌐 HTTP Client Analysis:"
+echo " HTTP Client Analysis:"
 
 # Check for HTTP client usage
 HTTP_CLIENTS=$(grep -r "reqwest::\|Client::new" src/ --include="*.rs" | wc -l)
@@ -92,7 +92,7 @@ echo "  HTTP client operations: $HTTP_CLIENTS"
 
 # 7. Caching Analysis
 echo ""
-echo "💾 Caching Analysis:"
+echo " Caching Analysis:"
 
 # Check for caching usage
 CACHE_OPS=$(grep -r "cache\|Cache\|redis" src/ --include="*.rs" | wc -l)
@@ -100,29 +100,29 @@ echo "  Caching operations: $CACHE_OPS"
 
 # 8. Performance Hotspots
 echo ""
-echo "🔥 Potential Performance Hotspots:"
+echo " Potential Performance Hotspots:"
 
 echo "  Checking for expensive operations in loops..."
 LOOP_EXPENSIVE=$(grep -r "for.*in\|while.*" src/ --include="*.rs" -A 3 | grep -c "sqlx::\|reqwest::\|serde_json::")
 if [ $LOOP_EXPENSIVE -gt 0 ]; then
     echo "  ⚠️  Expensive operations in loops: $LOOP_EXPENSIVE"
 else
-    echo "  ✅ No obvious expensive operations in loops"
+    echo "   No obvious expensive operations in loops"
 fi
 
 # 9. Dependency Analysis
 echo ""
-echo "📚 Dependency Analysis:"
+echo " Dependency Analysis:"
 echo "  Checking Cargo.toml for performance-related dependencies..."
 
 if grep -q "tokio.*features.*full" Cargo.toml; then
     echo "  ⚠️  Using full tokio features - consider selective features"
 else
-    echo "  ✅ Tokio features appear optimized"
+    echo "   Tokio features appear optimized"
 fi
 
 if grep -q "serde.*features.*derive" Cargo.toml; then
-    echo "  ✅ Serde derive feature enabled"
+    echo "   Serde derive feature enabled"
 else
     echo "  ⚠️  Consider enabling serde derive feature"
 fi
@@ -138,23 +138,23 @@ if [ $LARGE_FILES -gt 5 ]; then
     echo "  Largest files:"
     find src/ -name "*.rs" -exec wc -l {} + | sort -nr | head -5
 else
-    echo "  ✅ File sizes are reasonable"
+    echo "   File sizes are reasonable"
 fi
 
 echo ""
-echo "🎯 Performance Optimization Recommendations:"
+echo " Performance Optimization Recommendations:"
 echo "============================================="
 
 # Generate recommendations based on analysis
 RECOMMENDATIONS=0
 
 if [ $CLONE_COUNT -gt 50 ]; then
-    echo "1. 🔄 Reduce excessive cloning - consider using references"
+    echo "1.  Reduce excessive cloning - consider using references"
     RECOMMENDATIONS=$((RECOMMENDATIONS + 1))
 fi
 
 if [ $STRING_ALLOC -gt 100 ]; then
-    echo "2. 📝 Optimize string allocations - use &str where possible"
+    echo "2.  Optimize string allocations - use &str where possible"
     RECOMMENDATIONS=$((RECOMMENDATIONS + 1))
 fi
 
@@ -164,22 +164,22 @@ if [ $UNWRAP_COUNT -gt 20 ]; then
 fi
 
 if [ $BLOCKING_OPS -gt 5 ]; then
-    echo "4. ⚡ Replace blocking operations with async alternatives"
+    echo "4.  Replace blocking operations with async alternatives"
     RECOMMENDATIONS=$((RECOMMENDATIONS + 1))
 fi
 
 if [ $LOOP_EXPENSIVE -gt 0 ]; then
-    echo "5. 🔥 Optimize expensive operations in loops"
+    echo "5.  Optimize expensive operations in loops"
     RECOMMENDATIONS=$((RECOMMENDATIONS + 1))
 fi
 
 if [ $CACHE_OPS -lt 10 ]; then
-    echo "6. 💾 Add more caching for frequently accessed data"
+    echo "6.  Add more caching for frequently accessed data"
     RECOMMENDATIONS=$((RECOMMENDATIONS + 1))
 fi
 
 if [ $RECOMMENDATIONS -eq 0 ]; then
-    echo "✅ No major performance issues detected!"
+    echo " No major performance issues detected!"
     echo "   Your codebase appears well-optimized."
 else
     echo ""
@@ -187,4 +187,4 @@ else
 fi
 
 echo ""
-echo "🏁 Analysis Complete!"
+echo " Analysis Complete!"

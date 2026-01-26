@@ -67,7 +67,7 @@ export default function WithdrawalInterface() {
 
   const loadBalances = async () => {
     try {
-      const response = await fetch('/api/v1/balances', {
+      const response = await fetch('/api/v1/merchants/balance', {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('api_key')}` }
       });
       const data = await response.json();

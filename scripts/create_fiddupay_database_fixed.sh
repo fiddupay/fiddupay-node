@@ -15,7 +15,7 @@ echo ""
 echo "🗑️  Dropping existing database (if exists)..."
 sudo -u postgres dropdb "$DB_NAME" --if-exists
 
-echo "📋 Creating database: $DB_NAME"
+echo " Creating database: $DB_NAME"
 sudo -u postgres createdb "$DB_NAME"
 
 echo "👤 Creating database user (if needed)..."
@@ -29,13 +29,13 @@ END
 \$\$;
 " > /dev/null
 
-echo "🔐 Granting permissions..."
+echo " Granting permissions..."
 sudo -u postgres psql -c "
 GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO fiddupay;
 ALTER DATABASE $DB_NAME OWNER TO fiddupay;
 " > /dev/null
 
-echo "📊 Running migrations in correct order..."
+echo " Running migrations in correct order..."
 cd backend
 
 # Run migrations manually in the correct order
@@ -68,9 +68,9 @@ sudo -u postgres psql -d "$DB_NAME" -f "migrations/20240125000001_performance_in
 cd ..
 
 echo ""
-echo "✅ Database setup completed!"
+echo " Database setup completed!"
 echo ""
-echo "📋 Database Details:"
+echo " Database Details:"
 echo "==================="
 echo "Database: $DB_NAME"
 echo "User: fiddupay"
@@ -78,11 +78,11 @@ echo "Password: )h£,ZfI8T9-U1579<)"
 echo "Connection: postgresql://fiddupay:)h£,ZfI8T9-U1579<)@localhost:5432/$DB_NAME"
 echo ""
 
-echo "🔍 Verifying tables..."
+echo " Verifying tables..."
 sudo -u postgres psql -d "$DB_NAME" -c "\dt" -P pager=off
 
 echo ""
-echo "📊 Table counts:"
+echo " Table counts:"
 sudo -u postgres psql -d "$DB_NAME" -c "
 SELECT schemaname, relname as table_name, n_live_tup as row_count
 FROM pg_stat_user_tables 
@@ -91,4 +91,4 @@ ORDER BY relname;
 " -P pager=off
 
 echo ""
-echo "🎯 FidduPay database is ready for use!"
+echo " FidduPay database is ready for use!"

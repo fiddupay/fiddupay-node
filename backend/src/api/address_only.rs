@@ -7,19 +7,23 @@ use axum::{extract::Query, response::Json, Extension};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CreateAddressOnlyPaymentRequest {
     pub crypto_type: CryptoType,
     pub merchant_address: String,
-    pub amount: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
+    pub requested_amount: Decimal,
 }
 
 #[derive(Debug, Serialize)]
 pub struct AddressOnlyPaymentResponse {
     pub payment_id: String,
     pub gateway_deposit_address: String,
+    #[serde(with = "rust_decimal::serde::str")]
     pub requested_amount: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub customer_amount: Decimal, // Amount customer needs to pay
+    #[serde(with = "rust_decimal::serde::str")]
     pub processing_fee: Decimal,
     pub customer_pays_fee: bool, // Who pays the fee
     pub customer_instructions: String,
@@ -48,7 +52,7 @@ pub async fn create_address_only_payment(
             context.merchant_id,
             request.crypto_type,
             request.merchant_address,
-            request.amount,
+            request.requested_amount,
         )
         .await?;
 

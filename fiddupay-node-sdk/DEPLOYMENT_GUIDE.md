@@ -1,6 +1,6 @@
 # FidduPay Node.js SDK - Modern 2026 Deployment Guide
 
-## 🚀 Complete Deployment Guide for NPM & GitHub
+##  Complete Deployment Guide for NPM & GitHub
 
 ### Prerequisites
 - Node.js 18+ (LTS recommended)
@@ -309,7 +309,7 @@ body:
 
 ---
 
-## 🔐 Step 3: NPM Account Setup (2026 Security)
+##  Step 3: NPM Account Setup (2026 Security)
 
 ### 3.1 Modern NPM Authentication
 ```bash
@@ -335,7 +335,7 @@ npm team add fiddupay:developers your-username
 
 ---
 
-## 🚀 Step 4: Modern Deployment Process (2026)
+##  Step 4: Modern Deployment Process (2026)
 
 ### 4.1 Pre-deployment Checklist
 ```bash
@@ -394,7 +394,7 @@ EOF
 
 ---
 
-## 🎯 Step 5: Publication Process (2026 Method)
+##  Step 5: Publication Process (2026 Method)
 
 ### 5.1 Manual Publication (First Release)
 ```bash
@@ -409,7 +409,7 @@ npm version patch  # or minor/major
 npm publish
 
 # 4. Create GitHub release
-gh release create v1.0.0 --title "v1.0.0 - Initial Release" --notes "🎉 Initial release of FidduPay Node.js SDK"
+gh release create v1.0.0 --title "v1.0.0 - Initial Release" --notes " Initial release of FidduPay Node.js SDK"
 
 # 5. Push tags
 git push --tags
@@ -433,7 +433,7 @@ git push origin main
 
 ---
 
-## 🔒 Step 6: Security & Secrets Setup
+##  Step 6: Security & Secrets Setup
 
 ### 6.1 GitHub Secrets (Required)
 Go to GitHub repo → Settings → Secrets and variables → Actions
@@ -454,7 +454,7 @@ npm publish --provenance
 
 ---
 
-## 📊 Step 7: Monitoring & Analytics (2026)
+##  Step 7: Monitoring & Analytics (2026)
 
 ### 7.1 NPM Package Analytics
 ```bash
@@ -473,7 +473,7 @@ npx npm-check-updates
 
 ---
 
-## 🎉 Step 8: Post-Deployment
+##  Step 8: Post-Deployment
 
 ### 8.1 Documentation Updates
 ```bash
@@ -493,7 +493,7 @@ npx npm-check-updates
 
 ---
 
-## 🔄 Step 9: Continuous Updates (2026 Best Practices)
+##  Step 9: Continuous Updates (2026 Best Practices)
 
 ### 9.1 Automated Dependency Updates
 ```yaml
@@ -519,7 +519,7 @@ updates:
 
 ---
 
-## ✅ Verification Checklist
+##  Verification Checklist
 
 - [ ] Package builds without errors
 - [ ] All tests pass
@@ -549,4 +549,4 @@ updates:
 
 ---
 
-This guide follows 2026 best practices with modern security, automation, and community standards! 🚀
+This guide follows 2026 best practices with modern security, automation, and community standards! 

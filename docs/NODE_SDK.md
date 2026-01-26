@@ -2,7 +2,7 @@
 
 **Official Node.js SDK for FidduPay Cryptocurrency Payment Gateway**
 
-## 🎯 Overview
+##  Overview
 
 The FidduPay Node.js SDK provides a simple, secure way to integrate cryptocurrency payments into Node.js applications. Built to work seamlessly with the Rust backend API.
 
@@ -42,9 +42,9 @@ fiddupay-node/
 
 ---
 
-## 🚀 SDK Features
+##  SDK Features
 
-### ✅ Core Functionality
+###  Core Functionality
 - **Payment Processing**: Create, retrieve, and manage payments
 - **Webhook Handling**: Secure webhook verification and parsing
 - **Merchant Management**: Account settings and configuration
@@ -55,7 +55,7 @@ fiddupay-node/
 - **Retry Logic**: Automatic retry for failed requests
 - **Rate Limiting**: Built-in rate limit handling
 
-### 🔒 Security Features
+###  Security Features
 - **API Key Management**: Secure key storage and rotation
 - **Webhook Verification**: HMAC signature validation
 - **Input Sanitization**: Prevent injection attacks
@@ -64,7 +64,7 @@ fiddupay-node/
 
 ---
 
-## 📋 API Reference
+##  API Reference
 
 ### Installation
 ```bash
@@ -193,7 +193,7 @@ const refund = await fiddupay.refunds.retrieve('ref_1234567890');
 
 ---
 
-## 🛠️ Development Specifications
+##  Development Specifications
 
 ### TypeScript Definitions
 ```typescript
@@ -294,7 +294,7 @@ class FidduPayClient {
 
 ---
 
-## 🧪 Testing Strategy
+##  Testing Strategy
 
 ### Unit Tests
 ```typescript
@@ -339,7 +339,7 @@ describe('Webhooks', () => {
 
 ---
 
-## 📚 Usage Examples
+##  Usage Examples
 
 ### Express.js Integration
 ```typescript
@@ -409,39 +409,39 @@ export class PaymentService {
 
 ---
 
-## 🔧 Development Roadmap
+##  Development Roadmap
 
 ### Phase 1: Core SDK (Q1 2026)
-- ✅ Basic payment operations
-- ✅ Webhook handling
-- ✅ TypeScript definitions
-- ✅ Error handling
-- ✅ Unit tests
+-  Basic payment operations
+-  Webhook handling
+-  TypeScript definitions
+-  Error handling
+-  Unit tests
 
 ### Phase 2: Advanced Features (Q2 2026)
-- 🔄 Merchant management
-- 🔄 Analytics integration
-- 🔄 Refund operations
-- 🔄 Rate limiting
-- 🔄 Retry logic
+-  Merchant management
+-  Analytics integration
+-  Refund operations
+-  Rate limiting
+-  Retry logic
 
 ### Phase 3: Enterprise Features (Q3 2026)
-- 📋 Request signing
-- 📋 Advanced webhook features
-- 📋 Bulk operations
-- 📋 Custom middleware support
-- 📋 Performance optimizations
+-  Request signing
+-  Advanced webhook features
+-  Bulk operations
+-  Custom middleware support
+-  Performance optimizations
 
 ### Phase 4: Ecosystem Integration (Q4 2026)
-- 📋 Framework-specific packages
-- 📋 CLI tools
-- 📋 Development plugins
-- 📋 Monitoring integrations
-- 📋 Advanced documentation
+-  Framework-specific packages
+-  CLI tools
+-  Development plugins
+-  Monitoring integrations
+-  Advanced documentation
 
 ---
 
-## 📖 Documentation Structure
+##  Documentation Structure
 
 ### SDK Documentation
 ```
@@ -469,7 +469,7 @@ examples/
 
 ---
 
-## 🚀 Distribution Strategy
+##  Distribution Strategy
 
 ### NPM Package
 - **Package Name**: `fiddupay-node`
@@ -493,7 +493,7 @@ examples/
 
 ---
 
-## 📊 Success Metrics
+##  Success Metrics
 
 ### Adoption Metrics
 - NPM downloads per month

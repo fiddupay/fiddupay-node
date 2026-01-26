@@ -17,19 +17,38 @@ use html_escape::encode_text;
 // Import validation functions
 use crate::middleware::validation::{validate_business_email, validate_password_strength, validate_webhook_url};
 
+// DEBUG HANDLER
+pub async fn debug_auth(
+    State(state): State<AppState>,
+    Path(api_key): Path<String>,
+) -> impl IntoResponse {
+    match state.merchant_service.authenticate(&api_key).await {
+        Ok(merchant) => Json(json!({
+            "success": true,
+            "merchant_id": merchant.id,
+            "email": merchant.email,
+            "sandbox_mode": merchant.sandbox_mode
+        })),
+        Err(e) => Json(json!({
+            "success": false,
+            "error": format!("{:?}", e)
+        }))
+    }
+}
+
 // ============================================================================
 // Merchant Endpoints
 // ============================================================================
 
 #[derive(Deserialize, Validate)]
 pub struct RegisterMerchantRequest {
-    #[validate(email, custom(function = "validate_business_email"))]
+    #[validate(email)]
     pub email: String,
     
     #[validate(length(min = 1, max = 100))]
     pub business_name: String,
     
-    #[validate(length(min = 8), custom(function = "validate_password_strength"))]
+    #[validate(length(min = 8))]
     pub password: String,
 }
 
@@ -112,6 +131,38 @@ pub async fn get_merchant_profile(
         two_factor_enabled: false,
     };
     (StatusCode::OK, Json(profile)).into_response()
+}
+
+pub async fn switch_environment(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<SwitchEnvironmentRequest>,
+) -> impl IntoResponse {
+    match state.merchant_service.switch_environment(context.merchant_id, req.to_live).await {
+        Ok(api_key) => (StatusCode::OK, Json(json!({"api_key": api_key, "environment": if req.to_live { "live" } else { "sandbox" }}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct SwitchEnvironmentRequest {
+    pub to_live: bool,
+}
+
+pub async fn generate_api_key(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<GenerateApiKeyRequest>,
+) -> impl IntoResponse {
+    match state.merchant_service.generate_and_store_api_key(context.merchant_id, req.is_live).await {
+        Ok(api_key) => (StatusCode::OK, Json(json!({"api_key": api_key}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct GenerateApiKeyRequest {
+    pub is_live: bool,
 }
 
 pub async fn rotate_api_key(

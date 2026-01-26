@@ -1,6 +1,6 @@
-# PayFlow Testing Guide
+# fiddupay Testing Guide
 
-Complete testing guide for PayFlow cryptocurrency payment gateway.
+Complete testing guide for fiddupay cryptocurrency payment gateway.
 
 ## Test Structure
 
@@ -106,10 +106,10 @@ chmod +x test_*.sh
 ### Database Setup
 ```bash
 # Create test database
-createdb payflow_test
+createdb fiddupay_test
 
 # Run migrations
-DATABASE_URL=postgresql://localhost/payflow_test sqlx migrate run
+DATABASE_URL=postgresql://localhost/fiddupay_test sqlx migrate run
 ```
 
 ### Redis Setup
@@ -121,7 +121,7 @@ redis-server --port 6380 --daemonize yes
 ### Environment Variables
 ```bash
 # Test environment
-export DATABASE_URL=postgresql://localhost/payflow_test
+export DATABASE_URL=postgresql://localhost/fiddupay_test
 export REDIS_URL=redis://localhost:6380
 export ENCRYPTION_KEY=test_key_32_bytes_long_for_testing
 export WEBHOOK_SIGNING_KEY=test_webhook_key_32_bytes_long
@@ -240,8 +240,8 @@ open coverage/tarpaulin-report.html
 sudo systemctl status postgresql
 
 # Reset test database
-dropdb payflow_test && createdb payflow_test
-DATABASE_URL=postgresql://localhost/payflow_test sqlx migrate run
+dropdb fiddupay_test && createdb fiddupay_test
+DATABASE_URL=postgresql://localhost/fiddupay_test sqlx migrate run
 ```
 
 #### Redis Connection

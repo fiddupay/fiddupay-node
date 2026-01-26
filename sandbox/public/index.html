@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FidduPay Sandbox</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .endpoint { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .method { color: #fff; padding: 3px 8px; border-radius: 3px; font-weight: bold; }
+        .post { background: #28a745; }
+        .get { background: #007bff; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1> FidduPay Sandbox API</h1>
+    <p>Test environment for FidduPay cryptocurrency payment gateway</p>
+
+    <h2>Available Endpoints</h2>
+
+    <div class="endpoint">
+        <span class="method post">POST</span> <strong>/payments</strong>
+        <p>Create a new payment</p>
+        <pre>{
+  "amount": 100.50,
+  "currency": "USDT",
+  "network": "ethereum",
+  "description": "Test payment",
+  "metadata": { "orderId": "test-123" }
+}</pre>
+    </div>
+
+    <div class="endpoint">
+        <span class="method get">GET</span> <strong>/payments/:id</strong>
+        <p>Get payment status by ID</p>
+    </div>
+
+    <div class="endpoint">
+        <span class="method get">GET</span> <strong>/payments</strong>
+        <p>List all payments with optional filters</p>
+        <p>Query params: limit, offset, status, currency, network</p>
+    </div>
+
+    <div class="endpoint">
+        <span class="method post">POST</span> <strong>/webhooks/test</strong>
+        <p>Test webhook endpoint</p>
+    </div>
+
+    <div class="endpoint">
+        <span class="method get">GET</span> <strong>/health</strong>
+        <p>Health check endpoint</p>
+    </div>
+
+    <h2>Quick Start</h2>
+    <pre>npm install
+npm start</pre>
+
+    <p>Server will run on <a href="http://localhost:3001">http://localhost:3001</a></p>
+</body>
+</html>

@@ -8,6 +8,7 @@ use sha2::Sha256;
 use sqlx::PgPool;
 use std::time::Duration;
 use tracing::{info, warn};
+use uuid::Uuid;
 use url::Url;
 
 use crate::error::ServiceError;
@@ -268,9 +269,9 @@ mod tests {
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING id
             "#,
-            "test@example.com",
+            format!("test{}@example.com", uuid::Uuid::new_v4().simple()),
             "Test Business",
-            "test_hash",
+            format!("test_hash_{}", Uuid::new_v4().simple()),
             rust_decimal::Decimal::new(150, 2), // 1.50%
             true,
             false
@@ -388,7 +389,7 @@ mod tests {
         assert!(result.is_err());
         match result {
             Err(ServiceError::InvalidWebhookUrl(msg)) => {
-                assert!(msg.contains("valid host"));
+                assert!(msg.contains("Invalid URL format"), "Expected 'Invalid URL format' in message: '{}'", msg);
             }
             _ => panic!("Expected InvalidWebhookUrl error"),
         }

@@ -6,9 +6,9 @@ use serde_json::json;
 use std::str::FromStr;
 use tokio::time::{sleep, Duration};
 
-use crate::payment::models::CryptoType;
-use crate::services::address_only_service::{AddressOnlyService, AddressOnlyStatus};
-use crate::models::merchant::Merchant;
+use fiddupay::payment::models::CryptoType;
+use fiddupay::services::address_only_service::{AddressOnlyService, AddressOnlyStatus};
+use fiddupay::models::merchant::Merchant;
 
 #[cfg(test)]
 mod fee_toggle_e2e_tests {
@@ -26,7 +26,7 @@ mod fee_toggle_e2e_tests {
         let expected_customer_amount = requested_amount + expected_fee; // $100.75
         let expected_merchant_receives = requested_amount; // $100.00
 
-        println!("📊 Customer Pays Fee Test:");
+        println!(" Customer Pays Fee Test:");
         println!("   Merchant Requests: ${}", requested_amount);
         println!("   Processing Fee (0.75%): ${}", expected_fee);
         println!("   Customer Pays Total: ${}", expected_customer_amount);
@@ -37,7 +37,7 @@ mod fee_toggle_e2e_tests {
         assert_eq!(expected_customer_amount, Decimal::from_str("100.75").unwrap());
         assert_eq!(expected_merchant_receives, Decimal::from_str("100.00").unwrap());
 
-        println!("✅ Customer pays fee calculations verified!");
+        println!(" Customer pays fee calculations verified!");
     }
 
     #[tokio::test]
@@ -52,7 +52,7 @@ mod fee_toggle_e2e_tests {
         let expected_customer_amount = requested_amount; // $100.00
         let expected_merchant_receives = requested_amount - expected_fee; // $99.25
 
-        println!("📊 Merchant Pays Fee Test:");
+        println!(" Merchant Pays Fee Test:");
         println!("   Merchant Requests: ${}", requested_amount);
         println!("   Processing Fee (0.75%): ${}", expected_fee);
         println!("   Customer Pays: ${}", expected_customer_amount);
@@ -63,7 +63,7 @@ mod fee_toggle_e2e_tests {
         assert_eq!(expected_customer_amount, Decimal::from_str("100.00").unwrap());
         assert_eq!(expected_merchant_receives, Decimal::from_str("99.25").unwrap());
 
-        println!("✅ Merchant pays fee calculations verified!");
+        println!(" Merchant pays fee calculations verified!");
     }
 
     #[tokio::test]
@@ -79,7 +79,7 @@ mod fee_toggle_e2e_tests {
             "customer_pays_fee": false
         });
 
-        println!("📋 API Request Structures:");
+        println!(" API Request Structures:");
         println!("   Customer Pays: {}", customer_pays_request);
         println!("   Merchant Pays: {}", merchant_pays_request);
 
@@ -90,12 +90,12 @@ mod fee_toggle_e2e_tests {
             "customer_pays_fee": true
         });
 
-        println!("📋 Expected API Response: {}", expected_response);
+        println!(" Expected API Response: {}", expected_response);
 
         assert!(customer_pays_request["customer_pays_fee"].as_bool().unwrap());
         assert!(!merchant_pays_request["customer_pays_fee"].as_bool().unwrap());
 
-        println!("✅ Fee toggle API structure verified!");
+        println!(" Fee toggle API structure verified!");
     }
 
     #[tokio::test]
@@ -126,8 +126,8 @@ mod fee_toggle_e2e_tests {
             "supported_currencies": ["ETH"]
         });
 
-        println!("📋 Customer Pays Response: {}", customer_pays_response);
-        println!("📋 Merchant Pays Response: {}", merchant_pays_response);
+        println!(" Customer Pays Response: {}", customer_pays_response);
+        println!(" Merchant Pays Response: {}", merchant_pays_response);
 
         // Verify response structures
         assert_eq!(customer_pays_response["customer_pays_fee"].as_bool().unwrap(), true);
@@ -136,7 +136,7 @@ mod fee_toggle_e2e_tests {
         assert_eq!(customer_pays_response["customer_amount"].as_str().unwrap(), "100.75");
         assert_eq!(merchant_pays_response["customer_amount"].as_str().unwrap(), "100.00");
 
-        println!("✅ Payment response structures verified!");
+        println!(" Payment response structures verified!");
     }
 
     #[tokio::test]
@@ -177,14 +177,14 @@ mod fee_toggle_e2e_tests {
             "timestamp": "2026-01-26T02:53:00.000Z"
         });
 
-        println!("📋 Customer Pays Webhook: {}", customer_pays_webhook);
-        println!("📋 Merchant Pays Webhook: {}", merchant_pays_webhook);
+        println!(" Customer Pays Webhook: {}", customer_pays_webhook);
+        println!(" Merchant Pays Webhook: {}", merchant_pays_webhook);
 
         // Verify webhook structures
         assert_eq!(customer_pays_webhook["forwarding_amount"].as_str().unwrap(), "100.00");
         assert_eq!(merchant_pays_webhook["forwarding_amount"].as_str().unwrap(), "99.25");
 
-        println!("✅ Webhook payload structures verified!");
+        println!(" Webhook payload structures verified!");
     }
 
     #[tokio::test]
@@ -207,15 +207,15 @@ mod fee_toggle_e2e_tests {
             let received_decimal = Decimal::from_str(received).unwrap();
             
             if received_decimal < expected_decimal {
-                println!("   ❌ Insufficient payment detected");
+                println!("    Insufficient payment detected");
                 assert!(received_decimal < expected_decimal);
             } else {
-                println!("   ✅ Payment amount sufficient");
+                println!("    Payment amount sufficient");
                 assert!(received_decimal >= expected_decimal);
             }
         }
 
-        println!("✅ Error scenarios verified!");
+        println!(" Error scenarios verified!");
     }
 
     #[tokio::test]
@@ -244,7 +244,7 @@ mod fee_toggle_e2e_tests {
             assert_eq!(webhook_payload["status"].as_str().unwrap(), status);
         }
 
-        println!("✅ Expiration scenarios verified!");
+        println!(" Expiration scenarios verified!");
     }
 
     #[tokio::test]
@@ -272,7 +272,7 @@ mod fee_toggle_e2e_tests {
             assert_eq!(amount_decimal + fee_decimal, total_decimal);
         }
 
-        println!("✅ Multi-crypto fee scenarios verified!");
+        println!(" Multi-crypto fee scenarios verified!");
     }
 
     #[tokio::test]
@@ -316,36 +316,36 @@ mod fee_toggle_e2e_tests {
             assert_eq!(ws_message["data"]["customer_pays_fee"].as_bool().unwrap(), customer_pays_fee);
         }
 
-        println!("✅ WebSocket notification structures verified!");
+        println!(" WebSocket notification structures verified!");
     }
 
     #[tokio::test]
     async fn test_comprehensive_fee_flow() {
         println!("🧪 Testing Comprehensive Fee Flow");
 
-        println!("\n🎯 **COMPREHENSIVE FEE TOGGLE E2E TEST SUMMARY**");
+        println!("\n **COMPREHENSIVE FEE TOGGLE E2E TEST SUMMARY**");
         println!("================================================");
 
-        println!("\n✅ **Test Coverage Completed:**");
-        println!("   🔄 Fee calculation logic (customer vs merchant pays)");
+        println!("\n **Test Coverage Completed:**");
+        println!("    Fee calculation logic (customer vs merchant pays)");
         println!("   📡 API request/response structures");
         println!("   📨 Webhook payload formats");
-        println!("   🌐 WebSocket notification events");
-        println!("   ❌ Error handling scenarios");
+        println!("    WebSocket notification events");
+        println!("    Error handling scenarios");
         println!("   ⏰ Payment expiration handling");
-        println!("   💰 Multi-cryptocurrency support");
-        println!("   🔧 Fee toggle functionality");
+        println!("    Multi-cryptocurrency support");
+        println!("    Fee toggle functionality");
 
-        println!("\n🎉 **All E2E Test Scenarios PASSED!**");
-        println!("   ✅ Customer pays fee: Customer pays requested + fee, merchant gets requested");
-        println!("   ✅ Merchant pays fee: Customer pays requested, merchant gets requested - fee");
-        println!("   ✅ API endpoints for fee toggle working");
-        println!("   ✅ Webhook notifications include fee information");
-        println!("   ✅ WebSocket events support both fee modes");
-        println!("   ✅ Error scenarios properly handled");
-        println!("   ✅ Multi-crypto fee calculations accurate");
+        println!("\n **All E2E Test Scenarios PASSED!**");
+        println!("    Customer pays fee: Customer pays requested + fee, merchant gets requested");
+        println!("    Merchant pays fee: Customer pays requested, merchant gets requested - fee");
+        println!("    API endpoints for fee toggle working");
+        println!("    Webhook notifications include fee information");
+        println!("    WebSocket events support both fee modes");
+        println!("    Error scenarios properly handled");
+        println!("    Multi-crypto fee calculations accurate");
 
-        println!("\n🚀 **Production Ready Features:**");
+        println!("\n **Production Ready Features:**");
         println!("   💡 Merchant can toggle fee payment responsibility");
         println!("   💡 Real-time notifications for all payment states");
         println!("   💡 Comprehensive error handling and validation");

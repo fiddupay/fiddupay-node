@@ -228,11 +228,13 @@ impl PaymentService {
         let total_pages = ((total as f64) / (page_size as f64)).ceil() as i64;
 
         Ok(PaymentList {
-            payments: payment_responses,
-            total,
-            page,
-            page_size,
-            total_pages,
+            data: payment_responses,
+            pagination: crate::payment::models::PaginationInfo {
+                page,
+                page_size,
+                total_pages,
+                total_count: total,
+            },
         })
     }
 

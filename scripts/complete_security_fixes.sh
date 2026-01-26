@@ -1,10 +1,10 @@
 #!/bin/bash
-# PayFlow - Complete Security Fixes Deployment
+# fiddupay - Complete Security Fixes Deployment
 
 set -e
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║          PayFlow - Complete Security Implementation         ║"
+echo "║          fiddupay - Complete Security Implementation         ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 
 GREEN='\033[0;32m'
@@ -44,7 +44,7 @@ if psql "$DATABASE_URL" -c "SELECT 1;" > /dev/null 2>&1; then
         last_request TIMESTAMP DEFAULT NOW()
     );
     "
-    log "✅ Database migrations completed"
+    log " Database migrations completed"
 else
     warn "⚠️  Database not available - skipping migrations"
 fi
@@ -52,9 +52,9 @@ fi
 # Build with all fixes
 log "Building with complete security fixes..."
 if cargo build --release; then
-    log "✅ Build successful"
+    log " Build successful"
 else
-    error "❌ Build failed"
+    error " Build failed"
 fi
 
 # Run security tests
@@ -64,44 +64,44 @@ log "Running security validation..."
 FIXES_APPLIED=0
 
 if grep -q "encode_text" src/api/handlers.rs; then
-    log "✅ XSS prevention"
+    log " XSS prevention"
     ((FIXES_APPLIED++))
 fi
 
 if [ -f "src/middleware/validation.rs" ]; then
-    log "✅ Input validation"
+    log " Input validation"
     ((FIXES_APPLIED++))
 fi
 
 if [ -f "src/middleware/per_key_rate_limit.rs" ]; then
-    log "✅ Per-key rate limiting"
+    log " Per-key rate limiting"
     ((FIXES_APPLIED++))
 fi
 
 if [ -f "src/middleware/csrf.rs" ]; then
-    log "✅ CSRF protection"
+    log " CSRF protection"
     ((FIXES_APPLIED++))
 fi
 
 if [ -f "src/services/account_lockout_service.rs" ]; then
-    log "✅ Account lockout protection"
+    log " Account lockout protection"
     ((FIXES_APPLIED++))
 fi
 
 # Generate final security report
 cat > FINAL_SECURITY_STATUS.md << EOF
-# PayFlow - Final Security Status
+# fiddupay - Final Security Status
 **Completed:** $(date)
 **Security Rating:** 9.2/10
 
-## ✅ All Critical Fixes Applied ($FIXES_APPLIED/5)
+##  All Critical Fixes Applied ($FIXES_APPLIED/5)
 - [x] XSS Prevention (HTML escaping)
 - [x] Input Validation Framework
 - [x] Per-API-Key Rate Limiting
 - [x] CSRF Protection
 - [x] Account Lockout (Brute Force Protection)
 
-## 🛡️ Security Features Implemented
+##  Security Features Implemented
 - **Authentication**: Optimized API key lookup
 - **Authorization**: Role-based access control
 - **Input Validation**: Comprehensive validation middleware
@@ -112,18 +112,18 @@ cat > FINAL_SECURITY_STATUS.md << EOF
 - **Security Headers**: Complete security header set
 - **Audit Logging**: Comprehensive security event tracking
 
-## 📊 Performance Improvements
+##  Performance Improvements
 - **API Authentication**: 95% faster with indexed lookups
 - **Rate Limiting**: Per-key isolation prevents abuse
 - **Memory Usage**: Efficient cleanup of old tokens/limits
 
-## 🔒 Production Readiness
+##  Production Readiness
 - **SSL/TLS**: HTTPS enforcement
 - **Database**: Indexed for performance
 - **Monitoring**: Security event logging
 - **Error Handling**: No information disclosure
 
-## 🚀 Deployment Ready
+##  Deployment Ready
 All critical security vulnerabilities have been addressed.
 System is ready for production deployment.
 
@@ -136,16 +136,16 @@ EOF
 
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║              🎉 SECURITY FIXES COMPLETE 🎉                 ║"
+echo "║               SECURITY FIXES COMPLETE                  ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
-log "✅ All $FIXES_APPLIED critical security fixes applied"
-log "✅ System hardened against common attacks"
-log "✅ Performance optimized for production"
-log "✅ Ready for production deployment"
+log " All $FIXES_APPLIED critical security fixes applied"
+log " System hardened against common attacks"
+log " Performance optimized for production"
+log " Ready for production deployment"
 echo ""
-log "📋 Final security report: FINAL_SECURITY_STATUS.md"
-log "🚀 Run './security_audit.sh' for final verification"
+log " Final security report: FINAL_SECURITY_STATUS.md"
+log " Run './security_audit.sh' for final verification"
 echo ""
 
 exit 0

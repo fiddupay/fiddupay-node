@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# PayFlow Withdrawal End-to-End Test
+# fiddupay Withdrawal End-to-End Test
 # Tests complete withdrawal workflow with balance setup
 
 set -e
@@ -244,13 +244,13 @@ test_balance_history() {
 
 # Main execution
 main() {
-    echo "🧪 PayFlow Withdrawal End-to-End Test"
+    echo " fiddupay Withdrawal End-to-End Test"
     echo "===================================="
     echo ""
     
     # Check server
     if ! curl -s "$BASE_URL/health" > /dev/null; then
-        error "PayFlow server not running at $BASE_URL"
+        error "fiddupay server not running at $BASE_URL"
     fi
     success "Server is running"
     
@@ -263,18 +263,18 @@ main() {
     test_balance_history
     
     echo ""
-    echo "🎉 Withdrawal End-to-End Test Summary"
+    echo " Withdrawal End-to-End Test Summary"
     echo "===================================="
     success "All withdrawal workflow steps completed successfully!"
     echo ""
     echo "Test Results:"
-    echo "- ✅ Merchant setup with balance"
-    echo "- ✅ Small withdrawal creation (auto-approved)"
-    echo "- ✅ Large withdrawal handling (approval required)"
-    echo "- ✅ Withdrawal retrieval"
-    echo "- ✅ Withdrawal listing"
-    echo "- ✅ Balance management integration"
-    echo "- ✅ Balance history tracking"
+    echo "-  Merchant setup with balance"
+    echo "-  Small withdrawal creation (auto-approved)"
+    echo "-  Large withdrawal handling (approval required)"
+    echo "-  Withdrawal retrieval"
+    echo "-  Withdrawal listing"
+    echo "-  Balance management integration"
+    echo "-  Balance history tracking"
     echo ""
     echo "Test Details:"
     echo "- Merchant ID: $MERCHANT_ID"
@@ -282,7 +282,7 @@ main() {
     echo "- Payment ID: $PAYMENT_ID"
     echo "- Email: $TEST_EMAIL"
     echo ""
-    success "Withdrawal system is fully functional! 💰"
+    success "Withdrawal system is fully functional! "
 }
 
 # Run main function

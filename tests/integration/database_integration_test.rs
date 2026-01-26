@@ -3,7 +3,7 @@ use sqlx::PgPool;
 #[tokio::test]
 async fn test_database_connection() {
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/payflow_test".to_string());
+        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/fiddupay_test".to_string());
     
     let pool = PgPool::connect(&database_url).await.expect("Failed to connect to database");
     
@@ -14,13 +14,13 @@ async fn test_database_connection() {
         .expect("Failed to query merchants");
     
     assert!(result.0 >= 2, "Should have at least 2 test merchants");
-    println!("✅ Found {} merchants", result.0);
+    println!(" Found {} merchants", result.0);
 }
 
 #[tokio::test]
 async fn test_merchant_data() {
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/payflow_test".to_string());
+        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/fiddupay_test".to_string());
     
     let pool = PgPool::connect(&database_url).await.expect("Failed to connect");
     
@@ -34,13 +34,13 @@ async fn test_merchant_data() {
     assert_eq!(merchants.len(), 2);
     assert_eq!(merchants[0].1, "Test Merchant 1");
     assert_eq!(merchants[1].1, "Test Merchant 2");
-    println!("✅ Merchants: {:?}", merchants);
+    println!(" Merchants: {:?}", merchants);
 }
 
 #[tokio::test]
 async fn test_payment_data() {
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/payflow_test".to_string());
+        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/fiddupay_test".to_string());
     
     let pool = PgPool::connect(&database_url).await.expect("Failed to connect");
     
@@ -54,13 +54,13 @@ async fn test_payment_data() {
     assert_eq!(payments.len(), 3);
     assert_eq!(payments[0].0, "PAY-TEST-001");
     assert_eq!(payments[0].1, "PENDING");
-    println!("✅ Payments: {:?}", payments);
+    println!(" Payments: {:?}", payments);
 }
 
 #[tokio::test]
 async fn test_balance_data() {
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/payflow_test".to_string());
+        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/fiddupay_test".to_string());
     
     let pool = PgPool::connect(&database_url).await.expect("Failed to connect");
     
@@ -73,13 +73,13 @@ async fn test_balance_data() {
     .expect("Failed to fetch balances");
     
     assert!(balances.len() >= 3);
-    println!("✅ Balances: {:?}", balances);
+    println!(" Balances: {:?}", balances);
 }
 
 #[tokio::test]
 async fn test_wallet_data() {
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/payflow_test".to_string());
+        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/fiddupay_test".to_string());
     
     let pool = PgPool::connect(&database_url).await.expect("Failed to connect");
     
@@ -91,5 +91,5 @@ async fn test_wallet_data() {
     .expect("Failed to fetch wallets");
     
     assert_eq!(wallets.len(), 3);
-    println!("✅ Wallets: {:?}", wallets);
+    println!(" Wallets: {:?}", wallets);
 }

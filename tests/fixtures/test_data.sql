@@ -1,4 +1,4 @@
--- Test Fixtures for PayFlow Integration Tests
+-- Test Fixtures for FidduPay Integration Tests
 
 -- Insert test merchant
 INSERT INTO merchants (business_name, email, api_key_hash, fee_percentage, is_active, sandbox_mode)

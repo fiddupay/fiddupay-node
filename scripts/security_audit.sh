@@ -1,10 +1,10 @@
 #!/bin/bash
-# PayFlow - Security Audit Script
+# fiddupay - Security Audit Script
 
 set -e
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║          PayFlow - Security Audit                          ║"
+echo "║          fiddupay - Security Audit                          ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -19,7 +19,7 @@ WARNINGS=0
 PASSED=0
 
 check_pass() {
-    echo -e "${GREEN}✅ $1${NC}"
+    echo -e "${GREEN} $1${NC}"
     ((PASSED++))
 }
 
@@ -29,7 +29,7 @@ check_warn() {
 }
 
 check_fail() {
-    echo -e "${RED}❌ $1${NC}"
+    echo -e "${RED} $1${NC}"
     ((ISSUES++))
 }
 
@@ -348,9 +348,9 @@ echo "╔═══════════════════════�
 echo "║              Security Audit Complete                       ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
-echo -e "${GREEN}✅ Passed: $PASSED${NC}"
+echo -e "${GREEN} Passed: $PASSED${NC}"
 echo -e "${YELLOW}⚠️  Warnings: $WARNINGS${NC}"
-echo -e "${RED}❌ Issues: $ISSUES${NC}"
+echo -e "${RED} Issues: $ISSUES${NC}"
 echo ""
 
 if [ $ISSUES -gt 0 ]; then
@@ -360,6 +360,6 @@ elif [ $WARNINGS -gt 5 ]; then
     echo -e "${YELLOW}⚠️  WARNING: Review warnings before production deployment${NC}"
     exit 0
 else
-    echo -e "${GREEN}✅ Security audit passed! Ready for production.${NC}"
+    echo -e "${GREEN} Security audit passed! Ready for production.${NC}"
     exit 0
 fi

@@ -35,7 +35,7 @@ class ApiService {
 
     // Request interceptor to add auth token
     this.api.interceptors.request.use((config: any) => {
-      const token = localStorage.getItem('payflow_token')
+      const token = localStorage.getItem('fiddupay_token')
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
       }
@@ -47,7 +47,7 @@ class ApiService {
       (response: any) => response,
       (error: any) => {
         if (error.response?.status === 401) {
-          localStorage.removeItem('payflow_token')
+          localStorage.removeItem('fiddupay_token')
           window.location.href = '/login'
         }
         return Promise.reject(error)

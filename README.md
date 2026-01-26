@@ -4,7 +4,7 @@
 
 Modern, production-ready cryptocurrency payment gateway for merchants. Accept payments across multiple blockchains with automatic forwarding, real-time notifications, and comprehensive merchant tools.
 
-## 🏗️ Monorepo Structure
+##  Monorepo Structure
 
 ```
 fiddupay/
@@ -19,7 +19,7 @@ fiddupay/
 └── package.json     # Monorepo scripts
 ```
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 - Rust 1.70+
@@ -52,7 +52,7 @@ npm run build:backend
 npm run build:frontend
 ```
 
-## 🔧 Configuration
+##  Configuration
 
 ### Backend (.env)
 ```bash
@@ -68,7 +68,7 @@ ETHEREUM_RPC_URL=your-ethereum-rpc
 VITE_API_URL=http://localhost:8080
 ```
 
-## 📋 Documentation
+##  Documentation
 
 - **[Platform Roadmap](ROADMAP.md)** - Strategic roadmap for dual-tier platform (Personal + Business)
 - **[Node.js SDK Guide](docs/NODE_SDK.md)** - Complete Node.js SDK development documentation
@@ -76,7 +76,7 @@ VITE_API_URL=http://localhost:8080
 - **[Setup Guide](docs/SETUP.md)** - Development and production setup
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment guide
 
-## 🔒 Security
+##  Security
 
 FidduPay has achieved a **10/10 security score** with:
 - XSS Prevention & CSRF Protection
@@ -85,7 +85,7 @@ FidduPay has achieved a **10/10 security score** with:
 - Real-time Threat Detection
 - Account Lockout Protection
 
-## 🌍 Supported Cryptocurrencies
+##  Supported Cryptocurrencies
 
 **5 Major Blockchain Networks:**
 - **Solana** - SOL + USDT (SPL)
@@ -96,6 +96,6 @@ FidduPay has achieved a **10/10 security score** with:
 
 **Total: 10 cryptocurrency options across 5 blockchains**
 
-## 📄 License
+##  License
 
 Copyright © 2026 TechyTro Software. All rights reserved.

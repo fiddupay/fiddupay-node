@@ -2,11 +2,11 @@
 # Configuration Test Script
 # Tests that environment variables are properly loaded and used
 
-echo "🔧 PayFlow Configuration Test"
+echo " fiddupay Configuration Test"
 echo "================================"
 
 # Test 1: Check if config loads without errors
-echo "📋 Test 1: Configuration Loading"
+echo " Test 1: Configuration Loading"
 cd /home/vibes/crypto-payment-gateway
 
 # Create a simple config test
@@ -17,7 +17,7 @@ fn main() {
     // Load .env file
     dotenvy::dotenv().ok();
     
-    println!("✅ Environment variables loaded:");
+    println!(" Environment variables loaded:");
     
     // Test core variables
     println!("  DATABASE_URL: {}", env::var("DATABASE_URL").unwrap_or("NOT SET".to_string()));
@@ -41,7 +41,7 @@ fn main() {
     println!("  DEFAULT_FEE_PERCENTAGE: {}", env::var("DEFAULT_FEE_PERCENTAGE").unwrap_or("NOT SET".to_string()));
     println!("  MIN_PAYMENT_USD: {}", env::var("MIN_PAYMENT_USD").unwrap_or("NOT SET".to_string()));
     
-    println!("\n🎯 Configuration test completed successfully!");
+    println!("\n Configuration test completed successfully!");
 }
 EOF
 
@@ -61,9 +61,9 @@ else
     cargo check --quiet 2>/dev/null
     
     if [ $? -eq 0 ]; then
-        echo "  ✅ Configuration compiles successfully"
+        echo "   Configuration compiles successfully"
     else
-        echo "  ❌ Configuration compilation failed"
+        echo "   Configuration compilation failed"
         cargo check 2>&1 | head -10
     fi
 fi
@@ -71,7 +71,7 @@ fi
 echo ""
 
 # Test 2: Verify no hardcoded values remain
-echo "📋 Test 2: Hardcoded Values Check"
+echo " Test 2: Hardcoded Values Check"
 echo "  Scanning for remaining hardcoded values..."
 
 HARDCODED_FOUND=0
@@ -93,13 +93,13 @@ if [ $PORT_COUNT -gt 0 ]; then
 fi
 
 if [ $HARDCODED_FOUND -eq 0 ]; then
-    echo "  ✅ No hardcoded values found in source code"
+    echo "   No hardcoded values found in source code"
 fi
 
 echo ""
 
 # Test 3: Environment Variable Coverage
-echo "📋 Test 3: Environment Variable Coverage"
+echo " Test 3: Environment Variable Coverage"
 echo "  Checking .env file coverage..."
 
 ENV_VARS_COUNT=$(grep -c "^[A-Z]" .env)
@@ -109,7 +109,7 @@ echo "  .env variables: $ENV_VARS_COUNT"
 echo "  .env.example variables: $ENV_EXAMPLE_COUNT"
 
 if [ $ENV_VARS_COUNT -ge 50 ]; then
-    echo "  ✅ Good environment variable coverage"
+    echo "   Good environment variable coverage"
 else
     echo "  ⚠️  Consider adding more environment variables"
 fi
@@ -117,7 +117,7 @@ fi
 echo ""
 
 # Test 4: Security Configuration
-echo "📋 Test 4: Security Configuration"
+echo " Test 4: Security Configuration"
 echo "  Checking security-related environment variables..."
 
 SECURITY_VARS=("ENCRYPTION_KEY" "WEBHOOK_SIGNING_KEY" "JWT_SECRET" "MAX_LOGIN_ATTEMPTS" "RATE_LIMIT_REQUESTS_PER_MINUTE")
@@ -125,15 +125,15 @@ SECURITY_OK=0
 
 for var in "${SECURITY_VARS[@]}"; do
     if grep -q "^$var=" .env; then
-        echo "  ✅ $var is configured"
+        echo "   $var is configured"
         SECURITY_OK=$((SECURITY_OK + 1))
     else
-        echo "  ❌ $var is missing"
+        echo "   $var is missing"
     fi
 done
 
 if [ $SECURITY_OK -eq ${#SECURITY_VARS[@]} ]; then
-    echo "  ✅ All critical security variables configured"
+    echo "   All critical security variables configured"
 else
     echo "  ⚠️  Some security variables are missing"
 fi
@@ -141,7 +141,7 @@ fi
 echo ""
 
 # Test 5: Feature Flags Test
-echo "📋 Test 5: Feature Flags Test"
+echo " Test 5: Feature Flags Test"
 echo "  Testing feature flag configuration..."
 
 FEATURE_FLAGS=("TWO_FACTOR_ENABLED" "WITHDRAWAL_ENABLED" "MAINTENANCE_MODE" "ANALYTICS_ENABLED")
@@ -150,15 +150,15 @@ FEATURES_OK=0
 for flag in "${FEATURE_FLAGS[@]}"; do
     if grep -q "^$flag=" .env; then
         VALUE=$(grep "^$flag=" .env | cut -d'=' -f2)
-        echo "  ✅ $flag = $VALUE"
+        echo "   $flag = $VALUE"
         FEATURES_OK=$((FEATURES_OK + 1))
     else
-        echo "  ❌ $flag is missing"
+        echo "   $flag is missing"
     fi
 done
 
 if [ $FEATURES_OK -eq ${#FEATURE_FLAGS[@]} ]; then
-    echo "  ✅ All feature flags configured"
+    echo "   All feature flags configured"
 else
     echo "  ⚠️  Some feature flags are missing"
 fi
@@ -166,11 +166,11 @@ fi
 echo ""
 
 # Summary
-echo "🎯 Configuration Test Summary"
+echo " Configuration Test Summary"
 echo "================================"
-echo "✅ Environment variables: Comprehensive coverage"
-echo "✅ Security configuration: All critical variables set"
-echo "✅ Feature flags: Properly configured"
-echo "✅ No hardcoded values in source code"
+echo " Environment variables: Comprehensive coverage"
+echo " Security configuration: All critical variables set"
+echo " Feature flags: Properly configured"
+echo " No hardcoded values in source code"
 echo ""
-echo "🚀 PayFlow is ready for environment-based configuration!"
+echo " fiddupay is ready for environment-based configuration!"

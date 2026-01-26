@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🧪 Running Comprehensive Security Test Suite..."
+echo " Running Comprehensive Security Test Suite..."
 echo "Testing all 26 security features for 10/10 score verification"
 echo ""
 
@@ -19,13 +19,13 @@ FAILED=0
 TOTAL=0
 
 test_pass() {
-    echo -e "${GREEN}✅ PASS: $1${NC}"
+    echo -e "${GREEN} PASS: $1${NC}"
     ((PASSED++))
     ((TOTAL++))
 }
 
 test_fail() {
-    echo -e "${RED}❌ FAIL: $1${NC}"
+    echo -e "${RED} FAIL: $1${NC}"
     ((FAILED++))
     ((TOTAL++))
 }
@@ -36,7 +36,7 @@ test_warn() {
 }
 
 # Set up test environment
-export DATABASE_URL="${DATABASE_URL:-postgresql://vibes:password@localhost:5432/payflow_dev}"
+export DATABASE_URL="${DATABASE_URL:-postgresql://vibes:password@localhost:5432/fiddupay_dev}"
 export SQLX_OFFLINE=false
 
 echo "=== 1. CRITICAL SECURITY FEATURES (4/4) ==="
@@ -318,24 +318,24 @@ echo ""
 # Calculate security score
 SECURITY_SCORE=$(awk "BEGIN {printf \"%.1f\", ($PASSED * 10.0) / $TOTAL}")
 
-echo -e "📊 ${GREEN}PASSED: $PASSED${NC}"
-echo -e "📊 ${RED}FAILED: $FAILED${NC}"
-echo -e "📊 ${YELLOW}TOTAL TESTS: $TOTAL${NC}"
+echo -e " ${GREEN}PASSED: $PASSED${NC}"
+echo -e " ${RED}FAILED: $FAILED${NC}"
+echo -e " ${YELLOW}TOTAL TESTS: $TOTAL${NC}"
 echo ""
-echo -e "🎯 ${GREEN}SECURITY SCORE: $SECURITY_SCORE/10${NC}"
+echo -e " ${GREEN}SECURITY SCORE: $SECURITY_SCORE/10${NC}"
 echo ""
 
 if [ $FAILED -eq 0 ]; then
-    echo -e "${GREEN}🎉 PERFECT SECURITY ACHIEVED!${NC}"
-    echo -e "${GREEN}✅ All security features implemented and tested${NC}"
-    echo -e "${GREEN}🚀 Ready for production deployment${NC}"
+    echo -e "${GREEN} PERFECT SECURITY ACHIEVED!${NC}"
+    echo -e "${GREEN} All security features implemented and tested${NC}"
+    echo -e "${GREEN} Ready for production deployment${NC}"
     exit 0
 elif [ $FAILED -le 2 ]; then
     echo -e "${YELLOW}⚠️  NEAR PERFECT SECURITY${NC}"
-    echo -e "${YELLOW}🔧 Minor issues to address${NC}"
+    echo -e "${YELLOW} Minor issues to address${NC}"
     exit 1
 else
-    echo -e "${RED}❌ SECURITY ISSUES DETECTED${NC}"
+    echo -e "${RED} SECURITY ISSUES DETECTED${NC}"
     echo -e "${RED}🚨 Critical fixes required${NC}"
     exit 2
 fi

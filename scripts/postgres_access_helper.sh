@@ -3,7 +3,7 @@
 # PostgreSQL Password Reset Helper
 # Multiple methods to access PostgreSQL
 
-echo "🔐 PostgreSQL Access Helper"
+echo " PostgreSQL Access Helper"
 echo "==========================="
 echo ""
 
@@ -16,7 +16,7 @@ echo "Method 2: Try peer authentication (no password)"
 echo "-----------------------------------------------"
 echo "Attempting to connect as current user..."
 if sudo -u postgres psql -c '\l' 2>/dev/null; then
-    echo "✅ Peer authentication works!"
+    echo " Peer authentication works!"
     echo ""
     echo "To reset postgres password:"
     echo "sudo -u postgres psql"

@@ -41,9 +41,9 @@ impl TestStatus {
     pub fn emoji(&self) -> &'static str {
         match self {
             TestStatus::NotStarted => "⏳",
-            TestStatus::InProgress => "🔄",
-            TestStatus::Passed => "✅",
-            TestStatus::Failed => "❌",
+            TestStatus::InProgress => "",
+            TestStatus::Passed => "",
+            TestStatus::Failed => "",
             TestStatus::Skipped => "⏭️",
         }
     }
@@ -136,12 +136,12 @@ impl OverallProgress {
     }
 
     pub fn print_progress_report(&self) {
-        println!("\n📊 Hybrid Non-Custodial System - Test Progress Report");
-        println!("=" .repeat(70));
+        println!("\n Hybrid Non-Custodial System - Test Progress Report");
+        println!("{}", "=".repeat(70));
         
-        println!("🎯 Overall Progress: {:.1}% ({}/{})", 
+        println!(" Overall Progress: {:.1}% ({}/{})", 
             self.overall_progress_percent, self.completed_tests, self.total_tests);
-        println!("✅ Passed: {} | ❌ Failed: {} | ⏳ Remaining: {}", 
+        println!(" Passed: {} |  Failed: {} | ⏳ Remaining: {}", 
             self.passed_tests, self.failed_tests, self.total_tests - self.completed_tests);
         
         if let Some(started) = self.started_at {
@@ -149,8 +149,8 @@ impl OverallProgress {
             println!("⏱️ Elapsed Time: {}m {}s", elapsed.num_minutes(), elapsed.num_seconds() % 60);
         }
         
-        println!("\n📋 Phase Progress:");
-        println!("-" .repeat(70));
+        println!("\n Phase Progress:");
+        println!("{}", "-".repeat(70));
         
         let phase_order = vec![
             "phase1", "phase2", "phase3", "phase4", "phase5", 
@@ -165,7 +165,7 @@ impl OverallProgress {
                     0.0
                 };
                 
-                println!("{} {} - {:.1}% ({}/{}) - ✅{} ❌{}", 
+                println!("{} {} - {:.1}% ({}/{}) - {} {}", 
                     phase.status.emoji(),
                     phase.phase_name,
                     progress_percent,
@@ -179,8 +179,8 @@ impl OverallProgress {
         
         // Show failed tests if any
         if self.failed_tests > 0 {
-            println!("\n❌ Failed Tests:");
-            println!("-" .repeat(70));
+            println!("\n Failed Tests:");
+            println!("{}", "-".repeat(70));
             
             for phase in self.phases.values() {
                 for test in &phase.test_results {
@@ -195,7 +195,7 @@ impl OverallProgress {
             }
         }
         
-        println!("=" .repeat(70));
+        println!("{}", "=".repeat(70));
     }
 
     pub fn generate_html_report(&self) -> String {

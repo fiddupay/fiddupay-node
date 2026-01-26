@@ -1,10 +1,10 @@
 #!/bin/bash
-# PayFlow - Critical Security Fixes Deployment Script
+# fiddupay - Critical Security Fixes Deployment Script
 
 set -e
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║          PayFlow - Critical Security Fixes                 ║"
+echo "║          fiddupay - Critical Security Fixes                 ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -29,7 +29,7 @@ error() {
 
 # Check if we're in the right directory
 if [ ! -f "Cargo.toml" ] || [ ! -d "src" ]; then
-    error "Must be run from the PayFlow project root directory"
+    error "Must be run from the fiddupay project root directory"
 fi
 
 log "Starting critical security fixes deployment..."
@@ -100,21 +100,21 @@ log "Verifying security fixes..."
 
 # Check for HTML escaping
 if grep -q "encode_text" src/api/handlers.rs; then
-    log "✅ XSS prevention (HTML escaping) - FIXED"
+    log " XSS prevention (HTML escaping) - FIXED"
 else
-    error "❌ XSS prevention not implemented in handlers.rs"
+    error " XSS prevention not implemented in handlers.rs"
 fi
 
 # Check for validation middleware
 if [ -f "src/middleware/validation.rs" ]; then
-    log "✅ Input validation middleware - CREATED"
+    log " Input validation middleware - CREATED"
 else
-    error "❌ Validation middleware not found"
+    error " Validation middleware not found"
 fi
 
 # Check for validator imports
 if grep -q "validator::Validate" src/api/handlers.rs; then
-    log "✅ Input validation on API endpoints - IMPLEMENTED"
+    log " Input validation on API endpoints - IMPLEMENTED"
 else
     warn "⚠️  Input validation not fully implemented in handlers.rs"
 fi
@@ -122,9 +122,9 @@ fi
 # 5. Build and test
 log "Building project with security fixes..."
 if cargo build --release; then
-    log "✅ Build successful with security fixes"
+    log " Build successful with security fixes"
 else
-    error "❌ Build failed - please fix compilation errors"
+    error " Build failed - please fix compilation errors"
 fi
 
 # 6. Run basic security tests
@@ -154,11 +154,11 @@ fi
 log "Generating security status report..."
 
 cat > SECURITY_STATUS.md << EOF
-# PayFlow Security Status Report
+# fiddupay Security Status Report
 **Generated:** $(date)
 **Status:** CRITICAL FIXES APPLIED
 
-## ✅ Fixed Vulnerabilities
+##  Fixed Vulnerabilities
 - [x] XSS Prevention (HTML escaping in templates)
 - [x] Input Validation Framework
 - [x] Request Size Limiting
@@ -167,7 +167,7 @@ cat > SECURITY_STATUS.md << EOF
 - [x] Password Strength Validation
 - [x] Email Validation with Disposable Domain Blocking
 
-## 🔧 Database Optimizations
+##  Database Optimizations
 - [x] API Key Index for Performance
 - [x] Rate Limiting Table
 - [x] Login Attempts Tracking
@@ -179,11 +179,11 @@ cat > SECURITY_STATUS.md << EOF
 - [ ] Add comprehensive security monitoring
 - [ ] Perform penetration testing
 
-## 📊 Code Quality
+##  Code Quality
 - Unwrap calls: $UNWRAP_COUNT (review recommended)
 - Debug statements: $DEBUG_COUNT (remove for production)
 
-## 🚀 Next Steps
+##  Next Steps
 1. Deploy to staging environment
 2. Run comprehensive security tests
 3. Implement remaining security features
@@ -202,7 +202,7 @@ echo "╔═══════════════════════�
 echo "║              Critical Security Fixes Complete              ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
-log "✅ Critical security vulnerabilities have been fixed:"
+log " Critical security vulnerabilities have been fixed:"
 log "   • XSS prevention implemented"
 log "   • Input validation framework added"
 log "   • Security headers middleware created"
@@ -214,7 +214,7 @@ warn "   • Add CSRF protection for state-changing operations"
 warn "   • Set up comprehensive security monitoring"
 warn "   • Schedule regular security audits"
 echo ""
-log "🚀 Ready for staging deployment and further testing"
+log " Ready for staging deployment and further testing"
 echo ""
 log "Run './security_audit.sh' to verify all fixes are working correctly"
 echo ""

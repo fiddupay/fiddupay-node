@@ -35,15 +35,15 @@ fn test_proper_rpc_methods_documentation() {
     println!("   Returns: array of recent priority fees");
     println!("   Base: 5000 lamports per signature");
     
-    println!("\n✅ All methods use direct RPC calls to blockchain nodes");
-    println!("✅ No hardcoded URLs - uses config.{network}_rpc_url");
-    println!("✅ Real-time gas price fetching");
-    println!("✅ Proper error handling for network issues");
+    println!("\n All methods use direct RPC calls to blockchain nodes");
+    println!(" No hardcoded URLs - uses config RPC URLs");
+    println!(" Real-time gas price fetching");
+    println!(" Proper error handling for network issues");
 }
 
 #[test]
 fn test_fee_collection_mechanism() {
-    println!("💰 FidduPay Fee Collection Mechanism:");
+    println!(" FidduPay Fee Collection Mechanism:");
     
     // Simulate a $100 merchant payment request
     let merchant_requested = Decimal::new(10000, 2); // $100.00
@@ -53,18 +53,18 @@ fn test_fee_collection_mechanism() {
     let platform_fee = merchant_requested * platform_fee_rate;
     let customer_total = merchant_requested + platform_fee;
     
-    println!("\n📊 **Payment Breakdown**:");
+    println!("\n **Payment Breakdown**:");
     println!("   Merchant Requests: ${}", merchant_requested);
     println!("   Platform Fee (0.75%): ${}", platform_fee);
     println!("   Customer Pays Total: ${}", customer_total);
     
     println!("\n💸 **Who Pays What**:");
-    println!("   ❌ Merchant does NOT pay fees");
-    println!("   ✅ Customer pays the platform fee");
-    println!("   ✅ Merchant receives full requested amount");
-    println!("   ✅ Platform earns fee revenue");
+    println!("    Merchant does NOT pay fees");
+    println!("    Customer pays the platform fee");
+    println!("    Merchant receives full requested amount");
+    println!("    Platform earns fee revenue");
     
-    println!("\n🔄 **Settlement Flow**:");
+    println!("\n **Settlement Flow**:");
     println!("   1. Customer pays: ${} in crypto", customer_total);
     println!("   2. Merchant receives: ${} worth of crypto", customer_total);
     println!("   3. Platform tracks: ${} fee earned", platform_fee);
@@ -74,7 +74,7 @@ fn test_fee_collection_mechanism() {
     assert_eq!(platform_fee, Decimal::new(75, 2)); // $0.75
     assert_eq!(customer_total, Decimal::new(10075, 2)); // $100.75
     
-    println!("\n✅ Fee collection mechanism verified!");
+    println!("\n Fee collection mechanism verified!");
 }
 
 #[test]
@@ -88,14 +88,14 @@ fn test_gas_fee_vs_platform_fee_distinction() {
     println!("   - Fetched via RPC methods (eth_gasPrice, etc.)");
     println!("   - Used for withdrawals/transfers");
     
-    println!("\n💰 **Platform Fees (FidduPay Revenue)**:");
+    println!("\n **Platform Fees (FidduPay Revenue)**:");
     println!("   - Paid to FidduPay platform");
     println!("   - Payment processing service fee");
     println!("   - Fixed percentage (0.75% from .env)");
     println!("   - Added to customer payment amount");
     println!("   - Platform's business revenue");
     
-    println!("\n🔄 **Example Transaction**:");
+    println!("\n **Example Transaction**:");
     println!("   Merchant wants: $100");
     println!("   Platform fee: $0.75 (added to customer)");
     println!("   Customer pays: $100.75 in USDT");
@@ -107,5 +107,5 @@ fn test_gas_fee_vs_platform_fee_distinction() {
     println!("   - Platform earns: $0.75 revenue");
     println!("   - Network gets: gas fee");
     
-    println!("\n✅ Clear separation between platform and network fees!");
+    println!("\n Clear separation between platform and network fees!");
 }

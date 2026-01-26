@@ -1,7 +1,7 @@
 #!/bin/bash
 # Test Files Analysis and Cleanup
 
-echo "🧪 Analyzing test files..."
+echo " Analyzing test files..."
 
 # Count files by category
 RUST_TESTS=($(find tests -name "*.rs" | wc -l))
@@ -12,7 +12,7 @@ echo "- $RUST_TESTS Rust test files"
 echo "- $SHELL_TESTS Shell test scripts"
 echo ""
 
-echo "📋 Rust Test Files Analysis:"
+echo " Rust Test Files Analysis:"
 for file in tests/*/*.rs; do
     if [ -f "$file" ]; then
         lines=$(wc -l < "$file")
@@ -22,7 +22,7 @@ for file in tests/*/*.rs; do
 done
 
 echo ""
-echo "📋 Shell Test Scripts Analysis:"
+echo " Shell Test Scripts Analysis:"
 for file in tests/scripts/*.sh; do
     if [ -f "$file" ]; then
         lines=$(wc -l < "$file")
@@ -32,7 +32,7 @@ for file in tests/scripts/*.sh; do
 done
 
 echo ""
-echo "🔍 Identifying duplicates and outdated tests..."
+echo " Identifying duplicates and outdated tests..."
 
 # Check for similar test content
 echo "Potential duplicates:"
@@ -42,7 +42,7 @@ echo "- test_complete_flow.sh vs test_complete_workflows.sh (workflow testing)"
 echo "- test.sh (generic) vs specific test scripts"
 
 echo ""
-echo "📋 Cleanup recommendations:"
+echo " Cleanup recommendations:"
 echo "1. Merge payment_test.rs into payment_listing_tests.rs"
 echo "2. Keep comprehensive_service_test.rs, remove services_test.rs"
 echo "3. Keep test_complete_workflows.sh, remove test_complete_flow.sh"

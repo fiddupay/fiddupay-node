@@ -1,7 +1,7 @@
 #!/bin/bash
-# PayFlow High-Performance Endpoint Load Test
+# fiddupay High-Performance Endpoint Load Test
 
-echo "🚀 PayFlow High-Performance Endpoint Load Test"
+echo " fiddupay High-Performance Endpoint Load Test"
 echo "=============================================="
 
 cd /home/vibes/crypto-payment-gateway
@@ -12,7 +12,7 @@ CONCURRENT_USERS=50
 REQUESTS_PER_USER=20
 TOTAL_REQUESTS=$((CONCURRENT_USERS * REQUESTS_PER_USER))
 
-echo "📊 Test Configuration:"
+echo " Test Configuration:"
 echo "  Base URL: $BASE_URL"
 echo "  Concurrent Users: $CONCURRENT_USERS"
 echo "  Requests per User: $REQUESTS_PER_USER"
@@ -20,13 +20,13 @@ echo "  Total Requests: $TOTAL_REQUESTS"
 echo ""
 
 # Check if server is running
-echo "🔍 Checking server status..."
+echo " Checking server status..."
 if ! curl -s "$BASE_URL/health" > /dev/null 2>&1; then
-    echo "❌ Server not running on $BASE_URL"
+    echo " Server not running on $BASE_URL"
     echo "   Please start the server with: cargo run"
     exit 1
 fi
-echo "✅ Server is running"
+echo " Server is running"
 echo ""
 
 # Create test data directory
@@ -43,7 +43,7 @@ run_concurrent_test() {
     local test_name=$4
     local expected_status=${5:-200}
     
-    echo "🔥 Testing: $test_name"
+    echo " Testing: $test_name"
     echo "   Endpoint: $method $endpoint"
     echo "   Concurrent Users: $CONCURRENT_USERS"
     
@@ -120,7 +120,7 @@ EOF
     
     RPS=$(awk "BEGIN {printf \"%.2f\", $SUCCESS_COUNT/$TOTAL_DURATION}")
     
-    echo "   📊 Results:"
+    echo "    Results:"
     echo "     Total Requests: $TOTAL_REQUESTS_MADE"
     echo "     Successful: $SUCCESS_COUNT ($SUCCESS_RATE%)"
     echo "     Failed: $ERROR_COUNT"
@@ -135,25 +135,25 @@ EOF
     
     # Performance assessment
     if (( $(echo "$SUCCESS_RATE >= 99.0" | bc -l) )); then
-        echo "   ✅ Excellent reliability ($SUCCESS_RATE% success rate)"
+        echo "    Excellent reliability ($SUCCESS_RATE% success rate)"
     elif (( $(echo "$SUCCESS_RATE >= 95.0" | bc -l) )); then
-        echo "   ✅ Good reliability ($SUCCESS_RATE% success rate)"
+        echo "    Good reliability ($SUCCESS_RATE% success rate)"
     else
         echo "   ⚠️  Poor reliability ($SUCCESS_RATE% success rate)"
     fi
     
     if (( $(echo "$P95_TIME < 1.0" | bc -l) )); then
-        echo "   ✅ Excellent performance (P95 < 1s)"
+        echo "    Excellent performance (P95 < 1s)"
     elif (( $(echo "$P95_TIME < 2.0" | bc -l) )); then
-        echo "   ✅ Good performance (P95 < 2s)"
+        echo "    Good performance (P95 < 2s)"
     else
         echo "   ⚠️  Slow performance (P95 >= 2s)"
     fi
     
     if (( $(echo "$RPS >= 100" | bc -l) )); then
-        echo "   ✅ High throughput ($RPS RPS)"
+        echo "    High throughput ($RPS RPS)"
     elif (( $(echo "$RPS >= 50" | bc -l) )); then
-        echo "   ✅ Good throughput ($RPS RPS)"
+        echo "    Good throughput ($RPS RPS)"
     else
         echo "   ⚠️  Low throughput ($RPS RPS)"
     fi
@@ -190,11 +190,11 @@ run_concurrent_test "/api/v1/nonexistent" "GET" "" "404 Handling" 404
 # Test 6: CORS Preflight
 run_concurrent_test "/api/v1/merchants" "OPTIONS" "" "CORS Preflight" 200
 
-echo "🎯 Load Test Summary"
+echo " Load Test Summary"
 echo "==================="
 
 # Overall summary
-echo "📊 Test Results Summary:"
+echo " Test Results Summary:"
 echo ""
 printf "%-25s %-12s %-15s %-15s %-10s\n" "Test Name" "Success %" "Avg Time (s)" "P95 Time (s)" "RPS"
 printf "%-25s %-12s %-15s %-15s %-10s\n" "-------------------------" "----------" "-------------" "-------------" "--------"
@@ -210,7 +210,7 @@ OVERALL_SUCCESS=$(awk -F',' 'NR>1 {sum+=$2; count++} END {printf "%.1f", sum/cou
 OVERALL_P95=$(awk -F',' 'NR>1 {sum+=$4; count++} END {printf "%.3f", sum/count}' "$RESULTS_DIR/summary.csv")
 OVERALL_RPS=$(awk -F',' 'NR>1 {sum+=$5; count++} END {printf "%.1f", sum/count}' "$RESULTS_DIR/summary.csv")
 
-echo "🏆 Overall Performance Score:"
+echo " Overall Performance Score:"
 echo "  Average Success Rate: $OVERALL_SUCCESS%"
 echo "  Average P95 Response Time: ${OVERALL_P95}s"
 echo "  Average Throughput: $OVERALL_RPS RPS"
@@ -246,22 +246,22 @@ echo ""
 echo "📈 Performance Grade: $SCORE/9"
 
 if [ $SCORE -ge 8 ]; then
-    echo "🚀 OUTSTANDING! Your endpoints are highly optimized for concurrent load!"
+    echo " OUTSTANDING! Your endpoints are highly optimized for concurrent load!"
 elif [ $SCORE -ge 6 ]; then
-    echo "✅ EXCELLENT! Your endpoints handle concurrent load very well!"
+    echo " EXCELLENT! Your endpoints handle concurrent load very well!"
 elif [ $SCORE -ge 4 ]; then
-    echo "✅ GOOD! Your endpoints handle concurrent load adequately!"
+    echo " GOOD! Your endpoints handle concurrent load adequately!"
 else
     echo "⚠️  NEEDS IMPROVEMENT! Consider optimizing for better concurrent performance!"
 fi
 
 echo ""
-echo "📁 Detailed results saved to: $RESULTS_DIR/"
-echo "🏁 Load test complete!"
+echo " Detailed results saved to: $RESULTS_DIR/"
+echo " Load test complete!"
 
 # Recommendations
 echo ""
-echo "💡 Performance Recommendations:"
+echo " Performance Recommendations:"
 if (( $(echo "$OVERALL_P95 >= 2.0" | bc -l) )); then
     echo "  - Consider adding response caching for frequently accessed endpoints"
     echo "  - Review database query performance and indexing"

@@ -22,7 +22,6 @@ import StatusPage from '@/pages/StatusPage'
 import SecurityPage from '@/pages/SecurityPage'
 import CompliancePage from '@/pages/CompliancePage'
 import CookiesPage from '@/pages/CookiesPage'
-import ColorTestPage from '@/pages/ColorTestPage'
 import '@/styles/globals.css'
 
 // Lazy load pages for better performance
@@ -76,7 +75,6 @@ const App: React.FC = () => {
             <Route path="/security" element={<Layout><SecurityPage /></Layout>} />
             <Route path="/compliance" element={<Layout><CompliancePage /></Layout>} />
             <Route path="/cookies" element={<Layout><CookiesPage /></Layout>} />
-            <Route path="/color-test" element={<Layout><ColorTestPage /></Layout>} />
             
             {/* Auth routes */}
             <Route path="/login" element={<Layout><LoginPage /></Layout>} />

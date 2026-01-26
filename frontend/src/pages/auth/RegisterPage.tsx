@@ -61,7 +61,7 @@ const RegisterPage: React.FC = () => {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('/api/v1/merchants/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

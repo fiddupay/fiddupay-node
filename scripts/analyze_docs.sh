@@ -1,7 +1,7 @@
 #!/bin/bash
 # Documentation Cleanup and Consolidation Script
 
-echo "📚 Analyzing documentation files..."
+echo " Analyzing documentation files..."
 
 # Categorize files
 SECURITY_FILES=(
@@ -44,7 +44,7 @@ echo "- ${#MAIN_FILES[@]} main documentation files"
 echo ""
 
 # Check for duplicates and outdated content
-echo "🔍 Checking for duplicates and outdated content..."
+echo " Checking for duplicates and outdated content..."
 
 # Security files analysis
 echo "Security files to consolidate:"
@@ -56,7 +56,7 @@ for file in "${SECURITY_FILES[@]}"; do
 done
 
 echo ""
-echo "📋 Consolidation plan:"
+echo " Consolidation plan:"
 echo "1. Keep: SECURITY_AUDIT_REPORT_UPDATED.md (most comprehensive)"
 echo "2. Keep: COMPREHENSIVE_TEST_RESULTS.md (test results)"
 echo "3. Delete: All other security files (duplicates/outdated)"

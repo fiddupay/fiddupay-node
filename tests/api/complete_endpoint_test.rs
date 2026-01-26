@@ -29,7 +29,7 @@ async fn test_01_health_endpoint() {
     assert_eq!(response.status(), 200);
     let body: serde_json::Value = response.json().await.unwrap();
     assert_eq!(body["status"], "healthy");
-    println!("✅ Health endpoint working");
+    println!(" Health endpoint working");
 }
 
 // ============================================================================
@@ -44,7 +44,7 @@ async fn test_02_metrics_requires_auth() {
     let response = client.get(format!("{}/metrics", BASE_URL)).send().await.unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ Metrics requires authentication");
+    println!(" Metrics requires authentication");
 }
 
 #[tokio::test]
@@ -62,7 +62,7 @@ async fn test_03_invalid_api_key() {
     assert_eq!(response.status(), 401);
     let body: serde_json::Value = response.json().await.unwrap();
     assert!(body["error"].as_str().unwrap().contains("Invalid API key"));
-    println!("✅ Invalid API key rejected");
+    println!(" Invalid API key rejected");
 }
 
 #[tokio::test]
@@ -77,7 +77,7 @@ async fn test_04_missing_auth_header() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ Missing auth header rejected");
+    println!(" Missing auth header rejected");
 }
 
 // ============================================================================
@@ -102,7 +102,7 @@ async fn test_05_create_merchant_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ Create merchant requires auth");
+    println!(" Create merchant requires auth");
 }
 
 #[tokio::test]
@@ -117,7 +117,7 @@ async fn test_06_get_merchant_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ Get merchant requires auth");
+    println!(" Get merchant requires auth");
 }
 
 // ============================================================================
@@ -136,7 +136,7 @@ async fn test_07_list_payments_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ List payments requires auth");
+    println!(" List payments requires auth");
 }
 
 #[tokio::test]
@@ -157,7 +157,7 @@ async fn test_08_create_payment_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ Create payment requires auth");
+    println!(" Create payment requires auth");
 }
 
 #[tokio::test]
@@ -172,7 +172,7 @@ async fn test_09_get_payment_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ Get payment requires auth");
+    println!(" Get payment requires auth");
 }
 
 // ============================================================================
@@ -197,7 +197,7 @@ async fn test_10_set_wallet_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ Set wallet requires auth");
+    println!(" Set wallet requires auth");
 }
 
 #[tokio::test]
@@ -212,7 +212,7 @@ async fn test_11_get_wallets_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ Get wallets requires auth");
+    println!(" Get wallets requires auth");
 }
 
 // ============================================================================
@@ -236,7 +236,7 @@ async fn test_12_set_webhook_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ Set webhook requires auth");
+    println!(" Set webhook requires auth");
 }
 
 // ============================================================================
@@ -255,7 +255,7 @@ async fn test_13_get_balance_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ Get balance requires auth");
+    println!(" Get balance requires auth");
 }
 
 // ============================================================================
@@ -281,7 +281,7 @@ async fn test_14_create_withdrawal_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ Create withdrawal requires auth");
+    println!(" Create withdrawal requires auth");
 }
 
 #[tokio::test]
@@ -296,7 +296,7 @@ async fn test_15_list_withdrawals_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ List withdrawals requires auth");
+    println!(" List withdrawals requires auth");
 }
 
 // ============================================================================
@@ -321,7 +321,7 @@ async fn test_16_create_invoice_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ Create invoice requires auth");
+    println!(" Create invoice requires auth");
 }
 
 #[tokio::test]
@@ -336,7 +336,7 @@ async fn test_17_list_invoices_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ List invoices requires auth");
+    println!(" List invoices requires auth");
 }
 
 // ============================================================================
@@ -355,7 +355,7 @@ async fn test_18_get_analytics_no_auth() {
         .unwrap();
     
     assert_eq!(response.status(), 401);
-    println!("✅ Get analytics requires auth");
+    println!(" Get analytics requires auth");
 }
 
 // ============================================================================
@@ -375,7 +375,7 @@ async fn test_19_not_found_endpoint() {
     
     // Should be 404 for truly nonexistent routes
     assert!(response.status() == 404 || response.status() == 401);
-    println!("✅ Nonexistent endpoint handled");
+    println!(" Nonexistent endpoint handled");
 }
 
 #[tokio::test]
@@ -393,5 +393,5 @@ async fn test_20_invalid_json() {
         .unwrap();
     
     assert!(response.status().is_client_error());
-    println!("✅ Invalid JSON rejected");
+    println!(" Invalid JSON rejected");
 }

@@ -1,10 +1,10 @@
 # Price API Reference & Rate Limits
 
-This document outlines the cryptocurrency price APIs used by PayFlow and their respective rate limits for free usage.
+This document outlines the cryptocurrency price APIs used by fiddupay and their respective rate limits for free usage.
 
 ## API Priority Order
 
-PayFlow uses multiple APIs in fallback order to ensure maximum reliability:
+fiddupay uses multiple APIs in fallback order to ensure maximum reliability:
 
 1. **CoinGecko** (Primary)
 2. **CoinCap** (Secondary) 

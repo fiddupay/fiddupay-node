@@ -239,7 +239,7 @@ const LandingPage: React.FC = () => {
             <div className={styles.contactInfo}>
               <p>Need help? Contact our sales team:</p>
               <a href="mailto:sales@techytro.com" className={styles.contactLink}>sales@techytro.com</a>
-              <a href="tel:+1-555-PAYFLOW" className={styles.contactLink}>+1 (555) PAY-FLOW</a>
+              <a href="tel:+1-555-fiddupay" className={styles.contactLink}>+1 (555) PAY-FLOW</a>
             </div>
           </div>
         </div>

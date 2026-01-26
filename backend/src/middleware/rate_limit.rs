@@ -20,12 +20,9 @@ use std::sync::Arc;
 /// Rate limiter instance
 pub type AppRateLimiter = Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>>;
 
-/// Create a rate limiter
-/// 
-/// # Requirements
-/// * 7.3: Limit to 100 requests per minute per API key
-pub fn create_rate_limiter() -> AppRateLimiter {
-    let quota = Quota::per_minute(NonZeroU32::new(100).unwrap());
+/// Create a rate limiter with config
+pub fn create_rate_limiter(requests_per_minute: u32) -> AppRateLimiter {
+    let quota = Quota::per_minute(NonZeroU32::new(requests_per_minute).unwrap_or(NonZeroU32::new(100).unwrap()));
     Arc::new(RateLimiter::direct(quota))
 }
 

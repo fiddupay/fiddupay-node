@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod phase1_tests {
-    use crate::utils::keygen::KeyGenerator;
+    use fiddupay::utils::keygen::KeyGenerator;
 
     #[test]
     fn test_key_generator_evm() {
@@ -17,7 +17,7 @@ mod phase1_tests {
         assert!(wallet.address.starts_with("0x"), "Address should start with 0x");
         assert_eq!(wallet.address.len(), 42, "Address should be 42 chars");
         
-        println!("✅ EVM wallet generation test passed");
+        println!(" EVM wallet generation test passed");
     }
 
     #[test]
@@ -31,12 +31,12 @@ mod phase1_tests {
         assert!(!wallet.private_key.is_empty(), "Private key should not be empty");
         assert!(!wallet.address.is_empty(), "Address should not be empty");
         
-        println!("✅ Solana wallet generation test passed");
+        println!(" Solana wallet generation test passed");
     }
 
     #[test]
     fn test_crypto_type_display() {
-        use crate::models::payment::CryptoType;
+        use fiddupay::models::payment::CryptoType;
         
         println!("🧪 Testing CryptoType display...");
         
@@ -44,6 +44,6 @@ mod phase1_tests {
         assert_eq!(format!("{}", CryptoType::Eth), "ETH");
         assert_eq!(format!("{}", CryptoType::UsdtEth), "USDT-ERC20");
         
-        println!("✅ CryptoType display test passed");
+        println!(" CryptoType display test passed");
     }
 }

@@ -1,19 +1,19 @@
-# PayFlow - Project Structure
+# fiddupay - Project Structure
 
-This document outlines the clean, organized structure of the PayFlow cryptocurrency payment gateway codebase.
+This document outlines the clean, organized structure of the fiddupay cryptocurrency payment gateway codebase.
 
-## 📁 Directory Structure
+##  Directory Structure
 
 ```
 crypto-payment-gateway/
-├── 📁 src/                          # Main source code
-│   ├── 📁 api/                      # HTTP API layer
+├──  src/                          # Main source code
+│   ├──  api/                      # HTTP API layer
 │   │   ├── handlers.rs              # Request handlers
 │   │   ├── routes.rs                # Route definitions
 │   │   ├── state.rs                 # Application state
 │   │   └── mod.rs                   # Module exports
 │   │
-│   ├── 📁 services/                 # Business logic layer
+│   ├──  services/                 # Business logic layer
 │   │   ├── merchant_service.rs      # Merchant management
 │   │   ├── payment_service.rs       # Payment processing
 │   │   ├── balance_service.rs       # Balance management
@@ -32,7 +32,7 @@ crypto-payment-gateway/
 │   │   ├── price_cache_service.rs   # Price caching
 │   │   └── mod.rs                   # Service exports
 │   │
-│   ├── 📁 payment/                  # Payment processing core
+│   ├──  payment/                  # Payment processing core
 │   │   ├── models.rs                # Payment data models
 │   │   ├── processor.rs             # Payment processor
 │   │   ├── verifier.rs              # Payment verification
@@ -42,7 +42,7 @@ crypto-payment-gateway/
 │   │   ├── fee_calculator.rs        # Fee calculations
 │   │   └── mod.rs                   # Payment exports
 │   │
-│   ├── 📁 models/                   # Data models
+│   ├──  models/                   # Data models
 │   │   ├── merchant.rs              # Merchant models
 │   │   ├── payment.rs               # Payment models
 │   │   ├── analytics.rs             # Analytics models
@@ -50,14 +50,14 @@ crypto-payment-gateway/
 │   │   ├── refund.rs                # Refund models
 │   │   └── mod.rs                   # Model exports
 │   │
-│   ├── 📁 middleware/               # HTTP middleware
+│   ├──  middleware/               # HTTP middleware
 │   │   ├── auth.rs                  # Authentication
 │   │   ├── logging.rs               # Request logging
 │   │   ├── rate_limit.rs            # Rate limiting
 │   │   ├── ip_whitelist.rs          # IP filtering
 │   │   └── mod.rs                   # Middleware exports
 │   │
-│   ├── 📁 utils/                    # Utility functions
+│   ├──  utils/                    # Utility functions
 │   │   ├── encryption.rs            # Encryption utilities
 │   │   ├── keygen.rs                # Key generation
 │   │   ├── retry.rs                 # Retry logic
@@ -71,7 +71,7 @@ crypto-payment-gateway/
 │   ├── background_tasks.rs          # Background processing
 │   └── lib.rs                       # Library root
 │
-├── 📁 tests/                        # Integration tests
+├──  tests/                        # Integration tests
 │   ├── api_endpoints_test.rs        # API endpoint tests
 │   ├── payment_test.rs              # Payment flow tests
 │   ├── withdrawal_test.rs           # Withdrawal tests
@@ -87,7 +87,7 @@ crypto-payment-gateway/
 │   ├── analytics_service_tests.rs  # Analytics tests
 │   └── standalone_tests.rs         # Standalone tests
 │
-├── 📁 docs/                         # Documentation
+├──  docs/                         # Documentation
 │   ├── API.md                       # Original API docs
 │   ├── API_REFERENCE.md             # Comprehensive API reference
 │   ├── SETUP.md                     # Setup guide
@@ -96,18 +96,18 @@ crypto-payment-gateway/
 │   ├── DEPLOYMENT.md                # Deployment guide
 │   └── SECURITY.md                  # Security guide
 │
-├── 📁 migrations/                   # Database migrations
+├──  migrations/                   # Database migrations
 │   ├── 001_initial.sql              # Initial schema
 │   ├── 002_add_webhooks.sql         # Webhook tables
 │   └── ...                         # Additional migrations
 │
-├── 📁 scripts/                      # Utility scripts
+├──  scripts/                      # Utility scripts
 │   ├── test.sh                      # Test runner
 │   ├── setup_infrastructure.sh     # Infrastructure setup
 │   ├── security_audit.sh           # Security audit
 │   └── run_tests.sh                 # Test execution
 │
-├── 📄 Configuration Files
+├──  Configuration Files
 ├── Cargo.toml                       # Rust dependencies
 ├── Cargo.lock                       # Dependency lock file
 ├── .env.example                     # Environment template
@@ -117,7 +117,7 @@ crypto-payment-gateway/
 ├── FINAL_FIXES_SUMMARY.md           # Fix summary
 ├── PROJECT_STRUCTURE.md             # This file
 │
-├── 📄 Test Scripts
+├──  Test Scripts
 ├── test_api.sh                      # API testing
 ├── test_basic_api.sh                # Basic API tests
 ├── test_complete_flow.sh            # Complete flow tests
@@ -127,7 +127,7 @@ crypto-payment-gateway/
 └── fix_build.sh                     # Build fixes
 ```
 
-## 🏗️ Architecture Layers
+##  Architecture Layers
 
 ### 1. **API Layer** (`src/api/`)
 - **Purpose**: HTTP request/response handling
@@ -200,7 +200,7 @@ crypto-payment-gateway/
   - Error handling patterns
   - Performance optimizations
 
-## 🔧 Key Design Principles
+##  Key Design Principles
 
 ### 1. **Separation of Concerns**
 - Each layer has a specific responsibility
@@ -227,7 +227,7 @@ crypto-payment-gateway/
 - Integration and unit tests
 - Test utilities and helpers
 
-## 📊 Data Flow
+##  Data Flow
 
 ```
 HTTP Request
@@ -245,7 +245,7 @@ Database/External APIs
 Response (JSON)
 ```
 
-## 🔄 Background Processing
+##  Background Processing
 
 ### Background Tasks (`background_tasks.rs`)
 - **Webhook Retries**: Retry failed webhook deliveries
@@ -273,7 +273,7 @@ Response (JSON)
 - `webhook_deliveries` - Webhook delivery tracking
 - `refunds` - Refund transactions
 
-## 🧪 Testing Strategy
+##  Testing Strategy
 
 ### Test Categories
 1. **Unit Tests** - Individual function testing
@@ -304,7 +304,7 @@ Response (JSON)
 - Connection pooling
 - Query optimization
 
-## 🔒 Security Features
+##  Security Features
 
 ### Authentication & Authorization
 - API key-based authentication
@@ -321,7 +321,7 @@ Response (JSON)
 - Request/response logging
 - Error tracking
 
-## 🚀 Deployment
+##  Deployment
 
 ### Production Readiness
 - Environment-based configuration

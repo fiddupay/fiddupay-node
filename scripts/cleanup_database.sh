@@ -22,12 +22,12 @@ echo ""
 read -p "⚠️  This will DELETE ALL DATA. Are you sure? (type 'DELETE' to confirm): " confirmation
 
 if [ "$confirmation" != "DELETE" ]; then
-    echo "❌ Cleanup cancelled."
+    echo " Cleanup cancelled."
     exit 1
 fi
 
 echo ""
-echo "🧹 Starting database cleanup..."
+echo " Starting database cleanup..."
 
 # SQL cleanup commands
 CLEANUP_SQL="
@@ -76,7 +76,7 @@ echo "🗑️  Truncating tables..."
 if command -v psql &> /dev/null; then
     echo "$CLEANUP_SQL" | psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME"
 else
-    echo "❌ psql not found. Please install PostgreSQL client."
+    echo " psql not found. Please install PostgreSQL client."
     echo ""
     echo "Manual cleanup SQL:"
     echo "==================="
@@ -85,9 +85,9 @@ else
 fi
 
 echo ""
-echo "✅ Database cleanup completed!"
+echo " Database cleanup completed!"
 echo ""
-echo "📊 Verification:"
+echo " Verification:"
 echo "================"
 
 # Verify cleanup
@@ -107,4 +107,4 @@ ORDER BY tablename;
 echo "$VERIFY_SQL" | psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME"
 
 echo ""
-echo "🎯 Database is now clean and ready for fresh data!"
+echo " Database is now clean and ready for fresh data!"

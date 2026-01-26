@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# PayFlow Basic API Test Script
+# fiddupay Basic API Test Script
 # Tests the currently implemented endpoints
 
 set -e
@@ -218,7 +218,7 @@ test_404() {
 # Main execution
 main() {
     echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║              PayFlow Basic API Test Suite                    ║${NC}"
+    echo -e "${BLUE}║              fiddupay Basic API Test Suite                    ║${NC}"
     echo -e "${BLUE}║          (Testing Currently Implemented Features)           ║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
@@ -228,7 +228,7 @@ main() {
         error "Server is not running at $BASE_URL"
     fi
     
-    echo -e "${YELLOW}🧪 Running basic API tests...${NC}"
+    echo -e "${YELLOW} Running basic API tests...${NC}"
     echo ""
     
     test_health
@@ -244,24 +244,24 @@ main() {
     
     echo ""
     echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║                    🎉 TESTS COMPLETED! 🎉                   ║${NC}"
+    echo -e "${GREEN}║                     TESTS COMPLETED!                    ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${BLUE}Test Summary:${NC}"
-    echo "• Server Status: ✅ Running and responding"
-    echo "• Merchant Registration: ✅ Working"
-    echo "• Authentication: ✅ Working (rejects invalid keys)"
-    echo "• Protected Endpoints: ✅ Accessible with valid API key"
+    echo "• Server Status:  Running and responding"
+    echo "• Merchant Registration:  Working"
+    echo "• Authentication:  Working (rejects invalid keys)"
+    echo "• Protected Endpoints:  Accessible with valid API key"
     echo "• Unimplemented Features: ⚠️  Wallet/Webhook setup (placeholders)"
     echo ""
     echo -e "${YELLOW}Current Implementation Status:${NC}"
-    echo "✅ Health check"
-    echo "✅ Merchant registration"
-    echo "✅ Authentication middleware"
-    echo "✅ Payment listing"
-    echo "✅ Balance checking"
-    echo "✅ Analytics"
-    echo "✅ Sandbox mode"
+    echo " Health check"
+    echo " Merchant registration"
+    echo " Authentication middleware"
+    echo " Payment listing"
+    echo " Balance checking"
+    echo " Analytics"
+    echo " Sandbox mode"
     echo "⚠️  Wallet configuration (placeholder)"
     echo "⚠️  Webhook configuration (placeholder)"
     echo "⚠️  Payment creation (requires wallet setup)"

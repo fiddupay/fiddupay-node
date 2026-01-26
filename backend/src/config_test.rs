@@ -4,7 +4,7 @@ fn main() {
     // Load .env file
     dotenvy::dotenv().ok();
     
-    println!("✅ Environment variables loaded:");
+    println!(" Environment variables loaded:");
     
     // Test core variables
     println!("  DATABASE_URL: {}", env::var("DATABASE_URL").unwrap_or("NOT SET".to_string()));
@@ -28,5 +28,5 @@ fn main() {
     println!("  DEFAULT_FEE_PERCENTAGE: {}", env::var("DEFAULT_FEE_PERCENTAGE").unwrap_or("NOT SET".to_string()));
     println!("  MIN_PAYMENT_USD: {}", env::var("MIN_PAYMENT_USD").unwrap_or("NOT SET".to_string()));
     
-    println!("\n🎯 Configuration test completed successfully!");
+    println!("\n Configuration test completed successfully!");
 }

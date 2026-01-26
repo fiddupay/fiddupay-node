@@ -36,7 +36,7 @@ mod gas_fee_tests {
         assert!(estimate.standard_fee > rust_decimal::Decimal::ZERO);
         assert!(estimate.base_fee.is_some());
         
-        println!("✅ Ethereum: {} ETH", estimate.standard_fee);
+        println!(" Ethereum: {} ETH", estimate.standard_fee);
     }
 
     #[tokio::test]
@@ -52,7 +52,7 @@ mod gas_fee_tests {
         assert_eq!(estimate.native_currency, "BNB");
         assert!(estimate.standard_fee > rust_decimal::Decimal::ZERO);
         
-        println!("✅ BSC: {} BNB", estimate.standard_fee);
+        println!(" BSC: {} BNB", estimate.standard_fee);
     }
 
     #[tokio::test]
@@ -68,7 +68,7 @@ mod gas_fee_tests {
         assert_eq!(estimate.native_currency, "MATIC");
         assert!(estimate.standard_fee > rust_decimal::Decimal::ZERO);
         
-        println!("✅ Polygon: {} MATIC", estimate.standard_fee);
+        println!(" Polygon: {} MATIC", estimate.standard_fee);
     }
 
     #[tokio::test]
@@ -84,7 +84,7 @@ mod gas_fee_tests {
         assert_eq!(estimate.native_currency, "ARB");
         assert!(estimate.standard_fee > rust_decimal::Decimal::ZERO);
         
-        println!("✅ Arbitrum: {} ARB", estimate.standard_fee);
+        println!(" Arbitrum: {} ARB", estimate.standard_fee);
     }
 
     #[tokio::test]
@@ -101,7 +101,7 @@ mod gas_fee_tests {
         assert!(estimate.standard_fee > rust_decimal::Decimal::ZERO);
         assert!(estimate.base_fee.is_some());
         
-        println!("✅ Solana: {} SOL", estimate.standard_fee);
+        println!(" Solana: {} SOL", estimate.standard_fee);
     }
 
     #[tokio::test]
@@ -116,7 +116,7 @@ mod gas_fee_tests {
         assert_eq!(estimates.len(), 5);
         
         for (network, estimate) in estimates {
-            println!("✅ {}: {} {}", network.to_uppercase(), estimate.standard_fee, estimate.native_currency);
+            println!(" {}: {} {}", network.to_uppercase(), estimate.standard_fee, estimate.native_currency);
             assert!(estimate.standard_fee > rust_decimal::Decimal::ZERO);
         }
     }

@@ -14,6 +14,9 @@ pub enum ServiceError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
 
+    #[error("Database error: {0}")]
+    DatabaseError(String),
+
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
 
@@ -150,7 +153,7 @@ impl IntoResponse for ServiceError {
                 "INVALID_REFUND_AMOUNT",
                 msg.as_str(),
             ),
-            ServiceError::Database(_) | ServiceError::Json(_) | ServiceError::Internal(_) | ServiceError::InternalError(_) => (
+            ServiceError::Database(_) | ServiceError::DatabaseError(_) | ServiceError::Json(_) | ServiceError::Internal(_) | ServiceError::InternalError(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "INTERNAL_SERVER_ERROR",
                 "Internal server error",

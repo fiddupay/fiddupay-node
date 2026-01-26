@@ -1,7 +1,7 @@
 #!/bin/bash
 # Advanced Stress Test with Authentication
 
-echo "🔥 PayFlow Advanced Stress Test"
+echo " fiddupay Advanced Stress Test"
 echo "==============================="
 
 cd /home/vibes/crypto-payment-gateway
@@ -11,7 +11,7 @@ STRESS_USERS=100
 STRESS_DURATION=60  # seconds
 API_KEY="${API_KEY:-}"
 
-echo "📊 Stress Test Configuration:"
+echo " Stress Test Configuration:"
 echo "  Base URL: $BASE_URL"
 echo "  Concurrent Users: $STRESS_USERS"
 echo "  Test Duration: ${STRESS_DURATION}s"
@@ -19,10 +19,10 @@ echo ""
 
 # Check server
 if ! curl -s "$BASE_URL/health" > /dev/null 2>&1; then
-    echo "❌ Server not running on $BASE_URL"
+    echo " Server not running on $BASE_URL"
     exit 1
 fi
-echo "✅ Server is running"
+echo " Server is running"
 
 # Create results directory
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -37,7 +37,7 @@ stress_test_endpoint() {
     local data=${4:-""}
     local test_name=$5
     
-    echo "🔥 Stress Testing: $test_name"
+    echo " Stress Testing: $test_name"
     echo "   Duration: ${STRESS_DURATION}s with $STRESS_USERS concurrent users"
     
     # Create stress test script
@@ -113,7 +113,7 @@ EOF
     done
     
     # Monitor progress
-    echo "   🔄 Running stress test..."
+    echo "    Running stress test..."
     for i in $(seq 1 $STRESS_DURATION); do
         sleep 1
         printf "   Progress: %d/%d seconds\r" $i $STRESS_DURATION
@@ -157,7 +157,7 @@ EOF
             P95_TIME="0"
         fi
         
-        echo "   📊 Stress Test Results:"
+        echo "    Stress Test Results:"
         echo "     Total Requests: $TOTAL_REQUESTS"
         echo "     Successful: $SUCCESS_REQUESTS ($SUCCESS_RATE%)"
         echo "     Failed: $ERROR_REQUESTS"
@@ -170,21 +170,21 @@ EOF
         
         # Performance assessment
         if (( $(echo "$RPS >= 200" | bc -l) )); then
-            echo "   🚀 EXCELLENT throughput under stress!"
+            echo "    EXCELLENT throughput under stress!"
         elif (( $(echo "$RPS >= 100" | bc -l) )); then
-            echo "   ✅ Good throughput under stress"
+            echo "    Good throughput under stress"
         else
             echo "   ⚠️  Low throughput under stress"
         fi
         
         if (( $(echo "$SUCCESS_RATE >= 95" | bc -l) )); then
-            echo "   ✅ Excellent reliability under stress"
+            echo "    Excellent reliability under stress"
         else
             echo "   ⚠️  Reliability issues under stress"
         fi
         
     else
-        echo "   ❌ No requests completed"
+        echo "    No requests completed"
         RPS="0"
         SUCCESS_RATE="0"
         AVG_TIME="0"
@@ -212,7 +212,7 @@ stress_test_endpoint "/metrics" "GET" "" "" "Metrics Stress"
 INVALID_DATA='{"invalid":"data"}'
 stress_test_endpoint "/api/v1/merchants/register" "POST" "" "$INVALID_DATA" "Error Handling Stress"
 
-echo "🎯 Stress Test Summary"
+echo " Stress Test Summary"
 echo "====================="
 
 printf "%-25s %-12s %-15s %-15s %-10s\n" "Test Name" "Success %" "Avg Time (s)" "P95 Time (s)" "RPS"
@@ -223,5 +223,5 @@ tail -n +2 "$RESULTS_DIR/stress_summary.csv" | while IFS=',' read -r name succes
 done
 
 echo ""
-echo "📁 Stress test results saved to: $RESULTS_DIR/"
-echo "🏁 Stress test complete!"
+echo " Stress test results saved to: $RESULTS_DIR/"
+echo " Stress test complete!"

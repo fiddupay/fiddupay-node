@@ -133,7 +133,7 @@ impl PaymentVerifier {
 
         // 4. Check if payment is already confirmed
         if payment.status == "CONFIRMED" {
-            info!("✅ Payment {} already confirmed", payment_id);
+            info!(" Payment {} already confirmed", payment_id);
             return Ok(true);
         }
 
@@ -188,7 +188,7 @@ impl PaymentVerifier {
         // 9. If enough confirmations, confirm the payment (Requirements 3.4, 3.7)
         if (blockchain_tx.confirmations as i32) >= payment.required_confirmations.unwrap_or(1) {
             self.confirm_payment(payment_id, merchant_id).await?;
-            info!("✅ Payment {} confirmed with {} confirmations for merchant {}!",
+            info!(" Payment {} confirmed with {} confirmations for merchant {}!",
                 payment_id, blockchain_tx.confirmations, merchant_id);
             return Ok(true);
         } else {
@@ -283,7 +283,7 @@ impl PaymentVerifier {
 
         // Log fee recording for audit trail (Requirement 6.3)
         info!(
-            "✅ Payment {} confirmed for merchant {} - Fee recorded: {} crypto (${}) at {}% rate",
+            " Payment {} confirmed for merchant {} - Fee recorded: {} crypto (${}) at {}% rate",
             payment_id,
             merchant_id,
             payment.fee_amount,
@@ -331,7 +331,7 @@ impl PaymentVerifier {
         .execute(&self.db_pool)
         .await?;
 
-        warn!("❌ Payment {} marked as failed: {}", payment_id, reason);
+        warn!(" Payment {} marked as failed: {}", payment_id, reason);
         Ok(())
     }
 
@@ -396,7 +396,7 @@ impl PaymentVerifier {
 
         tx.commit().await?;
 
-        info!("💰 Partial payment recorded for payment {}: {} (total: {}/{})", 
+        info!(" Partial payment recorded for payment {}: {} (total: {}/{})", 
             payment_id, amount, payment.total_paid, payment.amount);
 
         Ok(is_complete)

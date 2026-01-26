@@ -124,7 +124,7 @@ impl SolanaMonitor {
             }
         }
 
-        info!("✅ Found {} SOL transactions", blockchain_txs.len());
+        info!(" Found {} SOL transactions", blockchain_txs.len());
         Ok(blockchain_txs)
     }
 
@@ -249,7 +249,7 @@ impl SolanaMonitor {
                     }
                 }
                 Err(e) => {
-                    error!("❌ Error fetching transactions: {}", e);
+                    error!(" Error fetching transactions: {}", e);
                 }
             }
 

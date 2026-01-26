@@ -1,7 +1,19 @@
-# PayFlow API Reference
+# FidduPay API Reference
 
-**Version**: 1.0  
-**Base URL**: `https://api.payflow.com` (Production) | `http://localhost:8080` (Development)
+**Version**: 2.0  
+**Base URL**: 
+- Production: `https://api.fiddupay.com`
+- Sandbox: `https://api-sandbox.fiddupay.com`
+- Local Development: `http://localhost:8080`
+- Local Sandbox: `http://localhost:3001`
+
+## Sandbox Environment
+
+Test your integration using our sandbox environment:
+- **Sandbox URL**: `https://api-sandbox.fiddupay.com`
+- **Local Sandbox**: Run `npm start` in `/sandbox` directory  
+- **Test API Key**: `sandbox_test_key_12345`
+- **Postman Collection**: Available in `/docs/postman/`
 
 ## Authentication
 
@@ -501,7 +513,7 @@ List withdrawals.
 
 ## Webhooks
 
-PayFlow sends webhook notifications for payment events.
+fiddupay sends webhook notifications for payment events.
 
 ### Webhook Events
 
@@ -531,7 +543,7 @@ PayFlow sends webhook notifications for payment events.
 
 ### Webhook Security
 
-Webhooks are signed using HMAC-SHA256. Verify the signature using the `X-PayFlow-Signature` header:
+Webhooks are signed using HMAC-SHA256. Verify the signature using the `X-fiddupay-Signature` header:
 
 ```python
 import hmac
@@ -577,13 +589,13 @@ def verify_webhook(payload, signature, secret):
 ## SDKs and Libraries
 
 ### Official SDKs
-- **Node.js**: `npm install @payflow/node-sdk`
-- **Python**: `pip install payflow-python`
-- **PHP**: `composer require payflow/php-sdk`
+- **Node.js**: `npm install @fiddupay/node-sdk`
+- **Python**: `pip install fiddupay-python`
+- **PHP**: `composer require fiddupay/php-sdk`
 
 ### Community SDKs
-- **Go**: `go get github.com/payflow/go-sdk`
-- **Ruby**: `gem install payflow-ruby`
+- **Go**: `go get github.com/fiddupay/go-sdk`
+- **Ruby**: `gem install fiddupay-ruby`
 
 ## Testing
 
@@ -613,7 +625,7 @@ Use these test addresses for sandbox testing:
 
 ## Support
 
-- **Documentation**: https://docs.payflow.com
-- **Support Email**: support@payflow.com
-- **Status Page**: https://status.payflow.com
-- **Discord**: https://discord.gg/payflow
+- **Documentation**: https://docs.fiddupay.com
+- **Support Email**: support@fiddupay.com
+- **Status Page**: https://status.fiddupay.com
+- **Discord**: https://discord.gg/fiddupay

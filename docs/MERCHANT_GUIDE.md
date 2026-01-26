@@ -1,12 +1,12 @@
-# PayFlow Merchant Integration Guide
+# fiddupay Merchant Integration Guide
 
-Complete guide for merchants to integrate PayFlow cryptocurrency payment gateway.
+Complete guide for merchants to integrate fiddupay cryptocurrency payment gateway.
 
 ## Quick Start
 
 ### 1. Register Account
 ```bash
-curl -X POST https://api.payflow.com/api/v1/merchants/register \
+curl -X POST https://api.fiddupay.com/api/v1/merchants/register \
   -H "Content-Type: application/json" \
   -d '{
     "business_name": "My Store",
@@ -25,7 +25,7 @@ Response:
 
 ### 2. Configure Wallets
 ```bash
-curl -X PUT https://api.payflow.com/api/v1/merchants/wallets \
+curl -X PUT https://api.fiddupay.com/api/v1/merchants/wallets \
   -H "Authorization: Bearer your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -36,7 +36,7 @@ curl -X PUT https://api.payflow.com/api/v1/merchants/wallets \
 
 ### 3. Set Webhook
 ```bash
-curl -X PUT https://api.payflow.com/api/v1/merchants/webhook \
+curl -X PUT https://api.fiddupay.com/api/v1/merchants/webhook \
   -H "Authorization: Bearer your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -46,7 +46,7 @@ curl -X PUT https://api.payflow.com/api/v1/merchants/webhook \
 
 ### 4. Create Payment
 ```bash
-curl -X POST https://api.payflow.com/api/v1/payments \
+curl -X POST https://api.fiddupay.com/api/v1/payments \
   -H "Authorization: Bearer your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -63,9 +63,9 @@ curl -X POST https://api.payflow.com/api/v1/payments \
 #### WooCommerce Plugin
 ```php
 <?php
-class PayFlow_Gateway extends WC_Payment_Gateway {
+class fiddupay_Gateway extends WC_Payment_Gateway {
     public function __construct() {
-        $this->id = 'payflow';
+        $this->id = 'fiddupay';
         $this->title = 'Cryptocurrency';
         $this->description = 'Pay with cryptocurrency';
         $this->api_key = $this->get_option('api_key');
@@ -92,9 +92,9 @@ class PayFlow_Gateway extends WC_Payment_Gateway {
 #### Shopify Integration
 ```javascript
 // Shopify checkout extension
-const payflowCheckout = {
+const fiddupayCheckout = {
     async createPayment(orderData) {
-        const response = await fetch('/api/payflow/create-payment', {
+        const response = await fetch('/api/fiddupay/create-payment', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -118,15 +118,15 @@ const payflowCheckout = {
 
 #### Node.js SDK
 ```javascript
-const PayFlow = require('@payflow/node-sdk');
+const fiddupay = require('@fiddupay/node-sdk');
 
-const payflow = new PayFlow({
+const fiddupay = new fiddupay({
     apiKey: 'your_api_key',
     environment: 'production' // or 'sandbox'
 });
 
 // Create payment
-const payment = await payflow.payments.create({
+const payment = await fiddupay.payments.create({
     amount_usd: '100.00',
     crypto_type: 'USDT_ETH',
     description: 'Order #12345',
@@ -142,10 +142,10 @@ console.log('QR Code:', payment.qr_code_data);
 
 #### Python SDK
 ```python
-import payflow
+import fiddupay
 
-client = payflow.Client(
-    api_key='your_api_key',
+client = fiddupay.Client(
+    api_key='YOUR_API_KEY',
     environment='production'
 )
 
@@ -183,7 +183,7 @@ def verify_webhook(payload, signature, secret):
 @app.route('/webhook', methods=['POST'])
 def handle_webhook():
     payload = request.get_data(as_text=True)
-    signature = request.headers.get('X-PayFlow-Signature')
+    signature = request.headers.get('X-fiddupay-Signature')
     
     if not verify_webhook(payload, signature, WEBHOOK_SECRET):
         return 'Invalid signature', 401
@@ -209,11 +209,11 @@ def handle_webhook():
 ```mermaid
 sequenceDiagram
     Customer->>Merchant: Checkout
-    Merchant->>PayFlow: Create Payment
-    PayFlow->>Merchant: Payment Details
+    Merchant->>fiddupay: Create Payment
+    fiddupay->>Merchant: Payment Details
     Merchant->>Customer: Payment Page
     Customer->>Blockchain: Send Crypto
-    PayFlow->>Merchant: Webhook Notification
+    fiddupay->>Merchant: Webhook Notification
     Merchant->>Customer: Order Confirmation
 ```
 
@@ -239,11 +239,11 @@ sequenceDiagram
 ### Sandbox Mode
 ```bash
 # Enable sandbox
-curl -X POST https://api.payflow.com/api/v1/merchants/sandbox/enable \
+curl -X POST https://api.fiddupay.com/api/v1/merchants/sandbox/enable \
   -H "Authorization: Bearer your_api_key"
 
 # Simulate payment
-curl -X POST https://api.payflow.com/api/v1/sandbox/simulate-payment \
+curl -X POST https://api.fiddupay.com/api/v1/sandbox/simulate-payment \
   -H "Authorization: Bearer your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -301,15 +301,15 @@ Use these addresses for sandbox testing:
 ## Support
 
 ### Resources
-- **API Documentation**: https://docs.payflow.com
-- **SDKs**: https://github.com/payflow
-- **Status Page**: https://status.payflow.com
-- **Support**: support@payflow.com
+- **API Documentation**: https://docs.fiddupay.com
+- **SDKs**: https://github.com/fiddupay
+- **Status Page**: https://status.fiddupay.com
+- **Support**: support@fiddupay.com
 
 ### Community
-- **Discord**: https://discord.gg/payflow
-- **GitHub**: https://github.com/payflow
-- **Stack Overflow**: Tag `payflow`
+- **Discord**: https://discord.gg/fiddupay
+- **GitHub**: https://github.com/fiddupay
+- **Stack Overflow**: Tag `fiddupay`
 
 ```
 Step 1: Sign Up
@@ -694,7 +694,7 @@ Components:
 └─> ID: abc123xyz (12 characters, unique)
 ```
 
-**Current Implementation:** ✅ Done
+**Current Implementation:**  Done
 
 ### 6.2 QR Code Format
 
@@ -711,7 +711,7 @@ Bitcoin (Future):
 bitcoin:1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa?amount=0.001
 ```
 
-**Current Implementation:** ✅ Text-based QR (upgrade to image recommended)
+**Current Implementation:**  Text-based QR (upgrade to image recommended)
 
 ### 6.3 Dynamic QR Codes (Future)
 
@@ -731,10 +731,10 @@ Features:
 
 ```
 Current Implementation:
-├─> API keys hashed with Argon2 ✅
+├─> API keys hashed with Argon2 
 ├─> Keys prefixed: live_ or test_
-├─> Key rotation supported ✅
-└─> Keys never logged in plaintext ✅
+├─> Key rotation supported 
+└─> Keys never logged in plaintext 
 ```
 
 **Best Practices:**
@@ -766,7 +766,7 @@ POST /api/v1/merchants/api-keys/rotate
 ### 7.3 IP Whitelisting
 
 ```
-Current Implementation: ✅
+Current Implementation: 
 ├─> Merchant adds allowed IPs
 ├─> Supports CIDR ranges
 ├─> Max 10 entries per merchant
@@ -788,7 +788,7 @@ Authorization: Bearer live_abc123...
 ### 7.4 Webhook Signatures
 
 ```
-Current Implementation: ✅
+Current Implementation: 
 ├─> HMAC-SHA256 signature
 ├─> Included in X-Signature header
 ├─> Timestamp in X-Timestamp header
@@ -816,7 +816,7 @@ function verifyWebhook(payload, signature, timestamp, secret) {
 ### 7.5 Rate Limiting
 
 ```
-Current Implementation: ✅
+Current Implementation: 
 ├─> 100 requests per minute per API key
 ├─> Returns 429 when exceeded
 └─> Resets every minute
@@ -840,11 +840,11 @@ Proposed Features:
 ### 8.1 Currently Supported
 
 ```
-✅ Solana (SOL)
-✅ USDT on Solana (SPL)
-✅ USDT on BSC (BEP20)
-✅ USDT on Arbitrum
-✅ USDT on Polygon
+ Solana (SOL)
+ USDT on Solana (SPL)
+ USDT on BSC (BEP20)
+ USDT on Arbitrum
+ USDT on Polygon
 ```
 
 ### 8.2 Merchant Currency Toggle (Future Feature)
@@ -925,7 +925,7 @@ Current Events:
 ### 9.2 Webhook Retry Logic
 
 ```
-Current Implementation: ✅
+Current Implementation: 
 ├─> Retry up to 5 times
 ├─> Exponential backoff: 1s, 2s, 4s, 8s, 16s
 ├─> Logs all attempts
@@ -954,7 +954,7 @@ Proposed Notifications:
 ### 10.1 Available Analytics
 
 ```
-Current Implementation: ✅
+Current Implementation: 
 ├─> Total volume (USD)
 ├─> Payment counts (successful/failed)
 ├─> Total fees paid
@@ -991,7 +991,7 @@ Response:
 ### 10.2 CSV Export
 
 ```
-Current Implementation: ✅
+Current Implementation: 
 GET /api/v1/analytics/export?from=2026-01-01&to=2026-01-31
 
 Returns CSV with:
@@ -1062,12 +1062,12 @@ POST   /api/v1/sandbox/payments/:payment_id/simulate
 
 ## NEXT STEPS FOR MERCHANTS
 
-1. ✅ Register account
-2. ✅ Configure wallet addresses
-3. ✅ Set webhook URL
-4. ✅ Test in sandbox mode
-5. ✅ Integrate API
-6. ✅ Go live!
+1.  Register account
+2.  Configure wallet addresses
+3.  Set webhook URL
+4.  Test in sandbox mode
+5.  Integrate API
+6.  Go live!
 
 **Support:** support@yourdomain.com
 **Documentation:** https://docs.yourdomain.com

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# PayFlow Sandbox End-to-End Test
+# fiddupay Sandbox End-to-End Test
 # Tests complete merchant workflow in sandbox mode
 
 set -e
@@ -39,9 +39,9 @@ warning() {
 
 # Check if server is running
 check_server() {
-    log "Checking if PayFlow server is running..."
+    log "Checking if fiddupay server is running..."
     if ! curl -s "$BASE_URL/health" > /dev/null; then
-        error "PayFlow server not running at $BASE_URL"
+        error "fiddupay server not running at $BASE_URL"
     fi
     success "Server is running"
 }
@@ -276,7 +276,7 @@ test_balance() {
 
 # Main execution
 main() {
-    echo "🧪 PayFlow Sandbox End-to-End Test"
+    echo " fiddupay Sandbox End-to-End Test"
     echo "=================================="
     echo ""
     
@@ -293,7 +293,7 @@ main() {
     test_balance
     
     echo ""
-    echo "🎉 Sandbox End-to-End Test Summary"
+    echo " Sandbox End-to-End Test Summary"
     echo "================================="
     success "All sandbox workflow steps completed successfully!"
     echo ""

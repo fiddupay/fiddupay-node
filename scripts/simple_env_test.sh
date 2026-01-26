@@ -2,22 +2,22 @@
 # Simple Environment Variable Test
 # Tests environment variable loading without compilation
 
-echo "🔧 PayFlow Environment Variable Test"
+echo " fiddupay Environment Variable Test"
 echo "===================================="
 
 cd /home/vibes/crypto-payment-gateway
 
 # Load .env file
 if [ -f .env ]; then
-    echo "✅ .env file found"
+    echo " .env file found"
     source .env
 else
-    echo "❌ .env file not found"
+    echo " .env file not found"
     exit 1
 fi
 
 echo ""
-echo "📋 Testing Core Environment Variables:"
+echo " Testing Core Environment Variables:"
 
 # Test database configuration
 echo "  DATABASE_URL: ${DATABASE_URL:0:30}..." 
@@ -59,7 +59,7 @@ echo "  RATE_LIMIT_REQUESTS_PER_MINUTE: $RATE_LIMIT_REQUESTS_PER_MINUTE"
 echo "  RATE_LIMIT_BURST_SIZE: $RATE_LIMIT_BURST_SIZE"
 
 echo ""
-echo "📊 Environment Variable Statistics:"
+echo " Environment Variable Statistics:"
 ENV_COUNT=$(grep -c "^[A-Z]" .env)
 echo "  Total variables in .env: $ENV_COUNT"
 
@@ -73,7 +73,7 @@ for var in "${CRITICAL_VARS[@]}"; do
     if [ -n "${!var}" ]; then
         CONFIGURED_COUNT=$((CONFIGURED_COUNT + 1))
     else
-        echo "  ❌ Missing: $var"
+        echo "   Missing: $var"
         MISSING_COUNT=$((MISSING_COUNT + 1))
     fi
 done
@@ -81,14 +81,14 @@ done
 echo "  Critical variables configured: $CONFIGURED_COUNT/${#CRITICAL_VARS[@]}"
 
 echo ""
-echo "🎯 Test Results:"
+echo " Test Results:"
 if [ $MISSING_COUNT -eq 0 ]; then
-    echo "✅ All critical environment variables are configured"
-    echo "✅ PayFlow can load configuration from environment"
-    echo "✅ No hardcoded values detected in configuration"
+    echo " All critical environment variables are configured"
+    echo " fiddupay can load configuration from environment"
+    echo " No hardcoded values detected in configuration"
     echo ""
-    echo "🚀 Environment configuration is ready for production!"
+    echo " Environment configuration is ready for production!"
 else
     echo "⚠️  Some critical variables are missing"
-    echo "📝 Please check your .env file configuration"
+    echo " Please check your .env file configuration"
 fi

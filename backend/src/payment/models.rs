@@ -197,7 +197,9 @@ impl CryptoType {
 /// Payment creation request
 #[derive(Debug, Deserialize)]
 pub struct CreatePaymentRequest {
+    #[serde(with = "rust_decimal::serde::str")]
     pub amount: Decimal,
+    #[serde(with = "rust_decimal::serde::str_option")]
     pub amount_usd: Option<Decimal>,
     pub crypto_type: CryptoType,
     pub description: Option<String>,
@@ -212,7 +214,9 @@ pub struct CreatePaymentRequest {
 pub struct PaymentResponse {
     pub payment_id: String,
     pub crypto_type: CryptoType,
+    #[serde(with = "rust_decimal::serde::str")]
     pub amount: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub amount_usd: Decimal,
     pub to_address: String,
     pub status: PaymentStatus,
@@ -227,7 +231,9 @@ pub struct PaymentResponse {
     pub deposit_address: Option<String>,
     pub payment_link: Option<String>,
     pub qr_code_data: Option<String>,
+    #[serde(with = "rust_decimal::serde::str_option")]
     pub fee_amount: Option<Decimal>,
+    #[serde(with = "rust_decimal::serde::str_option")]
     pub fee_amount_usd: Option<Decimal>,
     pub transaction_hash: Option<String>,
     pub partial_payments: Option<serde_json::Value>,
@@ -273,11 +279,16 @@ pub struct PaymentFilters {
 
 #[derive(Debug, Serialize)]
 pub struct PaymentList {
-    pub payments: Vec<PaymentResponse>,
-    pub total: i64,
+    pub data: Vec<PaymentResponse>,
+    pub pagination: PaginationInfo,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PaginationInfo {
     pub page: i64,
     pub page_size: i64,
     pub total_pages: i64,
+    pub total_count: i64,
 }
 
 pub type PaymentTransaction = crate::models::payment::Payment;

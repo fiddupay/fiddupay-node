@@ -1,4 +1,4 @@
-// PayFlow - End-to-End Workflow Tests
+// fiddupay - End-to-End Workflow Tests
 
 use sqlx::PgPool;
 use crypto_payment_gateway::services::{
@@ -14,7 +14,7 @@ use std::{str::FromStr, sync::Arc};
 
 async fn setup_test_db() -> PgPool {
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://vibes:password@localhost:5432/payflow_test".to_string());
+        .unwrap_or_else(|_| "postgresql://vibes:password@localhost:5432/fiddupay_test".to_string());
     
     PgPool::connect(&database_url)
         .await

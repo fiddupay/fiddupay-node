@@ -1,10 +1,10 @@
 #!/bin/bash
-# PayFlow - Production Infrastructure Setup Script
+# fiddupay - Production Infrastructure Setup Script
 
 set -e
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║     PayFlow - Production Infrastructure Setup             ║"
+echo "║     fiddupay - Production Infrastructure Setup             ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -16,7 +16,7 @@ NC='\033[0m'
 
 # Check if running as root
 if [ "$EUID" -eq 0 ]; then 
-   echo -e "${RED}❌ Do not run as root${NC}"
+   echo -e "${RED} Do not run as root${NC}"
    exit 1
 fi
 
@@ -25,15 +25,15 @@ echo ""
 
 # Generate encryption key
 ENCRYPTION_KEY=$(openssl rand -hex 32)
-echo -e "${GREEN}✅ Generated ENCRYPTION_KEY${NC}"
+echo -e "${GREEN} Generated ENCRYPTION_KEY${NC}"
 
 # Generate webhook signing key
 WEBHOOK_SIGNING_KEY=$(openssl rand -hex 32)
-echo -e "${GREEN}✅ Generated WEBHOOK_SIGNING_KEY${NC}"
+echo -e "${GREEN} Generated WEBHOOK_SIGNING_KEY${NC}"
 
 # Generate JWT secret (for future use)
 JWT_SECRET=$(openssl rand -hex 32)
-echo -e "${GREEN}✅ Generated JWT_SECRET${NC}"
+echo -e "${GREEN} Generated JWT_SECRET${NC}"
 
 echo ""
 echo "=== Step 2: Create Production Environment File ==="
@@ -47,7 +47,7 @@ cat > .env.production <<EOF
 # WARNING: Keep this file secure! Contains sensitive keys.
 
 # Database Configuration
-DATABASE_URL=postgresql://payflow_user:CHANGE_THIS_PASSWORD@localhost:5432/payflow_production
+DATABASE_URL=postgresql://fiddupay_user:CHANGE_THIS_PASSWORD@localhost:5432/fiddupay_production
 DATABASE_MAX_CONNECTIONS=50
 
 # Redis Configuration
@@ -117,14 +117,14 @@ MAINTENANCE_MODE=false
 SQLX_OFFLINE=true
 EOF
 
-echo -e "${GREEN}✅ Created .env.production${NC}"
+echo -e "${GREEN} Created .env.production${NC}"
 echo ""
 
 echo "=== Step 3: Security Checklist ==="
 echo ""
 echo "File Permissions:"
 chmod 600 .env.production
-echo -e "${GREEN}✅ Set .env.production to 600 (owner read/write only)${NC}"
+echo -e "${GREEN} Set .env.production to 600 (owner read/write only)${NC}"
 
 echo ""
 echo "=== Step 4: Database Setup Instructions ==="
@@ -132,16 +132,16 @@ echo ""
 echo "Run these commands to setup production database:"
 echo ""
 echo "  # Create database user"
-echo "  sudo -u postgres psql -c \"CREATE USER payflow_user WITH PASSWORD 'STRONG_PASSWORD_HERE';\""
+echo "  sudo -u postgres psql -c \"CREATE USER fiddupay_user WITH PASSWORD 'STRONG_PASSWORD_HERE';\""
 echo ""
 echo "  # Create database"
-echo "  sudo -u postgres psql -c \"CREATE DATABASE payflow_production OWNER payflow_user;\""
+echo "  sudo -u postgres psql -c \"CREATE DATABASE fiddupay_production OWNER fiddupay_user;\""
 echo ""
 echo "  # Grant privileges"
-echo "  sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE payflow_production TO payflow_user;\""
+echo "  sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE fiddupay_production TO fiddupay_user;\""
 echo ""
 echo "  # Run migrations"
-echo "  DATABASE_URL='postgresql://payflow_user:PASSWORD@localhost:5432/payflow_production' sqlx migrate run"
+echo "  DATABASE_URL='postgresql://fiddupay_user:PASSWORD@localhost:5432/fiddupay_production' sqlx migrate run"
 echo ""
 
 echo "=== Step 5: Redis Setup Instructions ==="
@@ -183,7 +183,7 @@ echo ""
 echo "  sudo ufw allow 22/tcp    # SSH"
 echo "  sudo ufw allow 80/tcp    # HTTP"
 echo "  sudo ufw allow 443/tcp   # HTTPS"
-echo "  sudo ufw allow 8080/tcp  # PayFlow (if not behind proxy)"
+echo "  sudo ufw allow 8080/tcp  # fiddupay (if not behind proxy)"
 echo "  sudo ufw enable"
 echo ""
 
@@ -191,9 +191,9 @@ echo "=== Step 8: Systemd Service ==="
 echo ""
 echo "Create systemd service file:"
 echo ""
-cat > payflow.service <<EOF
+cat > fiddupay.service <<EOF
 [Unit]
-Description=PayFlow Cryptocurrency Payment Gateway
+Description=fiddupay Cryptocurrency Payment Gateway
 After=network.target postgresql.service redis.service
 
 [Service]
@@ -210,20 +210,20 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-echo -e "${GREEN}✅ Created payflow.service${NC}"
+echo -e "${GREEN} Created fiddupay.service${NC}"
 echo ""
 echo "Install service:"
-echo "  sudo cp payflow.service /etc/systemd/system/"
+echo "  sudo cp fiddupay.service /etc/systemd/system/"
 echo "  sudo systemctl daemon-reload"
-echo "  sudo systemctl enable payflow"
-echo "  sudo systemctl start payflow"
+echo "  sudo systemctl enable fiddupay"
+echo "  sudo systemctl start fiddupay"
 echo ""
 
 echo "=== Step 9: Nginx Reverse Proxy (Optional) ==="
 echo ""
 echo "Create Nginx config:"
 echo ""
-cat > payflow.nginx <<EOF
+cat > fiddupay.nginx <<EOF
 server {
     listen 80;
     server_name yourdomain.com;
@@ -252,7 +252,7 @@ server {
     limit_req_zone \$binary_remote_addr zone=api:10m rate=100r/m;
     limit_req zone=api burst=20 nodelay;
     
-    # Proxy to PayFlow
+    # Proxy to fiddupay
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;
@@ -278,11 +278,11 @@ server {
 }
 EOF
 
-echo -e "${GREEN}✅ Created payflow.nginx${NC}"
+echo -e "${GREEN} Created fiddupay.nginx${NC}"
 echo ""
 echo "Install Nginx config:"
-echo "  sudo cp payflow.nginx /etc/nginx/sites-available/payflow"
-echo "  sudo ln -s /etc/nginx/sites-available/payflow /etc/nginx/sites-enabled/"
+echo "  sudo cp fiddupay.nginx /etc/nginx/sites-available/fiddupay"
+echo "  sudo ln -s /etc/nginx/sites-available/fiddupay /etc/nginx/sites-enabled/"
 echo "  sudo nginx -t"
 echo "  sudo systemctl restart nginx"
 echo ""
@@ -297,9 +297,9 @@ echo "  tar xvfz prometheus-*.tar.gz"
 echo "  cd prometheus-*"
 echo "  ./prometheus --config.file=prometheus.yml"
 echo ""
-echo "  # Add PayFlow metrics endpoint to prometheus.yml:"
+echo "  # Add fiddupay metrics endpoint to prometheus.yml:"
 echo "  scrape_configs:"
-echo "    - job_name: 'payflow'"
+echo "    - job_name: 'fiddupay'"
 echo "      static_configs:"
 echo "        - targets: ['localhost:8080']"
 echo ""
@@ -310,26 +310,26 @@ echo "Setup automated backups:"
 echo ""
 cat > backup.sh <<'BACKUP_EOF'
 #!/bin/bash
-# PayFlow Database Backup Script
+# fiddupay Database Backup Script
 
-BACKUP_DIR="/var/backups/payflow"
+BACKUP_DIR="/var/backups/fiddupay"
 DATE=$(date +%Y%m%d_%H%M%S)
-DB_NAME="payflow_production"
-DB_USER="payflow_user"
+DB_NAME="fiddupay_production"
+DB_USER="fiddupay_user"
 
 mkdir -p $BACKUP_DIR
 
 # Backup database
-pg_dump -U $DB_USER $DB_NAME | gzip > $BACKUP_DIR/payflow_$DATE.sql.gz
+pg_dump -U $DB_USER $DB_NAME | gzip > $BACKUP_DIR/fiddupay_$DATE.sql.gz
 
 # Keep only last 30 days
-find $BACKUP_DIR -name "payflow_*.sql.gz" -mtime +30 -delete
+find $BACKUP_DIR -name "fiddupay_*.sql.gz" -mtime +30 -delete
 
-echo "Backup completed: payflow_$DATE.sql.gz"
+echo "Backup completed: fiddupay_$DATE.sql.gz"
 BACKUP_EOF
 
 chmod +x backup.sh
-echo -e "${GREEN}✅ Created backup.sh${NC}"
+echo -e "${GREEN} Created backup.sh${NC}"
 echo ""
 echo "Add to crontab (daily at 2 AM):"
 echo "  0 2 * * * $(pwd)/backup.sh"
@@ -339,11 +339,11 @@ echo "╔═══════════════════════�
 echo "║              Infrastructure Setup Complete                 ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
-echo -e "${GREEN}✅ Production keys generated${NC}"
-echo -e "${GREEN}✅ Environment file created${NC}"
-echo -e "${GREEN}✅ Service file created${NC}"
-echo -e "${GREEN}✅ Nginx config created${NC}"
-echo -e "${GREEN}✅ Backup script created${NC}"
+echo -e "${GREEN} Production keys generated${NC}"
+echo -e "${GREEN} Environment file created${NC}"
+echo -e "${GREEN} Service file created${NC}"
+echo -e "${GREEN} Nginx config created${NC}"
+echo -e "${GREEN} Backup script created${NC}"
 echo ""
 echo -e "${YELLOW}⚠️  IMPORTANT: Update these in .env.production:${NC}"
 echo "  1. DATABASE_URL password"
@@ -364,7 +364,7 @@ echo "  9. Run security audit (./security_audit.sh)"
 echo ""
 echo "Files created:"
 echo "  • .env.production"
-echo "  • payflow.service"
-echo "  • payflow.nginx"
+echo "  • fiddupay.service"
+echo "  • fiddupay.nginx"
 echo "  • backup.sh"
 echo ""

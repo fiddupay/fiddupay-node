@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "PayFlow Cryptocurrency Payment Gateway API",
-    "_postman_id": "payflow-api-v1",
-    "description": "Complete API collection for PayFlow cryptocurrency payment gateway. Modern payment processing across multiple blockchains with automatic forwarding and real-time notifications.",
+    "name": "fiddupay Cryptocurrency Payment Gateway API",
+    "_postman_id": "fiddupay-api-v1",
+    "description": "Complete API collection for fiddupay cryptocurrency payment gateway. Modern payment processing across multiple blockchains with automatic forwarding and real-time notifications.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "1.0.0"
   },
@@ -27,7 +27,7 @@
       "key": "api_key",
       "value": "your_api_key_here",
       "type": "string",
-      "description": "Your PayFlow API key"
+      "description": "Your fiddupay API key"
     },
     {
       "key": "merchant_id",

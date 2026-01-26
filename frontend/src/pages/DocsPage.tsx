@@ -384,7 +384,7 @@ const DocsPage: React.FC = () => {
                 </ul>
               </div>
               <div className={styles.environmentCard}>
-                <h3>🚀 Production Mode</h3>
+                <h3> Production Mode</h3>
                 <ul>
                   <li>API keys start with <code>sk_live_</code></li>
                   <li>Real blockchain transactions</li>
@@ -1139,10 +1139,10 @@ const DocsPage: React.FC = () => {
                 </div>
                 <div className={styles.codeExample}>
                   <pre><code>{`const FidduPay = require('fiddupay-node');
-const payflow = new FidduPay('sk_test_...');
+const fiddupay = new FidduPay('sk_test_...');
 
 // Create a payment
-const payment = await payflow.payments.create({
+const payment = await fiddupay.payments.create({
   amount_usd: '100.00',
   crypto_type: 'USDT_ETH',
   description: 'Order #12345'

@@ -17,13 +17,13 @@ TEST_DB_URL="postgresql://test_user:test_pass@localhost:5432/fiddupay_test"
 BACKEND_DIR="backend"
 FRONTEND_DIR="frontend"
 
-echo -e "${BLUE}🧪 Hybrid Non-Custodial System - Test Suite${NC}"
+echo -e "${BLUE} Hybrid Non-Custodial System - Test Suite${NC}"
 echo "=" | tr -d '\n'; for i in {1..60}; do echo -n "="; done; echo
 
 # Function to print test phase header
 print_phase_header() {
     local phase_name="$1"
-    echo -e "\n${BLUE}🚀 $phase_name${NC}"
+    echo -e "\n${BLUE} $phase_name${NC}"
     echo "-" | tr -d '\n'; for i in {1..50}; do echo -n "-"; done; echo
 }
 
@@ -36,17 +36,17 @@ run_test_phase() {
     print_phase_header "Phase $phase_num: $phase_name"
     
     if eval "$test_command"; then
-        echo -e "${GREEN}✅ Phase $phase_num PASSED${NC}"
+        echo -e "${GREEN} Phase $phase_num PASSED${NC}"
         return 0
     else
-        echo -e "${RED}❌ Phase $phase_num FAILED${NC}"
+        echo -e "${RED} Phase $phase_num FAILED${NC}"
         return 1
     fi
 }
 
 # Function to setup test environment
 setup_test_env() {
-    echo -e "${YELLOW}🔧 Setting up test environment...${NC}"
+    echo -e "${YELLOW} Setting up test environment...${NC}"
     
     # Check if test database exists
     if ! psql "$TEST_DB_URL" -c '\q' 2>/dev/null; then
@@ -60,15 +60,15 @@ setup_test_env() {
     DATABASE_URL="$TEST_DB_URL" sqlx migrate run || echo "Migrations completed"
     cd ..
     
-    echo -e "${GREEN}✅ Test environment ready${NC}"
+    echo -e "${GREEN} Test environment ready${NC}"
 }
 
 # Function to cleanup test environment
 cleanup_test_env() {
-    echo -e "${YELLOW}🧹 Cleaning up test environment...${NC}"
+    echo -e "${YELLOW} Cleaning up test environment...${NC}"
     # Optional: Drop test database
     # dropdb fiddupay_test 2>/dev/null || true
-    echo -e "${GREEN}✅ Cleanup completed${NC}"
+    echo -e "${GREEN} Cleanup completed${NC}"
 }
 
 # Main test execution
@@ -77,8 +77,8 @@ main() {
     local passed_phases=0
     local failed_phases=0
     
-    echo -e "${BLUE}📋 Test Plan: $total_phases phases, 89 total tests${NC}"
-    echo -e "${BLUE}🎯 Target: 100% success rate${NC}\n"
+    echo -e "${BLUE} Test Plan: $total_phases phases, 89 total tests${NC}"
+    echo -e "${BLUE} Target: 100% success rate${NC}\n"
     
     # Setup test environment
     setup_test_env
@@ -147,21 +147,21 @@ main() {
     fi
     
     # Print final results
-    echo -e "\n${BLUE}📊 Final Test Results${NC}"
+    echo -e "\n${BLUE} Final Test Results${NC}"
     echo "=" | tr -d '\n'; for i in {1..60}; do echo -n "="; done; echo
     echo -e "Total Phases: $total_phases"
-    echo -e "${GREEN}✅ Passed Phases: $passed_phases${NC}"
-    echo -e "${RED}❌ Failed Phases: $failed_phases${NC}"
+    echo -e "${GREEN} Passed Phases: $passed_phases${NC}"
+    echo -e "${RED} Failed Phases: $failed_phases${NC}"
     
     local success_rate=$(( (passed_phases * 100) / total_phases ))
     echo -e "📈 Success Rate: $success_rate%"
     
     if [ $failed_phases -eq 0 ]; then
-        echo -e "\n${GREEN}🎉 ALL TESTS PASSED! System ready for production.${NC}"
+        echo -e "\n${GREEN} ALL TESTS PASSED! System ready for production.${NC}"
         cleanup_test_env
         exit 0
     else
-        echo -e "\n${RED}❌ Some tests failed. Please review and fix issues.${NC}"
+        echo -e "\n${RED} Some tests failed. Please review and fix issues.${NC}"
         cleanup_test_env
         exit 1
     fi

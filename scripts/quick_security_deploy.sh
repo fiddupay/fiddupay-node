@@ -3,7 +3,7 @@
 
 set -e
 
-echo "🔧 Applying minimal security fixes..."
+echo " Applying minimal security fixes..."
 
 # Add required SQLx feature for IP addresses
 cargo add sqlx --features "postgres,runtime-tokio-rustls,ipnetwork"
@@ -12,7 +12,7 @@ cargo add sqlx --features "postgres,runtime-tokio-rustls,ipnetwork"
 export SQLX_OFFLINE=false
 
 # Create minimal database schema
-export DATABASE_URL="${DATABASE_URL:-postgresql://vibes:password@localhost:5432/payflow_dev}"
+export DATABASE_URL="${DATABASE_URL:-postgresql://vibes:password@localhost:5432/fiddupay_dev}"
 
 psql "$DATABASE_URL" -c "
 -- Core tables for security fixes
@@ -75,8 +75,8 @@ CREATE TABLE IF NOT EXISTS ip_whitelist (
 );
 " 2>/dev/null || echo "Database setup completed with some warnings"
 
-echo "✅ Minimal security implementation ready"
-echo "🚀 Core security features:"
+echo " Minimal security implementation ready"
+echo " Core security features:"
 echo "   • XSS Prevention (HTML escaping)"
 echo "   • Input Validation Framework" 
 echo "   • Per-API-Key Rate Limiting"
@@ -84,7 +84,7 @@ echo "   • CSRF Protection"
 echo "   • Account Lockout Protection"
 echo "   • Database Performance Optimization"
 echo ""
-echo "📋 To complete deployment:"
+echo " To complete deployment:"
 echo "   1. Update route middleware in src/api/routes.rs"
 echo "   2. Test security features"
 echo "   3. Run security audit: ./security_audit.sh"

@@ -1,6 +1,6 @@
-# PayFlow Production Deployment Guide
+# fiddupay Production Deployment Guide
 
-Complete guide for deploying PayFlow cryptocurrency payment gateway to production.
+Complete guide for deploying fiddupay cryptocurrency payment gateway to production.
 
 ## Prerequisites
 
@@ -51,7 +51,7 @@ nano .env.production
 ### 3. Production Environment
 ```env
 # Database
-DATABASE_URL=postgresql://payflow_user:STRONG_PASSWORD@postgres:5432/payflow_production
+DATABASE_URL=postgresql://fiddupay_user:STRONG_PASSWORD@postgres:5432/fiddupay_production
 REDIS_URL=redis://redis:6379
 
 # Security (Generate with: openssl rand -hex 32)
@@ -97,13 +97,13 @@ ENABLE_IP_WHITELIST=true
 version: '3.8'
 
 services:
-  payflow:
+  fiddupay:
     build: .
     restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=postgresql://payflow_user:${DB_PASSWORD}@postgres:5432/payflow_production
+      - DATABASE_URL=postgresql://fiddupay_user:${DB_PASSWORD}@postgres:5432/fiddupay_production
       - REDIS_URL=redis://redis:6379
     env_file:
       - .env.production
@@ -122,8 +122,8 @@ services:
     image: postgres:15
     restart: unless-stopped
     environment:
-      POSTGRES_DB: payflow_production
-      POSTGRES_USER: payflow_user
+      POSTGRES_DB: fiddupay_production
+      POSTGRES_USER: fiddupay_user
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -151,7 +151,7 @@ services:
       - ./ssl:/etc/nginx/ssl
       - ./logs:/var/log/nginx
     depends_on:
-      - payflow
+      - fiddupay
 
 volumes:
   postgres_data:
@@ -178,8 +178,8 @@ events {
 }
 
 http {
-    upstream payflow {
-        server payflow:8080;
+    upstream fiddupay {
+        server fiddupay:8080;
     }
 
     server {
@@ -198,7 +198,7 @@ http {
         ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512;
 
         location / {
-            proxy_pass http://payflow;
+            proxy_pass http://fiddupay;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -209,7 +209,7 @@ http {
         }
 
         location /health {
-            proxy_pass http://payflow/health;
+            proxy_pass http://fiddupay/health;
             access_log off;
         }
     }
@@ -229,7 +229,7 @@ docker-compose -f docker-compose.prod.yml up -d
 docker-compose -f docker-compose.prod.yml ps
 
 # View logs
-docker-compose -f docker-compose.prod.yml logs -f payflow
+docker-compose -f docker-compose.prod.yml logs -f fiddupay
 ```
 
 ## Security Hardening
@@ -248,12 +248,12 @@ sudo ufw enable
 ### 2. Database Security
 ```sql
 -- Create dedicated user
-CREATE USER payflow_user WITH PASSWORD 'STRONG_PASSWORD';
-CREATE DATABASE payflow_production OWNER payflow_user;
-GRANT ALL PRIVILEGES ON DATABASE payflow_production TO payflow_user;
+CREATE USER fiddupay_user WITH PASSWORD 'STRONG_PASSWORD';
+CREATE DATABASE fiddupay_production OWNER fiddupay_user;
+GRANT ALL PRIVILEGES ON DATABASE fiddupay_production TO fiddupay_user;
 
 -- Restrict connections
-ALTER USER payflow_user CONNECTION LIMIT 20;
+ALTER USER fiddupay_user CONNECTION LIMIT 20;
 ```
 
 ### 3. Redis Security
@@ -267,9 +267,9 @@ sudo systemctl restart redis
 ### 4. Application Security
 ```bash
 # Set proper file permissions
-sudo chown -R payflow:payflow /opt/payflow
-sudo chmod 600 /opt/payflow/.env.production
-sudo chmod 755 /opt/payflow/target/release/crypto-payment-gateway
+sudo chown -R fiddupay:fiddupay /opt/fiddupay
+sudo chmod 600 /opt/fiddupay/.env.production
+sudo chmod 755 /opt/fiddupay/target/release/crypto-payment-gateway
 ```
 
 ## Monitoring & Logging
@@ -303,17 +303,17 @@ volumes:
 ### 2. Log Management
 ```bash
 # Configure log rotation
-sudo cat > /etc/logrotate.d/payflow << EOF
-/opt/payflow/logs/*.log {
+sudo cat > /etc/logrotate.d/fiddupay << EOF
+/opt/fiddupay/logs/*.log {
     daily
     missingok
     rotate 30
     compress
     delaycompress
     notifempty
-    create 644 payflow payflow
+    create 644 fiddupay fiddupay
     postrotate
-        docker-compose -f /opt/payflow/docker-compose.prod.yml restart payflow
+        docker-compose -f /opt/fiddupay/docker-compose.prod.yml restart fiddupay
     endscript
 }
 EOF
@@ -322,23 +322,23 @@ EOF
 ### 3. Health Checks
 ```bash
 # Create health check script
-cat > /opt/payflow/health-check.sh << EOF
+cat > /opt/fiddupay/health-check.sh << EOF
 #!/bin/bash
 HEALTH_URL="https://api.yourdomain.com/health"
 RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_URL)
 
 if [ $RESPONSE -eq 200 ]; then
-    echo "$(date): PayFlow is healthy"
+    echo "$(date): fiddupay is healthy"
 else
-    echo "$(date): PayFlow is unhealthy (HTTP $RESPONSE)"
+    echo "$(date): fiddupay is unhealthy (HTTP $RESPONSE)"
     # Send alert (email, Slack, etc.)
 fi
 EOF
 
-chmod +x /opt/payflow/health-check.sh
+chmod +x /opt/fiddupay/health-check.sh
 
 # Add to crontab
-echo "*/5 * * * * /opt/payflow/health-check.sh >> /var/log/payflow-health.log" | crontab -
+echo "*/5 * * * * /opt/fiddupay/health-check.sh >> /var/log/fiddupay-health.log" | crontab -
 ```
 
 ## Backup & Recovery
@@ -346,35 +346,35 @@ echo "*/5 * * * * /opt/payflow/health-check.sh >> /var/log/payflow-health.log" |
 ### 1. Database Backup
 ```bash
 # Create backup script
-cat > /opt/payflow/backup-db.sh << EOF
+cat > /opt/fiddupay/backup-db.sh << EOF
 #!/bin/bash
-BACKUP_DIR="/opt/payflow/backups"
+BACKUP_DIR="/opt/fiddupay/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 mkdir -p $BACKUP_DIR
 
-docker exec payflow_postgres_1 pg_dump -U payflow_user payflow_production | gzip > $BACKUP_DIR/payflow_$DATE.sql.gz
+docker exec fiddupay_postgres_1 pg_dump -U fiddupay_user fiddupay_production | gzip > $BACKUP_DIR/fiddupay_$DATE.sql.gz
 
 # Keep only last 7 days
-find $BACKUP_DIR -name "payflow_*.sql.gz" -mtime +7 -delete
+find $BACKUP_DIR -name "fiddupay_*.sql.gz" -mtime +7 -delete
 
 # Upload to S3 (optional)
-aws s3 cp $BACKUP_DIR/payflow_$DATE.sql.gz s3://your-backup-bucket/
+aws s3 cp $BACKUP_DIR/fiddupay_$DATE.sql.gz s3://your-backup-bucket/
 EOF
 
-chmod +x /opt/payflow/backup-db.sh
+chmod +x /opt/fiddupay/backup-db.sh
 
 # Schedule daily backups
-echo "0 2 * * * /opt/payflow/backup-db.sh" | crontab -
+echo "0 2 * * * /opt/fiddupay/backup-db.sh" | crontab -
 ```
 
 ### 2. Application Backup
 ```bash
 # Backup configuration and data
-tar -czf payflow-backup-$(date +%Y%m%d).tar.gz \
-  /opt/payflow/.env.production \
-  /opt/payflow/docker-compose.prod.yml \
-  /opt/payflow/nginx.conf \
-  /opt/payflow/ssl/
+tar -czf fiddupay-backup-$(date +%Y%m%d).tar.gz \
+  /opt/fiddupay/.env.production \
+  /opt/fiddupay/docker-compose.prod.yml \
+  /opt/fiddupay/nginx.conf \
+  /opt/fiddupay/ssl/
 ```
 
 ## Performance Optimization
@@ -421,29 +421,29 @@ REDIS_POOL_SIZE=20
 docker stats
 
 # Check application logs
-docker-compose logs payflow | grep ERROR
+docker-compose logs fiddupay | grep ERROR
 
 # Monitor database queries
-docker exec -it payflow_postgres_1 psql -U payflow_user -d payflow_production -c "SELECT query, calls, total_time FROM pg_stat_statements ORDER BY total_time DESC LIMIT 10;"
+docker exec -it fiddupay_postgres_1 psql -U fiddupay_user -d fiddupay_production -c "SELECT query, calls, total_time FROM pg_stat_statements ORDER BY total_time DESC LIMIT 10;"
 ```
 
 #### Memory Issues
 ```bash
 # Check memory usage
 free -h
-docker exec payflow_redis_1 redis-cli info memory
+docker exec fiddupay_redis_1 redis-cli info memory
 
 # Check for memory leaks
-docker exec payflow_payflow_1 ps aux --sort=-%mem | head
+docker exec fiddupay_fiddupay_1 ps aux --sort=-%mem | head
 ```
 
 #### Database Connection Issues
 ```bash
 # Check database connections
-docker exec payflow_postgres_1 psql -U payflow_user -d payflow_production -c "SELECT count(*) FROM pg_stat_activity;"
+docker exec fiddupay_postgres_1 psql -U fiddupay_user -d fiddupay_production -c "SELECT count(*) FROM pg_stat_activity;"
 
 # Check connection limits
-docker exec payflow_postgres_1 psql -U payflow_user -d payflow_production -c "SHOW max_connections;"
+docker exec fiddupay_postgres_1 psql -U fiddupay_user -d fiddupay_production -c "SHOW max_connections;"
 ```
 
 ## Maintenance
@@ -470,7 +470,7 @@ docker-compose -f docker-compose.prod.yml up -d
 ```
 
 This deployment guide provides a production-ready setup with security, monitoring, and maintenance considerations.
-sudo systemctl start payflow
+sudo systemctl start fiddupay
 
 # 5. Check health
 curl http://localhost:8080/health
@@ -508,16 +508,16 @@ sudo ufw enable
 
 ### 6. Service (15 min)
 ```bash
-sudo cp payflow.service /etc/systemd/system/
+sudo cp fiddupay.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable payflow
-sudo systemctl start payflow
+sudo systemctl enable fiddupay
+sudo systemctl start fiddupay
 ```
 
 ### 7. Nginx (20 min) - Optional
 ```bash
-sudo cp payflow.nginx /etc/nginx/sites-available/payflow
-sudo ln -s /etc/nginx/sites-available/payflow /etc/nginx/sites-enabled/
+sudo cp fiddupay.nginx /etc/nginx/sites-available/fiddupay
+sudo ln -s /etc/nginx/sites-available/fiddupay /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 ```
@@ -579,14 +579,14 @@ openssl rand -hex 32
 ```
 
 **Security Features Built-In:**
-- ✅ Argon2 password hashing (OWASP recommended)
-- ✅ AES-256-GCM encryption for sensitive data
-- ✅ API key authentication
-- ✅ TOTP 2FA support
-- ✅ Webhook signature verification (HMAC-SHA256)
-- ✅ IP whitelisting
-- ✅ Rate limiting (configurable)
-- ✅ Audit logging
+-  Argon2 password hashing (OWASP recommended)
+-  AES-256-GCM encryption for sensitive data
+-  API key authentication
+-  TOTP 2FA support
+-  Webhook signature verification (HMAC-SHA256)
+-  IP whitelisting
+-  Rate limiting (configurable)
+-  Audit logging
 
 **Production Checklist:**
 - [ ] Change default passwords
@@ -607,8 +607,8 @@ openssl rand -hex 32
 
 # This generates:
 # - .env.production (with secure keys)
-# - payflow.service (systemd service)
-# - payflow.nginx (reverse proxy config)
+# - fiddupay.service (systemd service)
+# - fiddupay.nginx (reverse proxy config)
 ```
 
 **Security Audit:**

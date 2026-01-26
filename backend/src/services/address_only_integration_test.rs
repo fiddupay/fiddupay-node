@@ -50,7 +50,7 @@ mod address_only_integration_tests {
         println!("🧪 Testing Complete Address-Only Flow");
 
         // Step 1: Create payment request
-        println!("\n📝 Step 1: Creating payment request");
+        println!("\n Step 1: Creating payment request");
         let merchant_id = 1i64;
         let crypto_type = CryptoType::Eth;
         let merchant_address = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb".to_string();
@@ -61,7 +61,7 @@ mod address_only_integration_tests {
             .await
             .expect("Failed to create payment request");
 
-        println!("✅ Payment created:");
+        println!(" Payment created:");
         println!("   Payment ID: {}", payment.payment_id);
         println!("   Deposit Address: {}", payment.gateway_deposit_address);
         println!("   Requested Amount: {} ETH", payment.requested_amount);
@@ -73,7 +73,7 @@ mod address_only_integration_tests {
         assert_eq!(payment.merchant_destination_address, merchant_address);
 
         // Step 2: Simulate payment received
-        println!("\n💰 Step 2: Simulating payment received");
+        println!("\n Step 2: Simulating payment received");
         let received_amount = payment.requested_amount;
         let tx_hash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
 
@@ -83,7 +83,7 @@ mod address_only_integration_tests {
 
         match result {
             Ok(_) => {
-                println!("✅ Payment processed successfully");
+                println!(" Payment processed successfully");
                 
                 // Verify payment status updated
                 let updated_payment = address_service
@@ -109,11 +109,11 @@ mod address_only_integration_tests {
             .await;
 
         match webhook_result {
-            Ok(_) => println!("✅ Webhook sent successfully"),
+            Ok(_) => println!(" Webhook sent successfully"),
             Err(e) => println!("⚠️ Webhook failed (expected in test): {}", e),
         }
 
-        println!("\n🎉 Address-Only Flow Test Completed!");
+        println!("\n Address-Only Flow Test Completed!");
     }
 
     #[tokio::test]
@@ -146,11 +146,11 @@ mod address_only_integration_tests {
 
             match result {
                 Ok(payment) => {
-                    println!("✅ {} payment created: {}", name, payment.gateway_deposit_address);
+                    println!(" {} payment created: {}", name, payment.gateway_deposit_address);
                     assert_eq!(payment.crypto_type, crypto_type);
                 }
                 Err(e) => {
-                    println!("❌ {} payment failed: {}", name, e);
+                    println!(" {} payment failed: {}", name, e);
                 }
             }
         }
@@ -186,11 +186,11 @@ mod address_only_integration_tests {
 
             match result {
                 Ok(_) => {
-                    println!("❌ {} should have been rejected", name);
+                    println!(" {} should have been rejected", name);
                     panic!("USDT should be rejected in Phase 1");
                 }
                 Err(e) => {
-                    println!("✅ {} correctly rejected: {}", name, e);
+                    println!(" {} correctly rejected: {}", name, e);
                     assert!(e.to_string().contains("native currencies only"));
                 }
             }
@@ -237,6 +237,6 @@ mod address_only_integration_tests {
             assert_eq!(payment.forwarding_amount, expected_forwarding);
         }
 
-        println!("\n✅ Fee calculations verified!");
+        println!("\n Fee calculations verified!");
     }
 }

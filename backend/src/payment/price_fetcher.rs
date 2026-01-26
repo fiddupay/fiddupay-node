@@ -81,7 +81,7 @@ impl PriceFetcher {
 
         let price = Decimal::from_str(&ticker.last_price)?;
 
-        info!("📊 {}/{} price: ${}", symbol, category, price);
+        info!(" {}/{} price: ${}", symbol, category, price);
         Ok(price)
     }
 

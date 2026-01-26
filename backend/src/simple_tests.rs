@@ -17,7 +17,7 @@ mod simple_tests {
         ];
 
         for crypto_type in native_currencies {
-            println!("✅ Native currency: {:?}", crypto_type);
+            println!(" Native currency: {:?}", crypto_type);
             assert!(matches!(crypto_type, 
                 CryptoType::Eth | 
                 CryptoType::Bnb | 
@@ -53,7 +53,7 @@ mod simple_tests {
         let wallet = evm_wallet.unwrap();
         assert!(wallet.address.starts_with("0x"));
         assert_eq!(wallet.address.len(), 42);
-        println!("✅ EVM address: {}", wallet.address);
+        println!(" EVM address: {}", wallet.address);
 
         // Test Solana address generation (placeholder)
         let sol_wallet = KeyGenerator::generate_solana_wallet();
@@ -61,7 +61,7 @@ mod simple_tests {
         
         let sol = sol_wallet.unwrap();
         assert!(!sol.address.is_empty());
-        println!("✅ Solana address: {}", sol.address);
+        println!(" Solana address: {}", sol.address);
     }
 
     #[test]
@@ -82,7 +82,7 @@ mod simple_tests {
         assert_eq!(estimate.native_currency, "ETH");
         assert!(estimate.standard_fee > Decimal::ZERO);
         assert!(estimate.fast_fee > estimate.standard_fee);
-        println!("✅ Gas fee estimate: {} {}", estimate.standard_fee, estimate.native_currency);
+        println!(" Gas fee estimate: {} {}", estimate.standard_fee, estimate.native_currency);
     }
 
     #[test]
@@ -105,6 +105,6 @@ mod simple_tests {
         let config = Config::from_env().expect("Failed to create config");
         let tx_sender = BlockchainTransactionSender::new(config);
 
-        println!("✅ BlockchainTransactionSender created successfully");
+        println!(" BlockchainTransactionSender created successfully");
     }
 }

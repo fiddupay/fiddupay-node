@@ -1,8 +1,8 @@
-# PayFlow Setup Guide
+# fiddupay Setup Guide
 
-Complete guide to setting up PayFlow cryptocurrency payment gateway for development and production environments.
+Complete guide to setting up fiddupay cryptocurrency payment gateway for development and production environments.
 
-## 📋 Prerequisites
+##  Prerequisites
 
 ### System Requirements
 - **Operating System**: Linux, macOS, or Windows (WSL recommended)
@@ -17,7 +17,7 @@ Complete guide to setting up PayFlow cryptocurrency payment gateway for developm
 - **curl**: For API testing
 - **jq**: For JSON processing
 
-## 🚀 Quick Start (Development)
+##  Quick Start (Development)
 
 ### 1. Install Dependencies
 
@@ -43,7 +43,7 @@ brew install postgresql
 brew services start postgresql
 
 # Create database
-sudo -u postgres createdb payflow
+sudo -u postgres createdb fiddupay
 ```
 
 #### Redis Installation
@@ -85,7 +85,7 @@ Edit `.env` file with your configuration:
 
 ```env
 # Database Configuration
-DATABASE_URL=postgresql://username:password@localhost/payflow
+DATABASE_URL=postgresql://username:password@localhost/fiddupay
 REDIS_URL=redis://localhost:6379
 
 # Security Keys (Generate with openssl rand -hex 32)
@@ -131,7 +131,7 @@ cargo install sqlx-cli --no-default-features --features postgres
 sqlx migrate run
 
 # Verify database setup
-psql -d payflow -c "\dt"
+psql -d fiddupay -c "\dt"
 ```
 
 ### 5. Start Services
@@ -140,7 +140,7 @@ psql -d payflow -c "\dt"
 # Start Redis (if not running)
 redis-server
 
-# Start PayFlow
+# Start fiddupay
 cargo run --release
 ```
 
@@ -176,12 +176,12 @@ cat > docker-compose.yml << EOF
 version: '3.8'
 
 services:
-  payflow:
+  fiddupay:
     build: .
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=postgresql://payflow:password@postgres:5432/payflow
+      - DATABASE_URL=postgresql://fiddupay:password@postgres:5432/fiddupay
       - REDIS_URL=redis://redis:6379
     depends_on:
       - postgres
@@ -192,8 +192,8 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_DB: payflow
-      POSTGRES_USER: payflow
+      POSTGRES_DB: fiddupay
+      POSTGRES_USER: fiddupay
       POSTGRES_PASSWORD: password
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -216,24 +216,24 @@ EOF
 docker-compose up -d
 
 # Check logs
-docker-compose logs -f payflow
+docker-compose logs -f fiddupay
 ```
 
 ### Manual Docker Build
 
 ```bash
 # Build image
-docker build -t payflow .
+docker build -t fiddupay .
 
 # Run container
 docker run -d \
-  --name payflow \
+  --name fiddupay \
   -p 8080:8080 \
   --env-file .env \
-  payflow
+  fiddupay
 ```
 
-## 🏭 Production Setup
+##  Production Setup
 
 ### 1. Server Requirements
 
@@ -262,7 +262,7 @@ sudo certbot certonly --standalone -d api.yourdomain.com
 # Configure reverse proxy (Nginx)
 sudo apt install nginx
 
-cat > /etc/nginx/sites-available/payflow << EOF
+cat > /etc/nginx/sites-available/fiddupay << EOF
 server {
     listen 443 ssl http2;
     server_name api.yourdomain.com;
@@ -286,7 +286,7 @@ server {
 }
 EOF
 
-sudo ln -s /etc/nginx/sites-available/payflow /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/fiddupay /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -318,22 +318,22 @@ effective_io_concurrency = 200
 #### Database Backup
 ```bash
 # Create backup script
-cat > /usr/local/bin/backup-payflow.sh << EOF
+cat > /usr/local/bin/backup-fiddupay.sh << EOF
 #!/bin/bash
-BACKUP_DIR="/var/backups/payflow"
+BACKUP_DIR="/var/backups/fiddupay"
 DATE=\$(date +%Y%m%d_%H%M%S)
 mkdir -p \$BACKUP_DIR
 
-pg_dump payflow | gzip > \$BACKUP_DIR/payflow_\$DATE.sql.gz
+pg_dump fiddupay | gzip > \$BACKUP_DIR/fiddupay_\$DATE.sql.gz
 
 # Keep only last 7 days
-find \$BACKUP_DIR -name "payflow_*.sql.gz" -mtime +7 -delete
+find \$BACKUP_DIR -name "fiddupay_*.sql.gz" -mtime +7 -delete
 EOF
 
-chmod +x /usr/local/bin/backup-payflow.sh
+chmod +x /usr/local/bin/backup-fiddupay.sh
 
 # Add to crontab
-echo "0 2 * * * /usr/local/bin/backup-payflow.sh" | sudo crontab -
+echo "0 2 * * * /usr/local/bin/backup-fiddupay.sh" | sudo crontab -
 ```
 
 ### 4. Monitoring Setup
@@ -341,16 +341,16 @@ echo "0 2 * * * /usr/local/bin/backup-payflow.sh" | sudo crontab -
 #### System Service
 ```bash
 # Create systemd service
-sudo cat > /etc/systemd/system/payflow.service << EOF
+sudo cat > /etc/systemd/system/fiddupay.service << EOF
 [Unit]
-Description=PayFlow Cryptocurrency Payment Gateway
+Description=fiddupay Cryptocurrency Payment Gateway
 After=network.target postgresql.service redis.service
 
 [Service]
 Type=simple
-User=payflow
-WorkingDirectory=/opt/payflow
-ExecStart=/opt/payflow/target/release/crypto-payment-gateway
+User=fiddupay
+WorkingDirectory=/opt/fiddupay
+ExecStart=/opt/fiddupay/target/release/crypto-payment-gateway
 Restart=always
 RestartSec=10
 Environment=RUST_LOG=info
@@ -361,24 +361,24 @@ EOF
 
 # Enable and start service
 sudo systemctl daemon-reload
-sudo systemctl enable payflow
-sudo systemctl start payflow
+sudo systemctl enable fiddupay
+sudo systemctl start fiddupay
 ```
 
 #### Log Management
 ```bash
 # Configure log rotation
-sudo cat > /etc/logrotate.d/payflow << EOF
-/var/log/payflow/*.log {
+sudo cat > /etc/logrotate.d/fiddupay << EOF
+/var/log/fiddupay/*.log {
     daily
     missingok
     rotate 30
     compress
     delaycompress
     notifempty
-    create 644 payflow payflow
+    create 644 fiddupay fiddupay
     postrotate
-        systemctl reload payflow
+        systemctl reload fiddupay
     endscript
 }
 EOF
@@ -405,7 +405,7 @@ DATABASE_MAX_CONNECTIONS=20
 REDIS_POOL_SIZE=10
 ```
 
-## 🧪 Testing Setup
+##  Testing Setup
 
 ### Run Test Suite
 ```bash
@@ -442,7 +442,7 @@ chmod +x test_*.sh
 ./test_service_layer.sh
 ```
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -452,10 +452,10 @@ chmod +x test_*.sh
 sudo systemctl status postgresql
 
 # Check database exists
-sudo -u postgres psql -l | grep payflow
+sudo -u postgres psql -l | grep fiddupay
 
 # Test connection
-psql -d payflow -c "SELECT version();"
+psql -d fiddupay -c "SELECT version();"
 ```
 
 #### Redis Connection Issues
@@ -509,7 +509,7 @@ openssl s_client -connect api.yourdomain.com:443
 - Monitor external API calls
 - Implement caching where appropriate
 
-## 📞 Support
+##  Support
 
 ### Getting Help
 - **Documentation**: Check all `.md` files in the project
@@ -525,12 +525,12 @@ When reporting issues, include:
 - Steps to reproduce
 - Configuration (without sensitive data)
 
-## 🔄 Updates and Maintenance
+##  Updates and Maintenance
 
-### Updating PayFlow
+### Updating fiddupay
 ```bash
 # Backup database
-./backup-payflow.sh
+./backup-fiddupay.sh
 
 # Pull latest changes
 git pull origin main
@@ -543,7 +543,7 @@ sqlx migrate run
 
 # Rebuild and restart
 cargo build --release
-sudo systemctl restart payflow
+sudo systemctl restart fiddupay
 ```
 
 ### Regular Maintenance
@@ -555,4 +555,4 @@ sudo systemctl restart payflow
 - Update dependencies
 - Review security settings
 
-This setup guide provides everything needed to get PayFlow running in both development and production environments.
+This setup guide provides everything needed to get fiddupay running in both development and production environments.

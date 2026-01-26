@@ -1,4 +1,4 @@
-// Comprehensive PayFlow Service Test
+// Comprehensive fiddupay Service Test
 // Tests the complete merchant workflow end-to-end
 
 use sqlx::PgPool;
@@ -22,7 +22,7 @@ use chrono::{DateTime, Utc};
 
 async fn setup_test_db() -> PgPool {
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/payflow".to_string());
+        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/fiddupay".to_string());
     
     PgPool::connect(&database_url)
         .await
@@ -31,7 +31,7 @@ async fn setup_test_db() -> PgPool {
 
 #[tokio::test]
 async fn test_complete_merchant_workflow() {
-    println!("🚀 Starting comprehensive PayFlow service test...\n");
+    println!(" Starting comprehensive fiddupay service test...\n");
     
     let pool = setup_test_db().await;
     let test_id = nanoid::nanoid!(8);
@@ -47,11 +47,11 @@ async fn test_complete_merchant_workflow() {
         .await
         .expect("Failed to register merchant");
     
-    println!("   ✅ Merchant registered successfully");
+    println!("    Merchant registered successfully");
     println!("   📧 Email: {}", email);
     println!("   🏢 Business: {}", business_name);
     println!("   🆔 Merchant ID: {}", merchant.merchant_id);
-    println!("   🔑 API Key: {}...", &merchant.api_key[..20]);
+    println!("    API Key: {}...", &merchant.api_key[..20]);
     
     // 2. Set wallet addresses for different crypto types
     println!("\n2️⃣  Testing wallet configuration...");
@@ -68,7 +68,7 @@ async fn test_complete_merchant_workflow() {
             .set_wallet_address(merchant.merchant_id, crypto_type, address)
             .await
             .expect(&format!("Failed to set {} wallet", crypto_type));
-        println!("   ✅ {} wallet set: {}", crypto_type, address);
+        println!("    {} wallet set: {}", crypto_type, address);
     }
     
     // 3. Test balance service
@@ -79,8 +79,8 @@ async fn test_complete_merchant_workflow() {
         .await
         .expect("Failed to get balance");
     
-    println!("   ✅ Balance retrieved successfully");
-    println!("   💰 Balances: {} entries", balance.balances.len());
+    println!("    Balance retrieved successfully");
+    println!("    Balances: {} entries", balance.balances.len());
     
     // 4. Create payments for different crypto types
     println!("\n4️⃣  Testing payment creation...");
@@ -108,7 +108,7 @@ async fn test_complete_merchant_workflow() {
             .expect(&format!("Failed to create {} payment", crypto_type));
         
         payment_ids.push(payment.payment_id.clone());
-        println!("   ✅ {} payment created: {}", crypto_type, payment.payment_id);
+        println!("    {} payment created: {}", crypto_type, payment.payment_id);
         println!("      💵 Amount: {} {} (${} USD)", payment.amount, crypto_type, amount);
         println!("      📍 Deposit Address: {}", payment.deposit_address);
         println!("      🔗 Payment Link: {}", payment.payment_link);
@@ -123,7 +123,7 @@ async fn test_complete_merchant_workflow() {
             .await
             .expect("Failed to get payment");
         
-        println!("   ✅ Payment {} retrieved: {} status", payment_id, payment.status);
+        println!("    Payment {} retrieved: {} status", payment_id, payment.status);
     }
     
     let payments = payment_service
@@ -131,7 +131,7 @@ async fn test_complete_merchant_workflow() {
         .await
         .expect("Failed to list payments");
     
-    println!("   ✅ Payment list retrieved: {} payments found", payments.payments.len());
+    println!("    Payment list retrieved: {} payments found", payments.payments.len());
     
     // 6. Test sandbox service
     println!("\n6️⃣  Testing sandbox service...");
@@ -141,7 +141,7 @@ async fn test_complete_merchant_workflow() {
         .await
         .expect("Failed to create sandbox credentials");
     
-    println!("   ✅ Sandbox credentials created");
+    println!("    Sandbox credentials created");
     println!("   🧪 Sandbox API Key: {}...", &sandbox_creds.sandbox_api_key[..20]);
     
     // Simulate payment confirmation
@@ -151,7 +151,7 @@ async fn test_complete_merchant_workflow() {
             .await
             .expect("Failed to simulate payment confirmation");
         
-        println!("   ✅ Payment confirmation simulated for: {}", payment_id);
+        println!("    Payment confirmation simulated for: {}", payment_id);
         
         // Check updated payment status
         let updated_payment = payment_service
@@ -159,7 +159,7 @@ async fn test_complete_merchant_workflow() {
             .await
             .expect("Failed to get updated payment");
         
-        println!("   📊 Updated payment status: {}", updated_payment.status);
+        println!("    Updated payment status: {}", updated_payment.status);
     }
     
     // 7. Test analytics service
@@ -170,11 +170,11 @@ async fn test_complete_merchant_workflow() {
         .await
         .expect("Failed to get analytics");
     
-    println!("   ✅ Analytics retrieved successfully");
-    println!("   📊 Total Payments: {}", analytics.total_payments);
-    println!("   💰 Total Volume: ${}", analytics.total_volume_usd);
-    println!("   ✅ Successful: {}", analytics.successful_payments);
-    println!("   ❌ Failed: {}", analytics.failed_payments);
+    println!("    Analytics retrieved successfully");
+    println!("    Total Payments: {}", analytics.total_payments);
+    println!("    Total Volume: ${}", analytics.total_volume_usd);
+    println!("    Successful: {}", analytics.successful_payments);
+    println!("    Failed: {}", analytics.failed_payments);
     println!("   💸 Total Fees: ${}", analytics.total_fees_paid);
     println!("   📈 Average Transaction: ${}", analytics.average_transaction_value);
     
@@ -203,9 +203,9 @@ async fn test_complete_merchant_workflow() {
         .await
         .expect("Failed to create invoice");
     
-    println!("   ✅ Invoice created: {}", invoice.invoice_id);
+    println!("    Invoice created: {}", invoice.invoice_id);
     println!("   📧 Customer: {}", invoice.customer_email);
-    println!("   💰 Total: ${}", invoice.total_amount);
+    println!("    Total: ${}", invoice.total_amount);
     println!("   📅 Due Date: {}", invoice.due_date);
     
     // List invoices
@@ -214,7 +214,7 @@ async fn test_complete_merchant_workflow() {
         .await
         .expect("Failed to list invoices");
     
-    println!("   ✅ Invoice list retrieved: {} invoices found", invoices.len());
+    println!("    Invoice list retrieved: {} invoices found", invoices.len());
     
     // 9. Test refund service
     println!("\n9️⃣  Testing refund service...");
@@ -232,10 +232,10 @@ async fn test_complete_merchant_workflow() {
             .await
             .expect("Failed to create refund");
         
-        println!("   ✅ Refund created: {}", refund.refund_id);
-        println!("   💰 Amount: ${}", refund.amount_usd);
-        println!("   📝 Reason: {}", refund.reason.unwrap_or("N/A".to_string()));
-        println!("   📊 Status: {}", refund.status);
+        println!("    Refund created: {}", refund.refund_id);
+        println!("    Amount: ${}", refund.amount_usd);
+        println!("    Reason: {}", refund.reason.unwrap_or("N/A".to_string()));
+        println!("    Status: {}", refund.status);
     }
     
     // 10. Test withdrawal service
@@ -259,10 +259,10 @@ async fn test_complete_merchant_workflow() {
         .await
         .expect("Failed to create withdrawal");
     
-    println!("   ✅ Withdrawal created: {}", withdrawal.withdrawal_id);
-    println!("   💰 Amount: {} SOL", withdrawal.amount);
+    println!("    Withdrawal created: {}", withdrawal.withdrawal_id);
+    println!("    Amount: {} SOL", withdrawal.amount);
     println!("   📍 Destination: {}", withdrawal.destination_address);
-    println!("   📊 Status: {}", withdrawal.status);
+    println!("    Status: {}", withdrawal.status);
     
     // List withdrawals
     let withdrawals = withdrawal_service
@@ -270,27 +270,27 @@ async fn test_complete_merchant_workflow() {
         .await
         .expect("Failed to list withdrawals");
     
-    println!("   ✅ Withdrawal list retrieved: {} withdrawals found", withdrawals.len());
+    println!("    Withdrawal list retrieved: {} withdrawals found", withdrawals.len());
     
     // Final summary
-    println!("\n🎉 COMPREHENSIVE TEST COMPLETED SUCCESSFULLY! 🎉");
-    println!("\n📊 Test Summary:");
-    println!("   ✅ Merchant Registration: PASSED");
-    println!("   ✅ Wallet Configuration: PASSED ({} wallets)", wallets.len());
-    println!("   ✅ Payment Creation: PASSED ({} payments)", payment_ids.len());
-    println!("   ✅ Payment Retrieval: PASSED");
-    println!("   ✅ Balance Management: PASSED");
-    println!("   ✅ Sandbox Testing: PASSED");
-    println!("   ✅ Analytics: PASSED");
-    println!("   ✅ Invoice Management: PASSED");
-    println!("   ✅ Refund Processing: PASSED");
-    println!("   ✅ Withdrawal System: PASSED");
+    println!("\n COMPREHENSIVE TEST COMPLETED SUCCESSFULLY! ");
+    println!("\n Test Summary:");
+    println!("    Merchant Registration: PASSED");
+    println!("    Wallet Configuration: PASSED ({} wallets)", wallets.len());
+    println!("    Payment Creation: PASSED ({} payments)", payment_ids.len());
+    println!("    Payment Retrieval: PASSED");
+    println!("    Balance Management: PASSED");
+    println!("    Sandbox Testing: PASSED");
+    println!("    Analytics: PASSED");
+    println!("    Invoice Management: PASSED");
+    println!("    Refund Processing: PASSED");
+    println!("    Withdrawal System: PASSED");
     
     println!("\n🏪 Test Merchant Details:");
     println!("   📧 Email: {}", email);
     println!("   🏢 Business: {}", business_name);
     println!("   🆔 Merchant ID: {}", merchant.merchant_id);
-    println!("   🔑 API Key: {}...", &merchant.api_key[..20]);
+    println!("    API Key: {}...", &merchant.api_key[..20]);
     println!("   🧪 Sandbox Key: {}...", &sandbox_creds.sandbox_api_key[..20]);
     
     println!("\n💳 Payment IDs Created:");
@@ -298,7 +298,7 @@ async fn test_complete_merchant_workflow() {
         println!("   {}. {}", i + 1, payment_id);
     }
     
-    println!("\n🎯 All core PayFlow services are working correctly!");
+    println!("\n All core fiddupay services are working correctly!");
     println!("   The backend is ready for production use.");
     println!("   HTTP API endpoints need implementation completion.");
 }

@@ -3,7 +3,7 @@
 
 set -e
 
-echo "🔧 Implementing core security features..."
+echo " Implementing core security features..."
 
 # Temporarily disable problematic services by commenting them out
 sed -i 's/^pub mod refund_service;/\/\/ pub mod refund_service;/' src/services/mod.rs
@@ -17,17 +17,17 @@ sed -i 's/^pub mod balance_service;/\/\/ pub mod balance_service;/' src/services
 # Comment out problematic imports in main files
 sed -i 's/use crate::background_tasks;/\/\/ use crate::background_tasks;/' src/main.rs 2>/dev/null || true
 
-echo "✅ Core security services enabled"
+echo " Core security services enabled"
 echo "⚠️  Advanced services temporarily disabled for compilation"
 
 # Try to build core security features
-export DATABASE_URL="${DATABASE_URL:-postgresql://vibes:password@localhost:5432/payflow_dev}"
+export DATABASE_URL="${DATABASE_URL:-postgresql://vibes:password@localhost:5432/fiddupay_dev}"
 export SQLX_OFFLINE=false
 
 if cargo check --lib; then
-    echo "✅ Core security implementation compiles successfully!"
+    echo " Core security implementation compiles successfully!"
     echo ""
-    echo "🛡️  Security Features Active:"
+    echo "  Security Features Active:"
     echo "   • XSS Prevention (HTML escaping)"
     echo "   • Input Validation Framework"
     echo "   • Per-API-Key Rate Limiting"
@@ -35,8 +35,8 @@ if cargo check --lib; then
     echo "   • Account Lockout Protection"
     echo "   • Authentication Optimization"
     echo ""
-    echo "🚀 Core security is PRODUCTION READY!"
+    echo " Core security is PRODUCTION READY!"
 else
-    echo "❌ Still has compilation issues, checking specific errors..."
+    echo " Still has compilation issues, checking specific errors..."
     cargo check --lib 2>&1 | head -20
 fi

@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🧹 FidduPay Codebase Cleanup"
+echo " FidduPay Codebase Cleanup"
 echo "============================"
 echo ""
 
@@ -89,7 +89,7 @@ echo "1️⃣2️⃣ Cleaning git artifacts..."
 find . -name ".git" -type d -not -path "./.git" -exec rm -rf {} + 2>/dev/null || true
 
 echo ""
-echo "📊 Cleanup Summary:"
+echo " Cleanup Summary:"
 echo "=================="
 
 # Show directory sizes
@@ -103,9 +103,9 @@ echo ""
 echo "Total project size: $(du -sh . 2>/dev/null | cut -f1)"
 
 echo ""
-echo "✅ Codebase cleanup completed!"
+echo " Codebase cleanup completed!"
 echo ""
-echo "🎯 What's preserved:"
+echo " What's preserved:"
 echo "- Source code files"
 echo "- Configuration files"
 echo "- Package.json files"

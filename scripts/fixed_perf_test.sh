@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fixed Performance Test - Corrects response parsing issues
 
-echo "🚀 PayFlow Fixed Performance Test"
+echo " fiddupay Fixed Performance Test"
 echo "================================="
 
 cd /home/vibes/crypto-payment-gateway
@@ -10,20 +10,20 @@ BASE_URL="http://localhost:8080"
 
 # Check if server is running
 if ! curl -s "$BASE_URL/health" > /dev/null 2>&1; then
-    echo "🔄 Starting PayFlow server..."
+    echo " Starting fiddupay server..."
     RUST_LOG=info cargo run --release > server.log 2>&1 &
     SERVER_PID=$!
     
     # Wait for server
     for i in {1..30}; do
         if curl -s "$BASE_URL/health" > /dev/null 2>&1; then
-            echo "✅ Server ready after ${i} seconds"
+            echo " Server ready after ${i} seconds"
             break
         fi
         sleep 1
     done
 else
-    echo "✅ Server already running"
+    echo " Server already running"
     SERVER_PID=""
 fi
 
@@ -37,7 +37,7 @@ run_fixed_test() {
     local test_name=$4
     local expected_status=${5:-200}
     
-    echo "🔥 Testing: $test_name"
+    echo " Testing: $test_name"
     
     RESULTS_FILE="test_results_$(date +%s).txt"
     > "$RESULTS_FILE"
@@ -100,7 +100,7 @@ run_fixed_test() {
         MAX_TIME="N/A"
     fi
     
-    echo "   📊 Results:"
+    echo "    Results:"
     echo "     Total Requests: $TOTAL"
     echo "     Expected $expected_status: $SUCCESS ($SUCCESS_RATE%)"
     echo "     Status Codes: 200=$STATUS_200, 401=$STATUS_401, 404=$STATUS_404, 429=$STATUS_429"
@@ -109,13 +109,13 @@ run_fixed_test() {
     
     # Assessment
     if [ $SUCCESS -gt 0 ]; then
-        echo "   ✅ Working correctly (got expected $expected_status responses)"
+        echo "    Working correctly (got expected $expected_status responses)"
     else
         echo "   ⚠️  No expected responses received"
     fi
     
     if [ "$AVG_TIME" != "N/A" ] && (( $(echo "$AVG_TIME < 0.1" | bc -l 2>/dev/null || echo "0") )); then
-        echo "   ✅ Fast response times (<100ms)"
+        echo "    Fast response times (<100ms)"
     fi
     
     echo ""
@@ -137,23 +137,23 @@ run_fixed_test "/nonexistent" "GET" "" "404 Handling" 404
 REGISTER_DATA='{"business_name":"Test Business","email":"test@example.com","password":"testpass123"}'
 run_fixed_test "/api/v1/merchants/register" "POST" "$REGISTER_DATA" "Registration" 201
 
-echo "🎯 Fixed Performance Test Summary"
+echo " Fixed Performance Test Summary"
 echo "================================="
 
 # Single request tests for verification
-echo "🔍 Single Request Verification:"
+echo " Single Request Verification:"
 
 # Health check
 HEALTH=$(curl -s -w "%{http_code}" "$BASE_URL/health" -o /dev/null)
-echo "   Health (/health): $HEALTH $([ "$HEALTH" = "200" ] && echo "✅" || echo "❌")"
+echo "   Health (/health): $HEALTH $([ "$HEALTH" = "200" ] && echo "" || echo "")"
 
 # Protected endpoint
 PROTECTED=$(curl -s -w "%{http_code}" "$BASE_URL/api/v1/merchants" -o /dev/null)
-echo "   Protected (/api/v1/merchants): $PROTECTED $([ "$PROTECTED" = "401" ] && echo "✅ (auth required)" || echo "❌")"
+echo "   Protected (/api/v1/merchants): $PROTECTED $([ "$PROTECTED" = "401" ] && echo " (auth required)" || echo "")"
 
 # 404 test
 NOT_FOUND=$(curl -s -w "%{http_code}" "$BASE_URL/nonexistent" -o /dev/null)
-echo "   404 (/nonexistent): $NOT_FOUND $([ "$NOT_FOUND" = "404" ] && echo "✅" || echo "❌")"
+echo "   404 (/nonexistent): $NOT_FOUND $([ "$NOT_FOUND" = "404" ] && echo "" || echo "")"
 
 # Registration test
 REG_RESPONSE=$(curl -s -w "%{http_code}" \
@@ -162,12 +162,12 @@ REG_RESPONSE=$(curl -s -w "%{http_code}" \
     -d "$REGISTER_DATA" \
     "$BASE_URL/api/v1/merchants/register" \
     -o /dev/null)
-echo "   Registration: $REG_RESPONSE $([ "$REG_RESPONSE" = "201" ] && echo "✅" || [ "$REG_RESPONSE" = "400" ] && echo "⚠️ (validation)" || echo "❌")"
+echo "   Registration: $REG_RESPONSE $([ "$REG_RESPONSE" = "201" ] && echo "" || [ "$REG_RESPONSE" = "400" ] && echo "⚠️ (validation)" || echo "")"
 
 echo ""
 
 # Performance assessment
-echo "🏆 Performance Assessment:"
+echo " Performance Assessment:"
 
 WORKING_ENDPOINTS=0
 [ "$HEALTH" = "200" ] && WORKING_ENDPOINTS=$((WORKING_ENDPOINTS + 1))
@@ -175,21 +175,21 @@ WORKING_ENDPOINTS=0
 [ "$NOT_FOUND" = "404" ] && WORKING_ENDPOINTS=$((WORKING_ENDPOINTS + 1))
 
 if [ $WORKING_ENDPOINTS -eq 3 ]; then
-    echo "🚀 EXCELLENT! All endpoints working correctly"
-    echo "   ✅ Health endpoint responsive"
-    echo "   ✅ Authentication properly enforced"
-    echo "   ✅ 404 handling working"
-    echo "   ✅ Server handles concurrent requests"
-    echo "   ✅ Fast response times"
+    echo " EXCELLENT! All endpoints working correctly"
+    echo "    Health endpoint responsive"
+    echo "    Authentication properly enforced"
+    echo "    404 handling working"
+    echo "    Server handles concurrent requests"
+    echo "    Fast response times"
 elif [ $WORKING_ENDPOINTS -eq 2 ]; then
-    echo "✅ GOOD! Most endpoints working correctly"
+    echo " GOOD! Most endpoints working correctly"
 else
     echo "⚠️  Some endpoints need attention"
 fi
 
 echo ""
-echo "💡 Key Findings:"
-echo "   - PayFlow server is responsive and stable"
+echo " Key Findings:"
+echo "   - fiddupay server is responsive and stable"
 echo "   - Handles concurrent requests without issues"
 echo "   - Authentication and security working correctly"
 echo "   - Fast response times suitable for production"
@@ -198,9 +198,9 @@ echo "   - Ready for high-traffic deployment"
 # Cleanup
 if [ -n "$SERVER_PID" ]; then
     echo ""
-    echo "🧹 Stopping test server..."
+    echo " Stopping test server..."
     kill $SERVER_PID 2>/dev/null
 fi
 
 echo ""
-echo "🏁 Fixed performance test complete!"
+echo " Fixed performance test complete!"

@@ -4,19 +4,19 @@
 
 set -e
 
-echo "🔥 Deep Codebase Cleanup"
+echo " Deep Codebase Cleanup"
 echo "========================"
 echo ""
 
 read -p "⚠️  This will remove ALL build artifacts, logs, and caches. Continue? (y/N): " confirm
 
 if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-    echo "❌ Cleanup cancelled."
+    echo " Cleanup cancelled."
     exit 1
 fi
 
 echo ""
-echo "🧹 Starting deep cleanup..."
+echo " Starting deep cleanup..."
 
 # Remove all build and cache directories
 echo "1️⃣  Removing build artifacts..."
@@ -51,7 +51,7 @@ echo "7️⃣  Removing package tarballs..."
 find . -name "*.tgz" -type f -delete 2>/dev/null || true
 
 echo ""
-echo "📊 Final project size: $(du -sh . 2>/dev/null | cut -f1)"
+echo " Final project size: $(du -sh . 2>/dev/null | cut -f1)"
 echo ""
-echo "✅ Deep cleanup completed!"
-echo "🎯 Your codebase is now clean and optimized!"
+echo " Deep cleanup completed!"
+echo " Your codebase is now clean and optimized!"

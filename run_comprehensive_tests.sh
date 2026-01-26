@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🚀 FidduPay Comprehensive E2E Test Suite"
+echo " FidduPay Comprehensive E2E Test Suite"
 echo "========================================"
 
 # Colors for output
@@ -21,7 +21,7 @@ export RUST_BACKTRACE=1
 export TEST_MODE=true
 
 # Database setup
-echo -e "${BLUE}📊 Setting up test database...${NC}"
+echo -e "${BLUE} Setting up test database...${NC}"
 export DATABASE_URL="postgresql://vibes:Soledayo%402001@localhost:5432/fiddupay_test"
 export REDIS_URL="redis://localhost:6379"
 
@@ -39,21 +39,21 @@ export POLYGON_RPC_URL="https://polygon-rpc.com"
 export ARBITRUM_RPC_URL="https://arb1.arbitrum.io/rpc"
 export SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
 
-echo -e "${GREEN}✅ Environment configured${NC}"
+echo -e "${GREEN} Environment configured${NC}"
 
 # Function to run test with error handling
 run_test() {
     local test_name=$1
     local test_command=$2
     
-    echo -e "\n${BLUE}🧪 Running: $test_name${NC}"
+    echo -e "\n${BLUE} Running: $test_name${NC}"
     echo "----------------------------------------"
     
     if eval $test_command; then
-        echo -e "${GREEN}✅ $test_name PASSED${NC}"
+        echo -e "${GREEN} $test_name PASSED${NC}"
         return 0
     else
-        echo -e "${RED}❌ $test_name FAILED${NC}"
+        echo -e "${RED} $test_name FAILED${NC}"
         return 1
     fi
 }
@@ -62,7 +62,7 @@ run_test() {
 failed_tests=0
 total_tests=0
 
-echo -e "\n${YELLOW}🔥 Starting Comprehensive Test Suite${NC}"
+echo -e "\n${YELLOW} Starting Comprehensive Test Suite${NC}"
 
 # 1. Unit Tests
 total_tests=$((total_tests + 1))
@@ -137,37 +137,37 @@ if ! run_test "Blockchain Transactions" "cargo test address_only_integration_tes
 fi
 
 # Test Results Summary
-echo -e "\n${YELLOW}📊 Test Suite Results${NC}"
+echo -e "\n${YELLOW} Test Suite Results${NC}"
 echo "========================================"
 echo -e "Total Tests: ${BLUE}$total_tests${NC}"
 echo -e "Passed: ${GREEN}$((total_tests - failed_tests))${NC}"
 echo -e "Failed: ${RED}$failed_tests${NC}"
 
 if [ $failed_tests -eq 0 ]; then
-    echo -e "\n${GREEN}🎉 ALL TESTS PASSED! 🎉${NC}"
-    echo -e "${GREEN}✅ FidduPay 3-Mode Wallet System is ready for production!${NC}"
+    echo -e "\n${GREEN} ALL TESTS PASSED! ${NC}"
+    echo -e "${GREEN} FidduPay 3-Mode Wallet System is ready for production!${NC}"
     
-    echo -e "\n${BLUE}📋 Test Coverage Summary:${NC}"
-    echo "✅ Mode 1: Address-Only with auto-forwarding"
-    echo "✅ Mode 2: Gateway-Generated wallets"
-    echo "✅ Mode 3: Imported private keys"
-    echo "✅ Payment creation and processing"
-    echo "✅ Fee collection and calculation"
-    echo "✅ Withdrawal processing"
-    echo "✅ Gas fee estimation (2026 RPC methods)"
-    echo "✅ WebSocket real-time updates"
-    echo "✅ API endpoints and authentication"
-    echo "✅ Error handling and validation"
-    echo "✅ Multi-currency support (5 networks)"
-    echo "✅ Performance and concurrency"
-    echo "✅ Blockchain transaction sending"
+    echo -e "\n${BLUE} Test Coverage Summary:${NC}"
+    echo " Mode 1: Address-Only with auto-forwarding"
+    echo " Mode 2: Gateway-Generated wallets"
+    echo " Mode 3: Imported private keys"
+    echo " Payment creation and processing"
+    echo " Fee collection and calculation"
+    echo " Withdrawal processing"
+    echo " Gas fee estimation (2026 RPC methods)"
+    echo " WebSocket real-time updates"
+    echo " API endpoints and authentication"
+    echo " Error handling and validation"
+    echo " Multi-currency support (5 networks)"
+    echo " Performance and concurrency"
+    echo " Blockchain transaction sending"
     
     exit 0
 else
-    echo -e "\n${RED}❌ $failed_tests TEST(S) FAILED${NC}"
+    echo -e "\n${RED} $failed_tests TEST(S) FAILED${NC}"
     echo -e "${YELLOW}⚠️ Please review failed tests before deployment${NC}"
     
-    echo -e "\n${BLUE}🔧 Troubleshooting Tips:${NC}"
+    echo -e "\n${BLUE} Troubleshooting Tips:${NC}"
     echo "1. Check database connectivity"
     echo "2. Verify RPC endpoints are accessible"
     echo "3. Ensure Redis is running"

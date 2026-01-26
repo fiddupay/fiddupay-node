@@ -16,12 +16,13 @@ use axum::{
 use tower_http::cors::CorsLayer;
 
 pub fn create_router(state: AppState) -> Router {
-    // Create rate limiter
-    let rate_limiter = rate_limit::create_rate_limiter();
+    // Create rate limiter with config
+    let rate_limiter = rate_limit::create_rate_limiter(state.config.rate_limit_requests_per_minute);
 
     // Public routes (no auth required)
     let public_routes = Router::new()
         .route("/health", get(handlers::health_check))
+        .route("/test-auth/:api_key", get(handlers::debug_auth)) // DEBUG ENDPOINT
         .route("/pay/:link_id", get(handlers::payment_page))
         .route("/pay/:link_id/status", get(handlers::payment_status))
         .route("/api/v1/merchants/register", post(handlers::register_merchant))
@@ -32,6 +33,8 @@ pub fn create_router(state: AppState) -> Router {
     let protected_routes = Router::new()
         // Merchant endpoints
         .route("/api/v1/merchants/profile", get(handlers::get_merchant_profile))
+        .route("/api/v1/merchants/environment/switch", post(handlers::switch_environment))
+        .route("/api/v1/merchants/api-keys/generate", post(handlers::generate_api_key))
         .route("/api/v1/merchants/api-keys/rotate", post(handlers::rotate_api_key))
         .route("/api/v1/merchants/wallets", put(handlers::set_wallet))
         .route("/api/v1/merchants/webhook", put(handlers::set_webhook))
@@ -93,11 +96,6 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/security/settings", get(security_monitoring::get_security_settings))
         .route("/api/v1/security/settings", put(security_monitoring::update_security_settings))
         
-        // Public endpoints (no auth required)
-        .route("/api/v1/status", get(status::get_system_status))
-        .route("/api/v1/blog", get(blog::get_blog_posts))
-        .route("/api/v1/careers", get(careers::get_careers))
-        
         // Apply middleware in order: logging -> rate limit -> auth -> IP whitelist
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),
@@ -112,6 +110,12 @@ pub fn create_router(state: AppState) -> Router {
         }))
         .layer(axum_middleware::from_fn(logging::logging_middleware));
 
+    // Additional public routes (no auth required)
+    let additional_public_routes = Router::new()
+        .route("/api/v1/status", get(status::get_system_status))
+        .route("/api/v1/blog", get(blog::get_blog_posts))
+        .route("/api/v1/careers", get(careers::get_careers));
+
     // Combine routes with CORS
     let cors = CorsLayer::new()
         .allow_origin(
@@ -125,6 +129,7 @@ pub fn create_router(state: AppState) -> Router {
         .allow_credentials(true);
 
     public_routes
+        .merge(additional_public_routes)
         .merge(protected_routes)
         .layer(cors)
         .with_state(state)

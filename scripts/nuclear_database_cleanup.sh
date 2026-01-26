@@ -14,12 +14,12 @@ echo ""
 read -p "🚨 Type 'NUKE' to delete ALL databases: " confirmation
 
 if [ "$confirmation" != "NUKE" ]; then
-    echo "❌ Nuclear cleanup cancelled."
+    echo " Nuclear cleanup cancelled."
     exit 1
 fi
 
 echo ""
-echo "🔍 Finding all databases..."
+echo " Finding all databases..."
 
 # Get list of all databases except system ones
 DATABASES=$(sudo -u postgres psql -t -c "
@@ -30,11 +30,11 @@ AND datistemplate = false;
 " | grep -v '^$' | xargs)
 
 if [ -z "$DATABASES" ]; then
-    echo "✅ No user databases found to delete."
+    echo " No user databases found to delete."
     exit 0
 fi
 
-echo "📋 Found databases to delete:"
+echo " Found databases to delete:"
 for db in $DATABASES; do
     echo "  - $db"
 done
@@ -43,7 +43,7 @@ echo ""
 read -p "🚨 Confirm deletion of these databases? Type 'DELETE ALL': " final_confirm
 
 if [ "$final_confirm" != "DELETE ALL" ]; then
-    echo "❌ Deletion cancelled."
+    echo " Deletion cancelled."
     exit 1
 fi
 
@@ -52,7 +52,7 @@ echo "💥 Deleting all user databases..."
 
 # Terminate all connections first
 for db in $DATABASES; do
-    echo "🔌 Terminating connections to $db..."
+    echo " Terminating connections to $db..."
     sudo -u postgres psql -c "
     SELECT pg_terminate_backend(pid)
     FROM pg_stat_activity
@@ -67,7 +67,7 @@ for db in $DATABASES; do
 done
 
 echo ""
-echo "🧹 Cleaning up remaining artifacts..."
+echo " Cleaning up remaining artifacts..."
 
 # Clean up any remaining roles/users (except system ones)
 sudo -u postgres psql -c "
@@ -84,10 +84,10 @@ END
 " > /dev/null 2>&1 || true
 
 echo ""
-echo "📊 Remaining databases:"
+echo " Remaining databases:"
 sudo -u postgres psql -l
 
 echo ""
-echo "✅ NUCLEAR CLEANUP COMPLETED!"
-echo "🎯 All user databases have been obliterated!"
-echo "💾 System databases preserved for PostgreSQL functionality."
+echo " NUCLEAR CLEANUP COMPLETED!"
+echo " All user databases have been obliterated!"
+echo " System databases preserved for PostgreSQL functionality."

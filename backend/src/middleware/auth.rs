@@ -47,9 +47,12 @@ pub async fn auth_middleware(
     mut request: Request,
     next: Next,
 ) -> Result<Response, impl IntoResponse> {
+    
     // Extract API key from header
     let api_key = match extract_api_key(&headers) {
-        Some(key) => key,
+        Some(key) => {
+            key
+        },
         None => {
             return Err((
                 StatusCode::UNAUTHORIZED,
@@ -61,9 +64,11 @@ pub async fn auth_middleware(
         }
     };
 
+    
     // Authenticate with merchant service
     match state.merchant_service.authenticate(&api_key).await {
         Ok(merchant) => {
+            
             // Create merchant context
             let context = MerchantContext {
                 merchant_id: merchant.id,
@@ -77,7 +82,7 @@ pub async fn auth_middleware(
             // Continue to next middleware/handler
             Ok(next.run(request).await)
         }
-        Err(_) => {
+        Err(e) => {
             Err((
                 StatusCode::UNAUTHORIZED,
                 axum::Json(json!({

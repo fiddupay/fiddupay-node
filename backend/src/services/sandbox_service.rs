@@ -2,10 +2,8 @@
 // Business logic for sandbox testing environment
 
 use crate::error::ServiceError;
-use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
-    Argon2,
-};
+use crate::services::merchant_service::MerchantService;
+use crate::utils::api_keys::ApiKeyGenerator;
 use chrono::Utc;
 use nanoid::nanoid;
 use serde::Serialize;
@@ -29,13 +27,15 @@ impl SandboxService {
         &self,
         merchant_id: i64,
     ) -> Result<SandboxCredentials, ServiceError> {
-        let api_key = format!("test_{}", self.generate_sandbox_key());
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-        let api_key_hash = argon2
-            .hash_password(api_key.as_bytes(), &salt)
-            .map_err(|e| ServiceError::Internal(format!("Hash error: {}", e)))?
-            .to_string();
+        // Use merchant service's single source of truth for API key generation
+        let merchant_service = MerchantService::new(self.db_pool.clone(), crate::config::Config::default());
+        let api_key = merchant_service.generate_api_key(false); // false = sandbox
+        
+        // Use SHA256 for consistent hashing
+        use sha2::{Sha256, Digest};
+        let mut hasher = Sha256::new();
+        hasher.update(api_key.as_bytes());
+        let api_key_hash = format!("{:x}", hasher.finalize());
 
         sqlx::query!(
             "UPDATE merchants SET sandbox_mode = true, api_key_hash = $1, updated_at = $2 WHERE id = $3",
@@ -143,16 +143,7 @@ impl SandboxService {
     }
 
     fn generate_sandbox_key(&self) -> String {
-        const ALPHABET: [char; 62] = [
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
-            'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
-            'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd',
-            'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-            'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
-            'y', 'z',
-        ];
-        nanoid!(32, &ALPHABET)
+        ApiKeyGenerator::generate_sandbox_key()
     }
 }
 

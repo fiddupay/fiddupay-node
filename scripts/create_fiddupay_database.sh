@@ -11,7 +11,7 @@ echo "🆕 Creating FidduPay Database"
 echo "============================="
 echo ""
 
-echo "📋 Creating database: $DB_NAME"
+echo " Creating database: $DB_NAME"
 sudo -u postgres createdb "$DB_NAME"
 
 echo "👤 Creating database user (if needed)..."
@@ -25,13 +25,13 @@ END
 \$\$;
 " > /dev/null
 
-echo "🔐 Granting permissions..."
+echo " Granting permissions..."
 sudo -u postgres psql -c "
 GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO fiddupay;
 ALTER DATABASE $DB_NAME OWNER TO fiddupay;
 " > /dev/null
 
-echo "📊 Running migrations..."
+echo " Running migrations..."
 cd backend
 
 # Check if sqlx is available
@@ -51,9 +51,9 @@ fi
 cd ..
 
 echo ""
-echo "✅ Database setup completed!"
+echo " Database setup completed!"
 echo ""
-echo "📋 Database Details:"
+echo " Database Details:"
 echo "==================="
 echo "Database: $DB_NAME"
 echo "User: fiddupay"
@@ -61,8 +61,8 @@ echo "Password: )h£,ZfI8T9-U1579<)"
 echo "Connection: postgresql://fiddupay:)h£,ZfI8T9-U1579<)@localhost:5432/$DB_NAME"
 echo ""
 
-echo "🔍 Verifying tables..."
+echo " Verifying tables..."
 sudo -u postgres psql -d "$DB_NAME" -c "\dt"
 
 echo ""
-echo "🎯 FidduPay database is ready for use!"
+echo " FidduPay database is ready for use!"

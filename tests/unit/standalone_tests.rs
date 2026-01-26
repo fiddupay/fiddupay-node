@@ -1,4 +1,4 @@
-// PayFlow - Standalone Unit Tests (No Database Required)
+// fiddupay - Standalone Unit Tests (No Database Required)
 
 #[cfg(test)]
 mod encryption_tests {

@@ -1,5 +1,5 @@
 #!/bin/bash
-# PayFlow - Streamlined Test Runner
+# fiddupay - Streamlined Test Runner
 
 set -e
 
@@ -44,7 +44,7 @@ run_test_scripts() {
 }
 
 main() {
-    log "Starting PayFlow test suite..."
+    log "Starting fiddupay test suite..."
     
     case "${1:-all}" in
         "unit") run_unit_tests ;;

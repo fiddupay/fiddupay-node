@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🚀 FidduPay Core Functionality Tests"
+echo " FidduPay Core Functionality Tests"
 echo "===================================="
 
 # Colors for output
@@ -20,7 +20,7 @@ export RUST_LOG=info
 export TEST_MODE=true
 
 # Database setup
-echo -e "${BLUE}📊 Setting up test environment...${NC}"
+echo -e "${BLUE} Setting up test environment...${NC}"
 export DATABASE_URL="postgresql://vibes:Soledayo%402001@localhost:5432/fiddupay_test"
 export REDIS_URL="redis://localhost:6379"
 
@@ -35,21 +35,21 @@ export POLYGON_RPC_URL="https://polygon-rpc.com"
 export ARBITRUM_RPC_URL="https://arb1.arbitrum.io/rpc"
 export SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
 
-echo -e "${GREEN}✅ Environment configured${NC}"
+echo -e "${GREEN} Environment configured${NC}"
 
 # Function to run test with error handling
 run_test() {
     local test_name=$1
     local test_command=$2
     
-    echo -e "\n${BLUE}🧪 Running: $test_name${NC}"
+    echo -e "\n${BLUE} Running: $test_name${NC}"
     echo "----------------------------------------"
     
     if eval $test_command; then
-        echo -e "${GREEN}✅ $test_name PASSED${NC}"
+        echo -e "${GREEN} $test_name PASSED${NC}"
         return 0
     else
-        echo -e "${RED}❌ $test_name FAILED${NC}"
+        echo -e "${RED} $test_name FAILED${NC}"
         return 1
     fi
 }
@@ -58,7 +58,7 @@ run_test() {
 failed_tests=0
 total_tests=0
 
-echo -e "\n${YELLOW}🔥 Starting Core Functionality Tests${NC}"
+echo -e "\n${YELLOW} Starting Core Functionality Tests${NC}"
 
 # 1. RPC Gas Fee Tests (Working)
 total_tests=$((total_tests + 1))
@@ -98,10 +98,10 @@ payment = decimal.Decimal(\"100.00\")
 fee_rate = decimal.Decimal(\"0.0075\")  # 0.75%
 processing_fee = payment * fee_rate
 forwarding_amount = payment - processing_fee
-print(f\"✅ Payment: {payment}, Fee: {processing_fee}, Forwarding: {forwarding_amount}\")
+print(f\" Payment: {payment}, Fee: {processing_fee}, Forwarding: {forwarding_amount}\")
 assert processing_fee == decimal.Decimal(\"0.75\")
 assert forwarding_amount == decimal.Decimal(\"99.25\")
-print(\"✅ Fee calculations correct\")
+print(\" Fee calculations correct\")
 '"; then
     failed_tests=$((failed_tests + 1))
 fi
@@ -124,13 +124,13 @@ def generate_solana_address():
 eth_addr = generate_evm_address()
 sol_addr = generate_solana_address()
 
-print(f\"✅ ETH Address: {eth_addr}\")
-print(f\"✅ SOL Address: {sol_addr}\")
+print(f\" ETH Address: {eth_addr}\")
+print(f\" SOL Address: {sol_addr}\")
 
 assert eth_addr.startswith(\"0x\")
 assert len(eth_addr) == 42
 assert len(sol_addr) == 36
-print(\"✅ Address generation logic correct\")
+print(\" Address generation logic correct\")
 '"; then
     failed_tests=$((failed_tests + 1))
 fi
@@ -142,15 +142,15 @@ if ! run_test "Crypto Type Validation" "python3 -c '
 native_currencies = [\"ETH\", \"BNB\", \"MATIC\", \"ARB\", \"SOL\"]
 unsupported_usdt = [\"USDT_ETH\", \"USDT_BEP20\", \"USDT_POLYGON\", \"USDT_ARBITRUM\", \"USDT_SPL\"]
 
-print(f\"✅ Supported native currencies: {native_currencies}\")
-print(f\"❌ Unsupported USDT variants (Phase 1): {unsupported_usdt}\")
+print(f\" Supported native currencies: {native_currencies}\")
+print(f\" Unsupported USDT variants (Phase 1): {unsupported_usdt}\")
 
 # Validate Phase 1 restrictions
 assert len(native_currencies) == 5
 assert \"ETH\" in native_currencies
 assert \"SOL\" in native_currencies
 assert \"USDT_ETH\" not in native_currencies
-print(\"✅ Crypto type validation correct\")
+print(\" Crypto type validation correct\")
 '"; then
     failed_tests=$((failed_tests + 1))
 fi
@@ -177,7 +177,7 @@ webhook_payload = {
 }
 
 json_payload = json.dumps(webhook_payload, indent=2)
-print(f\"✅ Webhook payload structure:\")
+print(f\" Webhook payload structure:\")
 print(json_payload)
 
 # Validate required fields
@@ -185,7 +185,7 @@ required_fields = [\"event\", \"payment_id\", \"status\", \"crypto_type\"]
 for field in required_fields:
     assert field in webhook_payload
     
-print(\"✅ Webhook payload validation correct\")
+print(\" Webhook payload validation correct\")
 '"; then
     failed_tests=$((failed_tests + 1))
 fi
@@ -202,7 +202,7 @@ gas_fees = {
     \"SOL\": {\"base\": 5000, \"priority\": 0, \"unit\": \"lamports\"}
 }
 
-print(\"✅ Gas fee comparison across networks:\")
+print(\" Gas fee comparison across networks:\")
 for network, fees in gas_fees.items():
     if \"base\" in fees:
         total = fees[\"base\"] + fees[\"priority\"]
@@ -212,35 +212,35 @@ for network, fees in gas_fees.items():
 
 # Validate L2 networks have lower fees
 assert gas_fees[\"ARB\"][\"price\"] < gas_fees[\"ETH\"][\"base\"]  # Arbitrum cheaper than Ethereum
-print(\"✅ L2 networks have lower fees as expected\")
+print(\" L2 networks have lower fees as expected\")
 '"; then
     failed_tests=$((failed_tests + 1))
 fi
 
 # Test Results Summary
-echo -e "\n${YELLOW}📊 Core Functionality Test Results${NC}"
+echo -e "\n${YELLOW} Core Functionality Test Results${NC}"
 echo "========================================"
 echo -e "Total Tests: ${BLUE}$total_tests${NC}"
 echo -e "Passed: ${GREEN}$((total_tests - failed_tests))${NC}"
 echo -e "Failed: ${RED}$failed_tests${NC}"
 
 if [ $failed_tests -eq 0 ]; then
-    echo -e "\n${GREEN}🎉 ALL CORE TESTS PASSED! 🎉${NC}"
-    echo -e "${GREEN}✅ FidduPay Core Functionality Validated!${NC}"
+    echo -e "\n${GREEN} ALL CORE TESTS PASSED! ${NC}"
+    echo -e "${GREEN} FidduPay Core Functionality Validated!${NC}"
     
-    echo -e "\n${BLUE}📋 Validated Core Features:${NC}"
-    echo "✅ RPC endpoints working (2026 methods)"
-    echo "✅ Database connectivity"
-    echo "✅ Redis cache connectivity"
-    echo "✅ Environment configuration"
-    echo "✅ Network connectivity"
-    echo "✅ Fee calculation logic"
-    echo "✅ Address generation logic"
-    echo "✅ Crypto type validation"
-    echo "✅ Webhook payload structure"
-    echo "✅ Gas fee network comparison"
+    echo -e "\n${BLUE} Validated Core Features:${NC}"
+    echo " RPC endpoints working (2026 methods)"
+    echo " Database connectivity"
+    echo " Redis cache connectivity"
+    echo " Environment configuration"
+    echo " Network connectivity"
+    echo " Fee calculation logic"
+    echo " Address generation logic"
+    echo " Crypto type validation"
+    echo " Webhook payload structure"
+    echo " Gas fee network comparison"
     
-    echo -e "\n${YELLOW}🚀 Ready for Production Deployment!${NC}"
+    echo -e "\n${YELLOW} Ready for Production Deployment!${NC}"
     echo -e "${BLUE}Next Steps:${NC}"
     echo "1. Deploy to staging environment"
     echo "2. Run load testing"
@@ -250,10 +250,10 @@ if [ $failed_tests -eq 0 ]; then
     
     exit 0
 else
-    echo -e "\n${RED}❌ $failed_tests CORE TEST(S) FAILED${NC}"
+    echo -e "\n${RED} $failed_tests CORE TEST(S) FAILED${NC}"
     echo -e "${YELLOW}⚠️ Please fix core issues before deployment${NC}"
     
-    echo -e "\n${BLUE}🔧 Troubleshooting Tips:${NC}"
+    echo -e "\n${BLUE} Troubleshooting Tips:${NC}"
     echo "1. Check database connectivity: psql \$DATABASE_URL"
     echo "2. Check Redis connectivity: redis-cli -u \$REDIS_URL ping"
     echo "3. Verify RPC endpoints: curl -s https://eth.llamarpc.com"

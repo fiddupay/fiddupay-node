@@ -64,13 +64,14 @@ impl PaymentProcessor {
         
         // Get merchant to retrieve fee percentage
         let merchant = sqlx::query!(
-            "SELECT fee_percentage FROM merchants WHERE id = $1",
+            "SELECT fee_percentage, sandbox_mode FROM merchants WHERE id = $1",
             merchant_id
         )
         .fetch_one(&self.db_pool)
         .await?;
         
         let fee_percentage = merchant.fee_percentage;
+        let is_sandbox = merchant.sandbox_mode;
         
         // Validate fee percentage is within acceptable bounds (0.1% - 5%)
         FeeCalculator::validate_fee_percentage(fee_percentage)?;
@@ -107,7 +108,27 @@ impl PaymentProcessor {
         let expires_at = Utc::now() + Duration::minutes(expiration_minutes as i64);
         
         // Get network and required confirmations
-        let network = request.crypto_type.network();
+        // Get network based on sandbox mode (testnet for sandbox, mainnet for production)
+        let network = if is_sandbox {
+            match request.crypto_type.as_str() {
+                "SOL" => "Solana Devnet",
+                "ETH" => "Ethereum Sepolia",
+                "BNB" => "BSC Testnet", 
+                "MATIC" => "Polygon Mumbai",
+                "ARB" => "Arbitrum Sepolia",
+                "USDT" => match request.crypto_type.network() {
+                    "Solana" => "Solana Devnet",
+                    "Ethereum" => "Ethereum Sepolia",
+                    "BSC" => "BSC Testnet",
+                    "Polygon" => "Polygon Mumbai", 
+                    "Arbitrum" => "Arbitrum Sepolia",
+                    _ => "Unknown Testnet"
+                },
+                _ => "Unknown Testnet"
+            }
+        } else {
+            request.crypto_type.network()
+        };
         let required_confirmations = request.crypto_type.required_confirmations() as i32;
         
         // Determine if partial payments are enabled
@@ -189,6 +210,8 @@ impl PaymentProcessor {
 
     /// Generate a unique payment ID
     fn generate_payment_id(&self) -> String {
-        format!("pay_{}", nanoid!())
+use crate::utils::api_keys::ApiKeyGenerator;
+
+        ApiKeyGenerator::generate_payment_id()
     }
 }

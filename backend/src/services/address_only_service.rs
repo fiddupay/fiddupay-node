@@ -420,6 +420,6 @@ impl AddressOnlyService {
         .fetch_one(&self.db_pool)
         .await?;
 
-        Ok(merchant.customer_pays_fee.unwrap_or(true))
+        Ok(merchant.customer_pays_fee)
     }
 }

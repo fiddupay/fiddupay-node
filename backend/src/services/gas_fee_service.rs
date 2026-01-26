@@ -384,7 +384,7 @@ mod tests {
             
             let estimate = result.unwrap();
             assert!(estimate.standard_fee > Decimal::ZERO, "{} returned zero fee", name);
-            println!("✅ {}: {} {}", name, estimate.standard_fee, estimate.native_currency);
+            println!(" {}: {} {}", name, estimate.standard_fee, estimate.native_currency);
         }
     }
 }

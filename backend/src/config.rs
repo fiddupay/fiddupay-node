@@ -21,12 +21,19 @@ pub struct Config {
     pub server_workers: usize,
     pub request_timeout_seconds: u64,
 
-    // Blockchain RPC URLs
+    // Blockchain RPC URLs (Production)
     pub solana_rpc_url: String,
     pub ethereum_rpc_url: String,
     pub bsc_rpc_url: String,
     pub arbitrum_rpc_url: String,
     pub polygon_rpc_url: String,
+
+    // Sandbox/Test Network URLs
+    pub solana_devnet_rpc_url: String,
+    pub ethereum_sepolia_rpc_url: String,
+    pub bsc_testnet_rpc_url: String,
+    pub arbitrum_sepolia_rpc_url: String,
+    pub polygon_mumbai_rpc_url: String,
 
     // Blockchain Settings
     pub confirmation_blocks_sol: u32,
@@ -34,6 +41,18 @@ pub struct Config {
     pub confirmation_blocks_bsc: u32,
     pub confirmation_blocks_polygon: u32,
     pub confirmation_blocks_arbitrum: u32,
+
+    // Chain IDs (Production)
+    pub ethereum_chain_id: u64,
+    pub bsc_chain_id: u64,
+    pub polygon_chain_id: u64,
+    pub arbitrum_chain_id: u64,
+
+    // Chain IDs (Sandbox/Testnet)
+    pub ethereum_sepolia_chain_id: u64,
+    pub bsc_testnet_chain_id: u64,
+    pub polygon_mumbai_chain_id: u64,
+    pub arbitrum_sepolia_chain_id: u64,
 
     // Transaction Monitoring
     pub block_monitor_interval_seconds: u64,
@@ -153,12 +172,24 @@ impl Config {
                 .unwrap_or_else(|_| "30".to_string())
                 .parse()?,
 
-            // Blockchain RPC URLs - All required, no defaults
+            // Blockchain RPC URLs - Production (All required, no defaults)
             solana_rpc_url: env::var("SOLANA_RPC_URL")?,
             ethereum_rpc_url: env::var("ETHEREUM_RPC_URL")?,
             bsc_rpc_url: env::var("BSC_RPC_URL")?,
             arbitrum_rpc_url: env::var("ARBITRUM_RPC_URL")?,
             polygon_rpc_url: env::var("POLYGON_RPC_URL")?,
+
+            // Sandbox/Test Network URLs
+            solana_devnet_rpc_url: env::var("SOLANA_DEVNET_RPC_URL")
+                .unwrap_or_else(|_| "https://api.devnet.solana.com".to_string()),
+            ethereum_sepolia_rpc_url: env::var("ETHEREUM_SEPOLIA_RPC_URL")
+                .unwrap_or_else(|_| "https://eth-sepolia.g.alchemy.com/v2/demo".to_string()),
+            bsc_testnet_rpc_url: env::var("BSC_TESTNET_RPC_URL")
+                .unwrap_or_else(|_| "https://data-seed-prebsc-1-s1.binance.org:8545".to_string()),
+            arbitrum_sepolia_rpc_url: env::var("ARBITRUM_SEPOLIA_RPC_URL")
+                .unwrap_or_else(|_| "https://sepolia-rollup.arbitrum.io/rpc".to_string()),
+            polygon_mumbai_rpc_url: env::var("POLYGON_MUMBAI_RPC_URL")
+                .unwrap_or_else(|_| "https://rpc-mumbai.maticvigil.com".to_string()),
 
             // Blockchain Settings
             confirmation_blocks_sol: env::var("CONFIRMATION_BLOCKS_SOL")
@@ -175,6 +206,34 @@ impl Config {
                 .parse()?,
             confirmation_blocks_arbitrum: env::var("CONFIRMATION_BLOCKS_ARBITRUM")
                 .unwrap_or_else(|_| "1".to_string())
+                .parse()?,
+
+            // Chain IDs (Production)
+            ethereum_chain_id: env::var("ETHEREUM_CHAIN_ID")
+                .unwrap_or_else(|_| "1".to_string())
+                .parse()?,
+            bsc_chain_id: env::var("BSC_CHAIN_ID")
+                .unwrap_or_else(|_| "56".to_string())
+                .parse()?,
+            polygon_chain_id: env::var("POLYGON_CHAIN_ID")
+                .unwrap_or_else(|_| "137".to_string())
+                .parse()?,
+            arbitrum_chain_id: env::var("ARBITRUM_CHAIN_ID")
+                .unwrap_or_else(|_| "42161".to_string())
+                .parse()?,
+
+            // Chain IDs (Sandbox/Testnet)
+            ethereum_sepolia_chain_id: env::var("ETHEREUM_SEPOLIA_CHAIN_ID")
+                .unwrap_or_else(|_| "11155111".to_string())
+                .parse()?,
+            bsc_testnet_chain_id: env::var("BSC_TESTNET_CHAIN_ID")
+                .unwrap_or_else(|_| "97".to_string())
+                .parse()?,
+            polygon_mumbai_chain_id: env::var("POLYGON_MUMBAI_CHAIN_ID")
+                .unwrap_or_else(|_| "80001".to_string())
+                .parse()?,
+            arbitrum_sepolia_chain_id: env::var("ARBITRUM_SEPOLIA_CHAIN_ID")
+                .unwrap_or_else(|_| "421614".to_string())
                 .parse()?,
 
             // Transaction Monitoring
@@ -422,11 +481,24 @@ impl Default for Config {
             bsc_rpc_url: "https://bsc-dataseed.binance.org".to_string(),
             arbitrum_rpc_url: "https://arb1.arbitrum.io/rpc".to_string(),
             polygon_rpc_url: "https://polygon-rpc.com".to_string(),
+            solana_devnet_rpc_url: "https://api.devnet.solana.com".to_string(),
+            ethereum_sepolia_rpc_url: "https://eth-sepolia.g.alchemy.com/v2/demo".to_string(),
+            bsc_testnet_rpc_url: "https://data-seed-prebsc-1-s1.binance.org:8545".to_string(),
+            arbitrum_sepolia_rpc_url: "https://sepolia-rollup.arbitrum.io/rpc".to_string(),
+            polygon_mumbai_rpc_url: "https://rpc-mumbai.maticvigil.com".to_string(),
             confirmation_blocks_sol: 1,
             confirmation_blocks_eth: 12,
             confirmation_blocks_bsc: 3,
             confirmation_blocks_polygon: 20,
             confirmation_blocks_arbitrum: 1,
+            ethereum_chain_id: 1,
+            bsc_chain_id: 56,
+            polygon_chain_id: 137,
+            arbitrum_chain_id: 42161,
+            ethereum_sepolia_chain_id: 11155111,
+            bsc_testnet_chain_id: 97,
+            polygon_mumbai_chain_id: 80001,
+            arbitrum_sepolia_chain_id: 421614,
             block_monitor_interval_seconds: 10,
             transaction_timeout_minutes: 60,
             etherscan_api_key: None,

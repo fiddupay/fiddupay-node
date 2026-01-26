@@ -3,7 +3,7 @@ use reqwest;
 
 async fn get_test_pool() -> PgPool {
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/payflow_test".to_string());
+        .unwrap_or_else(|_| "postgresql://vibes:Soledayo%402001@localhost:5432/fiddupay_test".to_string());
     
     PgPool::connect(&database_url).await.expect("Failed to connect")
 }
@@ -21,7 +21,7 @@ async fn test_health_endpoint_live() {
         assert_eq!(resp.status(), 200);
         let body = resp.text().await.unwrap();
         assert!(body.contains("healthy"));
-        println!("✅ Health endpoint: {}", body);
+        println!(" Health endpoint: {}", body);
     } else {
         println!("⚠️  Server not running on port 8080");
     }
@@ -38,7 +38,7 @@ async fn test_metrics_requires_auth_live() {
     
     if let Ok(resp) = response {
         assert_eq!(resp.status(), 401);
-        println!("✅ Metrics requires auth");
+        println!(" Metrics requires auth");
     } else {
         println!("⚠️  Server not running");
     }
@@ -61,7 +61,7 @@ async fn test_create_merchant_requires_auth_live() {
     
     if let Ok(resp) = response {
         assert_eq!(resp.status(), 401);
-        println!("✅ Create merchant requires auth");
+        println!(" Create merchant requires auth");
     } else {
         println!("⚠️  Server not running");
     }
@@ -78,7 +78,7 @@ async fn test_list_payments_requires_auth_live() {
     
     if let Ok(resp) = response {
         assert_eq!(resp.status(), 401);
-        println!("✅ List payments requires auth");
+        println!(" List payments requires auth");
     } else {
         println!("⚠️  Server not running");
     }
@@ -98,7 +98,7 @@ async fn test_invalid_api_key_live() {
         assert_eq!(resp.status(), 401);
         let body = resp.text().await.unwrap();
         assert!(body.contains("Invalid API key"));
-        println!("✅ Invalid API key rejected");
+        println!(" Invalid API key rejected");
     } else {
         println!("⚠️  Server not running");
     }
@@ -114,7 +114,7 @@ async fn test_database_merchants_exist() {
         .unwrap();
     
     assert!(count.0 >= 2, "Should have test merchants");
-    println!("✅ Database has {} merchants", count.0);
+    println!(" Database has {} merchants", count.0);
 }
 
 #[tokio::test]
@@ -127,7 +127,7 @@ async fn test_database_payments_exist() {
         .unwrap();
     
     assert!(count.0 >= 3, "Should have test payments");
-    println!("✅ Database has {} payments", count.0);
+    println!(" Database has {} payments", count.0);
 }
 
 #[tokio::test]
@@ -140,7 +140,7 @@ async fn test_database_balances_exist() {
         .unwrap();
     
     assert!(count.0 >= 3, "Should have test balances");
-    println!("✅ Database has {} balances", count.0);
+    println!(" Database has {} balances", count.0);
 }
 
 #[tokio::test]
@@ -153,7 +153,7 @@ async fn test_database_wallets_exist() {
         .unwrap();
     
     assert!(count.0 >= 3, "Should have test wallets");
-    println!("✅ Database has {} wallets", count.0);
+    println!(" Database has {} wallets", count.0);
 }
 
 #[tokio::test]
@@ -168,7 +168,7 @@ async fn test_payment_status_distribution() {
     .unwrap();
     
     assert!(!statuses.is_empty());
-    println!("✅ Payment statuses: {:?}", statuses);
+    println!(" Payment statuses: {:?}", statuses);
 }
 
 #[tokio::test]
@@ -183,7 +183,7 @@ async fn test_merchant_fee_percentages() {
     .unwrap();
     
     assert!(!fees.is_empty());
-    println!("✅ Merchant fees: {:?}", fees);
+    println!(" Merchant fees: {:?}", fees);
 }
 
 #[tokio::test]
@@ -198,5 +198,5 @@ async fn test_crypto_type_distribution() {
     .unwrap();
     
     assert!(!types.is_empty());
-    println!("✅ Crypto types: {:?}", types);
+    println!(" Crypto types: {:?}", types);
 }
