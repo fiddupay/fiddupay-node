@@ -37,6 +37,8 @@ console.log('Payment created:', payment.id);
 ## Features
 
 - **Payment Processing**: Create, retrieve, list, and cancel payments
+- **Address-Only Payments**: Direct merchant address payments with fee toggle
+- **Fee Management**: Configure customer-pays-fee vs merchant-pays-fee models
 - **Webhook Verification**: Secure HMAC-SHA256 signature validation
 - **Merchant Management**: Profile, balance, and wallet configuration
 - **Refund Operations**: Create and track refunds
@@ -85,6 +87,57 @@ const payments = await fiddupay.payments.list({
   limit: 10,
   status: 'completed'
 });
+```
+
+## Fee Toggle Management
+
+Configure whether customers or merchants pay processing fees:
+
+### Update Fee Setting
+
+```typescript
+// Customer pays fee (default)
+await fiddupay.payments.updateFeeSetting({
+  customer_pays_fee: true
+});
+
+// Merchant pays fee
+await fiddupay.payments.updateFeeSetting({
+  customer_pays_fee: false
+});
+```
+
+### Get Current Fee Setting
+
+```typescript
+const feeSetting = await fiddupay.payments.getFeeSetting();
+console.log('Customer pays fee:', feeSetting.customer_pays_fee);
+```
+
+## Address-Only Payments
+
+Create payments that send funds directly to merchant addresses:
+
+### Create Address-Only Payment
+
+```typescript
+const payment = await fiddupay.payments.createAddressOnly({
+  requested_amount: '100.00',
+  crypto_type: 'ETH',
+  merchant_address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+  description: 'Direct payment to merchant wallet'
+});
+
+console.log('Customer amount:', payment.customer_amount);
+console.log('Processing fee:', payment.processing_fee);
+console.log('Customer pays fee:', payment.customer_pays_fee);
+console.log('Instructions:', payment.customer_instructions);
+```
+
+### Retrieve Address-Only Payment
+
+```typescript
+const payment = await fiddupay.payments.retrieveAddressOnly('pay_123');
 ```
 
 ## Webhook Handling
