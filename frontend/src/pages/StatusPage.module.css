@@ -1,171 +1,301 @@
-/* StatusPage - Simple White & Black */
 .statusPage {
-  background: var(--white);
   min-height: 100vh;
-  padding: 24px;
+  background: #f8fafc;
 }
 
 .container {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
+  padding: 2rem 1rem;
 }
 
-.title {
-  font-size: 32px;
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #1e40af;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.header h1 {
+  font-size: 2.5rem;
   font-weight: 700;
-  color: var(--black);
-  text-align: center;
-  margin-bottom: 8px;
+  color: #000000;
+  margin-bottom: 0.5rem;
 }
 
-.subtitle {
-  font-size: 16px;
-  color: var(--gray);
+.header p {
+  color: #6b7280;
+  font-size: 1.125rem;
+  margin-bottom: 2rem;
+}
+
+/* Overall Health */
+.overallHealth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  margin: 2rem 0;
+}
+
+.healthChart {
+  position: relative;
+}
+
+.chartContainer {
+  position: relative;
+  width: 150px;
+  height: 150px;
+}
+
+.chart {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.healthProgress {
+  transition: stroke-dasharray 1s ease-in-out;
+}
+
+.chartCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   text-align: center;
-  margin-bottom: 40px;
+}
+
+.healthPercent {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #000000;
+}
+
+.healthLabel {
+  display: block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
 }
 
 .overallStatus {
-  text-align: center;
-  margin-bottom: 40px;
-}
-
-.statusIndicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--brand-green);
-  color: var(--white);
-  padding: 16px 32px;
-  border-radius: 50px;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.statusIndicator.degraded {
-  background: var(--brand-gold);
-}
-
-.services {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-  margin-bottom: 40px;
-}
-
-.servicesHeader {
-  padding: 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-.servicesTitle {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--black);
-}
-
-.service {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
 }
 
-.service:last-child {
-  border-bottom: none;
+.statusBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 2rem;
+  color: white;
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+/* Services */
+.services {
+  margin-bottom: 3rem;
+}
+
+.services h2 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  color: #000000;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.servicesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.serviceCard {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  transition: transform 0.3s ease;
+}
+
+.serviceCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.serviceHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.serviceIcon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.125rem;
 }
 
 .serviceInfo {
   flex: 1;
 }
 
-.serviceName {
-  font-size: 16px;
+.serviceInfo h3 {
+  font-size: 1.125rem;
   font-weight: 600;
-  color: var(--black);
-  margin-bottom: 4px;
+  color: #000000;
+  margin: 0 0 0.25rem 0;
 }
 
-.serviceDescription {
-  font-size: 14px;
-  color: var(--gray);
+.serviceInfo p {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
 }
 
-.serviceMetrics {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.serviceStatus {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.healthBar {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.healthBar .healthProgress {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s ease-in-out;
 }
 
 .responseTime {
-  font-size: 12px;
-  color: var(--black);
-  background: var(--light-gray);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: 500;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+  text-align: right;
 }
 
-.operational {
-  background: var(--brand-green);
-  color: var(--white);
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-size: 12px;
+/* Metrics */
+.metrics h2 {
+  font-size: 1.875rem;
   font-weight: 600;
-}
-
-.degraded {
-  background: var(--brand-gold);
-  color: var(--white);
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.uptime {
+  color: #000000;
+  margin-bottom: 2rem;
   text-align: center;
 }
 
-.uptimeTitle {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--black);
-  margin-bottom: 24px;
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
 }
 
-.uptimeStats {
+.metricCard {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
   display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.metricCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.metricIcon {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 40px;
-  margin-bottom: 20px;
+  color: white;
+  font-size: 1.25rem;
 }
 
-.statValue {
-  display: block;
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--brand-blue);
-  margin-bottom: 4px;
-}
-
-.statLabel {
-  font-size: 14px;
-  color: var(--gray);
+.metricContent h3 {
+  font-size: 0.875rem;
   font-weight: 500;
+  color: #6b7280;
+  margin: 0 0 0.25rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.lastUpdated {
-  font-size: 14px;
-  color: var(--gray);
+.metricValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #000000;
+  margin-bottom: 0.25rem;
 }
 
-.loading, .error {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--gray);
-  font-size: 16px;
+.metricContent p {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .overallHealth {
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .chartContainer {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .servicesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
 }

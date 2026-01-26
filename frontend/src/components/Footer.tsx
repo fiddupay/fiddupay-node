@@ -38,7 +38,6 @@ const Footer: React.FC = () => {
               <Link to="/pricing">Pricing</Link>
               <Link to="/docs">API Documentation</Link>
               <Link to="/features">Features</Link>
-              <Link to="/contact">Demo</Link>
             </div>
             
             <div className={styles.linkGroup}>
@@ -51,8 +50,7 @@ const Footer: React.FC = () => {
             
             <div className={styles.linkGroup}>
               <h4><i className="fas fa-headset"></i> Support</h4>
-              <Link to="/docs">Help Center</Link>
-              <Link to="/contact">Contact Support</Link>
+              <Link to="/contact">Support</Link>
               <Link to="/status">System Status</Link>
               <Link to="/security">Security</Link>
             </div>
