@@ -250,6 +250,102 @@ Manually verify a payment (useful for testing).
 }
 ```
 
+### Address-Only Payments
+
+#### POST /api/v1/address-only-payments
+Create an address-only payment that sends funds directly to merchant address.
+
+**Headers:** `Authorization: Bearer <api_key>`
+
+**Request:**
+```json
+{
+  "requested_amount": "100.00",
+  "crypto_type": "ETH",
+  "merchant_address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+  "description": "Direct payment to merchant wallet"
+}
+```
+
+**Response:**
+```json
+{
+  "payment_id": "pay_addr_123",
+  "requested_amount": "100.00",
+  "customer_amount": "100.75",
+  "processing_fee": "0.75",
+  "crypto_type": "ETH",
+  "gateway_deposit_address": "0x1234567890abcdef",
+  "customer_pays_fee": true,
+  "customer_instructions": "Send exactly 100.75 ETH to the deposit address. This includes the processing fee.",
+  "supported_currencies": ["ETH"],
+  "expires_at": "2026-01-24T16:30:00Z",
+  "created_at": "2026-01-24T15:30:00Z"
+}
+```
+
+#### GET /api/v1/address-only-payments/{payment_id}
+Get details of a specific address-only payment.
+
+**Headers:** `Authorization: Bearer <api_key>`
+
+**Response:**
+```json
+{
+  "payment_id": "pay_addr_123",
+  "requested_amount": "100.00",
+  "customer_amount": "100.75",
+  "processing_fee": "0.75",
+  "crypto_type": "ETH",
+  "gateway_deposit_address": "0x1234567890abcdef",
+  "customer_pays_fee": true,
+  "customer_instructions": "Send exactly 100.75 ETH to the deposit address. This includes the processing fee.",
+  "supported_currencies": ["ETH"],
+  "status": "CONFIRMED",
+  "transaction_hash": "0xdef456...",
+  "confirmations": 15,
+  "expires_at": "2026-01-24T16:30:00Z",
+  "created_at": "2026-01-24T15:30:00Z",
+  "confirmed_at": "2026-01-24T15:35:00Z"
+}
+```
+
+### Fee Setting Management
+
+#### POST /api/v1/fee-setting
+Update merchant fee payment preference.
+
+**Headers:** `Authorization: Bearer <api_key>`
+
+**Request:**
+```json
+{
+  "customer_pays_fee": true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "customer_pays_fee": true,
+  "message": "Fee payment setting updated: Customer pays fee"
+}
+```
+
+#### GET /api/v1/fee-setting
+Get current fee payment preference.
+
+**Headers:** `Authorization: Bearer <api_key>`
+
+**Response:**
+```json
+{
+  "customer_pays_fee": true,
+  "description": "Customer pays processing fee"
+}
+```
+
 ### Balance Management
 
 #### GET /api/v1/balance

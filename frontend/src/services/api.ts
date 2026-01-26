@@ -6,6 +6,10 @@ import {
   Payment, 
   PaymentData, 
   PaymentFilters,
+  AddressOnlyPayment,
+  AddressOnlyPaymentData,
+  FeeSettingData,
+  FeeSettingResponse,
   WalletConfig,
   Wallet,
   Analytics,
@@ -73,6 +77,11 @@ class ApiService {
     return response.data
   }
 
+  async createAddressOnlyPayment(data: AddressOnlyPaymentData): Promise<AddressOnlyPayment> {
+    const response = await this.api.post('/address-only-payments', data)
+    return response.data
+  }
+
   async getPayments(filters?: PaymentFilters): Promise<PaginatedResponse<Payment>> {
     const response = await this.api.get('/payments', { params: filters })
     return response.data
@@ -80,6 +89,22 @@ class ApiService {
 
   async getPayment(id: string): Promise<Payment> {
     const response = await this.api.get(`/payments/${id}`)
+    return response.data
+  }
+
+  async getAddressOnlyPayment(id: string): Promise<AddressOnlyPayment> {
+    const response = await this.api.get(`/address-only-payments/${id}`)
+    return response.data
+  }
+
+  // Fee Settings
+  async updateFeeSetting(data: FeeSettingData): Promise<ApiResponse<void>> {
+    const response = await this.api.post('/fee-setting', data)
+    return response.data
+  }
+
+  async getFeeSetting(): Promise<FeeSettingResponse> {
+    const response = await this.api.get('/fee-setting')
     return response.data
   }
 

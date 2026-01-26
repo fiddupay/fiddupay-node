@@ -1,0 +1,106 @@
+/* FIDDUPAY PROFESSIONAL DESIGN SYSTEM - FINAL */
+:root {
+  /* BACKGROUNDS - Clean & Simple */
+  --bg-white: #ffffff;
+  --bg-light: #f8fafc;
+  --bg-card: #ffffff;
+  
+  /* TEXT - High Contrast */
+  --text-black: #000000;
+  --text-dark: #1f2937;
+  --text-gray: #6b7280;
+  --text-light: #9ca3af;
+  
+  /* BRAND COLORS */
+  --blue: #1e40af;
+  --blue-hover: #1d4ed8;
+  --green: #059669;
+  --gold: #f59e0b;
+  --red: #dc2626;
+  
+  /* BORDERS */
+  --border: #e5e7eb;
+  --border-dark: #d1d5db;
+  
+  /* SHADOWS */
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+/* GLOBAL RULES */
+body {
+  background: var(--bg-white);
+  color: var(--text-black);
+}
+
+/* BUTTONS */
+.btn-primary {
+  background: var(--blue);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: var(--blue-hover);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--text-black);
+  border: 1px solid var(--border);
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-light);
+}
+
+/* CARDS */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+/* TEXT STYLES */
+.text-primary { color: var(--text-black); }
+.text-secondary { color: var(--text-dark); }
+.text-muted { color: var(--text-gray); }
+
+/* STATUS BADGES */
+.badge-success {
+  background: var(--green);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-warning {
+  background: var(--gold);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-error {
+  background: var(--red);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}

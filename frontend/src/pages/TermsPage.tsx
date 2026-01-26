@@ -48,7 +48,7 @@ const TermsPage: React.FC = () => {
           <section className={styles.section}>
             <h2>4. Fees and Payment</h2>
             <p>
-              FidduPay charges a transaction fee of 0.75% per successful payment, with a minimum fee of $0.01 and maximum fee of $200.00. Additional terms:
+              FidduPay charges a transaction fee of 0.75% per successful payment. Additional terms:
             </p>
             <ul>
               <li>Fees are automatically deducted from processed payments</li>

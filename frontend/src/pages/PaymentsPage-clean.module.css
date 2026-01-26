@@ -1,0 +1,254 @@
+/* PaymentsPage - Clean Professional Design */
+.paymentsPage {
+  background: var(--bg-white);
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-black);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title i {
+  color: var(--blue);
+}
+
+.headerActions {
+  display: flex;
+  gap: 12px;
+}
+
+.primaryButton {
+  background: var(--blue);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.primaryButton:hover {
+  background: var(--blue-hover);
+  transform: translateY(-1px);
+}
+
+.secondaryButton {
+  background: white;
+  color: var(--text-black);
+  border: 1px solid var(--border);
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.secondaryButton:hover {
+  background: var(--bg-light);
+  border-color: var(--border-dark);
+}
+
+.content {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.contentHeader {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-light);
+}
+
+.contentTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-black);
+}
+
+.contentBody {
+  padding: 20px;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-gray);
+}
+
+.emptyState i {
+  font-size: 48px;
+  color: var(--text-light);
+  margin-bottom: 16px;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalHeader {
+  padding: 20px 20px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-black);
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--text-gray);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: var(--bg-light);
+  color: var(--text-black);
+}
+
+.form {
+  padding: 20px;
+}
+
+.inputGroup {
+  margin-bottom: 16px;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-black);
+  margin-bottom: 6px;
+}
+
+.input, .select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  color: var(--text-black);
+  transition: all 0.2s ease;
+}
+
+.input:focus, .select:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgb(30 64 175 / 0.1);
+}
+
+.radioGroup {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.radioGroup label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--text-dark);
+  cursor: pointer;
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 0 20px 20px;
+}
+
+.cancelButton {
+  background: white;
+  color: var(--text-gray);
+  border: 1px solid var(--border);
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+  background: var(--bg-light);
+  color: var(--text-black);
+}
+
+.submitButton {
+  background: var(--blue);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.submitButton:hover {
+  background: var(--blue-hover);
+}

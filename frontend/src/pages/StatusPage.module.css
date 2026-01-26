@@ -1,0 +1,171 @@
+/* StatusPage - Simple White & Black */
+.statusPage {
+  background: var(--white);
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--black);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: var(--gray);
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.overallStatus {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.statusIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--brand-green);
+  color: var(--white);
+  padding: 16px 32px;
+  border-radius: 50px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.statusIndicator.degraded {
+  background: var(--brand-gold);
+}
+
+.services {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  margin-bottom: 40px;
+}
+
+.servicesHeader {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.servicesTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--black);
+}
+
+.service {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.service:last-child {
+  border-bottom: none;
+}
+
+.serviceInfo {
+  flex: 1;
+}
+
+.serviceName {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 4px;
+}
+
+.serviceDescription {
+  font-size: 14px;
+  color: var(--gray);
+}
+
+.serviceMetrics {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.responseTime {
+  font-size: 12px;
+  color: var(--black);
+  background: var(--light-gray);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.operational {
+  background: var(--brand-green);
+  color: var(--white);
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.degraded {
+  background: var(--brand-gold);
+  color: var(--white);
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.uptime {
+  text-align: center;
+}
+
+.uptimeTitle {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 24px;
+}
+
+.uptimeStats {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 20px;
+}
+
+.statValue {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--brand-blue);
+  margin-bottom: 4px;
+}
+
+.statLabel {
+  font-size: 14px;
+  color: var(--gray);
+  font-weight: 500;
+}
+
+.lastUpdated {
+  font-size: 14px;
+  color: var(--gray);
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--gray);
+  font-size: 16px;
+}

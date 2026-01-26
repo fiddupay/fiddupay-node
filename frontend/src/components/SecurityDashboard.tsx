@@ -1,7 +1,7 @@
 // Security Dashboard Component
 // Displays security events, alerts, and monitoring
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,9 +14,7 @@ import {
   Clock, 
   Fuel,
   Activity,
-  Settings,
-  Eye,
-  EyeOff
+  Settings
 } from 'lucide-react';
 
 interface SecurityEvent {

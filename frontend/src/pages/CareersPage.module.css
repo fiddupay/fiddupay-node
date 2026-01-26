@@ -1,0 +1,88 @@
+.careersPage {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 2rem 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.header h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #000000;
+  margin-bottom: 1rem;
+}
+
+.header p {
+  font-size: 1.25rem;
+  color: #6b7280;
+}
+
+.section {
+  margin-bottom: 4rem;
+}
+
+.section h2 {
+  font-size: 2rem;
+  color: #000000;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.benefits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.benefit {
+  background: #f8fafc;
+  padding: 2rem;
+  border-radius: 1rem;
+  text-align: center;
+  box-shadow: var(--fiddu-shadow);
+}
+
+.benefit i {
+  font-size: 3rem;
+  color: #1e40af;
+  margin-bottom: 1rem;
+}
+
+.benefit h3 {
+  color: #000000;
+  margin-bottom: 1rem;
+}
+
+.jobs {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.job {
+  background: #f8fafc;
+  padding: 2rem;
+  border-radius: 1rem;
+  border-left: 4px solid #1e40af;
+  box-shadow: var(--fiddu-shadow);
+}
+
+.job h3 {
+  color: #000000;
+  margin-bottom: 0.5rem;
+}
+
+.job p {
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}

@@ -1,0 +1,76 @@
+/* FidduPay Design System - PROPER CONTRAST */
+:root {
+  /* BACKGROUNDS */
+  --fiddu-bg-primary: #ffffff;           /* White background */
+  --fiddu-bg-secondary: #f8fafc;         /* Light gray for cards */
+  
+  /* TEXT - ALWAYS VISIBLE ON WHITE */
+  --fiddu-text-primary: #000000;         /* Black text on white */
+  --fiddu-text-secondary: #374151;       /* Dark gray text on white */
+  --fiddu-text-muted: #6b7280;           /* Medium gray text on white */
+  
+  /* BRAND COLORS */
+  --fiddu-brand-primary: #1e40af;        /* Blue */
+  --fiddu-brand-secondary: #059669;      /* Green */
+  --fiddu-brand-accent: #f59e0b;         /* Gold */
+  
+  /* BORDERS */
+  --fiddu-border: #e5e7eb;              /* Light border */
+  --fiddu-border-strong: #d1d5db;       /* Stronger border */
+  
+  /* SHADOWS */
+  --fiddu-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+/* DARK MODE */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fiddu-bg-primary: #0f172a;
+    --fiddu-bg-secondary: #1e293b;
+    --fiddu-bg-tertiary: #334155;
+    
+    --fiddu-text-primary: #f8fafc;
+    --fiddu-text-secondary: #cbd5e1;
+    --fiddu-text-muted: #94a3b8;
+    --fiddu-text-inverse: #0f172a;
+    
+    --fiddu-border-light: #334155;
+    --fiddu-border-medium: #475569;
+    --fiddu-border-strong: #64748b;
+  }
+}
+
+/* PROFESSIONAL UI COMPONENTS */
+.fiddu-card {
+  background: var(--fiddu-bg-secondary);
+  border: 1px solid var(--fiddu-border-light);
+  border-radius: 8px;
+  box-shadow: var(--fiddu-shadow-sm);
+}
+
+.fiddu-button-primary {
+  background: var(--fiddu-brand-primary);
+  color: var(--fiddu-text-inverse);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.fiddu-button-primary:hover {
+  background: var(--fiddu-hover);
+  box-shadow: var(--fiddu-shadow-md);
+}
+
+.fiddu-text-primary {
+  color: var(--fiddu-text-primary);
+}
+
+.fiddu-text-secondary {
+  color: var(--fiddu-text-secondary);
+}
+
+.fiddu-text-muted {
+  color: var(--fiddu-text-muted);
+}

@@ -72,6 +72,7 @@
 .loginBtn:hover {
   background: #1d4ed8;
   transform: translateY(-1px);
+  color: white;
 }
 
 .menuBtn {
@@ -101,7 +102,7 @@
     top: 100%;
     left: 0;
     right: 0;
-    background: white;
+    background: #f8fafc;
     flex-direction: column;
     padding: 1rem;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -121,7 +122,7 @@
   .navLink {
     width: 100%;
     padding: 1rem 0;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid #f1f5f9;
   }
 
   .navLink.active::after {

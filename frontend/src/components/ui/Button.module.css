@@ -12,25 +12,25 @@
 }
 
 .primary {
-  background: #4f46e5;
+  background: #1e40af;
   color: white;
 }
 
 .primary:hover {
-  background: #4338ca;
+  background: var(--fiddu-primary-hover);
 }
 
 .secondary {
-  background: #f3f4f6;
+  background: #f1f5f9;
   color: #374151;
 }
 
 .secondary:hover {
-  background: #e5e7eb;
+  background: #e2e8f0;
 }
 
 .danger {
-  background: #ef4444;
+  background: #dc2626;
   color: white;
 }
 

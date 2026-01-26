@@ -1,13 +1,13 @@
 .header {
-  background-color: var(--color-white);
-  border-bottom: 1px solid var(--color-gray-200);
-  padding: var(--spacing-4) 0;
+  background-color: var(--fiddu-bg-primary);
+  border-bottom: 1px solid var(--fiddu-border);
+  padding: 16px 0;
 }
 
 .container {
   max-width: 80rem;
   margin: 0 auto;
-  padding: 0 var(--spacing-4);
+  padding: 0 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -20,63 +20,63 @@
 
 .menuButton {
   display: none;
-  padding: var(--spacing-2);
+  padding: 8px;
   border: none;
   background: none;
-  color: var(--color-gray-600);
+  color: var(--fiddu-text-secondary);
   font-size: 1.5rem;
   cursor: pointer;
-  border-radius: var(--radius-md);
+  border-radius: 6px;
 }
 
 .menuButton:hover {
-  background-color: var(--color-gray-100);
+  background-color: var(--fiddu-bg-secondary);
 }
 
 .right {
   display: flex;
   align-items: center;
-  gap: var(--spacing-4);
+  gap: 16px;
 }
 
 .notificationButton {
-  padding: var(--spacing-2);
+  padding: 8px;
   border: none;
   background: none;
-  color: var(--color-gray-600);
+  color: var(--fiddu-text-secondary);
   font-size: 1.5rem;
   cursor: pointer;
-  border-radius: var(--radius-md);
+  border-radius: 6px;
   position: relative;
 }
 
 .notificationButton:hover {
-  background-color: var(--color-gray-100);
+  background-color: var(--fiddu-bg-secondary);
 }
 
 .userInfo {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
+  gap: 12px;
 }
 
 .userAvatar {
   width: 2rem;
   height: 2rem;
-  border-radius: var(--radius-full);
-  background-color: var(--color-primary-600);
+  border-radius: 50%;
+  background-color: var(--fiddu-brand-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-white);
-  font-size: var(--font-size-sm);
+  color: white;
+  font-size: 14px;
   font-weight: 500;
 }
 
 .userName {
-  font-size: var(--font-size-sm);
+  font-size: 14px;
   font-weight: 500;
-  color: var(--color-gray-900);
+  color: var(--fiddu-text-primary);
 }
 
 @media (max-width: 1024px) {

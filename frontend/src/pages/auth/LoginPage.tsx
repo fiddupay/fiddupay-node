@@ -23,17 +23,33 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.email || !formData.password) {
-      showToast('Please fill in all required fields', 'error')
+    // Validation
+    if (!formData.email.trim()) {
+      showToast('Email is required', 'error')
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      showToast('Please enter a valid email address', 'error')
+      return
+    }
+
+    if (!formData.password) {
+      showToast('Password is required', 'error')
       return
     }
 
     setLoading(true)
     try {
-      await login(formData)
+      await login({
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        two_factor_code: formData.two_factor_code.trim() || undefined
+      })
       showToast('Login successful!', 'success')
-    } catch (error) {
-      showToast('Login failed. Please check your credentials.', 'error')
+    } catch (error: any) {
+      showToast(error.message || 'Login failed. Please check your credentials.', 'error')
     } finally {
       setLoading(false)
     }

@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { useToast } from '@/contexts/ToastContext'
 import { useLoading } from '@/contexts/LoadingContext'
 import { apiService } from '@/services/api'
-import { Payment, PaymentFilters } from '@/types'
+import { Payment, PaymentFilters, FeeSettingResponse } from '@/types'
 import styles from './PaymentsPage.module.css'
 
 const PaymentsPage: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([])
+  const [feeSetting, setFeeSetting] = useState<FeeSettingResponse | null>(null)
   const [stats, setStats] = useState({
     totalPayments: 0,
     totalVolume: '$0.00',
@@ -17,10 +18,13 @@ const PaymentsPage: React.FC = () => {
     page_size: 20
   })
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showFeeSettingModal, setShowFeeSettingModal] = useState(false)
+  const [paymentType, setPaymentType] = useState<'standard' | 'address-only'>('standard')
   const [newPayment, setNewPayment] = useState({
     amount_usd: '',
     crypto_type: 'USDT_ETH',
-    description: ''
+    description: '',
+    merchant_address: ''
   })
   
   const { showToast } = useToast()
@@ -29,7 +33,17 @@ const PaymentsPage: React.FC = () => {
   useEffect(() => {
     loadPayments()
     loadStats()
+    loadFeeSetting()
   }, [filters])
+
+  const loadFeeSetting = async () => {
+    try {
+      const setting = await apiService.getFeeSetting()
+      setFeeSetting(setting)
+    } catch (error) {
+      console.error('Failed to load fee setting:', error)
+    }
+  }
 
   const loadPayments = async () => {
     setLoading(true)
@@ -68,18 +82,48 @@ const PaymentsPage: React.FC = () => {
 
     setLoading(true)
     try {
-      const payment = await apiService.createPayment({
-        amount_usd: newPayment.amount_usd,
-        crypto_type: newPayment.crypto_type,
-        description: newPayment.description || undefined
-      })
+      if (paymentType === 'address-only') {
+        if (!newPayment.merchant_address) {
+          showToast('Merchant address is required for address-only payments', 'error')
+          return
+        }
+        const payment = await apiService.createAddressOnlyPayment({
+          requested_amount: newPayment.amount_usd,
+          crypto_type: newPayment.crypto_type,
+          merchant_address: newPayment.merchant_address,
+          description: newPayment.description || undefined
+        })
+        console.log('Address-only payment created:', payment.payment_id)
+        showToast('Address-only payment created successfully!', 'success')
+      } else {
+        const payment = await apiService.createPayment({
+          amount_usd: newPayment.amount_usd,
+          crypto_type: newPayment.crypto_type,
+          description: newPayment.description || undefined
+        })
+        setPayments(prev => [payment, ...prev])
+        showToast('Payment created successfully!', 'success')
+      }
       
-      setPayments(prev => [payment, ...prev])
       setShowCreateModal(false)
-      setNewPayment({ amount_usd: '', crypto_type: 'USDT_ETH', description: '' })
-      showToast('Payment created successfully!', 'success')
+      setNewPayment({ amount_usd: '', crypto_type: 'USDT_ETH', description: '', merchant_address: '' })
+      loadPayments()
     } catch (error) {
       showToast('Failed to create payment', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpdateFeeSetting = async (customerPaysFee: boolean) => {
+    setLoading(true)
+    try {
+      await apiService.updateFeeSetting({ customer_pays_fee: customerPaysFee })
+      showToast(`Fee setting updated: ${customerPaysFee ? 'Customer pays fee' : 'Merchant pays fee'}`, 'success')
+      setShowFeeSettingModal(false)
+      loadFeeSetting()
+    } catch (error) {
+      showToast('Failed to update fee setting', 'error')
     } finally {
       setLoading(false)
     }
@@ -113,13 +157,22 @@ const PaymentsPage: React.FC = () => {
           <h1><i className="fas fa-credit-card"></i> Payments</h1>
           <p>Manage and track all your cryptocurrency payments</p>
         </div>
-        <button 
-          className={styles.createBtn}
-          onClick={() => setShowCreateModal(true)}
-        >
-          <i className="fas fa-plus"></i>
-          Create Payment
-        </button>
+        <div className={styles.headerActions}>
+          <button 
+            className={styles.feeSettingBtn}
+            onClick={() => setShowFeeSettingModal(true)}
+          >
+            <i className="fas fa-cog"></i>
+            Fee Settings
+          </button>
+          <button 
+            className={styles.createBtn}
+            onClick={() => setShowCreateModal(true)}
+          >
+            <i className="fas fa-plus"></i>
+            Create Payment
+          </button>
+        </div>
       </div>
 
       <div className={styles.stats}>
@@ -150,6 +203,19 @@ const PaymentsPage: React.FC = () => {
             <div className={styles.statValue}>{stats.successRate}</div>
           </div>
         </div>
+        {feeSetting && (
+          <div className={styles.statCard}>
+            <div className={styles.statIcon}>
+              <i className="fas fa-percentage"></i>
+            </div>
+            <div className={styles.statContent}>
+              <h3>Fee Model</h3>
+              <div className={styles.statValue}>
+                {feeSetting.customer_pays_fee ? 'Customer Pays' : 'Merchant Pays'}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={styles.tableContainer}>
@@ -248,6 +314,30 @@ const PaymentsPage: React.FC = () => {
             
             <form onSubmit={handleCreatePayment} className={styles.form}>
               <div className={styles.inputGroup}>
+                <label>Payment Type</label>
+                <div className={styles.radioGroup}>
+                  <label>
+                    <input
+                      type="radio"
+                      value="standard"
+                      checked={paymentType === 'standard'}
+                      onChange={(e) => setPaymentType(e.target.value as 'standard' | 'address-only')}
+                    />
+                    Standard Payment
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      value="address-only"
+                      checked={paymentType === 'address-only'}
+                      onChange={(e) => setPaymentType(e.target.value as 'standard' | 'address-only')}
+                    />
+                    Address-Only Payment
+                  </label>
+                </div>
+              </div>
+
+              <div className={styles.inputGroup}>
                 <label htmlFor="amount">Amount (USD)</label>
                 <input
                   type="number"
@@ -280,6 +370,20 @@ const PaymentsPage: React.FC = () => {
                   <option value="USDT_SPL">USDT (Solana)</option>
                 </select>
               </div>
+
+              {paymentType === 'address-only' && (
+                <div className={styles.inputGroup}>
+                  <label htmlFor="merchant_address">Merchant Address *</label>
+                  <input
+                    type="text"
+                    id="merchant_address"
+                    value={newPayment.merchant_address}
+                    onChange={(e) => setNewPayment(prev => ({ ...prev, merchant_address: e.target.value }))}
+                    placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+                    required={paymentType === 'address-only'}
+                  />
+                </div>
+              )}
               
               <div className={styles.inputGroup}>
                 <label htmlFor="description">Description (Optional)</label>
@@ -306,6 +410,57 @@ const PaymentsPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Fee Setting Modal */}
+      {showFeeSettingModal && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h2>Fee Settings</h2>
+              <button 
+                className={styles.closeBtn}
+                onClick={() => setShowFeeSettingModal(false)}
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div className={styles.feeSettingOptions}>
+              <p>Choose who pays the processing fee:</p>
+              
+              <div className={styles.feeOption}>
+                <button
+                  className={`${styles.feeOptionBtn} ${feeSetting?.customer_pays_fee ? styles.active : ''}`}
+                  onClick={() => handleUpdateFeeSetting(true)}
+                >
+                  <div className={styles.feeOptionIcon}>
+                    <i className="fas fa-user"></i>
+                  </div>
+                  <div className={styles.feeOptionContent}>
+                    <h3>Customer Pays Fee</h3>
+                    <p>Customer pays the requested amount plus processing fee</p>
+                  </div>
+                </button>
+              </div>
+
+              <div className={styles.feeOption}>
+                <button
+                  className={`${styles.feeOptionBtn} ${!feeSetting?.customer_pays_fee ? styles.active : ''}`}
+                  onClick={() => handleUpdateFeeSetting(false)}
+                >
+                  <div className={styles.feeOptionIcon}>
+                    <i className="fas fa-store"></i>
+                  </div>
+                  <div className={styles.feeOptionContent}>
+                    <h3>Merchant Pays Fee</h3>
+                    <p>Customer pays the requested amount, fee deducted from merchant</p>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

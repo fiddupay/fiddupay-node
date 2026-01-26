@@ -1,29 +1,32 @@
 .docsPage {
   display: flex;
-  min-height: 100vh;
-  background: #fafbfc;
+  min-height: calc(100vh - 120px); /* Account for header/footer */
+  background: #ffffff;
+  position: relative;
 }
 
 /* Sidebar */
 .sidebar {
   width: 280px;
-  background: white;
-  border-right: 1px solid #e1e8ed;
-  position: fixed;
-  height: 100vh;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  height: fit-content;
+  max-height: calc(100vh - 120px);
   overflow-y: auto;
-  z-index: 10;
+  flex-shrink: 0;
 }
 
 .sidebarHeader {
   padding: 2rem 1.5rem 1rem;
-  border-bottom: 1px solid #e1e8ed;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .sidebarHeader h2 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
   margin: 0;
 }
 
@@ -50,7 +53,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 1.5rem;
-  color: #4b5563;
+  color: #374151;
   text-decoration: none;
   font-size: 0.875rem;
   transition: all 0.2s;
@@ -58,12 +61,12 @@
 }
 
 .navSection a:hover {
-  background: #f3f4f6;
+  background: #f1f5f9;
   color: #1e40af;
 }
 
 .navSection a.active {
-  background: #eff6ff;
+  background: #f1f5f9;
   color: #1e40af;
   border-left-color: #1e40af;
   font-weight: 500;
@@ -77,9 +80,9 @@
 /* Content */
 .content {
   flex: 1;
-  margin-left: 280px;
   padding: 2rem 3rem;
   max-width: calc(100% - 280px);
+  background: #ffffff;
 }
 
 .section {
@@ -89,7 +92,7 @@
 .section h1 {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 1rem;
 }
 
@@ -103,7 +106,7 @@
 .section h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
   margin: 2rem 0 1rem;
 }
 
@@ -117,7 +120,7 @@
 .section h3 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
   margin: 1.5rem 0 0.75rem;
 }
 
@@ -129,7 +132,7 @@
 }
 
 .infoBox {
-  background: #eff6ff;
+  background: #f1f5f9;
   border: 1px solid #bfdbfe;
 }
 
@@ -162,7 +165,7 @@
 
 /* Code Examples */
 .codeExample {
-  background: #1f2937;
+  background: #000000;
   border-radius: 0.5rem;
   margin: 1.5rem 0;
   overflow: hidden;
@@ -171,14 +174,14 @@
 .codeHeader {
   background: #374151;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #4b5563;
+  border-bottom: 1px solid #374151;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .codeHeader span {
-  color: #d1d5db;
+  color: #cbd5e1;
   font-size: 0.875rem;
   font-weight: 500;
 }
@@ -190,8 +193,8 @@
 
 .languageTabs button {
   background: transparent;
-  border: 1px solid #4b5563;
-  color: #9ca3af;
+  border: 1px solid #374151;
+  color: #6b7280;
   padding: 0.25rem 0.75rem;
   border-radius: 0.25rem;
   font-size: 0.75rem;
@@ -201,7 +204,7 @@
 
 .languageTabs button:hover {
   border-color: #6b7280;
-  color: #d1d5db;
+  color: #cbd5e1;
 }
 
 .languageTabs button.active {
@@ -217,7 +220,7 @@
 }
 
 .codeExample code {
-  color: #e5e7eb;
+  color: #e2e8f0;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.875rem;
   line-height: 1.5;
@@ -225,16 +228,16 @@
 
 /* API Endpoint */
 .endpoint {
-  border: 1px solid #e1e8ed;
+  border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
   margin: 2rem 0;
-  background: white;
+  background: #f8fafc;
 }
 
 .endpointHeader {
   background: #f8fafc;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e1e8ed;
+  border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -253,7 +256,7 @@
 .url {
   font-family: 'Monaco', 'Menlo', monospace;
   font-weight: 500;
-  color: #1f2937;
+  color: #000000;
 }
 
 .description {
@@ -273,7 +276,7 @@
 
 .param {
   padding: 0.75rem 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .param:last-child {
@@ -281,8 +284,8 @@
 }
 
 .param code {
-  background: #f3f4f6;
-  color: #1f2937;
+  background: #f1f5f9;
+  color: #000000;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-family: 'Monaco', 'Menlo', monospace;
@@ -322,8 +325,8 @@
 }
 
 .cryptoCard, .sdkCard {
-  background: white;
-  border: 1px solid #e1e8ed;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
   padding: 1.5rem;
   text-align: center;
@@ -361,7 +364,7 @@
 .cryptoCard h4, .sdkCard h3 {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
   margin: 0 0 0.5rem;
 }
 
@@ -372,7 +375,7 @@
 }
 
 .cryptoCard small {
-  color: #9ca3af;
+  color: #6b7280;
   font-size: 0.75rem;
   display: block;
   margin-top: 0.25rem;
@@ -436,7 +439,7 @@
 .environmentCard h3 {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 1rem;
 }
 
@@ -468,7 +471,7 @@
 }
 
 .tip {
-  background: #eff6ff;
+  background: #f1f5f9;
   border: 1px solid #bfdbfe;
   border-radius: 0.5rem;
   padding: 1.5rem;
@@ -493,7 +496,7 @@
   gap: 1.5rem;
   margin: 2rem 0;
   padding: 2rem;
-  background: white;
+  background: #f8fafc;
   border-radius: 0.5rem;
   border: 1px solid #e2e8f0;
 }
@@ -519,7 +522,7 @@
 .stepContent h3 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
   margin: 0 0 0.5rem;
 }
 
@@ -568,7 +571,7 @@
 .nextStep h3 {
   font-size: 1rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
   margin: 0 0 0.5rem;
 }
 
@@ -588,7 +591,7 @@
   align-items: flex-start;
   gap: 1rem;
   padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .errorItem:last-child {
@@ -596,8 +599,8 @@
 }
 
 .successCode {
-  background: #d1fae5;
-  color: #065f46;
+  background: #10b981;
+  color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-weight: 600;
@@ -606,8 +609,8 @@
 }
 
 .errorCode {
-  background: #fee2e2;
-  color: #991b1b;
+  background: #dc2626;
+  color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-weight: 600;
@@ -618,7 +621,7 @@
 .errorItem h3 {
   font-size: 1rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
   margin: 0 0 0.25rem;
 }
 
@@ -634,7 +637,7 @@
 
 .errorType {
   padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .errorType:last-child {
@@ -642,8 +645,8 @@
 }
 
 .errorType code {
-  background: #f3f4f6;
-  color: #1f2937;
+  background: #f1f5f9;
+  color: #000000;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-weight: 500;
@@ -663,8 +666,8 @@
 }
 
 .installCode {
-  background: #1f2937;
-  color: #e5e7eb;
+  background: #000000;
+  color: #e2e8f0;
   padding: 0.75rem 1rem;
   border-radius: 0.375rem;
   margin: 1rem 0;
@@ -689,7 +692,7 @@
 
 .comingSoonCard i {
   font-size: 2rem;
-  color: #9ca3af;
+  color: #6b7280;
   margin-bottom: 1rem;
 }
 
@@ -701,7 +704,7 @@
 }
 
 .comingSoonCard p {
-  color: #9ca3af;
+  color: #6b7280;
   font-size: 0.875rem;
   margin: 0;
 }
@@ -710,7 +713,7 @@
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: #fbbf24;
+  background: #f59e0b;
   color: #92400e;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
@@ -719,8 +722,8 @@
 }
 
 .sdkCard code {
-  background: #f3f4f6;
-  color: #1f2937;
+  background: #f1f5f9;
+  color: #000000;
   padding: 0.5rem;
   border-radius: 0.25rem;
   font-size: 0.75rem;
@@ -748,8 +751,8 @@
 }
 
 .keyType {
-  background: white;
-  border: 1px solid #e1e8ed;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
   padding: 1.5rem;
 }
@@ -760,7 +763,7 @@
 }
 
 .keyType code {
-  background: #f3f4f6;
+  background: #f1f5f9;
   color: #6b7280;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
@@ -781,15 +784,15 @@
 }
 
 .event {
-  background: white;
-  border: 1px solid #e1e8ed;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
   padding: 1rem 1.5rem;
   margin-bottom: 0.5rem;
 }
 
 .event code {
-  background: #eff6ff;
+  background: #f1f5f9;
   color: #1e40af;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
@@ -831,7 +834,7 @@
 }
 /* Expandable Endpoint Cards */
 .endpointCard {
-  background: white;
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
   margin: 1.5rem 0;
@@ -901,8 +904,8 @@
 }
 
 .endpointMethod code {
-  background: #f3f4f6;
-  color: #1f2937;
+  background: #f1f5f9;
+  color: #000000;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
@@ -913,7 +916,7 @@
   flex: 1;
   margin-left: 1rem;
   font-size: 1rem;
-  color: #1f2937;
+  color: #000000;
 }
 
 .endpointContent {
@@ -927,7 +930,7 @@
   gap: 0.5rem;
   font-size: 1.125rem;
   font-weight: 700;
-  color: #1f2937;
+  color: #000000;
   margin: 0 0 1rem;
 }
 
@@ -940,7 +943,7 @@
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .paramRow:last-child {
@@ -948,8 +951,8 @@
 }
 
 .paramRow code {
-  background: #f3f4f6;
-  color: #1f2937;
+  background: #f1f5f9;
+  color: #000000;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
@@ -959,7 +962,7 @@
 
 .required {
   background: #fef2f2;
-  color: #991b1b;
+  color: #dc2626;
   padding: 0.125rem 0.5rem;
   border-radius: 0.25rem;
   font-size: 0.75rem;
@@ -982,7 +985,7 @@
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
   font-weight: 800;
   font-size: 2.5rem;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 1rem;
   display: flex;
   align-items: center;
@@ -998,14 +1001,14 @@
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
   font-weight: 700;
   font-size: 1.875rem;
-  color: #1f2937;
+  color: #000000;
 }
 
 .section h3 {
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
   font-weight: 700;
   font-size: 1.25rem;
-  color: #1f2937;
+  color: #000000;
 }
 
 .lead {

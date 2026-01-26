@@ -36,7 +36,7 @@ const AboutPage: React.FC = () => {
             <div className={styles.textContent}>
               <h2>Security First</h2>
               <p>
-                Security isn't just a feature for us—it's our foundation. With a 10/10 
+                Security isn't just a feature for us—it's our foundation. With a enterprise-grade 
                 security score, we implement bank-level encryption, advanced threat 
                 detection, and comprehensive monitoring to protect every transaction.
               </p>
@@ -50,7 +50,7 @@ const AboutPage: React.FC = () => {
 
           <div className={styles.stats}>
             <div className={styles.statCard}>
-              <div className={styles.statNumber}>10/10</div>
+              <div className={styles.statNumber}>enterprise-grade</div>
               <div className={styles.statLabel}>Security Score</div>
             </div>
             <div className={styles.statCard}>

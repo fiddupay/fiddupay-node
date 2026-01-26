@@ -1,0 +1,152 @@
+.statusPage {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 2rem 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.header h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #000000;
+  margin-bottom: 1rem;
+}
+
+.header p {
+  font-size: 1.25rem;
+  color: #6b7280;
+}
+
+.overallStatus {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.statusIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #10b981;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 2rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.statusIndicator i {
+  font-size: 1.5rem;
+}
+
+.services {
+  background: #f8fafc;
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-bottom: 3rem;
+  box-shadow: var(--fiddu-shadow);
+}
+
+.service {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.service:last-child {
+  border-bottom: none;
+}
+
+.serviceInfo h3 {
+  color: #000000;
+  margin-bottom: 0.25rem;
+}
+
+.serviceInfo p {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.operational {
+  background: #10b981;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.degraded {
+  background: #f59e0b;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.responseTime {
+  font-size: 0.75rem;
+  color: #6b7280;
+  background: #f1f5f9;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  margin-left: 0.5rem;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 4rem;
+  color: #6b7280;
+  font-size: 1.125rem;
+}
+
+.lastUpdated {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+.uptime {
+  text-align: center;
+}
+
+.uptime h2 {
+  color: #000000;
+  margin-bottom: 2rem;
+}
+
+.uptimeStats {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+}
+
+.stat {
+  text-align: center;
+}
+
+.statValue {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1e40af;
+  margin-bottom: 0.5rem;
+}
+
+.statLabel {
+  color: #6b7280;
+  font-size: 0.875rem;
+}

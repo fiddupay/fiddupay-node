@@ -39,10 +39,46 @@ export interface Payment {
   description?: string
 }
 
+export interface AddressOnlyPayment {
+  payment_id: string
+  requested_amount: string
+  customer_amount: string
+  processing_fee: string
+  crypto_type: string
+  gateway_deposit_address: string
+  customer_pays_fee: boolean
+  customer_instructions: string
+  supported_currencies: string[]
+  expires_at?: string
+  status?: 'PENDING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED'
+  transaction_hash?: string
+  confirmations?: number
+  created_at?: string
+  confirmed_at?: string
+  description?: string
+  metadata?: Record<string, any>
+}
+
 export interface PaymentData {
   amount_usd: string
   crypto_type: string
   description?: string
+}
+
+export interface AddressOnlyPaymentData {
+  requested_amount: string
+  crypto_type: string
+  merchant_address: string
+  description?: string
+}
+
+export interface FeeSettingData {
+  customer_pays_fee: boolean
+}
+
+export interface FeeSettingResponse {
+  customer_pays_fee: boolean
+  description: string
 }
 
 export interface PaymentFilters {

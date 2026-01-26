@@ -34,6 +34,12 @@
       "value": "1",
       "type": "string",
       "description": "Merchant ID from registration"
+    },
+    {
+      "key": "address_payment_id",
+      "value": "",
+      "type": "string",
+      "description": "Address-only payment ID from creation"
     }
   ],
   "item": [
@@ -321,6 +327,110 @@
               "path": ["api", "v1", "payments", "{{payment_id}}", "verify"]
             },
             "description": "Manually verify a payment"
+          }
+        },
+        {
+          "name": "Create Address-Only Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('address_payment_id', response.payment_id);",
+                  "    pm.test('Address-only payment created', function () {",
+                  "        pm.expect(response.payment_id).to.be.a('string');",
+                  "        pm.expect(response.customer_amount).to.be.a('string');",
+                  "        pm.expect(response.customer_pays_fee).to.be.a('boolean');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requested_amount\": \"100.00\",\n  \"crypto_type\": \"ETH\",\n  \"merchant_address\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\",\n  \"description\": \"Direct payment to merchant wallet\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/address-only-payments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "address-only-payments"]
+            },
+            "description": "Create an address-only payment that sends funds directly to merchant address"
+          }
+        },
+        {
+          "name": "Get Address-Only Payment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/address-only-payments/{{address_payment_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "address-only-payments", "{{address_payment_id}}"]
+            },
+            "description": "Get details of a specific address-only payment"
+          }
+        },
+        {
+          "name": "Update Fee Setting",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.test('Fee setting updated', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.customer_pays_fee).to.be.a('boolean');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_pays_fee\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/fee-setting",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fee-setting"]
+            },
+            "description": "Update merchant fee payment preference (customer pays fee vs merchant pays fee)"
+          }
+        },
+        {
+          "name": "Get Fee Setting",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fee-setting",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fee-setting"]
+            },
+            "description": "Get current fee payment preference"
           }
         }
       ]

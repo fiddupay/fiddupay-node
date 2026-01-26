@@ -1,7 +1,7 @@
 // Wallet Setup Wizard Component
 // Guides merchants through 3-mode wallet configuration
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -263,7 +263,7 @@ export default function WalletSetupWizard() {
                     <Input
                       id="address"
                       value={address}
-                      onChange={(e) => setAddress(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAddress(e.target.value)}
                       placeholder={selectedNetwork === 'solana' ? 'Solana address' : '0x...'}
                     />
                   </div>
@@ -285,7 +285,7 @@ export default function WalletSetupWizard() {
                       id="gen-password"
                       type="password"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                       placeholder="Strong password for key encryption"
                     />
                   </div>
@@ -295,7 +295,7 @@ export default function WalletSetupWizard() {
                       id="gen-confirm"
                       type="password"
                       value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm password"
                     />
                   </div>
@@ -317,7 +317,7 @@ export default function WalletSetupWizard() {
                       id="private-key"
                       type="password"
                       value={privateKey}
-                      onChange={(e) => setPrivateKey(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPrivateKey(e.target.value)}
                       placeholder={selectedNetwork === 'solana' ? 'Base58 private key' : '0x... or hex private key'}
                     />
                   </div>
@@ -327,7 +327,7 @@ export default function WalletSetupWizard() {
                       id="import-password"
                       type="password"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                       placeholder="Password to encrypt your key"
                     />
                   </div>
@@ -337,7 +337,7 @@ export default function WalletSetupWizard() {
                       id="import-confirm"
                       type="password"
                       value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm password"
                     />
                   </div>

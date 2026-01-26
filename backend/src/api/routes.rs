@@ -1,7 +1,7 @@
 // API Routes
 // HTTP route definitions
 
-use crate::api::{handlers, wallet_management, security_monitoring};
+use crate::api::{handlers, wallet_management, security_monitoring, status, blog, careers};
 use crate::api::state::AppState;
 use crate::middleware::{auth, ip_whitelist, logging, rate_limit};
 use axum::{
@@ -92,6 +92,11 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/security/gas-check", get(security_monitoring::check_gas_balances))
         .route("/api/v1/security/settings", get(security_monitoring::get_security_settings))
         .route("/api/v1/security/settings", put(security_monitoring::update_security_settings))
+        
+        // Public endpoints (no auth required)
+        .route("/api/v1/status", get(status::get_system_status))
+        .route("/api/v1/blog", get(blog::get_blog_posts))
+        .route("/api/v1/careers", get(careers::get_careers))
         
         // Apply middleware in order: logging -> rate limit -> auth -> IP whitelist
         .layer(axum_middleware::from_fn_with_state(

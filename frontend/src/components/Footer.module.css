@@ -1,5 +1,5 @@
 .footer {
-  background: #1f2937;
+  background: #000000;
   color: white;
   padding: 4rem 0 2rem;
 }
@@ -36,7 +36,7 @@
 }
 
 .description {
-  color: #d1d5db;
+  color: #cbd5e1;
   line-height: 1.6;
   margin-bottom: 2rem;
 }
@@ -50,7 +50,7 @@
   width: 2.5rem;
   height: 2.5rem;
   background: #374151;
-  color: #d1d5db;
+  color: #cbd5e1;
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
@@ -87,7 +87,7 @@
 
 .linkGroup a {
   display: block;
-  color: #d1d5db;
+  color: #cbd5e1;
   text-decoration: none;
   padding: 0.25rem 0;
   transition: color 0.2s;
@@ -109,7 +109,7 @@
 }
 
 .bottomContent p {
-  color: #9ca3af;
+  color: #6b7280;
   margin: 0;
 }
 
@@ -126,7 +126,7 @@
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   font-size: 0.875rem;
-  color: #d1d5db;
+  color: #cbd5e1;
 }
 
 .badge i {

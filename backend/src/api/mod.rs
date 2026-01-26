@@ -8,3 +8,6 @@ pub mod wallet_management;
 pub mod security_monitoring;
 pub mod fee_breakdown;
 pub mod address_only;
+pub mod status;
+pub mod blog;
+pub mod careers;

@@ -3,25 +3,30 @@
 
 #[cfg(test)]
 mod api_integration_tests {
-    use super::*;
     use axum::{
         body::Body,
         http::{Request, StatusCode},
         Router,
     };
-    use crate::{
+    use fiddupay::{
         api::{
-            address_only::{CreateAddressOnlyPaymentRequest, AddressOnlyPaymentResponse},
-            wallet_management::{ConfigureWalletRequest, GenerateWalletRequest, ImportWalletRequest},
-            fee_breakdown::{FeeEstimateQuery, FeeBreakdown},
+            routes::create_app,
+            state::AppState,
         },
         config::Config,
-        middleware::auth::MerchantContext,
-        payment::models::CryptoType,
+        models::{
+            address_only::{CreateAddressOnlyPaymentRequest, AddressOnlyPaymentResponse},
+            merchant::CryptoType,
+        },
+        services::{
+            address_only_service::AddressOnlyService,
+            merchant_service::MerchantService,
+        },
     };
     use rust_decimal::Decimal;
     use serde_json::json;
-    use std::env;
+    use sqlx::PgPool;
+    use std::{env, sync::Arc};
     use tower::ServiceExt;
 
     async fn setup_test_app() -> (Router, Config) {
@@ -31,6 +36,12 @@ mod api_integration_tests {
         env::set_var("ENCRYPTION_KEY", "fd4867a60ace984313bbeee057f586697f0f51063490c3b7d45536c83ee16525");
         env::set_var("JWT_SECRET", "9c71f51199b7ea4b3e3f5a4c2f622260c41506b7f16c30f717bae5279f167c14");
         
+        let config = Config::from_env().expect("Failed to load config");
+        let app_state = AppState::new(&config).await.expect("Failed to create app state");
+        let app = create_app(app_state);
+        
+        (app, config)
+    }
         // Working 2026 RPC endpoints
         env::set_var("ETHEREUM_RPC_URL", "https://eth.llamarpc.com");
         env::set_var("BSC_RPC_URL", "https://bsc-dataseed.binance.org");

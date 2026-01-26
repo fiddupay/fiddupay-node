@@ -11,7 +11,7 @@
 .title {
   font-size: 2rem;
   font-weight: bold;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 0.5rem;
 }
 
@@ -28,24 +28,24 @@
 }
 
 .card {
-  background: white;
+  background: #f8fafc;
   border-radius: 0.5rem;
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
 }
 
 .cardTitle {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 1rem;
 }
 
 .stat {
   font-size: 2rem;
   font-weight: bold;
-  color: #4f46e5;
+  color: #1e40af;
 }
 
 .statLabel {

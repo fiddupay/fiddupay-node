@@ -1,0 +1,105 @@
+.cookiesPage {
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.content {
+  padding: 4rem 0;
+  max-width: 800px;
+}
+
+.content h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #000000;
+  margin-bottom: 1rem;
+}
+
+.lead {
+  font-size: 1.25rem;
+  color: #6b7280;
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+
+.lastUpdated {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin-bottom: 3rem;
+}
+
+.section {
+  margin-bottom: 3rem;
+}
+
+.section h2 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  color: #000000;
+  margin-bottom: 1.5rem;
+}
+
+.section p {
+  color: #374151;
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+
+.cookieType {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: #f8fafc;
+}
+
+.cookieType h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e40af;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cookieType ul {
+  margin-top: 1rem;
+  padding-left: 1.5rem;
+}
+
+.cookieType li {
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.browserList h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #000000;
+  margin-bottom: 1rem;
+}
+
+.browserList ul {
+  padding-left: 1.5rem;
+}
+
+.browserList li {
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.section a {
+  color: #1e40af;
+  text-decoration: none;
+}
+
+.section a:hover {
+  text-decoration: underline;
+}

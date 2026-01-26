@@ -22,18 +22,35 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.name || !formData.email || !formData.password) {
-      showToast('Please fill in all required fields', 'error')
+    // Validation
+    if (!formData.name.trim()) {
+      showToast('Name is required', 'error')
       return
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      showToast('Passwords do not match', 'error')
+    if (!formData.email.trim()) {
+      showToast('Email is required', 'error')
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      showToast('Please enter a valid email address', 'error')
+      return
+    }
+
+    if (!formData.password) {
+      showToast('Password is required', 'error')
       return
     }
 
     if (formData.password.length < 8) {
       showToast('Password must be at least 8 characters long', 'error')
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      showToast('Passwords do not match', 'error')
       return
     }
 
@@ -44,15 +61,29 @@ const RegisterPage: React.FC = () => {
 
     setLoading(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+          company: formData.company.trim() || null
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed')
+      }
+
       showToast('Registration successful! Please check your email to verify your account.', 'success')
-      // Redirect to login after 2 seconds
-      setTimeout(() => {
-        navigate('/login')
-      }, 2000)
-    } catch (error) {
-      showToast('Registration failed. Please try again.', 'error')
+      setTimeout(() => navigate('/login'), 2000)
+    } catch (error: any) {
+      showToast(error.message || 'Registration failed. Please try again.', 'error')
     } finally {
       setLoading(false)
     }

@@ -60,7 +60,6 @@ const PricingPage: React.FC = () => {
               <h4>What's included:</h4>
               <ul className={styles.features}>
                 <li><i className="fas fa-check"></i> {pricingData.transaction_fee_percentage}% transaction fee</li>
-                <li><i className="fas fa-check"></i> Minimum fee: ${pricingData.minimum_fee_usd}</li>
                 <li><i className="fas fa-check"></i> No setup or monthly fees</li>
                 <li><i className="fas fa-check"></i> {pricingData.supported_networks} blockchain networks</li>
                 <li><i className="fas fa-check"></i> Real-time processing</li>

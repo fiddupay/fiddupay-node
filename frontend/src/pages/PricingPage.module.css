@@ -18,7 +18,7 @@
 .title {
   font-size: 3rem;
   font-weight: 800;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 1rem;
 }
 
@@ -38,7 +38,7 @@
 }
 
 .plan {
-  background: white;
+  background: #f8fafc;
   border-radius: 1rem;
   padding: 2rem;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
@@ -96,7 +96,7 @@
 .planName {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 1rem;
 }
 
@@ -126,7 +126,7 @@
 .planFeatures h4 {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 1rem;
 }
 
@@ -170,19 +170,19 @@
 }
 
 .primaryBtn:hover {
-  background: #1d4ed8;
+  background: var(--fiddu-primary-hover);
   transform: translateY(-2px);
 }
 
 .secondaryBtn {
-  background: #f3f4f6;
-  color: #1f2937;
-  border: 2px solid #e5e7eb;
+  background: #f1f5f9;
+  color: #000000;
+  border: 2px solid #e2e8f0;
 }
 
 .secondaryBtn:hover {
-  background: #e5e7eb;
-  border-color: #d1d5db;
+  background: #e2e8f0;
+  border-color: #cbd5e1;
 }
 
 .faq {
@@ -193,7 +193,7 @@
 .faq h2 {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 3rem;
 }
 
@@ -205,7 +205,7 @@
 }
 
 .faqItem {
-  background: white;
+  background: #f8fafc;
   padding: 2rem;
   border-radius: 1rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -217,7 +217,7 @@
   gap: 0.75rem;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 1rem;
 }
 

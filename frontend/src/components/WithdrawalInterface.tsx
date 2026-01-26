@@ -1,7 +1,7 @@
 // Enhanced Withdrawal Interface Component
 // Handles gas validation and withdrawal processing
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -217,7 +217,7 @@ export default function WithdrawalInterface() {
               type="number"
               step="0.000001"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmount(e.target.value)}
               placeholder="0.000000"
             />
             {balance && amount && (
@@ -233,7 +233,7 @@ export default function WithdrawalInterface() {
             <Input
               id="to-address"
               value={toAddress}
-              onChange={(e) => setToAddress(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setToAddress(e.target.value)}
               placeholder={selectedCryptoInfo?.network === 'Solana' ? 'Solana address' : '0x...'}
             />
           </div>
@@ -266,7 +266,7 @@ export default function WithdrawalInterface() {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 placeholder="Enter your wallet encryption password"
               />
             </div>

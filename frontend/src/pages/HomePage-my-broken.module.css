@@ -1,0 +1,154 @@
+/* HomePage - Simple White & Black */
+.homePage {
+  background: var(--white);
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.hero {
+  padding: 80px 0;
+  background: var(--brand-blue);
+  color: var(--white);
+  text-align: center;
+}
+
+.heroTitle {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 24px;
+}
+
+.heroSubtitle {
+  font-size: 20px;
+  margin-bottom: 32px;
+  color: var(--white);
+}
+
+.heroButton {
+  background: var(--white);
+  color: var(--brand-blue);
+  border: none;
+  padding: 16px 32px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.features {
+  padding: 80px 0;
+  background: var(--white);
+}
+
+.featuresTitle {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--black);
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 32px;
+}
+
+.feature {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 32px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.featureIcon {
+  font-size: 48px;
+  color: var(--brand-blue);
+  margin-bottom: 16px;
+}
+
+.featureTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 12px;
+}
+
+.featureDescription {
+  color: var(--gray);
+  line-height: 1.6;
+}
+
+.stats {
+  padding: 80px 0;
+  background: var(--light-gray);
+}
+
+.statsTitle {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--black);
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 32px;
+}
+
+.stat {
+  text-align: center;
+}
+
+.statValue {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--brand-blue);
+  margin-bottom: 8px;
+}
+
+.statLabel {
+  font-size: 16px;
+  color: var(--gray);
+  font-weight: 500;
+}
+
+.cta {
+  padding: 80px 0;
+  background: var(--white);
+  text-align: center;
+}
+
+.ctaTitle {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--black);
+  margin-bottom: 16px;
+}
+
+.ctaDescription {
+  font-size: 18px;
+  color: var(--gray);
+  margin-bottom: 32px;
+}
+
+.ctaButton {
+  background: var(--brand-blue);
+  color: var(--white);
+  border: none;
+  padding: 16px 32px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+}

@@ -38,12 +38,12 @@
 }
 
 .toast.error {
-  background: #ef4444;
+  background: #dc2626;
   color: white;
 }
 
 .toast.info {
-  background: #3b82f6;
+  background: var(--fiddu-primary-light);
   color: white;
 }
 

@@ -80,7 +80,7 @@ const DocsPage: React.FC = () => {
             <div className={styles.cryptoGrid}>
               <div className={styles.cryptoCard}>
                 <div className={styles.cryptoIcon}>
-                  <img src="https://cryptologos.cc/logos/solana-sol-logo.png" alt="Solana" />
+                  <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png" alt="Solana" />
                 </div>
                 <h4>SOL</h4>
                 <p>Solana Network</p>
@@ -88,7 +88,7 @@ const DocsPage: React.FC = () => {
               </div>
               <div className={styles.cryptoCard}>
                 <div className={styles.cryptoIcon}>
-                  <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" alt="Ethereum" />
+                  <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/eth.png" alt="Ethereum" />
                 </div>
                 <h4>ETH</h4>
                 <p>Ethereum Network</p>
@@ -96,7 +96,7 @@ const DocsPage: React.FC = () => {
               </div>
               <div className={styles.cryptoCard}>
                 <div className={styles.cryptoIcon}>
-                  <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT" />
+                  <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png" alt="USDT" />
                 </div>
                 <h4>USDT</h4>
                 <p>Ethereum Network</p>
@@ -104,7 +104,7 @@ const DocsPage: React.FC = () => {
               </div>
               <div className={styles.cryptoCard}>
                 <div className={styles.cryptoIcon}>
-                  <img src="https://cryptologos.cc/logos/bnb-bnb-logo.png" alt="BNB" />
+                  <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/bnb.png" alt="BNB" />
                 </div>
                 <h4>BNB</h4>
                 <p>BSC Network</p>
@@ -112,7 +112,7 @@ const DocsPage: React.FC = () => {
               </div>
               <div className={styles.cryptoCard}>
                 <div className={styles.cryptoIcon}>
-                  <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT BSC" />
+                  <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png" alt="USDT BSC" />
                 </div>
                 <h4>USDT</h4>
                 <p>BSC Network</p>
@@ -120,7 +120,7 @@ const DocsPage: React.FC = () => {
               </div>
               <div className={styles.cryptoCard}>
                 <div className={styles.cryptoIcon}>
-                  <img src="https://cryptologos.cc/logos/polygon-matic-logo.png" alt="Polygon" />
+                  <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/matic.png" alt="Polygon" />
                 </div>
                 <h4>MATIC</h4>
                 <p>Polygon Network</p>
@@ -128,7 +128,7 @@ const DocsPage: React.FC = () => {
               </div>
               <div className={styles.cryptoCard}>
                 <div className={styles.cryptoIcon}>
-                  <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT Polygon" />
+                  <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png" alt="USDT Polygon" />
                 </div>
                 <h4>USDT</h4>
                 <p>Polygon Network</p>
@@ -144,7 +144,7 @@ const DocsPage: React.FC = () => {
               </div>
               <div className={styles.cryptoCard}>
                 <div className={styles.cryptoIcon}>
-                  <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT Arbitrum" />
+                  <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png" alt="USDT Arbitrum" />
                 </div>
                 <h4>USDT</h4>
                 <p>Arbitrum Network</p>
@@ -152,7 +152,7 @@ const DocsPage: React.FC = () => {
               </div>
               <div className={styles.cryptoCard}>
                 <div className={styles.cryptoIcon}>
-                  <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT Solana" />
+                  <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png" alt="USDT Solana" />
                 </div>
                 <h4>USDT</h4>
                 <p>Solana SPL</p>
@@ -592,6 +592,53 @@ const DocsPage: React.FC = () => {
     "total": 1,
     "has_more": false
   }
+}`}</code></pre>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.infoBox}>
+              <h3><i className="fas fa-percentage"></i> Fee Toggle System</h3>
+              <p>
+                FidduPay supports flexible fee payment models. Merchants can choose who pays the processing fee:
+              </p>
+              <ul>
+                <li><strong>Customer Pays Fee (Default):</strong> Customer pays requested amount + processing fee</li>
+                <li><strong>Merchant Pays Fee:</strong> Customer pays requested amount, merchant receives requested amount - processing fee</li>
+              </ul>
+            </div>
+
+            <div className={styles.endpointCard}>
+              <div 
+                className={styles.endpointHeader}
+                onClick={() => toggleEndpoint('update-fee-setting')}
+              >
+                <div className={styles.endpointMethod}>
+                  <span className={styles.methodPost}>POST</span>
+                  <code>/v1/fee-setting</code>
+                </div>
+                <div className={styles.endpointTitle}>Update Fee Setting</div>
+                <i className={`fas fa-chevron-${expandedEndpoint === 'update-fee-setting' ? 'up' : 'down'}`}></i>
+              </div>
+              
+              {expandedEndpoint === 'update-fee-setting' && (
+                <div className={styles.endpointContent}>
+                  <h3><i className="fas fa-cog"></i> Request Parameters</h3>
+                  <div className={styles.paramTable}>
+                    <div className={styles.paramRow}>
+                      <code>customer_pays_fee</code>
+                      <span className={styles.required}>required</span>
+                      <span>Boolean: true for customer pays fee, false for merchant pays fee</span>
+                    </div>
+                  </div>
+
+                  <h3><i className="fas fa-arrow-left"></i> Response</h3>
+                  <div className={styles.codeExample}>
+                    <pre><code>{`{
+  "success": true,
+  "customer_pays_fee": true,
+  "message": "Fee payment setting updated: Customer pays fee"
 }`}</code></pre>
                   </div>
                 </div>

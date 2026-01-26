@@ -1,0 +1,84 @@
+.blogPage {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 2rem 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.header h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #000000;
+  margin-bottom: 1rem;
+}
+
+.header p {
+  font-size: 1.25rem;
+  color: #6b7280;
+}
+
+.posts {
+  display: grid;
+  gap: 2rem;
+}
+
+.post {
+  background: #f8fafc;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: var(--fiddu-shadow);
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 2rem;
+}
+
+.postImage {
+  background: var(--fiddu-gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 3rem;
+}
+
+.postContent {
+  padding: 2rem 2rem 2rem 0;
+}
+
+.postContent h2 {
+  color: #000000;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.postMeta {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.postContent p {
+  color: #374151;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.readMore {
+  color: #1e40af;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.readMore:hover {
+  color: var(--fiddu-primary-hover);
+}

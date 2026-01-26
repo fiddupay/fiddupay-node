@@ -73,7 +73,7 @@ const Footer: React.FC = () => {
             <div className={styles.badges}>
               <div className={styles.badge}>
                 <i className="fas fa-shield-alt"></i>
-                <span>10/10 Security</span>
+                <span>Enterprise Security</span>
               </div>
               <div className={styles.badge}>
                 <i className="fas fa-certificate"></i>

@@ -1,6 +1,7 @@
+/* FidduPay Landing - Trust & Growth Theme */
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--fiddu-gradient-primary);
 }
 
 /* Header */
@@ -26,7 +27,7 @@
 
 .logo h2 {
   margin: 0;
-  color: #4f46e5;
+  color: #1e40af;
   font-size: 1.5rem;
   font-weight: 700;
 }
@@ -44,7 +45,7 @@
 }
 
 .loginBtn {
-  color: #4f46e5;
+  color: #1e40af;
   text-decoration: none;
   font-weight: 500;
   padding: 0.5rem 1rem;
@@ -53,11 +54,11 @@
 }
 
 .loginBtn:hover {
-  background-color: #f3f4f6;
+  background-color: #f1f5f9;
 }
 
 .signupBtn {
-  background: #4f46e5;
+  background: #1e40af;
   color: white;
   text-decoration: none;
   font-weight: 500;
@@ -67,7 +68,7 @@
 }
 
 .signupBtn:hover {
-  background: #4338ca;
+  background: var(--fiddu-primary-hover);
 }
 
 /* Hero Section */
@@ -90,7 +91,7 @@
 }
 
 .highlight {
-  background: linear-gradient(45deg, #fbbf24, #f59e0b);
+  background: linear-gradient(45deg, #f59e0b, #f59e0b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -161,7 +162,7 @@
   display: block;
   font-size: 2rem;
   font-weight: 700;
-  color: #fbbf24;
+  color: #f59e0b;
 }
 
 .statLabel {
@@ -171,7 +172,7 @@
 
 /* Features Section */
 .features {
-  background: white;
+  background: #f8fafc;
   padding: 5rem 2rem;
 }
 
@@ -184,7 +185,7 @@
   text-align: center;
   font-size: 2.5rem;
   font-weight: 700;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 3rem;
 }
 
@@ -207,7 +208,7 @@
 }
 
 .featureIcon {
-  background: #4f46e5;
+  background: #1e40af;
   color: white;
   width: 4rem;
   height: 4rem;
@@ -222,7 +223,7 @@
 .featureTitle {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 1rem;
 }
 
@@ -246,7 +247,7 @@
 }
 
 .currencyCard {
-  background: white;
+  background: #f8fafc;
   padding: 1.5rem;
   border-radius: 0.75rem;
   text-align: center;
@@ -257,7 +258,7 @@
   display: block;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #4f46e5;
+  color: #1e40af;
   margin-bottom: 0.5rem;
 }
 
@@ -268,7 +269,7 @@
 
 /* CTA Section */
 .cta {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
   padding: 5rem 2rem;
   text-align: center;
   color: white;
@@ -327,7 +328,7 @@
 }
 
 .contactLink {
-  color: #fbbf24;
+  color: #f59e0b;
   text-decoration: none;
   font-weight: 500;
   margin: 0 1rem;
@@ -340,7 +341,7 @@
 
 /* Pricing Section */
 .pricing {
-  background: white;
+  background: #f8fafc;
   padding: 5rem 2rem;
 }
 
@@ -361,7 +362,7 @@
 
 .pricingCard {
   background: #f9fafb;
-  border: 2px solid #e5e7eb;
+  border: 2px solid #e2e8f0;
   border-radius: 1rem;
   padding: 2rem;
   text-align: center;
@@ -374,8 +375,8 @@
 }
 
 .pricingCard.popular {
-  border-color: #4f46e5;
-  background: white;
+  border-color: #1e40af;
+  background: #f8fafc;
   box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.1);
 }
 
@@ -384,7 +385,7 @@
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  background: #4f46e5;
+  background: #1e40af;
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 1rem;
@@ -395,7 +396,7 @@
 .pricingTitle {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1f2937;
+  color: #000000;
   margin-bottom: 1rem;
 }
 
@@ -407,7 +408,7 @@
   display: block;
   font-size: 3rem;
   font-weight: 800;
-  color: #4f46e5;
+  color: #1e40af;
   line-height: 1;
 }
 
@@ -429,7 +430,7 @@
 }
 
 .pricingBtn {
-  background: #4f46e5;
+  background: #1e40af;
   color: white;
   text-decoration: none;
   font-weight: 600;
@@ -441,7 +442,7 @@
 }
 
 .pricingBtn:hover {
-  background: #4338ca;
+  background: var(--fiddu-primary-hover);
 }
 
 .popular .pricingBtn {
@@ -467,7 +468,7 @@
 }
 
 .testimonialCard {
-  background: white;
+  background: #f8fafc;
   padding: 2rem;
   border-radius: 1rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
@@ -482,7 +483,7 @@
 
 .testimonialAuthor strong {
   display: block;
-  color: #1f2937;
+  color: #000000;
   font-weight: 600;
   margin-bottom: 0.25rem;
 }
@@ -494,7 +495,7 @@
 
 /* Footer */
 .footer {
-  background: #1f2937;
+  background: #000000;
   color: white;
   padding: 3rem 2rem 1rem;
 }
@@ -508,12 +509,12 @@
 }
 
 .footerBrand h3 {
-  color: #4f46e5;
+  color: #1e40af;
   margin-bottom: 0.5rem;
 }
 
 .footerBrand p {
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .footerLinks {
@@ -529,14 +530,14 @@
 
 .footerSection a {
   display: block;
-  color: #9ca3af;
+  color: #6b7280;
   text-decoration: none;
   margin-bottom: 0.5rem;
   transition: color 0.2s;
 }
 
 .footerSection a:hover {
-  color: #4f46e5;
+  color: #1e40af;
 }
 
 .footerBottom {
@@ -545,7 +546,7 @@
   padding-top: 2rem;
   border-top: 1px solid #374151;
   text-align: center;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 /* Responsive */

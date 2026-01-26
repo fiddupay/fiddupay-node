@@ -1,6 +1,6 @@
 .layout {
   min-height: 100vh;
-  background-color: var(--color-gray-50);
+  background-color: #f1f5f9;
 }
 
 .loadingContainer {
@@ -13,8 +13,8 @@
 .spinner {
   width: 2rem;
   height: 2rem;
-  border: 2px solid var(--color-gray-200);
-  border-top: 2px solid var(--color-primary-600);
+  border: 2px solid #e2e8f0;
+  border-top: 2px solid #1e40af;
   border-radius: var(--radius-full);
   animation: spin 1s linear infinite;
 }

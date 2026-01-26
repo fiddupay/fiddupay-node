@@ -8,7 +8,7 @@ const LandingPage: React.FC = () => {
     {
       icon: MdSecurity,
       title: 'Enterprise Security',
-      description: '10/10 security score with XSS protection, CSRF tokens, and real-time threat detection'
+      description: 'enterprise-grade security with XSS protection, CSRF tokens, and real-time threat detection'
     },
     {
       icon: MdSpeed,
@@ -51,7 +51,7 @@ const LandingPage: React.FC = () => {
             <span className={styles.highlight}> Instantly</span>
           </h1>
           <p className={styles.heroSubtitle}>
-            Production-ready cryptocurrency payment gateway with 10/10 security score. 
+            Production-ready cryptocurrency payment gateway with enterprise-grade security. 
             Accept payments across 5 blockchains with automatic forwarding.
           </p>
           <div className={styles.heroActions}>
@@ -64,7 +64,7 @@ const LandingPage: React.FC = () => {
           </div>
           <div className={styles.heroStats}>
             <div className={styles.stat}>
-              <span className={styles.statNumber}>10/10</span>
+              <span className={styles.statNumber}>enterprise-grade</span>
               <span className={styles.statLabel}>Security Score</span>
             </div>
             <div className={styles.stat}>
@@ -107,20 +107,24 @@ const LandingPage: React.FC = () => {
               <span className={styles.currencyName}>Solana</span>
             </div>
             <div className={styles.currencyCard}>
-              <span className={styles.currencySymbol}>USDT</span>
+              <span className={styles.currencySymbol}>ETH</span>
               <span className={styles.currencyName}>Ethereum</span>
             </div>
             <div className={styles.currencyCard}>
-              <span className={styles.currencySymbol}>USDT</span>
+              <span className={styles.currencySymbol}>BNB</span>
               <span className={styles.currencyName}>BSC</span>
             </div>
             <div className={styles.currencyCard}>
-              <span className={styles.currencySymbol}>USDT</span>
+              <span className={styles.currencySymbol}>MATIC</span>
               <span className={styles.currencyName}>Polygon</span>
             </div>
             <div className={styles.currencyCard}>
-              <span className={styles.currencySymbol}>USDT</span>
+              <span className={styles.currencySymbol}>ARB</span>
               <span className={styles.currencyName}>Arbitrum</span>
+            </div>
+            <div className={styles.currencyCard}>
+              <span className={styles.currencySymbol}>USDT</span>
+              <span className={styles.currencyName}>Multi-Chain</span>
             </div>
           </div>
         </div>
@@ -199,7 +203,7 @@ const LandingPage: React.FC = () => {
             </div>
             <div className={styles.testimonialCard}>
               <p className={styles.testimonialText}>
-                "Integration was seamless, and the 10/10 security score gives our customers confidence. 
+                "Integration was seamless, and the enterprise-grade security gives our customers confidence. 
                 We've processed over $2M in crypto payments without any issues."
               </p>
               <div className={styles.testimonialAuthor}>

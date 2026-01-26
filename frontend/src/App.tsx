@@ -16,6 +16,13 @@ import DocsPage from '@/pages/DocsPage'
 import ContactPage from '@/pages/ContactPage'
 import TermsPage from '@/pages/TermsPage'
 import PrivacyPage from '@/pages/PrivacyPage'
+import CareersPage from '@/pages/CareersPage'
+import BlogPage from '@/pages/BlogPage'
+import StatusPage from '@/pages/StatusPage'
+import SecurityPage from '@/pages/SecurityPage'
+import CompliancePage from '@/pages/CompliancePage'
+import CookiesPage from '@/pages/CookiesPage'
+import ColorTestPage from '@/pages/ColorTestPage'
 import '@/styles/globals.css'
 
 // Lazy load pages for better performance
@@ -63,11 +70,18 @@ const App: React.FC = () => {
             <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
             <Route path="/terms" element={<Layout><TermsPage /></Layout>} />
             <Route path="/privacy" element={<Layout><PrivacyPage /></Layout>} />
+            <Route path="/careers" element={<Layout><CareersPage /></Layout>} />
+            <Route path="/blog" element={<Layout><BlogPage /></Layout>} />
+            <Route path="/status" element={<Layout><StatusPage /></Layout>} />
+            <Route path="/security" element={<Layout><SecurityPage /></Layout>} />
+            <Route path="/compliance" element={<Layout><CompliancePage /></Layout>} />
+            <Route path="/cookies" element={<Layout><CookiesPage /></Layout>} />
+            <Route path="/color-test" element={<Layout><ColorTestPage /></Layout>} />
             
             {/* Auth routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/login" element={<Layout><LoginPage /></Layout>} />
+            <Route path="/register" element={<Layout><RegisterPage /></Layout>} />
+            <Route path="/forgot-password" element={<Layout><ForgotPasswordPage /></Layout>} />
             
             {/* Protected routes */}
             <Route path="/app" element={<AppLayout />}>
