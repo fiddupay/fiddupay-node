@@ -160,42 +160,25 @@ pub async fn get_gas_estimates(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    let gas_estimates = json!({
-        "networks": {
-            "ethereum": {
-                "native_currency": "ETH",
-                "min_gas_required": "0.005",
-                "estimated_withdrawal_cost": "0.003-0.008"
-            },
-            "bsc": {
-                "native_currency": "BNB", 
-                "min_gas_required": "0.001",
-                "estimated_withdrawal_cost": "0.0005-0.002"
-            },
-            "polygon": {
-                "native_currency": "MATIC",
-                "min_gas_required": "0.01", 
-                "estimated_withdrawal_cost": "0.005-0.02"
-            },
-            "arbitrum": {
-                "native_currency": "ARB",
-                "min_gas_required": "0.001",
-                "estimated_withdrawal_cost": "0.0005-0.002"
-            },
-            "solana": {
-                "native_currency": "SOL",
-                "min_gas_required": "0.001",
-                "estimated_withdrawal_cost": "0.0005-0.001"
-            }
-        },
-        "notes": [
-            "Native currencies (ETH, BNB, MATIC, ARB, SOL) have gas auto-deducted from withdrawal amount",
-            "USDT withdrawals require separate gas deposit in the network's native currency",
-            "Gas estimates vary based on network congestion"
-        ]
-    });
-
-    (StatusCode::OK, Json(gas_estimates)).into_response()
+    let gas_service = crate::services::gas_fee_service::GasFeeService::new(state.config.clone());
+    
+    match gas_service.get_all_gas_estimates().await {
+        Ok(estimates) => {
+            let response = json!({
+                "networks": estimates,
+                "notes": [
+                    "Native currencies (ETH, BNB, MATIC, ARB, SOL) have gas auto-deducted from withdrawal amount",
+                    "USDT withdrawals require separate gas deposit in the network's native currency",
+                    "Gas estimates are fetched in real-time from blockchain networks",
+                    "Actual costs may vary based on network congestion"
+                ]
+            });
+            (StatusCode::OK, Json(response)).into_response()
+        }
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+            "error": format!("Failed to fetch gas estimates: {}", e)
+        }))).into_response(),
+    }
 }
 
 // ============================================================================

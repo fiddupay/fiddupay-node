@@ -6,3 +6,5 @@ pub mod handlers;
 pub mod state;
 pub mod wallet_management;
 pub mod security_monitoring;
+pub mod fee_breakdown;
+pub mod address_only;

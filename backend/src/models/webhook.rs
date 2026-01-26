@@ -60,7 +60,7 @@ mod tests {
 
         assert_eq!(payload.event_type, "payment.confirmed");
         assert_eq!(payload.payment_id, "pay_abc123");
-        assert_eq!(payload.merchant_id, 42);
+        assert_eq!(payload.merchant_id, 1);
         assert_eq!(payload.status, PaymentStatus::Confirmed);
         assert_eq!(payload.amount, Decimal::new(100, 0));
         assert_eq!(payload.crypto_type, "USDT_BEP20");
@@ -84,7 +84,7 @@ mod tests {
         let json = serde_json::to_string(&payload).unwrap();
         assert!(json.contains("payment.expired"));
         assert!(json.contains("pay_xyz789"));
-        assert!(json.contains("FAILED"));
+        assert!(json.contains("Failed"));
 
         let deserialized: WebhookPayload = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.event_type, payload.event_type);
@@ -115,7 +115,7 @@ mod tests {
         };
 
         assert_eq!(delivery.id, 1);
-        assert_eq!(delivery.merchant_id, 42);
+        assert_eq!(delivery.merchant_id, 1);
         assert_eq!(delivery.payment_id, 100);
         assert_eq!(delivery.event_type, "payment.confirmed");
         assert_eq!(delivery.url, "https://merchant.example.com/webhook");

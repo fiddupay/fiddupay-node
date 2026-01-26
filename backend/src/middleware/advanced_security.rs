@@ -27,9 +27,9 @@ pub struct ApiKeyValidator;
 
 impl ApiKeyValidator {
     pub fn validate_format(&self, api_key: &str) -> Result<ApiKeyType, SecurityError> {
-        if api_key.starts_with("pk_live_") && api_key.len() == 40 {
+        if api_key.starts_with("pk_live_") && api_key.len() >= 40 {
             Ok(ApiKeyType::Live)
-        } else if api_key.starts_with("pk_test_") && api_key.len() == 40 {
+        } else if api_key.starts_with("pk_test_") && api_key.len() >= 40 {
             Ok(ApiKeyType::Test)
         } else {
             Err(SecurityError::InvalidApiKeyFormat)

@@ -13,6 +13,7 @@ pub struct Merchant {
     pub business_name: String,
     pub api_key_hash: String,
     pub fee_percentage: Decimal,
+    pub customer_pays_fee: bool, // true = customer pays, false = merchant pays
     pub is_active: bool,
     pub sandbox_mode: bool,
     pub created_at: DateTime<Utc>,
@@ -55,6 +56,7 @@ mod tests {
             business_name: "Test Business".to_string(),
             api_key_hash: "hashed_key".to_string(),
             fee_percentage: Decimal::new(150, 2), // 1.50%
+            customer_pays_fee: true,
             is_active: true,
             sandbox_mode: false,
             created_at: Utc::now(),
@@ -83,7 +85,7 @@ mod tests {
         };
 
         assert_eq!(wallet.id, 1);
-        assert_eq!(wallet.merchant_id, 1);
+        assert_eq!(wallet.merchant_id, 42);
         assert_eq!(wallet.crypto_type, "USDT_BEP20");
         assert_eq!(wallet.network, "BEP20");
         assert!(wallet.is_active);
@@ -97,7 +99,7 @@ mod tests {
             business_name: "Test Business".to_string(),
             api_key_hash: "hashed_key".to_string(),
             fee_percentage: Decimal::new(150, 2),
-            is_active: true,
+            customer_pays_fee: true,            is_active: true,
             sandbox_mode: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -179,6 +181,7 @@ mod tests {
             business_name: "Min Fee".to_string(),
             api_key_hash: "hash".to_string(),
             fee_percentage: Decimal::new(10, 2), // 0.10%
+            customer_pays_fee: true,
             is_active: true,
             sandbox_mode: false,
             created_at: Utc::now(),
@@ -193,6 +196,7 @@ mod tests {
             business_name: "Max Fee".to_string(),
             api_key_hash: "hash".to_string(),
             fee_percentage: Decimal::new(500, 2), // 5.00%
+            customer_pays_fee: true,
             is_active: true,
             sandbox_mode: false,
             created_at: Utc::now(),

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod minimal_tests {
-    use crate::payment::models::CryptoType;
+    use fiddupay::payment::models::CryptoType;
 
     #[test]
     fn test_crypto_type_display() {

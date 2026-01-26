@@ -22,11 +22,11 @@ pub struct PaymentProcessor {
 }
 
 impl PaymentProcessor {
-    pub fn new(db_pool: PgPool, payment_page_base_url: String, price_service: Arc<PriceService>) -> Self {
+    pub fn new(db_pool: PgPool, payment_page_base_url: String, price_service: Arc<PriceService>, config: crate::config::Config) -> Self {
         Self {
             db_pool: db_pool.clone(),
             price_service,
-            merchant_service: MerchantService::new(db_pool),
+            merchant_service: MerchantService::new(db_pool, config),
             payment_page_base_url,
         }
     }

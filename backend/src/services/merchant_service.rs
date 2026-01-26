@@ -15,11 +15,12 @@ use sqlx::PgPool;
 
 pub struct MerchantService {
     db_pool: PgPool,
+    config: crate::config::Config,
 }
 
 impl MerchantService {
-    pub fn new(db_pool: PgPool) -> Self {
-        Self { db_pool }
+    pub fn new(db_pool: PgPool, config: crate::config::Config) -> Self {
+        Self { db_pool, config }
     }
 
     /// Register a new merchant
@@ -53,8 +54,8 @@ impl MerchantService {
             .map_err(|e| ServiceError::Internal(format!("Failed to hash API key: {}", e)))?
             .to_string();
         
-        // Default fee percentage is 1.50%
-        let fee_percentage = Decimal::new(150, 2);
+        // Use default fee percentage from config
+        let fee_percentage = self.config.default_fee_percentage;
         
         // Insert merchant into database
         let merchant = sqlx::query_as::<_, Merchant>(
@@ -399,6 +400,7 @@ mod tests {
         // Create a mock pool (we don't need a real connection for this test)
         let service = MerchantService {
             db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
+            config: crate::config::Config::default(),
         };
         
         let api_key = service.generate_api_key();
@@ -409,6 +411,7 @@ mod tests {
     async fn test_generate_api_key_uniqueness() {
         let service = MerchantService {
             db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
+            config: crate::config::Config::default(),
         };
         
         let key1 = service.generate_api_key();
@@ -421,8 +424,9 @@ mod tests {
     #[tokio::test]
     async fn test_generate_api_key_alphanumeric() {
         let service = MerchantService {
-            db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-        };
+                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
+                    config: crate::config::Config::default(),
+                };
         
         let api_key = service.generate_api_key();
         
@@ -459,8 +463,9 @@ mod tests {
     #[tokio::test]
     async fn test_validate_solana_address_valid() {
         let service = MerchantService {
-            db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-        };
+                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
+                    config: crate::config::Config::default(),
+                };
         
         // Valid Solana address (base58, 32-44 chars)
         let valid_address = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU";
@@ -471,8 +476,9 @@ mod tests {
     #[tokio::test]
     async fn test_validate_solana_address_too_short() {
         let service = MerchantService {
-            db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-        };
+                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
+                    config: crate::config::Config::default(),
+                };
         
         // Too short
         let invalid_address = "7xKXtg2CW87d97TXJSDpbD5jBkhe";
@@ -483,8 +489,9 @@ mod tests {
     #[tokio::test]
     async fn test_validate_solana_address_invalid_chars() {
         let service = MerchantService {
-            db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-        };
+                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
+                    config: crate::config::Config::default(),
+                };
         
         // Contains invalid base58 characters (0, O, I, l)
         let invalid_address = "0OIl7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU";
@@ -495,8 +502,9 @@ mod tests {
     #[tokio::test]
     async fn test_validate_evm_address_valid() {
         let service = MerchantService {
-            db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-        };
+                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
+                    config: crate::config::Config::default(),
+                };
         
         // Valid EVM address
         let valid_address = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0";
@@ -512,8 +520,9 @@ mod tests {
     #[tokio::test]
     async fn test_validate_evm_address_no_prefix() {
         let service = MerchantService {
-            db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-        };
+                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
+                    config: crate::config::Config::default(),
+                };
         
         // Missing 0x prefix
         let invalid_address = "742d35Cc6634C0532925a3b844Bc9e7595f0bEb0";
@@ -524,8 +533,9 @@ mod tests {
     #[tokio::test]
     async fn test_validate_evm_address_wrong_length() {
         let service = MerchantService {
-            db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-        };
+                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
+                    config: crate::config::Config::default(),
+                };
         
         // Too short
         let invalid_address = "0x742d35Cc6634C0532925a3b844Bc9e7595f0b";
@@ -541,8 +551,9 @@ mod tests {
     #[tokio::test]
     async fn test_validate_evm_address_invalid_hex() {
         let service = MerchantService {
-            db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-        };
+                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
+                    config: crate::config::Config::default(),
+                };
         
         // Contains non-hex characters (g, z)
         let invalid_address = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEgz";
@@ -553,8 +564,9 @@ mod tests {
     #[tokio::test]
     async fn test_validate_all_crypto_types() {
         let service = MerchantService {
-            db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-        };
+                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
+                    config: crate::config::Config::default(),
+                };
         
         // Test valid addresses for all crypto types
         let test_cases = vec![
