@@ -1,0 +1,698 @@
+// API Handlers
+// HTTP request handlers
+
+use crate::api::state::AppState;
+use crate::middleware::auth::MerchantContext;
+use crate::payment::models::{CreatePaymentRequest, PaymentFilters, CryptoType};
+use axum::{
+    extract::{Path, Query, State, Request, Extension},
+    http::StatusCode,
+    response::{IntoResponse, Json},
+};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use validator::Validate;
+use html_escape::encode_text;
+
+// Import validation functions
+use crate::middleware::validation::{validate_business_email, validate_password_strength, validate_webhook_url};
+
+// ============================================================================
+// Merchant Endpoints
+// ============================================================================
+
+#[derive(Deserialize, Validate)]
+pub struct RegisterMerchantRequest {
+    #[validate(email, custom(function = "validate_business_email"))]
+    pub email: String,
+    
+    #[validate(length(min = 1, max = 100))]
+    pub business_name: String,
+    
+    #[validate(length(min = 8), custom(function = "validate_password_strength"))]
+    pub password: String,
+}
+
+#[derive(Deserialize, Validate)]
+pub struct LoginMerchantRequest {
+    #[validate(email)]
+    pub email: String,
+    
+    #[validate(length(min = 1))]
+    pub password: String,
+    
+    #[validate(length(equal = 6))]
+    pub two_factor_code: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct AuthResponse {
+    pub user: MerchantProfile,
+    pub api_key: String,
+}
+
+#[derive(Serialize)]
+pub struct MerchantProfile {
+    pub id: i64,
+    pub business_name: String,
+    pub email: String,
+    pub created_at: String,
+    pub two_factor_enabled: bool,
+}
+
+pub async fn register_merchant(
+    State(state): State<AppState>,
+    Json(req): Json<RegisterMerchantRequest>,
+) -> impl IntoResponse {
+    match state.merchant_service.register_merchant(&req.email, &req.business_name).await {
+        Ok(response) => {
+            let auth_response = AuthResponse {
+                user: MerchantProfile {
+                    id: response.merchant_id,
+                    business_name: req.business_name,
+                    email: req.email,
+                    created_at: chrono::Utc::now().to_rfc3339(),
+                    two_factor_enabled: false,
+                },
+                api_key: response.api_key,
+            };
+            (StatusCode::CREATED, Json(auth_response)).into_response()
+        },
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+pub async fn login_merchant(
+    State(_state): State<AppState>,
+    Json(req): Json<LoginMerchantRequest>,
+) -> impl IntoResponse {
+    // For now, return a mock response - implement proper authentication later
+    let auth_response = AuthResponse {
+        user: MerchantProfile {
+            id: 1,
+            business_name: "Demo Business".to_string(),
+            email: req.email,
+            created_at: chrono::Utc::now().to_rfc3339(),
+            two_factor_enabled: false,
+        },
+        api_key: "demo_api_key_12345".to_string(),
+    };
+    (StatusCode::OK, Json(auth_response)).into_response()
+}
+
+pub async fn get_merchant_profile(
+    State(_state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    let profile = MerchantProfile {
+        id: context.merchant_id,
+        business_name: "Demo Business".to_string(),
+        email: "demo@example.com".to_string(),
+        created_at: chrono::Utc::now().to_rfc3339(),
+        two_factor_enabled: false,
+    };
+    (StatusCode::OK, Json(profile)).into_response()
+}
+
+pub async fn rotate_api_key(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    match state.merchant_service.rotate_api_key(context.merchant_id, &context.api_key).await {
+        Ok(new_api_key) => (StatusCode::OK, Json(json!({"api_key": new_api_key}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct SetWalletRequest {
+    pub crypto_type: String,
+    pub address: String,
+}
+
+pub async fn set_wallet(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<SetWalletRequest>,
+) -> impl IntoResponse {
+    let crypto_type = match req.crypto_type.as_str() {
+        "SOL" => CryptoType::Sol,
+        "USDT_SPL" | "USDT_SOL" => CryptoType::UsdtSpl,
+        "USDT_BEP20" | "USDT_BSC" => CryptoType::UsdtBep20,
+        "USDT_ARBITRUM" => CryptoType::UsdtArbitrum,
+        "USDT_POLYGON" => CryptoType::UsdtPolygon,
+        "USDT_ETH" => CryptoType::UsdtEth,
+        "ETH" => CryptoType::Eth,
+        "ARB" => CryptoType::Arb,
+        "MATIC" => CryptoType::Matic,
+        "BNB" => CryptoType::Bnb,
+        _ => return (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid crypto_type"}))).into_response(),
+    };
+    
+    match state.merchant_service.set_wallet_address(context.merchant_id, crypto_type, req.address).await {
+        Ok(_) => (StatusCode::OK, Json(json!({"success": true}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+#[derive(Deserialize, Validate)]
+pub struct SetWebhookRequest {
+    #[validate(url, custom(function = "validate_webhook_url"))]
+    pub url: String,
+}
+
+pub async fn set_webhook(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<SetWebhookRequest>,
+) -> impl IntoResponse {
+    match state.webhook_service.set_webhook_url(context.merchant_id, req.url).await {
+        Ok(_) => (StatusCode::OK, Json(json!({"success": true}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+// ============================================================================
+// Payment Endpoints
+// ============================================================================
+
+pub async fn create_payment(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<CreatePaymentRequest>,
+) -> impl IntoResponse {
+    match state.payment_service.create_payment(context.merchant_id, req).await {
+        Ok(response) => (StatusCode::CREATED, Json(response)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+pub async fn get_payment(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(payment_id): Path<String>,
+) -> impl IntoResponse {
+    match state.payment_service.get_payment(&payment_id, context.merchant_id).await {
+        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
+        Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct VerifyPaymentRequest {
+    pub transaction_hash: String,
+}
+
+pub async fn verify_payment(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(payment_id): Path<String>,
+    Json(req): Json<VerifyPaymentRequest>,
+) -> impl IntoResponse {
+    match state.payment_service.verify_payment(&payment_id, &req.transaction_hash, context.merchant_id).await {
+        Ok(confirmed) => (StatusCode::OK, Json(json!({"confirmed": confirmed}))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+pub async fn list_payments(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Query(filters): Query<PaymentFilters>,
+) -> impl IntoResponse {
+    match state.payment_service.list_payments(context.merchant_id, filters).await {
+        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+// ============================================================================
+// Refund Endpoints
+// ============================================================================
+
+#[derive(Deserialize)]
+pub struct CreateRefundRequest {
+    pub payment_id: String,
+    pub amount: Option<rust_decimal::Decimal>,
+    pub reason: String,
+}
+
+pub async fn create_refund(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<CreateRefundRequest>,
+) -> impl IntoResponse {
+    match state.refund_service.create_refund(context.merchant_id, req.payment_id, req.amount, req.reason).await {
+        Ok(response) => (StatusCode::CREATED, Json(response)).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+pub async fn get_refund(
+    State(state): State<AppState>,
+    Path(refund_id): Path<String>,
+) -> impl IntoResponse {
+    match state.refund_service.get_refund(refund_id).await {
+        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
+        Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct CompleteRefundRequest {
+    pub transaction_hash: String,
+}
+
+pub async fn complete_refund(
+    State(state): State<AppState>,
+    Path(refund_id): Path<String>,
+    Json(req): Json<CompleteRefundRequest>,
+) -> impl IntoResponse {
+    match state.refund_service.complete_refund(refund_id, req.transaction_hash).await {
+        Ok(_) => (StatusCode::OK, Json(json!({"success": true}))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+// ============================================================================
+// Analytics Endpoints
+// ============================================================================
+
+#[derive(Deserialize)]
+pub struct AnalyticsQuery {
+    pub from_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub to_date: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+pub async fn get_analytics(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Query(query): Query<AnalyticsQuery>,
+) -> impl IntoResponse {
+    let from = query.from_date.unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
+    let to = query.to_date.unwrap_or_else(|| chrono::Utc::now());
+    
+    match state.analytics_service.get_analytics(context.merchant_id, from, to, None, None).await {
+        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+pub async fn export_analytics(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Query(query): Query<AnalyticsQuery>,
+) -> impl IntoResponse {
+    let from = query.from_date.unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
+    let to = query.to_date.unwrap_or_else(|| chrono::Utc::now());
+    
+    match state.analytics_service.export_csv(context.merchant_id, from, to, None, None).await {
+        Ok(csv) => (StatusCode::OK, csv).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+// ============================================================================
+// Sandbox Endpoints
+// ============================================================================
+
+pub async fn enable_sandbox(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    match state.sandbox_service.create_sandbox_credentials(context.merchant_id).await {
+        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct SimulatePaymentRequest {
+    pub success: bool,
+}
+
+pub async fn simulate_payment(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(payment_id): Path<String>,
+    Json(req): Json<SimulatePaymentRequest>,
+) -> impl IntoResponse {
+    match state.sandbox_service.simulate_confirmation(&payment_id, context.merchant_id, req.success).await {
+        Ok(_) => {
+            if req.success {
+                (StatusCode::OK, Json(json!({"success": true, "message": "Payment simulated successfully"}))).into_response()
+            } else {
+                (StatusCode::OK, Json(json!({"success": true, "message": "Payment simulation failed as requested"}))).into_response()
+            }
+        },
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+// ============================================================================
+// Hosted Payment Page
+// ============================================================================
+
+pub async fn payment_page(
+    State(state): State<AppState>,
+    Path(link_id): Path<String>,
+) -> impl IntoResponse {
+    use axum::response::Html;
+    
+    // Look up payment by link_id
+    let payment_link = match sqlx::query!(
+        "SELECT payment_id FROM payment_links WHERE link_id = $1",
+        &link_id
+    )
+    .fetch_optional(&state.db_pool)
+    .await
+    {
+        Ok(Some(link)) => link,
+        Ok(None) => return (StatusCode::NOT_FOUND, Html("Payment link not found".to_string())).into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("Error: {}", e))).into_response(),
+    };
+
+    // Get payment details
+    let payment = match sqlx::query!(
+        r#"
+        SELECT payment_id, status, amount, amount_usd, crypto_type, network, 
+               to_address, fee_amount_usd, expires_at, created_at, confirmed_at, 
+               transaction_hash, partial_payments_enabled, total_paid, remaining_balance
+        FROM payment_transactions 
+        WHERE id = $1
+        "#,
+        payment_link.payment_id
+    )
+    .fetch_optional(&state.db_pool)
+    .await
+    {
+        Ok(Some(p)) => p,
+        Ok(None) => return (StatusCode::NOT_FOUND, Html("Payment not found".to_string())).into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("Error: {}", e))).into_response(),
+    };
+
+    // Generate QR code for payment
+    let qr_data = format!("{}:{}", payment.crypto_type, payment.to_address);
+    let qr_code = match crate::utils::qr::generate_qr_code(&qr_data) {
+        Ok(qr) => qr,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Html("QR generation failed".to_string())).into_response(),
+    };
+
+    // Calculate time remaining
+    let now = chrono::Utc::now();
+    let time_remaining = if payment.expires_at > now {
+        let duration = payment.expires_at - now;
+        format!("{}m {}s", duration.num_minutes(), duration.num_seconds() % 60)
+    } else {
+        "Expired".to_string()
+    };
+
+    // Determine status flags
+    let is_pending = payment.status == "PENDING" || payment.status == "CONFIRMING";
+    let is_confirmed = payment.status == "CONFIRMED";
+    let is_expired = payment.status == "FAILED" || payment.expires_at < now;
+
+    // Check if sandbox
+    let merchant = sqlx::query!("SELECT sandbox_mode FROM merchants WHERE id = (SELECT merchant_id FROM payment_transactions WHERE id = $1)", payment_link.payment_id)
+        .fetch_one(&state.db_pool)
+        .await
+        .ok();
+    let sandbox = merchant.map(|m| m.sandbox_mode).unwrap_or(false);
+
+    // Render template
+    let html = render_payment_page(PaymentPageData {
+        payment_id: payment.payment_id,
+        amount: payment.amount.to_string(),
+        amount_usd: payment.amount_usd.to_string(),
+        crypto_type: payment.crypto_type,
+        network: payment.network,
+        deposit_address: payment.to_address,
+        fee_amount_usd: payment.fee_amount_usd.to_string(),
+        qr_code: qr_code,
+        time_remaining,
+        expires_at: payment.expires_at.to_rfc3339(),
+        transaction_hash: payment.transaction_hash,
+        is_pending,
+        is_confirmed,
+        is_expired,
+        sandbox,
+    });
+
+    (StatusCode::OK, Html(html)).into_response()
+}
+
+pub async fn payment_status(
+    State(state): State<AppState>,
+    Path(link_id): Path<String>,
+) -> impl IntoResponse {
+    // Look up payment status for polling
+    let result = sqlx::query!(
+        r#"
+        SELECT pt.status 
+        FROM payment_transactions pt
+        JOIN payment_links pl ON pl.payment_id = pt.id
+        WHERE pl.link_id = $1
+        "#,
+        &link_id
+    )
+    .fetch_optional(&state.db_pool)
+    .await;
+
+    match result {
+        Ok(Some(payment)) => (StatusCode::OK, Json(json!({"status": payment.status}))).into_response(),
+        Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+// Helper functions
+fn generate_qr_code(data: &str) -> Result<String, Box<dyn std::error::Error>> {
+    use qrcode::QrCode;
+    use base64::Engine;
+    
+    let code = QrCode::new(data.as_bytes())?;
+    let string = code.render::<char>()
+        .quiet_zone(false)
+        .module_dimensions(2, 1)
+        .build();
+    
+    // For now, return a simple text representation
+    // In production, use a proper QR code image library
+    Ok(base64::engine::general_purpose::STANDARD.encode(string.as_bytes()))
+}
+
+struct PaymentPageData {
+    payment_id: String,
+    amount: String,
+    amount_usd: String,
+    crypto_type: String,
+    network: String,
+    deposit_address: String,
+    fee_amount_usd: String,
+    qr_code: String,
+    time_remaining: String,
+    expires_at: String,
+    transaction_hash: Option<String>,
+    is_pending: bool,
+    is_confirmed: bool,
+    is_expired: bool,
+    sandbox: bool,
+}
+
+fn render_payment_page(data: PaymentPageData) -> String {
+    let template = include_str!("../../templates/payment_page.html");
+    
+    // HTML escape all user-controlled data to prevent XSS attacks
+    template
+        .replace("{{payment_id}}", &encode_text(&data.payment_id))
+        .replace("{{amount}}", &encode_text(&data.amount))
+        .replace("{{amount_usd}}", &encode_text(&data.amount_usd))
+        .replace("{{crypto_type}}", &encode_text(&data.crypto_type))
+        .replace("{{network}}", &encode_text(&data.network))
+        .replace("{{deposit_address}}", &encode_text(&data.deposit_address))
+        .replace("{{fee_amount_usd}}", &encode_text(&data.fee_amount_usd))
+        .replace("{{qr_code}}", &encode_text(&data.qr_code))
+        .replace("{{time_remaining}}", &encode_text(&data.time_remaining))
+        .replace("{{expires_at}}", &encode_text(&data.expires_at))
+        .replace("{{transaction_hash}}", &encode_text(&data.transaction_hash.unwrap_or_default()))
+        .replace("{{#if is_pending}}", if data.is_pending { "" } else { "<!--" })
+        .replace("{{/if}}", if data.is_pending { "" } else { "-->" })
+        .replace("{{#if is_confirmed}}", if data.is_confirmed { "" } else { "<!--" })
+        .replace("{{#if is_expired}}", if data.is_expired { "" } else { "<!--" })
+        .replace("{{#if sandbox}}", if data.sandbox { "" } else { "<!--" })
+}
+
+// ============================================================================
+// Health Check
+// ============================================================================
+
+pub async fn health_check() -> impl IntoResponse {
+    (StatusCode::OK, Json(json!({"status": "healthy"})))
+}
+
+// ============================================================================
+// IP Whitelist Endpoints
+// ============================================================================
+
+#[derive(Deserialize)]
+pub struct SetIpWhitelistRequest {
+    pub ip_addresses: Vec<String>,
+}
+
+pub async fn set_ip_whitelist(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<SetIpWhitelistRequest>,
+) -> impl IntoResponse {
+    match state.ip_whitelist_service.set_whitelist(context.merchant_id, req.ip_addresses).await {
+        Ok(_) => (StatusCode::OK, Json(json!({"message": "IP whitelist updated"}))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+pub async fn get_ip_whitelist(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    match state.ip_whitelist_service.get_whitelist(context.merchant_id).await {
+        Ok(ips) => (StatusCode::OK, Json(json!({"ip_addresses": ips}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+// ============================================================================
+// Audit Log Endpoints
+// ============================================================================
+
+#[derive(Deserialize)]
+pub struct AuditLogQueryParams {
+    pub from: Option<String>,
+    pub to: Option<String>,
+    pub action_type: Option<String>,
+    pub limit: Option<i64>,
+}
+
+pub async fn get_audit_logs(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Query(params): Query<AuditLogQueryParams>,
+) -> impl IntoResponse {
+    let query = crate::services::audit_service::AuditLogQuery {
+        from: params.from.and_then(|s| s.parse().ok()),
+        to: params.to.and_then(|s| s.parse().ok()),
+        action_type: params.action_type,
+        limit: params.limit,
+    };
+    
+    match state.audit_service.get_logs(context.merchant_id, query).await {
+        Ok(logs) => (StatusCode::OK, Json(logs)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+// ============================================================================
+// Balance Endpoints
+// ============================================================================
+
+pub async fn get_balance(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    // Get all balances instead of single balance
+    match state.balance_service.get_all_balances(context.merchant_id).await {
+        Ok(balance) => (StatusCode::OK, Json(balance)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct BalanceHistoryQuery {
+    pub limit: Option<i64>,
+}
+
+pub async fn get_balance_history(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Query(params): Query<BalanceHistoryQuery>,
+) -> impl IntoResponse {
+    let limit = params.limit.unwrap_or(100).min(1000);
+    
+    // Balance history not available in current implementation
+    (StatusCode::NOT_IMPLEMENTED, Json(json!({"error": "Balance history not implemented"}))).into_response()
+}
+
+// ============================================================================
+// Withdrawal Endpoints
+// ============================================================================
+
+pub async fn create_withdrawal(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<crate::services::withdrawal_service::WithdrawalRequest>,
+) -> impl IntoResponse {
+    match state.withdrawal_service.create_withdrawal(context.merchant_id, req).await {
+        Ok(withdrawal) => (StatusCode::CREATED, Json(withdrawal)).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+pub async fn get_supported_currencies(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let currencies = state.currency_service.get_supported_currencies().await;
+    
+    let mut currency_groups = std::collections::HashMap::new();
+    
+    for (crypto_type, group, network) in currencies {
+        currency_groups.entry(group).or_insert_with(Vec::new).push(json!({
+            "crypto_type": crypto_type,
+            "network": network,
+            "confirmations": state.currency_service.get_required_confirmations(crypto_type)
+        }));
+    }
+    
+    (StatusCode::OK, Json(json!({
+        "currency_groups": currency_groups,
+        "description": "USDT can be accepted on multiple networks. Native currencies are network-specific."
+    }))).into_response()
+}
+
+pub async fn get_withdrawal(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(withdrawal_id): Path<String>,
+) -> impl IntoResponse {
+    match state.withdrawal_service.get_withdrawal(context.merchant_id, &withdrawal_id).await {
+        Ok(withdrawal) => (StatusCode::OK, Json(withdrawal)).into_response(),
+        Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct WithdrawalListQuery {
+    pub limit: Option<i64>,
+}
+
+pub async fn list_withdrawals(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Query(params): Query<WithdrawalListQuery>,
+) -> impl IntoResponse {
+    let limit = params.limit.unwrap_or(100).min(1000);
+    
+    match state.withdrawal_service.list_withdrawals(context.merchant_id).await {
+        Ok(withdrawals) => (StatusCode::OK, Json(withdrawals)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+pub async fn cancel_withdrawal(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(withdrawal_id): Path<String>,
+) -> impl IntoResponse {
+    match state.withdrawal_service.cancel_withdrawal(context.merchant_id, &withdrawal_id).await {
+        Ok(_) => (StatusCode::OK, Json(json!({"message": "Withdrawal cancelled"}))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}

@@ -1,0 +1,88 @@
+-- Hybrid Non-Custodial System - Database Schema
+-- Adds support for 3 wallet modes: address_only, gateway_generated, merchant_provided
+
+-- Merchant wallet configurations (replaces simple address fields)
+CREATE TABLE IF NOT EXISTS merchant_wallets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    merchant_id UUID NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
+    network VARCHAR(20) NOT NULL, -- 'ethereum', 'bsc', 'polygon', 'arbitrum', 'solana'
+    wallet_mode VARCHAR(20) NOT NULL DEFAULT 'address_only', 
+    -- Modes: 'address_only', 'gateway_generated', 'merchant_provided'
+    address VARCHAR(100) NOT NULL,
+    encrypted_private_key TEXT, -- Only for gateway_generated and merchant_provided modes
+    encryption_key_hash VARCHAR(64), -- Hash of merchant's encryption key for validation
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(merchant_id, network)
+);
+
+-- Withdrawal transactions
+CREATE TABLE IF NOT EXISTS withdrawals (
+    id VARCHAR(21) PRIMARY KEY, -- nanoid for public IDs
+    merchant_id UUID NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
+    crypto_type VARCHAR(20) NOT NULL,
+    amount DECIMAL(36,18) NOT NULL,
+    amount_usd DECIMAL(36,18) NOT NULL DEFAULT 0,
+    to_address VARCHAR(100) NOT NULL,
+    from_address VARCHAR(100) NOT NULL,
+    transaction_hash VARCHAR(100),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING', 
+    -- Status: PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED
+    gas_fee DECIMAL(36,18),
+    gas_fee_usd DECIMAL(36,18),
+    description TEXT,
+    error_message TEXT, -- For failed withdrawals
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    completed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Merchant balances for withdrawal capability
+CREATE TABLE IF NOT EXISTS merchant_balances (
+    merchant_id UUID NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
+    crypto_type VARCHAR(20) NOT NULL,
+    total_balance DECIMAL(36,18) NOT NULL DEFAULT 0,
+    available_balance DECIMAL(36,18) NOT NULL DEFAULT 0, -- Available for withdrawal
+    pending_balance DECIMAL(36,18) NOT NULL DEFAULT 0,   -- Pending confirmations
+    last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY(merchant_id, crypto_type)
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_merchant_wallets_merchant_id ON merchant_wallets(merchant_id);
+CREATE INDEX IF NOT EXISTS idx_merchant_wallets_network ON merchant_wallets(network);
+CREATE INDEX IF NOT EXISTS idx_withdrawals_merchant_id ON withdrawals(merchant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_withdrawals_status ON withdrawals(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_withdrawals_hash ON withdrawals(transaction_hash) WHERE transaction_hash IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_merchant_balances_merchant_id ON merchant_balances(merchant_id);
+
+-- Add wallet mode to merchants table for default preference
+ALTER TABLE merchants ADD COLUMN IF NOT EXISTS default_wallet_mode VARCHAR(20) DEFAULT 'address_only';
+
+-- Update payment_transactions to support hybrid mode
+ALTER TABLE payment_transactions ADD COLUMN IF NOT EXISTS is_non_custodial BOOLEAN DEFAULT true;
+ALTER TABLE payment_transactions ADD COLUMN IF NOT EXISTS wallet_mode VARCHAR(20) DEFAULT 'address_only';
+
+-- Migrate existing merchant addresses to new wallet system
+-- This will be handled by a separate migration script to avoid conflicts
+
+-- Add constraints
+ALTER TABLE merchant_wallets ADD CONSTRAINT check_wallet_mode 
+    CHECK (wallet_mode IN ('address_only', 'gateway_generated', 'merchant_provided'));
+
+ALTER TABLE withdrawals ADD CONSTRAINT check_withdrawal_status 
+    CHECK (status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED'));
+
+ALTER TABLE merchants ADD CONSTRAINT check_default_wallet_mode 
+    CHECK (default_wallet_mode IN ('address_only', 'gateway_generated', 'merchant_provided'));
+
+-- Comments for documentation
+COMMENT ON TABLE merchant_wallets IS 'Stores merchant wallet configurations for hybrid non-custodial system';
+COMMENT ON COLUMN merchant_wallets.wallet_mode IS 'address_only: merchant provides addresses only, gateway_generated: FidduPay generates keys, merchant_provided: merchant imports keys';
+COMMENT ON COLUMN merchant_wallets.encrypted_private_key IS 'AES-256-GCM encrypted private key, only for gateway_generated and merchant_provided modes';
+
+COMMENT ON TABLE withdrawals IS 'Withdrawal transactions for merchants with key-based wallet modes';
+COMMENT ON COLUMN withdrawals.gas_fee IS 'Gas fee paid by merchant for the withdrawal transaction';
+
+COMMENT ON TABLE merchant_balances IS 'Real-time balance tracking for withdrawal capability';
+COMMENT ON COLUMN merchant_balances.available_balance IS 'Balance available for immediate withdrawal';
+COMMENT ON COLUMN merchant_balances.pending_balance IS 'Balance pending blockchain confirmations';

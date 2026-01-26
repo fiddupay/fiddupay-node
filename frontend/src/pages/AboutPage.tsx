@@ -30,21 +30,9 @@ const AboutPage: React.FC = () => {
                 while you receive the security and reliability you need.
               </p>
             </div>
-            <div className={styles.imageContent}>
-              <img 
-                src="https://images.unsplash.com/photo-1551434678-e076c223a692?w=500&h=400&fit=crop" 
-                alt="Team collaboration" 
-              />
-            </div>
           </div>
 
           <div className={styles.section}>
-            <div className={styles.imageContent}>
-              <img 
-                src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=500&h=400&fit=crop" 
-                alt="Security and technology" 
-              />
-            </div>
             <div className={styles.textContent}>
               <h2>Security First</h2>
               <p>

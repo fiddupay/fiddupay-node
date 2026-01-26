@@ -5,7 +5,6 @@ import styles from './PricingPage.module.css'
 interface PricingData {
   transaction_fee_percentage: number
   minimum_fee_usd: string
-  maximum_fee_usd: string
   supported_networks: number
 }
 
@@ -13,7 +12,6 @@ const PricingPage: React.FC = () => {
   const [pricingData, setPricingData] = useState<PricingData>({
     transaction_fee_percentage: 0.75,
     minimum_fee_usd: '0.01',
-    maximum_fee_usd: '200.00',
     supported_networks: 5
   })
 
@@ -48,9 +46,6 @@ const PricingPage: React.FC = () => {
           <div className={styles.plan}>
             <div className={styles.planBadge}>Most Popular</div>
             <div className={styles.planHeader}>
-              <div className={styles.planIcon}>
-                <img src="https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=100&h=100&fit=crop&crop=center" alt="Rocket" />
-              </div>
               <h3 className={styles.planName}>Pay-Per-Use</h3>
               <div className={styles.planPrice}>
                 <span className={styles.price}>{pricingData.transaction_fee_percentage}%</span>
@@ -66,7 +61,6 @@ const PricingPage: React.FC = () => {
               <ul className={styles.features}>
                 <li><i className="fas fa-check"></i> {pricingData.transaction_fee_percentage}% transaction fee</li>
                 <li><i className="fas fa-check"></i> Minimum fee: ${pricingData.minimum_fee_usd}</li>
-                <li><i className="fas fa-check"></i> Maximum fee: ${pricingData.maximum_fee_usd}</li>
                 <li><i className="fas fa-check"></i> No setup or monthly fees</li>
                 <li><i className="fas fa-check"></i> {pricingData.supported_networks} blockchain networks</li>
                 <li><i className="fas fa-check"></i> Real-time processing</li>
@@ -85,9 +79,6 @@ const PricingPage: React.FC = () => {
 
           <div className={styles.plan}>
             <div className={styles.planHeader}>
-              <div className={styles.planIcon}>
-                <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=100&h=100&fit=crop&crop=center" alt="Enterprise Building" />
-              </div>
               <h3 className={styles.planName}>Enterprise</h3>
               <div className={styles.planPrice}>
                 <span className={styles.price}>Custom</span>

@@ -1,0 +1,273 @@
+# ============================================================================
+# PayFlow - Development Environment Configuration
+# ============================================================================
+
+# ============================================================================
+# CORE INFRASTRUCTURE
+# ============================================================================
+
+# Database
+DATABASE_URL=postgresql://vibes:Soledayo%402001@localhost:5432/payflow
+DATABASE_MAX_CONNECTIONS=20
+DATABASE_TIMEOUT_SECONDS=30
+
+# Redis Cache
+REDIS_URL=redis://localhost:6379
+REDIS_MAX_CONNECTIONS=10
+REDIS_TIMEOUT_SECONDS=5
+
+# Server Configuration
+SERVER_HOST=0.0.0.0
+SERVER_PORT=8080
+SERVER_WORKERS=4
+REQUEST_TIMEOUT_SECONDS=30
+
+# ============================================================================
+# BLOCKCHAIN CONFIGURATION
+# ============================================================================
+
+# Blockchain RPC URLs (Testnets)
+SOLANA_RPC_URL=https://api.devnet.solana.com
+ETHEREUM_RPC_URL=https://eth-goerli.g.alchemy.com/v2/demo
+BSC_RPC_URL=https://data-seed-prebsc-1-s1.binance.org:8545
+ARBITRUM_RPC_URL=https://goerli-rollup.arbitrum.io/rpc
+POLYGON_RPC_URL=https://rpc-mumbai.maticvigil.com
+
+# Blockchain Explorer API (Unified)
+ETHERSCAN_API_URL=https://api.etherscan.io/v2/api
+ETHERSCAN_API_KEY=MHFU4N5DZ4I7UFABU3J3A4VE4D4C87BBE7
+
+# Chain IDs for Etherscan API V2
+ETHEREUM_CHAIN_ID=1
+BSC_CHAIN_ID=56
+POLYGON_CHAIN_ID=137
+ARBITRUM_CHAIN_ID=42161
+
+# Blockchain Settings
+CONFIRMATION_BLOCKS_SOL=32
+CONFIRMATION_BLOCKS_ETH=12
+CONFIRMATION_BLOCKS_BSC=15
+CONFIRMATION_BLOCKS_POLYGON=30
+CONFIRMATION_BLOCKS_ARBITRUM=1
+
+# Transaction Monitoring
+BLOCK_MONITOR_INTERVAL_SECONDS=10
+TRANSACTION_TIMEOUT_MINUTES=60
+
+# ============================================================================
+# PRICING & MARKET DATA
+# ============================================================================
+
+# Price API
+BYBIT_PRICE_API_URL=https://api.bybit.com
+COINBASE_PRICE_API_URL=https://api.coinbase.com/v2
+PRICE_CACHE_TTL_SECONDS=180
+PRICE_UPDATE_INTERVAL_SECONDS=15
+
+# ============================================================================
+# SECURITY CONFIGURATION
+# ============================================================================
+
+# Encryption Keys (Development)
+ENCRYPTION_KEY=fd4867a60ace984313bbeee057f586697f0f51063490c3b7d45536c83ee16525
+WEBHOOK_SIGNING_KEY=bcc36e0a0d0810770091fd13cfd6a00afdf0a908f2d977901b4bea5887acd6a3
+JWT_SECRET=9c71f51199b7ea4b3e3f5a4c2f622260c41506b7f16c30f717bae5279f167c14
+
+# Password Security
+PASSWORD_MIN_LENGTH=8
+PASSWORD_REQUIRE_UPPERCASE=true
+PASSWORD_REQUIRE_LOWERCASE=true
+PASSWORD_REQUIRE_NUMBERS=true
+PASSWORD_REQUIRE_SYMBOLS=true
+
+# Account Security
+MAX_LOGIN_ATTEMPTS=5
+ACCOUNT_LOCKOUT_DURATION_MINUTES=30
+SESSION_TIMEOUT_HOURS=24
+API_KEY_EXPIRY_DAYS=365
+
+# Rate Limiting
+RATE_LIMIT_REQUESTS_PER_MINUTE=100
+RATE_LIMIT_BURST_SIZE=20
+RATE_LIMIT_PER_API_KEY=true
+
+# IP Security
+IP_WHITELIST_ENABLED=false
+IP_WHITELIST=127.0.0.1,::1
+BLOCKED_IPS_CACHE_TTL_MINUTES=60
+
+# ============================================================================
+# PAYMENT CONFIGURATION
+# ============================================================================
+
+# Payment Settings
+DEFAULT_PAYMENT_EXPIRATION_MINUTES=20
+PAYMENT_CLEANUP_INTERVAL_HOURS=1
+PAYMENT_PAGE_BASE_URL=http://localhost:8080
+
+# Fee Configuration
+DEFAULT_FEE_PERCENTAGE=0.75
+MINIMUM_FEE_USD=0.01
+MAXIMUM_FEE_USD=200.00
+FEE_CALCULATION_METHOD=percentage
+
+# Payment Limits
+MIN_PAYMENT_USD=1.00
+MAX_PAYMENT_USD=0
+DAILY_PAYMENT_LIMIT_USD=0
+
+# ============================================================================
+# MERCHANT CONFIGURATION
+# ============================================================================
+
+# Merchant Settings
+MERCHANT_REGISTRATION_ENABLED=true
+MERCHANT_EMAIL_VERIFICATION_REQUIRED=false
+MERCHANT_KYC_REQUIRED=false
+MERCHANT_AUTO_APPROVAL=true
+
+# Merchant Limits
+MAX_MERCHANTS_PER_IP=5
+MERCHANT_API_CALLS_PER_MINUTE=1000
+MERCHANT_PAYMENT_LIMIT_USD=0
+
+# Business Verification
+BUSINESS_VERIFICATION_REQUIRED=false
+BUSINESS_DOCUMENT_UPLOAD_ENABLED=true
+
+# ============================================================================
+# WEBHOOK CONFIGURATION
+# ============================================================================
+
+# Webhook Settings
+WEBHOOK_TIMEOUT_SECONDS=10
+WEBHOOK_MAX_RETRIES=5
+WEBHOOK_RETRY_DELAY_SECONDS=5
+WEBHOOK_BATCH_SIZE=100
+
+# Webhook Security
+WEBHOOK_SIGNATURE_REQUIRED=true
+WEBHOOK_IP_VALIDATION=false
+WEBHOOK_SSL_VERIFICATION=false
+
+# ============================================================================
+# WITHDRAWAL CONFIGURATION
+# ============================================================================
+
+# Withdrawal Settings
+WITHDRAWAL_ENABLED=true
+WITHDRAWAL_MIN_AMOUNT_USD=1
+WITHDRAWAL_MAX_AMOUNT_USD=0
+WITHDRAWAL_DAILY_LIMIT_USD=0
+
+# Withdrawal Processing
+WITHDRAWAL_AUTO_APPROVAL_LIMIT_USD=1000.00
+WITHDRAWAL_MANUAL_REVIEW_REQUIRED=false
+WITHDRAWAL_PROCESSING_DELAY_MINUTES=0
+
+# Withdrawal Fees
+WITHDRAWAL_FEE_PERCENTAGE=0.50
+WITHDRAWAL_MIN_FEE_USD=0.50
+WITHDRAWAL_MAX_FEE_USD=200.00
+
+# ============================================================================
+# NOTIFICATION CONFIGURATION
+# ============================================================================
+
+# Email Configuration (Disabled in dev)
+EMAIL_ENABLED=false
+EMAIL_FROM=noreply@payflow.local
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USERNAME=
+SMTP_PASSWORD=
+EMAIL_RATE_LIMIT_PER_HOUR=100
+
+# SMS Configuration (Disabled)
+SMS_ENABLED=false
+SMS_PROVIDER=
+SMS_API_KEY=
+SMS_FROM_NUMBER=
+
+# Push Notifications (Disabled)
+PUSH_NOTIFICATIONS_ENABLED=false
+FIREBASE_SERVER_KEY=
+
+# ============================================================================
+# FEATURE FLAGS
+# ============================================================================
+
+# Core Features
+TWO_FACTOR_ENABLED=true
+DEPOSIT_ADDRESS_ENABLED=true
+INVOICE_ENABLED=true
+MULTI_USER_ENABLED=true
+
+# Advanced Features
+ANALYTICS_ENABLED=true
+REPORTING_ENABLED=true
+AUDIT_LOGGING_ENABLED=true
+REAL_TIME_MONITORING_ENABLED=true
+
+# Platform Control
+MAINTENANCE_MODE=false
+REGISTRATION_DISABLED=false
+PAYMENTS_DISABLED=false
+WITHDRAWALS_DISABLED=false
+
+# ============================================================================
+# MONITORING & LOGGING
+# ============================================================================
+
+# Logging Configuration
+RUST_LOG=info,crypto_payment_gateway=debug
+LOG_LEVEL=debug
+LOG_FORMAT=pretty
+LOG_FILE_ENABLED=true
+LOG_FILE_PATH=./logs/payflow.log
+LOG_ROTATION_SIZE_MB=100
+
+# Metrics & Monitoring
+METRICS_ENABLED=true
+METRICS_PORT=9090
+HEALTH_CHECK_ENABLED=true
+PERFORMANCE_MONITORING_ENABLED=true
+
+# Error Tracking
+ERROR_REPORTING_ENABLED=true
+SENTRY_DSN=
+
+# ============================================================================
+# DEVELOPMENT & TESTING
+# ============================================================================
+
+# Environment
+ENVIRONMENT=development
+DEBUG_MODE=true
+
+# Database Migrations
+AUTO_MIGRATE=false
+SQLX_OFFLINE=false
+
+# Testing
+TEST_MODE=false
+MOCK_BLOCKCHAIN_ENABLED=false
+MOCK_PAYMENTS_ENABLED=false
+
+# ============================================================================
+# COMPLIANCE & REGULATORY
+# ============================================================================
+
+# KYC/AML (Disabled in dev)
+KYC_ENABLED=false
+AML_MONITORING_ENABLED=false
+SUSPICIOUS_ACTIVITY_THRESHOLD_USD=10000.00
+
+# Reporting
+REGULATORY_REPORTING_ENABLED=false
+TRANSACTION_REPORTING_THRESHOLD_USD=10000.00
+
+# Data Retention
+DATA_RETENTION_DAYS=2555  # 7 years
+LOG_RETENTION_DAYS=90
+AUDIT_RETENTION_DAYS=2555
