@@ -7,7 +7,7 @@ import { Refunds } from './resources/refunds';
 import { AnalyticsResource } from './resources/analytics';
 import { Webhooks } from './resources/webhooks';
 
-export class FidduPay {
+export class FidduPayClient {
   private client: HttpClient;
   
   public readonly payments: Payments;
@@ -33,8 +33,9 @@ export class FidduPay {
       throw new FidduPayValidationError('API key is required');
     }
 
-    if (!config.apiKey.startsWith('sk_')) {
-      throw new FidduPayValidationError('Invalid API key format. API key must start with "sk_"');
+    // Validate API key format - must start with sk_ or live_
+    if (!config.apiKey.startsWith('sk_') && !config.apiKey.startsWith('live_')) {
+      throw new FidduPayValidationError('Invalid API key format. API key must start with "sk_" or "live_"');
     }
 
     if (config.environment && !['sandbox', 'production'].includes(config.environment)) {
@@ -56,5 +57,8 @@ export * from './types';
 export * from './errors';
 export { Webhooks } from './resources/webhooks';
 
+// Backward compatibility alias
+export { FidduPayClient as FidduPay };
+
 // Default export
-export default FidduPay;
+export default FidduPayClient;
