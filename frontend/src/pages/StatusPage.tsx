@@ -34,7 +34,7 @@ const StatusPage: React.FC = () => {
 
   const fetchSystemStatus = async () => {
     try {
-      const response = await fetch('/api/v1/status')
+      const response = await fetch('/api/status')
       const data = await response.json()
       setStatus(data)
     } catch (error) {
