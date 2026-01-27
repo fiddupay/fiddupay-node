@@ -11,6 +11,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use sqlx::PgPool;
 use std::collections::HashMap;
 use validator::Validate;
 use html_escape::encode_text;
@@ -829,37 +830,121 @@ pub async fn cancel_withdrawal(
 // Public API Endpoints
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct ContactFormRequest {
+    #[validate(length(min = 1, max = 100))]
     pub name: String,
+    
+    #[validate(email)]
     pub email: String,
+    
+    #[validate(length(min = 1, max = 200))]
     pub subject: String,
+    
+    #[validate(length(min = 1, max = 2000))]
     pub message: String,
 }
 
 pub async fn submit_contact_form(
+    State(state): State<AppState>,
     Json(req): Json<ContactFormRequest>,
 ) -> impl IntoResponse {
-    // Basic validation
-    if req.name.trim().is_empty() || req.email.trim().is_empty() || 
-       req.subject.trim().is_empty() || req.message.trim().is_empty() {
+    // Validate input
+    if let Err(validation_errors) = req.validate() {
         return (StatusCode::BAD_REQUEST, Json(json!({
-            "error": "All fields are required"
+            "error": "Validation failed",
+            "details": validation_errors.to_string()
         }))).into_response();
     }
 
-    // Email validation
-    if !req.email.contains('@') || !req.email.contains('.') {
+    // Sanitize inputs to prevent XSS and injection attacks
+    let sanitized_name = sanitize_input(&req.name);
+    let sanitized_email = sanitize_input(&req.email);
+    let sanitized_subject = sanitize_input(&req.subject);
+    let sanitized_message = sanitize_input(&req.message);
+
+    // Additional security checks
+    if contains_malicious_content(&sanitized_name) || 
+       contains_malicious_content(&sanitized_subject) || 
+       contains_malicious_content(&sanitized_message) {
         return (StatusCode::BAD_REQUEST, Json(json!({
-            "error": "Invalid email format"
+            "error": "Invalid content detected"
         }))).into_response();
     }
 
-    // For now, just return success
-    (StatusCode::OK, Json(json!({
-        "message": "Contact form submitted successfully",
-        "status": "received"
-    }))).into_response()
+    // Save to database
+    match save_contact_message(&state.db_pool, &sanitized_name, &sanitized_email, &sanitized_subject, &sanitized_message).await {
+        Ok(contact_id) => {
+            (StatusCode::OK, Json(json!({
+                "message": "Contact form submitted successfully",
+                "status": "received",
+                "id": contact_id
+            }))).into_response()
+        },
+        Err(e) => {
+            eprintln!("Failed to save contact message: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+                "error": "Failed to process contact form"
+            }))).into_response()
+        }
+    }
+}
+
+fn sanitize_input(input: &str) -> String {
+    input
+        .trim()
+        .replace(['<', '>', '"', '\'', '&'], "")
+        .replace("javascript:", "")
+        .replace("data:", "")
+        .replace("vbscript:", "")
+        .replace("onload=", "")
+        .replace("onerror=", "")
+        .replace("onclick=", "")
+        .replace("script", "")
+        .replace("iframe", "")
+        .replace("object", "")
+        .replace("embed", "")
+        .chars()
+        .filter(|c| c.is_ascii() && !c.is_control())
+        .collect()
+}
+
+fn contains_malicious_content(input: &str) -> bool {
+    let malicious_patterns = [
+        "javascript:", "data:", "vbscript:", "onload", "onerror", "onclick",
+        "<script", "</script", "eval(", "alert(", "confirm(", "prompt(",
+        "document.cookie", "window.location", "innerHTML", "outerHTML",
+        "exec(", "system(", "cmd", "powershell", "bash", "sh",
+        "drop table", "delete from", "insert into", "update set",
+        "../", "..\\", "/etc/passwd", "c:\\windows"
+    ];
+    
+    let input_lower = input.to_lowercase();
+    malicious_patterns.iter().any(|pattern| input_lower.contains(pattern))
+}
+
+async fn save_contact_message(
+    pool: &PgPool,
+    name: &str,
+    email: &str,
+    subject: &str,
+    message: &str,
+) -> Result<i64, sqlx::Error> {
+    let result = sqlx::query!(
+        r#"
+        INSERT INTO contact_messages (name, email, subject, message, created_at, status)
+        VALUES ($1, $2, $3, $4, NOW(), 'new')
+        RETURNING id
+        "#,
+        name,
+        email,
+        subject,
+        message
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(result.id)
 }
 
 pub async fn get_pricing_info() -> impl IntoResponse {
