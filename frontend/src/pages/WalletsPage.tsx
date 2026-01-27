@@ -1,108 +1,175 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { apiService } from '../services/api'
+import { Wallet, WalletConfig } from '../types'
 import styles from './WalletsPage.module.css'
 
 const WalletsPage: React.FC = () => {
+  const [wallets, setWallets] = useState<Wallet[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showConfigModal, setShowConfigModal] = useState(false)
+  const [newWallet, setNewWallet] = useState<WalletConfig>({
+    crypto_type: 'SOL',
+    address: ''
+  })
+
+  const supportedCryptos = [
+    { type: 'SOL', name: 'Solana', network: 'Solana' },
+    { type: 'USDT_ETH', name: 'USDT', network: 'Ethereum' },
+    { type: 'USDT_BSC', name: 'USDT', network: 'BSC' },
+    { type: 'USDT_POLYGON', name: 'USDT', network: 'Polygon' },
+    { type: 'USDT_ARBITRUM', name: 'USDT', network: 'Arbitrum' },
+    { type: 'ETH', name: 'Ethereum', network: 'Ethereum' },
+    { type: 'BNB', name: 'BNB', network: 'BSC' },
+    { type: 'MATIC', name: 'MATIC', network: 'Polygon' },
+    { type: 'ARB', name: 'Arbitrum', network: 'Arbitrum' }
+  ]
+
+  useEffect(() => {
+    loadWallets()
+  }, [])
+
+  const loadWallets = async () => {
+    try {
+      setLoading(true)
+      const walletsData = await apiService.getWallets()
+      setWallets(walletsData)
+    } catch (error) {
+      console.error('Failed to load wallets:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfigureWallet = async () => {
+    try {
+      await apiService.configureWallet(newWallet)
+      setShowConfigModal(false)
+      setNewWallet({ crypto_type: 'SOL', address: '' })
+      loadWallets()
+    } catch (error) {
+      console.error('Failed to configure wallet:', error)
+    }
+  }
+
+  const handleGenerateWallet = async (cryptoType: string) => {
+    try {
+      await apiService.generateWallet(cryptoType)
+      loadWallets()
+    } catch (error) {
+      console.error('Failed to generate wallet:', error)
+    }
+  }
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+  }
+
+  if (loading) {
+    return (
+      <div className={styles.walletsPage}>
+        <div className={styles.loading}>Loading wallets...</div>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.walletsPage}>
       <div className={styles.header}>
         <h1>Wallets</h1>
         <p>Configure your cryptocurrency wallet addresses for automatic forwarding</p>
+        <button 
+          className={styles.configureBtn}
+          onClick={() => setShowConfigModal(true)}
+        >
+          Configure New Wallet
+        </button>
       </div>
 
       <div className={styles.walletGrid}>
-        <div className={styles.walletCard}>
-          <div className={styles.walletHeader}>
-            <h3>Solana (SOL)</h3>
-            <span className={styles.statusActive}>Active</span>
-          </div>
-          <div className={styles.walletAddress}>
-            <label>Wallet Address</label>
-            <div className={styles.addressInput}>
-              <input 
-                type="text" 
-                value="9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM" 
-                readOnly 
-              />
-              <button className={styles.copyBtn}>Copy</button>
+        {supportedCryptos.map((crypto) => {
+          const wallet = wallets.find(w => w.crypto_type === crypto.type)
+          
+          return (
+            <div key={crypto.type} className={styles.walletCard}>
+              <div className={styles.walletHeader}>
+                <h3>{crypto.name} ({crypto.network})</h3>
+                <span className={wallet ? styles.statusActive : styles.statusInactive}>
+                  {wallet ? 'Configured' : 'Not Configured'}
+                </span>
+              </div>
+              
+              {wallet ? (
+                <div className={styles.walletAddress}>
+                  <label>Wallet Address</label>
+                  <div className={styles.addressInput}>
+                    <input 
+                      type="text" 
+                      value={wallet.address} 
+                      readOnly 
+                    />
+                    <button 
+                      className={styles.copyBtn}
+                      onClick={() => copyToClipboard(wallet.address)}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <div className={styles.configuredDate}>
+                    Configured: {new Date(wallet.configured_at).toLocaleDateString()}
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.walletActions}>
+                  <button 
+                    className={styles.generateBtn}
+                    onClick={() => handleGenerateWallet(crypto.type)}
+                  >
+                    Generate Wallet
+                  </button>
+                  <p className={styles.actionNote}>
+                    Generate a new wallet or configure your existing address
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-          <div className={styles.walletStats}>
-            <div className={styles.stat}>
-              <span>Total Received</span>
-              <strong>1,234.56 SOL</strong>
-            </div>
-            <div className={styles.stat}>
-              <span>Last Payment</span>
-              <strong>2 hours ago</strong>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.walletCard}>
-          <div className={styles.walletHeader}>
-            <h3>USDT (Ethereum)</h3>
-            <span className={styles.statusActive}>Active</span>
-          </div>
-          <div className={styles.walletAddress}>
-            <label>Wallet Address</label>
-            <div className={styles.addressInput}>
-              <input 
-                type="text" 
-                value="0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4" 
-                readOnly 
-              />
-              <button className={styles.copyBtn}>Copy</button>
-            </div>
-          </div>
-          <div className={styles.walletStats}>
-            <div className={styles.stat}>
-              <span>Total Received</span>
-              <strong>$45,678.90</strong>
-            </div>
-            <div className={styles.stat}>
-              <span>Last Payment</span>
-              <strong>1 day ago</strong>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.walletCard}>
-          <div className={styles.walletHeader}>
-            <h3>USDT (BSC)</h3>
-            <span className={styles.statusInactive}>Inactive</span>
-          </div>
-          <div className={styles.walletAddress}>
-            <label>Wallet Address</label>
-            <div className={styles.addressInput}>
-              <input 
-                type="text" 
-                placeholder="Enter BSC wallet address" 
-              />
-              <button className={styles.saveBtn}>Save</button>
-            </div>
-          </div>
-          <div className={styles.walletStats}>
-            <div className={styles.stat}>
-              <span>Total Received</span>
-              <strong>$0.00</strong>
-            </div>
-            <div className={styles.stat}>
-              <span>Last Payment</span>
-              <strong>Never</strong>
-            </div>
-          </div>
-        </div>
+          )
+        })}
       </div>
 
-      <div className={styles.infoBox}>
-        <h3>Important Notes</h3>
-        <ul>
-          <li>All payments will be automatically forwarded to these wallet addresses</li>
-          <li>Make sure you control these wallet addresses before saving</li>
-          <li>Test with small amounts first to verify forwarding works correctly</li>
-          <li>You can update wallet addresses at any time</li>
-        </ul>
-      </div>
+      {/* Configure Wallet Modal */}
+      {showConfigModal && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <h2>Configure Wallet</h2>
+            <div className={styles.formGroup}>
+              <label>Cryptocurrency</label>
+              <select 
+                value={newWallet.crypto_type}
+                onChange={(e) => setNewWallet({...newWallet, crypto_type: e.target.value})}
+              >
+                {supportedCryptos.map(crypto => (
+                  <option key={crypto.type} value={crypto.type}>
+                    {crypto.name} ({crypto.network})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className={styles.formGroup}>
+              <label>Wallet Address</label>
+              <input 
+                type="text"
+                value={newWallet.address}
+                onChange={(e) => setNewWallet({...newWallet, address: e.target.value})}
+                placeholder="Enter your wallet address"
+              />
+            </div>
+            <div className={styles.modalActions}>
+              <button onClick={() => setShowConfigModal(false)}>Cancel</button>
+              <button onClick={handleConfigureWallet}>Configure</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

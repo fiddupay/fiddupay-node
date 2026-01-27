@@ -157,6 +157,7 @@ class ApiService {
     return this.createPayment(data)
   }
 
+  // Balance
   async getBalance(): Promise<Balance> {
     const response = await this.api.get('/merchants/balance')
     return response.data

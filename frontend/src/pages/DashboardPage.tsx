@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from 'react'
 import { MdPayment, MdTrendingUp, MdAccountBalance, MdPending, MdVerifiedUser, MdWarning } from 'react-icons/md'
 import { useAuth } from '../contexts/AuthContext'
+import { apiService } from '../services/api'
+import { Analytics, Balance, Payment } from '../types'
 import styles from './DashboardPage.module.css'
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth()
+  const [analytics, setAnalytics] = useState<Analytics | null>(null)
+  const [balance, setBalance] = useState<Balance | null>(null)
+  const [loading, setLoading] = useState(true)
   const [dailyVolumeUsed, setDailyVolumeUsed] = useState(0)
 
   useEffect(() => {
+    loadDashboardData()
     // Calculate daily volume used
     if (user?.daily_volume_remaining) {
       const remaining = parseFloat(user.daily_volume_remaining)
@@ -17,33 +23,49 @@ const DashboardPage: React.FC = () => {
     }
   }, [user])
 
-  // Mock data - replace with real data from API
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true)
+      const [analyticsData, balanceData] = await Promise.all([
+        apiService.getAnalytics(),
+        apiService.getBalance()
+      ])
+      setAnalytics(analyticsData)
+      setBalance(balanceData)
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Real data from API
   const stats = [
     {
       name: 'Total Payments',
-      value: '1,234',
-      change: '+12%',
+      value: analytics?.total_payments?.toLocaleString() || '0',
+      change: '+12%', // TODO: Calculate from trends
       changeType: 'positive' as const,
       icon: MdPayment,
     },
     {
       name: 'Total Volume',
-      value: '$45,678',
-      change: '+8%',
+      value: analytics?.total_volume_usd ? `$${parseFloat(analytics.total_volume_usd).toLocaleString()}` : '$0',
+      change: '+8%', // TODO: Calculate from trends
       changeType: 'positive' as const,
       icon: MdTrendingUp,
     },
     {
       name: 'Balance',
-      value: '$12,345',
-      change: '+5%',
+      value: balance?.total_usd ? `$${parseFloat(balance.total_usd).toLocaleString()}` : '$0',
+      change: '+5%', // TODO: Calculate from previous balance
       changeType: 'positive' as const,
       icon: MdAccountBalance,
     },
     {
       name: 'Pending',
-      value: '23',
-      change: '-2%',
+      value: analytics?.pending_payments?.toString() || '0',
+      change: '-2%', // TODO: Calculate from trends
       changeType: 'negative' as const,
       icon: MdPending,
     },
@@ -121,18 +143,90 @@ const DashboardPage: React.FC = () => {
       <div className={styles.content}>
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Recent Payments</h2>
-          <div className={styles.placeholder}>
-            <p>Payment list will be implemented here</p>
-          </div>
+          {loading ? (
+            <div className={styles.loading}>Loading payments...</div>
+          ) : (
+            <RecentPaymentsList />
+          )}
         </div>
 
         <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Analytics</h2>
-          <div className={styles.placeholder}>
-            <p>Charts and analytics will be implemented here</p>
-          </div>
+          <h2 className={styles.sectionTitle}>Balance Overview</h2>
+          {loading ? (
+            <div className={styles.loading}>Loading balance...</div>
+          ) : balance ? (
+            <div className={styles.balanceOverview}>
+              <div className={styles.balanceItem}>
+                <span className={styles.balanceLabel}>Available:</span>
+                <span className={styles.balanceValue}>${parseFloat(balance.available_usd).toLocaleString()}</span>
+              </div>
+              <div className={styles.balanceItem}>
+                <span className={styles.balanceLabel}>Reserved:</span>
+                <span className={styles.balanceValue}>${parseFloat(balance.reserved_usd).toLocaleString()}</span>
+              </div>
+              {balance.balances.map((currencyBalance) => (
+                <div key={currencyBalance.crypto_type} className={styles.currencyBalance}>
+                  <span className={styles.currencyType}>{currencyBalance.crypto_type}:</span>
+                  <span className={styles.currencyAmount}>{currencyBalance.amount}</span>
+                  <span className={styles.currencyUsd}>(${parseFloat(currencyBalance.amount_usd).toLocaleString()})</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.placeholder}>No balance data available</div>
+          )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// Recent Payments Component
+const RecentPaymentsList: React.FC = () => {
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadRecentPayments()
+  }, [])
+
+  const loadRecentPayments = async () => {
+    try {
+      const response = await apiService.getPayments({ page: 1, page_size: 5 })
+      setPayments(response.data || [])
+    } catch (error) {
+      console.error('Failed to load recent payments:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return <div className={styles.loading}>Loading recent payments...</div>
+  }
+
+  if (payments.length === 0) {
+    return <div className={styles.placeholder}>No recent payments</div>
+  }
+
+  return (
+    <div className={styles.paymentsList}>
+      {payments.slice(0, 5).map((payment: any) => (
+        <div key={payment.payment_id} className={styles.paymentItem}>
+          <div className={styles.paymentInfo}>
+            <span className={styles.paymentId}>{payment.payment_id.substring(0, 8)}...</span>
+            <span className={styles.paymentAmount}>${payment.amount_usd}</span>
+          </div>
+          <div className={styles.paymentMeta}>
+            <span className={`${styles.paymentStatus} ${styles[payment.status.toLowerCase()]}`}>
+              {payment.status}
+            </span>
+            <span className={styles.paymentDate}>
+              {new Date(payment.created_at).toLocaleDateString()}
+            </span>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
