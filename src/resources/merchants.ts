@@ -114,4 +114,56 @@ export class Merchants {
   ): Promise<{ message: string; wallets: Record<string, string> }> {
     return this.client.request('PUT', '/api/v1/merchants/wallets', { wallets });
   }
+
+  /**
+   * Get balance history
+   */
+  async getBalanceHistory(options?: RequestOptions): Promise<{
+    history: Array<{
+      date: string;
+      balance_usd: string;
+      change_usd: string;
+      change_percentage: number;
+    }>;
+  }> {
+    return this.client.request('GET', '/api/v1/merchants/balance/history');
+  }
+
+  /**
+   * Login merchant
+   */
+  async login(data: {
+    email: string;
+    password: string;
+  }): Promise<{ user: any; api_key: string }> {
+    return this.client.request('POST', '/api/v1/merchants/login', data);
+  }
+
+  /**
+   * Get supported currencies
+   */
+  async getSupportedCurrencies(options?: RequestOptions): Promise<{
+    currencies: Array<{
+      code: string;
+      name: string;
+      networks: string[];
+    }>;
+  }> {
+    return this.client.request('GET', '/api/v1/currencies/supported');
+  }
+
+  /**
+   * Get audit logs
+   */
+  async getAuditLogs(options?: RequestOptions): Promise<{
+    logs: Array<{
+      id: string;
+      action: string;
+      timestamp: string;
+      ip_address: string;
+      user_agent: string;
+    }>;
+  }> {
+    return this.client.request('GET', '/api/v1/audit-logs');
+  }
 }
