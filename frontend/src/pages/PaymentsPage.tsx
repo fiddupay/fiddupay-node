@@ -61,10 +61,14 @@ const PaymentsPage: React.FC = () => {
     try {
       const analytics = await apiService.getAnalytics()
       if (analytics) {
+        const successfulPayments = analytics.successful_payments || 0
+        const totalPayments = analytics.total_payments || 0
+        const successRate = totalPayments > 0 ? ((successfulPayments / totalPayments) * 100).toFixed(1) + '%' : '0%'
+        
         setStats({
           totalPayments: analytics.total_payments || 0,
           totalVolume: `$${analytics.total_volume_usd || '0.00'}`,
-          successRate: '98.5%' // Placeholder until we get proper analytics structure
+          successRate: successRate
         })
       }
     } catch (error) {
@@ -75,8 +79,48 @@ const PaymentsPage: React.FC = () => {
   const handleCreatePayment = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!newPayment.amount_usd || parseFloat(newPayment.amount_usd) <= 0) {
-      showToast('Please enter a valid amount', 'error')
+    // Comprehensive validation
+    const amount = parseFloat(newPayment.amount_usd)
+    if (!newPayment.amount_usd || isNaN(amount) || amount <= 0) {
+      showToast('Please enter a valid amount greater than 0', 'error')
+      return
+    }
+
+    if (amount < 0.01) {
+      showToast('Minimum payment amount is $0.01', 'error')
+      return
+    }
+
+    if (amount > 100000) {
+      showToast('Maximum payment amount is $100,000', 'error')
+      return
+    }
+
+    if (!newPayment.crypto_type) {
+      showToast('Please select a cryptocurrency', 'error')
+      return
+    }
+
+    if (paymentType === 'address-only' && !newPayment.merchant_address) {
+      showToast('Please enter your wallet address for address-only payments', 'error')
+      return
+    }
+
+    if (paymentType === 'address-only' && newPayment.merchant_address) {
+      // Basic address validation
+      const address = newPayment.merchant_address.trim()
+      if (newPayment.crypto_type === 'SOL' && (address.length < 32 || address.length > 44)) {
+        showToast('Invalid Solana address format', 'error')
+        return
+      }
+      if (newPayment.crypto_type.includes('ETH') && (!address.startsWith('0x') || address.length !== 42)) {
+        showToast('Invalid Ethereum address format', 'error')
+        return
+      }
+    }
+
+    if (newPayment.description && newPayment.description.length > 500) {
+      showToast('Description must be less than 500 characters', 'error')
       return
     }
 

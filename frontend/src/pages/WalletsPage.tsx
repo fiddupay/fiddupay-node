@@ -42,12 +42,36 @@ const WalletsPage: React.FC = () => {
 
   const handleConfigureWallet = async () => {
     try {
+      // Validate wallet address format
+      const address = newWallet.address.trim()
+      if (!address) {
+        alert('Please enter a wallet address')
+        return
+      }
+
+      // Basic address format validation
+      if (newWallet.crypto_type === 'SOL') {
+        if (address.length < 32 || address.length > 44) {
+          alert('Invalid Solana address format. Should be 32-44 characters.')
+          return
+        }
+      } else if (newWallet.crypto_type.includes('ETH') || newWallet.crypto_type.includes('BSC') || 
+                 newWallet.crypto_type.includes('POLYGON') || newWallet.crypto_type.includes('ARBITRUM') ||
+                 newWallet.crypto_type === 'BNB' || newWallet.crypto_type === 'MATIC' || newWallet.crypto_type === 'ARB') {
+        if (!address.startsWith('0x') || address.length !== 42) {
+          alert('Invalid EVM address format. Should start with 0x and be 42 characters long.')
+          return
+        }
+      }
+
       await apiService.configureWallet(newWallet)
       setShowConfigModal(false)
       setNewWallet({ crypto_type: 'SOL', address: '' })
       loadWallets()
+      alert('Wallet configured successfully!')
     } catch (error) {
       console.error('Failed to configure wallet:', error)
+      alert('Failed to configure wallet. Please try again.')
     }
   }
 
