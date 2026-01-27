@@ -1,5 +1,5 @@
-// Mock axios to prevent real HTTP calls in tests
-jest.mock('axios', () => ({
+// Mock axios globally to prevent network calls
+const mockAxios = {
   create: jest.fn(() => ({
     request: jest.fn().mockResolvedValue({
       data: { success: true, message: 'Mock response' },
@@ -14,7 +14,17 @@ jest.mock('axios', () => ({
     }
   })),
   isAxiosError: jest.fn(() => false)
-}));
+};
+
+jest.mock('axios', () => mockAxios);
 
 // Set test timeout to prevent hanging tests
 jest.setTimeout(10000);
+
+// Mock console methods to reduce test noise
+global.console = {
+  ...console,
+  log: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn()
+};
