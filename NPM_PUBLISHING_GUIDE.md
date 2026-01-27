@@ -158,7 +158,7 @@ npm owner add your-username @fiddupay/fiddupay-node
 
 ### Version Already Exists
 ```bash
-npm version patch  # Increment to 2.3.3
+npm version patch  # Increment to 2.3.4
 npm publish
 ```
 

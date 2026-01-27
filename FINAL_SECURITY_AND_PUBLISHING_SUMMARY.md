@@ -57,7 +57,7 @@
 ```
 
 ### Publishing Status: **READY (requires 2FA)**
-- Package: `@fiddupay/fiddupay-node@2.3.3`
+- Package: `@fiddupay/fiddupay-node@2.3.4`
 - Size: 24.9 kB (125.7 kB unpacked)
 - Files: 62 total files
 - Registry: https://registry.npmjs.org/
