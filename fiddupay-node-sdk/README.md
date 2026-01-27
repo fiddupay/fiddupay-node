@@ -1,10 +1,11 @@
 # FidduPay Node.js SDK
 
-Official Node.js SDK for the FidduPay cryptocurrency payment gateway platform with **3-Mode Wallet System**.
-
-[![npm version](https://badge.fury.io/js/@fiddupay/fiddupay-node.svg)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
+[![npm version](https://img.shields.io/npm/v/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
+[![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Official Node.js SDK for the FidduPay cryptocurrency payment gateway platform with **3-Mode Wallet System**.
 
 ## Daily Volume Limits
 
