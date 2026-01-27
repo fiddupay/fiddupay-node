@@ -118,7 +118,7 @@ const PaymentsPage: React.FC = () => {
   const handleUpdateFeeSetting = async (customerPaysFee: boolean) => {
     setLoading(true)
     try {
-      await apiService.updateFeeSetting({ customer_pays_fee: customerPaysFee })
+      await apiService.updateFeeSetting({ fee_percentage: feeSetting?.fee_percentage || 0.75 })
       showToast(`Fee setting updated: ${customerPaysFee ? 'Customer pays fee' : 'Merchant pays fee'}`, 'success')
       setShowFeeSettingModal(false)
       loadFeeSetting()
@@ -211,7 +211,7 @@ const PaymentsPage: React.FC = () => {
             <div className={styles.statContent}>
               <h3>Fee Model</h3>
               <div className={styles.statValue}>
-                {feeSetting.customer_pays_fee ? 'Customer Pays' : 'Merchant Pays'}
+                {feeSetting?.customer_pays_fee ? 'Customer Pays' : 'Merchant Pays'}
               </div>
             </div>
           </div>

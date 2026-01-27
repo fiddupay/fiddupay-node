@@ -6,10 +6,6 @@ import {
   Payment, 
   PaymentData, 
   PaymentFilters,
-  AddressOnlyPayment,
-  AddressOnlyPaymentData,
-  FeeSettingData,
-  FeeSettingResponse,
   WalletConfig,
   Wallet,
   Analytics,
@@ -142,6 +138,23 @@ class ApiService {
       params: { format, ...timeRange }
     })
     return response.data
+  }
+
+  // Fee Settings (placeholder methods for compatibility)
+  async getFeeSetting(): Promise<{ fee_percentage: number }> {
+    // Return default fee setting since this is now handled by daily volume limits
+    return { fee_percentage: 0.75 }
+  }
+
+  async updateFeeSetting(_data: { fee_percentage: number }): Promise<void> {
+    // Placeholder - fee settings are now managed by admin
+    console.log('Fee settings are managed by admin configuration')
+  }
+
+  // Address-only payments (placeholder for compatibility)
+  async createAddressOnlyPayment(data: any): Promise<Payment> {
+    // Use regular payment creation
+    return this.createPayment(data)
   }
 
   async getBalance(): Promise<Balance> {

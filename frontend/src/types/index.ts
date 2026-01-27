@@ -5,6 +5,9 @@ export interface User {
   email: string
   created_at: string
   two_factor_enabled: boolean
+  kyc_verified: boolean
+  daily_volume_remaining: string
+  sandbox_mode: boolean
 }
 
 export interface LoginCredentials {
@@ -83,8 +86,8 @@ export interface FeeSettingData {
 }
 
 export interface FeeSettingResponse {
-  customer_pays_fee: boolean
-  description: string
+  fee_percentage: number
+  customer_pays_fee?: boolean
 }
 
 export interface PaymentFilters {

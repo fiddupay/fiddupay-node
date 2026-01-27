@@ -1,8 +1,22 @@
-import React from 'react'
-import { MdPayment, MdTrendingUp, MdAccountBalance, MdPending } from 'react-icons/md'
+import React, { useEffect, useState } from 'react'
+import { MdPayment, MdTrendingUp, MdAccountBalance, MdPending, MdVerifiedUser, MdWarning } from 'react-icons/md'
+import { useAuth } from '../contexts/AuthContext'
 import styles from './DashboardPage.module.css'
 
 const DashboardPage: React.FC = () => {
+  const { user } = useAuth()
+  const [dailyVolumeUsed, setDailyVolumeUsed] = useState(0)
+
+  useEffect(() => {
+    // Calculate daily volume used
+    if (user?.daily_volume_remaining) {
+      const remaining = parseFloat(user.daily_volume_remaining)
+      const limit = user.kyc_verified ? 0 : 1000 // $1000 limit for non-KYC
+      const used = limit > 0 ? limit - remaining : 0
+      setDailyVolumeUsed(used)
+    }
+  }, [user])
+
   // Mock data - replace with real data from API
   const stats = [
     {
@@ -63,6 +77,46 @@ const DashboardPage: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {/* Daily Volume Limit Section */}
+      {user && (
+        <div className={styles.volumeLimitSection}>
+          <div className={styles.volumeLimitCard}>
+            <div className={styles.volumeLimitHeader}>
+              <div className={styles.volumeLimitIcon}>
+                {user.kyc_verified ? <MdVerifiedUser /> : <MdWarning />}
+              </div>
+              <div className={styles.volumeLimitInfo}>
+                <h3 className={styles.volumeLimitTitle}>
+                  {user.kyc_verified ? 'KYC Verified Account' : 'Daily Volume Limit'}
+                </h3>
+                <p className={styles.volumeLimitSubtitle}>
+                  {user.kyc_verified 
+                    ? 'No daily volume limits apply to your account'
+                    : `$${user.daily_volume_remaining} remaining today`
+                  }
+                </p>
+              </div>
+            </div>
+            {!user.kyc_verified && (
+              <div className={styles.volumeLimitProgress}>
+                <div className={styles.progressBar}>
+                  <div 
+                    className={styles.progressFill}
+                    style={{ 
+                      width: `${((1000 - parseFloat(user.daily_volume_remaining || '1000')) / 1000) * 100}%` 
+                    }}
+                  />
+                </div>
+                <div className={styles.progressLabels}>
+                  <span>${dailyVolumeUsed.toFixed(2)} used</span>
+                  <span>$1,000.00 limit</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className={styles.content}>
         <div className={styles.section}>
