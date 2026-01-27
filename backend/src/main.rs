@@ -42,12 +42,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     tracing::info!(" Database pool connected");
 
-    // Run migrations
-    tracing::info!(" Running database migrations...");
-    sqlx::migrate!("./migrations")
-        .run(&db_pool)
-        .await?;
-    tracing::info!(" Migrations complete");
+    // Run migrations (unless skipped)
+    if std::env::var("SKIP_MIGRATIONS").unwrap_or_default() != "true" {
+        tracing::info!("🔄 Running database migrations...");
+        sqlx::migrate!("./migrations")
+            .run(&db_pool)
+            .await?;
+        tracing::info!("✅ Migrations complete");
+    } else {
+        tracing::info!("⏭️ Skipping database migrations (SKIP_MIGRATIONS=true)");
+    }
 
     // Initialize application state
     let app_state = AppState::new(
