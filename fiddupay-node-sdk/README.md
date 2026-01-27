@@ -1,6 +1,6 @@
 # FidduPay Node.js SDK
 
-Official Node.js SDK for the FidduPay cryptocurrency payment gateway platform.
+Official Node.js SDK for the FidduPay cryptocurrency payment gateway platform with **3-Mode Wallet System**.
 
 [![npm version](https://badge.fury.io/js/@fiddupay/fiddupay-node.svg)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
@@ -15,10 +15,23 @@ Official Node.js SDK for the FidduPay cryptocurrency payment gateway platform.
 
 ```typescript
 // Check your daily volume status
-const profile = await fiddupay.merchants.getProfile();
+const profile = await client.merchants.getProfile();
 console.log('KYC Status:', profile.kyc_verified);
 console.log('Daily Volume Remaining:', profile.daily_volume_remaining);
 ```
+
+## 3-Mode Wallet System
+
+FidduPay offers three flexible wallet modes to suit different merchant needs:
+
+### Mode 1: Generate Keys (Fully Managed)
+FidduPay generates and manages wallet keys for you. Perfect for merchants who want a hands-off approach.
+
+### Mode 2: Import Keys (Self-Managed)
+Import your existing private keys. You maintain control while using FidduPay's infrastructure.
+
+### Mode 3: Address-Only (Customer Wallets)
+Customers pay directly from their own wallets to your addresses. No key management required.
 
 ## Quick Start
 
@@ -31,15 +44,15 @@ npm install @fiddupay/fiddupay-node
 ### Basic Usage
 
 ```typescript
-import { FidduPay } from '@fiddupay/fiddupay-node';
+import { FidduPayClient } from '@fiddupay/fiddupay-node';
 
-const fiddupay = new FidduPay({
+const client = new FidduPayClient({
   apiKey: 'sk_test_your_api_key',
   environment: 'sandbox' // or 'production'
 });
 
 // Create a payment
-const payment = await fiddupay.payments.create({
+const payment = await client.payments.create({
   amount_usd: '100.50',
   crypto_type: 'ETH',
   description: 'Order #12345'
@@ -62,7 +75,7 @@ console.log('Payment created:', payment.id);
 ## Configuration
 
 ```typescript
-const fiddupay = new FidduPay({
+const client = new FidduPayClient({
   apiKey: 'sk_test_your_api_key',
   environment: 'sandbox', // 'sandbox' or 'production'
   timeout: 30000, // Request timeout in milliseconds
@@ -76,7 +89,7 @@ const fiddupay = new FidduPay({
 ### Create Payment
 
 ```typescript
-const payment = await fiddupay.payments.create({
+const payment = await client.payments.create({
   amount_usd: '100.50',
   crypto_type: 'ETH',
   description: 'Order #12345',
@@ -90,13 +103,13 @@ const payment = await fiddupay.payments.create({
 ### Retrieve Payment
 
 ```typescript
-const payment = await fiddupay.payments.retrieve('pay_123');
+const payment = await client.payments.retrieve('pay_123');
 ```
 
 ### List Payments
 
 ```typescript
-const payments = await fiddupay.payments.list({
+const payments = await client.payments.list({
   limit: 10,
   status: 'completed'
 });
@@ -113,7 +126,7 @@ app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, re
   const signature = req.headers['fiddupay-signature'] as string;
   
   try {
-    const event = fiddupay.webhooks.constructEvent(
+    const event = client.webhooks.constructEvent(
       req.body,
       signature,
       'your-webhook-secret'
@@ -140,15 +153,15 @@ app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, re
 
 ```typescript
 // Get merchant profile (includes KYC status and daily volume)
-const profile = await fiddupay.merchants.getProfile();
+const profile = await client.merchants.getProfile();
 console.log('KYC Verified:', profile.kyc_verified);
 console.log('Daily Volume Remaining:', profile.daily_volume_remaining);
 
 // Get account balance
-const balance = await fiddupay.merchants.getBalance();
+const balance = await client.merchants.getBalance();
 
 // Configure wallet
-await fiddupay.merchants.configureWallet({
+await client.merchants.configureWallet({
   currency: 'USDT',
   network: 'ethereum',
   address: '0x742d35Cc6634C0532925a3b8D4C9db96590c6C87'
@@ -159,14 +172,14 @@ await fiddupay.merchants.configureWallet({
 
 ```typescript
 // Create refund
-const refund = await fiddupay.refunds.create({
+const refund = await client.refunds.create({
   paymentId: 'pay_123',
   amount: '50.25',
   reason: 'customer_request'
 });
 
 // List refunds
-const refunds = await fiddupay.refunds.list({
+const refunds = await client.refunds.list({
   paymentId: 'pay_123'
 });
 ```
@@ -175,14 +188,14 @@ const refunds = await fiddupay.refunds.list({
 
 ```typescript
 // Get analytics data
-const analytics = await fiddupay.analytics.getData({
+const analytics = await client.analytics.getData({
   startDate: '2026-01-01',
   endDate: '2026-01-31',
   metrics: ['revenue', 'transaction_count']
 });
 
 // Export data
-const exportData = await fiddupay.analytics.exportData({
+const exportData = await client.analytics.exportData({
   format: 'csv',
   startDate: '2026-01-01',
   endDate: '2026-01-31'
@@ -195,7 +208,7 @@ const exportData = await fiddupay.analytics.exportData({
 import { FidduPayError, APIError, AuthenticationError, ValidationError, RateLimitError } from '@fiddupay/fiddupay-node';
 
 try {
-  const payment = await fiddupay.payments.create({
+  const payment = await client.payments.create({
     amount_usd: '100',
     crypto_type: 'ETH'
   });
