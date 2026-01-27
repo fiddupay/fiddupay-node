@@ -46,7 +46,7 @@ export class Withdrawals {
   }
 
   /**
-   * Process withdrawal (admin only)
+   * Process withdrawal
    */
   async process(withdrawalId: string): Promise<Withdrawal> {
     return this.client.request<Withdrawal>('POST', `/api/v1/withdrawals/${withdrawalId}/process`);
