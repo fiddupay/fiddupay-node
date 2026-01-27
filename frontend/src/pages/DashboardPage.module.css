@@ -14,6 +14,40 @@
   margin-bottom: 2rem;
 }
 
+.headerActions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.docsLink,
+.sdkLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #1e40af;
+  color: white;
+  text-decoration: none;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.docsLink:hover,
+.sdkLink:hover {
+  background: #1d4ed8;
+}
+
+.sdkLink {
+  background: #059669;
+}
+
+.sdkLink:hover {
+  background: #047857;
+}
+
 .title {
   font-size: 2rem;
   font-weight: bold;

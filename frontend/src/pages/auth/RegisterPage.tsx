@@ -67,10 +67,9 @@ const RegisterPage: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: formData.name.trim(),
+          business_name: formData.name.trim(),
           email: formData.email.trim().toLowerCase(),
-          password: formData.password,
-          company: formData.company.trim() || null
+          password: formData.password
         }),
       })
 

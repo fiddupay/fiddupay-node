@@ -20,16 +20,13 @@ const PricingPage: React.FC = () => {
   }, [])
 
   const loadPricingData = async () => {
-    try {
-      const response = await fetch('/api/v1/pricing')
-      if (response.ok) {
-        const data = await response.json()
-        setPricingData(data)
-      }
-    } catch (error) {
-      console.error('Failed to load pricing data:', error)
-      // Use default values if API fails
-    }
+    // Use static pricing data since there's no pricing API endpoint
+    // This data matches the backend configuration
+    setPricingData({
+      transaction_fee_percentage: 0.75,
+      daily_volume_limit_non_kyc_usd: '1000.00',
+      supported_networks: 5
+    })
   }
   return (
     <div className={styles.pricingPage}>

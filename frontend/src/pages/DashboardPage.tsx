@@ -127,6 +127,16 @@ const DashboardPage: React.FC = () => {
       <div className={styles.header}>
         <h1 className={styles.title}>Dashboard</h1>
         <p className={styles.subtitle}>Welcome back! Here's what's happening with your payments.</p>
+        <div className={styles.headerActions}>
+          <a href="/docs" className={styles.docsLink}>
+            <i className="fas fa-book"></i>
+            API Documentation
+          </a>
+          <a href="https://github.com/CHToken/crypto-payment-gateway/blob/main/docs/NODE_SDK.md" target="_blank" rel="noopener noreferrer" className={styles.sdkLink}>
+            <i className="fas fa-code"></i>
+            Node.js SDK
+          </a>
+        </div>
       </div>
 
       <div className={styles.statsGrid}>

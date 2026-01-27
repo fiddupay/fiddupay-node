@@ -62,6 +62,28 @@ const DocsPage: React.FC = () => {
       </div>
 
       <div className={styles.content}>
+        {/* Quick Links Section */}
+        <div className={styles.quickLinksSection}>
+          <h2>Documentation Resources</h2>
+          <div className={styles.quickLinksGrid}>
+            <a href="https://github.com/CHToken/crypto-payment-gateway/blob/main/docs/API_REFERENCE.md" target="_blank" rel="noopener noreferrer" className={styles.quickLinkCard}>
+              <i className="fas fa-book"></i>
+              <h3>Complete API Reference</h3>
+              <p>Full documentation of all merchant API endpoints with examples</p>
+            </a>
+            <a href="https://github.com/CHToken/crypto-payment-gateway/blob/main/docs/NODE_SDK.md" target="_blank" rel="noopener noreferrer" className={styles.quickLinkCard}>
+              <i className="fas fa-code"></i>
+              <h3>Node.js SDK</h3>
+              <p>Official SDK for easy integration with Node.js applications</p>
+            </a>
+            <a href="https://github.com/CHToken/crypto-payment-gateway/blob/main/docs/MERCHANT_GUIDE.md" target="_blank" rel="noopener noreferrer" className={styles.quickLinkCard}>
+              <i className="fas fa-user-tie"></i>
+              <h3>Merchant Integration Guide</h3>
+              <p>Step-by-step guide for integrating FidduPay into your application</p>
+            </a>
+          </div>
+        </div>
+
         {activeTab === 'overview' && (
           <div className={styles.section}>
             <h1>FidduPay API Documentation</h1>
