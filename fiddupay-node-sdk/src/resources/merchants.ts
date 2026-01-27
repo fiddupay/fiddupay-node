@@ -140,19 +140,6 @@ export class Merchants {
   }
 
   /**
-   * Get supported currencies
-   */
-  async getSupportedCurrencies(options?: RequestOptions): Promise<{
-    currencies: Array<{
-      code: string;
-      name: string;
-      networks: string[];
-    }>;
-  }> {
-    return this.client.request('GET', '/api/v1/currencies/supported');
-  }
-
-  /**
    * Get audit logs
    */
   async getAuditLogs(options?: RequestOptions): Promise<{

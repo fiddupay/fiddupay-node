@@ -11,7 +11,7 @@ import { Withdrawals } from './resources/withdrawals';
 import { Security } from './resources/security';
 import { Balances, AuditLogs } from './resources/balances';
 import { Sandbox } from './resources/sandbox';
-import { Contact, Pricing } from './resources/contact';
+import { Contact } from './resources/contact';
 
 export class FidduPayClient {
   private client: HttpClient;
@@ -28,7 +28,6 @@ export class FidduPayClient {
   public readonly auditLogs: AuditLogs;
   public readonly sandbox: Sandbox;
   public readonly contact: Contact;
-  public readonly pricing: Pricing;
 
   constructor(config: FidduPayConfig) {
     this.validateConfig(config);
@@ -47,7 +46,6 @@ export class FidduPayClient {
     this.auditLogs = new AuditLogs(this.client);
     this.sandbox = new Sandbox(this.client);
     this.contact = new Contact(this.client);
-    this.pricing = new Pricing(this.client);
   }
 
   private validateConfig(config: FidduPayConfig): void {
