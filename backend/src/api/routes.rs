@@ -172,7 +172,9 @@ pub fn create_router(state: AppState) -> Router {
     let additional_public_routes = Router::new()
         .route("/api/v1/status", get(status::get_system_status))
         .route("/api/v1/blog", get(blog::get_blog_posts))
-        .route("/api/v1/careers", get(careers::get_careers));
+        .route("/api/v1/careers", get(careers::get_careers))
+        .route("/api/v1/contact", post(handlers::submit_contact_form))
+        .route("/api/v1/pricing", get(handlers::get_pricing_info));
 
     // Combine routes with CORS
     let cors = CorsLayer::new()

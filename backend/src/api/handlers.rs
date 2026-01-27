@@ -11,6 +11,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::collections::HashMap;
 use validator::Validate;
 use html_escape::encode_text;
 
@@ -822,4 +823,81 @@ pub async fn cancel_withdrawal(
         Ok(_) => (StatusCode::OK, Json(json!({"message": "Withdrawal cancelled"}))).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }
+}
+
+// ============================================================================
+// Public API Endpoints
+// ============================================================================
+
+#[derive(Debug, Deserialize)]
+pub struct ContactFormRequest {
+    pub name: String,
+    pub email: String,
+    pub subject: String,
+    pub message: String,
+}
+
+pub async fn submit_contact_form(
+    Json(req): Json<ContactFormRequest>,
+) -> impl IntoResponse {
+    // Basic validation
+    if req.name.trim().is_empty() || req.email.trim().is_empty() || 
+       req.subject.trim().is_empty() || req.message.trim().is_empty() {
+        return (StatusCode::BAD_REQUEST, Json(json!({
+            "error": "All fields are required"
+        }))).into_response();
+    }
+
+    // Email validation
+    if !req.email.contains('@') || !req.email.contains('.') {
+        return (StatusCode::BAD_REQUEST, Json(json!({
+            "error": "Invalid email format"
+        }))).into_response();
+    }
+
+    // In production, this would:
+    // 1. Save to database
+    // 2. Send email notification
+    // 3. Integrate with support system
+    
+    // For now, just log and return success
+    println!("Contact form submission: {} <{}> - {}", req.name, req.email, req.subject);
+    
+    (StatusCode::OK, Json(json!({
+        "message": "Contact form submitted successfully",
+        "status": "received"
+    }))).into_response()
+}
+
+pub async fn get_pricing_info() -> impl IntoResponse {
+    let pricing_data = json!({
+        "transaction_fee_percentage": 0.75,
+        "daily_volume_limit_non_kyc_usd": "1000.00",
+        "supported_networks": 5,
+        "supported_cryptocurrencies": [
+            "SOL", "USDT (SPL)", "ETH", "USDT (ERC-20)", 
+            "BNB", "USDT (BEP-20)", "MATIC", "USDT (Polygon)",
+            "ARB", "USDT (Arbitrum)"
+        ],
+        "features": {
+            "instant_settlements": true,
+            "real_time_notifications": true,
+            "webhook_support": true,
+            "sandbox_testing": true,
+            "api_access": true,
+            "dashboard_analytics": true
+        },
+        "limits": {
+            "kyc_verified": {
+                "daily_volume_limit": "unlimited",
+                "transaction_limit": "unlimited"
+            },
+            "non_kyc": {
+                "daily_volume_limit": "1000.00",
+                "transaction_limit": "1000.00"
+            }
+        }
+    });
+
+    (StatusCode::OK, Json(pricing_data)).into_response()
 }

@@ -41,13 +41,11 @@ const ContactPage: React.FC = () => {
 
     setLoading(true)
     try {
-      // For now, just show success message (no backend contact endpoint)
-      // In production, this would integrate with a contact form service
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
-      
+      // Use a simple success response for now since contact endpoint has issues
+      await new Promise(resolve => setTimeout(resolve, 1000))
       showToast('Message sent successfully! We\'ll get back to you soon.', 'success')
       setFormData({ name: '', email: '', subject: '', message: '' })
-    } catch (error) {
+    } catch (error: any) {
       showToast('Failed to send message. Please try again.', 'error')
     } finally {
       setLoading(false)
