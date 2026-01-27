@@ -90,7 +90,10 @@ class ApiService {
 
   // Wallets
   async configureWallet(data: WalletConfig): Promise<ApiResponse<void>> {
-    const response = await this.api.put('/merchants/wallets', data)
+    const response = await this.api.post('/wallets/configure-address', {
+      network: data.crypto_type,
+      address: data.address
+    })
     return response.data
   }
 
