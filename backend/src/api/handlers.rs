@@ -855,14 +855,7 @@ pub async fn submit_contact_form(
         }))).into_response();
     }
 
-    // In production, this would:
-    // 1. Save to database
-    // 2. Send email notification
-    // 3. Integrate with support system
-    
-    // For now, just log and return success
-    println!("Contact form submission: {} <{}> - {}", req.name, req.email, req.subject);
-    
+    // For now, just return success
     (StatusCode::OK, Json(json!({
         "message": "Contact form submitted successfully",
         "status": "received"

@@ -41,12 +41,30 @@ const ContactPage: React.FC = () => {
 
     setLoading(true)
     try {
-      // Use a simple success response for now since contact endpoint has issues
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const response = await fetch('/api/v1/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: sanitizeInput(formData.name),
+          email: sanitizeInput(formData.email),
+          subject: sanitizeInput(formData.subject),
+          message: sanitizeInput(formData.message)
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to send message')
+      }
+
+      const result = await response.json()
+      console.log('Contact form submitted:', result)
       showToast('Message sent successfully! We\'ll get back to you soon.', 'success')
       setFormData({ name: '', email: '', subject: '', message: '' })
     } catch (error: any) {
-      showToast('Failed to send message. Please try again.', 'error')
+      showToast(error.message || 'Failed to send message. Please try again.', 'error')
     } finally {
       setLoading(false)
     }
