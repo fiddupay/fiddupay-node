@@ -1117,6 +1117,48 @@ const DocsPage: React.FC = () => {
                 <code>rate_limit_error</code>
                 <p>Too many requests hit the API too quickly</p>
               </div>
+              <div className={styles.errorType}>
+                <code>daily_volume_exceeded</code>
+                <p>Daily volume limit exceeded for non-KYC merchant</p>
+              </div>
+            </div>
+
+            <h2>Daily Volume Limits</h2>
+            <div className={styles.section}>
+              <p>FidduPay enforces daily volume limits based on merchant KYC status:</p>
+              
+              <div className={styles.limitInfo}>
+                <h3>Non-KYC Merchants</h3>
+                <ul>
+                  <li><strong>Daily Limit:</strong> $1,000 USD total volume</li>
+                  <li><strong>Combined Tracking:</strong> All deposits + withdrawals count toward limit</li>
+                  <li><strong>Reset:</strong> Daily at midnight UTC</li>
+                  <li><strong>No Per-Transaction Limits:</strong> Individual transactions can be any amount up to remaining daily volume</li>
+                </ul>
+              </div>
+
+              <div className={styles.limitInfo}>
+                <h3>KYC Verified Merchants</h3>
+                <ul>
+                  <li><strong>No Limits:</strong> Unlimited daily volume</li>
+                  <li><strong>Full Access:</strong> No restrictions on transaction amounts or frequency</li>
+                </ul>
+              </div>
+
+              <div className={styles.codeExample}>
+                <h4>Check Remaining Volume</h4>
+                <pre><code>{`GET /api/v1/merchants/profile
+Authorization: Bearer sk_your_api_key
+
+Response:
+{
+  "id": 123,
+  "business_name": "My Business",
+  "email": "merchant@example.com",
+  "kyc_verified": false,
+  "daily_volume_remaining": "750.00"
+}`}</code></pre>
+              </div>
             </div>
           </div>
         )}

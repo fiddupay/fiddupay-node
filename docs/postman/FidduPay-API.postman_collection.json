@@ -111,7 +111,28 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": 100.50,\n  \"currency\": \"USDT\",\n  \"network\": \"ethereum\",\n  \"description\": \"Premium subscription payment\",\n  \"metadata\": {\n    \"orderId\": \"order-123\",\n    \"customerId\": \"customer-456\",\n    \"productId\": \"premium-plan\"\n  },\n  \"webhook_url\": \"https://your-site.com/webhooks/fiddupay\",\n  \"redirect_url\": \"https://your-site.com/payment-success\",\n  \"expires_at\": \"2026-01-26T07:00:00Z\"\n}"
+              "raw": "{\n  \"amount_usd\": \"100.50\",\n  \"crypto_type\": \"USDT_ETH\",\n  \"description\": \"Premium subscription payment\",\n  \"metadata\": {\n    \"orderId\": \"order-123\",\n    \"customerId\": \"customer-456\",\n    \"productId\": \"premium-plan\"\n  },\n  \"webhook_url\": \"https://your-site.com/webhooks/fiddupay\",\n  \"expiration_minutes\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Create Crypto Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"2.5\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Premium subscription payment (crypto-based)\",\n  \"metadata\": {\n    \"orderId\": \"order-124\",\n    \"customerId\": \"customer-456\",\n    \"productId\": \"premium-plan\"\n  },\n  \"webhook_url\": \"https://your-site.com/webhooks/fiddupay\",\n  \"expiration_minutes\": 30\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/payments",

@@ -1,631 +1,495 @@
-# FidduPay API Reference
+# FidduPay API Reference v2.2
 
-**Version**: 2.0  
-**Base URL**: 
-- Production: `https://api.fiddupay.com`
-- Sandbox: `https://api-sandbox.fiddupay.com`
-- Local Development: `http://localhost:8080`
-- Local Sandbox: `http://localhost:3001`
-
-## Sandbox Environment
-
-Test your integration using our sandbox environment:
-- **Sandbox URL**: `https://api-sandbox.fiddupay.com`
-- **Local Sandbox**: Run `npm start` in `/sandbox` directory  
-- **Test API Key**: `sandbox_test_key_12345`
-- **Postman Collection**: Available in `/docs/postman/`
+## Base URL
+- **Sandbox**: `http://localhost:8080`
+- **Production**: `https://api.fiddupay.com`
 
 ## Authentication
-
 All API requests require authentication using Bearer tokens:
-
-```http
-Authorization: Bearer <your_api_key>
+```
+Authorization: Bearer sk_your_api_key_here
 ```
 
-Get your API key by registering a merchant account.
+### API Key Formats
+- **Sandbox**: `sk_` prefix (e.g., `sk_1234567890abcdef...`)
+- **Production**: `live_` prefix (e.g., `live_1234567890abcdef...`)
 
-## Core Concepts
+## Daily Volume Limits
+- **Non-KYC Merchants**: $1,000 USD daily volume limit (combined deposits + withdrawals)
+- **KYC Verified Merchants**: No daily volume limits
+- **Reset**: Daily limits reset at midnight UTC
+- **Tracking**: Real-time volume tracking across all transaction types
+- **Error**: `DAILY_VOLUME_EXCEEDED` when limit is reached
 
-### Payment Flow
-1. **Create Payment** - Generate payment request with amount and crypto type
-2. **Customer Pays** - Customer sends crypto to provided deposit address
-3. **Verification** - System monitors blockchain and verifies payment
-4. **Notification** - Webhook sent to merchant on payment confirmation
-5. **Settlement** - Funds forwarded to merchant wallet (minus fees)
+### Check Remaining Volume
+```http
+GET /api/v1/merchants/profile
+Authorization: Bearer {api_key}
+```
 
-### Supported Cryptocurrencies
-
-| Currency | Network | Contract Address | Confirmations |
-|----------|---------|------------------|---------------|
-| SOL | Solana | Native | 32 |
-| USDT_SOL | Solana | `Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB` | 32 |
-| USDT_ETH | Ethereum | `0xdAC17F958D2ee523a2206206994597C13D831ec7` | 12 |
-| USDT_BSC | BSC | `0x55d398326f99059fF775485246999027B3197955` | 15 |
-| USDT_POLYGON | Polygon | `0xc2132D05D31c914a87C6611C10748AEb04B58e8F` | 30 |
-| USDT_ARBITRUM | Arbitrum | `0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9` | 1 |
-
-## Endpoints
-
-### Health Check
-
-#### GET /health
-Check service health status.
-
-**Response:**
+Response includes `daily_volume_remaining` for non-KYC merchants:
 ```json
 {
-  "status": "healthy",
-  "timestamp": "2026-01-24T15:30:00Z"
+  "id": 123,
+  "business_name": "My Business",
+  "email": "merchant@example.com",
+  "kyc_verified": false,
+  "daily_volume_remaining": "750.00"
 }
 ```
 
-### Merchant Management
+## Public Endpoints (No Auth Required)
 
-#### POST /api/v1/merchants/register
-Register a new merchant account.
+### Health Check
+```http
+GET /health
+```
+Returns system health status.
 
-**Request:**
-```json
+### System Status
+```http
+GET /api/v1/status
+```
+Returns detailed system status including service health and performance metrics.
+
+### Payment Page
+```http
+GET /pay/{link_id}
+```
+Displays payment page for a specific payment link.
+
+### Payment Status
+```http
+GET /pay/{link_id}/status
+```
+Returns payment status for a specific payment link.
+
+### Register Merchant
+```http
+POST /api/v1/merchants/register
+Content-Type: application/json
+
 {
+  "email": "merchant@example.com",
   "business_name": "My Business",
+  "password": "secure_password"
+}
+```
+
+### Login Merchant
+```http
+POST /api/v1/merchants/login
+Content-Type: application/json
+
+{
   "email": "merchant@example.com",
   "password": "secure_password"
 }
 ```
 
-**Response:**
-```json
+### Get Supported Currencies
+```http
+GET /api/v1/currencies/supported
+```
+
+## Merchant Endpoints (Auth Required)
+
+### Get Merchant Profile
+```http
+GET /api/v1/merchants/profile
+Authorization: Bearer {api_key}
+```
+
+### Switch Environment
+```http
+POST /api/v1/merchants/environment/switch
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
 {
-  "merchant_id": 123,
-  "api_key": "your_api_key_here"
+  "environment": "sandbox" // or "production"
 }
 ```
 
-#### POST /api/v1/merchants/api-keys/rotate
-Rotate API key for security.
+### Generate API Key
+```http
+POST /api/v1/merchants/api-keys/generate
+Authorization: Bearer {api_key}
+```
 
-**Headers:** `Authorization: Bearer <current_api_key>`
+### Rotate API Key
+```http
+POST /api/v1/merchants/api-keys/rotate
+Authorization: Bearer {api_key}
+```
 
-**Response:**
-```json
+### Set Wallet
+```http
+PUT /api/v1/merchants/wallets
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
 {
-  "api_key": "new_api_key_here"
+  "crypto_type": "SOL",
+  "wallet_address": "your_wallet_address"
 }
 ```
 
-#### PUT /api/v1/merchants/wallets
-Configure wallet address for a cryptocurrency.
+### Set Webhook
+```http
+PUT /api/v1/merchants/webhook
+Authorization: Bearer {api_key}
+Content-Type: application/json
 
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Request:**
-```json
 {
-  "crypto_type": "USDT_ETH",
-  "address": "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87"
+  "webhook_url": "https://your-site.com/webhook"
 }
 ```
 
-**Response:**
-```json
+## Payment Endpoints
+
+### Create Payment
+```http
+POST /api/v1/payments
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
 {
-  "success": true
-}
-```
-
-#### PUT /api/v1/merchants/webhook
-Configure webhook URL for payment notifications.
-
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Request:**
-```json
-{
-  "url": "https://your-site.com/webhook"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true
-}
-```
-
-### Payment Management
-
-#### POST /api/v1/payments
-Create a new payment request.
-
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Request:**
-```json
-{
-  "amount_usd": "100.00",
-  "crypto_type": "USDT_ETH",
-  "description": "Order #12345",
-  "metadata": {
-    "order_id": "12345",
-    "customer_id": "cust_123"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "payment_id": "pay_abc123",
-  "status": "PENDING",
-  "amount": "101.50",
-  "amount_usd": "101.50",
-  "crypto_type": "USDT_ETH",
-  "network": "ETHEREUM",
-  "deposit_address": "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87",
-  "payment_link": "https://pay.example.com/pay_abc123",
-  "qr_code_data": "ethereum:0x742d35Cc6634C0532925a3b8D4C9db96590c6C87?value=101.50",
-  "fee_amount": "1.50",
-  "fee_amount_usd": "1.50",
-  "expires_at": "2026-01-24T16:30:00Z",
-  "created_at": "2026-01-24T15:30:00Z",
-  "confirmed_at": null,
-  "transaction_hash": null
-}
-```
-
-#### GET /api/v1/payments
-List payments with optional filtering.
-
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Query Parameters:**
-- `status` - Filter by payment status (PENDING, CONFIRMED, FAILED, EXPIRED)
-- `crypto_type` - Filter by cryptocurrency
-- `from_date` - Start date (ISO 8601)
-- `to_date` - End date (ISO 8601)
-- `page` - Page number (default: 1)
-- `page_size` - Items per page (default: 20, max: 100)
-
-**Response:**
-```json
-{
-  "payments": [
-    {
-      "payment_id": "pay_abc123",
-      "status": "CONFIRMED",
-      "amount": "101.50",
-      "amount_usd": "101.50",
-      "crypto_type": "USDT_ETH",
-      "network": "ETHEREUM",
-      "deposit_address": "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87",
-      "payment_link": "https://pay.example.com/pay_abc123",
-      "qr_code_data": "ethereum:0x742d35Cc6634C0532925a3b8D4C9db96590c6C87?value=101.50",
-      "fee_amount": "1.50",
-      "fee_amount_usd": "1.50",
-      "expires_at": "2026-01-24T16:30:00Z",
-      "created_at": "2026-01-24T15:30:00Z",
-      "confirmed_at": "2026-01-24T15:35:00Z",
-      "transaction_hash": "0xabc123..."
-    }
-  ],
-  "total": 1,
-  "page": 1,
-  "page_size": 20,
-  "total_pages": 1
-}
-```
-
-#### GET /api/v1/payments/{payment_id}
-Get details of a specific payment.
-
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Response:**
-```json
-{
-  "payment_id": "pay_abc123",
-  "status": "CONFIRMED",
-  "amount": "101.50",
-  "amount_usd": "101.50",
-  "crypto_type": "USDT_ETH",
-  "network": "ETHEREUM",
-  "deposit_address": "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87",
-  "payment_link": "https://pay.example.com/pay_abc123",
-  "qr_code_data": "ethereum:0x742d35Cc6634C0532925a3b8D4C9db96590c6C87?value=101.50",
-  "fee_amount": "1.50",
-  "fee_amount_usd": "1.50",
-  "expires_at": "2026-01-24T16:30:00Z",
-  "created_at": "2026-01-24T15:30:00Z",
-  "confirmed_at": "2026-01-24T15:35:00Z",
-  "transaction_hash": "0xabc123..."
-}
-```
-
-#### POST /api/v1/payments/{payment_id}/verify
-Manually verify a payment (useful for testing).
-
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Request:**
-```json
-{
-  "transaction_hash": "0xabc123..."
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "status": "CONFIRMED"
-}
-```
-
-### Address-Only Payments
-
-#### POST /api/v1/address-only-payments
-Create an address-only payment that sends funds directly to merchant address.
-
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Request:**
-```json
-{
-  "requested_amount": "100.00",
-  "crypto_type": "ETH",
-  "merchant_address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
-  "description": "Direct payment to merchant wallet"
-}
-```
-
-**Response:**
-```json
-{
-  "payment_id": "pay_addr_123",
-  "requested_amount": "100.00",
-  "customer_amount": "100.75",
-  "processing_fee": "0.75",
-  "crypto_type": "ETH",
-  "gateway_deposit_address": "0x1234567890abcdef",
-  "customer_pays_fee": true,
-  "customer_instructions": "Send exactly 100.75 ETH to the deposit address. This includes the processing fee.",
-  "supported_currencies": ["ETH"],
-  "expires_at": "2026-01-24T16:30:00Z",
-  "created_at": "2026-01-24T15:30:00Z"
-}
-```
-
-#### GET /api/v1/address-only-payments/{payment_id}
-Get details of a specific address-only payment.
-
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Response:**
-```json
-{
-  "payment_id": "pay_addr_123",
-  "requested_amount": "100.00",
-  "customer_amount": "100.75",
-  "processing_fee": "0.75",
-  "crypto_type": "ETH",
-  "gateway_deposit_address": "0x1234567890abcdef",
-  "customer_pays_fee": true,
-  "customer_instructions": "Send exactly 100.75 ETH to the deposit address. This includes the processing fee.",
-  "supported_currencies": ["ETH"],
-  "status": "CONFIRMED",
-  "transaction_hash": "0xdef456...",
-  "confirmations": 15,
-  "expires_at": "2026-01-24T16:30:00Z",
-  "created_at": "2026-01-24T15:30:00Z",
-  "confirmed_at": "2026-01-24T15:35:00Z"
-}
-```
-
-### Fee Setting Management
-
-#### POST /api/v1/fee-setting
-Update merchant fee payment preference.
-
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Request:**
-```json
-{
-  "customer_pays_fee": true
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "customer_pays_fee": true,
-  "message": "Fee payment setting updated: Customer pays fee"
-}
-```
-
-#### GET /api/v1/fee-setting
-Get current fee payment preference.
-
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Response:**
-```json
-{
-  "customer_pays_fee": true,
-  "description": "Customer pays processing fee"
-}
-```
-
-### Balance Management
-
-#### GET /api/v1/balance
-Get current account balances.
-
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Response:**
-```json
-{
-  "balances": [
-    {
-      "crypto_type": "USDT_ETH",
-      "available": "1000.00",
-      "reserved": "50.00",
-      "total": "1050.00"
-    }
-  ],
-  "total_usd": "1050.00",
-  "available_usd": "1000.00",
-  "reserved_usd": "50.00"
-}
-```
-
-#### GET /api/v1/balance/history
-Get balance history with optional filtering.
-
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Query Parameters:**
-- `crypto_type` - Filter by cryptocurrency
-- `from_date` - Start date (ISO 8601)
-- `to_date` - End date (ISO 8601)
-- `page` - Page number (default: 1)
-- `page_size` - Items per page (default: 20, max: 100)
-
-**Response:**
-```json
-{
-  "entries": [
-    {
-      "id": 123,
-      "crypto_type": "USDT_ETH",
-      "amount": "100.00",
-      "balance_after": "1100.00",
-      "transaction_type": "CREDIT",
-      "description": "Payment received",
-      "created_at": "2026-01-24T15:30:00Z"
-    }
-  ],
-  "total": 1,
-  "page": 1,
-  "page_size": 20,
-  "total_pages": 1
-}
-```
-
-### Analytics
-
-#### GET /api/v1/analytics
-Get payment analytics and statistics.
-
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Query Parameters:**
-- `from_date` - Start date (ISO 8601)
-- `to_date` - End date (ISO 8601)
-- `blockchain` - Filter by blockchain network
-
-**Response:**
-```json
-{
-  "total_volume_usd": "10000.00",
-  "successful_payments": 95,
-  "failed_payments": 5,
-  "total_fees_paid": "150.00",
-  "average_transaction_value": "105.26",
-  "by_blockchain": {
-    "ETHEREUM": {
-      "volume_usd": "5000.00",
-      "count": 50,
-      "average_value": "100.00"
-    },
-    "SOLANA": {
-      "volume_usd": "3000.00",
-      "count": 30,
-      "average_value": "100.00"
-    }
-  }
-}
-```
-
-### Withdrawals
-
-#### POST /api/v1/withdrawals
-Create a withdrawal request.
-
-**Headers:** `Authorization: Bearer <api_key>`
-
-**Request:**
-```json
-{
-  "crypto_type": "USDT_ETH",
   "amount": "100.00",
-  "destination_address": "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87"
+  "currency": "USD",
+  "crypto_type": "SOL",
+  "description": "Payment for order #123",
+  "customer_email": "customer@example.com"
 }
 ```
 
-**Response:**
-```json
+### List Payments
+```http
+GET /api/v1/payments
+Authorization: Bearer {api_key}
+```
+
+### Get Payment
+```http
+GET /api/v1/payments/{payment_id}
+Authorization: Bearer {api_key}
+```
+
+### Verify Payment
+```http
+POST /api/v1/payments/{payment_id}/verify
+Authorization: Bearer {api_key}
+```
+
+## Refund Endpoints
+
+### Create Refund
+```http
+POST /api/v1/refunds
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
 {
-  "withdrawal_id": "wd_abc123",
-  "status": "PENDING",
-  "crypto_type": "USDT_ETH",
+  "payment_id": "payment_123",
+  "amount": "50.00",
+  "reason": "Customer request"
+}
+```
+
+### Get Refund
+```http
+GET /api/v1/refunds/{refund_id}
+Authorization: Bearer {api_key}
+```
+
+### Complete Refund
+```http
+POST /api/v1/refunds/{refund_id}/complete
+Authorization: Bearer {api_key}
+```
+
+## Analytics Endpoints
+
+### Get Analytics
+```http
+GET /api/v1/analytics
+Authorization: Bearer {api_key}
+```
+
+### Export Analytics
+```http
+GET /api/v1/analytics/export
+Authorization: Bearer {api_key}
+```
+
+## Sandbox Endpoints
+
+### Enable Sandbox
+```http
+POST /api/v1/sandbox/enable
+Authorization: Bearer {api_key}
+```
+
+### Simulate Payment
+```http
+POST /api/v1/sandbox/payments/{payment_id}/simulate
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "status": "confirmed" // or "failed"
+}
+```
+
+## Security Endpoints
+
+### Set IP Whitelist
+```http
+PUT /api/v1/merchants/ip-whitelist
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "ip_addresses": ["192.168.1.1", "10.0.0.1"]
+}
+```
+
+### Get IP Whitelist
+```http
+GET /api/v1/merchants/ip-whitelist
+Authorization: Bearer {api_key}
+```
+
+### Get Audit Logs
+```http
+GET /api/v1/audit-logs
+Authorization: Bearer {api_key}
+```
+
+## Balance Endpoints
+
+### Get Balance
+```http
+GET /api/v1/merchants/balance
+Authorization: Bearer {api_key}
+```
+
+### Get Balance History
+```http
+GET /api/v1/merchants/balance/history
+Authorization: Bearer {api_key}
+```
+
+## Withdrawal Endpoints
+
+### Create Withdrawal
+```http
+POST /api/v1/withdrawals
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
   "amount": "100.00",
-  "destination_address": "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87",
-  "created_at": "2026-01-24T15:30:00Z"
+  "crypto_type": "SOL",
+  "destination_address": "recipient_wallet_address"
 }
 ```
 
-#### GET /api/v1/withdrawals
-List withdrawals.
+### List Withdrawals
+```http
+GET /api/v1/withdrawals
+Authorization: Bearer {api_key}
+```
 
-**Headers:** `Authorization: Bearer <api_key>`
+### Get Withdrawal
+```http
+GET /api/v1/withdrawals/{withdrawal_id}
+Authorization: Bearer {api_key}
+```
 
-**Query Parameters:**
-- `status` - Filter by status (PENDING, COMPLETED, FAILED, CANCELLED)
-- `crypto_type` - Filter by cryptocurrency
-- `page` - Page number (default: 1)
-- `page_size` - Items per page (default: 20, max: 100)
+### Cancel Withdrawal
+```http
+POST /api/v1/withdrawals/{withdrawal_id}/cancel
+Authorization: Bearer {api_key}
+```
 
-**Response:**
-```json
+## Wallet Management Endpoints
+
+### Get Wallet Configs
+```http
+GET /api/v1/wallets
+Authorization: Bearer {api_key}
+```
+
+### Configure Address-Only Wallet
+```http
+POST /api/v1/wallets/configure-address
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
 {
-  "withdrawals": [
-    {
-      "withdrawal_id": "wd_abc123",
-      "status": "COMPLETED",
-      "crypto_type": "USDT_ETH",
-      "amount": "100.00",
-      "destination_address": "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87",
-      "transaction_hash": "0xdef456...",
-      "created_at": "2026-01-24T15:30:00Z",
-      "completed_at": "2026-01-24T15:35:00Z"
-    }
-  ],
-  "total": 1,
-  "page": 1,
-  "page_size": 20,
-  "total_pages": 1
+  "crypto_type": "SOL",
+  "wallet_address": "your_wallet_address"
 }
 ```
 
-## Webhooks
+### Generate Wallet
+```http
+POST /api/v1/wallets/generate
+Authorization: Bearer {api_key}
+Content-Type: application/json
 
-fiddupay sends webhook notifications for payment events.
-
-### Webhook Events
-
-- `payment.created` - Payment request created
-- `payment.confirmed` - Payment confirmed on blockchain
-- `payment.failed` - Payment failed or expired
-- `withdrawal.completed` - Withdrawal processed
-
-### Webhook Payload
-
-```json
 {
-  "event": "payment.confirmed",
-  "payment_id": "pay_abc123",
-  "merchant_id": 123,
-  "status": "CONFIRMED",
-  "amount": "101.50",
-  "amount_usd": "101.50",
-  "crypto_type": "USDT_ETH",
-  "transaction_hash": "0xabc123...",
-  "confirmed_at": "2026-01-24T15:35:00Z",
-  "metadata": {
-    "order_id": "12345"
-  }
+  "crypto_type": "SOL"
 }
 ```
 
-### Webhook Security
+### Import Wallet
+```http
+POST /api/v1/wallets/import
+Authorization: Bearer {api_key}
+Content-Type: application/json
 
-Webhooks are signed using HMAC-SHA256. Verify the signature using the `X-fiddupay-Signature` header:
-
-```python
-import hmac
-import hashlib
-
-def verify_webhook(payload, signature, secret):
-    expected = hmac.new(
-        secret.encode(),
-        payload.encode(),
-        hashlib.sha256
-    ).hexdigest()
-    return hmac.compare_digest(signature, expected)
-```
-
-## Error Handling
-
-### HTTP Status Codes
-
-- `200` - Success
-- `400` - Bad Request (invalid parameters)
-- `401` - Unauthorized (invalid API key)
-- `403` - Forbidden (insufficient permissions)
-- `404` - Not Found
-- `429` - Too Many Requests (rate limited)
-- `500` - Internal Server Error
-
-### Error Response Format
-
-```json
 {
-  "error": "Invalid API key",
-  "message": "The provided API key is not valid",
-  "code": "INVALID_API_KEY"
+  "crypto_type": "SOL",
+  "private_key": "your_private_key"
 }
 ```
+
+### Export Private Key
+```http
+POST /api/v1/wallets/export-key
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "crypto_type": "SOL"
+}
+```
+
+### Check Gas Requirements
+```http
+GET /api/v1/wallets/gas-check
+Authorization: Bearer {api_key}
+```
+
+### Get Gas Estimates
+```http
+GET /api/v1/wallets/gas-estimates
+Authorization: Bearer {api_key}
+```
+
+### Check Withdrawal Capability
+```http
+GET /api/v1/wallets/withdrawal-capability/{crypto_type}
+Authorization: Bearer {api_key}
+```
+
+## Security Monitoring Endpoints
+
+### Get Security Events
+```http
+GET /api/v1/security/events
+Authorization: Bearer {api_key}
+```
+
+### Get Security Alerts
+```http
+GET /api/v1/security/alerts
+Authorization: Bearer {api_key}
+```
+
+### Acknowledge Security Alert
+```http
+POST /api/v1/security/alerts/{alert_id}/acknowledge
+Authorization: Bearer {api_key}
+```
+
+### Get Balance Alerts
+```http
+GET /api/v1/security/balance-alerts
+Authorization: Bearer {api_key}
+```
+
+### Resolve Balance Alert
+```http
+POST /api/v1/security/balance-alerts/{alert_id}/resolve
+Authorization: Bearer {api_key}
+```
+
+### Check Gas Balances
+```http
+GET /api/v1/security/gas-check
+Authorization: Bearer {api_key}
+```
+
+### Get Security Settings
+```http
+GET /api/v1/security/settings
+Authorization: Bearer {api_key}
+```
+
+### Update Security Settings
+```http
+PUT /api/v1/security/settings
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "two_factor_enabled": true,
+  "login_notifications": true
+}
+```
+
+## Error Codes
+
+| Code | Description |
+|------|-------------|
+| `INVALID_API_KEY` | API key is invalid or expired |
+| `INSUFFICIENT_BALANCE` | Insufficient balance for transaction |
+| `DAILY_VOLUME_EXCEEDED` | Daily volume limit exceeded for non-KYC merchant |
+| `INVALID_CRYPTO_TYPE` | Unsupported cryptocurrency |
+| `PAYMENT_NOT_FOUND` | Payment ID not found |
+| `WITHDRAWAL_FAILED` | Withdrawal processing failed |
+| `RATE_LIMIT_EXCEEDED` | Too many requests |
+
+## Supported Cryptocurrencies
+
+- **Solana**: SOL, USDT (SPL)
+- **Ethereum**: ETH, USDT (ERC-20)
+- **Binance Smart Chain**: BNB, USDT (BEP-20)
+- **Polygon**: MATIC, USDT
+- **Arbitrum**: ARB, USDT
 
 ## Rate Limits
 
-- **Default**: 100 requests per minute per API key
-- **Burst**: Up to 200 requests in a 10-second window
-- **Headers**: Rate limit info included in response headers
+- **Default**: 60 requests per minute per API key
+- **Burst**: Up to 100 requests in 10 seconds
+- **Headers**: `X-RateLimit-Remaining`, `X-RateLimit-Reset`
 
-## SDKs and Libraries
+## Webhooks
 
-### Official SDKs
-- **Node.js**: `npm install @fiddupay/node-sdk`
-- **Python**: `pip install fiddupay-python`
-- **PHP**: `composer require fiddupay/php-sdk`
+FidduPay sends webhook notifications for payment events:
 
-### Community SDKs
-- **Go**: `go get github.com/fiddupay/go-sdk`
-- **Ruby**: `gem install fiddupay-ruby`
-
-## Testing
-
-### Sandbox Mode
-
-Enable sandbox mode for testing:
-
-```bash
-POST /api/v1/merchants/sandbox/enable
+### Webhook Payload
+```json
+{
+  "event": "payment.confirmed",
+  "payment_id": "payment_123",
+  "amount": "100.00",
+  "currency": "USD",
+  "crypto_type": "SOL",
+  "status": "confirmed",
+  "timestamp": "2024-01-01T12:00:00Z"
+}
 ```
 
-In sandbox mode:
-- No real blockchain transactions
-- Instant payment confirmations
-- Test webhook deliveries
-- Separate test API keys
-
-### Test Cards and Addresses
-
-Use these test addresses for sandbox testing:
-
-**Ethereum (USDT_ETH):**
-- `0x742d35Cc6634C0532925a3b8D4C9db96590c6C87`
-
-**Solana (SOL/USDT_SOL):**
-- `9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM`
-
-## Support
-
-- **Documentation**: https://docs.fiddupay.com
-- **Support Email**: support@fiddupay.com
-- **Status Page**: https://status.fiddupay.com
-- **Discord**: https://discord.gg/fiddupay
+### Webhook Events
+- `payment.created`
+- `payment.confirmed`
+- `payment.failed`
+- `refund.created`
+- `refund.completed`
+- `withdrawal.created`
+- `withdrawal.completed`
+- `withdrawal.failed`

@@ -197,16 +197,33 @@ impl CryptoType {
 /// Payment creation request
 #[derive(Debug, Deserialize)]
 pub struct CreatePaymentRequest {
-    #[serde(with = "rust_decimal::serde::str")]
-    pub amount: Decimal,
-    #[serde(with = "rust_decimal::serde::str_option")]
+    #[serde(with = "rust_decimal::serde::str_option", default)]
+    pub amount: Option<Decimal>,
+    #[serde(with = "rust_decimal::serde::str_option", default)]
     pub amount_usd: Option<Decimal>,
     pub crypto_type: CryptoType,
+    #[serde(default)]
     pub description: Option<String>,
+    #[serde(default)]
+    pub webhook_url: Option<String>,
+    #[serde(default)]
     pub metadata: Option<serde_json::Value>,
+    #[serde(default)]
     pub expires_in: Option<i32>, // seconds
+    #[serde(default)]
     pub expiration_minutes: Option<i32>,
+    #[serde(default)]
     pub partial_payments_enabled: Option<bool>,
+}
+
+impl CreatePaymentRequest {
+    pub fn validate(&self) -> Result<(), String> {
+        match (self.amount, self.amount_usd) {
+            (Some(_), Some(_)) => Err("Provide either amount or amount_usd, not both".to_string()),
+            (None, None) => Err("Either amount or amount_usd must be provided".to_string()),
+            _ => Ok(()),
+        }
+    }
 }
 
 /// Payment response

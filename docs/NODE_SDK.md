@@ -1,10 +1,24 @@
-# FidduPay Node.js SDK Development Guide
+# FidduPay Node.js SDK Guide
 
 **Official Node.js SDK for FidduPay Cryptocurrency Payment Gateway**
 
 ##  Overview
 
 The FidduPay Node.js SDK provides a simple, secure way to integrate cryptocurrency payments into Node.js applications. Built to work seamlessly with the Rust backend API.
+
+## Daily Volume Limits
+
+- **Non-KYC Merchants**: $1,000 USD daily volume limit (combined deposits + withdrawals)
+- **KYC Verified Merchants**: No daily volume limits
+- **Reset**: Daily limits reset at midnight UTC
+- **Tracking**: Real-time volume tracking across all transaction types
+
+Check your remaining daily volume:
+```javascript
+const profile = await fiddupay.merchants.getProfile();
+console.log('KYC Status:', profile.kyc_verified);
+console.log('Daily Volume Remaining:', profile.daily_volume_remaining);
+```
 
 ---
 
@@ -85,10 +99,22 @@ const fiddupay = new FidduPay({
 
 ### Payment Operations
 ```typescript
-// Create a payment
+// Create a USD-based payment
 const payment = await fiddupay.payments.create({
   amount_usd: '100.00',
   crypto_type: 'USDT_ETH',
+  description: 'Order #12345',
+  metadata: {
+    order_id: '12345',
+    customer_id: 'cust_abc123'
+  },
+  expiration_minutes: 30
+});
+
+// Create a crypto-based payment
+const cryptoPayment = await fiddupay.payments.create({
+  amount: '2.5',
+  crypto_type: 'SOL',
   description: 'Order #12345',
   metadata: {
     order_id: '12345',
@@ -209,7 +235,8 @@ interface FidduPayConfig {
 
 // Payment types
 interface CreatePaymentRequest {
-  amount_usd: string;
+  amount_usd?: string;  // USD amount (e.g., "100.00")
+  amount?: string;      // Crypto amount (e.g., "2.5")
   crypto_type: CryptoType;
   description?: string;
   metadata?: Record<string, any>;
@@ -349,11 +376,26 @@ import FidduPay from 'fiddupay-node';
 const app = express();
 const fiddupay = new FidduPay({ apiKey: process.env.FIDDUPAY_API_KEY });
 
-// Create payment endpoint
+// Create USD-based payment endpoint
 app.post('/create-payment', async (req, res) => {
   try {
     const payment = await fiddupay.payments.create({
-      amount_usd: req.body.amount,
+      amount_usd: req.body.amount_usd,
+      crypto_type: req.body.crypto_type,
+      description: req.body.description
+    });
+    
+    res.json({ payment });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Create crypto-based payment endpoint
+app.post('/create-crypto-payment', async (req, res) => {
+  try {
+    const payment = await fiddupay.payments.create({
+      amount: req.body.amount,
       crypto_type: req.body.crypto_type,
       description: req.body.description
     });

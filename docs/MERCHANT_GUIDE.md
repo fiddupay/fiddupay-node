@@ -1,6 +1,32 @@
-# fiddupay Merchant Integration Guide
+# FidduPay Merchant Integration Guide
 
-Complete guide for merchants to integrate fiddupay cryptocurrency payment gateway.
+Complete guide for merchants to integrate FidduPay cryptocurrency payment gateway.
+
+## Daily Volume Limits
+
+**Important**: All merchants have daily volume limits based on KYC status:
+
+- **Non-KYC Merchants**: $1,000 USD daily volume limit (combined deposits + withdrawals)
+- **KYC Verified Merchants**: No daily volume limits
+- **Reset**: Daily limits reset at midnight UTC
+- **Tracking**: Real-time volume tracking across all transaction types
+
+### Check Your Daily Volume Status
+```bash
+curl -X GET https://api.fiddupay.com/api/v1/merchants/profile \
+  -H "Authorization: Bearer your_api_key"
+```
+
+Response includes your remaining daily volume:
+```json
+{
+  "id": 123,
+  "business_name": "My Store",
+  "email": "merchant@example.com",
+  "kyc_verified": false,
+  "daily_volume_remaining": "750.00"
+}
+```
 
 ## Quick Start
 
@@ -46,12 +72,23 @@ curl -X PUT https://api.fiddupay.com/api/v1/merchants/webhook \
 
 ### 4. Create Payment
 ```bash
+# USD-based payment
 curl -X POST https://api.fiddupay.com/api/v1/payments \
   -H "Authorization: Bearer your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
     "amount_usd": "100.00",
     "crypto_type": "USDT_ETH",
+    "description": "Order #12345"
+  }'
+
+# Crypto-based payment
+curl -X POST https://api.fiddupay.com/api/v1/payments \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": "2.5",
+    "crypto_type": "SOL",
     "description": "Order #12345"
   }'
 ```
@@ -110,6 +147,40 @@ const fiddupayCheckout = {
         
         const payment = await response.json();
         window.location.href = payment.payment_link;
+    },
+
+    async createCryptoPayment(orderData, cryptoAmount) {
+        const response = await fetch('/api/fiddupay/create-payment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify({
+                amount: cryptoAmount,
+                crypto_type: 'SOL',
+                description: `Order #${orderData.order_number}`,
+                metadata: { order_id: orderData.id }
+            })
+        });
+        
+        const payment = await response.json();
+        window.location.href = payment.payment_link;
+    }
+};
+```
+                'Authorization': `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify({
+                amount_usd: orderData.total,
+                crypto_type: 'USDT_ETH',
+                description: `Order #${orderData.order_number}`,
+                metadata: { order_id: orderData.id }
+            })
+        });
+        
+        const payment = await response.json();
+        window.location.href = payment.payment_link;
     }
 };
 ```
@@ -125,10 +196,21 @@ const fiddupay = new fiddupay({
     environment: 'production' // or 'sandbox'
 });
 
-// Create payment
+// Create USD-based payment
 const payment = await fiddupay.payments.create({
     amount_usd: '100.00',
     crypto_type: 'USDT_ETH',
+    description: 'Order #12345',
+    metadata: {
+        order_id: '12345',
+        customer_id: 'cust_123'
+    }
+});
+
+// Create crypto-based payment
+const cryptoPayment = await fiddupay.payments.create({
+    amount: '2.5',
+    crypto_type: 'SOL',
     description: 'Order #12345',
     metadata: {
         order_id: '12345',
@@ -149,10 +231,21 @@ client = fiddupay.Client(
     environment='production'
 )
 
-# Create payment
+# Create USD-based payment
 payment = client.payments.create(
     amount_usd='100.00',
     crypto_type='USDT_ETH',
+    description='Order #12345',
+    metadata={
+        'order_id': '12345',
+        'customer_id': 'cust_123'
+    }
+)
+
+# Create crypto-based payment
+crypto_payment = client.payments.create(
+    amount='2.5',
+    crypto_type='SOL',
     description='Order #12345',
     metadata={
         'order_id': '12345',
@@ -580,14 +673,48 @@ Response:
 }
 ```
 
-### 4.2 Withdrawal Flow (Future Feature)
+### 4.2 Daily Volume Limits
+
+**Non-KYC Merchants:**
+- **Daily Limit**: $1,000 USD total volume
+- **Combined Tracking**: All deposits + withdrawals count toward daily limit
+- **Reset**: Daily at midnight UTC
+- **No Per-Transaction Limits**: Individual transactions can be any amount up to remaining daily volume
+
+**KYC Verified Merchants:**
+- **No Limits**: Unlimited daily volume
+- **Full Access**: No restrictions on transaction amounts or frequency
+
+```
+Daily Volume Check:
+├─> Check merchant KYC status
+├─> If KYC verified: Allow transaction
+├─> If non-KYC:
+│   ├─> Calculate today's volume (deposits + withdrawals)
+│   ├─> Check if transaction + current volume ≤ $1,000
+│   └─> Allow or reject based on limit
+```
+
+**Check Remaining Volume:**
+```bash
+GET /api/v1/merchants/profile
+Authorization: Bearer sk_abc123...
+
+Response:
+{
+  "kyc_verified": false,
+  "daily_volume_remaining": "750.00"
+}
+```
+
+### 4.3 Withdrawal Flow (Future Feature)
 
 ```
 Withdrawal Process:
 ├─> Merchant requests withdrawal
 ├─> System checks:
 │   ├─> Available balance sufficient?
-│   ├─> Minimum withdrawal met? ($10)
+│   ├─> Daily volume limit (for non-KYC)?
 │   └─> 2FA verified?
 ├─> Creates withdrawal request
 ├─> Admin/System approves (or auto-approve if < $1000)

@@ -16,6 +16,7 @@ pub struct Merchant {
     pub customer_pays_fee: bool, // true = customer pays, false = merchant pays
     pub is_active: bool,
     pub sandbox_mode: bool,
+    pub kyc_verified: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

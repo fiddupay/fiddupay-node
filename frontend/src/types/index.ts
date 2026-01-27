@@ -60,9 +60,15 @@ export interface AddressOnlyPayment {
 }
 
 export interface PaymentData {
-  amount_usd: string
+  amount_usd?: string  // USD-based payment
+  amount?: string      // Crypto-based payment
   crypto_type: string
   description?: string
+  webhook_url?: string
+  metadata?: Record<string, any>
+  expires_in?: number
+  expiration_minutes?: number
+  partial_payments_enabled?: boolean
 }
 
 export interface AddressOnlyPaymentData {

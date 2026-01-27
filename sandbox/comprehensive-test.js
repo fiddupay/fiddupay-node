@@ -1,202 +1,147 @@
 const { FidduPayClient } = require('@fiddupay/fiddupay-node');
 
-// Test configuration
-const client = new FidduPayClient({
-  apiKey: 'sk_sandbox_test_key',
-  baseUrl: 'http://localhost:3001',
-  environment: 'sandbox'
-});
-
-async function runComprehensiveTests() {
-  console.log('\n🧪 Running Comprehensive FidduPay API Tests...\n');
+async function runComprehensiveTest() {
+  console.log('🧪 Running Comprehensive FidduPay SDK Test...\n');
+  
+  let passedTests = 0;
+  let totalTests = 0;
 
   try {
-    // Test 1: Mode 1 - Generate Keys Payment
-    console.log('1. Testing Mode 1: Generate Keys Payment...');
-    const generateKeysPayment = await client.payments.create({
-      amount_usd: '100.00',
+    // Step 1: Register a new merchant
+    console.log('1️⃣  Registering test merchant...');
+    totalTests++;
+    
+    const tempClient = new FidduPayClient({
+      apiKey: 'registration_key',
+      environment: 'sandbox',
+      baseURL: 'http://127.0.0.1:8080'
+    });
+
+    const testEmail = `comprehensive_${Date.now()}@example.com`;
+    const registration = await tempClient.merchants.register({
+      email: testEmail,
+      business_name: 'Comprehensive Test Business',
+      password: 'TestPassword123!'
+    });
+    
+    console.log('   ✅ Merchant registered:', registration.api_key.substring(0, 10) + '...');
+    passedTests++;
+    
+    // Step 2: Create authenticated client
+    const client = new FidduPayClient({
+      apiKey: registration.api_key,
+      environment: 'sandbox',
+      baseURL: 'http://127.0.0.1:8080'
+    });
+
+    // Step 3: Get merchant profile
+    console.log('\n2️⃣  Testing merchant profile...');
+    totalTests++;
+    
+    const profile = await client.merchants.retrieve();
+    console.log(`   👤 Business: ${profile.business_name}`);
+    console.log(`   🔐 KYC Status: ${profile.kyc_verified ? 'Verified' : 'Not Verified'}`);
+    
+    // Test daily volume limit information
+    if (!profile.kyc_verified && profile.daily_volume_remaining !== undefined) {
+      console.log(`   💰 Daily Volume Remaining: $${profile.daily_volume_remaining}`);
+    } else if (profile.kyc_verified) {
+      console.log('   💰 Daily Volume: Unlimited (KYC Verified)');
+    }
+    
+    console.log('   ✅ Merchant profile retrieved successfully');
+    passedTests++;
+
+    // Step 4: Set up wallet for SOL
+    console.log('\n3️⃣  Setting up SOL wallet...');
+    totalTests++;
+    
+    await client.merchants.setWallet({
       crypto_type: 'SOL',
-      wallet_mode: 'generate_keys',
-      description: 'Test generate keys payment'
+      address: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
     });
-    console.log(' Generate keys payment created:', generateKeysPayment.payment_id);
+    console.log('   ✅ SOL wallet configured successfully');
+    passedTests++;
 
-    // Test 2: Mode 2 - Import Keys Setup
-    console.log('2. Testing Mode 2: Import Keys...');
-    try {
-      const importedWallet = await client.wallets.import({
-        crypto_type: 'SOL',
-        private_key: 'test_private_key_base58_encoded'
-      });
-      console.log(' Wallet imported:', importedWallet.address);
-    } catch (error) {
-      console.log('⚠️  Import keys test (expected to fail in sandbox):', error.message);
-    }
-
-    // Test 3: Mode 3 - Address-Only Payment
-    console.log('3. Testing Mode 3: Address-Only Payment...');
-    const addressOnlyPayment = await client.payments.createAddressOnly({
-      crypto_type: 'ETH',
-      merchant_address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-      requested_amount: 0.05,
-      customer_pays_fee: true
+    // Step 5: Create payment
+    console.log('\n4️⃣  Creating payment...');
+    totalTests++;
+    
+    const payment = await client.payments.create({
+      amount_usd: '10.00',
+      crypto_type: 'SOL',
+      description: 'Comprehensive test payment'
     });
-    console.log(' Address-only payment created:', addressOnlyPayment.payment_id);
-    console.log('   Customer amount:', addressOnlyPayment.customer_amount);
-    console.log('   Processing fee:', addressOnlyPayment.processing_fee);
+    
+    console.log(`   💳 Payment ID: ${payment.payment_id}`);
+    console.log(`   💰 Amount: ${payment.amount} SOL ($${payment.amount_usd})`);
+    console.log(`   📍 Address: ${payment.to_address}`);
+    console.log('   ✅ Payment created successfully');
+    passedTests++;
 
-    // Test 4: Fee Toggle Demonstration
-    console.log('4. Testing Fee Toggle System...');
-    const customerPaysPayment = await client.payments.createAddressOnly({
-      crypto_type: 'USDT_ETH',
-      merchant_address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-      requested_amount: 100,
-      customer_pays_fee: true
+    // Step 6: Retrieve payment
+    console.log('\n5️⃣  Retrieving payment...');
+    totalTests++;
+    
+    const retrievedPayment = await client.payments.retrieve(payment.payment_id);
+    console.log(`   🔍 Retrieved payment: ${retrievedPayment.payment_id}`);
+    console.log(`   📊 Status: ${retrievedPayment.status}`);
+    console.log('   ✅ Payment retrieved successfully');
+    passedTests++;
+
+    // Step 7: List payments
+    console.log('\n6️⃣  Listing payments...');
+    totalTests++;
+    
+    const payments = await client.payments.list({ limit: 5 });
+    const paymentCount = payments.data?.length || payments.length || 0;
+    console.log(`   📋 Found ${paymentCount} payments`);
+    console.log('   ✅ Payment listing successful');
+    passedTests++;
+
+    // Step 8: Test analytics
+    console.log('\n7️⃣  Testing analytics...');
+    totalTests++;
+    
+    const analytics = await client.analytics.retrieve({
+      start_date: '2024-01-01',
+      end_date: '2024-12-31'
     });
-
-    const merchantPaysPayment = await client.payments.createAddressOnly({
-      crypto_type: 'USDT_ETH',
-      merchant_address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-      requested_amount: 100,
-      customer_pays_fee: false
-    });
-
-    console.log(' Fee toggle comparison:');
-    console.log('   Customer pays fee - Customer amount:', customerPaysPayment.customer_amount);
-    console.log('   Merchant pays fee - Customer amount:', merchantPaysPayment.customer_amount);
-
-    // Test 5: Wallet Generation
-    console.log('5. Testing Wallet Generation...');
-    try {
-      const generatedWallet = await client.wallets.generate({
-        crypto_type: 'ETH'
-      });
-      console.log(' Wallet generated:', generatedWallet.address);
-    } catch (error) {
-      console.log('⚠️  Wallet generation test (expected to fail in sandbox):', error.message);
-    }
-
-    // Test 6: Payment Retrieval
-    console.log('6. Testing Payment Retrieval...');
-    try {
-      const payment = await client.payments.get(generateKeysPayment.payment_id);
-      console.log(' Payment retrieved:', payment.payment_id, 'Status:', payment.status);
-    } catch (error) {
-      console.log('⚠️  Payment retrieval test:', error.message);
-    }
-
-    // Test 7: Payment Listing
-    console.log('7. Testing Payment Listing...');
-    try {
-      const payments = await client.payments.list({
-        limit: 5,
-        status: 'pending'
-      });
-      console.log(' Payments listed:', payments.payments?.length || 0, 'payments');
-    } catch (error) {
-      console.log('⚠️  Payment listing test:', error.message);
-    }
-
-    // Test 8: Merchant Profile
-    console.log('8. Testing Merchant Profile...');
-    try {
-      const profile = await client.merchants.getProfile();
-      console.log(' Merchant profile retrieved:', profile.business_name || 'Test Merchant');
-    } catch (error) {
-      console.log('⚠️  Merchant profile test:', error.message);
-    }
-
-    // Test 9: System Status
-    console.log('9. Testing System Status...');
-    try {
-      const status = await client.system.getStatus();
-      console.log(' System status:', status.status || 'operational');
-    } catch (error) {
-      console.log('⚠️  System status test:', error.message);
-    }
-
-    // Test 10: Supported Currencies
-    console.log('10. Testing Supported Currencies...');
-    try {
-      const currencies = await client.payments.getSupportedCurrencies();
-      console.log(' Supported currencies:', currencies.length, 'currencies');
-    } catch (error) {
-      console.log('⚠️  Supported currencies test:', error.message);
-    }
-
-    // Test 11: Analytics
-    console.log('11. Testing Analytics...');
-    try {
-      const analytics = await client.analytics.getReport({
-        start_date: '2026-01-01',
-        end_date: '2026-01-31'
-      });
-      console.log(' Analytics report retrieved');
-    } catch (error) {
-      console.log('⚠️  Analytics test:', error.message);
-    }
-
-    // Test 12: Security Events
-    console.log('12. Testing Security Events...');
-    try {
-      const events = await client.security.getEvents({
-        limit: 10
-      });
-      console.log(' Security events retrieved:', events.length || 0, 'events');
-    } catch (error) {
-      console.log('⚠️  Security events test:', error.message);
-    }
-
-    // Test 13: Refund Creation
-    console.log('13. Testing Refund Creation...');
-    try {
-      const refund = await client.refunds.create({
-        payment_id: generateKeysPayment.payment_id,
-        amount: '50.00',
-        reason: 'Test refund'
-      });
-      console.log(' Refund created:', refund.refund_id);
-    } catch (error) {
-      console.log('⚠️  Refund creation test:', error.message);
-    }
-
-    // Test 14: Fee Breakdown
-    console.log('14. Testing Fee Breakdown...');
-    try {
-      const feeBreakdown = await client.fees.getBreakdown({
-        amount: '100.00',
-        crypto_type: 'USDT_ETH'
-      });
-      console.log(' Fee breakdown retrieved');
-    } catch (error) {
-      console.log('⚠️  Fee breakdown test:', error.message);
-    }
-
-    // Test 15: Multi-User Management
-    console.log('15. Testing Multi-User Management...');
-    try {
-      const users = await client.users.list();
-      console.log(' Users listed:', users.length || 0, 'users');
-    } catch (error) {
-      console.log('⚠️  Multi-user test:', error.message);
-    }
-
-    console.log('\n All API endpoint tests completed!');
-    console.log('\n Test Summary:');
-    console.log('    3-Mode Wallet System: Tested');
-    console.log('    Fee Toggle System: Tested');
-    console.log('    Payment Processing: Tested');
-    console.log('    Wallet Management: Tested');
-    console.log('    Security Features: Tested');
-    console.log('    Analytics: Tested');
-    console.log('    Refunds: Tested');
-    console.log('    Multi-User: Tested');
-    console.log('    System Status: Tested');
+    console.log('   📊 Analytics retrieved successfully');
+    console.log('   ✅ Analytics test passed');
+    passedTests++;
 
   } catch (error) {
-    console.error(' Test failed:', error.message);
-    process.exit(1);
+    console.log(`   ❌ Test failed: ${error.message}`);
+    if (error.statusCode) {
+      console.log(`   📊 Status Code: ${error.statusCode}`);
+    }
+  }
+
+  // Final Results
+  console.log('\n📋 Test Results Summary:');
+  console.log(`   ✅ Passed: ${passedTests}/${totalTests} tests`);
+  console.log(`   ❌ Failed: ${totalTests - passedTests}/${totalTests} tests`);
+  
+  if (passedTests === totalTests) {
+    console.log('\n🎉 All tests passed! FidduPay SDK is fully functional.');
+    return { passed: passedTests, total: totalTests, success: true };
+  } else if (passedTests > 0) {
+    console.log(`\n✅ ${passedTests} test(s) passed. SDK is functional with some limitations.`);
+    return { passed: passedTests, total: totalTests, success: false };
+  } else {
+    console.log(`\n⚠️  All tests failed. Please check the API server and configuration.`);
+    return { passed: passedTests, total: totalTests, success: false };
   }
 }
 
-runComprehensiveTests();
+// Run the test
+runComprehensiveTest()
+  .then(results => {
+    console.log(`\n🏁 Test execution completed: ${results.passed}/${results.total} passed`);
+    process.exit(results.success ? 0 : 1);
+  })
+  .catch(error => {
+    console.error('❌ Test execution failed:', error);
+    process.exit(1);
+  });

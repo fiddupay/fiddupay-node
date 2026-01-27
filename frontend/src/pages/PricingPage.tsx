@@ -4,14 +4,14 @@ import styles from './PricingPage.module.css'
 
 interface PricingData {
   transaction_fee_percentage: number
-  minimum_fee_usd: string
+  daily_volume_limit_non_kyc_usd: string
   supported_networks: number
 }
 
 const PricingPage: React.FC = () => {
   const [pricingData, setPricingData] = useState<PricingData>({
     transaction_fee_percentage: 0.75,
-    minimum_fee_usd: '0.01',
+    daily_volume_limit_non_kyc_usd: '1000.00',
     supported_networks: 5
   })
 

@@ -7,6 +7,8 @@ pub mod webhook_service;
 pub mod refund_service;
 pub mod analytics_service;
 pub mod sandbox_service;
+pub mod admin_service;
+pub mod volume_tracking_service;
 pub mod ip_whitelist_service;
 pub mod audit_service;
 pub mod price_cache_service;

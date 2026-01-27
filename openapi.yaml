@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: FidduPay Cryptocurrency Payment Gateway API
   description: |
-    Modern cryptocurrency payment gateway for merchants. Accept payments across 5 major blockchains with automatic forwarding, real-time notifications, and comprehensive merchant tools.
+    Modern, production-ready cryptocurrency payment gateway for merchants. Accept payments across 5 major blockchains with automatic forwarding, real-time notifications, and comprehensive merchant tools.
     
     ## Supported Cryptocurrencies (10 Total)
     - **Solana**: SOL, USDT (SPL)
@@ -29,6 +29,13 @@ info:
     - **Sandbox URL**: https://api-sandbox.fiddupay.com
     - **Test API Key**: sandbox_test_key_12345
     
+    ## Security Features
+    - 10/10 security score with XSS/CSRF protection
+    - SQL injection protection
+    - Advanced rate limiting
+    - Real-time threat detection
+    - Account lockout protection
+    
   version: 2.0.0
   contact:
     name: FidduPay Support
@@ -52,17 +59,27 @@ tags:
   - name: Health
     description: Service health check and system status
   - name: Authentication
-    description: Merchant registration and authentication
+    description: Merchant registration, login, and API key management
   - name: Payments
     description: Payment creation, management, and processing
   - name: Wallets
-    description: Wallet and balance management
+    description: Wallet configuration and management
   - name: Withdrawals
     description: Withdrawal processing and management
   - name: Analytics
     description: Payment analytics, reporting, and data export
+  - name: Refunds
+    description: Refund creation and processing
+  - name: Sandbox
+    description: Sandbox environment and testing utilities
+  - name: Security
+    description: Security monitoring, alerts, and IP whitelisting
+  - name: Audit
+    description: Audit logs and compliance tracking
+  - name: Balance
+    description: Balance management and history
   - name: System
-    description: System utilities and configuration
+    description: System utilities, status, and configuration
 
 components:
   securitySchemes:
@@ -164,16 +181,8 @@ components:
           type: string
           minLength: 8
           example: "SecurePassword123!"
-        website_url:
-          type: string
-          format: uri
-          example: "https://mycryptostore.com"
-        business_type:
-          type: string
-          enum: [e-commerce, saas, marketplace, other]
-          example: "e-commerce"
 
-    LoginRequest:
+    LoginMerchantRequest:
       type: object
       required:
         - email
@@ -186,90 +195,132 @@ components:
         password:
           type: string
           example: "SecurePassword123!"
+        two_factor_code:
+          type: string
+          minLength: 6
+          maxLength: 6
+          example: "123456"
+
+    MerchantProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        business_name:
+          type: string
+          example: "My Crypto Store"
+        email:
+          type: string
+          format: email
+          example: "merchant@example.com"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-01-26T06:00:00Z"
+        two_factor_enabled:
+          type: boolean
+          example: false
 
     AuthResponse:
       type: object
       properties:
+        user:
+          $ref: '#/components/schemas/MerchantProfile'
         api_key:
           type: string
           example: "sk_live_1234567890abcdef"
-        merchant_id:
-          type: string
-          example: "merchant_123"
-        expires_at:
-          type: string
-          format: date-time
-          example: "2026-12-31T23:59:59Z"
 
     CreatePaymentRequest:
       type: object
       required:
-        - amount
-        - currency
-        - network
+        - crypto_type
       properties:
         amount:
-          type: number
-          minimum: 0.01
-          example: 100.50
-        currency:
           type: string
-          enum: [SOL, USDT, ETH, BNB, MATIC, ARB]
-          example: "USDT"
-        network:
+          pattern: '^\d+(\.\d+)?$'
+          example: "2.5"
+          description: "Crypto amount (use either amount OR amount_usd, not both)"
+        amount_usd:
           type: string
-          enum: [solana, ethereum, bsc, polygon, arbitrum]
-          example: "ethereum"
+          pattern: '^\d+(\.\d+)?$'
+          example: "100.50"
+          description: "USD amount (use either amount OR amount_usd, not both)"
+        crypto_type:
+          type: string
+          enum: [SOL, USDT_SPL, USDT_ETH, USDT_BEP20, USDT_POLYGON, USDT_ARBITRUM, ETH, BNB, MATIC, ARB]
+          example: "USDT_ETH"
         description:
           type: string
           maxLength: 500
           example: "Premium subscription payment"
+        webhook_url:
+          type: string
+          format: uri
+          example: "https://example.com/webhook"
         metadata:
           type: object
           example:
             orderId: "order-123"
             customerId: "customer-456"
-        webhook_url:
-          type: string
-          format: uri
-          example: "https://your-site.com/webhooks/fiddupay"
-        redirect_url:
-          type: string
-          format: uri
-          example: "https://your-site.com/payment-success"
-        expires_at:
-          type: string
-          format: date-time
-          example: "2026-01-26T07:00:00Z"
+        expires_in:
+          type: integer
+          minimum: 60
+          maximum: 86400
+          example: 3600
+        expiration_minutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+          example: 60
+        partial_payments_enabled:
+          type: boolean
+          example: false
+      oneOf:
+        - required: [amount]
+        - required: [amount_usd]
 
     Payment:
       type: object
       properties:
-        id:
+        payment_id:
           type: string
           example: "payment_123"
+        crypto_type:
+          type: string
+          example: "USDT_ETH"
         amount:
-          type: number
-          example: 100.50
-        currency:
           type: string
-          example: "USDT"
-        network:
+          example: "100.50"
+        amount_usd:
           type: string
-          example: "ethereum"
-        status:
-          type: string
-          enum: [pending, confirmed, completed, expired, cancelled, failed]
-          example: "pending"
-        deposit_address:
+          example: "100.50"
+        to_address:
           type: string
           example: "0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82"
-        payment_url:
+        status:
           type: string
-          example: "https://pay.fiddupay.com/payment_123"
-        qr_code:
+          enum: [PENDING, CONFIRMED, FAILED, EXPIRED, CONFIRMING, REFUNDED]
+          example: "PENDING"
+        confirmations:
+          type: integer
+          example: 0
+        required_confirmations:
+          type: integer
+          example: 12
+        expires_at:
           type: string
-          example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+          format: date-time
+          example: "2026-01-26T07:00:00Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-01-26T06:00:00Z"
+        confirmed_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
         description:
           type: string
           example: "Premium subscription payment"
@@ -277,19 +328,29 @@ components:
           type: object
           example:
             orderId: "order-123"
-        created_at:
+        network:
           type: string
-          format: date-time
-          example: "2026-01-26T06:00:00Z"
-        expires_at:
+          example: "ETHEREUM"
+        deposit_address:
           type: string
-          format: date-time
-          example: "2026-01-26T07:00:00Z"
-        confirmed_at:
+          example: "0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82"
+        payment_link:
           type: string
-          format: date-time
+          format: uri
+          example: "https://pay.fiddupay.com/payment_123"
+        qr_code_data:
+          type: string
+          example: "ethereum:0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82?value=100.50"
+        fee_amount:
+          type: string
+          example: "2.50"
+        fee_amount_usd:
+          type: string
+          example: "2.50"
+        transaction_hash:
+          type: string
           nullable: true
-          example: "2026-01-26T06:05:00Z"
+          example: null
 
     PaymentList:
       type: object
@@ -298,88 +359,64 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Payment'
-        total:
-          type: number
-          example: 150
-        limit:
-          type: number
-          example: 20
-        offset:
-          type: number
-          example: 0
-        has_more:
-          type: boolean
-          example: true
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
 
-    CreateWalletRequest:
+    PaginationInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        page_size:
+          type: integer
+          example: 20
+        total_pages:
+          type: integer
+          example: 5
+        total_count:
+          type: integer
+          example: 100
+
+    SetWalletRequest:
       type: object
       required:
-        - name
-        - currency
-        - network
+        - crypto_type
         - address
       properties:
-        name:
+        crypto_type:
           type: string
-          example: "Main Business Wallet"
-        currency:
-          type: string
-          enum: [SOL, USDT, ETH, BNB, MATIC, ARB]
-          example: "USDT"
-        network:
-          type: string
-          enum: [solana, ethereum, bsc, polygon, arbitrum]
-          example: "ethereum"
+          enum: [SOL, USDT_SPL, USDT_ETH, USDT_BEP20, USDT_POLYGON, USDT_ARBITRUM, ETH, BNB, MATIC, ARB]
+          example: "USDT_ETH"
         address:
           type: string
           example: "0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82"
 
-    Wallet:
+    SetWebhookRequest:
       type: object
+      required:
+        - url
       properties:
-        id:
+        url:
           type: string
-          example: "wallet_123"
-        name:
-          type: string
-          example: "Main Business Wallet"
-        currency:
-          type: string
-          example: "USDT"
-        network:
-          type: string
-          example: "ethereum"
-        address:
-          type: string
-          example: "0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82"
-        balance:
-          type: number
-          example: 1250.75
-        created_at:
-          type: string
-          format: date-time
-          example: "2026-01-26T06:00:00Z"
+          format: uri
+          example: "https://your-site.com/webhook"
 
     CreateWithdrawalRequest:
       type: object
       required:
         - amount
-        - currency
-        - network
+        - crypto_type
         - to_address
       properties:
         amount:
-          type: number
-          minimum: 0.01
-          example: 500.00
-        currency:
           type: string
-          enum: [SOL, USDT, ETH, BNB, MATIC, ARB]
-          example: "USDT"
-        network:
+          pattern: '^\d+(\.\d+)?$'
+          example: "500.00"
+        crypto_type:
           type: string
-          enum: [solana, ethereum, bsc, polygon, arbitrum]
-          example: "ethereum"
+          enum: [SOL, USDT_SPL, USDT_ETH, USDT_BEP20, USDT_POLYGON, USDT_ARBITRUM, ETH, BNB, MATIC, ARB]
+          example: "USDT_ETH"
         to_address:
           type: string
           example: "0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82"
@@ -394,14 +431,11 @@ components:
           type: string
           example: "withdrawal_123"
         amount:
-          type: number
-          example: 500.00
-        currency:
           type: string
-          example: "USDT"
-        network:
+          example: "500.00"
+        crypto_type:
           type: string
-          example: "ethereum"
+          example: "USDT_ETH"
         to_address:
           type: string
           example: "0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82"
@@ -412,560 +446,59 @@ components:
         transaction_hash:
           type: string
           nullable: true
-          example: "0x1234567890abcdef..."
+          example: null
         fee:
-          type: number
-          example: 2.50
+          type: string
+          example: "2.50"
         created_at:
           type: string
           format: date-time
           example: "2026-01-26T06:00:00Z"
 
-    SupportedCurrencies:
-      type: object
-      properties:
-        currencies:
-          type: array
-          items:
-            type: object
-            properties:
-              currency:
-                type: string
-                example: "USDT"
-              network:
-                type: string
-                example: "ethereum"
-              name:
-                type: string
-                example: "Tether USD"
-              symbol:
-                type: string
-                example: "USDT"
-              decimals:
-                type: number
-                example: 6
-              contract_address:
-                type: string
-                nullable: true
-                example: "0xdAC17F958D2ee523a2206206994597C13D831ec7"
-              confirmations:
-                type: number
-                example: 12
-              min_amount:
-                type: number
-                example: 1.00
-paths:
-  /api/v1/health:
-    get:
-      tags:
-        - Health
-      summary: Health check
-      description: Check service health status
-      responses:
-        '200':
-          description: Service is healthy
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
-
-  /api/v1/status:
-    get:
-      tags:
-        - Health
-      summary: System status
-      description: Get detailed system status including blockchain connectivity
-      responses:
-        '200':
-          description: System status retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SystemStatus'
-
-  /api/v1/merchants/register:
-    post:
-      tags:
-        - Authentication
-      summary: Register merchant
-      description: Register a new merchant account
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegisterMerchantRequest'
-      responses:
-        '200':
-          description: Merchant registered successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/v1/merchants/login:
-    post:
-      tags:
-        - Authentication
-      summary: Login merchant
-      description: Authenticate merchant and get API key
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
-      responses:
-        '200':
-          description: Login successful
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '401':
-          description: Invalid credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/v1/payments:
-    post:
-      tags:
-        - Payments
-      summary: Create payment
-      description: Create a new payment request
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreatePaymentRequest'
-      responses:
-        '200':
-          description: Payment created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Payment'
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    get:
-      tags:
-        - Payments
-      summary: List payments
-      description: Get list of payments with optional filtering
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: limit
-          in: query
-          description: Number of payments to return
-          schema:
-            type: integer
-            default: 20
-            minimum: 1
-            maximum: 100
-        - name: offset
-          in: query
-          description: Number of payments to skip
-          schema:
-            type: integer
-            default: 0
-            minimum: 0
-        - name: status
-          in: query
-          description: Filter by payment status
-          schema:
-            type: string
-            enum: [pending, confirmed, completed, expired, cancelled, failed]
-        - name: currency
-          in: query
-          description: Filter by currency
-          schema:
-            type: string
-            enum: [SOL, USDT, ETH, BNB, MATIC, ARB]
-        - name: network
-          in: query
-          description: Filter by network
-          schema:
-            type: string
-            enum: [solana, ethereum, bsc, polygon, arbitrum]
-      responses:
-        '200':
-          description: Payments retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaymentList'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/payments/{paymentId}:
-    get:
-      tags:
-        - Payments
-      summary: Get payment
-      description: Get details of a specific payment
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: paymentId
-          in: path
-          required: true
-          description: Payment ID
-          schema:
-            type: string
-            example: "payment_123"
-      responses:
-        '200':
-          description: Payment retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Payment'
-        '404':
-          description: Payment not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/wallets:
-    get:
-      tags:
-        - Wallets
-      summary: List wallets
-      description: Get list of merchant wallets
-      security:
-        - BearerAuth: []
-      responses:
-        '200':
-          description: Wallets retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Wallet'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    post:
-      tags:
-        - Wallets
-      summary: Create wallet
-      description: Create a new wallet for receiving payments
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateWalletRequest'
-      responses:
-        '200':
-          description: Wallet created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Wallet'
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/withdrawals:
-    post:
-      tags:
-        - Withdrawals
-      summary: Create withdrawal
-      description: Create a new withdrawal request
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateWithdrawalRequest'
-      responses:
-        '200':
-          description: Withdrawal created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Withdrawal'
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-    get:
-      tags:
-        - Withdrawals
-      summary: List withdrawals
-      description: Get list of withdrawals
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: status
-          in: query
-          description: Filter by withdrawal status
-          schema:
-            type: string
-            enum: [pending, processing, completed, failed, cancelled]
-        - name: limit
-          in: query
-          description: Number of withdrawals to return
-          schema:
-            type: integer
-            default: 20
-            minimum: 1
-            maximum: 100
-      responses:
-        '200':
-          description: Withdrawals retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Withdrawal'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/currencies:
-    get:
-      tags:
-        - System
-      summary: Supported currencies
-      description: Get list of supported cryptocurrencies and networks
-      responses:
-        '200':
-          description: Supported currencies retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SupportedCurrencies'
-
-security:
-  - BearerAuth: []
-        - email
-        - password
-      properties:
-        business_name:
-          type: string
-          example: "My Business"
-        email:
-          type: string
-          format: email
-          example: "merchant@example.com"
-        password:
-          type: string
-          minLength: 8
-          example: "secure_password"
-
-    RegisterMerchantResponse:
-      type: object
-      properties:
-        merchant_id:
-          type: integer
-          example: 123
-        api_key:
-          type: string
-          example: "your_api_key_here"
-
-    RotateApiKeyResponse:
-      type: object
-      properties:
-        api_key:
-          type: string
-          example: "new_api_key_here"
-
-    SetWalletRequest:
+    CreateRefundRequest:
       type: object
       required:
-        - crypto_type
-        - address
-      properties:
-        crypto_type:
-          type: string
-          enum: [SOL, USDT_SOL, USDT_ETH, USDT_BSC, USDT_POLYGON, USDT_ARBITRUM]
-          example: "USDT_ETH"
-        address:
-          type: string
-          example: "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87"
-
-    SetWebhookRequest:
-      type: object
-      required:
-        - url
-      properties:
-        url:
-          type: string
-          format: uri
-          example: "https://your-site.com/webhook"
-
-    SuccessResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-
-    CreatePaymentRequest:
-      type: object
-      required:
-        - amount_usd
-        - crypto_type
-      properties:
-        amount_usd:
-          type: string
-          pattern: '^\d+\.\d{2}$'
-          example: "100.00"
-        crypto_type:
-          type: string
-          enum: [SOL, USDT_SOL, USDT_ETH, USDT_BSC, USDT_POLYGON, USDT_ARBITRUM]
-          example: "USDT_ETH"
-        description:
-          type: string
-          example: "Order #12345"
-        metadata:
-          type: object
-          example:
-            order_id: "12345"
-            customer_id: "cust_123"
-
-    PaymentResponse:
-      type: object
+        - payment_id
+        - reason
       properties:
         payment_id:
           type: string
-          example: "pay_abc123"
-        status:
-          type: string
-          enum: [PENDING, CONFIRMED, FAILED, EXPIRED]
-          example: "PENDING"
+          example: "payment_123"
         amount:
           type: string
-          example: "101.50"
-        amount_usd:
+          pattern: '^\d+(\.\d+)?$'
+          example: "50.00"
+        reason:
           type: string
-          example: "101.50"
-        crypto_type:
+          example: "Customer requested refund"
+
+    Refund:
+      type: object
+      properties:
+        id:
           type: string
-          example: "USDT_ETH"
-        network:
+          example: "refund_123"
+        payment_id:
           type: string
-          example: "ETHEREUM"
-        deposit_address:
+          example: "payment_123"
+        amount:
           type: string
-          example: "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87"
-        payment_link:
+          example: "50.00"
+        reason:
           type: string
-          format: uri
-          example: "https://pay.example.com/pay_abc123"
-        qr_code_data:
+          example: "Customer requested refund"
+        status:
           type: string
-          example: "ethereum:0x742d35Cc6634C0532925a3b8D4C9db96590c6C87?value=101.50"
-        fee_amount:
-          type: string
-          example: "1.50"
-        fee_amount_usd:
-          type: string
-          example: "1.50"
-        expires_at:
-          type: string
-          format: date-time
-          example: "2026-01-24T16:30:00Z"
-        created_at:
-          type: string
-          format: date-time
-          example: "2026-01-24T15:30:00Z"
-        confirmed_at:
-          type: string
-          format: date-time
-          nullable: true
-          example: null
+          enum: [pending, processing, completed, failed]
+          example: "pending"
         transaction_hash:
           type: string
           nullable: true
           example: null
-
-    PaymentListResponse:
-      type: object
-      properties:
-        payments:
-          type: array
-          items:
-            $ref: '#/components/schemas/PaymentResponse'
-        total:
-          type: integer
-          example: 1
-        page:
-          type: integer
-          example: 1
-        page_size:
-          type: integer
-          example: 20
-        total_pages:
-          type: integer
-          example: 1
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-01-26T06:00:00Z"
 
     BalanceResponse:
       type: object
@@ -1027,6 +560,85 @@ security:
               average_value:
                 type: string
 
+    SupportedCurrencies:
+      type: object
+      properties:
+        currency_groups:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: object
+              properties:
+                crypto_type:
+                  type: string
+                  example: "USDT_ETH"
+                network:
+                  type: string
+                  example: "ETHEREUM"
+                confirmations:
+                  type: integer
+                  example: 12
+        description:
+          type: string
+          example: "USDT can be accepted on multiple networks. Native currencies are network-specific."
+
+    SecurityEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "event_123"
+        event_type:
+          type: string
+          example: "suspicious_login"
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+          example: "medium"
+        description:
+          type: string
+          example: "Login from unusual location"
+        ip_address:
+          type: string
+          example: "192.168.1.1"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-01-26T06:00:00Z"
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "audit_123"
+        action_type:
+          type: string
+          example: "payment_created"
+        description:
+          type: string
+          example: "Payment created for $100.50"
+        ip_address:
+          type: string
+          example: "192.168.1.1"
+        user_agent:
+          type: string
+          example: "Mozilla/5.0..."
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-01-26T06:00:00Z"
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation completed successfully"
 paths:
   /health:
     get:
@@ -1042,10 +654,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
 
+  /api/v1/status:
+    get:
+      tags:
+        - Health
+      summary: System status
+      description: Get detailed system status including blockchain connectivity
+      responses:
+        '200':
+          description: System status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+
   /api/v1/merchants/register:
     post:
       tags:
-        - Merchants
+        - Authentication
       summary: Register merchant
       description: Register a new merchant account
       requestBody:
@@ -1055,14 +681,141 @@ paths:
             schema:
               $ref: '#/components/schemas/RegisterMerchantRequest'
       responses:
-        '200':
+        '201':
           description: Merchant registered successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RegisterMerchantResponse'
+                $ref: '#/components/schemas/AuthResponse'
         '400':
           description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/merchants/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login merchant
+      description: Authenticate merchant and get API key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginMerchantRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/merchants/profile:
+    get:
+      tags:
+        - Authentication
+      summary: Get merchant profile
+      description: Get current merchant profile information
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/merchants/environment/switch:
+    post:
+      tags:
+        - Authentication
+      summary: Switch environment
+      description: Switch between sandbox and live environment
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - to_live
+              properties:
+                to_live:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Environment switched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_key:
+                    type: string
+                    example: "sk_live_new_key"
+                  environment:
+                    type: string
+                    example: "live"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/merchants/api-keys/generate:
+    post:
+      tags:
+        - Authentication
+      summary: Generate API key
+      description: Generate a new API key for the specified environment
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - is_live
+              properties:
+                is_live:
+                  type: boolean
+                  example: false
+      responses:
+        '200':
+          description: API key generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_key:
+                    type: string
+                    example: "sk_test_new_key"
+        '401':
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -1071,9 +824,9 @@ paths:
   /api/v1/merchants/api-keys/rotate:
     post:
       tags:
-        - Merchants
+        - Authentication
       summary: Rotate API key
-      description: Generate a new API key for security
+      description: Generate a new API key and invalidate the current one
       security:
         - BearerAuth: []
       responses:
@@ -1082,9 +835,252 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RotateApiKeyResponse'
+                type: object
+                properties:
+                  api_key:
+                    type: string
+                    example: "sk_live_rotated_key"
         '401':
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/payments:
+    post:
+      tags:
+        - Payments
+      summary: Create payment
+      description: Create a new payment request
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      tags:
+        - Payments
+      summary: List payments
+      description: Get list of payments with optional filtering
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: page_size
+          in: query
+          description: Number of payments per page
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: status
+          in: query
+          description: Filter by payment status
+          schema:
+            type: string
+            enum: [PENDING, CONFIRMED, FAILED, EXPIRED, CONFIRMING, REFUNDED]
+        - name: crypto_type
+          in: query
+          description: Filter by cryptocurrency
+          schema:
+            type: string
+            enum: [SOL, USDT_SPL, USDT_ETH, USDT_BEP20, USDT_POLYGON, USDT_ARBITRUM, ETH, BNB, MATIC, ARB]
+        - name: from_date
+          in: query
+          description: Start date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: to_date
+          in: query
+          description: End date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Payments retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentList'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/payments/{payment_id}:
+    get:
+      tags:
+        - Payments
+      summary: Get payment
+      description: Get details of a specific payment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          description: Payment ID
+          schema:
+            type: string
+            example: "payment_123"
+      responses:
+        '200':
+          description: Payment retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/payments/{payment_id}/verify:
+    post:
+      tags:
+        - Payments
+      summary: Verify payment
+      description: Verify a payment with transaction hash
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          description: Payment ID
+          schema:
+            type: string
+            example: "payment_123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - transaction_hash
+              properties:
+                transaction_hash:
+                  type: string
+                  example: "0x1234567890abcdef..."
+      responses:
+        '200':
+          description: Payment verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  confirmed:
+                    type: boolean
+                    example: true
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /pay/{link_id}:
+    get:
+      tags:
+        - Payments
+      summary: Payment page
+      description: Hosted payment page for customers
+      parameters:
+        - name: link_id
+          in: path
+          required: true
+          description: Payment link ID
+          schema:
+            type: string
+            example: "link_123"
+      responses:
+        '200':
+          description: Payment page HTML
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: Payment link not found
+
+  /pay/{link_id}/status:
+    get:
+      tags:
+        - Payments
+      summary: Payment status
+      description: Get payment status for polling
+      parameters:
+        - name: link_id
+          in: path
+          required: true
+          description: Payment link ID
+          schema:
+            type: string
+            example: "link_123"
+      responses:
+        '200':
+          description: Payment status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "PENDING"
+        '404':
+          description: Payment not found
           content:
             application/json:
               schema:
@@ -1093,7 +1089,7 @@ paths:
   /api/v1/merchants/wallets:
     put:
       tags:
-        - Merchants
+        - Wallets
       summary: Configure wallet
       description: Set wallet address for a cryptocurrency
       security:
@@ -1127,7 +1123,7 @@ paths:
   /api/v1/merchants/webhook:
     put:
       tags:
-        - Merchants
+        - Wallets
       summary: Configure webhook
       description: Set webhook URL for payment notifications
       security:
@@ -1158,12 +1154,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/payments:
+  /api/v1/wallets:
+    get:
+      tags:
+        - Wallets
+      summary: Get wallet configurations
+      description: Get all wallet configurations for the merchant
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Wallet configurations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    crypto_type:
+                      type: string
+                      example: "USDT_ETH"
+                    address:
+                      type: string
+                      example: "0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82"
+                    wallet_type:
+                      type: string
+                      example: "address_only"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/wallets/configure-address:
     post:
       tags:
-        - Payments
-      summary: Create payment
-      description: Create a new payment request
+        - Wallets
+      summary: Configure address-only wallet
+      description: Configure an address-only wallet for receiving payments
       security:
         - BearerAuth: []
       requestBody:
@@ -1171,14 +1201,118 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreatePaymentRequest'
+              $ref: '#/components/schemas/SetWalletRequest'
       responses:
         '200':
-          description: Payment created successfully
+          description: Address-only wallet configured successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaymentResponse'
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/wallets/generate:
+    post:
+      tags:
+        - Wallets
+      summary: Generate wallet
+      description: Generate a new wallet with private key management
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - crypto_type
+              properties:
+                crypto_type:
+                  type: string
+                  enum: [SOL, USDT_SPL, USDT_ETH, USDT_BEP20, USDT_POLYGON, USDT_ARBITRUM, ETH, BNB, MATIC, ARB]
+                  example: "USDT_ETH"
+      responses:
+        '200':
+          description: Wallet generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  address:
+                    type: string
+                    example: "0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82"
+                  crypto_type:
+                    type: string
+                    example: "USDT_ETH"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/wallets/gas-check:
+    get:
+      tags:
+        - Wallets
+      summary: Check gas requirements
+      description: Check gas balance requirements for all networks
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Gas requirements retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gas_balances:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        network:
+                          type: string
+                          example: "ETHEREUM"
+                        current_balance:
+                          type: string
+                          example: "0.05"
+                        required_balance:
+                          type: string
+                          example: "0.01"
+                        sufficient:
+                          type: boolean
+                          example: true
+
+  /api/v1/withdrawals:
+    post:
+      tags:
+        - Withdrawals
+      summary: Create withdrawal
+      description: Create a new withdrawal request
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWithdrawalRequest'
+      responses:
+        '201':
+          description: Withdrawal created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Withdrawal'
         '400':
           description: Bad request
           content:
@@ -1194,58 +1328,29 @@ paths:
 
     get:
       tags:
-        - Payments
-      summary: List payments
-      description: Get list of payments with optional filtering
+        - Withdrawals
+      summary: List withdrawals
+      description: Get list of withdrawals
       security:
         - BearerAuth: []
       parameters:
-        - name: status
+        - name: limit
           in: query
-          description: Filter by payment status
-          schema:
-            type: string
-            enum: [PENDING, CONFIRMED, FAILED, EXPIRED]
-        - name: crypto_type
-          in: query
-          description: Filter by cryptocurrency
-          schema:
-            type: string
-            enum: [SOL, USDT_SOL, USDT_ETH, USDT_BSC, USDT_POLYGON, USDT_ARBITRUM]
-        - name: from_date
-          in: query
-          description: Start date (ISO 8601)
-          schema:
-            type: string
-            format: date-time
-        - name: to_date
-          in: query
-          description: End date (ISO 8601)
-          schema:
-            type: string
-            format: date-time
-        - name: page
-          in: query
-          description: Page number
+          description: Number of withdrawals to return
           schema:
             type: integer
-            default: 1
+            default: 100
             minimum: 1
-        - name: page_size
-          in: query
-          description: Items per page
-          schema:
-            type: integer
-            default: 20
-            minimum: 1
-            maximum: 100
+            maximum: 1000
       responses:
         '200':
-          description: Payments retrieved successfully
+          description: Withdrawals retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaymentListResponse'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Withdrawal'
         '401':
           description: Unauthorized
           content:
@@ -1253,63 +1358,163 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/payments/{payment_id}:
+  /api/v1/withdrawals/{withdrawal_id}:
     get:
       tags:
-        - Payments
-      summary: Get payment
-      description: Get details of a specific payment
+        - Withdrawals
+      summary: Get withdrawal
+      description: Get details of a specific withdrawal
       security:
         - BearerAuth: []
       parameters:
-        - name: payment_id
+        - name: withdrawal_id
           in: path
           required: true
-          description: Payment ID
+          description: Withdrawal ID
           schema:
             type: string
-            example: "pay_abc123"
+            example: "withdrawal_123"
       responses:
         '200':
-          description: Payment retrieved successfully
+          description: Withdrawal retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaymentResponse'
+                $ref: '#/components/schemas/Withdrawal'
         '404':
-          description: Payment not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized
+          description: Withdrawal not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/balance:
-    get:
+  /api/v1/withdrawals/{withdrawal_id}/cancel:
+    post:
       tags:
-        - Balance
-      summary: Get balance
-      description: Get current account balances
+        - Withdrawals
+      summary: Cancel withdrawal
+      description: Cancel a pending withdrawal
       security:
         - BearerAuth: []
+      parameters:
+        - name: withdrawal_id
+          in: path
+          required: true
+          description: Withdrawal ID
+          schema:
+            type: string
+            example: "withdrawal_123"
       responses:
         '200':
-          description: Balance retrieved successfully
+          description: Withdrawal cancelled successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BalanceResponse'
-        '401':
-          description: Unauthorized
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Withdrawal cancelled"
+        '400':
+          description: Bad request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+  /api/v1/refunds:
+    post:
+      tags:
+        - Refunds
+      summary: Create refund
+      description: Create a new refund for a payment
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRefundRequest'
+      responses:
+        '201':
+          description: Refund created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/refunds/{refund_id}:
+    get:
+      tags:
+        - Refunds
+      summary: Get refund
+      description: Get details of a specific refund
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: refund_id
+          in: path
+          required: true
+          description: Refund ID
+          schema:
+            type: string
+            example: "refund_123"
+      responses:
+        '200':
+          description: Refund retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+        '404':
+          description: Refund not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/refunds/{refund_id}/complete:
+    post:
+      tags:
+        - Refunds
+      summary: Complete refund
+      description: Complete a refund with transaction hash
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: refund_id
+          in: path
+          required: true
+          description: Refund ID
+          schema:
+            type: string
+            example: "refund_123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - transaction_hash
+              properties:
+                transaction_hash:
+                  type: string
+                  example: "0x1234567890abcdef..."
+      responses:
+        '200':
+          description: Refund completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
 
   /api/v1/analytics:
     get:
@@ -1332,12 +1537,6 @@ paths:
           schema:
             type: string
             format: date-time
-        - name: blockchain
-          in: query
-          description: Filter by blockchain network
-          schema:
-            type: string
-            enum: [SOLANA, ETHEREUM, BSC, POLYGON, ARBITRUM]
       responses:
         '200':
           description: Analytics retrieved successfully
@@ -1345,9 +1544,271 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AnalyticsResponse'
-        '401':
-          description: Unauthorized
+
+  /api/v1/analytics/export:
+    get:
+      tags:
+        - Analytics
+      summary: Export analytics
+      description: Export analytics data as CSV
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: from_date
+          in: query
+          description: Start date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: to_date
+          in: query
+          description: End date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: CSV data
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  /api/v1/merchants/balance:
+    get:
+      tags:
+        - Balance
+      summary: Get balance
+      description: Get current account balances
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Balance retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+
+  /api/v1/merchants/balance/history:
+    get:
+      tags:
+        - Balance
+      summary: Get balance history
+      description: Get balance history (not implemented)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Number of records to return
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+      responses:
+        '501':
+          description: Not implemented
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+  /api/v1/sandbox/enable:
+    post:
+      tags:
+        - Sandbox
+      summary: Enable sandbox
+      description: Create sandbox credentials for testing
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Sandbox enabled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sandbox_api_key:
+                    type: string
+                    example: "sk_test_sandbox_key"
+                  message:
+                    type: string
+                    example: "Sandbox environment enabled"
+
+  /api/v1/sandbox/payments/{payment_id}/simulate:
+    post:
+      tags:
+        - Sandbox
+      summary: Simulate payment
+      description: Simulate payment confirmation in sandbox
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          description: Payment ID
+          schema:
+            type: string
+            example: "payment_123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - success
+              properties:
+                success:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Payment simulation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Payment simulated successfully"
+
+  /api/v1/security/events:
+    get:
+      tags:
+        - Security
+      summary: Get security events
+      description: Get security monitoring events
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Security events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SecurityEvent'
+
+  /api/v1/merchants/ip-whitelist:
+    put:
+      tags:
+        - Security
+      summary: Set IP whitelist
+      description: Configure IP address whitelist
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ip_addresses
+              properties:
+                ip_addresses:
+                  type: array
+                  items:
+                    type: string
+                  example: ["192.168.1.1", "10.0.0.1"]
+      responses:
+        '200':
+          description: IP whitelist updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "IP whitelist updated"
+
+    get:
+      tags:
+        - Security
+      summary: Get IP whitelist
+      description: Get current IP address whitelist
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: IP whitelist retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ip_addresses:
+                    type: array
+                    items:
+                      type: string
+                    example: ["192.168.1.1", "10.0.0.1"]
+
+  /api/v1/audit-logs:
+    get:
+      tags:
+        - Audit
+      summary: Get audit logs
+      description: Get audit logs for compliance tracking
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          description: Start date
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: End date
+          schema:
+            type: string
+            format: date-time
+        - name: action_type
+          in: query
+          description: Filter by action type
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Number of logs to return
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+      responses:
+        '200':
+          description: Audit logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLog'
+
+  /api/v1/currencies/supported:
+    get:
+      tags:
+        - System
+      summary: Supported currencies
+      description: Get list of supported cryptocurrencies and networks
+      responses:
+        '200':
+          description: Supported currencies retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportedCurrencies'
+
+security:
+  - BearerAuth: []

@@ -3,6 +3,7 @@
 
 pub mod routes;
 pub mod handlers;
+pub mod admin_handlers;
 pub mod state;
 pub mod wallet_management;
 pub mod security_monitoring;

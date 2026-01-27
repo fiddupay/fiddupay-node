@@ -97,13 +97,9 @@ pub struct Config {
 
     // Fee Configuration
     pub default_fee_percentage: rust_decimal::Decimal,
-    pub minimum_fee_usd: rust_decimal::Decimal,
-    pub maximum_fee_usd: rust_decimal::Decimal,
 
-    // Payment Limits
-    pub min_payment_usd: rust_decimal::Decimal,
-    pub max_payment_usd: rust_decimal::Decimal,
-    pub daily_payment_limit_usd: rust_decimal::Decimal,
+    // Daily Volume Limits
+    pub daily_volume_limit_non_kyc_usd: rust_decimal::Decimal,
 
     // Merchant Settings
     pub merchant_registration_enabled: bool,
@@ -119,8 +115,6 @@ pub struct Config {
 
     // Withdrawal Settings
     pub withdrawal_enabled: bool,
-    pub withdrawal_min_amount_usd: rust_decimal::Decimal,
-    pub withdrawal_max_amount_usd: rust_decimal::Decimal,
     pub withdrawal_auto_approval_limit_usd: rust_decimal::Decimal,
 
     // Feature Flags
@@ -317,22 +311,10 @@ impl Config {
             default_fee_percentage: env::var("DEFAULT_FEE_PERCENTAGE")
                 .unwrap_or_else(|_| "1.50".to_string())
                 .parse()?,
-            minimum_fee_usd: env::var("MINIMUM_FEE_USD")
-                .unwrap_or_else(|_| "0.01".to_string())
-                .parse()?,
-            maximum_fee_usd: env::var("MAXIMUM_FEE_USD")
-                .unwrap_or_else(|_| "100.00".to_string())
-                .parse()?,
 
-            // Payment Limits
-            min_payment_usd: env::var("MIN_PAYMENT_USD")
-                .unwrap_or_else(|_| "1.00".to_string())
-                .parse()?,
-            max_payment_usd: env::var("MAX_PAYMENT_USD")
-                .unwrap_or_else(|_| "10000.00".to_string())
-                .parse()?,
-            daily_payment_limit_usd: env::var("DAILY_PAYMENT_LIMIT_USD")
-                .unwrap_or_else(|_| "50000.00".to_string())
+            // Daily Volume Limits
+            daily_volume_limit_non_kyc_usd: env::var("DAILY_VOLUME_LIMIT_NON_KYC_USD")
+                .unwrap_or_else(|_| "1000.00".to_string())
                 .parse()?,
 
             // Merchant Settings
@@ -366,12 +348,6 @@ impl Config {
             // Withdrawal Settings
             withdrawal_enabled: env::var("WITHDRAWAL_ENABLED")
                 .unwrap_or_else(|_| "true".to_string())
-                .parse()?,
-            withdrawal_min_amount_usd: env::var("WITHDRAWAL_MIN_AMOUNT_USD")
-                .unwrap_or_else(|_| "10.00".to_string())
-                .parse()?,
-            withdrawal_max_amount_usd: env::var("WITHDRAWAL_MAX_AMOUNT_USD")
-                .unwrap_or_else(|_| "50000.00".to_string())
                 .parse()?,
             withdrawal_auto_approval_limit_usd: env::var("WITHDRAWAL_AUTO_APPROVAL_LIMIT_USD")
                 .unwrap_or_else(|_| "1000.00".to_string())
@@ -525,11 +501,7 @@ impl Default for Config {
             payment_cleanup_interval_hours: 24,
             payment_page_base_url: "http://localhost:3000".to_string(),
             default_fee_percentage: rust_decimal::Decimal::new(75, 4), // 0.0075 = 0.75%
-            minimum_fee_usd: rust_decimal::Decimal::new(1, 2), // 0.01
-            maximum_fee_usd: rust_decimal::Decimal::new(10000, 2), // 100.00
-            min_payment_usd: rust_decimal::Decimal::new(1, 2), // 0.01
-            max_payment_usd: rust_decimal::Decimal::new(1000000, 2), // 10000.00
-            daily_payment_limit_usd: rust_decimal::Decimal::new(10000000, 2), // 100000.00
+            daily_volume_limit_non_kyc_usd: rust_decimal::Decimal::new(100000, 2), // 1000.00
             merchant_registration_enabled: true,
             merchant_email_verification_required: true,
             merchant_kyc_required: false,
@@ -539,8 +511,6 @@ impl Default for Config {
             webhook_retry_delay_seconds: 5,
             webhook_signature_required: true,
             withdrawal_enabled: true,
-            withdrawal_min_amount_usd: rust_decimal::Decimal::new(1000, 2), // 10.00
-            withdrawal_max_amount_usd: rust_decimal::Decimal::new(10000000, 2), // 100000.00
             withdrawal_auto_approval_limit_usd: rust_decimal::Decimal::new(100000, 2), // 1000.00
             two_factor_enabled: false,
             deposit_address_enabled: true,

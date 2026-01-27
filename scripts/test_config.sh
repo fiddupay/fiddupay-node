@@ -39,7 +39,7 @@ fn main() {
     
     // Test payment settings
     println!("  DEFAULT_FEE_PERCENTAGE: {}", env::var("DEFAULT_FEE_PERCENTAGE").unwrap_or("NOT SET".to_string()));
-    println!("  MIN_PAYMENT_USD: {}", env::var("MIN_PAYMENT_USD").unwrap_or("NOT SET".to_string()));
+    println!("  DAILY_VOLUME_LIMIT_NON_KYC_USD: {}", env::var("DAILY_VOLUME_LIMIT_NON_KYC_USD").unwrap_or("NOT SET".to_string()));
     
     println!("\n Configuration test completed successfully!");
 }

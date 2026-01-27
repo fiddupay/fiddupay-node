@@ -23,8 +23,7 @@ export class HttpClient {
       timeout: config.timeout || 30000,
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'FidduPay-Node/1.0.0',
-        'Authorization': `Bearer ${this.apiKey}`
+        'User-Agent': 'FidduPay-Node/1.0.0'
       },
       // Security configurations
       maxRedirects: 0, // Prevent redirect attacks
@@ -105,6 +104,13 @@ export class HttpClient {
 
     if (data) {
       config.data = data;
+    }
+
+    // Don't add Authorization header for registration endpoint or registration key
+    if (path !== '/api/v1/merchants/register' && this.apiKey !== 'registration_key') {
+      config.headers = {
+        'Authorization': `Bearer ${this.apiKey}`
+      };
     }
 
     if (options.idempotencyKey) {

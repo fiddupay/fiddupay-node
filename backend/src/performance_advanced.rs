@@ -57,7 +57,7 @@ impl OptimizedQueries {
             r#"
             SELECT id, email, business_name, api_key_hash, fee_percentage, 
                    COALESCE(customer_pays_fee, true) as "customer_pays_fee!",
-                   is_active, sandbox_mode, created_at, updated_at
+                   is_active, sandbox_mode, COALESCE(kyc_verified, false) as "kyc_verified!", created_at, updated_at
             FROM merchants 
             WHERE id = $1 AND is_active = true
             "#,

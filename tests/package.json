@@ -1,0 +1,28 @@
+{
+  "name": "fiddupay-merchant-api-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive test suite for FidduPay Merchant API endpoints",
+  "main": "merchant-api-comprehensive.js",
+  "scripts": {
+    "test": "node merchant-api-comprehensive.js",
+    "test:verbose": "DEBUG=* node merchant-api-comprehensive.js",
+    "test:quick": "node merchant-api-quick.js"
+  },
+  "dependencies": {
+    "@fiddupay/fiddupay-node": "file:../fiddupay-node-sdk",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  },
+  "keywords": [
+    "fiddupay",
+    "api",
+    "testing",
+    "merchant",
+    "cryptocurrency",
+    "payment"
+  ],
+  "author": "FidduPay Test Suite",
+  "license": "MIT"
+}

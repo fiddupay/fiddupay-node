@@ -1,0 +1,1524 @@
+{
+  "info": {
+    "name": "FidduPay Cryptocurrency Payment Gateway API v2.2",
+    "_postman_id": "fiddupay-api-v2.2",
+    "description": "Comprehensive API collection for FidduPay cryptocurrency payment gateway v2.2. Modern payment processing across 5 blockchains with 10 cryptocurrency options, advanced wallet management, security monitoring, and comprehensive merchant tools.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "2.2.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "Base URL for the API"
+    },
+    {
+      "key": "api_key",
+      "value": "your_api_key_here",
+      "type": "string",
+      "description": "Your FidduPay API key"
+    },
+    {
+      "key": "merchant_id",
+      "value": "1",
+      "type": "string",
+      "description": "Merchant ID from registration"
+    },
+    {
+      "key": "payment_id",
+      "value": "",
+      "type": "string",
+      "description": "Payment ID from creation"
+    },
+    {
+      "key": "withdrawal_id",
+      "value": "",
+      "type": "string",
+      "description": "Withdrawal ID from creation"
+    },
+    {
+      "key": "refund_id",
+      "value": "",
+      "type": "string",
+      "description": "Refund ID from creation"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check service health status"
+          },
+          "response": [
+            {
+              "name": "Healthy",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/health",
+                  "host": ["{{base_url}}"],
+                  "path": ["health"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"status\": \"healthy\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "System Status",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "status"]
+            },
+            "description": "Get detailed system status including blockchain connectivity"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Management",
+      "item": [
+        {
+          "name": "Register Merchant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('api_key', response.api_key);",
+                  "    pm.collectionVariables.set('merchant_id', response.user.id);",
+                  "    pm.test('API key received', function () {",
+                  "        pm.expect(response.api_key).to.be.a('string');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_name\": \"Test Business\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "register"]
+            },
+            "description": "Register a new merchant account"
+          }
+        },
+        {
+          "name": "Login Merchant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('api_key', response.api_key);",
+                  "    pm.collectionVariables.set('merchant_id', response.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"two_factor_code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "login"]
+            },
+            "description": "Login merchant with optional 2FA"
+          }
+        },
+        {
+          "name": "Get Merchant Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "profile"]
+            },
+            "description": "Get current merchant profile information"
+          }
+        },
+        {
+          "name": "Switch Environment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_live\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/environment/switch",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "environment", "switch"]
+            },
+            "description": "Switch between sandbox and live environment"
+          }
+        },
+        {
+          "name": "Generate API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_live\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/api-keys/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "api-keys", "generate"]
+            },
+            "description": "Generate new API key for specified environment"
+          }
+        },
+        {
+          "name": "Rotate API Key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('api_key', response.api_key);",
+                  "    pm.test('New API key received', function () {",
+                  "        pm.expect(response.api_key).to.be.a('string');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/api-keys/rotate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "api-keys", "rotate"]
+            },
+            "description": "Rotate current API key for security"
+          }
+        },
+        {
+          "name": "Configure Wallet",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"USDT_ETH\",\n  \"address\": \"0x742d35Cc6634C0532925a3b8D4C9db96590c6C87\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/wallets",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "wallets"]
+            },
+            "description": "Configure wallet address for a cryptocurrency"
+          }
+        },
+        {
+          "name": "Configure Webhook",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://your-site.com/webhook\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/webhook",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "webhook"]
+            },
+            "description": "Configure webhook URL for payment notifications"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Management",
+      "item": [
+        {
+          "name": "Create Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('payment_id', response.payment_id);",
+                  "    pm.test('Payment created', function () {",
+                  "        pm.expect(response.payment_id).to.be.a('string');",
+                  "        pm.expect(response.status).to.equal('PENDING');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_usd\": \"100.00\",\n  \"crypto_type\": \"USDT_ETH\",\n  \"description\": \"Order #12345\",\n  \"metadata\": {\n    \"order_id\": \"12345\",\n    \"customer_id\": \"cust_123\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payments"]
+            },
+            "description": "Create a new payment request. Use either 'amount_usd' for USD-based payments OR 'amount' for crypto-based payments (not both). Examples:\n\nUSD-based: {\"amount_usd\": \"100.00\", \"crypto_type\": \"SOL\"}\nCrypto-based: {\"amount\": \"2.5\", \"crypto_type\": \"SOL\"}"
+          }
+        },
+        {
+          "name": "List Payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments?page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payments"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "disabled": true
+                },
+                {
+                  "key": "crypto_type",
+                  "value": "USDT_ETH",
+                  "disabled": true
+                },
+                {
+                  "key": "from_date",
+                  "value": "2026-01-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "to_date",
+                  "value": "2026-12-31T23:59:59Z",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get list of payments with optional filtering"
+          }
+        },
+        {
+          "name": "Get Payment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments/{{payment_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payments", "{{payment_id}}"]
+            },
+            "description": "Get details of a specific payment"
+          }
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_hash\": \"0xabc123...\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments/{{payment_id}}/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payments", "{{payment_id}}", "verify"]
+            },
+            "description": "Manually verify a payment"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Address-Only Payments",
+      "item": [
+        {
+          "name": "Create Address-Only Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('address_payment_id', response.payment_id);",
+                  "    pm.test('Address-only payment created', function () {",
+                  "        pm.expect(response.payment_id).to.be.a('string');",
+                  "        pm.expect(response.customer_amount).to.be.a('string');",
+                  "        pm.expect(response.customer_pays_fee).to.be.a('boolean');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"ETH\",\n  \"merchant_address\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\",\n  \"requested_amount\": \"100.00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/address-only-payments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "address-only-payments"]
+            },
+            "description": "Create an address-only payment that sends funds directly to merchant address"
+          }
+        },
+        {
+          "name": "Get Address-Only Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/address-only-payments/status?payment_id={{address_payment_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "address-only-payments", "status"],
+              "query": [
+                {
+                  "key": "payment_id",
+                  "value": "{{address_payment_id}}"
+                }
+              ]
+            },
+            "description": "Get status of a specific address-only payment"
+          }
+        },
+        {
+          "name": "Get Supported Native Currencies",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/address-only-payments/supported-currencies",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "address-only-payments", "supported-currencies"]
+            },
+            "description": "Get list of supported native currencies for address-only mode"
+          }
+        },
+        {
+          "name": "Get Address-Only Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/address-only-payments/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "address-only-payments", "health"]
+            },
+            "description": "Get address-only mode health status"
+          }
+        },
+        {
+          "name": "Get Address-Only Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/address-only-payments/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "address-only-payments", "stats"]
+            },
+            "description": "Get address-only mode statistics for merchant"
+          }
+        },
+        {
+          "name": "Update Fee Setting",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.test('Fee setting updated', function () {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "        pm.expect(response.customer_pays_fee).to.be.a('boolean');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_pays_fee\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/fee-setting",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fee-setting"]
+            },
+            "description": "Update merchant fee payment preference (customer pays fee vs merchant pays fee)"
+          }
+        },
+        {
+          "name": "Get Fee Setting",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/fee-setting",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "fee-setting"]
+            },
+            "description": "Get current fee payment preference"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet Management",
+      "item": [
+        {
+          "name": "Get Wallet Configurations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallets",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallets"]
+            },
+            "description": "Get all wallet configurations for the merchant"
+          }
+        },
+        {
+          "name": "Configure Address-Only Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"network\": \"ethereum\",\n  \"address\": \"0x742d35Cc6634C0532925a3b8D4C9db96590c6C87\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallets/configure-address",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallets", "configure-address"]
+            },
+            "description": "Configure address-only wallet (no withdrawal capability)"
+          }
+        },
+        {
+          "name": "Generate Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"ETH\",\n  \"encryption_password\": \"secure_password_123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallets/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallets", "generate"]
+            },
+            "description": "Generate new wallet with private key (enables withdrawals)"
+          }
+        },
+        {
+          "name": "Import Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"ETH\",\n  \"private_key\": \"0x1234567890abcdef...\",\n  \"encryption_password\": \"secure_password_123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallets/import",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallets", "import"]
+            },
+            "description": "Import existing wallet with private key (enables withdrawals)"
+          }
+        },
+        {
+          "name": "Export Private Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"ETH\",\n  \"encryption_password\": \"secure_password_123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallets/export-key",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallets", "export-key"]
+            },
+            "description": "Export private key for backup (requires encryption password)"
+          }
+        },
+        {
+          "name": "Check Gas Requirements",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallets/gas-check?crypto_type=USDT_ETH&amount=100.00",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallets", "gas-check"],
+              "query": [
+                {
+                  "key": "crypto_type",
+                  "value": "USDT_ETH"
+                },
+                {
+                  "key": "amount",
+                  "value": "100.00"
+                }
+              ]
+            },
+            "description": "Check if wallet has sufficient gas for withdrawal"
+          }
+        },
+        {
+          "name": "Get Gas Estimates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallets/gas-estimates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallets", "gas-estimates"]
+            },
+            "description": "Get real-time gas estimates for all networks"
+          }
+        },
+        {
+          "name": "Check Withdrawal Capability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/wallets/withdrawal-capability/ETH",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "wallets", "withdrawal-capability", "ETH"]
+            },
+            "description": "Check if withdrawals are available for specific cryptocurrency"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Withdrawal Management",
+      "item": [
+        {
+          "name": "Create Withdrawal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('withdrawal_id', response.withdrawal_id);",
+                  "    pm.test('Withdrawal created', function () {",
+                  "        pm.expect(response.withdrawal_id).to.be.a('string');",
+                  "        pm.expect(response.status).to.equal('PENDING');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"USDT_ETH\",\n  \"amount\": \"100.00\",\n  \"destination_address\": \"0x742d35Cc6634C0532925a3b8D4C9db96590c6C87\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/withdrawals",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "withdrawals"]
+            },
+            "description": "Create a withdrawal request"
+          }
+        },
+        {
+          "name": "List Withdrawals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/withdrawals?limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "withdrawals"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "disabled": true
+                },
+                {
+                  "key": "crypto_type",
+                  "value": "USDT_ETH",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List withdrawals with optional filtering"
+          }
+        },
+        {
+          "name": "Get Withdrawal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/withdrawals/{{withdrawal_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "withdrawals", "{{withdrawal_id}}"]
+            },
+            "description": "Get details of a specific withdrawal"
+          }
+        },
+        {
+          "name": "Cancel Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/withdrawals/{{withdrawal_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "withdrawals", "{{withdrawal_id}}", "cancel"]
+            },
+            "description": "Cancel a pending withdrawal"
+          }
+        },
+        {
+          "name": "Process Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"encryption_password\": \"secure_password_123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/withdrawals/{{withdrawal_id}}/process",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "withdrawals", "{{withdrawal_id}}", "process"]
+            },
+            "description": "Process a withdrawal (requires encryption password)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Security Monitoring",
+      "item": [
+        {
+          "name": "Get Security Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/security/events?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "security", "events"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "from_date",
+                  "value": "2026-01-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "to_date",
+                  "value": "2026-12-31T23:59:59Z",
+                  "disabled": true
+                },
+                {
+                  "key": "event_type",
+                  "value": "LOGIN_ATTEMPT",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get security events and monitoring data"
+          }
+        },
+        {
+          "name": "Get Security Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/security/alerts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "security", "alerts"]
+            },
+            "description": "Get active security alerts"
+          }
+        },
+        {
+          "name": "Acknowledge Security Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Investigated and resolved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/security/alerts/alert_123/acknowledge",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "security", "alerts", "alert_123", "acknowledge"]
+            },
+            "description": "Acknowledge a security alert"
+          }
+        },
+        {
+          "name": "Get Balance Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/security/balance-alerts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "security", "balance-alerts"]
+            },
+            "description": "Get balance monitoring alerts"
+          }
+        },
+        {
+          "name": "Resolve Balance Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resolution_note\": \"Balance topped up\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/security/balance-alerts/alert_456/resolve",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "security", "balance-alerts", "alert_456", "resolve"]
+            },
+            "description": "Resolve a balance alert"
+          }
+        },
+        {
+          "name": "Check Gas Balances",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/security/gas-check",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "security", "gas-check"]
+            },
+            "description": "Check gas balances across all networks"
+          }
+        },
+        {
+          "name": "Get Security Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/security/settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "security", "settings"]
+            },
+            "description": "Get current security monitoring settings"
+          }
+        },
+        {
+          "name": "Update Security Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"alerts_enabled\": true,\n  \"monitoring_enabled\": true,\n  \"email_notifications\": true,\n  \"balance_threshold_alerts\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/security/settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "security", "settings"]
+            },
+            "description": "Update security monitoring settings"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Balance Management",
+      "item": [
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/balance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "balance"]
+            },
+            "description": "Get current account balances across all cryptocurrencies"
+          }
+        },
+        {
+          "name": "Get Balance History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/balance/history?limit=100",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "balance", "history"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                },
+                {
+                  "key": "crypto_type",
+                  "value": "USDT_ETH",
+                  "disabled": true
+                },
+                {
+                  "key": "from_date",
+                  "value": "2026-01-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "to_date",
+                  "value": "2026-12-31T23:59:59Z",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get balance history with optional filtering"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit Logs",
+      "item": [
+        {
+          "name": "Get Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit-logs"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31T23:59:59Z",
+                  "disabled": true
+                },
+                {
+                  "key": "action_type",
+                  "value": "PAYMENT_CREATED",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get audit logs with optional filtering by date range and action type"
+          }
+        }
+      ]
+    },
+    {
+      "name": "IP Whitelist Management",
+      "item": [
+        {
+          "name": "Set IP Whitelist",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ip_addresses\": [\n    \"192.168.1.100\",\n    \"203.0.113.0/24\",\n    \"2001:db8::/32\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/ip-whitelist",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "ip-whitelist"]
+            },
+            "description": "Set IP whitelist for API access (supports IPv4, IPv6, and CIDR notation)"
+          }
+        },
+        {
+          "name": "Get IP Whitelist",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/merchants/ip-whitelist",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "merchants", "ip-whitelist"]
+            },
+            "description": "Get current IP whitelist configuration"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Refund Management",
+      "item": [
+        {
+          "name": "Create Refund",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('refund_id', response.refund_id);",
+                  "    pm.test('Refund created', function () {",
+                  "        pm.expect(response.refund_id).to.be.a('string');",
+                  "        pm.expect(response.status).to.equal('PENDING');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_id\": \"{{payment_id}}\",\n  \"amount\": \"50.00\",\n  \"reason\": \"Customer requested partial refund\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/refunds",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "refunds"]
+            },
+            "description": "Create a refund request (full or partial)"
+          }
+        },
+        {
+          "name": "Get Refund",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/refunds/{{refund_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "refunds", "{{refund_id}}"]
+            },
+            "description": "Get details of a specific refund"
+          }
+        },
+        {
+          "name": "Complete Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_hash\": \"0xdef456...\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/refunds/{{refund_id}}/complete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "refunds", "{{refund_id}}", "complete"]
+            },
+            "description": "Mark refund as completed with transaction hash"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics & Reporting",
+      "item": [
+        {
+          "name": "Get Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics?from_date=2026-01-01T00:00:00Z&to_date=2026-12-31T23:59:59Z",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics"],
+              "query": [
+                {
+                  "key": "from_date",
+                  "value": "2026-01-01T00:00:00Z"
+                },
+                {
+                  "key": "to_date",
+                  "value": "2026-12-31T23:59:59Z"
+                },
+                {
+                  "key": "blockchain",
+                  "value": "ETHEREUM",
+                  "disabled": true
+                },
+                {
+                  "key": "crypto_type",
+                  "value": "USDT_ETH",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get payment analytics and statistics with optional filtering"
+          }
+        },
+        {
+          "name": "Export Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/export?format=csv&from_date=2026-01-01T00:00:00Z&to_date=2026-12-31T23:59:59Z",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "export"],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "csv"
+                },
+                {
+                  "key": "from_date",
+                  "value": "2026-01-01T00:00:00Z"
+                },
+                {
+                  "key": "to_date",
+                  "value": "2026-12-31T23:59:59Z"
+                },
+                {
+                  "key": "blockchain",
+                  "value": "ETHEREUM",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Export analytics data as CSV file"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sandbox & Testing",
+      "item": [
+        {
+          "name": "Enable Sandbox",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sandbox/enable",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sandbox", "enable"]
+            },
+            "description": "Enable sandbox mode for testing"
+          }
+        },
+        {
+          "name": "Simulate Payment Success",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"success\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/sandbox/payments/{{payment_id}}/simulate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sandbox", "payments", "{{payment_id}}", "simulate"]
+            },
+            "description": "Simulate successful payment confirmation in sandbox mode"
+          }
+        },
+        {
+          "name": "Simulate Payment Failure",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"success\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/sandbox/payments/{{payment_id}}/simulate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sandbox", "payments", "{{payment_id}}", "simulate"]
+            },
+            "description": "Simulate payment failure in sandbox mode"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Currency & Network Info",
+      "item": [
+        {
+          "name": "Get Supported Currencies",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/currencies/supported",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "currencies", "supported"]
+            },
+            "description": "Get all supported cryptocurrencies grouped by blockchain network"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Hosted Payment Pages",
+      "item": [
+        {
+          "name": "Get Payment Page",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/pay/link_12345",
+              "host": ["{{base_url}}"],
+              "path": ["pay", "link_12345"]
+            },
+            "description": "Get hosted payment page for customer (HTML response)"
+          }
+        },
+        {
+          "name": "Get Payment Status",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/pay/link_12345/status",
+              "host": ["{{base_url}}"],
+              "path": ["pay", "link_12345", "status"]
+            },
+            "description": "Get payment status for polling (JSON response)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public Content",
+      "item": [
+        {
+          "name": "Get Blog Posts",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/blog",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "blog"]
+            },
+            "description": "Get blog posts and updates"
+          }
+        },
+        {
+          "name": "Get Careers",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/careers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "careers"]
+            },
+            "description": "Get career opportunities"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-set timestamp for requests that need it",
+          "pm.globals.set('timestamp', new Date().toISOString());",
+          "",
+          "// Log current environment",
+          "console.log('Base URL:', pm.collectionVariables.get('base_url'));",
+          "console.log('API Key:', pm.collectionVariables.get('api_key') ? 'Set' : 'Not set');"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test to check response time",
+          "pm.test('Response time is less than 10000ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(10000);",
+          "});",
+          "",
+          "// Global test to check for proper JSON response",
+          "if (pm.response.headers.get('Content-Type') && pm.response.headers.get('Content-Type').includes('application/json')) {",
+          "    pm.test('Response is valid JSON', function () {",
+          "        pm.response.to.be.json;",
+          "    });",
+          "}",
+          "",
+          "// Log response status for debugging",
+          "console.log('Response Status:', pm.response.status, pm.response.code);"
+        ]
+      }
+    }
+  ]
+}

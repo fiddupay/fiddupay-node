@@ -54,6 +54,10 @@ impl PaymentProcessor {
         merchant_id: i64,
         request: CreatePaymentRequest,
     ) -> Result<PaymentResponse, ServiceError> {
+        // Validate that exactly one of amount or amount_usd is provided
+        request.validate()
+            .map_err(|e| ServiceError::ValidationError(e))?;
+
         // Generate unique payment ID (e.g., "pay_abc123xyz")
         let payment_id = self.generate_payment_id();
         
@@ -76,33 +80,66 @@ impl PaymentProcessor {
         // Validate fee percentage is within acceptable bounds (0.1% - 5%)
         FeeCalculator::validate_fee_percentage(fee_percentage)?;
         
-        // Calculate fee amounts using FeeCalculator
-        let fee_amount_usd = FeeCalculator::calculate_fee_usd(request.amount_usd.unwrap_or(Decimal::ZERO), fee_percentage);
-        let total_amount_usd = FeeCalculator::calculate_total_with_fee(request.amount_usd.unwrap_or(Decimal::ZERO), fee_amount_usd);
-        
-        // Calculate crypto amount based on type
-        let (crypto_amount, fee_amount_crypto) = if request.crypto_type.as_str() == "USDT" {
-            // For stablecoins (USDT), amount is 1:1 with USD
-            let crypto_price = Decimal::ONE;
-            (
-                total_amount_usd,
-                FeeCalculator::calculate_fee_crypto(fee_amount_usd, crypto_price)
-            )
+        // Calculate amounts based on which input was provided
+        let (crypto_amount, amount_usd, fee_amount_crypto, fee_amount_usd) = if let Some(usd_amount) = request.amount_usd {
+            // Case 1: amount_usd provided - calculate crypto amount from USD
+            let fee_amount_usd = FeeCalculator::calculate_fee_usd(usd_amount, fee_percentage);
+            let total_amount_usd = FeeCalculator::calculate_total_with_fee(usd_amount, fee_amount_usd);
+            
+            let (crypto_amount, fee_amount_crypto) = if request.crypto_type.as_str() == "USDT" {
+                (total_amount_usd, fee_amount_usd)
+            } else {
+                let crypto_price = self.price_service
+                    .get_price(request.crypto_type)
+                    .await
+                    .map_err(|e| ServiceError::Internal(format!("Failed to fetch price: {}", e)))?;
+                
+                let crypto_price_decimal = Decimal::from_f64_retain(crypto_price)
+                    .ok_or_else(|| ServiceError::Internal("Invalid price conversion".to_string()))?;
+                
+                (
+                    total_amount_usd / crypto_price_decimal,
+                    fee_amount_usd / crypto_price_decimal
+                )
+            };
+            
+            (crypto_amount, total_amount_usd, fee_amount_crypto, fee_amount_usd)
+        } else if let Some(crypto_amt) = request.amount {
+            // Case 2: amount provided - use as crypto amount and calculate USD equivalent
+            let amount_usd = if request.crypto_type.as_str() == "USDT" {
+                crypto_amt
+            } else {
+                let crypto_price = self.price_service
+                    .get_price(request.crypto_type)
+                    .await
+                    .map_err(|e| ServiceError::Internal(format!("Failed to fetch price: {}", e)))?;
+                
+                let crypto_price_decimal = Decimal::from_f64_retain(crypto_price)
+                    .ok_or_else(|| ServiceError::Internal("Invalid price conversion".to_string()))?;
+                
+                crypto_amt * crypto_price_decimal
+            };
+            
+            let fee_amount_usd = FeeCalculator::calculate_fee_usd(amount_usd, fee_percentage);
+            let fee_amount_crypto = if request.crypto_type.as_str() == "USDT" {
+                fee_amount_usd
+            } else {
+                let crypto_price = self.price_service
+                    .get_price(request.crypto_type)
+                    .await
+                    .map_err(|e| ServiceError::Internal(format!("Failed to fetch price: {}", e)))?;
+                
+                let crypto_price_decimal = Decimal::from_f64_retain(crypto_price)
+                    .ok_or_else(|| ServiceError::Internal("Invalid price conversion".to_string()))?;
+                
+                fee_amount_usd / crypto_price_decimal
+            };
+            
+            (crypto_amt, amount_usd, fee_amount_crypto, fee_amount_usd)
         } else {
-            // For non-stablecoins, get price and divide USD by price
-            let crypto_price = self.price_service
-                .get_price(request.crypto_type)
-                .await
-                .map_err(|e| ServiceError::Internal(format!("Failed to fetch price: {}", e)))?;
-            
-            let crypto_price_decimal = Decimal::from_f64_retain(crypto_price)
-                .ok_or_else(|| ServiceError::Internal("Invalid price conversion".to_string()))?;
-            
-            (
-                total_amount_usd / crypto_price_decimal,
-                FeeCalculator::calculate_fee_crypto(fee_amount_usd, crypto_price_decimal)
-            )
+            return Err(ServiceError::ValidationError("Either amount or amount_usd must be provided".to_string()));
         };
+
         // Calculate expiration time
         let expiration_minutes = request.expiration_minutes.unwrap_or(15);
         let expires_at = Utc::now() + Duration::minutes(expiration_minutes as i64);
@@ -141,9 +178,9 @@ impl PaymentProcessor {
             INSERT INTO payment_transactions (
                 payment_id, merchant_id, crypto_type, amount, amount_usd, to_address,
                 status, expires_at, fee_percentage, fee_amount, fee_amount_usd, network,
-                required_confirmations
+                required_confirmations, webhook_url, description
             )
-            VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', $7, $8, $9, $10, $11, $12)
+            VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING id, payment_id, merchant_id, crypto_type, amount, amount_usd, to_address,
                      status, expires_at, created_at, confirmed_at, description, metadata,
                      confirmations, required_confirmations
@@ -152,14 +189,16 @@ impl PaymentProcessor {
             merchant_id,
             request.crypto_type.to_string(),
             crypto_amount,
-            total_amount_usd,
+            amount_usd,
             merchant_wallet,
             expires_at,
             Decimal::new(25, 1), // 2.5%
             fee_amount_crypto,
             fee_amount_usd,
             request.crypto_type.network(),
-            1 // required_confirmations
+            1, // required_confirmations
+            request.webhook_url,
+            request.description
         )
         .fetch_one(&self.db_pool)
         .await?;
@@ -180,14 +219,14 @@ impl PaymentProcessor {
         info!(
             "Created payment {} for merchant {} - Amount: {} {} (${} + ${} fee)",
             payment_id, merchant_id, crypto_amount, request.crypto_type.as_str(),
-            request.amount_usd.unwrap_or(Decimal::ZERO), fee_amount_usd
+            amount_usd, fee_amount_usd
         );
         
         Ok(PaymentResponse {
             payment_id,
             status: PaymentStatus::Pending,
             amount: crypto_amount,
-            amount_usd: total_amount_usd,
+            amount_usd,
             crypto_type: request.crypto_type,
             to_address: merchant_wallet.clone(),
             network: Some(network.to_string()),
@@ -210,7 +249,7 @@ impl PaymentProcessor {
 
     /// Generate a unique payment ID
     fn generate_payment_id(&self) -> String {
-use crate::utils::api_keys::ApiKeyGenerator;
+        use crate::utils::api_keys::ApiKeyGenerator;
 
         ApiKeyGenerator::generate_payment_id()
     }

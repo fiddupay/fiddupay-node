@@ -8,6 +8,7 @@ use crate::services::{
     payment_service::PaymentService,
     refund_service::RefundService,
     sandbox_service::SandboxService,
+    admin_service::AdminService,
     webhook_service::WebhookService,
     ip_whitelist_service::IpWhitelistService,
     audit_service::AuditService,
@@ -16,6 +17,7 @@ use crate::services::{
     wallet_config_service::WalletConfigService,
     currency_service::CurrencyService,
     price_service::PriceService,
+    volume_tracking_service::VolumeTrackingService,
 };
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -29,6 +31,7 @@ pub struct AppState {
     pub refund_service: Arc<RefundService>,
     pub analytics_service: Arc<AnalyticsService>,
     pub sandbox_service: Arc<SandboxService>,
+    pub admin_service: Arc<AdminService>,
     pub webhook_service: Arc<WebhookService>,
     pub ip_whitelist_service: Arc<IpWhitelistService>,
     pub audit_service: Arc<AuditService>,
@@ -37,6 +40,7 @@ pub struct AppState {
     pub wallet_config_service: Arc<WalletConfigService>,
     pub currency_service: Arc<CurrencyService>,
     pub price_service: Arc<PriceService>,
+    pub volume_tracking_service: Arc<VolumeTrackingService>,
 }
 
 impl AppState {
@@ -57,6 +61,7 @@ impl AppState {
             refund_service: Arc::new(RefundService::new(db_pool.clone(), webhook_service.clone())),
             analytics_service: Arc::new(AnalyticsService::new(db_pool.clone())),
             sandbox_service: Arc::new(SandboxService::new(db_pool.clone())),
+            admin_service: Arc::new(AdminService::new(db_pool.clone())),
             webhook_service: webhook_service.clone(),
             ip_whitelist_service: Arc::new(IpWhitelistService::new(db_pool.clone())),
             audit_service: Arc::new(AuditService::new(db_pool.clone())),
@@ -65,6 +70,7 @@ impl AppState {
             wallet_config_service: Arc::new(WalletConfigService::new(db_pool.clone())),
             currency_service: Arc::new(CurrencyService::new(db_pool.clone())),
             price_service,
+            volume_tracking_service: Arc::new(VolumeTrackingService::new(db_pool.clone())),
             config,
             db_pool,
         }
