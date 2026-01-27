@@ -9,32 +9,30 @@ const client = new FidduPayClient({
 
 app.use(express.json());
 
-// Mode 1: Generate Keys - Create payment with auto-generated wallet
-app.post('/payments/generate-keys', async (req, res) => {
+// Create payment with USD amount
+app.post('/payments/create-usd', async (req, res) => {
   try {
-    const { amount, currency, network, description } = req.body;
+    const { amount_usd, crypto_type, description } = req.body;
     
     const payment = await client.payments.create({
-      amount,
-      currency,
-      network,
-      wallet_mode: 'generate_keys',
+      amount_usd,
+      crypto_type,
       description,
       metadata: {
-        mode: 'generate_keys',
+        mode: 'usd_amount',
         timestamp: new Date().toISOString()
       }
     });
     
     res.json({
       success: true,
-      mode: 'generate_keys',
+      mode: 'usd_amount',
       payment: {
         id: payment.payment_id,
-        amount: payment.amount,
-        currency: payment.currency,
+        amount_usd: payment.amount_usd,
+        crypto_amount: payment.crypto_amount,
+        crypto_type: payment.crypto_type,
         status: payment.status,
-        payment_url: payment.payment_url,
         deposit_address: payment.deposit_address
       }
     });
@@ -43,58 +41,39 @@ app.post('/payments/generate-keys', async (req, res) => {
   }
 });
 
-// Mode 2: Import Keys - Setup wallet with existing private key
-app.post('/wallets/import', async (req, res) => {
+// Create payment with crypto amount
+app.post('/payments/create-crypto', async (req, res) => {
   try {
-    const { crypto_type, private_key } = req.body;
-    
-    const wallet = await client.wallets.import({
-      crypto_type,
-      private_key
-    });
-    
-    res.json({
-      success: true,
-      mode: 'import_keys',
-      wallet: {
-        crypto_type: wallet.crypto_type,
-        address: wallet.address,
-        network: wallet.network
-      }
-    });
-  } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
-  }
-});
-
-// Mode 2: Create payment with imported keys
-app.post('/payments/import-keys', async (req, res) => {
-  try {
-    const { amount, currency, network, description } = req.body;
+    const { amount, crypto_type, description } = req.body;
     
     const payment = await client.payments.create({
       amount,
-      currency,
-      network,
-      wallet_mode: 'import_keys',
+      crypto_type,
       description,
       metadata: {
-        mode: 'import_keys',
+        mode: 'crypto_amount',
         timestamp: new Date().toISOString()
       }
     });
     
     res.json({
       success: true,
-      mode: 'import_keys',
-      payment
+      mode: 'crypto_amount',
+      payment: {
+        id: payment.payment_id,
+        amount_usd: payment.amount_usd,
+        crypto_amount: payment.crypto_amount,
+        crypto_type: payment.crypto_type,
+        status: payment.status,
+        deposit_address: payment.deposit_address
+      }
     });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
   }
 });
 
-// Mode 3: Address-Only - Customer pays from their own wallet
+// Address-Only Payment
 app.post('/payments/address-only', async (req, res) => {
   try {
     const { crypto_type, merchant_address, requested_amount, customer_pays_fee } = req.body;
@@ -124,52 +103,10 @@ app.post('/payments/address-only', async (req, res) => {
   }
 });
 
-// Generate wallet keys (Mode 1)
-app.post('/wallets/generate', async (req, res) => {
-  try {
-    const { crypto_type } = req.body;
-    
-    const wallet = await client.wallets.generate({
-      crypto_type
-    });
-    
-    res.json({
-      success: true,
-      wallet: {
-        crypto_type: wallet.crypto_type,
-        address: wallet.address,
-        // Note: In production, never return private keys in API responses
-        // Store them securely and only show to merchant once
-        private_key_preview: wallet.private_key.substring(0, 10) + '...'
-      }
-    });
-  } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
-  }
-});
-
-// Get wallet configuration
-app.get('/wallets/config', async (req, res) => {
-  try {
-    const config = await client.wallets.getConfig();
-    
-    res.json({
-      success: true,
-      config: {
-        supported_modes: config.supported_modes,
-        current_mode: config.current_mode,
-        supported_crypto_types: config.supported_crypto_types
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 // Fee toggle demonstration
 app.post('/payments/fee-toggle-demo', async (req, res) => {
   try {
-    const { crypto_type, merchant_address, amount, customer_pays_fee } = req.body;
+    const { crypto_type, merchant_address, amount } = req.body;
     
     // Create two scenarios to show fee difference
     const customerPaysPayment = await client.payments.createAddressOnly({
@@ -197,7 +134,7 @@ app.post('/payments/fee-toggle-demo', async (req, res) => {
         merchant_pays_scenario: {
           customer_amount: merchantPaysPayment.customer_amount,
           processing_fee: merchantPaysPayment.processing_fee,
-          merchant_receives: merchantPaysPayment.requested_amount - merchantPaysPayment.processing_fee
+          merchant_receives: (parseFloat(merchantPaysPayment.requested_amount) - parseFloat(merchantPaysPayment.processing_fee)).toString()
         }
       }
     });
@@ -206,7 +143,7 @@ app.post('/payments/fee-toggle-demo', async (req, res) => {
   }
 });
 
-// Webhook endpoint for all modes
+// Webhook endpoint for payment events
 app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, res) => {
   const sig = req.headers['fiddupay-signature'] as string;
   const webhookSecret = process.env.FIDDUPAY_WEBHOOK_SECRET || 'whsec_test123';
@@ -218,15 +155,11 @@ app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, re
     
     switch (event.type) {
       case 'payment.confirmed':
-        console.log(` Payment confirmed: ${event.data.payment_id} (Mode: ${event.data.wallet_mode || 'unknown'})`);
+        console.log(`✅ Payment confirmed: ${event.data.payment_id}`);
         break;
         
       case 'payment.failed':
-        console.log(` Payment failed: ${event.data.payment_id}`);
-        break;
-        
-      case 'address_only.payment_received':
-        console.log(` Address-only payment received: ${event.data.payment_id}`);
+        console.log(`❌ Payment failed: ${event.data.payment_id}`);
         break;
         
       default:
@@ -243,16 +176,17 @@ app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, re
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(` FidduPay 3-Mode Wallet System Example running on port ${PORT}`);
-  console.log(` Available endpoints:`);
-  console.log(`   POST /payments/generate-keys - Mode 1: Auto-generate wallet keys`);
-  console.log(`   POST /wallets/generate - Generate new wallet`);
-  console.log(`   POST /wallets/import - Mode 2: Import existing private key`);
-  console.log(`   POST /payments/import-keys - Create payment with imported keys`);
-  console.log(`   POST /payments/address-only - Mode 3: Address-only payments`);
+  console.log(`🚀 FidduPay Payment System Example running on port ${PORT}`);
+  console.log(`📋 Available endpoints:`);
+  console.log(`   POST /payments/create-usd - Create payment with USD amount`);
+  console.log(`   POST /payments/create-crypto - Create payment with crypto amount`);
+  console.log(`   POST /payments/address-only - Address-only payments`);
   console.log(`   POST /payments/fee-toggle-demo - Demonstrate fee toggle`);
-  console.log(`   GET  /wallets/config - Get wallet configuration`);
   console.log(`   POST /webhooks/fiddupay - Webhook endpoint`);
+  console.log(`\n💡 Payment Creation Options:`);
+  console.log(`   USD Amount: Specify amount_usd (e.g., "10.50")`);
+  console.log(`   Crypto Amount: Specify amount (e.g., "0.1" for 0.1 SOL)`);
+  console.log(`   Never specify both amount_usd AND amount`);
 });
 
 export default app;

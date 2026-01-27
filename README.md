@@ -6,6 +6,20 @@ Official Node.js SDK for the FidduPay cryptocurrency payment gateway platform wi
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## Daily Volume Limits
+
+- **Non-KYC Merchants**: $1,000 USD daily volume limit (combined deposits + withdrawals)
+- **KYC Verified Merchants**: No daily volume limits
+- **Reset**: Daily limits reset at midnight UTC
+- **Tracking**: Real-time volume tracking across all transaction types
+
+```typescript
+// Check your daily volume status
+const profile = await client.merchants.getProfile();
+console.log('KYC Status:', profile.kyc_verified);
+console.log('Daily Volume Remaining:', profile.daily_volume_remaining);
+```
+
 ##  3-Mode Wallet System
 
 FidduPay offers three flexible wallet modes to suit different merchant needs:
@@ -35,20 +49,25 @@ const client = new FidduPayClient({
   environment: 'sandbox' // or 'production'
 });
 
-// Mode 1: Generate Keys Payment
+// USD-based payment
 const payment = await client.payments.create({
-  amount: 100.50,
-  currency: 'USDT',
-  network: 'ethereum',
-  description: 'Premium subscription',
-  wallet_mode: 'generate_keys'
+  amount_usd: '100.50',
+  crypto_type: 'USDT_ETH',
+  description: 'Premium subscription'
 });
 
-// Mode 3: Address-Only Payment
+// Crypto-based payment
+const cryptoPayment = await client.payments.create({
+  amount: '2.5',
+  crypto_type: 'SOL',
+  description: 'Premium subscription'
+});
+
+// Address-Only Payment
 const addressOnlyPayment = await client.payments.createAddressOnly({
   crypto_type: 'ETH',
   merchant_address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-  requested_amount: 0.05
+  requested_amount: '0.05'
 });
 ```
 
@@ -133,31 +152,42 @@ console.log('Current mode:', config.current_mode);
 
 ###  Payments
 
-#### Mode 1 & 2: Standard Payments
+#### Standard Payments
 
 ```typescript
+// USD-based payment
 const payment = await client.payments.create({
-  amount: 100.50,
-  currency: 'USDT',
-  network: 'ethereum',
+  amount_usd: '100.50',
+  crypto_type: 'USDT_ETH',
   description: 'Order payment',
-  wallet_mode: 'generate_keys', // or 'import_keys'
   metadata: {
     orderId: 'order-123'
   },
   webhook_url: 'https://your-site.com/webhooks/fiddupay',
-  redirect_url: 'https://your-site.com/success'
+  expiration_minutes: 30
+});
+
+// Crypto-based payment
+const cryptoPayment = await client.payments.create({
+  amount: '2.5',
+  crypto_type: 'SOL',
+  description: 'Order payment',
+  metadata: {
+    orderId: 'order-124'
+  },
+  webhook_url: 'https://your-site.com/webhooks/fiddupay',
+  expiration_minutes: 30
 });
 ```
 
-#### Mode 3: Address-Only Payments
+#### Address-Only Payments
 
 ```typescript
 // Create address-only payment request
 const addressPayment = await client.payments.createAddressOnly({
   crypto_type: 'ETH',
   merchant_address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-  requested_amount: 0.05,
+  requested_amount: '0.05',
   customer_pays_fee: true // or false for merchant pays fee
 });
 

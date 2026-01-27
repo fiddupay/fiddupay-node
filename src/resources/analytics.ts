@@ -19,9 +19,9 @@ export class AnalyticsResource {
     if (params?.granularity) queryParams.append('granularity', params.granularity);
 
     const query = queryParams.toString();
-    const path = query ? `/analytics?${query}` : '/analytics';
+    const path = query ? `/api/v1/analytics?${query}` : '/api/v1/analytics';
     
-    return this.client.get<Analytics>(path, options);
+    return this.client.request<Analytics>('GET', path);
   }
 
   /**
@@ -39,6 +39,6 @@ export class AnalyticsResource {
     expires_at: string;
     created_at: string;
   }> {
-    return this.client.post('/analytics/export', params, options);
+    return this.client.request('POST', '/api/v1/analytics/export', params);
   }
 }

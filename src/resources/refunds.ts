@@ -10,7 +10,7 @@ export class Refunds {
    */
   async create(data: CreateRefundRequest, options?: RequestOptions): Promise<Refund> {
     this.validateCreateRefund(data);
-    return this.client.post<Refund>('/refunds', data, options);
+    return this.client.post<Refund>('/api/v1/refunds', data, options);
   }
 
   /**
@@ -20,7 +20,17 @@ export class Refunds {
     if (!refundId) {
       throw new FidduPayValidationError('Refund ID is required', 'refund_id');
     }
-    return this.client.get<Refund>(`/refunds/${refundId}`, options);
+    return this.client.get<Refund>(`/api/v1/refunds/${refundId}`, options);
+  }
+
+  /**
+   * Complete a refund
+   */
+  async complete(refundId: string, options?: RequestOptions): Promise<any> {
+    if (!refundId) {
+      throw new FidduPayValidationError('Refund ID is required', 'refund_id');
+    }
+    return this.client.request('POST', `/api/v1/refunds/${refundId}/complete`);
   }
 
   /**

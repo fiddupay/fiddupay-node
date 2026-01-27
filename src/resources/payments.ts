@@ -21,7 +21,7 @@ export class Payments {
    */
   async create(data: CreatePaymentRequest, options?: RequestOptions): Promise<Payment> {
     this.validateCreatePayment(data);
-    return this.client.post<Payment>('/payments', data, options);
+    return this.client.request<Payment>('POST', '/api/v1/payments', data);
   }
 
   /**
@@ -31,7 +31,19 @@ export class Payments {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
-    return this.client.get<Payment>(`/payments/${paymentId}`, options);
+    return this.client.get<Payment>(`/api/v1/payments/${paymentId}`, options);
+  }
+
+  /**
+   * Verify a payment with transaction hash
+   */
+  async verify(paymentId: string, data: { 
+    transaction_hash: string 
+  }, options?: RequestOptions): Promise<any> {
+    if (!paymentId) {
+      throw new FidduPayValidationError('Payment ID is required', 'payment_id');
+    }
+    return this.client.request('POST', `/api/v1/payments/${paymentId}/verify`, data);
   }
 
   /**
@@ -46,9 +58,9 @@ export class Payments {
     if (params?.crypto_type) queryParams.append('crypto_type', params.crypto_type);
 
     const query = queryParams.toString();
-    const path = query ? `/payments?${query}` : '/payments';
+    const path = query ? `/api/v1/payments?${query}` : '/api/v1/payments';
     
-    return this.client.get<ListPaymentsResponse>(path, options);
+    return this.client.request<ListPaymentsResponse>('GET', path);
   }
 
   /**
@@ -97,28 +109,33 @@ export class Payments {
   }
 
   private validateCreatePayment(data: CreatePaymentRequest): void {
-    if (!data.amount_usd) {
-      throw new FidduPayValidationError('Amount in USD is required', 'amount_usd');
+    // Validate that either amount or amount_usd is provided, but not both
+    if (data.amount && data.amount_usd) {
+      throw new FidduPayValidationError('Provide either amount or amount_usd, not both', 'amount');
+    }
+
+    if (!data.amount && !data.amount_usd) {
+      throw new FidduPayValidationError('Either amount or amount_usd must be provided', 'amount');
     }
 
     if (!data.crypto_type) {
       throw new FidduPayValidationError('Crypto type is required', 'crypto_type');
     }
 
-    const amount = parseFloat(data.amount_usd);
+    // Validate the provided amount (either amount or amount_usd)
+    const amountValue = data.amount || data.amount_usd;
+    const amount = parseFloat(amountValue!);
     if (isNaN(amount) || amount <= 0) {
-      throw new FidduPayValidationError('Amount must be a positive number', 'amount_usd');
+      throw new FidduPayValidationError('Amount must be a positive number', data.amount ? 'amount' : 'amount_usd');
     }
 
     if (amount < 0.01) {
-      throw new FidduPayValidationError('Minimum amount is $0.01', 'amount_usd');
+      throw new FidduPayValidationError('Minimum amount is $0.01', data.amount ? 'amount' : 'amount_usd');
     }
 
-    if (amount > 1000000) {
-      throw new FidduPayValidationError('Maximum amount is $1,000,000', 'amount_usd');
-    }
+    // Note: No maximum amount limit - server enforces daily volume limits based on KYC status
 
-    const validCryptoTypes = ['SOL', 'USDT_ETH', 'USDT_BSC', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
+    const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BSC', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
     if (!validCryptoTypes.includes(data.crypto_type)) {
       throw new FidduPayValidationError(
         `Invalid crypto type. Must be one of: ${validCryptoTypes.join(', ')}`,
@@ -165,9 +182,7 @@ export class Payments {
       throw new FidduPayValidationError('Minimum amount is $0.01', 'requested_amount');
     }
 
-    if (amount > 1000000) {
-      throw new FidduPayValidationError('Maximum amount is $1,000,000', 'requested_amount');
-    }
+    // Note: No maximum amount limit - server enforces daily volume limits based on KYC status
 
     const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BSC', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
     if (!validCryptoTypes.includes(data.crypto_type)) {
