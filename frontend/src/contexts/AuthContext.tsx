@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { User } from '../types'
-import { apiService } from '../services/api'
+import { authAPI, merchantAPI } from '@/services/apiService'
 
 interface AuthContextType {
   user: User | null
@@ -39,8 +39,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loadUser = async () => {
     try {
-      const userData = await apiService.getProfile()
-      setUser(userData)
+      const userData = await merchantAPI.getProfile()
+      setUser(userData.data)
     } catch (error) {
       console.error('Failed to load user:', error)
       localStorage.removeItem('token')
@@ -50,8 +50,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   const login = async (email: string, password: string) => {
-    const response = await apiService.login({ email, password })
-    localStorage.setItem('token', response.api_key)
+    const response = await authAPI.login({ email, password })
+    localStorage.setItem('token', response.data.api_key)
     await loadUser()
   }
 

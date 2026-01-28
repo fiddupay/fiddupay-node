@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { apiService } from '../services/api'
+import { walletAPI } from '@/services/apiService'
 import { Wallet, WalletConfig } from '../types'
 import styles from './WalletsPage.module.css'
 
@@ -31,8 +31,8 @@ const WalletsPage: React.FC = () => {
   const loadWallets = async () => {
     try {
       setLoading(true)
-      const walletsData = await apiService.getWallets()
-      setWallets(walletsData)
+      const walletsData = await walletAPI.getAll()
+      setWallets(walletsData.data)
     } catch (error) {
       console.error('Failed to load wallets:', error)
     } finally {
@@ -64,7 +64,7 @@ const WalletsPage: React.FC = () => {
         }
       }
 
-      await apiService.configureWallet(newWallet)
+      await walletAPI.configure(newWallet)
       setShowConfigModal(false)
       setNewWallet({ crypto_type: 'SOL', address: '' })
       loadWallets()
@@ -77,7 +77,7 @@ const WalletsPage: React.FC = () => {
 
   const handleGenerateWallet = async (cryptoType: string) => {
     try {
-      await apiService.generateWallet(cryptoType)
+      await walletAPI.generate(cryptoType)
       loadWallets()
     } catch (error) {
       console.error('Failed to generate wallet:', error)

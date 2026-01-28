@@ -8,8 +8,7 @@ import {
   ListPaymentsResponse,
   UpdateFeeSettingRequest,
   FeeSettingResponse,
-  UpdateFeeSettingResponse,
-  RequestOptions
+  UpdateFeeSettingResponse
 } from '../types';
 import { FidduPayValidationError } from '../errors';
 
@@ -19,7 +18,7 @@ export class Payments {
   /**
    * Create a new payment
    */
-  async create(data: CreatePaymentRequest, options?: RequestOptions): Promise<Payment> {
+  async create(data: CreatePaymentRequest): Promise<Payment> {
     this.validateCreatePayment(data);
     return this.client.request<Payment>('POST', '/api/v1/payments', data);
   }
@@ -27,11 +26,11 @@ export class Payments {
   /**
    * Retrieve a payment by ID
    */
-  async retrieve(paymentId: string, options?: RequestOptions): Promise<Payment> {
+  async retrieve(paymentId: string): Promise<Payment> {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
-    return this.client.get<Payment>(`/api/v1/payments/${paymentId}`, options);
+    return this.client.get<Payment>(`/api/v1/payments/${paymentId}`);
   }
 
   /**
@@ -39,7 +38,7 @@ export class Payments {
    */
   async verify(paymentId: string, data: { 
     transaction_hash: string 
-  }, options?: RequestOptions): Promise<any> {
+  }): Promise<any> {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
@@ -49,7 +48,7 @@ export class Payments {
   /**
    * List payments with optional filters
    */
-  async list(params?: ListPaymentsRequest, options?: RequestOptions): Promise<ListPaymentsResponse> {
+  async list(params?: ListPaymentsRequest): Promise<ListPaymentsResponse> {
     const queryParams = new URLSearchParams();
     
     if (params?.limit) queryParams.append('limit', params.limit.toString());
@@ -66,46 +65,46 @@ export class Payments {
   /**
    * Cancel a pending payment
    */
-  async cancel(paymentId: string, options?: RequestOptions): Promise<Payment> {
+  async cancel(paymentId: string): Promise<Payment> {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
-    return this.client.post<Payment>(`/payments/${paymentId}/cancel`, {}, options);
+    return this.client.post<Payment>(`/payments/${paymentId}/cancel`, {});
   }
 
   /**
    * Create an address-only payment
    */
-  async createAddressOnly(data: CreateAddressOnlyPaymentRequest, options?: RequestOptions): Promise<AddressOnlyPayment> {
+  async createAddressOnly(data: CreateAddressOnlyPaymentRequest): Promise<AddressOnlyPayment> {
     this.validateCreateAddressOnlyPayment(data);
-    return this.client.post<AddressOnlyPayment>('/address-only-payments', data, options);
+    return this.client.post<AddressOnlyPayment>('/address-only-payments', data);
   }
 
   /**
    * Retrieve an address-only payment by ID
    */
-  async retrieveAddressOnly(paymentId: string, options?: RequestOptions): Promise<AddressOnlyPayment> {
+  async retrieveAddressOnly(paymentId: string): Promise<AddressOnlyPayment> {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
-    return this.client.get<AddressOnlyPayment>(`/address-only-payments/${paymentId}`, options);
+    return this.client.get<AddressOnlyPayment>(`/address-only-payments/${paymentId}`);
   }
 
   /**
    * Update fee setting (customer pays fee vs merchant pays fee)
    */
-  async updateFeeSetting(data: UpdateFeeSettingRequest, options?: RequestOptions): Promise<UpdateFeeSettingResponse> {
+  async updateFeeSetting(data: UpdateFeeSettingRequest): Promise<UpdateFeeSettingResponse> {
     if (typeof data.customer_pays_fee !== 'boolean') {
       throw new FidduPayValidationError('customer_pays_fee must be a boolean', 'customer_pays_fee');
     }
-    return this.client.post<UpdateFeeSettingResponse>('/fee-setting', data, options);
+    return this.client.post<UpdateFeeSettingResponse>('/fee-setting', data);
   }
 
   /**
    * Get current fee setting
    */
-  async getFeeSetting(options?: RequestOptions): Promise<FeeSettingResponse> {
-    return this.client.get<FeeSettingResponse>('/fee-setting', options);
+  async getFeeSetting(): Promise<FeeSettingResponse> {
+    return this.client.get<FeeSettingResponse>('/fee-setting');
   }
 
   private validateCreatePayment(data: CreatePaymentRequest): void {

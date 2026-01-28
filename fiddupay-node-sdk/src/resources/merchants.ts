@@ -1,5 +1,5 @@
 import { HttpClient } from '../client';
-import { Merchant, RequestOptions } from '../types';
+import { Merchant } from '../types';
 
 export class Merchants {
   constructor(private client: HttpClient) {}
@@ -18,7 +18,7 @@ export class Merchants {
   /**
    * Get current merchant profile
    */
-  async retrieve(options?: RequestOptions): Promise<Merchant> {
+  async retrieve(): Promise<Merchant> {
     return this.client.request<Merchant>('GET', '/api/v1/merchants/profile');
   }
 
@@ -28,7 +28,7 @@ export class Merchants {
   async setWallet(data: { 
     crypto_type: string; 
     address: string 
-  }, options?: RequestOptions): Promise<{ message: string }> {
+  }): Promise<{ message: string }> {
     return this.client.request('PUT', '/api/v1/merchants/wallets', data);
   }
 
@@ -37,7 +37,7 @@ export class Merchants {
    */
   async switchEnvironment(data: { 
     environment: 'sandbox' | 'production' 
-  }, options?: RequestOptions): Promise<{ message: string; environment: string }> {
+  }): Promise<{ message: string; environment: string }> {
     const requestData = { to_live: data.environment === 'production' };
     return this.client.request('POST', '/api/v1/merchants/environment/switch', requestData);
   }
@@ -47,7 +47,7 @@ export class Merchants {
    */
   async generateApiKey(data?: { 
     environment?: 'sandbox' | 'production' 
-  }, options?: RequestOptions): Promise<{ api_key: string; environment: string }> {
+  }): Promise<{ api_key: string; environment: string }> {
     const requestData = data ? { is_live: data.environment === 'production' } : { is_live: false };
     return this.client.request('POST', '/api/v1/merchants/api-keys/generate', requestData);
   }
@@ -57,7 +57,7 @@ export class Merchants {
    */
   async rotateApiKey(data?: { 
     environment?: 'sandbox' | 'production' 
-  }, options?: RequestOptions): Promise<{ api_key: string }> {
+  }): Promise<{ api_key: string }> {
     const requestData = data ? { is_live: data.environment === 'production' } : { is_live: false };
     return this.client.request('POST', '/api/v1/merchants/api-keys/rotate', requestData);
   }
@@ -67,7 +67,7 @@ export class Merchants {
    */
   async setWebhook(data: { 
     webhook_url: string 
-  }, options?: RequestOptions): Promise<{ message: string }> {
+  }): Promise<{ message: string }> {
     const requestData = { url: data.webhook_url };
     return this.client.request('PUT', '/api/v1/merchants/webhook', requestData);
   }
@@ -77,21 +77,21 @@ export class Merchants {
    */
   async setIpWhitelist(data: { 
     ip_addresses: string[] 
-  }, options?: RequestOptions): Promise<{ message: string }> {
+  }): Promise<{ message: string }> {
     return this.client.request('PUT', '/api/v1/merchants/ip-whitelist', data);
   }
 
   /**
    * Get IP whitelist
    */
-  async getIpWhitelist(options?: RequestOptions): Promise<{ ip_addresses: string[] }> {
+  async getIpWhitelist(): Promise<{ ip_addresses: string[] }> {
     return this.client.request('GET', '/api/v1/merchants/ip-whitelist');
   }
 
   /**
    * Get merchant balance
    */
-  async getBalance(options?: RequestOptions): Promise<{
+  async getBalance(): Promise<{
     balances: Array<{
       crypto_type: string;
       balance: string;
@@ -109,8 +109,7 @@ export class Merchants {
    * Set wallet addresses for automatic forwarding
    */
   async setWallets(
-    wallets: Record<string, string>,
-    options?: RequestOptions
+    wallets: Record<string, string>
   ): Promise<{ message: string; wallets: Record<string, string> }> {
     return this.client.request('PUT', '/api/v1/merchants/wallets', { wallets });
   }
@@ -118,7 +117,7 @@ export class Merchants {
   /**
    * Get balance history
    */
-  async getBalanceHistory(options?: RequestOptions): Promise<{
+  async getBalanceHistory(): Promise<{
     history: Array<{
       date: string;
       balance_usd: string;
@@ -142,7 +141,7 @@ export class Merchants {
   /**
    * Get audit logs
    */
-  async getAuditLogs(options?: RequestOptions): Promise<{
+  async getAuditLogs(): Promise<{
     logs: Array<{
       id: string;
       action: string;

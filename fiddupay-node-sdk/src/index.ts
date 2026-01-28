@@ -5,6 +5,7 @@ import { Payments } from './resources/payments';
 import { Merchants } from './resources/merchants';
 import { Refunds } from './resources/refunds';
 import { AnalyticsResource } from './resources/analytics';
+import { InvoicesResource } from './resources/invoices';
 import { Webhooks } from './resources/webhooks';
 import { Wallets } from './resources/wallets';
 import { Withdrawals } from './resources/withdrawals';
@@ -20,6 +21,7 @@ export class FidduPayClient {
   public readonly merchants: Merchants;
   public readonly refunds: Refunds;
   public readonly analytics: AnalyticsResource;
+  public readonly invoices: InvoicesResource;
   public readonly webhooks = Webhooks;
   public readonly wallets: Wallets;
   public readonly withdrawals: Withdrawals;
@@ -39,6 +41,7 @@ export class FidduPayClient {
     this.merchants = new Merchants(this.client);
     this.refunds = new Refunds(this.client);
     this.analytics = new AnalyticsResource(this.client);
+    this.invoices = new InvoicesResource(this.client);
     this.wallets = new Wallets(this.client);
     this.withdrawals = new Withdrawals(this.client);
     this.security = new Security(this.client);

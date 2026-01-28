@@ -2,6 +2,7 @@
 // Handles gas validation and withdrawal processing
 
 import { useState, useEffect } from 'react';
+import { merchantAPI, withdrawalAPI } from '@/services/apiService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,11 +68,8 @@ export default function WithdrawalInterface() {
 
   const loadBalances = async () => {
     try {
-      const response = await fetch('/api/v1/merchants/balance', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('api_key')}` }
-      });
-      const data = await response.json();
-      setBalances(data.balances || []);
+      const response = await merchantAPI.getBalance()
+      setBalances(response.data.balances || [])
     } catch (err) {
       setError('Failed to load balances');
     }
@@ -79,14 +77,8 @@ export default function WithdrawalInterface() {
 
   const validateGas = async () => {
     try {
-      const response = await fetch(
-        `/api/v1/wallets/gas-check?crypto_type=${selectedCrypto}&amount=${amount}`,
-        {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('api_key')}` }
-        }
-      );
-      const data = await response.json();
-      setGasValidation(data);
+      const response = await withdrawalAPI.validateGas(selectedCrypto, parseFloat(amount))
+      setGasValidation(response.data)
     } catch (err) {
       console.error('Gas validation failed:', err);
     }
@@ -108,56 +100,27 @@ export default function WithdrawalInterface() {
 
     try {
       // Create withdrawal
-      const createResponse = await fetch('/api/v1/withdrawals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('api_key')}`
-        },
-        body: JSON.stringify({
-          crypto_type: selectedCrypto,
-          amount: parseFloat(amount),
-          to_address: toAddress,
-          description: 'Manual withdrawal'
-        })
-      });
-
-      const createData = await createResponse.json();
+      const createData = await withdrawalAPI.create({
+        crypto_type: selectedCrypto,
+        amount: parseFloat(amount),
+        to_address: toAddress,
+        description: 'Manual withdrawal'
+      })
       
-      if (!createResponse.ok) {
-        setError(createData.error || 'Failed to create withdrawal');
-        return;
-      }
-
       // Process withdrawal
-      setProcessing(true);
-      const processResponse = await fetch(`/api/v1/withdrawals/${createData.id}/process`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('api_key')}`
-        },
-        body: JSON.stringify({
-          encryption_password: password
-        })
-      });
-
-      const processData = await processResponse.json();
+      setProcessing(true)
+      const processData = await withdrawalAPI.process(createData.data.id, password)
       
-      if (processResponse.ok) {
-        setSuccess(`Withdrawal processed successfully! Transaction: ${processData.withdrawal.transaction_hash}`);
-        setAmount('');
-        setToAddress('');
-        setPassword('');
-        loadBalances();
-      } else {
-        setError(processData.error || 'Failed to process withdrawal');
-      }
+      setSuccess(`Withdrawal processed successfully! Transaction: ${processData.data.withdrawal.transaction_hash}`)
+      setAmount('')
+      setToAddress('')
+      setPassword('')
+      loadBalances()
     } catch (err) {
-      setError('Network error occurred');
+      setError('Network error occurred')
     } finally {
-      setLoading(false);
-      setProcessing(false);
+      setLoading(false)
+      setProcessing(false)
     }
   };
 

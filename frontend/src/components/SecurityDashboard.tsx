@@ -2,6 +2,7 @@
 // Displays security events, alerts, and monitoring
 
 import { useState, useEffect } from 'react';
+import { securityAPI } from '@/services/apiService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -61,32 +62,20 @@ export default function SecurityDashboard() {
       setLoading(true);
       
       // Load security events
-      const eventsResponse = await fetch('/api/v1/security/events?limit=20', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('api_key')}` }
-      });
-      const eventsData = await eventsResponse.json();
-      setSecurityEvents(eventsData.events || []);
+      const eventsResponse = await securityAPI.getEvents({ limit: 20 })
+      setSecurityEvents(eventsResponse.data.events || [])
 
       // Load security alerts
-      const alertsResponse = await fetch('/api/v1/security/alerts?limit=10', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('api_key')}` }
-      });
-      const alertsData = await alertsResponse.json();
-      setSecurityAlerts(alertsData.alerts || []);
+      const alertsResponse = await securityAPI.getAlerts({ limit: 10 })
+      setSecurityAlerts(alertsResponse.data.alerts || [])
 
       // Load balance alerts
-      const balanceResponse = await fetch('/api/v1/security/balance-alerts?active_only=true', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('api_key')}` }
-      });
-      const balanceData = await balanceResponse.json();
-      setBalanceAlerts(balanceData.alerts || []);
+      const balanceResponse = await securityAPI.getBalanceAlerts({ active_only: true })
+      setBalanceAlerts(balanceResponse.data.alerts || [])
 
       // Load gas balance check
-      const gasResponse = await fetch('/api/v1/security/gas-check', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('api_key')}` }
-      });
-      const gasData = await gasResponse.json();
-      setGasAlerts(gasData.gas_alerts || []);
+      const gasResponse = await securityAPI.checkGas()
+      setGasAlerts(gasResponse.data.gas_alerts || [])
 
     } catch (err) {
       setError('Failed to load security data');
@@ -97,11 +86,8 @@ export default function SecurityDashboard() {
 
   const acknowledgeAlert = async (alertId: string) => {
     try {
-      await fetch(`/api/v1/security/alerts/${alertId}/acknowledge`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('api_key')}` }
-      });
-      loadSecurityData();
+      await securityAPI.acknowledgeAlert(alertId)
+      loadSecurityData()
     } catch (err) {
       setError('Failed to acknowledge alert');
     }
@@ -109,15 +95,12 @@ export default function SecurityDashboard() {
 
   const resolveBalanceAlert = async (alertId: string) => {
     try {
-      await fetch(`/api/v1/security/balance-alerts/${alertId}/resolve`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('api_key')}` }
-      });
-      loadSecurityData();
+      await securityAPI.resolveBalanceAlert(alertId)
+      loadSecurityData()
     } catch (err) {
-      setError('Failed to resolve alert');
+      setError('Failed to resolve alert')
     }
-  };
+  }
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {

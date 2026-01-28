@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useToast } from '@/contexts/ToastContext'
 import { useLoading } from '@/contexts/LoadingContext'
+import { authAPI } from '@/services/apiService'
 import styles from './RegisterPage.module.css'
 
 const RegisterPage: React.FC = () => {
@@ -61,28 +62,17 @@ const RegisterPage: React.FC = () => {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/v1/merchants/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          business_name: formData.company.trim() || formData.name.trim(),
-          email: formData.email.trim().toLowerCase(),
-          password: formData.password
-        }),
+      await authAPI.register({
+        business_name: formData.company.trim() || formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password
       })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed')
-      }
 
       showToast('Registration successful! Please check your email to verify your account.', 'success')
       setTimeout(() => navigate('/login'), 2000)
     } catch (error: any) {
-      showToast(error.message || 'Registration failed. Please try again.', 'error')
+      const message = error.response?.data?.message || error.message || 'Registration failed. Please try again.'
+      showToast(message, 'error')
     } finally {
       setLoading(false)
     }

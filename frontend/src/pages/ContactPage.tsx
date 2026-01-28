@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useToast } from '@/contexts/ToastContext'
 import { useLoading } from '@/contexts/LoadingContext'
+import { publicAPI } from '@/services/apiService'
 import styles from './ContactPage.module.css'
 
 const ContactPage: React.FC = () => {
@@ -41,30 +42,18 @@ const ContactPage: React.FC = () => {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/v1/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: sanitizeInput(formData.name),
-          email: sanitizeInput(formData.email),
-          subject: sanitizeInput(formData.subject),
-          message: sanitizeInput(formData.message)
-        })
+      await publicAPI.contact({
+        name: sanitizeInput(formData.name),
+        email: sanitizeInput(formData.email),
+        subject: sanitizeInput(formData.subject),
+        message: sanitizeInput(formData.message)
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to send message')
-      }
-
-      const result = await response.json()
-      console.log('Contact form submitted:', result)
       showToast('Message sent successfully! We\'ll get back to you soon.', 'success')
       setFormData({ name: '', email: '', subject: '', message: '' })
     } catch (error: any) {
-      showToast(error.message || 'Failed to send message. Please try again.', 'error')
+      const message = error.response?.data?.error || error.message || 'Failed to send message. Please try again.'
+      showToast(message, 'error')
     } finally {
       setLoading(false)
     }

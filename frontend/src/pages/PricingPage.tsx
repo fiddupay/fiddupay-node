@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { publicAPI } from '@/services/apiService'
 import styles from './PricingPage.module.css'
 
 interface PricingData {
@@ -21,9 +22,9 @@ const PricingPage: React.FC = () => {
 
   const loadPricingData = async () => {
     try {
-      const response = await fetch('/api/v1/pricing')
-      if (response.ok) {
-        const data = await response.json()
+      const response = await publicAPI.getPricing()
+      if (response.status === 200) {
+        const data = response.data
         setPricingData({
           transaction_fee_percentage: data.transaction_fee_percentage,
           daily_volume_limit_non_kyc_usd: data.daily_volume_limit_non_kyc_usd,

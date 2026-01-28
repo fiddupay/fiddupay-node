@@ -2,6 +2,7 @@
 // Guides merchants through 3-mode wallet configuration
 
 import { useState, useEffect } from 'react';
+import { walletAPI } from '@/services/apiService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,11 +53,8 @@ export default function WalletSetupWizard() {
 
   const loadWalletConfigs = async () => {
     try {
-      const response = await fetch('/api/v1/wallets', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('api_key')}` }
-      });
-      const data = await response.json();
-      setWallets(data.wallets || []);
+      const response = await walletAPI.getAll()
+      setWallets(response.data.data.wallets || [])
     } catch (err) {
       setError('Failed to load wallet configurations');
     }
@@ -72,33 +70,20 @@ export default function WalletSetupWizard() {
     setError('');
 
     try {
-      const response = await fetch('/api/v1/wallets/configure-address', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('api_key')}`
-        },
-        body: JSON.stringify({
-          network: selectedNetwork,
-          address: address
-        })
-      });
-
-      const data = await response.json();
+      await walletAPI.configure({
+        network: selectedNetwork,
+        address: address
+      })
       
-      if (response.ok) {
-        setSuccess(`Address-only wallet configured for ${selectedNetwork}`);
-        setAddress('');
-        loadWalletConfigs();
-      } else {
-        setError(data.error || 'Failed to configure wallet');
-      }
+      setSuccess(`Address-only wallet configured for ${selectedNetwork}`)
+      setAddress('')
+      loadWalletConfigs()
     } catch (err) {
-      setError('Network error occurred');
+      setError('Network error occurred')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleGenerateWallet = async () => {
     if (!password || password !== confirmPassword) {
@@ -110,34 +95,18 @@ export default function WalletSetupWizard() {
     setError('');
 
     try {
-      const response = await fetch('/api/v1/wallets/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('api_key')}`
-        },
-        body: JSON.stringify({
-          network: selectedNetwork,
-          encryption_password: password
-        })
-      });
-
-      const data = await response.json();
+      const data = await walletAPI.generate(selectedNetwork, password)
       
-      if (response.ok) {
-        setSuccess(`Wallet generated for ${selectedNetwork}. Private key: ${data.wallet.private_key}`);
-        setPassword('');
-        setConfirmPassword('');
-        loadWalletConfigs();
-      } else {
-        setError(data.error || 'Failed to generate wallet');
-      }
+      setSuccess(`Wallet generated for ${selectedNetwork}. Private key: ${data.data.wallet.private_key}`)
+      setPassword('')
+      setConfirmPassword('')
+      loadWalletConfigs()
     } catch (err) {
-      setError('Network error occurred');
+      setError('Network error occurred')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleImportWallet = async () => {
     if (!privateKey || !password || password !== confirmPassword) {
@@ -149,30 +118,17 @@ export default function WalletSetupWizard() {
     setError('');
 
     try {
-      const response = await fetch('/api/v1/wallets/import', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('api_key')}`
-        },
-        body: JSON.stringify({
-          network: selectedNetwork,
-          private_key: privateKey,
-          encryption_password: password
-        })
-      });
-
-      const data = await response.json();
+      await walletAPI.import({
+        network: selectedNetwork,
+        private_key: privateKey,
+        encryption_password: password
+      })
       
-      if (response.ok) {
-        setSuccess(`Private key imported for ${selectedNetwork}`);
-        setPrivateKey('');
-        setPassword('');
-        setConfirmPassword('');
-        loadWalletConfigs();
-      } else {
-        setError(data.error || 'Failed to import wallet');
-      }
+      setSuccess(`Private key imported for ${selectedNetwork}`)
+      setPrivateKey('')
+      setPassword('')
+      setConfirmPassword('')
+      loadWalletConfigs()
     } catch (err) {
       setError('Network error occurred');
     } finally {

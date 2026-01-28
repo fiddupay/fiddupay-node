@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@fiddupay/fiddupay-node": "file:../fiddupay-node-sdk",
-    "axios": "^1.6.0"
+    "axios": "^1.13.4"
   },
   "devDependencies": {
     "jest": "^29.0.0"

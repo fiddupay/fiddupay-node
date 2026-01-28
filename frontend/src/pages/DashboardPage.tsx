@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { MdPayment, MdTrendingUp, MdAccountBalance, MdPending, MdVerifiedUser, MdWarning } from 'react-icons/md'
 import { useAuth } from '../contexts/AuthContext'
-import { apiService } from '../services/api'
+import { merchantAPI, paymentAPI } from '@/services/apiService'
 import { Analytics, Balance, Payment } from '../types'
 import styles from './DashboardPage.module.css'
 
@@ -27,11 +27,11 @@ const DashboardPage: React.FC = () => {
     try {
       setLoading(true)
       const [analyticsData, balanceData] = await Promise.all([
-        apiService.getAnalytics(),
-        apiService.getBalance()
+        merchantAPI.getAnalytics(),
+        merchantAPI.getBalance()
       ])
-      setAnalytics(analyticsData)
-      setBalance(balanceData)
+      setAnalytics(analyticsData.data)
+      setBalance(balanceData.data)
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
       // Set empty data on error to prevent crashes
@@ -253,7 +253,7 @@ const RecentPaymentsList: React.FC = () => {
 
   const loadRecentPayments = async () => {
     try {
-      const response = await apiService.getPayments({ page: 1, page_size: 5 })
+      const response = await paymentAPI.getHistory({ page: 1, page_size: 5 })
       setPayments(response.data || [])
     } catch (error) {
       console.error('Failed to load recent payments:', error)

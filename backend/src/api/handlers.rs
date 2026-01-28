@@ -199,7 +199,7 @@ pub async fn get_merchant_profile(
             });
             
             // Add daily volume remaining for non-KYC merchants
-            if !merchant.kyc_verified {
+            if !merchant.kyc_verified.unwrap_or(false) {
                 // For now, return a mock value - in production this would be calculated
                 profile["daily_volume_remaining"] = json!("1000.00");
             }

@@ -308,41 +308,4 @@ impl PriceService {
             }
         }
     }
-
-    pub fn start_background_polling(&self) {
-        let service = self.clone();
-        tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(300)); // 5 minutes
-            loop {
-                interval.tick().await;
-                
-                // Update all cryptocurrency prices
-                let cryptos = vec![
-                    CryptoType::Sol,
-                    CryptoType::Eth,
-                    CryptoType::Arb,
-                    CryptoType::Matic,
-                    CryptoType::Bnb,
-                ];
-                
-                for crypto in cryptos {
-                    if let Ok(price) = service.get_price(crypto).await {
-                        info!("[PRICE] Updated {:?}: ${:.2}", crypto, price);
-                    }
-                }
-            }
-        });
-    }
-}
-
-impl Clone for PriceService {
-    fn clone(&self) -> Self {
-        Self {
-            cache: Arc::clone(&self.cache),
-            failure_tracker: Arc::clone(&self.failure_tracker),
-            cache_ttl: self.cache_ttl,
-            failure_threshold: self.failure_threshold,
-            failure_reset_duration: self.failure_reset_duration,
-        }
-    }
 }
