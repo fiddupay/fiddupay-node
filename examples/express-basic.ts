@@ -162,11 +162,11 @@ app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, re
     
     switch (event.type) {
       case 'payment.confirmed':
-        console.log('✅ Payment confirmed:', event.data.payment_id);
+        console.log(' Payment confirmed:', event.data.payment_id);
         break;
         
       case 'payment.failed':
-        console.log('❌ Payment failed:', event.data.payment_id);
+        console.log(' Payment failed:', event.data.payment_id);
         break;
         
       case 'payment.expired':
@@ -174,15 +174,15 @@ app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, re
         break;
         
       case 'refund.completed':
-        console.log('💸 Refund completed:', event.data.refund_id);
+        console.log(' Refund completed:', event.data.refund_id);
         break;
         
       case 'refund.failed':
-        console.log('❌ Refund failed:', event.data.refund_id);
+        console.log(' Refund failed:', event.data.refund_id);
         break;
         
       default:
-        console.log('🔔 Unknown event type:', event.type);
+        console.log(' Unknown event type:', event.type);
     }
     
     res.json({ received: true });
@@ -246,8 +246,8 @@ app.get('/balance', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 FidduPay Express.js example running on port ${PORT}`);
-  console.log(`📋 Endpoints:`);
+  console.log(` FidduPay Express.js example running on port ${PORT}`);
+  console.log(` Endpoints:`);
   console.log(`   POST /create-payment - Create payment (amount_usd OR amount)`);
   console.log(`   POST /create-address-only-payment - Create address-only payment`);
   console.log(`   POST /wallets/generate - Generate new wallet keys`);
@@ -256,7 +256,7 @@ app.listen(PORT, () => {
   console.log(`   GET  /payments - List payments`);
   console.log(`   GET  /balance - Get merchant balance`);
   console.log(`   POST /webhooks/fiddupay - Webhook endpoint`);
-  console.log(`\n💡 Payment Creation:`);
+  console.log(`\n Payment Creation:`);
   console.log(`   Use either 'amount_usd' (USD amount) OR 'amount' (crypto amount)`);
   console.log(`   Supported crypto types: SOL, ETH, BNB, MATIC, ARB, USDT_*`);
 });
