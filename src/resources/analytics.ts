@@ -4,14 +4,11 @@ import { Analytics, RequestOptions } from '../types';
 export class AnalyticsResource {
   constructor(private client: HttpClient) {}
 
-  /**
-   * Get analytics data
-   */
   async retrieve(params?: {
     start_date?: string;
     end_date?: string;
     granularity?: 'day' | 'week' | 'month';
-  }, options?: RequestOptions): Promise<Analytics> {
+  }): Promise<Analytics> {
     const queryParams = new URLSearchParams();
     
     if (params?.start_date) queryParams.append('start_date', params.start_date);
@@ -19,19 +16,16 @@ export class AnalyticsResource {
     if (params?.granularity) queryParams.append('granularity', params.granularity);
 
     const query = queryParams.toString();
-    const path = query ? `/api/v1/analytics?${query}` : '/api/v1/analytics';
+    const path = query ? `/api/v1/merchants/analytics?${query}` : '/api/v1/merchants/analytics';
     
     return this.client.request<Analytics>('GET', path);
   }
 
-  /**
-   * Export analytics data
-   */
   async export(params: {
     format: 'csv' | 'json' | 'xlsx';
     start_date: string;
     end_date: string;
-  }, options?: RequestOptions): Promise<{
+  }): Promise<{
     export_id: string;
     status: string;
     format: string;
@@ -39,6 +33,6 @@ export class AnalyticsResource {
     expires_at: string;
     created_at: string;
   }> {
-    return this.client.request('POST', '/api/v1/analytics/export', params);
+    return this.client.request('POST', '/api/v1/merchants/analytics/export', params);
   }
 }

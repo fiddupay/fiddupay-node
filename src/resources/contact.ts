@@ -1,5 +1,4 @@
 import { HttpClient } from '../client';
-import { RequestOptions } from '../types';
 
 export class Contact {
   constructor(private client: HttpClient) {}
@@ -12,7 +11,7 @@ export class Contact {
     email: string;
     subject: string;
     message: string;
-  }, options?: RequestOptions): Promise<{
+  }): Promise<{
     message: string;
     status: string;
     id?: number;
