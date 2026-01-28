@@ -12,14 +12,14 @@ export class Merchants {
     business_name: string;
     password: string;
   }): Promise<{ user: any; api_key: string }> {
-    return this.client.request('POST', '/api/v1/merchants/register', data);
+    return this.client.request('POST', '/api/v1/merchant/register', data);
   }
 
   /**
    * Get current merchant profile
    */
   async retrieve(): Promise<Merchant> {
-    return this.client.request<Merchant>('GET', '/api/v1/merchants/profile');
+    return this.client.request<Merchant>('GET', '/api/v1/merchant/profile');
   }
 
   /**
@@ -29,7 +29,7 @@ export class Merchants {
     crypto_type: string; 
     address: string 
   }): Promise<{ message: string }> {
-    return this.client.request('PUT', '/api/v1/merchants/wallets', data);
+    return this.client.request('PUT', '/api/v1/merchant/wallets', data);
   }
 
   /**
@@ -39,7 +39,7 @@ export class Merchants {
     environment: 'sandbox' | 'production' 
   }): Promise<{ message: string; environment: string }> {
     const requestData = { to_live: data.environment === 'production' };
-    return this.client.request('POST', '/api/v1/merchants/environment/switch', requestData);
+    return this.client.request('POST', '/api/v1/merchant/environment/switch', requestData);
   }
 
   /**
@@ -49,7 +49,7 @@ export class Merchants {
     environment?: 'sandbox' | 'production' 
   }): Promise<{ api_key: string; environment: string }> {
     const requestData = data ? { is_live: data.environment === 'production' } : { is_live: false };
-    return this.client.request('POST', '/api/v1/merchants/api-keys/generate', requestData);
+    return this.client.request('POST', '/api/v1/merchant/api-keys/generate', requestData);
   }
 
   /**
@@ -59,7 +59,7 @@ export class Merchants {
     environment?: 'sandbox' | 'production' 
   }): Promise<{ api_key: string }> {
     const requestData = data ? { is_live: data.environment === 'production' } : { is_live: false };
-    return this.client.request('POST', '/api/v1/merchants/api-keys/rotate', requestData);
+    return this.client.request('POST', '/api/v1/merchant/api-keys/rotate', requestData);
   }
 
   /**
@@ -69,7 +69,7 @@ export class Merchants {
     webhook_url: string 
   }): Promise<{ message: string }> {
     const requestData = { url: data.webhook_url };
-    return this.client.request('PUT', '/api/v1/merchants/webhook', requestData);
+    return this.client.request('PUT', '/api/v1/merchant/webhook', requestData);
   }
 
   /**
@@ -78,14 +78,14 @@ export class Merchants {
   async setIpWhitelist(data: { 
     ip_addresses: string[] 
   }): Promise<{ message: string }> {
-    return this.client.request('PUT', '/api/v1/merchants/ip-whitelist', data);
+    return this.client.request('PUT', '/api/v1/merchant/ip-whitelist', data);
   }
 
   /**
    * Get IP whitelist
    */
   async getIpWhitelist(): Promise<{ ip_addresses: string[] }> {
-    return this.client.request('GET', '/api/v1/merchants/ip-whitelist');
+    return this.client.request('GET', '/api/v1/merchant/ip-whitelist');
   }
 
   /**
@@ -102,7 +102,7 @@ export class Merchants {
     total_balance_usd: string;
     total_pending_usd: string;
   }> {
-    return this.client.request('GET', '/api/v1/merchants/balance');
+    return this.client.request('GET', '/api/v1/merchant/balance');
   }
 
   /**
@@ -111,7 +111,7 @@ export class Merchants {
   async setWallets(
     wallets: Record<string, string>
   ): Promise<{ message: string; wallets: Record<string, string> }> {
-    return this.client.request('PUT', '/api/v1/merchants/wallets', { wallets });
+    return this.client.request('PUT', '/api/v1/merchant/wallets', { wallets });
   }
 
   /**
@@ -125,7 +125,7 @@ export class Merchants {
       change_percentage: number;
     }>;
   }> {
-    return this.client.request('GET', '/api/v1/merchants/balance/history');
+    return this.client.request('GET', '/api/v1/merchant/balance/history');
   }
 
   /**
@@ -135,7 +135,7 @@ export class Merchants {
     email: string;
     password: string;
   }): Promise<{ user: any; api_key: string }> {
-    return this.client.request('POST', '/api/v1/merchants/login', data);
+    return this.client.request('POST', '/api/v1/merchant/login', data);
   }
 
   /**

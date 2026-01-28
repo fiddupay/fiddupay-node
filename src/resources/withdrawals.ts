@@ -13,7 +13,7 @@ export class Withdrawals {
    * Create a new withdrawal
    */
   async create(data: CreateWithdrawalRequest): Promise<Withdrawal> {
-    return this.client.request<Withdrawal>('POST', '/api/v1/withdrawals', data);
+    return this.client.request<Withdrawal>('POST', '/api/v1/merchant/withdrawals', data);
   }
 
   /**
@@ -27,7 +27,7 @@ export class Withdrawals {
     if (params?.status) queryParams.append('status', params.status);
     if (params?.crypto_type) queryParams.append('crypto_type', params.crypto_type);
 
-    const url = `/api/v1/withdrawals${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const url = `/api/v1/merchant/withdrawals${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.client.request<PaginatedResponse<Withdrawal>>('GET', url);
   }
 
@@ -35,20 +35,20 @@ export class Withdrawals {
    * Get withdrawal by ID
    */
   async get(withdrawalId: string): Promise<Withdrawal> {
-    return this.client.request<Withdrawal>('GET', `/api/v1/withdrawals/${withdrawalId}`);
+    return this.client.request<Withdrawal>('GET', `/api/v1/merchant/withdrawals/${withdrawalId}`);
   }
 
   /**
    * Cancel withdrawal
    */
   async cancel(withdrawalId: string): Promise<Withdrawal> {
-    return this.client.request<Withdrawal>('POST', `/api/v1/withdrawals/${withdrawalId}/cancel`);
+    return this.client.request<Withdrawal>('POST', `/api/v1/merchant/withdrawals/${withdrawalId}/cancel`);
   }
 
   /**
    * Process withdrawal
    */
   async process(withdrawalId: string): Promise<Withdrawal> {
-    return this.client.request<Withdrawal>('POST', `/api/v1/withdrawals/${withdrawalId}/process`);
+    return this.client.request<Withdrawal>('POST', `/api/v1/merchant/withdrawals/${withdrawalId}/process`);
   }
 }

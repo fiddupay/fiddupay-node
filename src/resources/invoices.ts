@@ -9,14 +9,14 @@ export class InvoicesResource {
     due_date?: string;
     customer_email?: string;
   }) {
-    return this.client.request('POST', '/api/v1/merchants/invoices', data);
+    return this.client.request('POST', '/api/v1/merchant/invoices', data);
   }
 
   async list() {
-    return this.client.request('GET', '/api/v1/merchants/invoices');
+    return this.client.request('GET', '/api/v1/merchant/invoices');
   }
 
   async retrieve(invoiceId: string) {
-    return this.client.request('GET', `/api/v1/merchants/invoices/${invoiceId}`);
+    return this.client.request('GET', `/api/v1/merchant/invoices/${invoiceId}`);
   }
 }

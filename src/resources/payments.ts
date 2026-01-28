@@ -20,7 +20,7 @@ export class Payments {
    */
   async create(data: CreatePaymentRequest): Promise<Payment> {
     this.validateCreatePayment(data);
-    return this.client.request<Payment>('POST', '/api/v1/payments', data);
+    return this.client.request<Payment>('POST', '/api/v1/merchant/payments', data);
   }
 
   /**
@@ -30,7 +30,7 @@ export class Payments {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
-    return this.client.get<Payment>(`/api/v1/payments/${paymentId}`);
+    return this.client.get<Payment>(`/api/v1/merchant/payments/${paymentId}`);
   }
 
   /**
@@ -42,7 +42,7 @@ export class Payments {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
-    return this.client.request('POST', `/api/v1/payments/${paymentId}/verify`, data);
+    return this.client.request('POST', `/api/v1/merchant/payments/${paymentId}/verify`, data);
   }
 
   /**
@@ -57,7 +57,7 @@ export class Payments {
     if (params?.crypto_type) queryParams.append('crypto_type', params.crypto_type);
 
     const query = queryParams.toString();
-    const path = query ? `/api/v1/payments?${query}` : '/api/v1/payments';
+    const path = query ? `/api/v1/merchant/payments?${query}` : '/api/v1/merchant/payments';
     
     return this.client.request<ListPaymentsResponse>('GET', path);
   }
