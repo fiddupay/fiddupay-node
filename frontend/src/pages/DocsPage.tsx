@@ -1199,7 +1199,7 @@ Response:
                 <h3>FidduPay Node.js</h3>
                 <p>Official Node.js library for FidduPay API integration</p>
                 <div className={styles.installCode}>
-                  <code>npm install fiddupay-node</code>
+                  <code>npm install @fiddupay/fiddupay-node</code>
                 </div>
                 <div className={styles.codeExample}>
                   <pre><code>{`const FidduPay = require('fiddupay-node');

@@ -82,7 +82,7 @@ fiddupay-node/
 
 ### Installation
 ```bash
-npm install fiddupay-node
+npm install @fiddupay/fiddupay-node
 # or
 yarn add fiddupay-node
 ```
