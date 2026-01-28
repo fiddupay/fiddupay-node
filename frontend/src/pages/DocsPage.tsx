@@ -252,7 +252,7 @@ const DocsPage: React.FC = () => {
                 <h3>Sign Up</h3>
                 <p>Create your FidduPay merchant account and verify your email address.</p>
                 <div className={styles.codeExample}>
-                  <pre><code>{`curl -X POST https://api.fiddupay.com/v1/merchants/register \\
+                  <pre><code>{`curl -X POST https://api.fiddupay.com/v1/merchant/register \\
   -H "Content-Type: application/json" \\
   -d '{
     "email": "merchant@example.com",
@@ -680,7 +680,7 @@ const DocsPage: React.FC = () => {
             <div className={styles.infoBox}>
               <h3>Webhook Configuration</h3>
               <p>Configure your webhook URL in the merchant dashboard or via API:</p>
-              <code>PUT /v1/merchants/webhook</code>
+              <code>PUT /v1/merchant/webhook</code>
             </div>
 
             <h2>Webhook Events</h2>
@@ -940,7 +940,7 @@ const DocsPage: React.FC = () => {
             <div className={styles.endpoint}>
               <div className={styles.endpointHeader}>
                 <span className={styles.method}>POST</span>
-                <span className={styles.url}>/v1/merchants/register</span>
+                <span className={styles.url}>/v1/merchant/register</span>
                 <span className={styles.description}>Register new merchant</span>
               </div>
 
@@ -962,7 +962,7 @@ const DocsPage: React.FC = () => {
             <div className={styles.endpoint}>
               <div className={styles.endpointHeader}>
                 <span className={styles.method}>GET</span>
-                <span className={styles.url}>/v1/merchants/profile</span>
+                <span className={styles.url}>/v1/merchant/profile</span>
                 <span className={styles.description}>Get merchant profile</span>
               </div>
             </div>
@@ -974,7 +974,7 @@ const DocsPage: React.FC = () => {
               >
                 <div className={styles.endpointMethod}>
                   <span className={styles.methodPut}>PUT</span>
-                  <code>/v1/merchants/wallets</code>
+                  <code>/v1/merchant/wallets</code>
                 </div>
                 <div className={styles.endpointTitle}>Set Wallet Addresses</div>
                 <i className={`fas fa-chevron-${expandedEndpoint === 'set-wallets' ? 'up' : 'down'}`}></i>
@@ -1012,7 +1012,7 @@ const DocsPage: React.FC = () => {
               >
                 <div className={styles.endpointMethod}>
                   <span className={styles.methodPut}>PUT</span>
-                  <code>/v1/merchants/webhook</code>
+                  <code>/v1/merchant/webhook</code>
                 </div>
                 <div className={styles.endpointTitle}>Configure Webhook URL</div>
                 <i className={`fas fa-chevron-${expandedEndpoint === 'set-webhook' ? 'up' : 'down'}`}></i>
@@ -1169,7 +1169,7 @@ const DocsPage: React.FC = () => {
 
               <div className={styles.codeExample}>
                 <h4>Check Remaining Volume</h4>
-                <pre><code>{`GET /api/v1/merchants/profile
+                <pre><code>{`GET /api/v1/merchant/profile
 Authorization: Bearer sk_your_api_key
 
 Response:

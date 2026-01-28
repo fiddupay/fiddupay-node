@@ -16,7 +16,7 @@ export class AnalyticsResource {
     if (params?.granularity) queryParams.append('granularity', params.granularity);
 
     const query = queryParams.toString();
-    const path = query ? `/api/v1/merchants/analytics?${query}` : '/api/v1/merchants/analytics';
+    const path = query ? `/api/v1/merchant/analytics?${query}` : '/api/v1/merchant/analytics';
     
     return this.client.request<Analytics>('GET', path);
   }
@@ -33,6 +33,6 @@ export class AnalyticsResource {
     expires_at: string;
     created_at: string;
   }> {
-    return this.client.request('POST', '/api/v1/merchants/analytics/export', params);
+    return this.client.request('POST', '/api/v1/merchant/analytics/export', params);
   }
 }

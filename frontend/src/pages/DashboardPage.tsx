@@ -253,7 +253,7 @@ const RecentPaymentsList: React.FC = () => {
 
   const loadRecentPayments = async () => {
     try {
-      const response = await paymentAPI.getHistory({ page: 1, page_size: 5 })
+      const response = await paymentAPI.getHistory({ limit: 5, offset: 0 })
       setPayments(response.data || [])
     } catch (error) {
       console.error('Failed to load recent payments:', error)

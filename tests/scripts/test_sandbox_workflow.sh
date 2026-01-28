@@ -50,7 +50,7 @@ check_server() {
 register_merchant() {
     log "Step 1: Registering merchant..."
     
-    local response=$(curl -s -X POST "$BASE_URL/api/v1/merchants/register" \
+    local response=$(curl -s -X POST "$BASE_URL/api/v1/merchant/register" \
         -H "Content-Type: application/json" \
         -d "{
             \"business_name\": \"$TEST_BUSINESS\",
@@ -97,7 +97,7 @@ enable_sandbox() {
 configure_wallet() {
     log "Step 3: Configuring wallet..."
     
-    local response=$(curl -s -X PUT "$BASE_URL/api/v1/merchants/wallets" \
+    local response=$(curl -s -X PUT "$BASE_URL/api/v1/merchant/wallets" \
         -H "Authorization: Bearer $API_KEY" \
         -H "Content-Type: application/json" \
         -d '{
@@ -116,7 +116,7 @@ configure_wallet() {
 set_webhook() {
     log "Step 4: Setting webhook..."
     
-    local response=$(curl -s -X PUT "$BASE_URL/api/v1/merchants/webhook" \
+    local response=$(curl -s -X PUT "$BASE_URL/api/v1/merchant/webhook" \
         -H "Authorization: Bearer $API_KEY" \
         -H "Content-Type: application/json" \
         -d '{

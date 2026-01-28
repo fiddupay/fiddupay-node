@@ -107,11 +107,11 @@ const withdrawals = await apiService.getWithdrawals();
 ### Supported API Endpoints
 
 #### Authentication & Merchant Management
-- `POST /api/v1/merchants/login` - User login
-- `POST /api/v1/merchants/register` - User registration
-- `GET /api/v1/merchants/profile` - Get merchant profile
-- `POST /api/v1/merchants/environment/switch` - Switch environment
-- `POST /api/v1/merchants/api-keys/generate` - Generate API key
+- `POST /api/v1/merchant/login` - User login
+- `POST /api/v1/merchant/register` - User registration
+- `GET /api/v1/merchant/profile` - Get merchant profile
+- `POST /api/v1/merchant/environment/switch` - Switch environment
+- `POST /api/v1/merchant/api-keys/generate` - Generate API key
 
 #### Payment Management
 - `POST /api/v1/payments` - Create payment (with `amount_usd` or `amount`)
@@ -134,8 +134,8 @@ const withdrawals = await apiService.getWithdrawals();
 - `PUT /api/v1/security/settings` - Update security settings
 
 #### Balance & Withdrawals
-- `GET /api/v1/merchants/balance` - Get current balance
-- `GET /api/v1/merchants/balance/history` - Get balance history
+- `GET /api/v1/merchant/balance` - Get current balance
+- `GET /api/v1/merchant/balance/history` - Get balance history
 - `POST /api/v1/withdrawals` - Create withdrawal
 - `GET /api/v1/withdrawals` - List withdrawals
 - `POST /api/v1/withdrawals/:id/cancel` - Cancel withdrawal

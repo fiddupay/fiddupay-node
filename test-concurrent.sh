@@ -16,7 +16,7 @@ test_registration() {
     local email="concurrent-test-${id}-${timestamp}@test.com"
     
     echo "Testing registration $id..."
-    local response=$(curl -s -w "HTTP_CODE:%{http_code}" -X POST $BASE_URL/api/v1/merchants/register \
+    local response=$(curl -s -w "HTTP_CODE:%{http_code}" -X POST $BASE_URL/api/v1/merchant/register \
       -H "Content-Type: application/json" \
       -d "{\"email\":\"$email\",\"business_name\":\"Concurrent Test $id\",\"password\":\"TestPassword123!\"}")
     

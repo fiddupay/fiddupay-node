@@ -36,7 +36,7 @@ info:
     - Real-time threat detection
     - Account lockout protection
     
-  version: 2.0.0
+  version: 2.3.6
   contact:
     name: FidduPay Support
     email: support@fiddupay.com
@@ -58,6 +58,8 @@ servers:
 tags:
   - name: Health
     description: Service health check and system status
+  - name: Admin
+    description: Administrative functions for platform management
   - name: Authentication
     description: Merchant registration, login, and API key management
   - name: Payments
@@ -88,6 +90,12 @@ components:
       scheme: bearer
       bearerFormat: API Key
       description: API key authentication. Get your API key from the merchant dashboard.
+    
+    AdminSession:
+      type: apiKey
+      in: cookie
+      name: admin_session
+      description: Admin session cookie authentication
 
   schemas:
     Error:
@@ -639,6 +647,71 @@ components:
         message:
           type: string
           example: "Operation completed successfully"
+
+    MerchantSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        business_name:
+          type: string
+          example: "My Crypto Store"
+        email:
+          type: string
+          example: "merchant@example.com"
+        status:
+          type: string
+          enum: [active, suspended, pending]
+          example: "active"
+        total_payments:
+          type: integer
+          example: 45
+        total_volume:
+          type: string
+          example: "12500.75"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-01-26T06:00:00Z"
+
+    MerchantDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        business_name:
+          type: string
+          example: "My Crypto Store"
+        email:
+          type: string
+          example: "merchant@example.com"
+        status:
+          type: string
+          enum: [active, suspended, pending]
+          example: "active"
+        total_payments:
+          type: integer
+          example: 45
+        total_volume:
+          type: string
+          example: "12500.75"
+        api_key:
+          type: string
+          example: "sk_live_1234567890abcdef"
+        webhook_url:
+          type: string
+          example: "https://merchant.com/webhook"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-01-26T06:00:00Z"
+        last_login:
+          type: string
+          format: date-time
+          example: "2026-01-26T06:00:00Z"
+
 paths:
   /health:
     get:
@@ -668,7 +741,257 @@ paths:
               schema:
                 $ref: '#/components/schemas/SystemStatus'
 
-  /api/v1/merchants/register:
+  # Admin Authentication
+  /api/v1/admin/login:
+    post:
+      tags:
+        - Admin
+      summary: Admin login
+      description: Authenticate admin user and create session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: "admin"
+                password:
+                  type: string
+                  example: "admin_password"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  session_id:
+                    type: string
+                    example: "sess_1234567890"
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/admin/logout:
+    post:
+      tags:
+        - Admin
+      summary: Admin logout
+      description: Logout admin user and destroy session
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/v1/admin/dashboard:
+    get:
+      tags:
+        - Admin
+      summary: Get admin dashboard
+      description: Get admin dashboard overview with key metrics
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: Dashboard data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_merchants:
+                    type: integer
+                    example: 150
+                  total_payments:
+                    type: integer
+                    example: 5420
+                  total_volume:
+                    type: string
+                    example: "1250000.50"
+                  active_payments:
+                    type: integer
+                    example: 23
+
+  # Admin Merchant Management
+  /api/v1/admin/merchants:
+    get:
+      tags:
+        - Admin
+      summary: Get merchants summary
+      description: Get list of all merchants with summary information
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: Merchants retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  merchants:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MerchantSummary'
+
+  /api/v1/admin/merchants/{merchant_id}:
+    get:
+      tags:
+        - Admin
+      summary: Get merchant details
+      description: Get detailed information about a specific merchant
+      security:
+        - AdminSession: []
+      parameters:
+        - name: merchant_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 123
+      responses:
+        '200':
+          description: Merchant details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantDetails'
+
+  /api/v1/admin/merchants/{merchant_id}/suspend:
+    post:
+      tags:
+        - Admin
+      summary: Suspend merchant
+      description: Suspend a merchant account
+      security:
+        - AdminSession: []
+      parameters:
+        - name: merchant_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  example: "Suspicious activity detected"
+      responses:
+        '200':
+          description: Merchant suspended successfully
+
+  /api/v1/admin/merchants/{merchant_id}/activate:
+    post:
+      tags:
+        - Admin
+      summary: Activate merchant
+      description: Activate a suspended merchant account
+      security:
+        - AdminSession: []
+      parameters:
+        - name: merchant_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 123
+      responses:
+        '200':
+          description: Merchant activated successfully
+
+  /api/v1/admin/merchants/{merchant_id}:
+    delete:
+      tags:
+        - Admin
+      summary: Delete merchant
+      description: Delete a merchant account (irreversible)
+      security:
+        - AdminSession: []
+      parameters:
+        - name: merchant_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 123
+      responses:
+        '200':
+          description: Merchant deleted successfully
+
+  # Admin Security Management
+  /api/v1/admin/security/events:
+    get:
+      tags:
+        - Admin
+      summary: Get security events
+      description: Get list of security events and incidents
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: Security events retrieved successfully
+
+  /api/v1/admin/security/alerts:
+    get:
+      tags:
+        - Admin
+      summary: Get security alerts
+      description: Get active security alerts
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: Security alerts retrieved successfully
+
+  /api/v1/admin/security/alerts/{alert_id}/acknowledge:
+    post:
+      tags:
+        - Admin
+      summary: Acknowledge security alert
+      description: Mark a security alert as acknowledged
+      security:
+        - AdminSession: []
+      parameters:
+        - name: alert_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 456
+      responses:
+        '200':
+          description: Alert acknowledged successfully
+
+  # Merchant Authentication
+  /api/v1/merchant/register:
     post:
       tags:
         - Authentication
@@ -694,7 +1017,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchants/login:
+  /api/v1/merchant/login:
     post:
       tags:
         - Authentication
@@ -720,7 +1043,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchants/profile:
+  /api/v1/merchant/profile:
     get:
       tags:
         - Authentication
@@ -742,7 +1065,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchants/environment/switch:
+  /api/v1/merchant/environment/switch:
     post:
       tags:
         - Authentication
@@ -783,7 +1106,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchants/api-keys/generate:
+  /api/v1/merchant/api-keys/generate:
     post:
       tags:
         - Authentication
@@ -821,7 +1144,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchants/api-keys/rotate:
+  /api/v1/merchant/api-keys/rotate:
     post:
       tags:
         - Authentication
@@ -1086,7 +1409,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchants/wallets:
+  /api/v1/merchant/wallets:
     put:
       tags:
         - Wallets
@@ -1120,7 +1443,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchants/webhook:
+  /api/v1/merchant/webhook:
     put:
       tags:
         - Wallets
@@ -1574,7 +1897,7 @@ paths:
               schema:
                 type: string
 
-  /api/v1/merchants/balance:
+  /api/v1/merchant/balance:
     get:
       tags:
         - Balance
@@ -1590,7 +1913,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/BalanceResponse'
 
-  /api/v1/merchants/balance/history:
+  /api/v1/merchant/balance/history:
     get:
       tags:
         - Balance
@@ -1698,7 +2021,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/SecurityEvent'
 
-  /api/v1/merchants/ip-whitelist:
+  /api/v1/merchant/ip-whitelist:
     put:
       tags:
         - Security

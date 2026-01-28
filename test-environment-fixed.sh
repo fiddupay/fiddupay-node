@@ -19,7 +19,7 @@ echo "1. Registering merchant (default sandbox)..."
 TIMESTAMP=$(date +%s)
 EMAIL="env-test-${TIMESTAMP}@test.com"
 
-REGISTER_RESPONSE=$(curl -s -X POST $BASE_URL/api/v1/merchants/register \
+REGISTER_RESPONSE=$(curl -s -X POST $BASE_URL/api/v1/merchant/register \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$EMAIL\",\"business_name\":\"Env Test $TIMESTAMP\",\"password\":\"TestPassword123!\"}")
 
@@ -43,7 +43,7 @@ fi
 
 # Test 2: Switch to live environment
 echo "2. Switching to live environment..."
-SWITCH_RESPONSE=$(curl -s -X POST $BASE_URL/api/v1/merchants/environment/switch \
+SWITCH_RESPONSE=$(curl -s -X POST $BASE_URL/api/v1/merchant/environment/switch \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $SANDBOX_KEY" \
   -d '{"to_live": true}')
@@ -65,7 +65,7 @@ fi
 
 # Test 3: Switch back to sandbox
 echo "3. Switching back to sandbox..."
-SWITCH_BACK_RESPONSE=$(curl -s -X POST $BASE_URL/api/v1/merchants/environment/switch \
+SWITCH_BACK_RESPONSE=$(curl -s -X POST $BASE_URL/api/v1/merchant/environment/switch \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $LIVE_KEY" \
   -d '{"to_live": false}')

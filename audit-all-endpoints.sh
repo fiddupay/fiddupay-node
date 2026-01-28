@@ -20,7 +20,7 @@ echo "=========================="
 
 # Public endpoints (no auth required)
 echo "🌐 PUBLIC ENDPOINTS (9):"
-grep -E "^(/health|/pay|/api/v1/merchants/(register|login)|/api/v1/currencies|/api/v1/(status|blog|careers))" /tmp/all_backend_endpoints.txt | nl
+grep -E "^(/health|/pay|/api/v1/merchant/(register|login)|/api/v1/currencies|/api/v1/(status|blog|careers))" /tmp/all_backend_endpoints.txt | nl
 
 # Merchant endpoints (protected, non-admin)
 echo ""
@@ -40,7 +40,7 @@ grep "^/api/v1/admin" /tmp/all_backend_endpoints.txt | nl
 
 echo ""
 echo "📊 SUMMARY: $(wc -l < /tmp/all_backend_endpoints.txt) total endpoints"
-echo "  - Public: $(grep -E "^(/health|/pay|/api/v1/merchants/(register|login)|/api/v1/currencies|/api/v1/(status|blog|careers))" /tmp/all_backend_endpoints.txt | wc -l)"
+echo "  - Public: $(grep -E "^(/health|/pay|/api/v1/merchant/(register|login)|/api/v1/currencies|/api/v1/(status|blog|careers))" /tmp/all_backend_endpoints.txt | wc -l)"
 echo "  - Merchant: $(grep -E "^/api/v1/(merchants|payments|refunds|analytics|withdrawals|wallets|security|audit-logs)" /tmp/all_backend_endpoints.txt | grep -v "admin" | wc -l)"
 echo "  - Sandbox: $(grep "^/api/v1/sandbox" /tmp/all_backend_endpoints.txt | wc -l)"
 echo "  - Admin: $(grep "^/api/v1/admin" /tmp/all_backend_endpoints.txt | wc -l)"

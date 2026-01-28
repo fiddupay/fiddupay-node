@@ -210,7 +210,7 @@ stress_test_endpoint "/metrics" "GET" "" "" "Metrics Stress"
 
 # Test with invalid data to check error handling
 INVALID_DATA='{"invalid":"data"}'
-stress_test_endpoint "/api/v1/merchants/register" "POST" "" "$INVALID_DATA" "Error Handling Stress"
+stress_test_endpoint "/api/v1/merchant/register" "POST" "" "$INVALID_DATA" "Error Handling Stress"
 
 echo " Stress Test Summary"
 echo "====================="

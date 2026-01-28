@@ -62,7 +62,7 @@ async function testAdminAuthentication() {
   
   // Create admin API key (using merchant system for testing)
   try {
-    const registerResponse = await axios.post(`${BASE_URL}/merchants/register`, {
+    const registerResponse = await axios.post(`${BASE_URL}/merchant/register`, {
       email: `admin_test_${Date.now()}@fiddupay.com`,
       business_name: 'Admin Test Business',
       password: 'admin_password_123'
@@ -96,7 +96,7 @@ async function testAdminAuthentication() {
 
   // Test admin merchants summary
   try {
-    const response = await axios.get(`${BASE_URL}/admin/merchants`, {
+    const response = await axios.get(`${BASE_URL}/admin/merchantss`, {
       headers: createAuthHeaders(adminApiKey)
     });
     
@@ -208,7 +208,7 @@ async function testApiKeyManagement() {
   
   // Test generate new API key
   try {
-    const response = await axios.post(`${BASE_URL}/merchants/api-keys/generate`, {
+    const response = await axios.post(`${BASE_URL}/merchant/api-keys/generate`, {
       is_live: false
     }, {
       headers: createAuthHeaders(adminApiKey)

@@ -43,7 +43,7 @@ setup_merchant_with_balance() {
     log "Setting up merchant with balance..."
     
     # Register merchant
-    local response=$(curl -s -X POST "$BASE_URL/api/v1/merchants/register" \
+    local response=$(curl -s -X POST "$BASE_URL/api/v1/merchant/register" \
         -H "Content-Type: application/json" \
         -d "{
             \"business_name\": \"$TEST_BUSINESS\",
@@ -66,7 +66,7 @@ setup_merchant_with_balance() {
     fi
     
     # Configure wallet
-    response=$(curl -s -X PUT "$BASE_URL/api/v1/merchants/wallets" \
+    response=$(curl -s -X PUT "$BASE_URL/api/v1/merchant/wallets" \
         -H "Authorization: Bearer $API_KEY" \
         -H "Content-Type: application/json" \
         -d '{
@@ -98,7 +98,7 @@ setup_merchant_with_balance() {
     success "Payment confirmed - Balance should be available"
     
     # Verify balance
-    response=$(curl -s -X GET "$BASE_URL/api/v1/merchants/balance" \
+    response=$(curl -s -X GET "$BASE_URL/api/v1/merchant/balance" \
         -H "Authorization: Bearer $API_KEY")
     
     local total_usd=$(echo "$response" | jq -r '.total_usd')
@@ -204,7 +204,7 @@ test_withdrawal_listing() {
 test_balance_after_withdrawal() {
     log "Testing balance after withdrawal..."
     
-    local response=$(curl -s -X GET "$BASE_URL/api/v1/merchants/balance" \
+    local response=$(curl -s -X GET "$BASE_URL/api/v1/merchant/balance" \
         -H "Authorization: Bearer $API_KEY")
     
     if echo "$response" | grep -q "error"; then
@@ -225,7 +225,7 @@ test_balance_after_withdrawal() {
 test_balance_history() {
     log "Testing balance history..."
     
-    local response=$(curl -s -X GET "$BASE_URL/api/v1/merchants/balance/history?page=1&page_size=20" \
+    local response=$(curl -s -X GET "$BASE_URL/api/v1/merchant/balance/history?page=1&page_size=20" \
         -H "Authorization: Bearer $API_KEY")
     
     if echo "$response" | grep -q "error"; then

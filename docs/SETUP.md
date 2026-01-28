@@ -154,7 +154,7 @@ curl http://localhost:8080/health
 # {"status":"healthy","timestamp":"2026-01-24T15:30:00Z"}
 
 # Register test merchant
-curl -X POST http://localhost:8080/api/v1/merchants/register \
+curl -X POST http://localhost:8080/api/v1/merchant/register \
   -H "Content-Type: application/json" \
   -d '{
     "business_name": "Test Business",

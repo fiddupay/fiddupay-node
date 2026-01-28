@@ -48,7 +48,7 @@ async function testSandboxDailyVolumeLimit() {
   
   try {
     // Test that sandbox merchants also have daily volume limits
-    const profileResponse = await axios.get(`${BASE_URL}/merchants/profile`, {
+    const profileResponse = await axios.get(`${BASE_URL}/merchant/profile`, {
       headers: createAuthHeaders(testApiKey)
     });
     
@@ -79,7 +79,7 @@ async function setupTestMerchant() {
   console.log('\n🔧 Setting up test merchant...');
   
   try {
-    const response = await axios.post(`${BASE_URL}/merchants/register`, {
+    const response = await axios.post(`${BASE_URL}/merchant/register`, {
       email: TEST_EMAIL,
       business_name: TEST_BUSINESS_NAME,
       password: 'SecurePassword123!'
@@ -131,7 +131,7 @@ async function testSandboxEnvironmentSwitch() {
   
   // Test switch to live
   try {
-    const liveResponse = await axios.post(`${BASE_URL}/merchants/environment/switch`, {
+    const liveResponse = await axios.post(`${BASE_URL}/merchant/environment/switch`, {
       to_live: true
     }, {
       headers: createAuthHeaders(testApiKey)
@@ -156,7 +156,7 @@ async function testSandboxEnvironmentSwitch() {
   
   // Test switch back to sandbox
   try {
-    const sandboxResponse = await axios.post(`${BASE_URL}/merchants/environment/switch`, {
+    const sandboxResponse = await axios.post(`${BASE_URL}/merchant/environment/switch`, {
       to_live: false
     }, {
       headers: createAuthHeaders(liveApiKey)
@@ -186,7 +186,7 @@ async function testSandboxDataIsolation() {
   
   for (const wallet of wallets) {
     try {
-      await axios.put(`${BASE_URL}/merchants/wallets`, wallet, {
+      await axios.put(`${BASE_URL}/merchant/wallets`, wallet, {
         headers: createAuthHeaders(testApiKey)
       });
     } catch (error) {
@@ -367,7 +367,7 @@ async function testSandboxTestDataGeneration() {
   
   for (let i = 0; i < cryptoTypes.length; i++) {
     try {
-      await axios.put(`${BASE_URL}/merchants/wallets`, {
+      await axios.put(`${BASE_URL}/merchant/wallets`, {
         crypto_type: cryptoTypes[i],
         address: addresses[i]
       }, {
@@ -457,7 +457,7 @@ async function testSandboxWebhooks() {
   
   // Set a test webhook URL
   try {
-    const webhookResponse = await axios.put(`${BASE_URL}/merchants/webhook`, {
+    const webhookResponse = await axios.put(`${BASE_URL}/merchant/webhook`, {
       url: 'https://webhook.site/test-sandbox-webhook'
     }, {
       headers: createAuthHeaders(testApiKey)
@@ -501,7 +501,7 @@ async function testSandboxSecurity() {
   
   // Test sandbox mode verification
   try {
-    const profileResponse = await axios.get(`${BASE_URL}/merchants/profile`, {
+    const profileResponse = await axios.get(`${BASE_URL}/merchant/profile`, {
       headers: createAuthHeaders(testApiKey)
     });
     

@@ -34,7 +34,7 @@ TIMESTAMP=$(date +%s)
 EMAIL="unit-test-fixed-${TIMESTAMP}@test.com"
 
 echo "Making registration request..."
-RESPONSE=$(curl -s -w "HTTP_CODE:%{http_code}" -X POST $BASE_URL/api/v1/merchants/register \
+RESPONSE=$(curl -s -w "HTTP_CODE:%{http_code}" -X POST $BASE_URL/api/v1/merchant/register \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$EMAIL\",\"business_name\":\"Unit Test Fixed $TIMESTAMP\",\"password\":\"TestPassword123!\"}")
 

@@ -411,6 +411,7 @@ pub async fn complete_refund(
 pub struct AnalyticsQuery {
     pub from_date: Option<chrono::DateTime<chrono::Utc>>,
     pub to_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub granularity: Option<String>, // day, week, month
 }
 
 pub async fn get_analytics(
@@ -420,8 +421,9 @@ pub async fn get_analytics(
 ) -> impl IntoResponse {
     let from = query.from_date.unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
     let to = query.to_date.unwrap_or_else(|| chrono::Utc::now());
+    let granularity = query.granularity.as_deref();
     
-    match state.analytics_service.get_analytics(context.merchant_id, from, to, None, None).await {
+    match state.analytics_service.get_analytics(context.merchant_id, from, to, None, granularity.map(String::from)).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -978,4 +980,69 @@ pub async fn get_pricing_info() -> impl IntoResponse {
     });
 
     (StatusCode::OK, Json(pricing_data)).into_response()
+}
+
+// ============================================================================
+// Invoice Endpoints
+// ============================================================================
+
+#[derive(Deserialize)]
+pub struct CreateInvoiceRequest {
+    pub amount_usd: String,
+    pub description: String,
+    pub due_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub customer_email: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct InvoiceResponse {
+    pub invoice_id: String,
+    pub amount_usd: String,
+    pub description: String,
+    pub status: String,
+    pub payment_url: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub due_date: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+pub async fn create_invoice(
+    Extension(context): Extension<MerchantContext>,
+    Json(request): Json<CreateInvoiceRequest>,
+) -> impl IntoResponse {
+    let invoice_id = nanoid::nanoid!(16);
+    let payment_url = format!("https://pay.fiddupay.com/invoice/{}", invoice_id);
+    
+    let response = InvoiceResponse {
+        invoice_id,
+        amount_usd: request.amount_usd,
+        description: request.description,
+        status: "pending".to_string(),
+        payment_url,
+        created_at: chrono::Utc::now(),
+        due_date: request.due_date,
+    };
+    
+    (StatusCode::CREATED, Json(response)).into_response()
+}
+
+pub async fn list_invoices(
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    let invoices: Vec<InvoiceResponse> = vec![];
+    (StatusCode::OK, Json(json!({
+        "data": invoices,
+        "pagination": {
+            "page": 1,
+            "page_size": 20,
+            "total_pages": 0,
+            "total_count": 0
+        }
+    }))).into_response()
+}
+
+pub async fn get_invoice(
+    Path(invoice_id): Path<String>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    (StatusCode::NOT_FOUND, Json(json!({"error": "Invoice not found"}))).into_response()
 }

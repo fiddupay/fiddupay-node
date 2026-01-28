@@ -135,7 +135,7 @@ run_fixed_test "/nonexistent" "GET" "" "404 Handling" 404
 
 # Test registration with valid data
 REGISTER_DATA='{"business_name":"Test Business","email":"test@example.com","password":"testpass123"}'
-run_fixed_test "/api/v1/merchants/register" "POST" "$REGISTER_DATA" "Registration" 201
+run_fixed_test "/api/v1/merchant/register" "POST" "$REGISTER_DATA" "Registration" 201
 
 echo " Fixed Performance Test Summary"
 echo "================================="
@@ -160,7 +160,7 @@ REG_RESPONSE=$(curl -s -w "%{http_code}" \
     -X POST \
     -H "Content-Type: application/json" \
     -d "$REGISTER_DATA" \
-    "$BASE_URL/api/v1/merchants/register" \
+    "$BASE_URL/api/v1/merchant/register" \
     -o /dev/null)
 echo "   Registration: $REG_RESPONSE $([ "$REG_RESPONSE" = "201" ] && echo "" || [ "$REG_RESPONSE" = "400" ] && echo "⚠️ (validation)" || echo "")"
 

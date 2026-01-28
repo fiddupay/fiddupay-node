@@ -182,7 +182,7 @@ run_concurrent_test "/api/v1" "GET" "" "API Root" 200
 
 # Test 4: Merchant Registration (if endpoint exists)
 REGISTER_DATA='{"business_name":"Load Test Business","email":"loadtest@example.com","password":"testpass123"}'
-run_concurrent_test "/api/v1/merchants/register" "POST" "$REGISTER_DATA" "Merchant Registration" 201
+run_concurrent_test "/api/v1/merchant/register" "POST" "$REGISTER_DATA" "Merchant Registration" 201
 
 # Test 5: Invalid Endpoint (404 handling)
 run_concurrent_test "/api/v1/nonexistent" "GET" "" "404 Handling" 404

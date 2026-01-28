@@ -6,7 +6,7 @@ echo ""
 
 # Create a test merchant first
 echo "🔧 Creating test merchant..."
-RESPONSE=$(curl -s -X POST http://127.0.0.1:8080/api/v1/merchants/register \
+RESPONSE=$(curl -s -X POST http://127.0.0.1:8080/api/v1/merchant/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin_test_'$(date +%s)'@fiddupay.com",
@@ -63,10 +63,10 @@ test_endpoint() {
 echo ""
 echo "🏛️ ADMIN DASHBOARD & MANAGEMENT:"
 test_endpoint "GET" "/admin/dashboard" "Admin Dashboard"
-test_endpoint "GET" "/admin/merchants" "Admin Merchants Summary"
-test_endpoint "GET" "/admin/merchants/1" "Admin Merchant Details"
-test_endpoint "POST" "/admin/merchants/1/suspend" "Suspend Merchant" '{}'
-test_endpoint "POST" "/admin/merchants/1/activate" "Activate Merchant" '{}'
+test_endpoint "GET" "/admin/merchantss" "Admin Merchants Summary"
+test_endpoint "GET" "/admin/merchantss/1" "Admin Merchant Details"
+test_endpoint "POST" "/admin/merchantss/1/suspend" "Suspend Merchant" '{}'
+test_endpoint "POST" "/admin/merchantss/1/activate" "Activate Merchant" '{}'
 
 echo ""
 echo "🔒 ADMIN SECURITY MANAGEMENT:"

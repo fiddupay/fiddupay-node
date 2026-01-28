@@ -4,7 +4,7 @@ const BASE_URL = 'http://127.0.0.1:8080/api/v1';
 
 // Get admin session token
 async function getAdminToken() {
-  const response = await axios.post(`${BASE_URL}/merchants/login`, {
+  const response = await axios.post(`${BASE_URL}/merchant/login`, {
     email: 'superadmin@fiddupay.com',
     password: 'dummy'
   });
@@ -28,7 +28,7 @@ async function testAllAdminEndpoints() {
   const endpoints = [
     // Dashboard & Management (5 endpoints)
     { method: 'GET', url: '/admin/dashboard', name: 'Admin Dashboard' },
-    { method: 'GET', url: '/admin/merchants', name: 'Merchants Summary' },
+    { method: 'GET', url: '/admin/merchantss', name: 'Merchants Summary' },
     { method: 'GET', url: '/admin/merchants/1', name: 'Merchant Details' },
     { method: 'POST', url: '/admin/merchants/1/suspend', name: 'Suspend Merchant' },
     { method: 'POST', url: '/admin/merchants/1/activate', name: 'Activate Merchant' },

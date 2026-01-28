@@ -4,6 +4,9 @@
 pub mod routes;
 pub mod handlers;
 pub mod admin_handlers;
+pub mod merchant_handlers;
+pub mod admin_routes;
+pub mod merchant_routes;
 pub mod state;
 pub mod wallet_management;
 pub mod security_monitoring;

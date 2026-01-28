@@ -107,7 +107,7 @@ export class HttpClient {
     }
 
     // Don't add Authorization header for registration endpoint or registration key
-    if (path !== '/api/v1/merchants/register' && this.apiKey !== 'registration_key') {
+    if (path !== '/api/v1/merchant/register' && this.apiKey !== 'registration_key') {
       config.headers = {
         'Authorization': `Bearer ${this.apiKey}`
       };

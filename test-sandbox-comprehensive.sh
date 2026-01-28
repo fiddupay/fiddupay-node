@@ -38,7 +38,7 @@ test_registration() {
     for i in $(seq 1 $max_retries); do
         echo "Registration attempt $i/$max_retries..."
         
-        RESPONSE=$(timeout 10s curl -s -X POST $BASE_URL/api/v1/merchants/register \
+        RESPONSE=$(timeout 10s curl -s -X POST $BASE_URL/api/v1/merchant/register \
           -H "Content-Type: application/json" \
           -d "{\"email\":\"$email\",\"business_name\":\"$business_name\",\"password\":\"TestPassword123!\"}")
         

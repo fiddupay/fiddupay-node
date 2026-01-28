@@ -57,7 +57,7 @@ setup_merchant() {
     log "1. Setting up merchant account..."
     
     # Register merchant
-    local response=$(curl -s -X POST "$BASE_URL/api/v1/merchants/register" \
+    local response=$(curl -s -X POST "$BASE_URL/api/v1/merchant/register" \
         -H "Content-Type: application/json" \
         -d "{
             \"business_name\": \"$TEST_BUSINESS\",
@@ -75,7 +75,7 @@ setup_merchant() {
     success "Merchant registered - ID: $MERCHANT_ID"
     
     # Configure wallet
-    response=$(curl -s -X PUT "$BASE_URL/api/v1/merchants/wallets" \
+    response=$(curl -s -X PUT "$BASE_URL/api/v1/merchant/wallets" \
         -H "Authorization: Bearer $API_KEY" \
         -H "Content-Type: application/json" \
         -d '{
@@ -90,7 +90,7 @@ setup_merchant() {
     success "Wallet configured"
     
     # Set webhook
-    response=$(curl -s -X PUT "$BASE_URL/api/v1/merchants/webhook" \
+    response=$(curl -s -X PUT "$BASE_URL/api/v1/merchant/webhook" \
         -H "Authorization: Bearer $API_KEY" \
         -H "Content-Type: application/json" \
         -d '{
@@ -259,7 +259,7 @@ test_security_features() {
     log "6. Testing security features..."
     
     # API key rotation
-    local response=$(curl -s -X POST "$BASE_URL/api/v1/merchants/api-keys/rotate" \
+    local response=$(curl -s -X POST "$BASE_URL/api/v1/merchant/api-keys/rotate" \
         -H "Authorization: Bearer $API_KEY")
     
     if echo "$response" | grep -q "error"; then

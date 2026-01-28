@@ -111,7 +111,7 @@ async fn test_06_get_merchant_no_auth() {
     
     let client = reqwest::Client::new();
     let response = client
-        .get(format!("{}/api/v1/merchants/me", BASE_URL))
+        .get(format!("{}/api/v1/merchant/me", BASE_URL))
         .send()
         .await
         .unwrap();

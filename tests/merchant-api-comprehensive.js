@@ -47,7 +47,7 @@ async function testDailyVolumeLimit() {
   
   try {
     // Test merchant profile includes KYC status and daily volume info
-    const profileResponse = await axios.get(`${BASE_URL}/merchants/profile`, {
+    const profileResponse = await axios.get(`${BASE_URL}/merchant/profile`, {
       headers: createAuthHeaders(testApiKey)
     });
     
@@ -79,7 +79,7 @@ async function testMerchantRegistration() {
   console.log('\n📝 Testing Merchant Registration...');
   
   try {
-    const response = await axios.post(`${BASE_URL}/merchants/register`, {
+    const response = await axios.post(`${BASE_URL}/merchant/register`, {
       email: TEST_EMAIL,
       business_name: TEST_BUSINESS_NAME,
       password: 'SecurePassword123!'
@@ -101,7 +101,7 @@ async function testMerchantLogin() {
   console.log('\n🔐 Testing Merchant Login...');
   
   try {
-    const response = await axios.post(`${BASE_URL}/merchants/login`, {
+    const response = await axios.post(`${BASE_URL}/merchant/login`, {
       email: TEST_EMAIL,
       password: 'SecurePassword123!'
     });
@@ -120,7 +120,7 @@ async function testGetMerchantProfile() {
   console.log('\n👤 Testing Get Merchant Profile...');
   
   try {
-    const response = await axios.get(`${BASE_URL}/merchants/profile`, {
+    const response = await axios.get(`${BASE_URL}/merchant/profile`, {
       headers: createAuthHeaders(testApiKey)
     });
     
@@ -147,7 +147,7 @@ async function testWalletConfiguration() {
   
   for (const config of walletConfigs) {
     try {
-      const response = await axios.put(`${BASE_URL}/merchants/wallets`, config, {
+      const response = await axios.put(`${BASE_URL}/merchant/wallets`, config, {
         headers: createAuthHeaders(testApiKey)
       });
       
@@ -166,7 +166,7 @@ async function testWebhookConfiguration() {
   console.log('\n🔗 Testing Webhook Configuration...');
   
   try {
-    const response = await axios.put(`${BASE_URL}/merchants/webhook`, {
+    const response = await axios.put(`${BASE_URL}/merchant/webhook`, {
       url: 'https://webhook.site/test-webhook-url'
     }, {
       headers: createAuthHeaders(testApiKey)
@@ -437,7 +437,7 @@ async function testApiKeyManagement() {
   console.log('\n🔑 Testing API Key Management...');
   
   try {
-    const generateResponse = await axios.post(`${BASE_URL}/merchants/api-keys/generate`, {
+    const generateResponse = await axios.post(`${BASE_URL}/merchant/api-keys/generate`, {
       is_live: false
     }, {
       headers: createAuthHeaders(testApiKey)
@@ -455,7 +455,7 @@ async function testApiKeyManagement() {
   }
   
   try {
-    const rotateResponse = await axios.post(`${BASE_URL}/merchants/api-keys/rotate`, {}, {
+    const rotateResponse = await axios.post(`${BASE_URL}/merchant/api-keys/rotate`, {}, {
       headers: createAuthHeaders(testApiKey)
     });
     
@@ -475,7 +475,7 @@ async function testEnvironmentSwitching() {
   console.log('\n🔄 Testing Environment Switching...');
   
   try {
-    const response = await axios.post(`${BASE_URL}/merchants/environment/switch`, {
+    const response = await axios.post(`${BASE_URL}/merchant/environment/switch`, {
       to_live: false
     }, {
       headers: createAuthHeaders(testApiKey)
@@ -499,7 +499,7 @@ async function testBalanceOperations() {
   console.log('\n💰 Testing Balance Operations...');
   
   try {
-    const balanceResponse = await axios.get(`${BASE_URL}/merchants/balance`, {
+    const balanceResponse = await axios.get(`${BASE_URL}/merchant/balance`, {
       headers: createAuthHeaders(testApiKey)
     });
     
@@ -513,7 +513,7 @@ async function testBalanceOperations() {
   }
   
   try {
-    const historyResponse = await axios.get(`${BASE_URL}/merchants/balance/history`, {
+    const historyResponse = await axios.get(`${BASE_URL}/merchant/balance/history`, {
       headers: createAuthHeaders(testApiKey)
     });
     
@@ -589,7 +589,7 @@ async function testSecurityFeatures() {
   console.log('\n🔒 Testing Security Features...');
   
   try {
-    const ipResponse = await axios.put(`${BASE_URL}/merchants/ip-whitelist`, {
+    const ipResponse = await axios.put(`${BASE_URL}/merchant/ip-whitelist`, {
       ip_addresses: ['127.0.0.1', '192.168.1.1']
     }, {
       headers: createAuthHeaders(testApiKey)
@@ -605,7 +605,7 @@ async function testSecurityFeatures() {
   }
   
   try {
-    const getIpResponse = await axios.get(`${BASE_URL}/merchants/ip-whitelist`, {
+    const getIpResponse = await axios.get(`${BASE_URL}/merchant/ip-whitelist`, {
       headers: createAuthHeaders(testApiKey)
     });
     

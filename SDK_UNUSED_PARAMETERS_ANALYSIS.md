@@ -139,9 +139,9 @@ export class ResourceName {
 ### **Analytics Enhancements:**
 ```rust
 // Support granularity parameter
-GET /api/v1/merchants/analytics?granularity=day
-GET /api/v1/merchants/analytics?granularity=week
-GET /api/v1/merchants/analytics?granularity=month
+GET /api/v1/merchant/analytics?granularity=day
+GET /api/v1/merchant/analytics?granularity=week
+GET /api/v1/merchant/analytics?granularity=month
 ```
 
 ### **Payment Filtering:**

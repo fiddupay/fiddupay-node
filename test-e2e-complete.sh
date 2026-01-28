@@ -85,7 +85,7 @@ for i in $(seq 1 $MERCHANTS); do
         
         log "${YELLOW} Registering merchant $i: $merchant_email${NC}"
         
-        make_concurrent_request "/api/v1/merchants/register" "POST" \
+        make_concurrent_request "/api/v1/merchant/register" "POST" \
             "{\"email\":\"$merchant_email\",\"business_name\":\"$business_name\",\"password\":\"TestPassword123!\"}" \
             "" "$i"
         
@@ -155,7 +155,7 @@ for i in $(seq 1 $MERCHANTS); do
             # Generate a devnet wallet address (mock for testing)
             wallet_address="DevnetWallet${i}$(openssl rand -hex 16)"
             
-            make_concurrent_request "/api/v1/merchants/wallets" "PUT" \
+            make_concurrent_request "/api/v1/merchant/wallets" "PUT" \
                 "{\"crypto_type\":\"SOL\",\"address\":\"$wallet_address\"}" \
                 "Authorization: Bearer ${API_KEYS[$i]}" "$i"
             

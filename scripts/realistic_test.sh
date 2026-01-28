@@ -212,11 +212,11 @@ realistic_test "/api/v1/merchants" "GET" "" "Merchants Endpoint (Auth Required)"
 
 # Test registration endpoint with valid data
 REGISTER_DATA='{"business_name":"Test Business","email":"test@example.com","password":"testpass123"}'
-realistic_test "/api/v1/merchants/register" "POST" "$REGISTER_DATA" "Merchant Registration" 201
+realistic_test "/api/v1/merchant/register" "POST" "$REGISTER_DATA" "Merchant Registration" 201
 
 # Test registration with invalid data
 INVALID_DATA='{"invalid":"data"}'
-realistic_test "/api/v1/merchants/register" "POST" "$INVALID_DATA" "Invalid Registration Data" 400
+realistic_test "/api/v1/merchant/register" "POST" "$INVALID_DATA" "Invalid Registration Data" 400
 
 # Test 404 handling
 realistic_test "/api/v1/nonexistent" "GET" "" "404 Not Found" 404

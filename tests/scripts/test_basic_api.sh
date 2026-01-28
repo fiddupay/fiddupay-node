@@ -52,7 +52,7 @@ test_health() {
 test_merchant_registration() {
     log "Registering new merchant account..."
     
-    response=$(curl -s -X POST "$BASE_URL/api/v1/merchants/register" \
+    response=$(curl -s -X POST "$BASE_URL/api/v1/merchant/register" \
         -H "Content-Type: application/json" \
         -d "{
             \"email\": \"$TEST_EMAIL\",
@@ -93,7 +93,7 @@ test_unimplemented_endpoints() {
     log "Testing unimplemented endpoints (should return 'Auth middleware required')..."
     
     # Test wallet endpoint
-    response=$(curl -s -X PUT "$BASE_URL/api/v1/merchants/wallets" \
+    response=$(curl -s -X PUT "$BASE_URL/api/v1/merchant/wallets" \
         -H "Authorization: Bearer $API_KEY" \
         -H "Content-Type: application/json" \
         -d '{
@@ -108,7 +108,7 @@ test_unimplemented_endpoints() {
     fi
     
     # Test webhook endpoint
-    response=$(curl -s -X PUT "$BASE_URL/api/v1/merchants/webhook" \
+    response=$(curl -s -X PUT "$BASE_URL/api/v1/merchant/webhook" \
         -H "Authorization: Bearer $API_KEY" \
         -H "Content-Type: application/json" \
         -d '{
@@ -163,7 +163,7 @@ test_payment_list() {
 test_balance() {
     log "Testing balance endpoint..."
     
-    response=$(curl -s "$BASE_URL/api/v1/merchants/balance" \
+    response=$(curl -s "$BASE_URL/api/v1/merchant/balance" \
         -H "Authorization: Bearer $API_KEY")
     
     if echo "$response" | jq -e '.balances' > /dev/null 2>&1; then

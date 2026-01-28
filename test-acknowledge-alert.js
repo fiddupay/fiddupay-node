@@ -3,7 +3,7 @@ const axios = require('axios');
 async function testAcknowledgeAlert() {
   try {
     // Get admin token
-    const loginResponse = await axios.post('http://127.0.0.1:8080/api/v1/merchants/login', {
+    const loginResponse = await axios.post('http://127.0.0.1:8080/api/v1/merchant/login', {
       email: 'superadmin@fiddupay.com',
       password: 'dummy'
     });
