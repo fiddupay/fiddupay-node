@@ -19,7 +19,7 @@ async fn is_server_running() -> bool {
 #[tokio::test]
 async fn test_01_health_endpoint() {
     if !is_server_running().await {
-        println!("⚠️  Server not running, skipping");
+        println!("  Server not running, skipping");
         return;
     }
 

@@ -3,7 +3,7 @@
 # SDK Route Update Script
 # Updates all SDK endpoints to use new /api/v1/merchant/ prefix
 
-echo "🔄 Updating FidduPay SDK routes to v2.5.0..."
+echo " Updating FidduPay SDK routes to v2.5.0..."
 
 # Update analytics.ts
 sed -i 's|/api/v1/analytics|/api/v1/merchant/analytics|g' fiddupay-node-sdk/src/resources/analytics.ts
@@ -35,8 +35,8 @@ sed -i 's|/api/v1/invoices|/api/v1/merchant/invoices|g' fiddupay-node-sdk/src/re
 # Update package.json version
 sed -i 's|"version": "2.4.5"|"version": "2.5.0"|g' fiddupay-node-sdk/package.json
 
-echo "✅ SDK routes updated to v2.5.0"
-echo "📦 Version bumped to 2.5.0"
+echo " SDK routes updated to v2.5.0"
+echo " Version bumped to 2.5.0"
 echo ""
 echo "Next steps:"
 echo "1. cd fiddupay-node-sdk"

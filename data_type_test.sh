@@ -3,7 +3,7 @@
 # Data Type Compatibility Test Script
 # Verifies frontend-backend API data type alignment
 
-echo "🔍 FidduPay Data Type Compatibility Test"
+echo " FidduPay Data Type Compatibility Test"
 echo "========================================"
 
 # Test 1: Payment Creation Request
@@ -19,7 +19,7 @@ echo "  - amount_usd: Option<Decimal>"
 echo "  - crypto_type: CryptoType"
 echo "  - description: Option<String>"
 
-echo "⚠️  MISMATCH: Frontend sends amount_usd as string, backend expects Decimal"
+echo "  MISMATCH: Frontend sends amount_usd as string, backend expects Decimal"
 echo ""
 
 # Test 2: Payment Response
@@ -38,7 +38,7 @@ echo "  - amount: Decimal"
 echo "  - amount_usd: Decimal"
 echo "  - crypto_type: CryptoType (enum)"
 
-echo "⚠️  MISMATCH: Frontend expects string amounts, backend returns Decimal"
+echo "  MISMATCH: Frontend expects string amounts, backend returns Decimal"
 echo ""
 
 # Test 3: Address-Only Payment
@@ -53,7 +53,7 @@ echo "  - crypto_type: CryptoType"
 echo "  - merchant_address: String"
 echo "  - amount: Decimal"
 
-echo "⚠️  MISMATCH: Field name difference (requested_amount vs amount)"
+echo "  MISMATCH: Field name difference (requested_amount vs amount)"
 echo ""
 
 # Test 4: Authentication
@@ -91,7 +91,7 @@ echo "  - page_size: i64"
 echo "  - total_pages: i64"
 echo "  - total: i64"
 
-echo "⚠️  MISMATCH: Structure difference (nested pagination vs flat)"
+echo "  MISMATCH: Structure difference (nested pagination vs flat)"
 echo ""
 
 echo " SUMMARY OF ISSUES FOUND:"

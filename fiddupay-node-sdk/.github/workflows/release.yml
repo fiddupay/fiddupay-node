@@ -55,20 +55,20 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: FidduPay Node.js SDK ${{ github.ref }}
           body: |
-            ## 🚀 FidduPay Node.js SDK ${{ steps.version.outputs.VERSION }}
+            ##  FidduPay Node.js SDK ${{ steps.version.outputs.VERSION }}
             
-            ### ✨ What's New
+            ###  What's New
             - Complete backend API coverage (45+ endpoints)
             - Enhanced security measures
             - Comprehensive testing suite
             - Professional documentation
             
-            ### 📦 Installation
+            ###  Installation
             ```bash
             npm install @fiddupay/fiddupay-node@${{ steps.version.outputs.VERSION }}
             ```
             
-            ### 🔗 Links
+            ###  Links
             - [NPM Package](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
             - [Documentation](https://github.com/fiddupay/fiddupay-node#readme)
             

@@ -251,7 +251,7 @@ if [ $failed_tests -eq 0 ]; then
     exit 0
 else
     echo -e "\n${RED} $failed_tests CORE TEST(S) FAILED${NC}"
-    echo -e "${YELLOW}⚠️ Please fix core issues before deployment${NC}"
+    echo -e "${YELLOW} Please fix core issues before deployment${NC}"
     
     echo -e "\n${BLUE} Troubleshooting Tips:${NC}"
     echo "1. Check database connectivity: psql \$DATABASE_URL"

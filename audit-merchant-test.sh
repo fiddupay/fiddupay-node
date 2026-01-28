@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🔍 MERCHANT TEST COVERAGE AUDIT"
+echo " MERCHANT TEST COVERAGE AUDIT"
 echo "==============================="
 
 # Expected merchant endpoints (43 total)
@@ -60,18 +60,18 @@ grep -o "axios\.[a-z]*(\`[^}]*" /home/vibes/crypto-payment-gateway/tests/merchan
   sed 's/`.*//g' | \
   sort | uniq > /tmp/merchant_test_endpoints.txt
 
-echo "📊 MERCHANT TEST ANALYSIS:"
+echo " MERCHANT TEST ANALYSIS:"
 echo "========================="
 echo "Expected endpoints: $(wc -l < /tmp/expected_merchant_endpoints.txt)"
 echo "Test file endpoints: $(wc -l < /tmp/merchant_test_endpoints.txt)"
 
 echo ""
-echo "❌ MISSING FROM MERCHANT TEST:"
+echo " MISSING FROM MERCHANT TEST:"
 echo "=============================="
 comm -23 /tmp/expected_merchant_endpoints.txt /tmp/merchant_test_endpoints.txt
 
 echo ""
-echo "✅ COVERED IN MERCHANT TEST:"
+echo " COVERED IN MERCHANT TEST:"
 echo "============================"
 comm -12 /tmp/expected_merchant_endpoints.txt /tmp/merchant_test_endpoints.txt | wc -l
 echo "endpoints covered"

@@ -1,10 +1,10 @@
-# 🚀 FidduPay SDK v2.3.6 Migration Guide
+#  FidduPay SDK v2.3.6 Migration Guide
 
-## 📋 Overview
+##  Overview
 
 This guide helps you migrate from previous versions of the FidduPay SDK to v2.3.6, which introduces API centralization with improved endpoint organization and enhanced security.
 
-## 🎯 What Changed
+##  What Changed
 
 ### **API Centralization**
 All merchant endpoints have been reorganized under the `/api/v1/merchant/` prefix for better structure and maintainability.
@@ -15,44 +15,44 @@ All merchant endpoints have been reorganized under the `/api/v1/merchant/` prefi
 - **Sandbox endpoints**: Now use `/api/v1/merchant/sandbox/` prefix
 - **Security endpoints**: Now use `/api/v1/merchant/security/` prefix
 
-## 🛠️ Migration Options
+##  Migration Options
 
 ### **Option 1: SDK Update (Recommended)**
 
-**✅ Easiest Migration**: Update to SDK v2.3.6 - no code changes required!
+** Easiest Migration**: Update to SDK v2.3.6 - no code changes required!
 
 ```bash
 npm install @fiddupay/fiddupay-node@2.3.6
 ```
 
 **Benefits:**
-- ✅ No code changes needed
-- ✅ Automatic endpoint path updates
-- ✅ Enhanced TypeScript support
-- ✅ Improved error handling
-- ✅ Full backward compatibility
+-  No code changes needed
+-  Automatic endpoint path updates
+-  Enhanced TypeScript support
+-  Improved error handling
+-  Full backward compatibility
 
 ### **Option 2: Direct API Migration**
 
 If you're using direct API calls, update your endpoint URLs:
 
-## 📊 Endpoint Migration Table
+##  Endpoint Migration Table
 
 | Category | Old Endpoint | New Endpoint | Status |
 |----------|--------------|--------------|--------|
-| **Merchant Profile** | `/api/v1/merchant/profile` | `/api/v1/merchant/profile` | ✅ Same |
-| **Payments** | `/api/v1/merchant/payments` | `/api/v1/merchant/payments` | ✅ Same |
-| **Analytics** | `/api/v1/merchant/analytics` | `/api/v1/merchant/analytics` | ✅ Same |
-| **Balance** | `/api/v1/merchant/balance` | `/api/v1/merchant/balance` | ✅ Same |
-| **Wallets** | `/api/v1/merchant/wallets` | `/api/v1/merchant/wallets` | ✅ Same |
-| **Refunds** | `/api/v1/merchant/refunds` | `/api/v1/merchant/refunds` | ✅ Same |
-| **Withdrawals** | `/api/v1/merchant/withdrawals` | `/api/v1/merchant/withdrawals` | ✅ Same |
-| **Security Events** | `/api/v1/security/events` | `/api/v1/merchant/security/events` | 🔄 Updated |
-| **Security Alerts** | `/api/v1/security/alerts` | `/api/v1/merchant/security/alerts` | 🔄 Updated |
-| **Sandbox Enable** | `/api/v1/sandbox/enable` | `/api/v1/merchant/sandbox/enable` | 🔄 Updated |
-| **Sandbox Simulate** | `/api/v1/sandbox/payments/{id}/simulate` | `/api/v1/merchant/sandbox/payments/{id}/simulate` | 🔄 Updated |
+| **Merchant Profile** | `/api/v1/merchant/profile` | `/api/v1/merchant/profile` |  Same |
+| **Payments** | `/api/v1/merchant/payments` | `/api/v1/merchant/payments` |  Same |
+| **Analytics** | `/api/v1/merchant/analytics` | `/api/v1/merchant/analytics` |  Same |
+| **Balance** | `/api/v1/merchant/balance` | `/api/v1/merchant/balance` |  Same |
+| **Wallets** | `/api/v1/merchant/wallets` | `/api/v1/merchant/wallets` |  Same |
+| **Refunds** | `/api/v1/merchant/refunds` | `/api/v1/merchant/refunds` |  Same |
+| **Withdrawals** | `/api/v1/merchant/withdrawals` | `/api/v1/merchant/withdrawals` |  Same |
+| **Security Events** | `/api/v1/security/events` | `/api/v1/merchant/security/events` |  Updated |
+| **Security Alerts** | `/api/v1/security/alerts` | `/api/v1/merchant/security/alerts` |  Updated |
+| **Sandbox Enable** | `/api/v1/sandbox/enable` | `/api/v1/merchant/sandbox/enable` |  Updated |
+| **Sandbox Simulate** | `/api/v1/sandbox/payments/{id}/simulate` | `/api/v1/merchant/sandbox/payments/{id}/simulate` |  Updated |
 
-## 🔧 Step-by-Step Migration
+##  Step-by-Step Migration
 
 ### **Step 1: Update SDK Version**
 
@@ -138,7 +138,7 @@ const profile = await fiddupay.merchant.getProfile();
 const balance = await fiddupay.balance.get();
 ```
 
-## 🔍 Verification Checklist
+##  Verification Checklist
 
 ### **Pre-Migration**
 - [ ] Note your current SDK version
@@ -160,15 +160,15 @@ const balance = await fiddupay.balance.get();
 - [ ] Authentication still works
 - [ ] Webhooks are delivered correctly
 
-## 🚨 Common Issues & Solutions
+##  Common Issues & Solutions
 
 ### **Issue 1: Import Errors**
 
 ```javascript
-// ❌ Old import might cause issues
+//  Old import might cause issues
 const FidduPay = require('@fiddupay/fiddupay-node');
 
-// ✅ Use proper import
+//  Use proper import
 import { FidduPay } from '@fiddupay/fiddupay-node';
 // OR
 const { FidduPay } = require('@fiddupay/fiddupay-node');
@@ -177,7 +177,7 @@ const { FidduPay } = require('@fiddupay/fiddupay-node');
 ### **Issue 2: TypeScript Errors**
 
 ```typescript
-// ✅ Update your TypeScript imports
+//  Update your TypeScript imports
 import { 
   FidduPay, 
   MerchantProfile, 
@@ -189,20 +189,20 @@ import {
 ### **Issue 3: Direct API Calls**
 
 ```javascript
-// ❌ Old direct API call
+//  Old direct API call
 fetch('/api/v1/security/events')
 
-// ✅ Updated direct API call
+//  Updated direct API call
 fetch('/api/v1/merchant/security/events')
 
-// ✅ Better: Use SDK method
+//  Better: Use SDK method
 fiddupay.security.getEvents()
 ```
 
 ### **Issue 4: Environment Configuration**
 
 ```javascript
-// ✅ Ensure proper environment setup
+//  Ensure proper environment setup
 const fiddupay = new FidduPay('sk_your_key', {
   baseURL: process.env.NODE_ENV === 'production' 
     ? 'https://api.fiddupay.com'
@@ -210,7 +210,7 @@ const fiddupay = new FidduPay('sk_your_key', {
 });
 ```
 
-## 📊 Feature Comparison
+##  Feature Comparison
 
 ### **Before v2.3.6**
 ```javascript
@@ -233,7 +233,7 @@ await fiddupay.security.getEvents();
 await fiddupay.sandbox.enable();
 ```
 
-## 🔒 Security Considerations
+##  Security Considerations
 
 ### **Authentication**
 - **Merchant endpoints**: Continue using API key authentication
@@ -245,7 +245,7 @@ await fiddupay.sandbox.enable();
 - Rate limiting maintained across all endpoint categories
 - Headers: `X-RateLimit-Remaining`, `X-RateLimit-Reset`
 
-## 🧪 Testing Your Migration
+##  Testing Your Migration
 
 ### **Unit Tests**
 
@@ -298,13 +298,13 @@ describe('Integration Tests', () => {
 });
 ```
 
-## 📈 Performance Impact
+##  Performance Impact
 
 ### **Improvements**
-- ✅ **Better route organization** for improved maintainability
-- ✅ **Enhanced caching** with organized endpoint structure
-- ✅ **Improved monitoring** with clearer metrics
-- ✅ **No performance degradation** from changes
+-  **Better route organization** for improved maintainability
+-  **Enhanced caching** with organized endpoint structure
+-  **Improved monitoring** with clearer metrics
+-  **No performance degradation** from changes
 
 ### **Metrics**
 - **Response times**: Same or better
@@ -312,7 +312,7 @@ describe('Integration Tests', () => {
 - **Throughput**: No impact on request handling
 - **Memory usage**: Optimized with better organization
 
-## 🔮 Future Compatibility
+##  Future Compatibility
 
 ### **Upcoming Features**
 - **Multi-signature wallets**: Enhanced security features
@@ -326,7 +326,7 @@ describe('Integration Tests', () => {
 - **Error codes**: Same error handling approach
 - **Authentication**: API key format unchanged
 
-## 📞 Getting Help
+##  Getting Help
 
 ### **If You Need Assistance**
 
@@ -349,7 +349,7 @@ A: Enhanced security, better organization, improved TypeScript support.
 **Q: What if I have issues?**  
 A: Contact support@fiddupay.com with your specific issue.
 
-## ✅ Migration Success
+##  Migration Success
 
 ### **You've Successfully Migrated When:**
 - [ ] SDK updated to v2.3.6
@@ -359,13 +359,13 @@ A: Contact support@fiddupay.com with your specific issue.
 - [ ] Production deployment successful
 - [ ] All features work as expected
 
-### **Celebrate! 🎉**
+### **Celebrate! **
 You're now using the latest FidduPay SDK with:
-- ✅ Better organized API structure
-- ✅ Enhanced security features
-- ✅ Improved developer experience
-- ✅ Full backward compatibility
-- ✅ Future-ready architecture
+-  Better organized API structure
+-  Enhanced security features
+-  Improved developer experience
+-  Full backward compatibility
+-  Future-ready architecture
 
 ---
 

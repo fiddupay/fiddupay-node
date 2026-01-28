@@ -127,7 +127,7 @@ EOF
     ACTUAL_DURATION=$((END_TIME - START_TIME))
     
     # Analyze results
-    echo "   ⏱️  Actual Duration: ${ACTUAL_DURATION}s"
+    echo "   ⏱  Actual Duration: ${ACTUAL_DURATION}s"
     
     # Combine results
     cat "$RESULTS_DIR"/stress_user_*.txt > "$RESULTS_DIR/all_requests.txt" 2>/dev/null
@@ -174,13 +174,13 @@ EOF
         elif (( $(echo "$RPS >= 100" | bc -l) )); then
             echo "    Good throughput under stress"
         else
-            echo "   ⚠️  Low throughput under stress"
+            echo "     Low throughput under stress"
         fi
         
         if (( $(echo "$SUCCESS_RATE >= 95" | bc -l) )); then
             echo "    Excellent reliability under stress"
         else
-            echo "   ⚠️  Reliability issues under stress"
+            echo "     Reliability issues under stress"
         fi
         
     else

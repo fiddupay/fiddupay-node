@@ -31,7 +31,7 @@ test_fail() {
 }
 
 test_warn() {
-    echo -e "${YELLOW}⚠️  WARN: $1${NC}"
+    echo -e "${YELLOW}  WARN: $1${NC}"
     ((TOTAL++))
 }
 
@@ -310,9 +310,9 @@ else
 fi
 
 echo ""
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║              COMPREHENSIVE TEST RESULTS                    ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
+echo "              COMPREHENSIVE TEST RESULTS                    "
+echo ""
 echo ""
 
 # Calculate security score
@@ -331,11 +331,11 @@ if [ $FAILED -eq 0 ]; then
     echo -e "${GREEN} Ready for production deployment${NC}"
     exit 0
 elif [ $FAILED -le 2 ]; then
-    echo -e "${YELLOW}⚠️  NEAR PERFECT SECURITY${NC}"
+    echo -e "${YELLOW}  NEAR PERFECT SECURITY${NC}"
     echo -e "${YELLOW} Minor issues to address${NC}"
     exit 1
 else
     echo -e "${RED} SECURITY ISSUES DETECTED${NC}"
-    echo -e "${RED}🚨 Critical fixes required${NC}"
+    echo -e "${RED} Critical fixes required${NC}"
     exit 2
 fi

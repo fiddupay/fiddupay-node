@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Fixed Unit Test for API Key Generation
-echo "🔍 Testing API Key Generation (Fixed)"
+echo " Testing API Key Generation (Fixed)"
 echo "====================================="
 
 BASE_URL="http://localhost:8080"

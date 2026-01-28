@@ -47,7 +47,7 @@ mod address_only_integration_tests {
         let address_service = AddressOnlyService::new(db_pool.clone(), gas_service, config.clone());
         let webhook_service = WebhookNotificationService::new(db_pool.clone());
 
-        println!("🧪 Testing Complete Address-Only Flow");
+        println!(" Testing Complete Address-Only Flow");
 
         // Step 1: Create payment request
         println!("\n Step 1: Creating payment request");
@@ -95,13 +95,13 @@ mod address_only_integration_tests {
                 assert!(matches!(updated_payment.status, AddressOnlyStatus::Completed));
             }
             Err(e) => {
-                println!("⚠️ Payment processing failed (expected in test): {}", e);
+                println!(" Payment processing failed (expected in test): {}", e);
                 // This is expected since we don't have actual blockchain connectivity
             }
         }
 
         // Step 3: Test webhook notification
-        println!("\n🔔 Step 3: Testing webhook notification");
+        println!("\n Step 3: Testing webhook notification");
         let webhook_url = "https://httpbin.org/post";
         
         let webhook_result = webhook_service
@@ -110,7 +110,7 @@ mod address_only_integration_tests {
 
         match webhook_result {
             Ok(_) => println!(" Webhook sent successfully"),
-            Err(e) => println!("⚠️ Webhook failed (expected in test): {}", e),
+            Err(e) => println!(" Webhook failed (expected in test): {}", e),
         }
 
         println!("\n Address-Only Flow Test Completed!");
@@ -122,7 +122,7 @@ mod address_only_integration_tests {
         let gas_service = GasFeeService::new(config.clone());
         let address_service = AddressOnlyService::new(db_pool.clone(), gas_service, config.clone());
 
-        println!("🧪 Testing Native Currency Support");
+        println!(" Testing Native Currency Support");
 
         let native_currencies = vec![
             (CryptoType::Eth, "ETH"),
@@ -133,7 +133,7 @@ mod address_only_integration_tests {
         ];
 
         for (crypto_type, name) in native_currencies {
-            println!("\n🔹 Testing {}", name);
+            println!("\n Testing {}", name);
             
             let result = address_service
                 .create_payment_request(
@@ -162,7 +162,7 @@ mod address_only_integration_tests {
         let gas_service = GasFeeService::new(config.clone());
         let address_service = AddressOnlyService::new(db_pool.clone(), gas_service, config.clone());
 
-        println!("🧪 Testing USDT Rejection (Phase 1)");
+        println!(" Testing USDT Rejection (Phase 1)");
 
         let usdt_variants = vec![
             (CryptoType::UsdtEth, "USDT-ETH"),
@@ -173,7 +173,7 @@ mod address_only_integration_tests {
         ];
 
         for (crypto_type, name) in usdt_variants {
-            println!("\n🔹 Testing {} rejection", name);
+            println!("\n Testing {} rejection", name);
             
             let result = address_service
                 .create_payment_request(
@@ -203,7 +203,7 @@ mod address_only_integration_tests {
         let gas_service = GasFeeService::new(config.clone());
         let address_service = AddressOnlyService::new(db_pool.clone(), gas_service, config.clone());
 
-        println!("🧪 Testing Fee Calculation");
+        println!(" Testing Fee Calculation");
 
         let test_amounts = vec![
             (Decimal::new(100, 2), "1.00"), // $1.00
@@ -212,7 +212,7 @@ mod address_only_integration_tests {
         ];
 
         for (amount, description) in test_amounts {
-            println!("\n🔹 Testing amount: ${}", description);
+            println!("\n Testing amount: ${}", description);
             
             let payment = address_service
                 .create_payment_request(

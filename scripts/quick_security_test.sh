@@ -65,9 +65,9 @@ check_feature "HTML Escape Dependency" "grep -q '^html-escape' Cargo.toml"
 check_feature "UUID Dependency" "grep -q '^uuid' Cargo.toml"
 
 echo ""
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║                    TEST RESULTS                            ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
+echo "                    TEST RESULTS                            "
+echo ""
 echo ""
 echo " PASSED: $PASSED"
 echo " TOTAL: $TOTAL"
@@ -82,10 +82,10 @@ if [ $PASSED -eq $TOTAL ]; then
     echo " Ready for production deployment"
 elif [ $PASSED -ge $((TOTAL * 9 / 10)) ]; then
     echo ""
-    echo "⚠️  NEAR PERFECT SECURITY"
+    echo "  NEAR PERFECT SECURITY"
     echo " Minor optimizations possible"
 else
     echo ""
     echo " SECURITY GAPS DETECTED"
-    echo "🚨 Additional fixes needed"
+    echo " Additional fixes needed"
 fi

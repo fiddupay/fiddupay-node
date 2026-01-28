@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Comprehensive Sandbox Test Suite
-echo "🧪 FidduPay Sandbox Test Suite"
+echo " FidduPay Sandbox Test Suite"
 echo "=============================="
 
 BASE_URL="http://localhost:8080"

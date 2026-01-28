@@ -20,7 +20,7 @@ let testResults = [];
 // Helper functions
 function logTest(testName, status, details = '') {
   totalTests++;
-  const statusIcon = status === 'PASS' ? '✅' : '❌';
+  const statusIcon = status === 'PASS' ? '' : '';
   console.log(`${statusIcon} ${testName} ${details}`);
   
   if (status === 'PASS') {
@@ -43,7 +43,7 @@ async function sleep(ms) {
 
 // Test suite functions
 async function testDailyVolumeLimit() {
-  console.log('\n💰 Testing Daily Volume Limit System...');
+  console.log('\n Testing Daily Volume Limit System...');
   
   try {
     // Test merchant profile includes KYC status and daily volume info
@@ -76,7 +76,7 @@ async function testDailyVolumeLimit() {
 }
 
 async function testMerchantRegistration() {
-  console.log('\n📝 Testing Merchant Registration...');
+  console.log('\n Testing Merchant Registration...');
   
   try {
     const response = await axios.post(`${BASE_URL}/merchant/register`, {
@@ -98,7 +98,7 @@ async function testMerchantRegistration() {
 }
 
 async function testMerchantLogin() {
-  console.log('\n🔐 Testing Merchant Login...');
+  console.log('\n Testing Merchant Login...');
   
   try {
     const response = await axios.post(`${BASE_URL}/merchant/login`, {
@@ -117,7 +117,7 @@ async function testMerchantLogin() {
 }
 
 async function testGetMerchantProfile() {
-  console.log('\n👤 Testing Get Merchant Profile...');
+  console.log('\n Testing Get Merchant Profile...');
   
   try {
     const response = await axios.get(`${BASE_URL}/merchant/profile`, {
@@ -135,7 +135,7 @@ async function testGetMerchantProfile() {
 }
 
 async function testWalletConfiguration() {
-  console.log('\n💰 Testing Wallet Configuration...');
+  console.log('\n Testing Wallet Configuration...');
   
   const walletConfigs = [
     { crypto_type: 'SOL', address: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU' },
@@ -163,7 +163,7 @@ async function testWalletConfiguration() {
 }
 
 async function testWebhookConfiguration() {
-  console.log('\n🔗 Testing Webhook Configuration...');
+  console.log('\n Testing Webhook Configuration...');
   
   try {
     const response = await axios.put(`${BASE_URL}/merchant/webhook`, {
@@ -183,7 +183,7 @@ async function testWebhookConfiguration() {
 }
 
 async function testPaymentCreation() {
-  console.log('\n💳 Testing Payment Creation...');
+  console.log('\n Testing Payment Creation...');
   
   const paymentRequest = {
     amount_usd: '100.00',
@@ -210,7 +210,7 @@ async function testPaymentCreation() {
 }
 
 async function testGetPayment() {
-  console.log('\n🔍 Testing Get Payment...');
+  console.log('\n Testing Get Payment...');
   
   if (!testPaymentId) {
     logTest('Get Payment', 'FAIL', 'No payment ID available');
@@ -233,7 +233,7 @@ async function testGetPayment() {
 }
 
 async function testListPayments() {
-  console.log('\n📋 Testing List Payments...');
+  console.log('\n Testing List Payments...');
   
   try {
     const response = await axios.get(`${BASE_URL}/payments`, {
@@ -251,7 +251,7 @@ async function testListPayments() {
 }
 
 async function testPaymentVerification() {
-  console.log('\n✅ Testing Payment Verification...');
+  console.log('\n Testing Payment Verification...');
   
   if (!testPaymentId) {
     logTest('Verify Payment', 'FAIL', 'No payment ID available');
@@ -283,7 +283,7 @@ async function testPaymentVerification() {
 }
 
 async function testRefundCreation() {
-  console.log('\n💸 Testing Refund Creation...');
+  console.log('\n Testing Refund Creation...');
   
   if (!testPaymentId) {
     logTest('Create Refund', 'FAIL', 'No payment ID available');
@@ -334,7 +334,7 @@ async function testRefundCreation() {
 }
 
 async function testGetRefund() {
-  console.log('\n🔍 Testing Get Refund...');
+  console.log('\n Testing Get Refund...');
   
   if (!testRefundId) {
     logTest('Get Refund', 'FAIL', 'No refund ID available');
@@ -357,7 +357,7 @@ async function testGetRefund() {
 }
 
 async function testAnalytics() {
-  console.log('\n📊 Testing Analytics...');
+  console.log('\n Testing Analytics...');
   
   try {
     const response = await axios.get(`${BASE_URL}/analytics`, {
@@ -375,7 +375,7 @@ async function testAnalytics() {
 }
 
 async function testAnalyticsExport() {
-  console.log('\n📈 Testing Analytics Export...');
+  console.log('\n Testing Analytics Export...');
   
   try {
     const response = await axios.get(`${BASE_URL}/analytics/export`, {
@@ -393,7 +393,7 @@ async function testAnalyticsExport() {
 }
 
 async function testSandboxOperations() {
-  console.log('\n🧪 Testing Sandbox Operations...');
+  console.log('\n Testing Sandbox Operations...');
   
   try {
     const enableResponse = await axios.post(`${BASE_URL}/sandbox/enable`, {}, {
@@ -434,7 +434,7 @@ async function testSandboxOperations() {
 }
 
 async function testApiKeyManagement() {
-  console.log('\n🔑 Testing API Key Management...');
+  console.log('\n Testing API Key Management...');
   
   try {
     const generateResponse = await axios.post(`${BASE_URL}/merchant/api-keys/generate`, {
@@ -472,7 +472,7 @@ async function testApiKeyManagement() {
 }
 
 async function testEnvironmentSwitching() {
-  console.log('\n🔄 Testing Environment Switching...');
+  console.log('\n Testing Environment Switching...');
   
   try {
     const response = await axios.post(`${BASE_URL}/merchant/environment/switch`, {
@@ -496,7 +496,7 @@ async function testEnvironmentSwitching() {
 }
 
 async function testBalanceOperations() {
-  console.log('\n💰 Testing Balance Operations...');
+  console.log('\n Testing Balance Operations...');
   
   try {
     const balanceResponse = await axios.get(`${BASE_URL}/merchant/balance`, {
@@ -533,7 +533,7 @@ async function testBalanceOperations() {
 }
 
 async function testWithdrawalOperations() {
-  console.log('\n💸 Testing Withdrawal Operations...');
+  console.log('\n Testing Withdrawal Operations...');
   
   try {
     const createResponse = await axios.post(`${BASE_URL}/withdrawals`, {
@@ -586,7 +586,7 @@ async function testWithdrawalOperations() {
 }
 
 async function testSecurityFeatures() {
-  console.log('\n🔒 Testing Security Features...');
+  console.log('\n Testing Security Features...');
   
   try {
     const ipResponse = await axios.put(`${BASE_URL}/merchant/ip-whitelist`, {
@@ -634,7 +634,7 @@ async function testSecurityFeatures() {
 }
 
 async function testSupportedCurrencies() {
-  console.log('\n💱 Testing Supported Currencies...');
+  console.log('\n Testing Supported Currencies...');
   
   try {
     const response = await axios.get(`${BASE_URL}/currencies/supported`);
@@ -650,7 +650,7 @@ async function testSupportedCurrencies() {
 }
 
 async function testPublicEndpoints() {
-  console.log('\n🌐 Testing Public Endpoints...');
+  console.log('\n Testing Public Endpoints...');
   
   // Health check
   try {
@@ -711,7 +711,7 @@ async function testPublicEndpoints() {
 }
 
 async function testWalletManagement() {
-  console.log('\n🏦 Testing Wallet Management...');
+  console.log('\n Testing Wallet Management...');
   
   try {
     const configResponse = await axios.get(`${BASE_URL}/wallets`, {
@@ -743,7 +743,7 @@ async function testWalletManagement() {
 }
 
 async function testAdvancedWalletFeatures() {
-  console.log('\\n🔧 Testing Advanced Wallet Features...');
+  console.log('\\n Testing Advanced Wallet Features...');
   
   // Test wallet generation
   try {
@@ -830,7 +830,7 @@ async function testAdvancedWalletFeatures() {
 }
 
 async function testAdvancedWithdrawalFeatures() {
-  console.log('\\n💸 Testing Advanced Withdrawal Features...');
+  console.log('\\n Testing Advanced Withdrawal Features...');
   
   // Test withdrawal cancellation (if we have a withdrawal ID)
   if (testWithdrawalId) {
@@ -884,7 +884,7 @@ async function testAdvancedWithdrawalFeatures() {
 }
 
 async function testSecurityMonitoring() {
-  console.log('\\n🔒 Testing Security Monitoring...');
+  console.log('\\n Testing Security Monitoring...');
   
   // Test security events
   try {
@@ -982,7 +982,7 @@ async function testSecurityMonitoring() {
 
 // Main test runner
 async function runComprehensiveMerchantTests() {
-  console.log('🚀 Starting Comprehensive Merchant API Test Suite');
+  console.log(' Starting Comprehensive Merchant API Test Suite');
   console.log('=' .repeat(60));
   
   const startTime = Date.now();
@@ -1020,15 +1020,15 @@ async function runComprehensiveMerchantTests() {
   
   // Print final results
   console.log('\n' + '=' .repeat(60));
-  console.log('📊 TEST RESULTS SUMMARY');
+  console.log(' TEST RESULTS SUMMARY');
   console.log('=' .repeat(60));
-  console.log(`✅ Passed: ${passedTests}/${totalTests} tests`);
-  console.log(`❌ Failed: ${totalTests - passedTests}/${totalTests} tests`);
-  console.log(`⏱️  Duration: ${duration.toFixed(2)} seconds`);
-  console.log(`📈 Success Rate: ${((passedTests / totalTests) * 100).toFixed(1)}%`);
+  console.log(` Passed: ${passedTests}/${totalTests} tests`);
+  console.log(` Failed: ${totalTests - passedTests}/${totalTests} tests`);
+  console.log(`⏱  Duration: ${duration.toFixed(2)} seconds`);
+  console.log(` Success Rate: ${((passedTests / totalTests) * 100).toFixed(1)}%`);
   
   if (testMerchant) {
-    console.log(`\n🔑 Test Merchant Details:`);
+    console.log(`\n Test Merchant Details:`);
     console.log(`   ID: ${testMerchant.id}`);
     console.log(`   Email: ${testMerchant.email}`);
     console.log(`   Business: ${testMerchant.business_name}`);
@@ -1038,13 +1038,13 @@ async function runComprehensiveMerchantTests() {
   // Print failed tests for debugging
   const failedTests = testResults.filter(t => t.status === 'FAIL');
   if (failedTests.length > 0) {
-    console.log('\n❌ FAILED TESTS:');
+    console.log('\n FAILED TESTS:');
     failedTests.forEach(test => {
       console.log(`   • ${test.testName}: ${test.details}`);
     });
   }
   
-  console.log('\n🎯 Test suite completed!');
+  console.log('\n Test suite completed!');
   
   // Exit with appropriate code
   process.exit(passedTests === totalTests ? 0 : 1);
@@ -1053,7 +1053,7 @@ async function runComprehensiveMerchantTests() {
 // Run the test suite
 if (require.main === module) {
   runComprehensiveMerchantTests().catch(error => {
-    console.error('💥 Test suite crashed:', error);
+    console.error(' Test suite crashed:', error);
     process.exit(1);
   });
 }

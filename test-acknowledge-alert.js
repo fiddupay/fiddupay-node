@@ -9,10 +9,10 @@ async function testAcknowledgeAlert() {
     });
     
     const adminToken = loginResponse.data.api_key;
-    console.log('✅ Got admin token:', adminToken.substring(0, 20) + '...');
+    console.log(' Got admin token:', adminToken.substring(0, 20) + '...');
     
     // Test the acknowledge alert endpoint with very short timeout
-    console.log('🔄 Testing acknowledge alert endpoint...');
+    console.log(' Testing acknowledge alert endpoint...');
     
     const response = await axios.post(
       'http://127.0.0.1:8080/api/v1/admin/security/alerts/test_alert/acknowledge',
@@ -23,15 +23,15 @@ async function testAcknowledgeAlert() {
       }
     );
     
-    console.log('✅ Success:', response.status, response.data);
+    console.log(' Success:', response.status, response.data);
     
   } catch (error) {
     if (error.code === 'ECONNABORTED') {
-      console.log('❌ Timeout - endpoint is hanging');
+      console.log(' Timeout - endpoint is hanging');
     } else if (error.response) {
-      console.log('❌ HTTP Error:', error.response.status, error.response.data);
+      console.log(' HTTP Error:', error.response.status, error.response.data);
     } else {
-      console.log('❌ Network Error:', error.message);
+      console.log(' Network Error:', error.message);
     }
   }
 }

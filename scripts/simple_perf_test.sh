@@ -120,7 +120,7 @@ if [ $TOTAL_REQUESTS -gt 0 ]; then
     elif (( $(echo "$SUCCESS_RATE >= 90" | bc -l) )); then
         echo "    EXCELLENT! High success rate under concurrent load"
     else
-        echo "   ⚠️  Some requests failed under concurrent load"
+        echo "     Some requests failed under concurrent load"
     fi
     
     if (( $(echo "$AVG_TIME < 100" | bc -l) )); then
@@ -128,7 +128,7 @@ if [ $TOTAL_REQUESTS -gt 0 ]; then
     elif (( $(echo "$AVG_TIME < 500" | bc -l) )); then
         echo "    GOOD! Average response time under 500ms"
     else
-        echo "   ⚠️  Response times could be improved"
+        echo "     Response times could be improved"
     fi
     
 else
@@ -172,9 +172,9 @@ elif [ "$HEALTH_CODE" = "200" ] && (( $(echo "$SUCCESS_RATE >= 90" | bc -l) )); 
     echo " EXCELLENT PERFORMANCE!"
     echo "    Server is stable and responsive"
     echo "    Handles concurrent load well"
-    echo "   ⚠️  Minor issues under load"
+    echo "     Minor issues under load"
 else
-    echo "⚠️  PERFORMANCE NEEDS ATTENTION"
+    echo "  PERFORMANCE NEEDS ATTENTION"
     echo "    Server has issues under load"
 fi
 

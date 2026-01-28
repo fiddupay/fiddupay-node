@@ -15,7 +15,7 @@ mod fee_toggle_standalone_tests {
         println!("==========================================");
 
         // Test 1: Customer Pays Fee Scenario
-        println!("\n🧪 Test 1: Customer Pays Fee Scenario");
+        println!("\n Test 1: Customer Pays Fee Scenario");
         let merchant_id = 1i64;
         let requested_amount = Decimal::from_str("100.00").unwrap();
         let fee_percentage = Decimal::from_str("0.75").unwrap(); // 0.75%
@@ -39,7 +39,7 @@ mod fee_toggle_standalone_tests {
         println!(" Customer pays fee calculations verified!");
 
         // Test 2: Merchant Pays Fee Scenario
-        println!("\n🧪 Test 2: Merchant Pays Fee Scenario");
+        println!("\n Test 2: Merchant Pays Fee Scenario");
         let customer_pays_fee = false;
 
         let (customer_amount, merchant_receives, processing_fee) = calculate_fee_amounts(
@@ -60,27 +60,27 @@ mod fee_toggle_standalone_tests {
         println!(" Merchant pays fee calculations verified!");
 
         // Test 3: API Response Structures
-        println!("\n🧪 Test 3: API Response Structures");
+        println!("\n Test 3: API Response Structures");
         test_api_response_structures().await;
 
         // Test 4: Webhook Payload Structures
-        println!("\n🧪 Test 4: Webhook Payload Structures");
+        println!("\n Test 4: Webhook Payload Structures");
         test_webhook_payload_structures().await;
 
         // Test 5: Multi-Crypto Fee Scenarios
-        println!("\n🧪 Test 5: Multi-Crypto Fee Scenarios");
+        println!("\n Test 5: Multi-Crypto Fee Scenarios");
         test_multi_crypto_scenarios().await;
 
         // Test 6: Error Scenarios
-        println!("\n🧪 Test 6: Error Scenarios");
+        println!("\n Test 6: Error Scenarios");
         test_error_scenarios().await;
 
         // Test 7: WebSocket Notifications
-        println!("\n🧪 Test 7: WebSocket Notifications");
+        println!("\n Test 7: WebSocket Notifications");
         test_websocket_notifications().await;
 
         // Test 8: Payment Expiration
-        println!("\n🧪 Test 8: Payment Expiration Scenarios");
+        println!("\n Test 8: Payment Expiration Scenarios");
         test_expiration_scenarios().await;
 
         println!("\n **ALL COMPREHENSIVE E2E TESTS PASSED!**");
@@ -223,7 +223,7 @@ mod fee_toggle_standalone_tests {
         ];
 
         for (crypto, amount, fee, customer_total, merchant_net) in crypto_scenarios {
-            println!("   🔍 Testing {} payments:", crypto);
+            println!("    Testing {} payments:", crypto);
             println!("     Amount: {} {}", amount, crypto);
             println!("     Fee: {} {}", fee, crypto);
             println!("     Customer Pays (with fee): {} {}", customer_total, crypto);
@@ -256,7 +256,7 @@ mod fee_toggle_standalone_tests {
         ];
 
         for (scenario, expected, received, customer_pays_fee, should_succeed) in error_scenarios {
-            println!("   🔍 Testing: {}", scenario);
+            println!("    Testing: {}", scenario);
             println!("     Expected: {} ETH, Received: {} ETH", expected, received);
             
             let expected_decimal = Decimal::from_str(expected).unwrap();
@@ -302,7 +302,7 @@ mod fee_toggle_standalone_tests {
                 }
             });
 
-            println!("   📡 {} - {} - Customer pays: {}", event, status, customer_pays_fee);
+            println!("    {} - {} - Customer pays: {}", event, status, customer_pays_fee);
             assert_eq!(ws_message["data"]["customer_pays_fee"].as_bool().unwrap(), customer_pays_fee);
         }
 
@@ -320,7 +320,7 @@ mod fee_toggle_standalone_tests {
         ];
 
         for (scenario, customer_pays_fee, final_status) in expiration_scenarios {
-            println!("   🔍 Testing: {} - Status: {}", scenario, final_status);
+            println!("    Testing: {} - Status: {}", scenario, final_status);
             
             let expiration_webhook = json!({
                 "event": "address_only_payment_status",

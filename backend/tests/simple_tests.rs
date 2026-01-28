@@ -7,7 +7,7 @@ mod phase1_tests {
 
     #[test]
     fn test_key_generator_evm() {
-        println!("🧪 Testing EVM wallet generation...");
+        println!(" Testing EVM wallet generation...");
         
         let result = KeyGenerator::generate_evm_wallet();
         assert!(result.is_ok(), "EVM wallet generation should succeed");
@@ -22,7 +22,7 @@ mod phase1_tests {
 
     #[test]
     fn test_key_generator_solana() {
-        println!("🧪 Testing Solana wallet generation...");
+        println!(" Testing Solana wallet generation...");
         
         let result = KeyGenerator::generate_solana_wallet();
         assert!(result.is_ok(), "Solana wallet generation should succeed");
@@ -38,7 +38,7 @@ mod phase1_tests {
     fn test_crypto_type_display() {
         use fiddupay::models::payment::CryptoType;
         
-        println!("🧪 Testing CryptoType display...");
+        println!(" Testing CryptoType display...");
         
         assert_eq!(format!("{}", CryptoType::Sol), "SOL");
         assert_eq!(format!("{}", CryptoType::Eth), "ETH");

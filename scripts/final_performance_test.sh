@@ -27,7 +27,7 @@ if [ -f "src/performance_advanced.rs" ]; then
     if [ $TOTAL_ADVANCED -gt 10 ]; then
         echo "   Comprehensive advanced optimizations implemented"
     else
-        echo "  ⚠️  Some advanced optimizations missing"
+        echo "    Some advanced optimizations missing"
     fi
 else
     echo "   Advanced performance module not found"
@@ -51,7 +51,7 @@ if [ -f "migrations/20240125000001_performance_indexes.sql" ]; then
     if [ $INDEX_COUNT -gt 20 ]; then
         echo "   Comprehensive database indexing"
     else
-        echo "  ⚠️  More indexes recommended"
+        echo "    More indexes recommended"
     fi
 else
     echo "   Performance indexes migration not found"
@@ -64,13 +64,13 @@ echo " Test 3: Main.rs Startup Optimization"
 if grep -q "HighPerformancePool" src/main.rs; then
     echo "   High-performance pool integrated in main.rs"
 else
-    echo "  ⚠️  High-performance pool not integrated"
+    echo "    High-performance pool not integrated"
 fi
 
 if grep -q "performance_advanced" src/main.rs; then
     echo "   Advanced performance module imported"
 else
-    echo "  ⚠️  Advanced performance module not imported"
+    echo "    Advanced performance module not imported"
 fi
 
 # Test 4: Memory Optimization Analysis
@@ -89,7 +89,7 @@ echo "  Buffer reuse patterns: $BUFFER_REUSE"
 if [ $ARC_USAGE -gt 25 ] && [ $ONCECELL_USAGE -gt 0 ]; then
     echo "   Good memory optimization patterns"
 else
-    echo "  ⚠️  Consider more memory optimization"
+    echo "    Consider more memory optimization"
 fi
 
 # Test 5: HTTP Performance
@@ -105,7 +105,7 @@ echo "  TCP keepalive settings: $KEEPALIVE_CONFIG"
 if [ $HTTP_POOL_CONFIG -gt 0 ] && [ $KEEPALIVE_CONFIG -gt 0 ]; then
     echo "   HTTP performance optimized"
 else
-    echo "  ⚠️  HTTP performance could be improved"
+    echo "    HTTP performance could be improved"
 fi
 
 # Test 6: Serialization Performance
@@ -121,7 +121,7 @@ echo "  String interning: $STRING_INTERNING"
 if [ $BUFFER_REUSE_JSON -gt 0 ] && [ $STRING_INTERNING -gt 0 ]; then
     echo "   Serialization optimized"
 else
-    echo "  ⚠️  Serialization could be optimized"
+    echo "    Serialization could be optimized"
 fi
 
 # Test 7: Performance Monitoring
@@ -137,7 +137,7 @@ echo "  Tracing usage: $TRACING_USAGE"
 if [ $PERF_MONITORING -gt 0 ] && [ $TRACING_USAGE -gt 20 ]; then
     echo "   Performance monitoring implemented"
 else
-    echo "  ⚠️  Performance monitoring could be improved"
+    echo "    Performance monitoring could be improved"
 fi
 
 # Final Score Calculation
@@ -199,7 +199,7 @@ elif [ $SCORE -ge 6 ]; then
 elif [ $SCORE -ge 4 ]; then
     echo " GOOD! Solid performance optimizations implemented!"
 else
-    echo "⚠️  NEEDS WORK! More optimizations recommended!"
+    echo "  NEEDS WORK! More optimizations recommended!"
 fi
 
 echo ""

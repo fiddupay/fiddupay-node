@@ -5,32 +5,32 @@
 
 set -e
 
-echo "🚀 FidduPay Merchant API Test Runner"
+echo " FidduPay Merchant API Test Runner"
 echo "===================================="
 
 # Check if Node.js is installed
 if ! command -v node &> /dev/null; then
-    echo "❌ Node.js is not installed. Please install Node.js 16+ to run tests."
+    echo " Node.js is not installed. Please install Node.js 16+ to run tests."
     exit 1
 fi
 
 # Check if backend server is running
-echo "🔍 Checking if FidduPay backend is running..."
+echo " Checking if FidduPay backend is running..."
 if ! curl -s http://127.0.0.1:8080/health > /dev/null; then
-    echo "❌ FidduPay backend server is not running on http://127.0.0.1:8080"
+    echo " FidduPay backend server is not running on http://127.0.0.1:8080"
     echo "   Please start the backend server first:"
     echo "   cd backend && cargo run"
     exit 1
 fi
 
-echo "✅ Backend server is running"
+echo " Backend server is running"
 
 # Navigate to tests directory
 cd tests
 
 # Install dependencies if needed
 if [ ! -d "node_modules" ]; then
-    echo "📦 Installing test dependencies..."
+    echo " Installing test dependencies..."
     npm install
 fi
 
@@ -79,10 +79,10 @@ fi
 # Run the appropriate test suite
 echo ""
 if [ "$TEST_TYPE" = "quick" ]; then
-    echo "⚡ Running Quick Merchant API Tests..."
+    echo " Running Quick Merchant API Tests..."
     node merchant-api-quick.js
 else
-    echo "🧪 Running Comprehensive Merchant API Tests..."
+    echo " Running Comprehensive Merchant API Tests..."
     node merchant-api-comprehensive.js
 fi
 
@@ -91,9 +91,9 @@ TEST_EXIT_CODE=$?
 
 echo ""
 if [ $TEST_EXIT_CODE -eq 0 ]; then
-    echo "🎉 All tests completed successfully!"
+    echo " All tests completed successfully!"
 else
-    echo "💥 Some tests failed. Check the output above for details."
+    echo " Some tests failed. Check the output above for details."
 fi
 
 exit $TEST_EXIT_CODE

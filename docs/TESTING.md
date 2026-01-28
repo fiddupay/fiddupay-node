@@ -6,20 +6,20 @@ Complete testing guide for fiddupay cryptocurrency payment gateway.
 
 ```
 tests/
-├── api_endpoints_test.rs        # API endpoint tests
-├── payment_test.rs              # Payment flow tests
-├── withdrawal_test.rs           # Withdrawal tests
-├── services_test.rs             # Service layer tests
-├── utils_test.rs                # Utility tests
-├── workflows_test.rs            # End-to-end workflows
-├── complete_endpoint_test.rs    # Complete API tests
-├── comprehensive_service_test.rs # Service integration
-├── database_integration_test.rs # Database tests
-├── endpoints_test.rs            # Endpoint validation
-├── full_integration_test.rs     # Full integration
-├── payment_listing_tests.rs     # Payment listing
-├── analytics_service_tests.rs   # Analytics tests
-└── standalone_tests.rs          # Standalone tests
+ api_endpoints_test.rs        # API endpoint tests
+ payment_test.rs              # Payment flow tests
+ withdrawal_test.rs           # Withdrawal tests
+ services_test.rs             # Service layer tests
+ utils_test.rs                # Utility tests
+ workflows_test.rs            # End-to-end workflows
+ complete_endpoint_test.rs    # Complete API tests
+ comprehensive_service_test.rs # Service integration
+ database_integration_test.rs # Database tests
+ endpoints_test.rs            # Endpoint validation
+ full_integration_test.rs     # Full integration
+ payment_listing_tests.rs     # Payment listing
+ analytics_service_tests.rs   # Analytics tests
+ standalone_tests.rs          # Standalone tests
 ```
 
 ## Running Tests

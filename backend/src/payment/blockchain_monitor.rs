@@ -99,7 +99,7 @@ impl BlockchainMonitor for EvmMonitor {
         &self,
         tx_hash: &str,
     ) -> Result<BlockchainTransaction, Box<dyn std::error::Error + Send + Sync>> {
-        info!("🔍 Fetching {} transaction: {}", self.chain_name, tx_hash);
+        info!(" Fetching {} transaction: {}", self.chain_name, tx_hash);
 
         // Build API request URL
         let mut url = format!(
@@ -190,7 +190,7 @@ impl BlockchainMonitor for EvmMonitor {
         address: &str,
         limit: usize,
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
-        info!("📡 Fetching {} transactions for address: {}", self.chain_name, address);
+        info!(" Fetching {} transactions for address: {}", self.chain_name, address);
 
         // Build API request URL for transaction list
         let mut url = format!(

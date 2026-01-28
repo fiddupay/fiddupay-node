@@ -1,6 +1,6 @@
 # FidduPay v2.3.6 - API Centralization Release
 
-## 🎯 Release Overview
+##  Release Overview
 
 **Version**: 2.3.6  
 **Release Date**: January 28, 2026  
@@ -8,7 +8,7 @@
 
 This release implements comprehensive API centralization with improved route organization, enhanced security, and better developer experience.
 
-## 🚀 Major Changes
+##  Major Changes
 
 ### **API Route Centralization**
 - **All merchant endpoints** now use `/api/v1/merchant/` prefix
@@ -19,60 +19,60 @@ This release implements comprehensive API centralization with improved route org
 ### **New Route Structure**
 ```
 /api/v1/                    # Public endpoints
-├── status                  # System status
-├── currencies/supported    # Supported currencies
-├── contact                 # Contact form
-└── pricing                 # Pricing information
+ status                  # System status
+ currencies/supported    # Supported currencies
+ contact                 # Contact form
+ pricing                 # Pricing information
 
 /api/v1/merchant/           # Merchant endpoints (API key auth)
-├── register               # Merchant registration
-├── login                  # Merchant login
-├── profile                # Merchant profile
-├── analytics              # Payment analytics
-├── payments               # Payment management
-├── balance                # Balance information
-├── wallets                # Wallet management
-├── invoices               # Invoice system
-├── refunds                # Refund processing
-├── withdrawals            # Withdrawal management
-├── security/              # Security features
-└── sandbox/               # Sandbox testing
+ register               # Merchant registration
+ login                  # Merchant login
+ profile                # Merchant profile
+ analytics              # Payment analytics
+ payments               # Payment management
+ balance                # Balance information
+ wallets                # Wallet management
+ invoices               # Invoice system
+ refunds                # Refund processing
+ withdrawals            # Withdrawal management
+ security/              # Security features
+ sandbox/               # Sandbox testing
 
 /api/v1/admin/             # Admin endpoints (session auth)
-├── login                  # Admin login
-├── dashboard              # Admin dashboard
-├── security/              # Security monitoring
-├── merchants              # Merchant management
-└── users                  # User management
+ login                  # Admin login
+ dashboard              # Admin dashboard
+ security/              # Security monitoring
+ merchants              # Merchant management
+ users                  # User management
 ```
 
-## 📦 Component Updates
+##  Component Updates
 
 ### **Backend (Rust)**
-- ✅ Route organization with dedicated files
-- ✅ Proper authentication middleware separation
-- ✅ Enhanced security with role-based access
-- ✅ Comprehensive error handling
+-  Route organization with dedicated files
+-  Proper authentication middleware separation
+-  Enhanced security with role-based access
+-  Comprehensive error handling
 
 ### **Frontend (React/TypeScript)**
-- ✅ Updated API service with new endpoints
-- ✅ All components use centralized API calls
-- ✅ Documentation updated with new paths
-- ✅ TypeScript types updated
+-  Updated API service with new endpoints
+-  All components use centralized API calls
+-  Documentation updated with new paths
+-  TypeScript types updated
 
 ### **SDK (Node.js)**
-- ✅ Version 2.3.6 with updated endpoints
-- ✅ All merchant methods use new paths
-- ✅ Sandbox endpoints updated
-- ✅ Backward compatibility maintained
+-  Version 2.3.6 with updated endpoints
+-  All merchant methods use new paths
+-  Sandbox endpoints updated
+-  Backward compatibility maintained
 
 ### **Documentation**
-- ✅ OpenAPI specification updated to v2.3.6
-- ✅ Postman collections updated
-- ✅ Frontend documentation updated
-- ✅ API reference documentation updated
+-  OpenAPI specification updated to v2.3.6
+-  Postman collections updated
+-  Frontend documentation updated
+-  API reference documentation updated
 
-## 🔧 Breaking Changes
+##  Breaking Changes
 
 ### **Endpoint Path Changes**
 **Old Format** → **New Format**
@@ -93,7 +93,7 @@ This release implements comprehensive API centralization with improved route org
 - **Admin endpoints**: Now use session-based authentication
 - **Public endpoints**: No authentication required (unchanged)
 
-## 🛠️ Migration Guide
+##  Migration Guide
 
 ### **For API Users**
 1. Update all merchant endpoint URLs to use `/merchant/` instead of `/merchants/`
@@ -119,22 +119,22 @@ const response = await fetch('/api/v1/merchant/profile', {
 });
 ```
 
-## ✅ Testing & Verification
+##  Testing & Verification
 
 ### **Comprehensive Testing Completed**
-- ✅ All merchant endpoints tested and verified
-- ✅ Admin endpoints with session auth tested
-- ✅ Public endpoints confirmed unchanged
-- ✅ SDK integration tested against live backend
-- ✅ Frontend integration verified
-- ✅ Postman collections validated
+-  All merchant endpoints tested and verified
+-  Admin endpoints with session auth tested
+-  Public endpoints confirmed unchanged
+-  SDK integration tested against live backend
+-  Frontend integration verified
+-  Postman collections validated
 
 ### **Performance Impact**
-- ✅ No performance degradation
-- ✅ Improved route organization for better maintainability
-- ✅ Enhanced security with proper authentication boundaries
+-  No performance degradation
+-  Improved route organization for better maintainability
+-  Enhanced security with proper authentication boundaries
 
-## 🔒 Security Enhancements
+##  Security Enhancements
 
 ### **Authentication Improvements**
 - **Role-based access control** with proper separation
@@ -143,14 +143,14 @@ const response = await fetch('/api/v1/merchant/profile', {
 - **Rate limiting** maintained across all endpoints
 
 ### **Security Features Maintained**
-- ✅ 10/10 security score maintained
-- ✅ XSS and CSRF protection
-- ✅ SQL injection protection
-- ✅ Advanced rate limiting
-- ✅ Real-time threat detection
-- ✅ Account lockout protection
+-  10/10 security score maintained
+-  XSS and CSRF protection
+-  SQL injection protection
+-  Advanced rate limiting
+-  Real-time threat detection
+-  Account lockout protection
 
-## 📋 Deployment Checklist
+##  Deployment Checklist
 
 ### **Pre-Deployment**
 - [x] Backend compilation verified
@@ -167,7 +167,7 @@ const response = await fetch('/api/v1/merchant/profile', {
 - [ ] Validate webhook deliveries
 - [ ] Confirm rate limiting functionality
 
-## 🎉 Benefits
+##  Benefits
 
 ### **For Developers**
 - **Cleaner API structure** with logical endpoint grouping
@@ -181,7 +181,7 @@ const response = await fetch('/api/v1/merchant/profile', {
 - **Improved security** with role-based access control
 - **Enhanced debugging** with clearer error boundaries
 
-## 📞 Support
+##  Support
 
 For questions or issues related to this release:
 - **Documentation**: https://docs.fiddupay.com

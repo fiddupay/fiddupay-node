@@ -88,6 +88,6 @@ if [ $MISSING_COUNT -eq 0 ]; then
     echo ""
     echo " Environment configuration is ready for production!"
 else
-    echo "⚠️  Some critical variables are missing"
+    echo "  Some critical variables are missing"
     echo " Please check your .env file configuration"
 fi

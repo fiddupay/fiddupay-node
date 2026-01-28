@@ -166,7 +166,7 @@ curl -X POST http://localhost:8080/api/v1/merchant/register \
 # {"merchant_id":1,"api_key":"your_api_key_here"}
 ```
 
-## 🐳 Docker Setup
+##  Docker Setup
 
 ### Using Docker Compose
 

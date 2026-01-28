@@ -139,7 +139,7 @@ EOF
             P95_TIME="N/A"
         fi
         
-        echo "   ⏱️  Total Duration: ${TOTAL_DURATION}s"
+        echo "   ⏱  Total Duration: ${TOTAL_DURATION}s"
         echo "    Results:"
         echo "     Total Requests: $TOTAL_REQUESTS"
         echo "     Response Codes:"
@@ -163,7 +163,7 @@ EOF
         
         # Performance assessment
         if [ $STATUS_429 -gt 0 ]; then
-            echo "   ⚠️  Rate limiting detected ($STATUS_429 requests)"
+            echo "     Rate limiting detected ($STATUS_429 requests)"
         fi
         
         if [ $STATUS_500 -gt 0 ]; then
@@ -171,7 +171,7 @@ EOF
         fi
         
         if [ $STATUS_401 -gt 0 ]; then
-            echo "   ℹ️  Authentication required ($STATUS_401 requests)"
+            echo "   ℹ  Authentication required ($STATUS_401 requests)"
         fi
         
         # Overall assessment
@@ -180,7 +180,7 @@ EOF
         elif (( $(echo "$SUCCESS_RATE >= 70" | bc -l 2>/dev/null || echo "0") )); then
             echo "    Good success rate"
         else
-            echo "   ⚠️  Low success rate"
+            echo "     Low success rate"
         fi
         
     else
@@ -237,7 +237,7 @@ echo " Performance Analysis:"
 # Check for rate limiting
 TOTAL_429=$(tail -n +2 "$RESULTS_DIR/summary.csv" | awk -F',' '{sum+=$8} END {print sum+0}')
 if [ $TOTAL_429 -gt 0 ]; then
-    echo "  ⚠️  Rate limiting active: $TOTAL_429 requests rate limited"
+    echo "    Rate limiting active: $TOTAL_429 requests rate limited"
     echo "     This indicates the rate limiting is working correctly"
 fi
 
@@ -265,7 +265,7 @@ echo "   Error handling is working correctly"
 if [ $TOTAL_500 -eq 0 ]; then
     echo "   EXCELLENT: No server errors under concurrent load!"
 else
-    echo "  ⚠️  Server stability needs attention"
+    echo "    Server stability needs attention"
 fi
 
 echo ""

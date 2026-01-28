@@ -24,16 +24,16 @@ log() {
 }
 
 success() {
-    echo -e "${GREEN}✓${NC} $1"
+    echo -e "${GREEN}${NC} $1"
 }
 
 error() {
-    echo -e "${RED}✗${NC} $1"
+    echo -e "${RED}${NC} $1"
     exit 1
 }
 
 warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
+    echo -e "${YELLOW}${NC} $1"
 }
 
 # Test 1: Health Check
@@ -217,10 +217,10 @@ test_404() {
 
 # Main execution
 main() {
-    echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║              fiddupay Basic API Test Suite                    ║${NC}"
-    echo -e "${BLUE}║          (Testing Currently Implemented Features)           ║${NC}"
-    echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${BLUE}${NC}"
+    echo -e "${BLUE}              fiddupay Basic API Test Suite                    ${NC}"
+    echo -e "${BLUE}          (Testing Currently Implemented Features)           ${NC}"
+    echo -e "${BLUE}${NC}"
     echo ""
     
     # Check if server is running
@@ -243,16 +243,16 @@ main() {
     test_404
     
     echo ""
-    echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║                     TESTS COMPLETED!                    ║${NC}"
-    echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${GREEN}${NC}"
+    echo -e "${GREEN}                     TESTS COMPLETED!                    ${NC}"
+    echo -e "${GREEN}${NC}"
     echo ""
     echo -e "${BLUE}Test Summary:${NC}"
     echo "• Server Status:  Running and responding"
     echo "• Merchant Registration:  Working"
     echo "• Authentication:  Working (rejects invalid keys)"
     echo "• Protected Endpoints:  Accessible with valid API key"
-    echo "• Unimplemented Features: ⚠️  Wallet/Webhook setup (placeholders)"
+    echo "• Unimplemented Features:   Wallet/Webhook setup (placeholders)"
     echo ""
     echo -e "${YELLOW}Current Implementation Status:${NC}"
     echo " Health check"
@@ -262,9 +262,9 @@ main() {
     echo " Balance checking"
     echo " Analytics"
     echo " Sandbox mode"
-    echo "⚠️  Wallet configuration (placeholder)"
-    echo "⚠️  Webhook configuration (placeholder)"
-    echo "⚠️  Payment creation (requires wallet setup)"
+    echo "  Wallet configuration (placeholder)"
+    echo "  Webhook configuration (placeholder)"
+    echo "  Payment creation (requires wallet setup)"
     echo ""
     echo -e "${BLUE}Registered Test Merchant:${NC}"
     echo "• Email: $TEST_EMAIL"

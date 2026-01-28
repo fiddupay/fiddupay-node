@@ -90,7 +90,7 @@ EOF
     TOTAL_DURATION=$((END_TIME - START_TIME))
     
     # Analyze results
-    echo "   ⏱️  Total Test Duration: ${TOTAL_DURATION}s"
+    echo "   ⏱  Total Test Duration: ${TOTAL_DURATION}s"
     
     # Combine all results
     cat "$RESULTS_DIR"/user_*_results.txt > "$RESULTS_DIR/combined_results.txt"
@@ -139,7 +139,7 @@ EOF
     elif (( $(echo "$SUCCESS_RATE >= 95.0" | bc -l) )); then
         echo "    Good reliability ($SUCCESS_RATE% success rate)"
     else
-        echo "   ⚠️  Poor reliability ($SUCCESS_RATE% success rate)"
+        echo "     Poor reliability ($SUCCESS_RATE% success rate)"
     fi
     
     if (( $(echo "$P95_TIME < 1.0" | bc -l) )); then
@@ -147,7 +147,7 @@ EOF
     elif (( $(echo "$P95_TIME < 2.0" | bc -l) )); then
         echo "    Good performance (P95 < 2s)"
     else
-        echo "   ⚠️  Slow performance (P95 >= 2s)"
+        echo "     Slow performance (P95 >= 2s)"
     fi
     
     if (( $(echo "$RPS >= 100" | bc -l) )); then
@@ -155,7 +155,7 @@ EOF
     elif (( $(echo "$RPS >= 50" | bc -l) )); then
         echo "    Good throughput ($RPS RPS)"
     else
-        echo "   ⚠️  Low throughput ($RPS RPS)"
+        echo "     Low throughput ($RPS RPS)"
     fi
     
     echo ""
@@ -243,7 +243,7 @@ else
 fi
 
 echo ""
-echo "📈 Performance Grade: $SCORE/9"
+echo " Performance Grade: $SCORE/9"
 
 if [ $SCORE -ge 8 ]; then
     echo " OUTSTANDING! Your endpoints are highly optimized for concurrent load!"
@@ -252,7 +252,7 @@ elif [ $SCORE -ge 6 ]; then
 elif [ $SCORE -ge 4 ]; then
     echo " GOOD! Your endpoints handle concurrent load adequately!"
 else
-    echo "⚠️  NEEDS IMPROVEMENT! Consider optimizing for better concurrent performance!"
+    echo "  NEEDS IMPROVEMENT! Consider optimizing for better concurrent performance!"
 fi
 
 echo ""

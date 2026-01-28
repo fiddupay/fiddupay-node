@@ -44,7 +44,7 @@ impl TestStatus {
             TestStatus::InProgress => "",
             TestStatus::Passed => "",
             TestStatus::Failed => "",
-            TestStatus::Skipped => "⏭️",
+            TestStatus::Skipped => "⏭",
         }
     }
 }
@@ -146,7 +146,7 @@ impl OverallProgress {
         
         if let Some(started) = self.started_at {
             let elapsed = Utc::now().signed_duration_since(started);
-            println!("⏱️ Elapsed Time: {}m {}s", elapsed.num_minutes(), elapsed.num_seconds() % 60);
+            println!("⏱ Elapsed Time: {}m {}s", elapsed.num_minutes(), elapsed.num_seconds() % 60);
         }
         
         println!("\n Phase Progress:");
@@ -213,7 +213,7 @@ impl OverallProgress {
         html.push_str(".progress-fill { height: 100%; background: #4caf50; transition: width 0.3s; }");
         html.push_str("</style></head><body>");
         
-        html.push_str(&format!("<div class='header'><h1>🧪 Hybrid Non-Custodial System Test Report</h1>"));
+        html.push_str(&format!("<div class='header'><h1> Hybrid Non-Custodial System Test Report</h1>"));
         html.push_str(&format!("<p><strong>Overall Progress:</strong> {:.1}% ({}/{})</p>", 
             self.overall_progress_percent, self.completed_tests, self.total_tests));
         html.push_str(&format!("<div class='progress-bar'><div class='progress-fill' style='width: {:.1}%'></div></div>", 

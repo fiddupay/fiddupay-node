@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🧪 FidduPay API Test Suite v2.5.0"
+echo " FidduPay API Test Suite v2.5.0"
 echo "=================================="
 
 # Test configuration
@@ -48,17 +48,17 @@ test_endpoint() {
     response_body="${response%???}"
     
     if [[ "$status_code" == "$expected_status"* ]]; then
-        echo -e "${GREEN}✓ PASS${NC} ($status_code)"
+        echo -e "${GREEN} PASS${NC} ($status_code)"
         ((TESTS_PASSED++))
     else
-        echo -e "${RED}✗ FAIL${NC} ($status_code)"
+        echo -e "${RED} FAIL${NC} ($status_code)"
         echo "Response: $response_body"
         ((TESTS_FAILED++))
     fi
 }
 
 echo ""
-echo "📋 PUBLIC ENDPOINTS"
+echo " PUBLIC ENDPOINTS"
 echo "==================="
 
 test_endpoint "GET" "/health" "" ""
@@ -67,7 +67,7 @@ test_endpoint "GET" "/api/v1/currencies/supported" "" ""
 test_endpoint "POST" "/api/v1/contact" "" '{"name":"Test","email":"test@example.com","subject":"Test","message":"Test message"}'
 
 echo ""
-echo "🔐 ADMIN AUTHENTICATION"
+echo " ADMIN AUTHENTICATION"
 echo "======================="
 
 # Admin login
@@ -78,17 +78,17 @@ admin_response=$(curl -s -X POST -H "Content-Type: application/json" \
 
 if echo "$admin_response" | jq -e '.session_token' > /dev/null; then
     ADMIN_TOKEN=$(echo "$admin_response" | jq -r '.session_token')
-    echo -e "${GREEN}✓ PASS${NC} (Token: ${ADMIN_TOKEN:0:20}...)"
+    echo -e "${GREEN} PASS${NC} (Token: ${ADMIN_TOKEN:0:20}...)"
     ((TESTS_PASSED++))
 else
-    echo -e "${RED}✗ FAIL${NC}"
+    echo -e "${RED} FAIL${NC}"
     echo "Response: $admin_response"
     ((TESTS_FAILED++))
     ADMIN_TOKEN="admin_session_placeholder"  # Fallback
 fi
 
 echo ""
-echo "👑 ADMIN ENDPOINTS"
+echo " ADMIN ENDPOINTS"
 echo "=================="
 
 test_endpoint "GET" "/api/v1/admin/security/events" "Authorization: Bearer $ADMIN_TOKEN"
@@ -98,7 +98,7 @@ test_endpoint "GET" "/api/v1/admin/merchantss" "Authorization: Bearer $ADMIN_TOK
 test_endpoint "POST" "/api/v1/admin/logout" "Authorization: Bearer $ADMIN_TOKEN"
 
 echo ""
-echo "🏪 MERCHANT ENDPOINTS"
+echo " MERCHANT ENDPOINTS"
 echo "===================="
 
 # Merchant profile
@@ -137,16 +137,16 @@ test_endpoint "GET" "/api/v1/merchant/security/settings" "Authorization: Bearer 
 test_endpoint "GET" "/api/v1/merchant/ip-whitelist" "Authorization: Bearer $MERCHANT_API_KEY"
 
 echo ""
-echo "📊 TEST RESULTS"
+echo " TEST RESULTS"
 echo "==============="
 echo -e "Tests Passed: ${GREEN}$TESTS_PASSED${NC}"
 echo -e "Tests Failed: ${RED}$TESTS_FAILED${NC}"
 echo -e "Total Tests: $((TESTS_PASSED + TESTS_FAILED))"
 
 if [ $TESTS_FAILED -eq 0 ]; then
-    echo -e "\n${GREEN}🎉 ALL TESTS PASSED!${NC}"
+    echo -e "\n${GREEN} ALL TESTS PASSED!${NC}"
     exit 0
 else
-    echo -e "\n${RED}❌ SOME TESTS FAILED${NC}"
+    echo -e "\n${RED} SOME TESTS FAILED${NC}"
     exit 1
 fi

@@ -54,7 +54,7 @@ describe('Webhooks Comprehensive', () => {
     it('should handle special characters in payload', () => {
       const specialPayload = JSON.stringify({
         message: 'Special chars: !@#$%^&*()_+-=[]{}|;:,.<>?',
-        unicode: '🚀💰🔐',
+        unicode: '',
         newlines: 'Line 1\nLine 2\r\nLine 3'
       });
       

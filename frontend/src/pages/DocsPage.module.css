@@ -456,7 +456,7 @@
 }
 
 .environmentCard li::before {
-  content: '✓';
+  content: '';
   color: #059669;
   font-weight: bold;
   position: absolute;

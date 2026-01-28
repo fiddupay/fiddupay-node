@@ -1,8 +1,8 @@
-# 📋 COMPREHENSIVE UPDATE DOCUMENTATION v2.3.6
+#  COMPREHENSIVE UPDATE DOCUMENTATION v2.3.6
 
-## 🎯 BACKEND UPDATES (v2.3.6)
+##  BACKEND UPDATES (v2.3.6)
 
-### ✅ **NEW ORGANIZATIONAL IMPROVEMENTS**
+###  **NEW ORGANIZATIONAL IMPROVEMENTS**
 
 #### 1. **Clean Route Organization**
 - **FIXED**: All merchant API routes now use consistent `/api/v1/merchant/` prefix
@@ -28,7 +28,7 @@
   - Account security preferences
 - **DIFFERENT**: From admin security monitoring (which is admin-only oversight)
 
-### ✅ **PREVIOUS FEATURES (v2.4.0)**
+###  **PREVIOUS FEATURES (v2.4.0)**
 
 #### **Admin Session-Based Authentication System**
 - **FIXED**: Admin routes use session-based authentication instead of API keys
@@ -41,7 +41,7 @@
 - **Invoice Management** complete system for merchants
 - **Admin Security Monitoring** with session-based protection
 
-### 🔧 **TECHNICAL IMPROVEMENTS**
+###  **TECHNICAL IMPROVEMENTS**
 
 #### **File Organization**
 - **routes.rs**: Public routes only + router merging
@@ -53,30 +53,30 @@
 #### **API Structure**
 ```
 /api/v1/
-├── Public routes (no auth)
-│   ├── status, blog, careers, contact, pricing
-│   ├── currencies/supported
-│   └── merchant/register, merchant/login
-├── /merchant/ (API key auth)
-│   ├── profile, environment, api-keys
-│   ├── payments, refunds, analytics
-│   ├── balance, withdrawals, wallets
-│   ├── security/settings (merchant's own)
-│   ├── invoices, sandbox, ip-whitelist
-│   └── audit-logs
-└── /admin/ (session auth)
-    ├── login, logout, dashboard
-    ├── merchants, payments, withdrawals
-    ├── security/events, security/alerts
-    ├── analytics, reports, config
-    └── users, system
+ Public routes (no auth)
+    status, blog, careers, contact, pricing
+    currencies/supported
+    merchant/register, merchant/login
+ /merchant/ (API key auth)
+    profile, environment, api-keys
+    payments, refunds, analytics
+    balance, withdrawals, wallets
+    security/settings (merchant's own)
+    invoices, sandbox, ip-whitelist
+    audit-logs
+ /admin/ (session auth)
+     login, logout, dashboard
+     merchants, payments, withdrawals
+     security/events, security/alerts
+     analytics, reports, config
+     users, system
 ```
 
 ---
 
-## 🎯 SDK UPDATES (v2.3.6)
+##  SDK UPDATES (v2.3.6)
 
-### ✅ **ROUTE UPDATES NEEDED**
+###  **ROUTE UPDATES NEEDED**
 
 #### **Path Changes Required**
 All SDK endpoints need to be updated to use the new `/merchant/` prefix:
@@ -102,38 +102,38 @@ All SDK endpoints need to be updated to use the new `/merchant/` prefix:
 - `withdrawals.ts` - Update withdrawal endpoints
 - `balances.ts` - Update balance endpoints
 
-### ✅ **PREVIOUS IMPROVEMENTS (v2.4.0)**
+###  **PREVIOUS IMPROVEMENTS (v2.4.0)**
 - **Removed 46 unused options parameters** across all resources
 - **Import optimization** and bundle size reduction
 - **Enhanced method signatures** for better functionality
 
 ---
 
-## 🚀 **RELEASE MESSAGES**
+##  **RELEASE MESSAGES**
 
 ### **Backend Release (v2.3.6)**
 ```
-🎉 FidduPay Backend v2.3.6 - Clean Route Organization & Handler Separation
+ FidduPay Backend v2.3.6 - Clean Route Organization & Handler Separation
 
-🏗️ Organizational Improvements:
+ Organizational Improvements:
 • Clean route organization with consistent /api/v1/merchant/ prefix for all merchant APIs
 • Separated merchant routes into dedicated merchant_routes.rs file
 • Separated merchant handlers into dedicated merchant_handlers.rs file
 • Main routes.rs now only contains public routes and router merging
 • Clear API structure: public routes, /merchant/ routes, /admin/ routes
 
-🔧 Technical Improvements:
+ Technical Improvements:
 • Proper separation of concerns between different user types
 • Clean file organization for better maintainability
 • Consistent API endpoint structure
 • Improved code organization and readability
 
-📋 API Structure:
+ API Structure:
 • Public: /api/v1/ (status, blog, careers, contact, pricing, currencies)
 • Merchant: /api/v1/merchant/ (all merchant functionality with API key auth)
 • Admin: /api/v1/admin/ (all admin functionality with session auth)
 
-🛠️ Previous Features:
+ Previous Features:
 • Admin session-based authentication
 • Enhanced analytics with granularity support
 • Advanced payment filtering and invoice management
@@ -142,14 +142,14 @@ All SDK endpoints need to be updated to use the new `/merchant/` prefix:
 
 ### **SDK Release (v2.3.6)**
 ```
-🎉 FidduPay Node.js SDK v2.3.6 - Route Updates for Clean API Organization
+ FidduPay Node.js SDK v2.3.6 - Route Updates for Clean API Organization
 
-🔄 Breaking Changes:
+ Breaking Changes:
 • Updated all merchant API endpoints to use /api/v1/merchant/ prefix
 • Consistent route structure across all resources
 • Better API organization and clarity
 
-📝 Updated Endpoints:
+ Updated Endpoints:
 • Payments: /api/v1/payments → /api/v1/merchant/payments
 • Refunds: /api/v1/refunds → /api/v1/merchant/refunds
 • Analytics: /api/v1/analytics → /api/v1/merchant/analytics
@@ -158,13 +158,13 @@ All SDK endpoints need to be updated to use the new `/merchant/` prefix:
 • Security: /api/v1/security → /api/v1/merchant/security
 • And all other merchant endpoints
 
-🔧 Improvements:
+ Improvements:
 • Cleaner API structure
 • Better endpoint organization
 • Consistent naming conventions
 • Improved developer experience
 
-⚠️ Migration Required:
+ Migration Required:
 • Update your API calls to use new /merchant/ prefix
 • All functionality remains the same, only paths changed
 • Backward compatibility not maintained for cleaner API structure
@@ -172,33 +172,33 @@ All SDK endpoints need to be updated to use the new `/merchant/` prefix:
 
 ---
 
-## 📋 **DEPLOYMENT CHECKLIST**
+##  **DEPLOYMENT CHECKLIST**
 
 ### **Backend Deployment (v2.3.6)**
 - [x] Route organization completed
 - [x] Handler separation implemented
 - [x] File structure cleaned up
-- [x] Build and test backend ✅
-- [x] Update API documentation ✅
-- [x] Deploy to production ✅
-- [x] Verify all endpoints work with new paths ✅
+- [x] Build and test backend 
+- [x] Update API documentation 
+- [x] Deploy to production 
+- [x] Verify all endpoints work with new paths 
 
-## TESTING COMPLETED ✅
+## TESTING COMPLETED 
 **Backend API Centralization v2.3.6 - FULLY COMPLETE**
 
 ### Test Results Summary
-- **Backend Build**: ✅ Compiles successfully with warnings only (unused imports)
-- **Endpoint Testing**: ✅ All endpoints tested and working correctly
-- **Route Organization**: ✅ All routes properly organized with correct prefixes
-- **Authentication**: ✅ Both API key and session auth working correctly
-- **API Structure**: ✅ Clean separation between public, merchant, and admin routes
+- **Backend Build**:  Compiles successfully with warnings only (unused imports)
+- **Endpoint Testing**:  All endpoints tested and working correctly
+- **Route Organization**:  All routes properly organized with correct prefixes
+- **Authentication**:  Both API key and session auth working correctly
+- **API Structure**:  Clean separation between public, merchant, and admin routes
 
 ### Verified Endpoints
-- **Public Endpoints**: ✅ Status, health, currencies all operational
-- **Merchant Endpoints**: ✅ All 10+ endpoints working with `/api/v1/merchant/` prefix
-- **Admin Endpoints**: ✅ Login, security, dashboard working with `/api/v1/admin/` prefix
-- **Authentication**: ✅ API key auth for merchants, session auth for admin
-- **Backend Status**: ✅ Running successfully on PM2
+- **Public Endpoints**:  Status, health, currencies all operational
+- **Merchant Endpoints**:  All 10+ endpoints working with `/api/v1/merchant/` prefix
+- **Admin Endpoints**:  Login, security, dashboard working with `/api/v1/admin/` prefix
+- **Authentication**:  API key auth for merchants, session auth for admin
+- **Backend Status**:  Running successfully on PM2
 
 ### **SDK Deployment (v2.3.6)**
 - [ ] Update all endpoint paths to use /merchant/ prefix
@@ -216,21 +216,21 @@ All SDK endpoints need to be updated to use the new `/merchant/` prefix:
 
 ---
 
-## 🎯 **SUMMARY**
+##  **SUMMARY**
 
 ### **v2.3.6 - Clean Organization**
-- **🏗️ ROUTE ORGANIZATION**: All merchant APIs now use consistent `/api/v1/merchant/` prefix
-- **📁 FILE SEPARATION**: Dedicated files for merchant routes, admin routes, and handlers
-- **🧹 CLEAN STRUCTURE**: Main routes.rs only contains public routes and router merging
-- **📋 CLEAR API**: Public, merchant, and admin endpoints clearly separated
+- ** ROUTE ORGANIZATION**: All merchant APIs now use consistent `/api/v1/merchant/` prefix
+- ** FILE SEPARATION**: Dedicated files for merchant routes, admin routes, and handlers
+- ** CLEAN STRUCTURE**: Main routes.rs only contains public routes and router merging
+- ** CLEAR API**: Public, merchant, and admin endpoints clearly separated
 
 ### **v2.4.0 - Enhanced Features**
-- **🔐 ADMIN SESSION AUTH**: Session-based authentication for admin users
-- **📊 ENHANCED ANALYTICS**: Granularity support and advanced filtering
-- **📄 INVOICE MANAGEMENT**: Complete invoice system for merchants
-- **🧹 SDK CLEANUP**: Removed 46 unused parameters across all resources
+- ** ADMIN SESSION AUTH**: Session-based authentication for admin users
+- ** ENHANCED ANALYTICS**: Granularity support and advanced filtering
+- ** INVOICE MANAGEMENT**: Complete invoice system for merchants
+- ** SDK CLEANUP**: Removed 46 unused parameters across all resources
 
-### **🛠️ TECHNICAL EXCELLENCE**
+### ** TECHNICAL EXCELLENCE**
 - **Clean Architecture** with proper separation of concerns
 - **Consistent API Structure** with logical endpoint organization
 - **Maintainable Codebase** with dedicated files for different functionality
@@ -238,7 +238,7 @@ All SDK endpoints need to be updated to use the new `/merchant/` prefix:
 
 This update provides a much cleaner and more maintainable API structure while preserving all existing functionality!
 
-### ✅ **COMPLETED FEATURES**
+###  **COMPLETED FEATURES**
 
 #### 1. **Admin Session-Based Authentication System**
 - **FIXED**: Admin routes now use session-based authentication instead of API keys
@@ -291,7 +291,7 @@ This update provides a much cleaner and more maintainable API structure while pr
 - **ACCESS**: Admin session authentication required
 - **BACKEND FILES**: `admin_handlers.rs`, `admin_routes.rs`
 
-### 🔧 **TECHNICAL IMPROVEMENTS**
+###  **TECHNICAL IMPROVEMENTS**
 
 #### **Authentication Architecture**
 - **DUAL SYSTEM**: Merchants use API key authentication, Admins use session authentication
@@ -312,9 +312,9 @@ This update provides a much cleaner and more maintainable API structure while pr
 
 ---
 
-## 🎯 SDK UPDATES (v2.4.0)
+##  SDK UPDATES (v2.4.0)
 
-### ✅ **MAJOR CLEANUP COMPLETED**
+###  **MAJOR CLEANUP COMPLETED**
 
 #### **Unused Parameters Removal**
 - **REMOVED**: All 46 unused `options?: RequestOptions` parameters across 9 resource files
@@ -377,7 +377,7 @@ export class Invoices {
 }
 ```
 
-### 🔧 **BUILD & QUALITY**
+###  **BUILD & QUALITY**
 - **STATUS**: SDK builds successfully with `npm run build`
 - **LINTING**: All ESLint checks pass
 - **TYPESCRIPT**: No compilation errors
@@ -385,9 +385,9 @@ export class Invoices {
 
 ---
 
-## 🎯 FRONTEND UPDATES (v2.4.0)
+##  FRONTEND UPDATES (v2.4.0)
 
-### ✅ **NEW COMPONENTS CREATED**
+###  **NEW COMPONENTS CREATED**
 
 #### **PaymentFilter Component**
 - **FILE**: `components/PaymentFilter.tsx`
@@ -405,7 +405,7 @@ export class Invoices {
   - Copy payment URLs to clipboard
   - Status indicators and due date tracking
 
-### 🔧 **API SERVICE ENHANCEMENTS**
+###  **API SERVICE ENHANCEMENTS**
 
 #### **Enhanced Merchant API**
 ```typescript
@@ -424,7 +424,7 @@ getAnalytics(params?: AnalyticsParams): Promise<AnalyticsResponse>
 getHistory(params?: PaymentFilterParams): Promise<PaymentListResponse>
 ```
 
-### 📱 **UI/UX IMPROVEMENTS**
+###  **UI/UX IMPROVEMENTS**
 - **FILTERING**: Advanced payment filtering with intuitive controls
 - **INVOICE MANAGEMENT**: Complete invoice lifecycle management
 - **RESPONSIVE DESIGN**: Mobile-friendly components
@@ -432,26 +432,26 @@ getHistory(params?: PaymentFilterParams): Promise<PaymentListResponse>
 
 ---
 
-## 🚀 **RELEASE MESSAGES**
+##  **RELEASE MESSAGES**
 
 ### **Backend Release (v2.4.0)**
 ```
-🎉 FidduPay Backend v2.4.0 - Admin Session Auth & Enhanced Features
+ FidduPay Backend v2.4.0 - Admin Session Auth & Enhanced Features
 
-✨ New Features:
+ New Features:
 • Admin session-based authentication (separate from merchant API keys)
 • Enhanced analytics with granularity support (day/week/month)
 • Advanced payment filtering (status, crypto, blockchain, dates, amounts)
 • Complete invoice generation and management system
 • Admin security monitoring with session protection
 
-🔧 Improvements:
+ Improvements:
 • Separated admin routes into dedicated file with session auth
 • Fixed all type mismatches and compilation errors
 • Clean authentication architecture (API keys for merchants, sessions for admin)
 • Improved route organization and middleware layering
 
-🛠️ Technical:
+ Technical:
 • Builds successfully with cargo build --release
 • All new endpoints tested and functional
 • Proper session-based admin authentication implemented
@@ -460,47 +460,47 @@ getHistory(params?: PaymentFilterParams): Promise<PaymentListResponse>
 
 ### **SDK Release (v2.4.0)**
 ```
-🎉 FidduPay Node.js SDK v2.4.0 - Major Cleanup & New Features
+ FidduPay Node.js SDK v2.4.0 - Major Cleanup & New Features
 
-🧹 Major Cleanup:
+ Major Cleanup:
 • Removed 46 unused options parameters across all resources
 • Cleaned up imports and optimized bundle size
 • Improved code maintainability and readability
 
-✨ New Features:
+ New Features:
 • Enhanced analytics with granularity support
 • Advanced payment filtering with multiple criteria
 • Complete invoice management resource
 • Improved TypeScript definitions
 
-🔧 Improvements:
+ Improvements:
 • Builds successfully with zero errors
 • All ESLint checks pass
 • Reduced bundle size
 • Better developer experience
 
-📦 Breaking Changes:
+ Breaking Changes:
 • Removed unused options parameters (non-functional change)
 • Enhanced method signatures for better functionality
 ```
 
 ### **Frontend Release (v2.4.0)**
 ```
-🎉 FidduPay Frontend v2.4.0 - Advanced Filtering & Invoice Management
+ FidduPay Frontend v2.4.0 - Advanced Filtering & Invoice Management
 
-✨ New Features:
+ New Features:
 • Advanced payment filtering component with multi-criteria support
 • Complete invoice management interface
 • Enhanced analytics dashboard with granularity controls
 • Copy-to-clipboard functionality for payment URLs
 
-🎨 UI/UX Improvements:
+ UI/UX Improvements:
 • Responsive design for all new components
 • Intuitive filtering controls
 • Form validation and loading states
 • Mobile-friendly interfaces
 
-🔧 Technical:
+ Technical:
 • Updated API service with new endpoints
 • Enhanced TypeScript definitions
 • Improved component architecture
@@ -509,7 +509,7 @@ getHistory(params?: PaymentFilterParams): Promise<PaymentListResponse>
 
 ---
 
-## 📋 **DEPLOYMENT CHECKLIST**
+##  **DEPLOYMENT CHECKLIST**
 
 ### **Backend Deployment**
 - [x] Admin session authentication implemented and tested
@@ -543,32 +543,32 @@ getHistory(params?: PaymentFilterParams): Promise<PaymentListResponse>
 
 ---
 
-## 🎯 **SUMMARY**
+##  **SUMMARY**
 
 This comprehensive update delivers:
 
-### **🔐 AUTHENTICATION OVERHAUL**
+### ** AUTHENTICATION OVERHAUL**
 - **FIXED**: Admin authentication now uses sessions instead of API keys
 - **SEPARATED**: Clean separation between merchant (API key) and admin (session) auth
 - **ORGANIZED**: All admin routes moved to dedicated file with proper session protection
 
-### **📊 ENHANCED FEATURES**
+### ** ENHANCED FEATURES**
 - **Enhanced Analytics** with granularity support (day/week/month)
 - **Advanced Payment Filtering** with multiple criteria
 - **Complete Invoice Management** system for merchants
 - **Admin Security Monitoring** with session-based protection
 
-### **🧹 SDK OPTIMIZATION**
+### ** SDK OPTIMIZATION**
 - **Major Cleanup** removing 46 unused parameters across all resources
 - **Import Optimization** and bundle size reduction
 - **Enhanced Method Signatures** for better functionality
 
-### **🎨 FRONTEND IMPROVEMENTS**
+### ** FRONTEND IMPROVEMENTS**
 - **Advanced Filtering UI** for payments
 - **Invoice Management Interface** for merchants
 - **Responsive Components** with modern UX
 
-### **🛠️ TECHNICAL EXCELLENCE**
+### ** TECHNICAL EXCELLENCE**
 - **Clean Architecture** with proper separation of concerns
 - **Successful Builds** across all systems
 - **Comprehensive Testing** of new features

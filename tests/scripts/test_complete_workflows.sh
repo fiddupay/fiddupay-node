@@ -27,16 +27,16 @@ log() {
 }
 
 success() {
-    echo -e "${GREEN}✓${NC} $1"
+    echo -e "${GREEN}${NC} $1"
 }
 
 error() {
-    echo -e "${RED}✗${NC} $1"
+    echo -e "${RED}${NC} $1"
     exit 1
 }
 
 warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
+    echo -e "${YELLOW}${NC} $1"
 }
 
 info() {
@@ -437,10 +437,10 @@ main() {
     echo "- Withdrawal System:  Working (with balance constraints)"
     echo "- Analytics & Reporting:  Working"
     echo "- Security Features:  Working"
-    echo "- Invoice Management: ⚠️ Partially implemented"
-    echo "- Refund System: ⚠️ Depends on payment status"
-    echo "- Multi-user Features: ⚠️ Partially implemented"
-    echo "- Audit & Compliance: ⚠️ Partially implemented"
+    echo "- Invoice Management:  Partially implemented"
+    echo "- Refund System:  Depends on payment status"
+    echo "- Multi-user Features:  Partially implemented"
+    echo "- Audit & Compliance:  Partially implemented"
     echo ""
     echo "Test Details:"
     echo "- Merchant ID: $MERCHANT_ID"

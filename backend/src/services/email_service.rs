@@ -42,7 +42,7 @@ impl EmailService {
 
     pub async fn send_payment_confirmed(&self, to: &str, payment_id: &str, amount: &str, crypto: &str) -> Result<(), ServiceError> {
         if !self.enabled {
-            info!("📧 Email disabled - would send payment confirmation to {}", to);
+            info!(" Email disabled - would send payment confirmation to {}", to);
             return Ok(());
         }
 
@@ -60,7 +60,7 @@ impl EmailService {
 
     pub async fn send_withdrawal_completed(&self, to: &str, withdrawal_id: &str, amount: &str, crypto: &str) -> Result<(), ServiceError> {
         if !self.enabled {
-            info!("📧 Email disabled - would send withdrawal notification to {}", to);
+            info!(" Email disabled - would send withdrawal notification to {}", to);
             return Ok(());
         }
 
@@ -78,7 +78,7 @@ impl EmailService {
 
     pub async fn send_invoice(&self, to: &str, invoice_id: &str, total: &str, due_date: &str) -> Result<(), ServiceError> {
         if !self.enabled {
-            info!("📧 Email disabled - would send invoice to {}", to);
+            info!(" Email disabled - would send invoice to {}", to);
             return Ok(());
         }
 
@@ -97,7 +97,7 @@ impl EmailService {
 
     pub async fn send_2fa_enabled(&self, to: &str) -> Result<(), ServiceError> {
         if !self.enabled {
-            info!("📧 Email disabled - would send 2FA notification to {}", to);
+            info!(" Email disabled - would send 2FA notification to {}", to);
             return Ok(());
         }
 
@@ -143,11 +143,11 @@ impl EmailService {
         // Send email
         match mailer.send(&email) {
             Ok(_) => {
-                info!("📧 Email sent: {} -> {} | {}", self.from_email, to, subject);
+                info!(" Email sent: {} -> {} | {}", self.from_email, to, subject);
                 Ok(())
             }
             Err(e) => {
-                error!("📧 Email send failed: {}", e);
+                error!(" Email send failed: {}", e);
                 Err(ServiceError::InternalError(format!("Email send failed: {}", e)))
             }
         }

@@ -14,7 +14,7 @@ echo "  Testing optimized Tokio features..."
 if grep -q 'features = \["rt-multi-thread", "net", "time", "macros"\]' Cargo.toml; then
     echo "   Tokio features optimized (selective instead of 'full')"
 else
-    echo "  ⚠️  Tokio features not optimized"
+    echo "    Tokio features not optimized"
 fi
 
 # Test 2: String Allocation Optimization
@@ -32,7 +32,7 @@ echo "  Owned string parameters (String): $OWNED_STRING_COUNT"
 if [ $STRING_SLICE_COUNT -gt $OWNED_STRING_COUNT ]; then
     echo "   Good string slice usage for performance"
 else
-    echo "  ⚠️  Consider using more string slices (&str) instead of owned strings"
+    echo "    Consider using more string slices (&str) instead of owned strings"
 fi
 
 # Test 3: Performance Module Integration
@@ -45,7 +45,7 @@ if [ -f "src/performance.rs" ]; then
     if grep -q "pub mod performance" src/lib.rs; then
         echo "   Performance module integrated into lib.rs"
     else
-        echo "  ⚠️  Performance module not integrated"
+        echo "    Performance module not integrated"
     fi
     
     # Check performance features
@@ -80,7 +80,7 @@ if [ $PREPARED_RATIO -gt 80 ]; then
 elif [ $PREPARED_RATIO -gt 60 ]; then
     echo "   Good prepared query usage"
 else
-    echo "  ⚠️  Consider using more prepared queries (query!) for performance"
+    echo "    Consider using more prepared queries (query!) for performance"
 fi
 
 # Test 5: Memory Allocation Patterns
@@ -114,7 +114,7 @@ echo "  Async utilization: ${ASYNC_RATIO}%"
 if [ $ASYNC_RATIO -gt 150 ]; then
     echo "   Good async utilization"
 else
-    echo "  ⚠️  Consider more async operations for better performance"
+    echo "    Consider more async operations for better performance"
 fi
 
 # Test 7: Error Handling Performance
@@ -132,7 +132,7 @@ echo "  ? operator usage: $QUESTION_MARK_COUNT"
 if [ $UNWRAP_COUNT -lt 20 ]; then
     echo "   Good error handling (low unwrap usage)"
 else
-    echo "  ⚠️  High unwrap usage - consider proper error handling"
+    echo "    High unwrap usage - consider proper error handling"
 fi
 
 # Summary
@@ -175,7 +175,7 @@ if [ $OPTIMIZATIONS -ge 4 ]; then
 elif [ $OPTIMIZATIONS -ge 3 ]; then
     echo " Good performance optimizations"
 else
-    echo "⚠️  More optimizations recommended"
+    echo "  More optimizations recommended"
 fi
 
 echo ""

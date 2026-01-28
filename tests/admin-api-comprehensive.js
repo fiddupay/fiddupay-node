@@ -10,7 +10,7 @@ let adminApiKey = null;
 
 function logTest(testName, status, details = '') {
   totalTests++;
-  const statusIcon = status === 'PASS' ? '✅' : '❌';
+  const statusIcon = status === 'PASS' ? '' : '';
   console.log(`${statusIcon} ${testName} ${details}`);
   
   if (status === 'PASS') {
@@ -29,7 +29,7 @@ function createAuthHeaders(apiKey) {
 
 // Admin Authentication Tests (using merchant system)
 async function testDailyVolumeLimitConfig() {
-  console.log('\n💰 Testing Daily Volume Limit Configuration...');
+  console.log('\n Testing Daily Volume Limit Configuration...');
   
   try {
     // Test system limits endpoint includes daily volume limit
@@ -58,7 +58,7 @@ async function testDailyVolumeLimitConfig() {
 }
 
 async function testAdminAuthentication() {
-  console.log('\n🔐 Testing Admin Authentication...');
+  console.log('\n Testing Admin Authentication...');
   
   // Create admin API key (using merchant system for testing)
   try {
@@ -69,9 +69,9 @@ async function testAdminAuthentication() {
     });
     
     adminApiKey = registerResponse.data.api_key;
-    console.log('🔑 Admin API key created for testing');
+    console.log(' Admin API key created for testing');
   } catch (error) {
-    console.log('❌ Failed to create admin API key:', error.message);
+    console.log(' Failed to create admin API key:', error.message);
     return;
   }
 
@@ -168,7 +168,7 @@ async function testAdminAuthentication() {
 
 // System Monitoring Tests
 async function testSystemMonitoring() {
-  console.log('\n📊 Testing System Monitoring...');
+  console.log('\n Testing System Monitoring...');
   
   // Test system status
   try {
@@ -199,7 +199,7 @@ async function testSystemMonitoring() {
 
 // API Key Management Tests
 async function testApiKeyManagement() {
-  console.log('\n🔑 Testing API Key Management...');
+  console.log('\n Testing API Key Management...');
   
   if (!adminApiKey) {
     logTest('Generate Admin API Key', 'FAIL', 'No admin API key available');
@@ -228,7 +228,7 @@ async function testApiKeyManagement() {
 }
 
 async function runComprehensiveAdminTests() {
-  console.log('🚀 Starting Admin API Test Suite (Admin Endpoints Only)');
+  console.log(' Starting Admin API Test Suite (Admin Endpoints Only)');
   console.log('=' .repeat(60));
   
   const startTime = Date.now();
@@ -244,19 +244,19 @@ async function runComprehensiveAdminTests() {
   
   // Print final results
   console.log('\n' + '=' .repeat(60));
-  console.log('📊 ADMIN TEST RESULTS SUMMARY');
+  console.log(' ADMIN TEST RESULTS SUMMARY');
   console.log('=' .repeat(60));
-  console.log(`✅ Passed: ${passedTests}/${totalTests} tests`);
-  console.log(`❌ Failed: ${totalTests - passedTests}/${totalTests} tests`);
-  console.log(`⏱️  Duration: ${duration.toFixed(2)} seconds`);
-  console.log(`📈 Success Rate: ${((passedTests / totalTests) * 100).toFixed(1)}%`);
+  console.log(` Passed: ${passedTests}/${totalTests} tests`);
+  console.log(` Failed: ${totalTests - passedTests}/${totalTests} tests`);
+  console.log(`⏱  Duration: ${duration.toFixed(2)} seconds`);
+  console.log(` Success Rate: ${((passedTests / totalTests) * 100).toFixed(1)}%`);
   
   if (adminApiKey) {
-    console.log(`\n🔑 Admin Test Details:`);
+    console.log(`\n Admin Test Details:`);
     console.log(`   API Key: ${adminApiKey.substring(0, 20)}...`);
   }
   
-  console.log('\n🎯 Admin test suite completed!');
+  console.log('\n Admin test suite completed!');
   
   // Exit with appropriate code
   process.exit(passedTests === totalTests ? 0 : 1);
@@ -265,7 +265,7 @@ async function runComprehensiveAdminTests() {
 // Run the test suite
 if (require.main === module) {
   runComprehensiveAdminTests().catch(error => {
-    console.error('💥 Admin test suite crashed:', error);
+    console.error(' Admin test suite crashed:', error);
     process.exit(1);
   });
 }

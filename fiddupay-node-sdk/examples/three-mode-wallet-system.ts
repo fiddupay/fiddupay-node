@@ -151,19 +151,19 @@ app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, re
   try {
     const event = client.webhooks.constructEvent(req.body, sig, webhookSecret);
     
-    console.log(`📨 Webhook received: ${event.type} for ${event.data.payment_id}`);
+    console.log(` Webhook received: ${event.type} for ${event.data.payment_id}`);
     
     switch (event.type) {
       case 'payment.confirmed':
-        console.log(`✅ Payment confirmed: ${event.data.payment_id}`);
+        console.log(` Payment confirmed: ${event.data.payment_id}`);
         break;
         
       case 'payment.failed':
-        console.log(`❌ Payment failed: ${event.data.payment_id}`);
+        console.log(` Payment failed: ${event.data.payment_id}`);
         break;
         
       default:
-        console.log(`🔔 Unknown event: ${event.type}`);
+        console.log(` Unknown event: ${event.type}`);
     }
     
     res.json({ received: true });
@@ -176,14 +176,14 @@ app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, re
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 FidduPay Payment System Example running on port ${PORT}`);
-  console.log(`📋 Available endpoints:`);
+  console.log(` FidduPay Payment System Example running on port ${PORT}`);
+  console.log(` Available endpoints:`);
   console.log(`   POST /payments/create-usd - Create payment with USD amount`);
   console.log(`   POST /payments/create-crypto - Create payment with crypto amount`);
   console.log(`   POST /payments/address-only - Address-only payments`);
   console.log(`   POST /payments/fee-toggle-demo - Demonstrate fee toggle`);
   console.log(`   POST /webhooks/fiddupay - Webhook endpoint`);
-  console.log(`\n💡 Payment Creation Options:`);
+  console.log(`\n Payment Creation Options:`);
   console.log(`   USD Amount: Specify amount_usd (e.g., "10.50")`);
   console.log(`   Crypto Amount: Specify amount (e.g., "0.1" for 0.1 SOL)`);
   console.log(`   Never specify both amount_usd AND amount`);

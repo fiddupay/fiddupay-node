@@ -16,11 +16,11 @@ function createAuthHeaders(token) {
 }
 
 async function testAllAdminEndpoints() {
-  console.log('🔐 TESTING ALL 40 ADMIN ENDPOINTS');
+  console.log(' TESTING ALL 40 ADMIN ENDPOINTS');
   console.log('=' .repeat(50));
   
   const adminToken = await getAdminToken();
-  console.log(`🔑 Admin Token: ${adminToken.substring(0, 20)}...`);
+  console.log(` Admin Token: ${adminToken.substring(0, 20)}...`);
   
   let passed = 0;
   let failed = 0;
@@ -85,7 +85,7 @@ async function testAllAdminEndpoints() {
     { method: 'POST', url: '/admin/system/maintenance', name: 'Toggle Maintenance Mode', data: { enabled: false } }
   ];
   
-  console.log(`\n🧪 Testing ${endpoints.length} admin endpoints...\n`);
+  console.log(`\n Testing ${endpoints.length} admin endpoints...\n`);
   
   for (const endpoint of endpoints) {
     try {
@@ -103,10 +103,10 @@ async function testAllAdminEndpoints() {
       const response = await axios(config);
       
       if (response.status >= 200 && response.status < 300) {
-        console.log(`✅ ${endpoint.name} (${response.status})`);
+        console.log(` ${endpoint.name} (${response.status})`);
         passed++;
       } else {
-        console.log(`❌ ${endpoint.name} (${response.status})`);
+        console.log(` ${endpoint.name} (${response.status})`);
         failed++;
       }
     } catch (error) {
@@ -115,25 +115,25 @@ async function testAllAdminEndpoints() {
       
       // Some endpoints are expected to fail with specific errors
       if (status === 404 || status === 400 || (status === 500 && message.includes('not found'))) {
-        console.log(`⚠️  ${endpoint.name} (${status}) - Expected for missing data`);
+        console.log(`  ${endpoint.name} (${status}) - Expected for missing data`);
         passed++; // Count as passed since endpoint exists
       } else {
-        console.log(`❌ ${endpoint.name} (${status}) - ${message}`);
+        console.log(` ${endpoint.name} (${status}) - ${message}`);
         failed++;
       }
     }
   }
   
   console.log('\n' + '=' .repeat(50));
-  console.log(`📊 RESULTS: ${passed}/${endpoints.length} endpoints working`);
-  console.log(`✅ Passed: ${passed}`);
-  console.log(`❌ Failed: ${failed}`);
-  console.log(`📈 Success Rate: ${((passed / endpoints.length) * 100).toFixed(1)}%`);
+  console.log(` RESULTS: ${passed}/${endpoints.length} endpoints working`);
+  console.log(` Passed: ${passed}`);
+  console.log(` Failed: ${failed}`);
+  console.log(` Success Rate: ${((passed / endpoints.length) * 100).toFixed(1)}%`);
   
   if (passed === endpoints.length) {
-    console.log('\n🎉 ALL 40 ADMIN ENDPOINTS WORKING!');
+    console.log('\n ALL 40 ADMIN ENDPOINTS WORKING!');
   } else {
-    console.log(`\n⚠️  ${failed} endpoints need attention`);
+    console.log(`\n  ${failed} endpoints need attention`);
   }
 }
 

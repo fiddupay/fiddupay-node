@@ -40,6 +40,6 @@ if cargo check --lib; then
     echo ""
     echo " PRODUCTION READY - ENTERPRISE GRADE SECURITY"
 else
-    echo "⚠️  Checking for any remaining compilation issues..."
+    echo "  Checking for any remaining compilation issues..."
     cargo check --lib 2>&1 | head -10
 fi

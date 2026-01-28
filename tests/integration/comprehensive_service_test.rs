@@ -37,7 +37,7 @@ async fn test_complete_merchant_workflow() {
     let test_id = nanoid::nanoid!(8);
     
     // 1. Register merchant
-    println!("1️⃣  Testing merchant registration...");
+    println!("1⃣  Testing merchant registration...");
     let merchant_service = MerchantService::new(pool.clone());
     let email = format!("test-{}@example.com", test_id);
     let business_name = format!("Test Business {}", test_id);
@@ -48,13 +48,13 @@ async fn test_complete_merchant_workflow() {
         .expect("Failed to register merchant");
     
     println!("    Merchant registered successfully");
-    println!("   📧 Email: {}", email);
-    println!("   🏢 Business: {}", business_name);
-    println!("   🆔 Merchant ID: {}", merchant.merchant_id);
+    println!("    Email: {}", email);
+    println!("    Business: {}", business_name);
+    println!("    Merchant ID: {}", merchant.merchant_id);
     println!("    API Key: {}...", &merchant.api_key[..20]);
     
     // 2. Set wallet addresses for different crypto types
-    println!("\n2️⃣  Testing wallet configuration...");
+    println!("\n2⃣  Testing wallet configuration...");
     let wallets = vec![
         ("SOL", "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"),
         ("USDT_SPL", "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"),
@@ -72,7 +72,7 @@ async fn test_complete_merchant_workflow() {
     }
     
     // 3. Test balance service
-    println!("\n3️⃣  Testing balance service...");
+    println!("\n3⃣  Testing balance service...");
     let balance_service = BalanceService::new(pool.clone());
     let balance = balance_service
         .get_balance(merchant.merchant_id)
@@ -83,7 +83,7 @@ async fn test_complete_merchant_workflow() {
     println!("    Balances: {} entries", balance.balances.len());
     
     // 4. Create payments for different crypto types
-    println!("\n4️⃣  Testing payment creation...");
+    println!("\n4⃣  Testing payment creation...");
     let payment_service = PaymentService::new(pool.clone(), "http://localhost:8080".to_string());
     let mut payment_ids = Vec::new();
     
@@ -109,14 +109,14 @@ async fn test_complete_merchant_workflow() {
         
         payment_ids.push(payment.payment_id.clone());
         println!("    {} payment created: {}", crypto_type, payment.payment_id);
-        println!("      💵 Amount: {} {} (${} USD)", payment.amount, crypto_type, amount);
-        println!("      📍 Deposit Address: {}", payment.deposit_address);
-        println!("      🔗 Payment Link: {}", payment.payment_link);
-        println!("      💸 Fee: {} {} (${} USD)", payment.fee_amount, crypto_type, payment.fee_amount_usd);
+        println!("       Amount: {} {} (${} USD)", payment.amount, crypto_type, amount);
+        println!("       Deposit Address: {}", payment.deposit_address);
+        println!("       Payment Link: {}", payment.payment_link);
+        println!("       Fee: {} {} (${} USD)", payment.fee_amount, crypto_type, payment.fee_amount_usd);
     }
     
     // 5. Test payment retrieval and listing
-    println!("\n5️⃣  Testing payment retrieval...");
+    println!("\n5⃣  Testing payment retrieval...");
     for payment_id in &payment_ids {
         let payment = payment_service
             .get_payment(merchant.merchant_id, payment_id)
@@ -134,7 +134,7 @@ async fn test_complete_merchant_workflow() {
     println!("    Payment list retrieved: {} payments found", payments.payments.len());
     
     // 6. Test sandbox service
-    println!("\n6️⃣  Testing sandbox service...");
+    println!("\n6⃣  Testing sandbox service...");
     let sandbox_service = SandboxService::new(pool.clone());
     let sandbox_creds = sandbox_service
         .create_sandbox_credentials(merchant.merchant_id)
@@ -142,7 +142,7 @@ async fn test_complete_merchant_workflow() {
         .expect("Failed to create sandbox credentials");
     
     println!("    Sandbox credentials created");
-    println!("   🧪 Sandbox API Key: {}...", &sandbox_creds.sandbox_api_key[..20]);
+    println!("    Sandbox API Key: {}...", &sandbox_creds.sandbox_api_key[..20]);
     
     // Simulate payment confirmation
     if let Some(payment_id) = payment_ids.first() {
@@ -163,7 +163,7 @@ async fn test_complete_merchant_workflow() {
     }
     
     // 7. Test analytics service
-    println!("\n7️⃣  Testing analytics service...");
+    println!("\n7⃣  Testing analytics service...");
     let analytics_service = AnalyticsService::new(pool.clone());
     let analytics = analytics_service
         .get_analytics(merchant.merchant_id, None, None, None, None)
@@ -175,11 +175,11 @@ async fn test_complete_merchant_workflow() {
     println!("    Total Volume: ${}", analytics.total_volume_usd);
     println!("    Successful: {}", analytics.successful_payments);
     println!("    Failed: {}", analytics.failed_payments);
-    println!("   💸 Total Fees: ${}", analytics.total_fees_paid);
-    println!("   📈 Average Transaction: ${}", analytics.average_transaction_value);
+    println!("    Total Fees: ${}", analytics.total_fees_paid);
+    println!("    Average Transaction: ${}", analytics.average_transaction_value);
     
     // 8. Test invoice service
-    println!("\n8️⃣  Testing invoice service...");
+    println!("\n8⃣  Testing invoice service...");
     let invoice_service = InvoiceService::new(pool.clone());
     let invoice_request = CreateInvoiceRequest {
         customer_email: format!("customer-{}@example.com", test_id),
@@ -204,9 +204,9 @@ async fn test_complete_merchant_workflow() {
         .expect("Failed to create invoice");
     
     println!("    Invoice created: {}", invoice.invoice_id);
-    println!("   📧 Customer: {}", invoice.customer_email);
+    println!("    Customer: {}", invoice.customer_email);
     println!("    Total: ${}", invoice.total_amount);
-    println!("   📅 Due Date: {}", invoice.due_date);
+    println!("    Due Date: {}", invoice.due_date);
     
     // List invoices
     let invoices = invoice_service
@@ -217,7 +217,7 @@ async fn test_complete_merchant_workflow() {
     println!("    Invoice list retrieved: {} invoices found", invoices.len());
     
     // 9. Test refund service
-    println!("\n9️⃣  Testing refund service...");
+    println!("\n9⃣  Testing refund service...");
     let refund_service = RefundService::new(pool.clone());
     
     if let Some(payment_id) = payment_ids.first() {
@@ -239,7 +239,7 @@ async fn test_complete_merchant_workflow() {
     }
     
     // 10. Test withdrawal service
-    println!("\n🔟 Testing withdrawal service...");
+    println!("\n Testing withdrawal service...");
     let withdrawal_service = WithdrawalService::new(pool.clone());
     
     // First, credit some balance for testing
@@ -261,7 +261,7 @@ async fn test_complete_merchant_workflow() {
     
     println!("    Withdrawal created: {}", withdrawal.withdrawal_id);
     println!("    Amount: {} SOL", withdrawal.amount);
-    println!("   📍 Destination: {}", withdrawal.destination_address);
+    println!("    Destination: {}", withdrawal.destination_address);
     println!("    Status: {}", withdrawal.status);
     
     // List withdrawals
@@ -286,14 +286,14 @@ async fn test_complete_merchant_workflow() {
     println!("    Refund Processing: PASSED");
     println!("    Withdrawal System: PASSED");
     
-    println!("\n🏪 Test Merchant Details:");
-    println!("   📧 Email: {}", email);
-    println!("   🏢 Business: {}", business_name);
-    println!("   🆔 Merchant ID: {}", merchant.merchant_id);
+    println!("\n Test Merchant Details:");
+    println!("    Email: {}", email);
+    println!("    Business: {}", business_name);
+    println!("    Merchant ID: {}", merchant.merchant_id);
     println!("    API Key: {}...", &merchant.api_key[..20]);
-    println!("   🧪 Sandbox Key: {}...", &sandbox_creds.sandbox_api_key[..20]);
+    println!("    Sandbox Key: {}...", &sandbox_creds.sandbox_api_key[..20]);
     
-    println!("\n💳 Payment IDs Created:");
+    println!("\n Payment IDs Created:");
     for (i, payment_id) in payment_ids.iter().enumerate() {
         println!("   {}. {}", i + 1, payment_id);
     }

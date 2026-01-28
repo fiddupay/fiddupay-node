@@ -103,7 +103,7 @@ total_tests=20
 if [[ $total_success -eq $total_tests ]]; then
     echo " ALL TESTS PASSED: Backend handles concurrent requests perfectly!"
 elif [[ $total_success -gt $((total_tests / 2)) ]]; then
-    echo "⚠️  PARTIAL SUCCESS: $total_success/$total_tests requests successful"
+    echo "  PARTIAL SUCCESS: $total_success/$total_tests requests successful"
 else
     echo " FAILED: Only $total_success/$total_tests requests successful"
     exit 1

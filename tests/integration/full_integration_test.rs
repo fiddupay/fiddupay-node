@@ -23,7 +23,7 @@ async fn test_health_endpoint_live() {
         assert!(body.contains("healthy"));
         println!(" Health endpoint: {}", body);
     } else {
-        println!("⚠️  Server not running on port 8080");
+        println!("  Server not running on port 8080");
     }
 }
 
@@ -40,7 +40,7 @@ async fn test_metrics_requires_auth_live() {
         assert_eq!(resp.status(), 401);
         println!(" Metrics requires auth");
     } else {
-        println!("⚠️  Server not running");
+        println!("  Server not running");
     }
 }
 
@@ -63,7 +63,7 @@ async fn test_create_merchant_requires_auth_live() {
         assert_eq!(resp.status(), 401);
         println!(" Create merchant requires auth");
     } else {
-        println!("⚠️  Server not running");
+        println!("  Server not running");
     }
 }
 
@@ -80,7 +80,7 @@ async fn test_list_payments_requires_auth_live() {
         assert_eq!(resp.status(), 401);
         println!(" List payments requires auth");
     } else {
-        println!("⚠️  Server not running");
+        println!("  Server not running");
     }
 }
 
@@ -100,7 +100,7 @@ async fn test_invalid_api_key_live() {
         assert!(body.contains("Invalid API key"));
         println!(" Invalid API key rejected");
     } else {
-        println!("⚠️  Server not running");
+        println!("  Server not running");
     }
 }
 

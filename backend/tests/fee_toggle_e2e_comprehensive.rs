@@ -16,7 +16,7 @@ mod fee_toggle_e2e_tests {
 
     #[tokio::test]
     async fn test_customer_pays_fee_scenario() {
-        println!("🧪 Testing Customer Pays Fee Scenario");
+        println!(" Testing Customer Pays Fee Scenario");
         
         // Setup test data
         let merchant_id = 1i64;
@@ -42,7 +42,7 @@ mod fee_toggle_e2e_tests {
 
     #[tokio::test]
     async fn test_merchant_pays_fee_scenario() {
-        println!("🧪 Testing Merchant Pays Fee Scenario");
+        println!(" Testing Merchant Pays Fee Scenario");
         
         // Setup test data
         let merchant_id = 1i64;
@@ -68,7 +68,7 @@ mod fee_toggle_e2e_tests {
 
     #[tokio::test]
     async fn test_fee_toggle_api_structure() {
-        println!("🧪 Testing Fee Toggle API Structure");
+        println!(" Testing Fee Toggle API Structure");
 
         // Test UpdateFeeSettingRequest structure
         let customer_pays_request = json!({
@@ -100,7 +100,7 @@ mod fee_toggle_e2e_tests {
 
     #[tokio::test]
     async fn test_payment_response_structure() {
-        println!("🧪 Testing Payment Response Structure");
+        println!(" Testing Payment Response Structure");
 
         // Test AddressOnlyPaymentResponse structure for customer pays fee
         let customer_pays_response = json!({
@@ -141,7 +141,7 @@ mod fee_toggle_e2e_tests {
 
     #[tokio::test]
     async fn test_webhook_payload_structure() {
-        println!("🧪 Testing Webhook Payload Structure");
+        println!(" Testing Webhook Payload Structure");
 
         // Test webhook payload for customer pays fee scenario
         let customer_pays_webhook = json!({
@@ -189,7 +189,7 @@ mod fee_toggle_e2e_tests {
 
     #[tokio::test]
     async fn test_error_scenarios() {
-        println!("🧪 Testing Error Scenarios");
+        println!(" Testing Error Scenarios");
 
         // Test insufficient payment scenarios
         let scenarios = vec![
@@ -200,7 +200,7 @@ mod fee_toggle_e2e_tests {
         ];
 
         for (scenario, expected, received, customer_pays_fee) in scenarios {
-            println!("🔍 Testing: {}", scenario);
+            println!(" Testing: {}", scenario);
             println!("   Expected: {} ETH, Received: {} ETH", expected, received);
             
             let expected_decimal = Decimal::from_str(expected).unwrap();
@@ -220,7 +220,7 @@ mod fee_toggle_e2e_tests {
 
     #[tokio::test]
     async fn test_expiration_scenarios() {
-        println!("🧪 Testing Payment Expiration Scenarios");
+        println!(" Testing Payment Expiration Scenarios");
 
         let payment_scenarios = vec![
             ("Customer pays fee - expired", true, "Expired"),
@@ -230,7 +230,7 @@ mod fee_toggle_e2e_tests {
         ];
 
         for (scenario, customer_pays_fee, status) in payment_scenarios {
-            println!("🔍 Testing: {} - Status: {}", scenario, status);
+            println!(" Testing: {} - Status: {}", scenario, status);
             
             let webhook_payload = json!({
                 "event": "address_only_payment_status",
@@ -240,7 +240,7 @@ mod fee_toggle_e2e_tests {
                 "timestamp": "2026-01-26T02:53:00.000Z"
             });
 
-            println!("   📨 Webhook: {}", webhook_payload);
+            println!("    Webhook: {}", webhook_payload);
             assert_eq!(webhook_payload["status"].as_str().unwrap(), status);
         }
 
@@ -249,7 +249,7 @@ mod fee_toggle_e2e_tests {
 
     #[tokio::test]
     async fn test_multi_crypto_fee_scenarios() {
-        println!("🧪 Testing Multi-Crypto Fee Scenarios");
+        println!(" Testing Multi-Crypto Fee Scenarios");
 
         let crypto_scenarios = vec![
             ("ETH", "0.05", "0.000375", "0.050375"), // ETH: $100 = 0.05 ETH, fee = 0.000375 ETH
@@ -260,7 +260,7 @@ mod fee_toggle_e2e_tests {
         ];
 
         for (crypto, amount, fee, total) in crypto_scenarios {
-            println!("🔍 Testing {} payments:", crypto);
+            println!(" Testing {} payments:", crypto);
             println!("   Amount: {} {}", amount, crypto);
             println!("   Fee: {} {}", fee, crypto);
             println!("   Customer Pays: {} {}", total, crypto);
@@ -277,7 +277,7 @@ mod fee_toggle_e2e_tests {
 
     #[tokio::test]
     async fn test_websocket_notifications() {
-        println!("🧪 Testing WebSocket Notification Structure");
+        println!(" Testing WebSocket Notification Structure");
 
         let websocket_events = vec![
             ("payment_created", "Customer pays fee", true),
@@ -293,7 +293,7 @@ mod fee_toggle_e2e_tests {
         ];
 
         for (event, scenario, customer_pays_fee) in websocket_events {
-            println!("🔍 Testing WebSocket Event: {} - {}", event, scenario);
+            println!(" Testing WebSocket Event: {} - {}", event, scenario);
             
             let ws_message = json!({
                 "type": event,
@@ -312,7 +312,7 @@ mod fee_toggle_e2e_tests {
                 }
             });
 
-            println!("   📡 WebSocket Message: {}", ws_message);
+            println!("    WebSocket Message: {}", ws_message);
             assert_eq!(ws_message["data"]["customer_pays_fee"].as_bool().unwrap(), customer_pays_fee);
         }
 
@@ -321,15 +321,15 @@ mod fee_toggle_e2e_tests {
 
     #[tokio::test]
     async fn test_comprehensive_fee_flow() {
-        println!("🧪 Testing Comprehensive Fee Flow");
+        println!(" Testing Comprehensive Fee Flow");
 
         println!("\n **COMPREHENSIVE FEE TOGGLE E2E TEST SUMMARY**");
         println!("================================================");
 
         println!("\n **Test Coverage Completed:**");
         println!("    Fee calculation logic (customer vs merchant pays)");
-        println!("   📡 API request/response structures");
-        println!("   📨 Webhook payload formats");
+        println!("    API request/response structures");
+        println!("    Webhook payload formats");
         println!("    WebSocket notification events");
         println!("    Error handling scenarios");
         println!("   ⏰ Payment expiration handling");
@@ -346,11 +346,11 @@ mod fee_toggle_e2e_tests {
         println!("    Multi-crypto fee calculations accurate");
 
         println!("\n **Production Ready Features:**");
-        println!("   💡 Merchant can toggle fee payment responsibility");
-        println!("   💡 Real-time notifications for all payment states");
-        println!("   💡 Comprehensive error handling and validation");
-        println!("   💡 Support for all 5 blockchain networks");
-        println!("   💡 Accurate fee calculations across all scenarios");
+        println!("    Merchant can toggle fee payment responsibility");
+        println!("    Real-time notifications for all payment states");
+        println!("    Comprehensive error handling and validation");
+        println!("    Support for all 5 blockchain networks");
+        println!("    Accurate fee calculations across all scenarios");
 
         assert!(true); // All tests passed
     }

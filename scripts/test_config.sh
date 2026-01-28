@@ -54,7 +54,7 @@ if [ $? -eq 0 ]; then
     ./config_test
     rm -f config_test config_test.rs
 else
-    echo "  ⚠️  Compilation failed, testing with cargo..."
+    echo "    Compilation failed, testing with cargo..."
     
     # Alternative: Test with cargo check
     echo "  Testing configuration compilation..."
@@ -79,7 +79,7 @@ HARDCODED_FOUND=0
 # Check for localhost hardcoding (excluding tests and comments)
 LOCALHOST_COUNT=$(grep -r "localhost" src/ --include="*.rs" | grep -v "test" | grep -v "//" | grep -v "is_private_or_localhost" | wc -l)
 if [ $LOCALHOST_COUNT -gt 0 ]; then
-    echo "  ⚠️  Found $LOCALHOST_COUNT potential localhost hardcoding:"
+    echo "    Found $LOCALHOST_COUNT potential localhost hardcoding:"
     grep -r "localhost" src/ --include="*.rs" | grep -v "test" | grep -v "//" | grep -v "is_private_or_localhost" | head -3
     HARDCODED_FOUND=1
 fi
@@ -87,7 +87,7 @@ fi
 # Check for port hardcoding
 PORT_COUNT=$(grep -r ":8080\|:5432\|:6379" src/ --include="*.rs" | grep -v "test" | grep -v "//" | wc -l)
 if [ $PORT_COUNT -gt 0 ]; then
-    echo "  ⚠️  Found $PORT_COUNT potential port hardcoding:"
+    echo "    Found $PORT_COUNT potential port hardcoding:"
     grep -r ":8080\|:5432\|:6379" src/ --include="*.rs" | grep -v "test" | grep -v "//" | head -3
     HARDCODED_FOUND=1
 fi
@@ -111,7 +111,7 @@ echo "  .env.example variables: $ENV_EXAMPLE_COUNT"
 if [ $ENV_VARS_COUNT -ge 50 ]; then
     echo "   Good environment variable coverage"
 else
-    echo "  ⚠️  Consider adding more environment variables"
+    echo "    Consider adding more environment variables"
 fi
 
 echo ""
@@ -135,7 +135,7 @@ done
 if [ $SECURITY_OK -eq ${#SECURITY_VARS[@]} ]; then
     echo "   All critical security variables configured"
 else
-    echo "  ⚠️  Some security variables are missing"
+    echo "    Some security variables are missing"
 fi
 
 echo ""
@@ -160,7 +160,7 @@ done
 if [ $FEATURES_OK -eq ${#FEATURE_FLAGS[@]} ]; then
     echo "   All feature flags configured"
 else
-    echo "  ⚠️  Some feature flags are missing"
+    echo "    Some feature flags are missing"
 fi
 
 echo ""

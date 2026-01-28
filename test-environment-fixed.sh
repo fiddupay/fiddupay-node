@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Fixed Environment Switching Test
-echo "🧪 FidduPay Environment Switching Test (Fixed)"
+echo " FidduPay Environment Switching Test (Fixed)"
 echo "==============================================="
 
 BASE_URL="http://localhost:8080"

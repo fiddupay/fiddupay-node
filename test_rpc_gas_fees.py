@@ -37,11 +37,11 @@ def test_ethereum_gas():
                 base_fee_gwei = int(base_fee, 16) / 1e9
                 priority_fee_gwei = int(reward, 16) / 1e9
                 
-                print(f"✅ {name.upper()}: Base fee: {base_fee_gwei:.2f} gwei, Priority: {priority_fee_gwei:.2f} gwei")
+                print(f" {name.upper()}: Base fee: {base_fee_gwei:.2f} gwei, Priority: {priority_fee_gwei:.2f} gwei")
             else:
-                print(f"❌ {name.upper()}: {data.get('error', 'No result')}")
+                print(f" {name.upper()}: {data.get('error', 'No result')}")
         except Exception as e:
-            print(f"❌ {name.upper()}: {str(e)}")
+            print(f" {name.upper()}: {str(e)}")
 
 def test_bsc_gas():
     """Test BSC eth_gasPrice"""
@@ -58,11 +58,11 @@ def test_bsc_gas():
         
         if "result" in data:
             gas_price_gwei = int(data["result"], 16) / 1e9
-            print(f"✅ BSC: Gas price: {gas_price_gwei:.2f} gwei")
+            print(f" BSC: Gas price: {gas_price_gwei:.2f} gwei")
         else:
-            print(f"❌ BSC: {data.get('error', 'No result')}")
+            print(f" BSC: {data.get('error', 'No result')}")
     except Exception as e:
-        print(f"❌ BSC: {str(e)}")
+        print(f" BSC: {str(e)}")
 
 def test_polygon_gas():
     """Test Polygon eth_feeHistory"""
@@ -85,11 +85,11 @@ def test_polygon_gas():
             base_fee_gwei = int(base_fee, 16) / 1e9
             priority_fee_gwei = int(reward, 16) / 1e9
             
-            print(f"✅ POLYGON: Base fee: {base_fee_gwei:.2f} gwei, Priority: {priority_fee_gwei:.2f} gwei")
+            print(f" POLYGON: Base fee: {base_fee_gwei:.2f} gwei, Priority: {priority_fee_gwei:.2f} gwei")
         else:
-            print(f"❌ POLYGON: {data.get('error', 'No result')}")
+            print(f" POLYGON: {data.get('error', 'No result')}")
     except Exception as e:
-        print(f"❌ POLYGON: {str(e)}")
+        print(f" POLYGON: {str(e)}")
 
 def test_arbitrum_gas():
     """Test Arbitrum eth_gasPrice"""
@@ -106,11 +106,11 @@ def test_arbitrum_gas():
         
         if "result" in data:
             gas_price_gwei = int(data["result"], 16) / 1e9
-            print(f"✅ ARBITRUM: Gas price: {gas_price_gwei:.2f} gwei")
+            print(f" ARBITRUM: Gas price: {gas_price_gwei:.2f} gwei")
         else:
-            print(f"❌ ARBITRUM: {data.get('error', 'No result')}")
+            print(f" ARBITRUM: {data.get('error', 'No result')}")
     except Exception as e:
-        print(f"❌ ARBITRUM: {str(e)}")
+        print(f" ARBITRUM: {str(e)}")
 
 def test_solana_gas():
     """Test Solana getRecentPrioritizationFees"""
@@ -132,14 +132,14 @@ def test_solana_gas():
             base_fee = 5000  # lamports
             total_fee = base_fee + median_fee
             
-            print(f"✅ SOLANA: Base: {base_fee} lamports, Priority: {median_fee} lamports, Total: {total_fee} lamports")
+            print(f" SOLANA: Base: {base_fee} lamports, Priority: {median_fee} lamports, Total: {total_fee} lamports")
         else:
-            print(f"❌ SOLANA: {data.get('error', 'No result')}")
+            print(f" SOLANA: {data.get('error', 'No result')}")
     except Exception as e:
-        print(f"❌ SOLANA: {str(e)}")
+        print(f" SOLANA: {str(e)}")
 
 if __name__ == "__main__":
-    print("🧪 Testing 2026 RPC endpoints for gas fee estimation...\n")
+    print(" Testing 2026 RPC endpoints for gas fee estimation...\n")
     
     test_ethereum_gas()
     test_bsc_gas()
@@ -147,4 +147,4 @@ if __name__ == "__main__":
     test_arbitrum_gas()
     test_solana_gas()
     
-    print("\n✨ Test completed!")
+    print("\n Test completed!")

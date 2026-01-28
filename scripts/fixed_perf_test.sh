@@ -111,7 +111,7 @@ run_fixed_test() {
     if [ $SUCCESS -gt 0 ]; then
         echo "    Working correctly (got expected $expected_status responses)"
     else
-        echo "   ⚠️  No expected responses received"
+        echo "     No expected responses received"
     fi
     
     if [ "$AVG_TIME" != "N/A" ] && (( $(echo "$AVG_TIME < 0.1" | bc -l 2>/dev/null || echo "0") )); then
@@ -162,7 +162,7 @@ REG_RESPONSE=$(curl -s -w "%{http_code}" \
     -d "$REGISTER_DATA" \
     "$BASE_URL/api/v1/merchant/register" \
     -o /dev/null)
-echo "   Registration: $REG_RESPONSE $([ "$REG_RESPONSE" = "201" ] && echo "" || [ "$REG_RESPONSE" = "400" ] && echo "⚠️ (validation)" || echo "")"
+echo "   Registration: $REG_RESPONSE $([ "$REG_RESPONSE" = "201" ] && echo "" || [ "$REG_RESPONSE" = "400" ] && echo " (validation)" || echo "")"
 
 echo ""
 
@@ -184,7 +184,7 @@ if [ $WORKING_ENDPOINTS -eq 3 ]; then
 elif [ $WORKING_ENDPOINTS -eq 2 ]; then
     echo " GOOD! Most endpoints working correctly"
 else
-    echo "⚠️  Some endpoints need attention"
+    echo "  Some endpoints need attention"
 fi
 
 echo ""

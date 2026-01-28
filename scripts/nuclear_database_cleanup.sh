@@ -4,14 +4,14 @@
 
 set -e
 
-echo "💥 NUCLEAR DATABASE CLEANUP"
+echo " NUCLEAR DATABASE CLEANUP"
 echo "==========================="
 echo ""
-echo "⚠️  WARNING: This will DELETE ALL user databases!"
+echo "  WARNING: This will DELETE ALL user databases!"
 echo "System databases (postgres, template0, template1) will be preserved."
 echo ""
 
-read -p "🚨 Type 'NUKE' to delete ALL databases: " confirmation
+read -p " Type 'NUKE' to delete ALL databases: " confirmation
 
 if [ "$confirmation" != "NUKE" ]; then
     echo " Nuclear cleanup cancelled."
@@ -40,7 +40,7 @@ for db in $DATABASES; do
 done
 
 echo ""
-read -p "🚨 Confirm deletion of these databases? Type 'DELETE ALL': " final_confirm
+read -p " Confirm deletion of these databases? Type 'DELETE ALL': " final_confirm
 
 if [ "$final_confirm" != "DELETE ALL" ]; then
     echo " Deletion cancelled."
@@ -48,7 +48,7 @@ if [ "$final_confirm" != "DELETE ALL" ]; then
 fi
 
 echo ""
-echo "💥 Deleting all user databases..."
+echo " Deleting all user databases..."
 
 # Terminate all connections first
 for db in $DATABASES; do
@@ -62,8 +62,8 @@ done
 
 # Drop all databases
 for db in $DATABASES; do
-    echo "🗑️  Dropping database: $db"
-    sudo -u postgres dropdb "$db" || echo "⚠️  Failed to drop $db (might not exist)"
+    echo "  Dropping database: $db"
+    sudo -u postgres dropdb "$db" || echo "  Failed to drop $db (might not exist)"
 done
 
 echo ""

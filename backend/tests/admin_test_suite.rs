@@ -260,20 +260,20 @@ mod test_reporting {
     #[tokio::test]
     async fn generate_test_coverage_report() {
         println!("=== Admin API Test Coverage Report ===");
-        println!("✅ System Management Tests:");
+        println!(" System Management Tests:");
         println!("   - System status and health monitoring");
         println!("   - Configuration management");
         println!("   - Maintenance mode control");
         println!("   - System logs and metrics");
         
-        println!("✅ Merchant Management Tests:");
+        println!(" Merchant Management Tests:");
         println!("   - Merchant listing and search");
         println!("   - Account suspension/reactivation");
         println!("   - Role and permission management");
         println!("   - Fee and limit configuration");
         println!("   - API key management");
         
-        println!("✅ Analytics and Monitoring Tests:");
+        println!(" Analytics and Monitoring Tests:");
         println!("   - Platform-wide analytics");
         println!("   - Payment and revenue metrics");
         println!("   - Performance monitoring");
@@ -281,7 +281,7 @@ mod test_reporting {
         println!("   - Alert management");
         println!("   - Report generation");
         
-        println!("✅ Security and Compliance Tests:");
+        println!(" Security and Compliance Tests:");
         println!("   - Audit log management");
         println!("   - KYC/AML compliance");
         println!("   - Transaction monitoring");
@@ -289,7 +289,7 @@ mod test_reporting {
         println!("   - Access control management");
         println!("   - Data retention policies");
         
-        println!("✅ Integration Tests:");
+        println!(" Integration Tests:");
         println!("   - Complete admin workflows");
         println!("   - Role-based access control");
         println!("   - Performance benchmarks");

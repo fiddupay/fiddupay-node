@@ -1,7 +1,7 @@
 const { FidduPayClient } = require('@fiddupay/fiddupay-node');
 
 async function runComprehensiveSDKTests() {
-  console.log('🧪 FidduPay SDK - COMPREHENSIVE Test Suite\n');
+  console.log(' FidduPay SDK - COMPREHENSIVE Test Suite\n');
   console.log('Testing ALL available merchant endpoints through SDK...\n');
   
   let passedTests = 0;
@@ -9,7 +9,7 @@ async function runComprehensiveSDKTests() {
 
   try {
     // Setup: Register merchant
-    console.log('🔧 Setting up test merchant...');
+    console.log(' Setting up test merchant...');
     const tempClient = new FidduPayClient({
       apiKey: 'registration_key',
       environment: 'sandbox',
@@ -29,30 +29,30 @@ async function runComprehensiveSDKTests() {
       baseURL: 'http://127.0.0.1:8080'
     });
 
-    console.log('✅ Test merchant set up\n');
+    console.log(' Test merchant set up\n');
 
     // 1. MERCHANT ENDPOINTS
-    console.log('👤 MERCHANT ENDPOINTS');
+    console.log(' MERCHANT ENDPOINTS');
     console.log('====================');
     
     totalTests++;
-    console.log('1️⃣  Testing merchant profile...');
+    console.log('1⃣  Testing merchant profile...');
     const profile = await client.merchants.retrieve();
-    console.log('   ✅ Profile retrieved');
+    console.log('    Profile retrieved');
     
     // Test daily volume limit information
     if (typeof profile.kyc_verified === 'boolean') {
-      console.log(`   ✅ KYC status: ${profile.kyc_verified}`);
+      console.log(`    KYC status: ${profile.kyc_verified}`);
       if (!profile.kyc_verified && profile.daily_volume_remaining !== undefined) {
-        console.log(`   ✅ Daily volume remaining: $${profile.daily_volume_remaining}`);
+        console.log(`    Daily volume remaining: $${profile.daily_volume_remaining}`);
       } else if (profile.kyc_verified) {
-        console.log('   ✅ KYC verified - unlimited daily volume');
+        console.log('    KYC verified - unlimited daily volume');
       }
     }
     passedTests++;
 
     totalTests++;
-    console.log('2️⃣  Testing environment switching...');
+    console.log('2⃣  Testing environment switching...');
     const envResponse = await client.merchants.switchEnvironment({ environment: 'sandbox' });
     
     // Update client with new API key returned from environment switch
@@ -62,11 +62,11 @@ async function runComprehensiveSDKTests() {
       baseURL: 'http://127.0.0.1:8080'
     });
     
-    console.log('   ✅ Environment switched');
+    console.log('    Environment switched');
     passedTests++;
 
     totalTests++;
-    console.log('3️⃣  Testing API key generation...');
+    console.log('3⃣  Testing API key generation...');
     const keyResponse = await newClient.merchants.generateApiKey();
     
     // Update client with newly generated API key
@@ -76,98 +76,98 @@ async function runComprehensiveSDKTests() {
       baseURL: 'http://127.0.0.1:8080'
     });
     
-    console.log('   ✅ API key generated');
+    console.log('    API key generated');
     passedTests++;
 
     totalTests++;
-    console.log('4️⃣  Testing wallet configuration...');
+    console.log('4⃣  Testing wallet configuration...');
     await finalClient.merchants.setWallet({
       crypto_type: 'SOL',
       address: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
     });
-    console.log('   ✅ Wallet configured');
+    console.log('    Wallet configured');
     passedTests++;
 
     totalTests++;
-    console.log('5️⃣  Testing webhook configuration...');
+    console.log('5⃣  Testing webhook configuration...');
     await finalClient.merchants.setWebhook({
       webhook_url: 'https://example.com/webhook'
     });
-    console.log('   ✅ Webhook configured');
+    console.log('    Webhook configured');
     passedTests++;
 
     // 2. PAYMENT ENDPOINTS
-    console.log('\n💳 PAYMENT ENDPOINTS');
+    console.log('\n PAYMENT ENDPOINTS');
     console.log('====================');
 
     totalTests++;
-    console.log('6️⃣  Testing payment creation...');
+    console.log('6⃣  Testing payment creation...');
     const payment = await finalClient.payments.create({
       amount_usd: '25.00',
       crypto_type: 'SOL',
       description: 'Comprehensive SDK test payment'
     });
-    console.log('   ✅ Payment created');
+    console.log('    Payment created');
     passedTests++;
 
     totalTests++;
-    console.log('7️⃣  Testing payment retrieval...');
+    console.log('7⃣  Testing payment retrieval...');
     await finalClient.payments.retrieve(payment.payment_id);
-    console.log('   ✅ Payment retrieved');
+    console.log('    Payment retrieved');
     passedTests++;
 
     totalTests++;
-    console.log('8️⃣  Testing payment listing...');
+    console.log('8⃣  Testing payment listing...');
     await finalClient.payments.list({ limit: 10 });
-    console.log('   ✅ Payments listed');
+    console.log('    Payments listed');
     passedTests++;
 
     // 3. REFUND ENDPOINTS
-    console.log('\n💸 REFUND ENDPOINTS');
+    console.log('\n REFUND ENDPOINTS');
     console.log('===================');
 
     // First simulate payment to make it confirmed
     totalTests++;
-    console.log('9️⃣  Testing payment simulation for refund...');
+    console.log('9⃣  Testing payment simulation for refund...');
     await finalClient.sandbox.simulatePayment(payment.payment_id, { success: true });
-    console.log('   ✅ Payment simulated for refund');
+    console.log('    Payment simulated for refund');
     passedTests++;
 
     totalTests++;
-    console.log('🔟 Testing refund creation...');
+    console.log(' Testing refund creation...');
     const refund = await finalClient.refunds.create({
       payment_id: payment.payment_id,
       amount: 0.10, // Very small amount to ensure it doesn't exceed balance
       reason: 'SDK test refund'
     });
-    console.log('   ✅ Refund created');
+    console.log('    Refund created');
     passedTests++;
 
     totalTests++;
-    console.log('1️⃣1️⃣ Testing refund retrieval...');
+    console.log('1⃣1⃣ Testing refund retrieval...');
     await finalClient.refunds.retrieve(refund.refund_id);
-    console.log('   ✅ Refund retrieved');
+    console.log('    Refund retrieved');
     passedTests++;
 
     // 4. ANALYTICS ENDPOINTS
-    console.log('\n📊 ANALYTICS ENDPOINTS');
+    console.log('\n ANALYTICS ENDPOINTS');
     console.log('======================');
 
     totalTests++;
-    console.log('1️⃣2️⃣ Testing analytics retrieval...');
+    console.log('1⃣2⃣ Testing analytics retrieval...');
     await finalClient.analytics.retrieve({
       start_date: '2024-01-01',
       end_date: '2024-12-31'
     });
-    console.log('   ✅ Analytics retrieved');
+    console.log('    Analytics retrieved');
     passedTests++;
 
     // 5. SANDBOX ENDPOINTS
-    console.log('\n🏖️ SANDBOX ENDPOINTS');
+    console.log('\n SANDBOX ENDPOINTS');
     console.log('====================');
 
     totalTests++;
-    console.log('1️⃣3️⃣ Testing sandbox enable...');
+    console.log('1⃣3⃣ Testing sandbox enable...');
     const sandboxResponse = await finalClient.sandbox.enable();
     
     // Update client with new sandbox API key if returned
@@ -180,222 +180,222 @@ async function runComprehensiveSDKTests() {
       });
     }
     
-    console.log('   ✅ Sandbox enabled');
+    console.log('    Sandbox enabled');
     passedTests++;
 
     // 6. WITHDRAWAL ENDPOINTS
-    console.log('\n💰 WITHDRAWAL ENDPOINTS');
+    console.log('\n WITHDRAWAL ENDPOINTS');
     console.log('=======================');
 
     totalTests++;
-    console.log('1️⃣4️⃣ Testing withdrawal creation...');
+    console.log('1⃣4⃣ Testing withdrawal creation...');
     const withdrawal = await sandboxClient.withdrawals.create({
       crypto_type: 'SOL',
       amount: '5.00',
       destination_address: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
     });
-    console.log('   ✅ Withdrawal created');
+    console.log('    Withdrawal created');
     passedTests++;
 
     totalTests++;
-    console.log('1️⃣5️⃣ Testing withdrawal listing...');
+    console.log('1⃣5⃣ Testing withdrawal listing...');
     await sandboxClient.withdrawals.list();
-    console.log('   ✅ Withdrawals listed');
+    console.log('    Withdrawals listed');
     passedTests++;
 
     totalTests++;
-    console.log('1️⃣6️⃣ Testing withdrawal retrieval...');
+    console.log('1⃣6⃣ Testing withdrawal retrieval...');
     await sandboxClient.withdrawals.get(withdrawal.withdrawal_id);
-    console.log('   ✅ Withdrawal retrieved');
+    console.log('    Withdrawal retrieved');
     passedTests++;
 
     totalTests++;
-    console.log('1️⃣7️⃣ Testing withdrawal cancellation...');
+    console.log('1⃣7⃣ Testing withdrawal cancellation...');
     await sandboxClient.withdrawals.cancel(withdrawal.withdrawal_id);
-    console.log('   ✅ Withdrawal cancelled');
+    console.log('    Withdrawal cancelled');
     passedTests++;
 
     // 7. SECURITY ENDPOINTS
-    console.log('\n🔒 SECURITY ENDPOINTS');
+    console.log('\n SECURITY ENDPOINTS');
     console.log('=====================');
 
     totalTests++;
-    console.log('1️⃣8️⃣ Testing security events...');
+    console.log('1⃣8⃣ Testing security events...');
     await sandboxClient.security.getEvents();
-    console.log('   ✅ Security events retrieved');
+    console.log('    Security events retrieved');
     passedTests++;
 
     totalTests++;
-    console.log('1️⃣9️⃣ Testing security alerts...');
+    console.log('1⃣9⃣ Testing security alerts...');
     await sandboxClient.security.getAlerts();
-    console.log('   ✅ Security alerts retrieved');
+    console.log('    Security alerts retrieved');
     passedTests++;
 
     totalTests++;
-    console.log('2️⃣0️⃣ Testing security settings...');
+    console.log('2⃣0⃣ Testing security settings...');
     await sandboxClient.security.getSettings();
-    console.log('   ✅ Security settings retrieved');
+    console.log('    Security settings retrieved');
     passedTests++;
 
     totalTests++;
-    console.log('2️⃣1️⃣ Testing security settings update...');
+    console.log('2⃣1⃣ Testing security settings update...');
     await sandboxClient.security.updateSettings({
       daily_volume_limit_non_kyc_usd: 1000.00,
       require_2fa_for_withdrawals: false
     });
-    console.log('   ✅ Security settings updated');
+    console.log('    Security settings updated');
     passedTests++;
 
     totalTests++;
-    console.log('2️⃣2️⃣ Testing gas balance check...');
+    console.log('2⃣2⃣ Testing gas balance check...');
     await sandboxClient.security.checkGasBalances();
-    console.log('   ✅ Gas balances checked');
+    console.log('    Gas balances checked');
     passedTests++;
 
     // 8. WALLET MANAGEMENT ENDPOINTS
-    console.log('\n🏦 WALLET MANAGEMENT ENDPOINTS');
+    console.log('\n WALLET MANAGEMENT ENDPOINTS');
     console.log('==============================');
 
     totalTests++;
-    console.log('2️⃣3️⃣ Testing wallet configurations...');
+    console.log('2⃣3⃣ Testing wallet configurations...');
     await sandboxClient.wallets.getConfigurations();
-    console.log('   ✅ Wallet configs retrieved');
+    console.log('    Wallet configs retrieved');
     passedTests++;
 
     totalTests++;
-    console.log('2️⃣4️⃣ Testing wallet generation...');
+    console.log('2⃣4⃣ Testing wallet generation...');
     await sandboxClient.wallets.generate({ crypto_type: 'ETH' });
-    console.log('   ✅ Wallet generated');
+    console.log('    Wallet generated');
     passedTests++;
 
     totalTests++;
-    console.log('2️⃣5️⃣ Testing wallet import...');
+    console.log('2⃣5⃣ Testing wallet import...');
     await sandboxClient.wallets.import({
       crypto_type: 'ETH',
       private_key: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
     });
-    console.log('   ✅ Wallet imported');
+    console.log('    Wallet imported');
     passedTests++;
 
     totalTests++;
-    console.log('2️⃣6️⃣ Testing gas estimates...');
+    console.log('2⃣6⃣ Testing gas estimates...');
     await sandboxClient.wallets.getGasEstimates();
-    console.log('   ✅ Gas estimates retrieved');
+    console.log('    Gas estimates retrieved');
     passedTests++;
 
     totalTests++;
-    console.log('2️⃣7️⃣ Testing gas requirements...');
+    console.log('2⃣7⃣ Testing gas requirements...');
     await sandboxClient.wallets.checkGasRequirements();
-    console.log('   ✅ Gas requirements checked');
+    console.log('    Gas requirements checked');
     passedTests++;
 
     totalTests++;
-    console.log('2️⃣8️⃣ Testing withdrawal capability...');
+    console.log('2⃣8⃣ Testing withdrawal capability...');
     await sandboxClient.wallets.checkWithdrawalCapability('SOL');
-    console.log('   ✅ Withdrawal capability checked');
+    console.log('    Withdrawal capability checked');
     passedTests++;
 
     // 9. AUDIT & BALANCE ENDPOINTS
-    console.log('\n📋 AUDIT & BALANCE ENDPOINTS');
+    console.log('\n AUDIT & BALANCE ENDPOINTS');
     console.log('============================');
 
     totalTests++;
-    console.log('2️⃣9️⃣ Testing audit logs...');
+    console.log('2⃣9⃣ Testing audit logs...');
     await sandboxClient.auditLogs.list();
-    console.log('   ✅ Audit logs retrieved');
+    console.log('    Audit logs retrieved');
     passedTests++;
 
     totalTests++;
-    console.log('3️⃣0️⃣ Testing balance retrieval...');
+    console.log('3⃣0⃣ Testing balance retrieval...');
     await sandboxClient.balances.get();
-    console.log('   ✅ Balance retrieved');
+    console.log('    Balance retrieved');
     passedTests++;
 
     totalTests++;
-    console.log('3️⃣1️⃣ Testing balance history...');
+    console.log('3⃣1⃣ Testing balance history...');
     try {
       await sandboxClient.balances.getHistory();
-      console.log('   ✅ Balance history retrieved');
+      console.log('    Balance history retrieved');
       passedTests++;
     } catch (error) {
       if (error.statusCode === 501) {
-        console.log('   ✅ Balance history not implemented (expected)');
+        console.log('    Balance history not implemented (expected)');
         passedTests++;
       } else {
-        console.log('   ❌ SDK Test failed:', error.message);
-        console.log('   🔍 Full error:', error);
+        console.log('    SDK Test failed:', error.message);
+        console.log('    Full error:', error);
       }
     }
 
     // 10. IP WHITELIST ENDPOINTS
-    console.log('\n🔒 IP WHITELIST ENDPOINTS');
+    console.log('\n IP WHITELIST ENDPOINTS');
     console.log('=========================');
 
     totalTests++;
-    console.log('3️⃣2️⃣ Testing IP whitelist set...');
+    console.log('3⃣2⃣ Testing IP whitelist set...');
     await sandboxClient.merchants.setIpWhitelist({
       ip_addresses: ['127.0.0.1', '192.168.1.1']
     });
-    console.log('   ✅ IP whitelist set');
+    console.log('    IP whitelist set');
     passedTests++;
 
     totalTests++;
-    console.log('3️⃣3️⃣ Testing IP whitelist get...');
+    console.log('3⃣3⃣ Testing IP whitelist get...');
     await sandboxClient.merchants.getIpWhitelist();
-    console.log('   ✅ IP whitelist retrieved');
+    console.log('    IP whitelist retrieved');
     passedTests++;
 
     // 11. PAYMENT VERIFICATION
-    console.log('\n✅ PAYMENT VERIFICATION ENDPOINTS');
+    console.log('\n PAYMENT VERIFICATION ENDPOINTS');
     console.log('==================================');
 
     totalTests++;
-    console.log('3️⃣4️⃣ Testing payment verification...');
+    console.log('3⃣4⃣ Testing payment verification...');
     try {
       await sandboxClient.payments.verify(payment.payment_id, {
         transaction_hash: 'test_hash_123'
       });
-      console.log('   ✅ Payment verification tested');
+      console.log('    Payment verification tested');
       passedTests++;
     } catch (error) {
       // Expected to fail with test hash
-      console.log('   ✅ Payment verification working (expected error)');
+      console.log('    Payment verification working (expected error)');
       passedTests++;
     }
 
     // 12. REFUND COMPLETION
     totalTests++;
-    console.log('3️⃣5️⃣ Testing refund completion...');
+    console.log('3⃣5⃣ Testing refund completion...');
     try {
       await sandboxClient.refunds.complete(refund.refund_id);
-      console.log('   ✅ Refund completion tested');
+      console.log('    Refund completion tested');
       passedTests++;
     } catch (error) {
       // May fail due to business logic constraints
-      console.log('   ✅ Refund completion working (expected constraint)');
+      console.log('    Refund completion working (expected constraint)');
       passedTests++;
     }
 
   } catch (error) {
-    console.log(`   ❌ SDK Test failed: ${error.message}`);
+    console.log(`    SDK Test failed: ${error.message}`);
     if (error.response) {
-      console.log(`   📊 Status: ${error.response.status}`);
-      console.log(`   📄 Data: ${JSON.stringify(error.response.data)}`);
+      console.log(`    Status: ${error.response.status}`);
+      console.log(`    Data: ${JSON.stringify(error.response.data)}`);
     }
-    console.log(`   🔍 Full error:`, error);
+    console.log(`    Full error:`, error);
   }
 
   // Results
-  console.log('\n📊 COMPREHENSIVE SDK TEST RESULTS');
+  console.log('\n COMPREHENSIVE SDK TEST RESULTS');
   console.log('==================================');
-  console.log(`✅ Passed: ${passedTests}/${totalTests}`);
-  console.log(`❌ Failed: ${totalTests - passedTests}/${totalTests}`);
-  console.log(`📈 Success Rate: ${((passedTests/totalTests)*100).toFixed(1)}%`);
+  console.log(` Passed: ${passedTests}/${totalTests}`);
+  console.log(` Failed: ${totalTests - passedTests}/${totalTests}`);
+  console.log(` Success Rate: ${((passedTests/totalTests)*100).toFixed(1)}%`);
   
   if (passedTests === totalTests) {
-    console.log('\n🎉 ALL SDK ENDPOINTS WORKING PERFECTLY!');
+    console.log('\n ALL SDK ENDPOINTS WORKING PERFECTLY!');
   } else {
-    console.log(`\n⚠️  ${totalTests - passedTests} endpoint(s) need attention`);
+    console.log(`\n  ${totalTests - passedTests} endpoint(s) need attention`);
   }
   
   return passedTests === totalTests;

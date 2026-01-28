@@ -109,7 +109,7 @@ pub async fn export_private_key(
     match wallet_service.export_private_key(context.merchant_id, req).await {
         Ok(private_key) => (StatusCode::OK, Json(json!({
             "private_key": private_key,
-            "warning": "⚠️ Keep this private key secure. Anyone with access can control your funds."
+            "warning": " Keep this private key secure. Anyone with access can control your funds."
         }))).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
             "error": e.to_string()

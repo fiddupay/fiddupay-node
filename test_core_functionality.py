@@ -12,11 +12,11 @@ def test_fee_calculation():
     processing_fee = payment * fee_rate
     forwarding_amount = payment - processing_fee
     
-    print(f"✅ Payment: {payment}, Fee: {processing_fee}, Forwarding: {forwarding_amount}")
+    print(f" Payment: {payment}, Fee: {processing_fee}, Forwarding: {forwarding_amount}")
     
     assert processing_fee == decimal.Decimal("0.750000")
     assert forwarding_amount == decimal.Decimal("99.250000")
-    print("✅ Fee calculations correct")
+    print(" Fee calculations correct")
 
 def test_address_generation():
     """Test address generation logic"""
@@ -36,13 +36,13 @@ def test_address_generation():
     eth_addr = generate_evm_address()
     sol_addr = generate_solana_address()
 
-    print(f"✅ ETH Address: {eth_addr}")
-    print(f"✅ SOL Address: {sol_addr}")
+    print(f" ETH Address: {eth_addr}")
+    print(f" SOL Address: {sol_addr}")
 
     assert eth_addr.startswith("0x")
     assert len(eth_addr) == 42
     assert len(sol_addr) == 36
-    print("✅ Address generation logic correct")
+    print(" Address generation logic correct")
 
 def test_webhook_payload():
     """Test webhook payload structure"""
@@ -65,7 +65,7 @@ def test_webhook_payload():
     }
 
     json_payload = json.dumps(webhook_payload, indent=2)
-    print("✅ Webhook payload structure:")
+    print(" Webhook payload structure:")
     print(json_payload)
 
     # Validate required fields
@@ -73,18 +73,18 @@ def test_webhook_payload():
     for field in required_fields:
         assert field in webhook_payload
         
-    print("✅ Webhook payload validation correct")
+    print(" Webhook payload validation correct")
 
 if __name__ == "__main__":
-    print("🧪 Running Core Functionality Tests")
+    print(" Running Core Functionality Tests")
     
     try:
         test_fee_calculation()
         test_address_generation()
         test_webhook_payload()
-        print("\n🎉 All core functionality tests passed!")
+        print("\n All core functionality tests passed!")
     except Exception as e:
-        print(f"\n❌ Test failed: {str(e)}")
+        print(f"\n Test failed: {str(e)}")
         import traceback
         traceback.print_exc()
         exit(1)

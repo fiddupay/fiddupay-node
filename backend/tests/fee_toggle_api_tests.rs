@@ -15,7 +15,7 @@ mod fee_toggle_api_tests {
 
     #[tokio::test]
     async fn test_fee_toggle_api_structure() {
-        println!("🧪 Testing Fee Toggle API Structure");
+        println!(" Testing Fee Toggle API Structure");
 
         // Test UpdateFeeSettingRequest structure
         let customer_pays_request = UpdateFeeSettingRequest {
@@ -38,7 +38,7 @@ mod fee_toggle_api_tests {
 
     #[tokio::test]
     async fn test_address_only_payment_request_structure() {
-        println!("🧪 Testing Address-Only Payment Request Structure");
+        println!(" Testing Address-Only Payment Request Structure");
 
         let payment_request = CreateAddressOnlyPaymentRequest {
             crypto_type: CryptoType::Eth,
@@ -59,7 +59,7 @@ mod fee_toggle_api_tests {
 
     #[tokio::test]
     async fn test_fee_calculation_scenarios() {
-        println!("🧪 Testing Fee Calculation Scenarios");
+        println!(" Testing Fee Calculation Scenarios");
 
         let test_scenarios = vec![
             ("Customer pays fee", true, "100.00", "0.75", "100.75", "100.00"),
@@ -67,7 +67,7 @@ mod fee_toggle_api_tests {
         ];
 
         for (scenario, customer_pays_fee, requested, fee, customer_amount, merchant_receives) in test_scenarios {
-            println!("🔍 Testing: {}", scenario);
+            println!(" Testing: {}", scenario);
             
             let requested_decimal = Decimal::from_str(requested).unwrap();
             let fee_decimal = Decimal::from_str(fee).unwrap();
@@ -91,7 +91,7 @@ mod fee_toggle_api_tests {
 
     #[tokio::test]
     async fn test_api_response_json_structure() {
-        println!("🧪 Testing API Response JSON Structure");
+        println!(" Testing API Response JSON Structure");
 
         // Test expected API response structure for customer pays fee
         let customer_pays_response = json!({
@@ -145,14 +145,14 @@ mod fee_toggle_api_tests {
 
     #[tokio::test]
     async fn test_comprehensive_fee_toggle_api() {
-        println!("🧪 Testing Comprehensive Fee Toggle API");
+        println!(" Testing Comprehensive Fee Toggle API");
 
         println!("\n **COMPREHENSIVE FEE TOGGLE API TEST SUMMARY**");
         println!("================================================");
 
         println!("\n **API Test Coverage Completed:**");
         println!("    Fee toggle request/response structures");
-        println!("   📡 Address-only payment request validation");
+        println!("    Address-only payment request validation");
         println!("    Fee calculation logic verification");
         println!("    JSON response structure validation");
         println!("    API endpoint structure testing");
@@ -165,10 +165,10 @@ mod fee_toggle_api_tests {
         println!("    API endpoint structures ready");
 
         println!("\n **API Ready for Integration:**");
-        println!("   💡 Fee toggle endpoints structured correctly");
-        println!("   💡 Payment request/response formats validated");
-        println!("   💡 Fee calculation logic implemented");
-        println!("   💡 JSON structures match specifications");
+        println!("    Fee toggle endpoints structured correctly");
+        println!("    Payment request/response formats validated");
+        println!("    Fee calculation logic implemented");
+        println!("    JSON structures match specifications");
 
         assert!(true); // All tests passed
     }

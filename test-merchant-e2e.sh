@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # End-to-End Merchant Test Script
-echo "🧪 FidduPay End-to-End Merchant Test"
+echo " FidduPay End-to-End Merchant Test"
 echo "===================================="
 
 # Test 1: Register new merchant

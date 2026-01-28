@@ -87,7 +87,7 @@ impl PaymentVerifier {
         transaction_hash: &str,
         merchant_id: i64,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        info!("🔍 Verifying payment {} with transaction hash {} for merchant {}", 
+        info!(" Verifying payment {} with transaction hash {} for merchant {}", 
             payment_id, transaction_hash, merchant_id);
 
         // 1. Check if transaction hash is already used by another payment

@@ -18,7 +18,7 @@ sed -i 's/^pub mod balance_service;/\/\/ pub mod balance_service;/' src/services
 sed -i 's/use crate::background_tasks;/\/\/ use crate::background_tasks;/' src/main.rs 2>/dev/null || true
 
 echo " Core security services enabled"
-echo "⚠️  Advanced services temporarily disabled for compilation"
+echo "  Advanced services temporarily disabled for compilation"
 
 # Try to build core security features
 export DATABASE_URL="${DATABASE_URL:-postgresql://vibes:password@localhost:5432/fiddupay_dev}"

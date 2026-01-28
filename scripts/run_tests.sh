@@ -50,12 +50,12 @@ setup_test_env() {
     
     # Check if test database exists
     if ! psql "$TEST_DB_URL" -c '\q' 2>/dev/null; then
-        echo -e "${YELLOW}📦 Creating test database...${NC}"
+        echo -e "${YELLOW} Creating test database...${NC}"
         createdb fiddupay_test || echo "Database might already exist"
     fi
     
     # Run migrations on test database
-    echo -e "${YELLOW}🗃️ Running database migrations...${NC}"
+    echo -e "${YELLOW} Running database migrations...${NC}"
     cd "$BACKEND_DIR"
     DATABASE_URL="$TEST_DB_URL" sqlx migrate run || echo "Migrations completed"
     cd ..
@@ -154,7 +154,7 @@ main() {
     echo -e "${RED} Failed Phases: $failed_phases${NC}"
     
     local success_rate=$(( (passed_phases * 100) / total_phases ))
-    echo -e "📈 Success Rate: $success_rate%"
+    echo -e " Success Rate: $success_rate%"
     
     if [ $failed_phases -eq 0 ]; then
         echo -e "\n${GREEN} ALL TESTS PASSED! System ready for production.${NC}"

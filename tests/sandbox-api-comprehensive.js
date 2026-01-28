@@ -21,7 +21,7 @@ let testResults = [];
 // Helper functions
 function logTest(testName, status, details = '') {
   totalTests++;
-  const statusIcon = status === 'PASS' ? '✅' : '❌';
+  const statusIcon = status === 'PASS' ? '' : '';
   console.log(`${statusIcon} ${testName} ${details}`);
   
   if (status === 'PASS') {
@@ -44,7 +44,7 @@ async function sleep(ms) {
 
 // Setup functions
 async function testSandboxDailyVolumeLimit() {
-  console.log('\n💰 Testing Sandbox Daily Volume Limit...');
+  console.log('\n Testing Sandbox Daily Volume Limit...');
   
   try {
     // Test that sandbox merchants also have daily volume limits
@@ -76,7 +76,7 @@ async function testSandboxDailyVolumeLimit() {
 }
 
 async function setupTestMerchant() {
-  console.log('\n🔧 Setting up test merchant...');
+  console.log('\n Setting up test merchant...');
   
   try {
     const response = await axios.post(`${BASE_URL}/merchant/register`, {
@@ -88,18 +88,18 @@ async function setupTestMerchant() {
     if (response.status === 201 && response.data.api_key && response.data.user) {
       testMerchant = response.data.user;
       testApiKey = response.data.api_key;
-      console.log(`✅ Test merchant created: ${testMerchant.id}`);
+      console.log(` Test merchant created: ${testMerchant.id}`);
       return true;
     }
   } catch (error) {
-    console.log(`❌ Failed to create test merchant: ${error.message}`);
+    console.log(` Failed to create test merchant: ${error.message}`);
     return false;
   }
 }
 
 // Sandbox Core Tests
 async function testEnableSandboxMode() {
-  console.log('\n🏖️ Testing Enable Sandbox Mode...');
+  console.log('\n Testing Enable Sandbox Mode...');
   
   try {
     const response = await axios.post(`${BASE_URL}/sandbox/enable`, {}, {
@@ -127,7 +127,7 @@ async function testEnableSandboxMode() {
 }
 
 async function testSandboxEnvironmentSwitch() {
-  console.log('\n🔄 Testing Environment Switching...');
+  console.log('\n Testing Environment Switching...');
   
   // Test switch to live
   try {
@@ -174,7 +174,7 @@ async function testSandboxEnvironmentSwitch() {
 }
 
 async function testSandboxDataIsolation() {
-  console.log('\n🔒 Testing Sandbox Data Isolation...');
+  console.log('\n Testing Sandbox Data Isolation...');
   
   // Configure required wallets first
   const wallets = [
@@ -234,7 +234,7 @@ async function testSandboxDataIsolation() {
 
 // Payment Simulation Tests
 async function testPaymentSimulationSuccess() {
-  console.log('\n✅ Testing Successful Payment Simulation...');
+  console.log('\n Testing Successful Payment Simulation...');
   
   if (!testPaymentId) {
     logTest('Payment Simulation Success', 'SKIP', 'No test payment available');
@@ -271,7 +271,7 @@ async function testPaymentSimulationSuccess() {
 }
 
 async function testPaymentSimulationFailure() {
-  console.log('\n❌ Testing Failed Payment Simulation...');
+  console.log('\n Testing Failed Payment Simulation...');
   
   // Create another test payment for failure simulation
   try {
@@ -316,7 +316,7 @@ async function testPaymentSimulationFailure() {
 }
 
 async function testSandboxSimulationRestrictions() {
-  console.log('\n🚫 Testing Sandbox Simulation Restrictions...');
+  console.log('\n Testing Sandbox Simulation Restrictions...');
   
   // Test that live environment cannot simulate payments
   if (liveApiKey && testPaymentId) {
@@ -355,7 +355,7 @@ async function testSandboxSimulationRestrictions() {
 
 // Test Data Generation
 async function testSandboxTestDataGeneration() {
-  console.log('\n🎲 Testing Sandbox Test Data Generation...');
+  console.log('\n Testing Sandbox Test Data Generation...');
   
   // Configure wallets for different crypto types first
   const cryptoTypes = ['SOL', 'SOL', 'SOL']; // Use same crypto type for all
@@ -424,7 +424,7 @@ async function testSandboxTestDataGeneration() {
 
 // Sandbox Analytics Tests
 async function testSandboxAnalytics() {
-  console.log('\n📊 Testing Sandbox Analytics...');
+  console.log('\n Testing Sandbox Analytics...');
   
   try {
     const response = await axios.get(`${BASE_URL}/analytics`, {
@@ -453,7 +453,7 @@ async function testSandboxAnalytics() {
 
 // Sandbox Webhook Tests
 async function testSandboxWebhooks() {
-  console.log('\n🔗 Testing Sandbox Webhooks...');
+  console.log('\n Testing Sandbox Webhooks...');
   
   // Set a test webhook URL
   try {
@@ -490,7 +490,7 @@ async function testSandboxWebhooks() {
 
 // Sandbox Security Tests
 async function testSandboxSecurity() {
-  console.log('\n🔐 Testing Sandbox Security...');
+  console.log('\n Testing Sandbox Security...');
   
   // Test that sandbox keys are properly identified
   if (testApiKey && testApiKey.startsWith('sk_')) {
@@ -517,7 +517,7 @@ async function testSandboxSecurity() {
 
 // Sandbox Utilities Tests
 async function testSandboxUtilities() {
-  console.log('\n🛠️ Testing Sandbox Utilities...');
+  console.log('\n Testing Sandbox Utilities...');
   
   // Test getting supported currencies in sandbox
   try {
@@ -552,7 +552,7 @@ async function testSandboxUtilities() {
 
 // Error Handling Tests
 async function testSandboxErrorHandling() {
-  console.log('\n⚠️ Testing Sandbox Error Handling...');
+  console.log('\n Testing Sandbox Error Handling...');
   
   // Test invalid simulation request
   try {
@@ -587,13 +587,13 @@ async function testSandboxErrorHandling() {
 
 // Main test runner
 async function runSandboxTests() {
-  console.log('🏖️ FidduPay Sandbox API Comprehensive Test Suite');
+  console.log(' FidduPay Sandbox API Comprehensive Test Suite');
   console.log('================================================');
   
   // Setup
   const setupSuccess = await setupTestMerchant();
   if (!setupSuccess) {
-    console.log('❌ Setup failed, aborting tests');
+    console.log(' Setup failed, aborting tests');
     return;
   }
   
@@ -613,7 +613,7 @@ async function runSandboxTests() {
   await testSandboxErrorHandling();
   
   // Results summary
-  console.log('\n📊 Test Results Summary');
+  console.log('\n Test Results Summary');
   console.log('======================');
   console.log(`Total Tests: ${totalTests}`);
   console.log(`Passed: ${passedTests}`);
@@ -621,21 +621,21 @@ async function runSandboxTests() {
   console.log(`Success Rate: ${((passedTests / totalTests) * 100).toFixed(1)}%`);
   
   if (passedTests === totalTests) {
-    console.log('\n🎉 All sandbox tests passed!');
+    console.log('\n All sandbox tests passed!');
   } else {
-    console.log('\n⚠️ Some tests failed. Check the details above.');
+    console.log('\n Some tests failed. Check the details above.');
     
     // Show failed tests
     const failedTests = testResults.filter(t => t.status === 'FAIL');
     if (failedTests.length > 0) {
-      console.log('\n❌ Failed Tests:');
+      console.log('\n Failed Tests:');
       failedTests.forEach(test => {
         console.log(`  - ${test.testName}: ${test.details}`);
       });
     }
   }
   
-  console.log('\n🏖️ Sandbox testing complete!');
+  console.log('\n Sandbox testing complete!');
 }
 
 // Run the tests

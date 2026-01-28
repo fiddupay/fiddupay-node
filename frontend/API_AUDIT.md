@@ -7,12 +7,12 @@
 2. **HomePage.tsx** - No API calls  
 3. **AboutPage.tsx** - No API calls
 4. **FeaturesPage.tsx** - No API calls
-5. **PricingPage.tsx** - ❌ Uses fetch('/api/v1/pricing')
-6. **ContactPage.tsx** - ❌ Uses fetch('/api/v1/contact')
+5. **PricingPage.tsx** -  Uses fetch('/api/v1/pricing')
+6. **ContactPage.tsx** -  Uses fetch('/api/v1/contact')
 7. **BlogPage.tsx** - No API calls
 8. **CareersPage.tsx** - No API calls
 9. **DocsPage.tsx** - No API calls
-10. **StatusPage.tsx** - ❌ Uses fetch('/api/status')
+10. **StatusPage.tsx** -  Uses fetch('/api/status')
 11. **SecurityPage.tsx** - No API calls
 12. **CompliancePage.tsx** - No API calls
 13. **TermsPage.tsx** - No API calls
@@ -20,22 +20,22 @@
 15. **CookiesPage.tsx** - No API calls
 
 ### AUTH PAGES
-16. **RegisterPage.tsx** - ✅ Uses authAPI.register()
+16. **RegisterPage.tsx** -  Uses authAPI.register()
 17. **LoginPage.tsx** - No direct API calls (uses AuthContext)
 18. **ForgotPasswordPage.tsx** - No API calls (simulated)
 
 ### MERCHANT DASHBOARD PAGES (Auth Required)
-19. **DashboardPage.tsx** - ❌ Uses apiService from '@/services/api'
-20. **PaymentsPage.tsx** - ❌ Uses apiService from '@/services/api'
-21. **WalletsPage.tsx** - ❌ Uses apiService from '@/services/api'
+19. **DashboardPage.tsx** -  Uses apiService from '@/services/api'
+20. **PaymentsPage.tsx** -  Uses apiService from '@/services/api'
+21. **WalletsPage.tsx** -  Uses apiService from '@/services/api'
 
 ### COMPONENTS WITH API CALLS
-22. **SecurityDashboard.tsx** - ❌ Uses fetch() for security endpoints
-23. **WithdrawalInterface.tsx** - ❌ Uses fetch() for withdrawal endpoints
-24. **WalletSetupWizard.tsx** - ❌ Uses fetch() for wallet endpoints
+22. **SecurityDashboard.tsx** -  Uses fetch() for security endpoints
+23. **WithdrawalInterface.tsx** -  Uses fetch() for withdrawal endpoints
+24. **WalletSetupWizard.tsx** -  Uses fetch() for wallet endpoints
 
 ### CONTEXTS WITH API CALLS
-25. **AuthContext.tsx** - ✅ Uses authAPI and merchantAPI
+25. **AuthContext.tsx** -  Uses authAPI and merchantAPI
 
 ### COMPONENTS WITHOUT API CALLS (18 total)
 - Layout components, UI components, etc.

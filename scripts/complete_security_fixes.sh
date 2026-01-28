@@ -3,9 +3,9 @@
 
 set -e
 
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║          fiddupay - Complete Security Implementation         ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
+echo "          fiddupay - Complete Security Implementation         "
+echo ""
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -46,7 +46,7 @@ if psql "$DATABASE_URL" -c "SELECT 1;" > /dev/null 2>&1; then
     "
     log " Database migrations completed"
 else
-    warn "⚠️  Database not available - skipping migrations"
+    warn "  Database not available - skipping migrations"
 fi
 
 # Build with all fixes
@@ -135,9 +135,9 @@ System is ready for production deployment.
 EOF
 
 echo ""
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║               SECURITY FIXES COMPLETE                  ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
+echo "               SECURITY FIXES COMPLETE                  "
+echo ""
 echo ""
 log " All $FIXES_APPLIED critical security fixes applied"
 log " System hardened against common attacks"

@@ -290,8 +290,8 @@ if [ $successful_merchants -ge 8 ] && [ $successful_payments -ge 5 ]; then
     exit 0
 else
     echo -e "${RED} TEST RESULT: PARTIAL SUCCESS${NC}"
-    echo "⚠️  Some merchants or payments failed"
-    echo "⚠️  Check logs above for details"
+    echo "  Some merchants or payments failed"
+    echo "  Check logs above for details"
     cleanup
     exit 1
 fi

@@ -3,33 +3,33 @@ use rust_decimal::Decimal;
 
 #[test]
 fn test_proper_rpc_methods_documentation() {
-    println!("🔍 Proper 2026 Blockchain Gas Fee RPC Methods:");
+    println!(" Proper 2026 Blockchain Gas Fee RPC Methods:");
     
-    println!("\n📡 **Ethereum (EIP-1559)**:");
+    println!("\n **Ethereum (EIP-1559)**:");
     println!("   Method: eth_feeHistory");
     println!("   Params: [blockCount, newestBlock, percentiles]");
     println!("   Returns: baseFeePerGas + reward (priority fees)");
     println!("   Formula: total_fee = base_fee + priority_fee");
     
-    println!("\n📡 **BSC (Binance Smart Chain)**:");
+    println!("\n **BSC (Binance Smart Chain)**:");
     println!("   Method: eth_gasPrice");
     println!("   Params: []");
     println!("   Returns: current gas price in wei");
     println!("   Formula: total_fee = gas_price * gas_limit");
     
-    println!("\n📡 **Polygon (EIP-1559)**:");
+    println!("\n **Polygon (EIP-1559)**:");
     println!("   Method: eth_feeHistory");
     println!("   Params: [blockCount, newestBlock, percentiles]");
     println!("   Returns: baseFeePerGas + reward");
     println!("   Alternative: Polygon Gas Station API");
     
-    println!("\n📡 **Arbitrum**:");
+    println!("\n **Arbitrum**:");
     println!("   Method: eth_gasPrice");
     println!("   Params: []");
     println!("   Returns: current gas price in wei");
     println!("   Note: Very low fees due to L2 optimization");
     
-    println!("\n📡 **Solana**:");
+    println!("\n **Solana**:");
     println!("   Method: getRecentPrioritizationFees");
     println!("   Params: [accounts] (empty for global)");
     println!("   Returns: array of recent priority fees");
@@ -58,7 +58,7 @@ fn test_fee_collection_mechanism() {
     println!("   Platform Fee (0.75%): ${}", platform_fee);
     println!("   Customer Pays Total: ${}", customer_total);
     
-    println!("\n💸 **Who Pays What**:");
+    println!("\n **Who Pays What**:");
     println!("    Merchant does NOT pay fees");
     println!("    Customer pays the platform fee");
     println!("    Merchant receives full requested amount");
@@ -79,9 +79,9 @@ fn test_fee_collection_mechanism() {
 
 #[test]
 fn test_gas_fee_vs_platform_fee_distinction() {
-    println!("⛽ Gas Fees vs Platform Fees - Key Distinctions:");
+    println!(" Gas Fees vs Platform Fees - Key Distinctions:");
     
-    println!("\n🔥 **Gas Fees (Blockchain Network)**:");
+    println!("\n **Gas Fees (Blockchain Network)**:");
     println!("   - Paid to blockchain validators/miners");
     println!("   - Required for transaction execution");
     println!("   - Variable based on network congestion");

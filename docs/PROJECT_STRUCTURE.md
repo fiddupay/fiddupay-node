@@ -6,125 +6,125 @@ This document outlines the clean, organized structure of the fiddupay cryptocurr
 
 ```
 crypto-payment-gateway/
-├──  src/                          # Main source code
-│   ├──  api/                      # HTTP API layer
-│   │   ├── handlers.rs              # Request handlers
-│   │   ├── routes.rs                # Route definitions
-│   │   ├── state.rs                 # Application state
-│   │   └── mod.rs                   # Module exports
-│   │
-│   ├──  services/                 # Business logic layer
-│   │   ├── merchant_service.rs      # Merchant management
-│   │   ├── payment_service.rs       # Payment processing
-│   │   ├── balance_service.rs       # Balance management
-│   │   ├── withdrawal_service.rs    # Withdrawal processing
-│   │   ├── webhook_service.rs       # Webhook notifications
-│   │   ├── analytics_service.rs     # Analytics & reporting
-│   │   ├── audit_service.rs         # Audit logging
-│   │   ├── email_service.rs         # Email notifications
-│   │   ├── two_factor_service.rs    # 2FA authentication
-│   │   ├── multi_user_service.rs    # Multi-user management
-│   │   ├── sandbox_service.rs       # Sandbox testing
-│   │   ├── ip_whitelist_service.rs  # IP whitelisting
-│   │   ├── invoice_service.rs       # Invoice management
-│   │   ├── refund_service.rs        # Refund processing
-│   │   ├── deposit_address_service.rs # Address generation
-│   │   ├── price_cache_service.rs   # Price caching
-│   │   └── mod.rs                   # Service exports
-│   │
-│   ├──  payment/                  # Payment processing core
-│   │   ├── models.rs                # Payment data models
-│   │   ├── processor.rs             # Payment processor
-│   │   ├── verifier.rs              # Payment verification
-│   │   ├── blockchain_monitor.rs    # Blockchain monitoring
-│   │   ├── sol_monitor.rs           # Solana monitoring
-│   │   ├── price_fetcher.rs         # Price fetching
-│   │   ├── fee_calculator.rs        # Fee calculations
-│   │   └── mod.rs                   # Payment exports
-│   │
-│   ├──  models/                   # Data models
-│   │   ├── merchant.rs              # Merchant models
-│   │   ├── payment.rs               # Payment models
-│   │   ├── analytics.rs             # Analytics models
-│   │   ├── webhook.rs               # Webhook models
-│   │   ├── refund.rs                # Refund models
-│   │   └── mod.rs                   # Model exports
-│   │
-│   ├──  middleware/               # HTTP middleware
-│   │   ├── auth.rs                  # Authentication
-│   │   ├── logging.rs               # Request logging
-│   │   ├── rate_limit.rs            # Rate limiting
-│   │   ├── ip_whitelist.rs          # IP filtering
-│   │   └── mod.rs                   # Middleware exports
-│   │
-│   ├──  utils/                    # Utility functions
-│   │   ├── encryption.rs            # Encryption utilities
-│   │   ├── keygen.rs                # Key generation
-│   │   ├── retry.rs                 # Retry logic
-│   │   ├── circuit_breaker.rs       # Circuit breaker
-│   │   └── mod.rs                   # Utility exports
-│   │
-│   ├── main.rs                      # Application entry point
-│   ├── config.rs                    # Configuration management
-│   ├── error.rs                     # Error handling
-│   ├── feature_flags.rs             # Feature flags
-│   ├── background_tasks.rs          # Background processing
-│   └── lib.rs                       # Library root
-│
-├──  tests/                        # Integration tests
-│   ├── api_endpoints_test.rs        # API endpoint tests
-│   ├── payment_test.rs              # Payment flow tests
-│   ├── withdrawal_test.rs           # Withdrawal tests
-│   ├── services_test.rs             # Service layer tests
-│   ├── utils_test.rs                # Utility tests
-│   ├── workflows_test.rs            # End-to-end workflows
-│   ├── complete_endpoint_test.rs    # Complete API tests
-│   ├── comprehensive_service_test.rs # Service integration
-│   ├── database_integration_test.rs # Database tests
-│   ├── endpoints_test.rs            # Endpoint validation
-│   ├── full_integration_test.rs     # Full integration
-│   ├── payment_listing_tests.rs    # Payment listing
-│   ├── analytics_service_tests.rs  # Analytics tests
-│   └── standalone_tests.rs         # Standalone tests
-│
-├──  docs/                         # Documentation
-│   ├── API.md                       # Original API docs
-│   ├── API_REFERENCE.md             # Comprehensive API reference
-│   ├── SETUP.md                     # Setup guide
-│   ├── MERCHANT_GUIDE.md            # Merchant integration
-│   ├── TESTING.md                   # Testing guide
-│   ├── DEPLOYMENT.md                # Deployment guide
-│   └── SECURITY.md                  # Security guide
-│
-├──  migrations/                   # Database migrations
-│   ├── 001_initial.sql              # Initial schema
-│   ├── 002_add_webhooks.sql         # Webhook tables
-│   └── ...                         # Additional migrations
-│
-├──  scripts/                      # Utility scripts
-│   ├── test.sh                      # Test runner
-│   ├── setup_infrastructure.sh     # Infrastructure setup
-│   ├── security_audit.sh           # Security audit
-│   └── run_tests.sh                 # Test execution
-│
-├──  Configuration Files
-├── Cargo.toml                       # Rust dependencies
-├── Cargo.lock                       # Dependency lock file
-├── .env.example                     # Environment template
-├── .env                             # Environment variables
-├── .gitignore                       # Git ignore rules
-├── README.md                        # Project overview
-├── FINAL_FIXES_SUMMARY.md           # Fix summary
-├── PROJECT_STRUCTURE.md             # This file
-│
-├──  Test Scripts
-├── test_api.sh                      # API testing
-├── test_basic_api.sh                # Basic API tests
-├── test_complete_flow.sh            # Complete flow tests
-├── test_service_layer.sh            # Service tests
-├── test_final_complete.sh           # Final tests
-├── test_redis.sh                    # Redis tests
-└── fix_build.sh                     # Build fixes
+  src/                          # Main source code
+     api/                      # HTTP API layer
+       handlers.rs              # Request handlers
+       routes.rs                # Route definitions
+       state.rs                 # Application state
+       mod.rs                   # Module exports
+   
+     services/                 # Business logic layer
+       merchant_service.rs      # Merchant management
+       payment_service.rs       # Payment processing
+       balance_service.rs       # Balance management
+       withdrawal_service.rs    # Withdrawal processing
+       webhook_service.rs       # Webhook notifications
+       analytics_service.rs     # Analytics & reporting
+       audit_service.rs         # Audit logging
+       email_service.rs         # Email notifications
+       two_factor_service.rs    # 2FA authentication
+       multi_user_service.rs    # Multi-user management
+       sandbox_service.rs       # Sandbox testing
+       ip_whitelist_service.rs  # IP whitelisting
+       invoice_service.rs       # Invoice management
+       refund_service.rs        # Refund processing
+       deposit_address_service.rs # Address generation
+       price_cache_service.rs   # Price caching
+       mod.rs                   # Service exports
+   
+     payment/                  # Payment processing core
+       models.rs                # Payment data models
+       processor.rs             # Payment processor
+       verifier.rs              # Payment verification
+       blockchain_monitor.rs    # Blockchain monitoring
+       sol_monitor.rs           # Solana monitoring
+       price_fetcher.rs         # Price fetching
+       fee_calculator.rs        # Fee calculations
+       mod.rs                   # Payment exports
+   
+     models/                   # Data models
+       merchant.rs              # Merchant models
+       payment.rs               # Payment models
+       analytics.rs             # Analytics models
+       webhook.rs               # Webhook models
+       refund.rs                # Refund models
+       mod.rs                   # Model exports
+   
+     middleware/               # HTTP middleware
+       auth.rs                  # Authentication
+       logging.rs               # Request logging
+       rate_limit.rs            # Rate limiting
+       ip_whitelist.rs          # IP filtering
+       mod.rs                   # Middleware exports
+   
+     utils/                    # Utility functions
+       encryption.rs            # Encryption utilities
+       keygen.rs                # Key generation
+       retry.rs                 # Retry logic
+       circuit_breaker.rs       # Circuit breaker
+       mod.rs                   # Utility exports
+   
+    main.rs                      # Application entry point
+    config.rs                    # Configuration management
+    error.rs                     # Error handling
+    feature_flags.rs             # Feature flags
+    background_tasks.rs          # Background processing
+    lib.rs                       # Library root
+
+  tests/                        # Integration tests
+    api_endpoints_test.rs        # API endpoint tests
+    payment_test.rs              # Payment flow tests
+    withdrawal_test.rs           # Withdrawal tests
+    services_test.rs             # Service layer tests
+    utils_test.rs                # Utility tests
+    workflows_test.rs            # End-to-end workflows
+    complete_endpoint_test.rs    # Complete API tests
+    comprehensive_service_test.rs # Service integration
+    database_integration_test.rs # Database tests
+    endpoints_test.rs            # Endpoint validation
+    full_integration_test.rs     # Full integration
+    payment_listing_tests.rs    # Payment listing
+    analytics_service_tests.rs  # Analytics tests
+    standalone_tests.rs         # Standalone tests
+
+  docs/                         # Documentation
+    API.md                       # Original API docs
+    API_REFERENCE.md             # Comprehensive API reference
+    SETUP.md                     # Setup guide
+    MERCHANT_GUIDE.md            # Merchant integration
+    TESTING.md                   # Testing guide
+    DEPLOYMENT.md                # Deployment guide
+    SECURITY.md                  # Security guide
+
+  migrations/                   # Database migrations
+    001_initial.sql              # Initial schema
+    002_add_webhooks.sql         # Webhook tables
+    ...                         # Additional migrations
+
+  scripts/                      # Utility scripts
+    test.sh                      # Test runner
+    setup_infrastructure.sh     # Infrastructure setup
+    security_audit.sh           # Security audit
+    run_tests.sh                 # Test execution
+
+  Configuration Files
+ Cargo.toml                       # Rust dependencies
+ Cargo.lock                       # Dependency lock file
+ .env.example                     # Environment template
+ .env                             # Environment variables
+ .gitignore                       # Git ignore rules
+ README.md                        # Project overview
+ FINAL_FIXES_SUMMARY.md           # Fix summary
+ PROJECT_STRUCTURE.md             # This file
+
+  Test Scripts
+ test_api.sh                      # API testing
+ test_basic_api.sh                # Basic API tests
+ test_complete_flow.sh            # Complete flow tests
+ test_service_layer.sh            # Service tests
+ test_final_complete.sh           # Final tests
+ test_redis.sh                    # Redis tests
+ fix_build.sh                     # Build fixes
 ```
 
 ##  Architecture Layers
@@ -257,7 +257,7 @@ Response (JSON)
 - Configurable intervals
 - Error handling and logging
 
-## 🗄️ Database Schema
+##  Database Schema
 
 ### Core Tables
 - `merchants` - Merchant accounts
@@ -287,7 +287,7 @@ Response (JSON)
 - Database test fixtures
 - Mock external services
 
-## 📈 Performance Considerations
+##  Performance Considerations
 
 ### Caching
 - Redis for session data

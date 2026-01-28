@@ -59,7 +59,7 @@ if curl -s http://localhost:8080/health | grep -q "healthy"; then
     echo "   - Session management"
     echo "   - Rate limiting"
 else
-    echo "⚠️  Server not running (start with: cargo run --release)"
+    echo "  Server not running (start with: cargo run --release)"
 fi
 
 echo ""

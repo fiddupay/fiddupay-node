@@ -44,7 +44,7 @@ FidduPay cryptocurrency payment gateway has been successfully developed and is r
 -  **Two-Factor Authentication**: TOTP-based 2FA
 -  **2FA Alerts**: Security event notifications
 
-### 👥 Team Management
+###  Team Management
 -  **Multi-user Accounts**: Team collaboration support
 -  **Role-based Permissions**: 5 distinct user roles
 ###  Integration & APIs

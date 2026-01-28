@@ -36,7 +36,7 @@ solana-keygen new --no-bip39-passphrase --silent --outfile "$KEYPAIR_FILE"
 
 # Get the public key
 PUBLIC_KEY=$(solana-keygen pubkey "$KEYPAIR_FILE")
-echo "📍 Test wallet address: $PUBLIC_KEY"
+echo " Test wallet address: $PUBLIC_KEY"
 
 # Request airdrop
 echo " Requesting 2 SOL from devnet faucet..."

@@ -3,9 +3,9 @@
 
 set -e
 
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║          fiddupay - Security Audit                          ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
+echo "          fiddupay - Security Audit                          "
+echo ""
 echo ""
 
 # Colors
@@ -24,7 +24,7 @@ check_pass() {
 }
 
 check_warn() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
+    echo -e "${YELLOW}  $1${NC}"
     ((WARNINGS++))
 }
 
@@ -344,20 +344,20 @@ echo "  • OWASP ZAP - Web application security"
 echo "  • nmap - Network security scan"
 echo ""
 
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║              Security Audit Complete                       ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
+echo "              Security Audit Complete                       "
+echo ""
 echo ""
 echo -e "${GREEN} Passed: $PASSED${NC}"
-echo -e "${YELLOW}⚠️  Warnings: $WARNINGS${NC}"
+echo -e "${YELLOW}  Warnings: $WARNINGS${NC}"
 echo -e "${RED} Issues: $ISSUES${NC}"
 echo ""
 
 if [ $ISSUES -gt 0 ]; then
-    echo -e "${RED}⚠️  CRITICAL: Fix all issues before production deployment${NC}"
+    echo -e "${RED}  CRITICAL: Fix all issues before production deployment${NC}"
     exit 1
 elif [ $WARNINGS -gt 5 ]; then
-    echo -e "${YELLOW}⚠️  WARNING: Review warnings before production deployment${NC}"
+    echo -e "${YELLOW}  WARNING: Review warnings before production deployment${NC}"
     exit 0
 else
     echo -e "${GREEN} Security audit passed! Ready for production.${NC}"

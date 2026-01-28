@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🗑️  FidduPay Database Cleanup Script"
+echo "  FidduPay Database Cleanup Script"
 echo "=================================="
 echo ""
 
@@ -19,7 +19,7 @@ echo "Database: $DB_NAME@$DB_HOST:$DB_PORT"
 echo ""
 
 # Confirmation prompt
-read -p "⚠️  This will DELETE ALL DATA. Are you sure? (type 'DELETE' to confirm): " confirmation
+read -p "  This will DELETE ALL DATA. Are you sure? (type 'DELETE' to confirm): " confirmation
 
 if [ "$confirmation" != "DELETE" ]; then
     echo " Cleanup cancelled."
@@ -72,7 +72,7 @@ VACUUM ANALYZE;
 "
 
 # Execute cleanup
-echo "🗑️  Truncating tables..."
+echo "  Truncating tables..."
 if command -v psql &> /dev/null; then
     echo "$CLEANUP_SQL" | psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME"
 else

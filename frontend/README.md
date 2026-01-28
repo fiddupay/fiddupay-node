@@ -8,15 +8,15 @@ The FidduPay frontend is a React TypeScript application that provides a complete
 
 ## Features
 
-- **🔐 Authentication**: Secure login/registration with JWT tokens
-- **💳 Payment Management**: Create, view, and manage cryptocurrency payments
-- **🏦 Wallet Management**: 3-mode wallet system (address-only, generated, imported)
-- **🔒 Security Dashboard**: Real-time monitoring, alerts, and IP whitelisting
-- **💰 Balance Management**: View balances and transaction history
-- **📊 Analytics**: Comprehensive reporting and data visualization
-- **🔄 Withdrawal Processing**: Create and manage withdrawals
-- **🧪 Sandbox Testing**: Complete testing environment
-- **📋 Audit Logs**: Compliance tracking and activity monitoring
+- ** Authentication**: Secure login/registration with JWT tokens
+- ** Payment Management**: Create, view, and manage cryptocurrency payments
+- ** Wallet Management**: 3-mode wallet system (address-only, generated, imported)
+- ** Security Dashboard**: Real-time monitoring, alerts, and IP whitelisting
+- ** Balance Management**: View balances and transaction history
+- ** Analytics**: Comprehensive reporting and data visualization
+- ** Withdrawal Processing**: Create and manage withdrawals
+- ** Sandbox Testing**: Complete testing environment
+- ** Audit Logs**: Compliance tracking and activity monitoring
 
 ## Tech Stack
 
@@ -32,34 +32,34 @@ The FidduPay frontend is a React TypeScript application that provides a complete
 
 ```
 frontend/
-├── src/
-│   ├── components/          # Reusable UI components
-│   │   ├── ui/             # Base UI components
-│   │   ├── layout/         # Layout components
-│   │   ├── SecurityDashboard.tsx
-│   │   ├── WalletSetupWizard.tsx
-│   │   └── WithdrawalInterface.tsx
-│   ├── pages/              # Page components
-│   │   ├── auth/           # Authentication pages
-│   │   ├── DashboardPage.tsx
-│   │   ├── PaymentsPage.tsx
-│   │   ├── WalletsPage.tsx
-│   │   └── StatusPage.tsx
-│   ├── services/           # API services
-│   │   └── api.ts          # Main API client
-│   ├── stores/             # State management
-│   │   ├── authStore.ts
-│   │   └── paymentStore.ts
-│   ├── types/              # TypeScript definitions
-│   │   └── index.ts
-│   ├── contexts/           # React contexts
-│   │   ├── ToastContext.tsx
-│   │   └── LoadingContext.tsx
-│   ├── App.tsx
-│   └── main.tsx
-├── public/                 # Static assets
-├── package.json
-└── vite.config.ts
+ src/
+    components/          # Reusable UI components
+       ui/             # Base UI components
+       layout/         # Layout components
+       SecurityDashboard.tsx
+       WalletSetupWizard.tsx
+       WithdrawalInterface.tsx
+    pages/              # Page components
+       auth/           # Authentication pages
+       DashboardPage.tsx
+       PaymentsPage.tsx
+       WalletsPage.tsx
+       StatusPage.tsx
+    services/           # API services
+       api.ts          # Main API client
+    stores/             # State management
+       authStore.ts
+       paymentStore.ts
+    types/              # TypeScript definitions
+       index.ts
+    contexts/           # React contexts
+       ToastContext.tsx
+       LoadingContext.tsx
+    App.tsx
+    main.tsx
+ public/                 # Static assets
+ package.json
+ vite.config.ts
 ```
 
 ## API Integration

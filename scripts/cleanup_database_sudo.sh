@@ -6,11 +6,11 @@ set -e
 
 DB_NAME="${DB_NAME:-fiddupay}"
 
-echo "🗑️  FidduPay Database Cleanup (Sudo Method)"
+echo "  FidduPay Database Cleanup (Sudo Method)"
 echo "==========================================="
 echo ""
 
-read -p "⚠️  This will DELETE ALL DATA. Are you sure? (type 'DELETE' to confirm): " confirmation
+read -p "  This will DELETE ALL DATA. Are you sure? (type 'DELETE' to confirm): " confirmation
 
 if [ "$confirmation" != "DELETE" ]; then
     echo " Cleanup cancelled."
@@ -63,7 +63,7 @@ VACUUM ANALYZE;
 "
 
 # Execute cleanup using sudo
-echo "🗑️  Truncating tables..."
+echo "  Truncating tables..."
 echo "$CLEANUP_SQL" | sudo -u postgres psql -d "$DB_NAME"
 
 echo ""
