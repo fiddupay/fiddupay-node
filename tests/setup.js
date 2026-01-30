@@ -1,6 +1,6 @@
+"use strict";
 // Test setup file - temporarily disabled for compilation testing
 // import { jest } from '@jest/globals';
-
 // Mock axios to prevent actual HTTP requests
 // const mockAxios = {
 //   create: jest.fn(() => ({
@@ -18,5 +18,5 @@
 //   })),
 //   isAxiosError: jest.fn(() => false)
 // };
-
 // jest.mock('axios', () => mockAxios);
+//# sourceMappingURL=setup.js.map

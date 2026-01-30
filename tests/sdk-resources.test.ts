@@ -233,7 +233,7 @@ describe('SDK Resources Coverage', () => {
 
   describe('Type Safety', () => {
     it('should enforce crypto type constraints', () => {
-      const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BSC', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
+      const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
       
       validCryptoTypes.forEach(cryptoType => {
         expect(() => {
@@ -304,7 +304,7 @@ describe('SDK Resources Coverage', () => {
 
     it('should support legacy crypto type formats', () => {
       // Test that USDT variants are supported
-      const usdtVariants = ['USDT_ETH', 'USDT_BSC', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
+      const usdtVariants = ['USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
       
       usdtVariants.forEach(variant => {
         expect(() => {

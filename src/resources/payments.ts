@@ -134,7 +134,7 @@ export class Payments {
 
     // Note: No maximum amount limit - server enforces daily volume limits based on KYC status
 
-    const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BSC', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
+    const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
     if (!validCryptoTypes.includes(data.crypto_type)) {
       throw new FidduPayValidationError(
         `Invalid crypto type. Must be one of: ${validCryptoTypes.join(', ')}`,
@@ -183,7 +183,7 @@ export class Payments {
 
     // Note: No maximum amount limit - server enforces daily volume limits based on KYC status
 
-    const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BSC', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
+    const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
     if (!validCryptoTypes.includes(data.crypto_type)) {
       throw new FidduPayValidationError(
         `Invalid crypto type. Must be one of: ${validCryptoTypes.join(', ')}`,
