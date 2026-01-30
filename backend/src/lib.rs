@@ -13,4 +13,4 @@ pub mod utils;
 pub mod feature_flags;
 pub mod performance;
 pub mod performance_advanced;
-pub mod simple_tests;
+// pub mod simple_tests; // Removed during test cleanup

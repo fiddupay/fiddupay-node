@@ -61,7 +61,7 @@ impl std::fmt::Display for CryptoType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             CryptoType::Sol => write!(f, "SOL"),
-            CryptoType::UsdtSpl => write!(f, "USDT-SPL"),
+            CryptoType::UsdtSpl => write!(f, "USDT_SPL"),
             CryptoType::Eth => write!(f, "ETH"),
             CryptoType::UsdtEth => write!(f, "USDT-ERC20"),
             CryptoType::Bnb => write!(f, "BNB"),
@@ -221,7 +221,20 @@ impl CreatePaymentRequest {
         match (self.amount, self.amount_usd) {
             (Some(_), Some(_)) => Err("Provide either amount or amount_usd, not both".to_string()),
             (None, None) => Err("Either amount or amount_usd must be provided".to_string()),
-            _ => Ok(()),
+            (Some(amount), None) => {
+                if amount <= Decimal::ZERO {
+                    Err("Amount must be positive".to_string())
+                } else {
+                    Ok(())
+                }
+            },
+            (None, Some(amount_usd)) => {
+                if amount_usd <= Decimal::ZERO {
+                    Err("Amount USD must be positive".to_string())
+                } else {
+                    Ok(())
+                }
+            },
         }
     }
 }
@@ -230,7 +243,7 @@ impl CreatePaymentRequest {
 #[derive(Debug, Serialize)]
 pub struct PaymentResponse {
     pub payment_id: String,
-    pub crypto_type: CryptoType,
+    pub crypto_type: String, // Changed from CryptoType to String to preserve original value
     #[serde(with = "rust_decimal::serde::str")]
     pub amount: Decimal,
     #[serde(with = "rust_decimal::serde::str")]
@@ -260,7 +273,7 @@ impl From<crate::models::payment::Payment> for PaymentResponse {
     fn from(payment: crate::models::payment::Payment) -> Self {
         Self {
             payment_id: payment.payment_id,
-            crypto_type: CryptoType::from_string(&payment.crypto_type),
+            crypto_type: payment.crypto_type.clone(), // Use original string
             amount: payment.amount,
             amount_usd: payment.amount_usd,
             to_address: payment.to_address.clone(),

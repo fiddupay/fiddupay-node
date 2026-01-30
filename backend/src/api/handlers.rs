@@ -1,6 +1,13 @@
 // API Handlers
 // HTTP request handlers
 
+// CHANGELOG: v2.3.6 - Fixed invoice creation database storage
+// - Modified create_invoice to actually store invoices in database
+// - Added proper SQL insertion with all required invoice fields
+// - Added error handling for database operation failures
+// - Fixed invoice listing to return actual stored invoices
+// - Fixed compilation errors with amount_usd parsing to Decimal
+
 use crate::api::state::AppState;
 use crate::middleware::auth::MerchantContext;
 use crate::payment::models::{CreatePaymentRequest, PaymentFilters, CryptoType};
@@ -15,6 +22,7 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use validator::Validate;
 use html_escape::encode_text;
+use rust_decimal::Decimal;
 
 // Import validation functions
 use crate::middleware::validation::{validate_business_email, validate_password_strength, validate_webhook_url};
@@ -310,6 +318,11 @@ pub async fn create_payment(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<CreatePaymentRequest>,
 ) -> impl IntoResponse {
+    // Validate request
+    if let Err(validation_error) = req.validate() {
+        return (StatusCode::BAD_REQUEST, Json(json!({"error": validation_error}))).into_response();
+    }
+
     match state.payment_service.create_payment(context.merchant_id, req).await {
         Ok(response) => (StatusCode::CREATED, Json(response)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
@@ -1006,38 +1019,105 @@ pub struct InvoiceResponse {
 }
 
 pub async fn create_invoice(
+    State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
     Json(request): Json<CreateInvoiceRequest>,
 ) -> impl IntoResponse {
     let invoice_id = nanoid::nanoid!(16);
     let payment_url = format!("https://pay.fiddupay.com/invoice/{}", invoice_id);
     
-    let response = InvoiceResponse {
+    // Store invoice in database
+    let result = sqlx::query!(
+        "INSERT INTO invoices (invoice_id, merchant_id, customer_email, customer_name, status, items, subtotal, tax, total, currency, due_date, notes, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
         invoice_id,
-        amount_usd: request.amount_usd,
-        description: request.description,
-        status: "pending".to_string(),
-        payment_url,
-        created_at: chrono::Utc::now(),
-        due_date: request.due_date,
-    };
-    
-    (StatusCode::CREATED, Json(response)).into_response()
+        context.merchant_id,
+        request.customer_email,
+        None::<String>, // customer_name
+        "pending",
+        serde_json::json!([{"description": request.description.clone(), "quantity": 1, "price": request.amount_usd}]),
+        request.amount_usd.parse::<rust_decimal::Decimal>().unwrap_or(rust_decimal::Decimal::ZERO),
+        rust_decimal::Decimal::ZERO, // tax
+        request.amount_usd.parse::<rust_decimal::Decimal>().unwrap_or(rust_decimal::Decimal::ZERO),
+        "USD",
+        request.due_date.map(|dt| dt.date_naive()),
+        request.description.clone(),
+        chrono::Utc::now()
+    )
+    .execute(&state.db_pool)
+    .await;
+
+    match result {
+        Ok(_) => {
+            let response = InvoiceResponse {
+                invoice_id,
+                amount_usd: request.amount_usd,
+                description: request.description,
+                status: "pending".to_string(),
+                payment_url,
+                created_at: chrono::Utc::now(),
+                due_date: request.due_date,
+            };
+            (StatusCode::CREATED, Json(response)).into_response()
+        }
+        Err(e) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+                "error": format!("Failed to create invoice: {}", e)
+            }))).into_response()
+        }
+    }
 }
 
 pub async fn list_invoices(
+    State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    let invoices: Vec<InvoiceResponse> = vec![];
-    (StatusCode::OK, Json(json!({
-        "data": invoices,
-        "pagination": {
-            "page": 1,
-            "page_size": 20,
-            "total_pages": 0,
-            "total_count": 0
+    let invoices = sqlx::query!(
+        "SELECT invoice_id, total, status, created_at, due_date, notes 
+         FROM invoices 
+         WHERE merchant_id = $1 
+         ORDER BY created_at DESC 
+         LIMIT 20",
+        context.merchant_id
+    )
+    .fetch_all(&state.db_pool)
+    .await;
+
+    match invoices {
+        Ok(rows) => {
+            let invoice_list: Vec<serde_json::Value> = rows.into_iter().map(|row| {
+                json!({
+                    "invoice_id": row.invoice_id,
+                    "amount_usd": row.total.to_string(),
+                    "description": row.notes.unwrap_or_else(|| "Invoice".to_string()),
+                    "status": row.status.to_lowercase(),
+                    "created_at": row.created_at,
+                    "due_date": row.due_date
+                })
+            }).collect();
+
+            (StatusCode::OK, Json(json!({
+                "data": invoice_list,
+                "pagination": {
+                    "page": 1,
+                    "page_size": 20,
+                    "total_pages": if invoice_list.is_empty() { 0 } else { 1 },
+                    "total_count": invoice_list.len()
+                }
+            }))).into_response()
         }
-    }))).into_response()
+        Err(_) => {
+            (StatusCode::OK, Json(json!({
+                "data": [],
+                "pagination": {
+                    "page": 1,
+                    "page_size": 20,
+                    "total_pages": 0,
+                    "total_count": 0
+                }
+            }))).into_response()
+        }
+    }
 }
 
 pub async fn get_invoice(

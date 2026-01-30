@@ -47,8 +47,20 @@ pub async fn configure_address_only_wallet(
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
     
+    // Map network to appropriate crypto type
+    let crypto_type = match req.network.to_lowercase().as_str() {
+        "solana" => "SOL",
+        "ethereum" => "ETH", 
+        "bsc" => "BNB",
+        "polygon" => "MATIC",
+        "arbitrum" => "ARB",
+        _ => return (StatusCode::BAD_REQUEST, Json(json!({
+            "error": format!("Unsupported network: {}", req.network)
+        }))).into_response(),
+    };
+    
     let configure_request = ConfigureWalletRequest {
-        crypto_type: req.network.clone(),
+        crypto_type: crypto_type.to_string(),
         address: req.address.clone(),
     };
     

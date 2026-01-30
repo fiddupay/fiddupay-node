@@ -384,12 +384,13 @@ impl MerchantService {
         merchant_id: i64,
         crypto_type: CryptoType,
     ) -> Result<String, ServiceError> {
-        let crypto_type_str = match crypto_type {
-            CryptoType::UsdtBep20 => "USDT_BEP20",
-            CryptoType::UsdtArbitrum => "USDT_ARBITRUM", 
-            CryptoType::UsdtSpl => "USDT_SPL",
-            CryptoType::UsdtPolygon => "USDT_POLYGON",
-            CryptoType::UsdtEth => "USDT_ETH",
+        // Map USDT tokens to their base network crypto types
+        let lookup_crypto_type = match crypto_type {
+            CryptoType::UsdtSpl => "SOL",        // USDT on Solana uses SOL wallet
+            CryptoType::UsdtEth => "ETH",        // USDT on Ethereum uses ETH wallet
+            CryptoType::UsdtBep20 => "BNB",      // USDT on BSC uses BNB wallet
+            CryptoType::UsdtPolygon => "MATIC",  // USDT on Polygon uses MATIC wallet
+            CryptoType::UsdtArbitrum => "ARB",   // USDT on Arbitrum uses ARB wallet
             CryptoType::Sol => "SOL",
             CryptoType::Eth => "ETH",
             CryptoType::Arb => "ARB",
@@ -403,7 +404,7 @@ impl MerchantService {
              WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true"
         )
         .bind(merchant_id)
-        .bind(&crypto_type_str)
+        .bind(&lookup_crypto_type)
         .fetch_optional(&self.db_pool)
         .await?
         .ok_or(ServiceError::WalletNotFound)?;
