@@ -1,5 +1,45 @@
 # Changelog
 
+## [2.3.7] - 2026-01-28
+
+### 🔧 **Backend Compatibility Updates**
+
+#### 🔧 **Crypto Type Alignment**
+- **USDT_BSC → USDT_BEP20**: Updated SDK to use correct crypto type identifier matching backend
+- **Consistent Validation**: Both client and server now use identical crypto type constants
+- **Backward Compatibility**: Existing integrations continue to work with proper validation
+
+#### ✅ **Enhanced Error Handling**
+- **Improved Server Validation**: Backend now returns proper HTTP status codes for validation errors
+- **Negative Amount Validation**: Server-side validation now returns 400 Bad Request with clear message "Amount USD must be positive"
+- **Invalid Crypto Type Handling**: Server returns 422 Unprocessable Entity with detailed validation information
+- **Client-Side Validation Maintained**: SDK continues to validate inputs before sending to server for better UX
+
+#### 🛡️ **Error Response Improvements**
+- **HTTP Status Code Alignment**: 
+  - 400 Bad Request for client input errors (negative amounts)
+  - 422 Unprocessable Entity for semantic validation errors (invalid crypto types)
+- **Clear Error Messages**: More descriptive error messages from backend validation
+- **Consistent Error Handling**: SDK error handling remains unchanged - all validation errors properly caught
+
+#### 🔄 **Backward Compatibility**
+- **Zero Breaking Changes**: All existing SDK methods work unchanged
+- **Enhanced Validation**: Server-side validation now complements existing client-side validation
+- **Same Error Types**: SDK continues to throw FidduPayValidationError for validation issues
+- **Improved Reliability**: Better error handling prevents database constraint violations
+
+#### 📊 **Validation Coverage**
+- **Client-Side**: SDK validates amounts > 0 and >= $0.01 minimum
+- **Server-Side**: Backend validates amounts > 0 with proper HTTP status codes
+- **Crypto Types**: Both client and server validate supported crypto types
+- **Comprehensive Coverage**: Full validation pipeline from client to database
+
+#### 🧪 **Testing Verified**
+- **All 24 Backend Tests**: Passing with 100% success rate
+- **Error Handling Tests**: Verified proper HTTP status codes (400/422)
+- **SDK Compatibility**: All existing SDK functionality verified working
+- **Validation Pipeline**: End-to-end validation testing completed
+
 ## [2.3.6] - 2026-01-28
 
 ### 🚀 **API Centralization Release**
