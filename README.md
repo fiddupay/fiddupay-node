@@ -1,4 +1,4 @@
-# FidduPay Node.js SDK
+# FidduPay Node.js SDK v2.3.8
 
 [![npm version](https://img.shields.io/npm/v/@fiddupay/fiddupay-node.svg?style=flat-square&cacheSeconds=300)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
@@ -60,6 +60,13 @@ const payment = await client.payments.create({
 });
 
 console.log('Payment created:', payment.id);
+
+// NEW: Sandbox Simulation (in sandbox environment)
+await client.sandbox.simulatePayment(payment.id, {
+  status: 'completed',
+  transaction_hash: '0xabc...',
+  from_address: '0xsender...'
+});
 ```
 
 ## Features
@@ -162,11 +169,11 @@ console.log('Daily Volume Remaining:', profile.daily_volume_remaining);
 const balance = await client.merchants.getBalance();
 
 // Configure wallet
-await client.merchants.configureWallet({
-  currency: 'USDT',
-  network: 'ethereum',
+await client.merchants.setWallet({
+  crypto_type: 'ETH',
   address: '0x742d35Cc6634C0532925a3b8D4C9db96590c6C87'
 });
+
 ```
 
 ## Refund Operations
@@ -243,6 +250,12 @@ try {
 - **Arbitrum** - ARB + USDT
 
 **Total: 10 cryptocurrency options across 5 blockchains**
+
+## Postman Documentation
+
+The SDK includes a dedicated Postman collection for merchant integration:
+`postman/FidduPay-Merchant-API.postman_collection.json`
+
 
 ## API Reference
 
