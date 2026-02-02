@@ -104,7 +104,23 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/merchants/security/settings", get(security_monitoring::get_security_settings))
         .route("/api/v1/merchants/security/settings", put(security_monitoring::update_security_settings))
         
+        // Merchant routes
+        .route("/api/v1/merchants", post(handlers::register_merchant))
+        .route("/api/v1/merchants/login", post(handlers::login_merchant))
+        .route("/api/v1/merchants/me", get(handlers::get_merchant_profile))
+        .route("/api/v1/merchants/api-keys", post(handlers::generate_api_key))
+        .route("/api/v1/merchants/api-keys", get(handlers::list_api_keys))
+        .route("/api/v1/merchants/webhook-settings", put(handlers::update_webhook_settings))
+        .route("/api/v1/merchants/webhook-settings", get(handlers::get_webhook_settings))
+        
+        // Multi-user routes
+        .route("/api/v1/users", post(wallet_management::create_user))
+        .route("/api/v1/users", get(wallet_management::list_users))
+        .route("/api/v1/users/:user_id/role", put(wallet_management::update_user_role))
+        .route("/api/v1/users/:user_id", delete(wallet_management::deactivate_user));
+        
         // Admin endpoints
+        let admin_routes = Router::new()
         .route("/api/v1/admin/dashboard", get(admin_handlers::get_admin_dashboard))
         .route("/api/v1/admin/merchants", get(admin_handlers::get_merchants_summary))
         .route("/api/v1/admin/merchants/:merchant_id", get(admin_handlers::get_merchant_details))
@@ -162,17 +178,11 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/admin/system/backup", post(admin_handlers::create_system_backup))
         .route("/api/v1/admin/system/maintenance", post(admin_handlers::toggle_maintenance_mode))
         
-        // Apply middleware in order: logging -> rate limit -> auth -> IP whitelist
+        // Admin specific middleware
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),
-            ip_whitelist::ip_whitelist_middleware,
-        ))
-        .layer(axum_middleware::from_fn_with_state(
-            state.clone(),
-            auth::auth_middleware,
-        ))
-
-        .layer(axum_middleware::from_fn(logging::logging_middleware));
+            crate::middleware::admin_auth::admin_auth_middleware,
+        ));
 
     // Additional public routes (no auth required)
     let additional_public_routes = Router::new()
@@ -197,6 +207,7 @@ pub fn create_router(state: AppState) -> Router {
     public_routes
         .merge(additional_public_routes)
         .merge(protected_routes)
+        .merge(admin_routes)
         // Apply global rate limiting to all routes
         .layer(axum_middleware::from_fn_with_state(rate_limiter, rate_limit_middleware))
         .layer(cors)

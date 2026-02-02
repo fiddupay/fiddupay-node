@@ -71,23 +71,56 @@ pub async fn admin_auth_middleware(
         }
     };
 
-    // Validate session (simplified - in production use proper session store)
-    if session_token == "admin_session_placeholder" {
-        let context = AdminContext {
-            admin_id: 1,
-            username: "admin".to_string(),
-            permissions: vec!["all".to_string()],
-        };
-
-        request.extensions_mut().insert(context);
-        Ok(next.run(request).await)
+    // Parse session token (format: admin_session_{id})
+    let admin_id = if session_token.starts_with("admin_session_") {
+        session_token[14..].parse::<i64>().ok()
     } else {
-        Err((
-            StatusCode::UNAUTHORIZED,
-            axum::Json(json!({
-                "error": "Invalid session",
-                "message": "Admin session expired or invalid"
-            }))
-        ))
+        None
+    };
+
+    if let Some(id) = admin_id {
+        // Verify admin exists in separate admin_users table
+        match sqlx::query!(
+            "SELECT id, username, role, is_active FROM admin_users WHERE id = $1",
+            id as i32 // Assuming admin_users.id is SERIAL (i32)
+        )
+        .fetch_optional(&state.db_pool)
+        .await
+        {
+            Ok(Some(admin)) => {
+                if !admin.is_active {
+                     return Err((
+                        StatusCode::FORBIDDEN,
+                        axum::Json(json!({
+                            "error": "Account deactivated",
+                            "message": "Admin account is not active"
+                        }))
+                    ));
+                }
+
+                let context = AdminContext {
+                    admin_id: admin.id as i64,
+                    username: admin.username,
+                    permissions: vec!["all".to_string()], // Can be expanded based on role
+                };
+
+                request.extensions_mut().insert(context);
+                return Ok(next.run(request).await);
+            }
+            Ok(None) => {
+                // Invalid session (admin not found)
+            }
+            Err(_) => {
+                // Database error
+            }
+        }
     }
+
+    Err((
+        StatusCode::UNAUTHORIZED,
+        axum::Json(json!({
+            "error": "Invalid session",
+            "message": "Admin session expired or invalid"
+        }))
+    ))
 }

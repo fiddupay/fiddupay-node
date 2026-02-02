@@ -75,29 +75,47 @@ pub struct TransferFunds {
 // Admin Authentication Endpoints
 
 pub async fn admin_login(
+    State(state): State<AppState>,
     Json(login_data): Json<AdminLoginRequest>,
 ) -> impl IntoResponse {
-    // Simplified admin login - in production use proper password hashing
-    if login_data.username == "admin" && login_data.password == "admin123" {
-        Json(json!({
-            "success": true,
-            "session_token": "admin_session_placeholder",
-            "expires_in": 3600,
-            "user": {
-                "id": 1,
-                "username": "admin",
-                "permissions": ["all"]
-            }
-        })).into_response()
-    } else {
-        (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({
-                "error": "Invalid credentials",
-                "message": "Username or password is incorrect"
-            }))
-        ).into_response()
+    // Authenticate against admin_users table
+    let admin_user = match sqlx::query!(
+        "SELECT id, username, password_hash, role, is_active FROM admin_users WHERE username = $1",
+        login_data.username
+    )
+    .fetch_optional(&state.db_pool)
+    .await {
+        Ok(Some(user)) => user,
+        Ok(None) => return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid credentials"}))).into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    };
+
+    if !admin_user.is_active {
+        return (StatusCode::FORBIDDEN, Json(json!({"error": "Account deactivated"}))).into_response();
     }
+
+    // Verify Password
+    use argon2::{Argon2, PasswordHash, PasswordVerifier};
+    let parsed_hash = match PasswordHash::new(&admin_user.password_hash) {
+        Ok(hash) => hash,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Invalid stored hash"}))).into_response(),
+    };
+
+    if Argon2::default().verify_password(login_data.password.as_bytes(), &parsed_hash).is_err() {
+        return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid credentials"}))).into_response();
+    }
+
+    // Generate Session Token (Simple version - production should use JWT)
+    Json(json!({
+        "success": true,
+        "session_token": format!("admin_session_{}", admin_user.id),
+        "user": {
+            "id": admin_user.id,
+            "username": admin_user.username,
+            "role": admin_user.role,
+            "permissions": ["all"]
+        }
+    })).into_response()
 }
 
 pub async fn admin_logout() -> impl IntoResponse {
@@ -110,9 +128,9 @@ pub async fn admin_logout() -> impl IntoResponse {
 /// Admin middleware to verify admin access
 async fn verify_admin_access(
     state: &AppState,
-    context: &MerchantContext,
+    context: &AdminContext,
 ) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
-    match state.admin_service.verify_admin_access(context.merchant_id).await {
+    match state.admin_service.verify_admin_access(context.admin_id).await {
         Ok(true) => Ok(()),
         Ok(false) => Err((
             StatusCode::FORBIDDEN,
@@ -121,11 +139,11 @@ async fn verify_admin_access(
                 "message": "This endpoint requires admin privileges"
             }))
         )),
-        Err(e) => Err((
+        Err(_) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({
-                "error": "Failed to verify admin access",
-                "message": e.to_string()
+                "error": "Authorization check failed",
+                "message": "Failed to verify admin privileges"
             }))
         )),
     }
@@ -134,7 +152,7 @@ async fn verify_admin_access(
 /// Get admin dashboard statistics
 pub async fn get_admin_dashboard(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     // Verify admin access
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -156,7 +174,7 @@ pub async fn get_admin_dashboard(
 /// Get all merchants summary
 pub async fn get_merchants_summary(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     // Verify admin access
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -178,7 +196,7 @@ pub async fn get_merchants_summary(
 /// Get security events
 pub async fn get_admin_security_events(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     // Verify admin access
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -200,7 +218,7 @@ pub async fn get_admin_security_events(
 /// Get security alerts
 pub async fn get_admin_security_alerts(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     // Verify admin access
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -222,7 +240,7 @@ pub async fn get_admin_security_alerts(
 /// Acknowledge security alert
 pub async fn acknowledge_admin_security_alert(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Path(alert_id): Path<String>,
 ) -> impl IntoResponse {
     // Verify admin access
@@ -245,7 +263,7 @@ pub async fn acknowledge_admin_security_alert(
 /// Get merchant details
 pub async fn get_merchant_details(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Path(merchant_id): Path<i32>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -262,7 +280,7 @@ pub async fn get_merchant_details(
 /// Suspend merchant
 pub async fn suspend_merchant(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Path(merchant_id): Path<i32>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -279,7 +297,7 @@ pub async fn suspend_merchant(
 /// Activate merchant
 pub async fn activate_merchant(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Path(merchant_id): Path<i32>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -296,7 +314,7 @@ pub async fn activate_merchant(
 /// Delete merchant
 pub async fn delete_merchant(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Path(merchant_id): Path<i32>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -312,7 +330,7 @@ pub async fn delete_merchant(
 /// Get security settings
 pub async fn get_security_settings(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();
@@ -334,7 +352,7 @@ pub async fn get_security_settings(
 /// Update security settings
 pub async fn update_security_settings(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Json(settings): Json<SecuritySettings>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -350,7 +368,7 @@ pub async fn update_security_settings(
 /// Get environment configuration
 pub async fn get_environment_config(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();
@@ -369,7 +387,7 @@ pub async fn get_environment_config(
 /// Update environment configuration
 pub async fn update_environment_config(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Json(config): Json<EnvironmentConfig>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -385,7 +403,7 @@ pub async fn update_environment_config(
 /// Get fee configuration
 pub async fn get_fee_config(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();
@@ -400,7 +418,7 @@ pub async fn get_fee_config(
 /// Update fee configuration
 pub async fn update_fee_config(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Json(config): Json<FeeConfig>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -416,7 +434,7 @@ pub async fn update_fee_config(
 /// Get system limits
 pub async fn get_system_limits(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();
@@ -433,7 +451,7 @@ pub async fn get_system_limits(
 /// Update system limits
 pub async fn update_system_limits(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Json(limits): Json<SystemLimits>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -449,7 +467,7 @@ pub async fn update_system_limits(
 /// Get all payments (admin view)
 pub async fn get_all_payments(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Query(query): Query<AdminQuery>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -467,7 +485,7 @@ pub async fn get_all_payments(
 /// Get payment details (admin view)
 pub async fn get_payment_details(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Path(payment_id): Path<String>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -484,7 +502,7 @@ pub async fn get_payment_details(
 /// Force confirm payment
 pub async fn force_confirm_payment(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Path(payment_id): Path<String>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -501,7 +519,7 @@ pub async fn force_confirm_payment(
 /// Force fail payment
 pub async fn force_fail_payment(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Path(payment_id): Path<String>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -518,7 +536,7 @@ pub async fn force_fail_payment(
 /// Get all withdrawals (admin view)
 pub async fn get_all_withdrawals(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Query(query): Query<AdminQuery>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -536,7 +554,7 @@ pub async fn get_all_withdrawals(
 /// Approve withdrawal
 pub async fn approve_withdrawal(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Path(withdrawal_id): Path<String>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -553,7 +571,7 @@ pub async fn approve_withdrawal(
 /// Reject withdrawal
 pub async fn reject_withdrawal(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Path(withdrawal_id): Path<String>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -570,27 +588,29 @@ pub async fn reject_withdrawal(
 /// Get platform analytics
 pub async fn get_platform_analytics(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Query(query): Query<AdminQuery>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();
     }
 
-    Json(json!({
-        "total_merchants": 150,
-        "total_payments": 5000,
-        "total_volume": 2500000.0,
-        "platform_revenue": 62500.0,
-        "active_merchants": 120,
-        "period": "last_30_days"
-    })).into_response()
+    match state.admin_service.get_platform_analytics().await {
+        Ok(analytics) => Json(analytics).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "error": "Failed to get platform analytics",
+                "message": e.to_string()
+            }))
+        ).into_response(),
+    }
 }
 
 /// Get revenue analytics
 pub async fn get_revenue_analytics(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Query(query): Query<AdminQuery>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -609,7 +629,7 @@ pub async fn get_revenue_analytics(
 /// Get transaction reports
 pub async fn get_transaction_reports(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Query(query): Query<AdminQuery>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -629,7 +649,7 @@ pub async fn get_transaction_reports(
 /// Get merchant reports
 pub async fn get_merchant_reports(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Query(query): Query<AdminQuery>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -650,7 +670,7 @@ pub async fn get_merchant_reports(
 /// Get hot wallets
 pub async fn get_hot_wallets(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();
@@ -677,7 +697,7 @@ pub async fn get_hot_wallets(
 /// Get cold wallets
 pub async fn get_cold_wallets(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();
@@ -698,7 +718,7 @@ pub async fn get_cold_wallets(
 /// Get wallet balances
 pub async fn get_wallet_balances(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();
@@ -723,7 +743,7 @@ pub async fn get_wallet_balances(
 /// Transfer funds between wallets
 pub async fn transfer_funds(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Json(transfer): Json<TransferFunds>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -744,7 +764,7 @@ pub async fn transfer_funds(
 /// Get admin users
 pub async fn get_admin_users(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();
@@ -767,7 +787,7 @@ pub async fn get_admin_users(
 /// Create admin user
 pub async fn create_admin_user(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Json(user_data): Json<AdminUserCreate>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -788,7 +808,7 @@ pub async fn create_admin_user(
 /// Delete admin user
 pub async fn delete_admin_user(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Path(user_id): Path<i32>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -804,7 +824,7 @@ pub async fn delete_admin_user(
 /// Update user permissions
 pub async fn update_user_permissions(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Path(user_id): Path<i32>,
     Json(permissions): Json<UserPermissions>,
 ) -> impl IntoResponse {
@@ -822,7 +842,7 @@ pub async fn update_user_permissions(
 /// Get system health
 pub async fn get_system_health(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();
@@ -847,7 +867,7 @@ pub async fn get_system_health(
 /// Get system logs
 pub async fn get_system_logs(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
     Query(query): Query<AdminQuery>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -878,7 +898,7 @@ pub async fn get_system_logs(
 /// Create system backup
 pub async fn create_system_backup(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();
@@ -895,7 +915,7 @@ pub async fn create_system_backup(
 /// Toggle maintenance mode
 pub async fn toggle_maintenance_mode(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(context): Extension<AdminContext>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();

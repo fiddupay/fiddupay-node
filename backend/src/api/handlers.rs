@@ -2,6 +2,7 @@
 // HTTP request handlers
 
 use crate::api::state::AppState;
+use crate::error::ServiceError;
 use crate::middleware::auth::MerchantContext;
 use crate::payment::models::{CreatePaymentRequest, PaymentFilters, CryptoType};
 use crate::services::invoice_service::{CreateInvoiceRequest, InvoiceItem};
@@ -121,48 +122,48 @@ pub async fn login_merchant(
     .await
     {
         Ok(Some(merchant)) => {
-            let auth_response = match merchant.role.as_deref() {
-                Some("SUPER_ADMIN") | Some("ADMIN") => {
-                    // Admin users get session tokens, not API keys
-                    AuthResponse {
-                        user: MerchantProfile {
-                            id: merchant.id,
-                            business_name: merchant.business_name,
-                            email: merchant.email,
-                            created_at: merchant.created_at.to_rfc3339(),
-                            two_factor_enabled: false,
-                        },
-                        api_key: format!("admin_session_{}", merchant.id), // Session token
+            // VERIFY PASSWORD
+            use argon2::{Argon2, PasswordHash, PasswordVerifier};
+            let parsed_hash = PasswordHash::new(&merchant.api_key_hash)
+                .map_err(|e| ServiceError::InternalError(format!("Invalid hash structure: {}", e)))
+                .unwrap(); // In production handle unwraps better, but failed hash structure means DB corruption
+
+            let valid = Argon2::default().verify_password(req.password.as_bytes(), &parsed_hash).is_ok();
+
+            if !valid {
+                return (StatusCode::UNAUTHORIZED, Json(json!({
+                    "error": "Invalid credentials",
+                    "message": "Email or password is incorrect"
+                }))).into_response();
+            }
+
+            let auth_response = {
+                // For regular merchants, generate a new API key and store it
+                // This ensures fresh, unpredictable keys on each login
+                let merchant_service = crate::services::merchant_service::MerchantService::new(
+                    state.db_pool.clone(),
+                    state.config.clone(),
+                );
+                
+                // Generate and store a new API key (uses sandbox mode by default)
+                match merchant_service.generate_and_store_api_key(merchant.id, !merchant.sandbox_mode).await {
+                    Ok(new_api_key) => {
+                        AuthResponse {
+                            user: MerchantProfile {
+                                id: merchant.id,
+                                business_name: merchant.business_name,
+                                email: merchant.email,
+                                created_at: merchant.created_at.to_rfc3339(),
+                                two_factor_enabled: false,
+                            },
+                            api_key: new_api_key,
+                        }
                     }
-                }
-                _ => {
-                    // For regular merchants, generate a new API key and store it
-                    // This ensures fresh, unpredictable keys on each login
-                    let merchant_service = crate::services::merchant_service::MerchantService::new(
-                        state.db_pool.clone(),
-                        state.config.clone(),
-                    );
-                    
-                    // Generate and store a new API key (uses sandbox mode by default)
-                    match merchant_service.generate_and_store_api_key(merchant.id, !merchant.sandbox_mode).await {
-                        Ok(new_api_key) => {
-                            AuthResponse {
-                                user: MerchantProfile {
-                                    id: merchant.id,
-                                    business_name: merchant.business_name,
-                                    email: merchant.email,
-                                    created_at: merchant.created_at.to_rfc3339(),
-                                    two_factor_enabled: false,
-                                },
-                                api_key: new_api_key,
-                            }
-                        }
-                        Err(e) => {
-                            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
-                                "error": "Failed to generate API key",
-                                "message": e.to_string()
-                            }))).into_response();
-                        }
+                    Err(e) => {
+                        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+                            "error": "Failed to generate API key",
+                            "message": e.to_string()
+                        }))).into_response();
                     }
                 }
             };

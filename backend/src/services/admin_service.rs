@@ -6,6 +6,7 @@ use crate::models::merchant::Merchant;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use rust_decimal::Decimal;
 
 #[derive(Debug, Serialize)]
 pub struct AdminDashboard {
@@ -63,17 +64,18 @@ impl AdminService {
     }
 
     /// Check if merchant has admin privileges
-    pub async fn verify_admin_access(&self, merchant_id: i64) -> Result<bool, ServiceError> {
+    /// Check if user has admin privileges
+    pub async fn verify_admin_access(&self, admin_id: i64) -> Result<bool, ServiceError> {
         let result = sqlx::query!(
-            "SELECT role::text FROM merchants WHERE id = $1",
-            merchant_id
+            "SELECT role FROM admin_users WHERE id = $1 AND is_active = true",
+            admin_id as i32
         )
         .fetch_optional(&self.db_pool)
         .await?;
 
         match result {
-            Some(merchant) => {
-                let role = merchant.role.unwrap_or("MERCHANT".to_string());
+            Some(admin) => {
+                let role = admin.role; // Now directly a string in DB or mapped struct
                 Ok(role == "ADMIN" || role == "SUPER_ADMIN")
             }
             None => Ok(false),
@@ -134,7 +136,58 @@ impl AdminService {
         })
     }
 
-    /// Get all merchants with summary info
+#[derive(Debug, Serialize)]
+pub struct PlatformAnalytics {
+    pub total_merchants: i64,
+    pub active_merchants: i64,
+    pub total_payments: i64,
+    pub total_volume_usd: String,
+    pub platform_revenue_usd: String,
+    pub period: String,
+}
+
+    /// Get platform analytics (Real Data)
+    pub async fn get_platform_analytics(&self) -> Result<PlatformAnalytics, ServiceError> {
+        let total_merchants = sqlx::query_scalar!("SELECT COUNT(*) FROM merchants")
+            .fetch_one(&self.db_pool)
+            .await?
+            .unwrap_or(0);
+
+        let active_merchants = sqlx::query_scalar!("SELECT COUNT(*) FROM merchants WHERE is_active = true")
+            .fetch_one(&self.db_pool)
+            .await?
+            .unwrap_or(0);
+
+        let total_payments = sqlx::query_scalar!("SELECT COUNT(*) FROM payment_transactions")
+            .fetch_one(&self.db_pool)
+            .await?
+            .unwrap_or(0);
+
+        let total_volume = sqlx::query_scalar!(
+            "SELECT COALESCE(SUM(amount_usd), 0) FROM payment_transactions WHERE status = 'CONFIRMED'"
+        )
+        .fetch_one(&self.db_pool)
+        .await?
+        .unwrap_or(rust_decimal::Decimal::ZERO);
+
+        let platform_revenue = sqlx::query_scalar!(
+            "SELECT COALESCE(SUM(fee_amount_usd), 0) FROM payment_transactions WHERE status = 'CONFIRMED'"
+        )
+        .fetch_one(&self.db_pool)
+        .await?
+        .unwrap_or(rust_decimal::Decimal::ZERO);
+
+        Ok(PlatformAnalytics {
+            total_merchants,
+            active_merchants,
+            total_payments,
+            total_volume_usd: total_volume.to_string(),
+            platform_revenue_usd: platform_revenue.to_string(),
+            period: "all_time".to_string(),
+        })
+    }
+
+    /// Get all merchants summary
     pub async fn get_merchants_summary(&self) -> Result<Vec<MerchantSummary>, ServiceError> {
         let merchants = sqlx::query!(
             r#"
