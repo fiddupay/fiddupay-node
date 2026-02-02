@@ -3,14 +3,14 @@ import { CreateRefundRequest, Refund, RequestOptions } from '../types';
 import { FidduPayValidationError } from '../errors';
 
 export class Refunds {
-  constructor(private client: HttpClient) {}
+  constructor(private client: HttpClient) { }
 
   /**
    * Create a refund for a confirmed payment
    */
   async create(data: CreateRefundRequest, options?: RequestOptions): Promise<Refund> {
     this.validateCreateRefund(data);
-    return this.client.post<Refund>('/api/v1/refunds', data, options);
+    return this.client.post<Refund>('/api/v1/merchants/refunds', data, options);
   }
 
   /**
@@ -20,7 +20,7 @@ export class Refunds {
     if (!refundId) {
       throw new FidduPayValidationError('Refund ID is required', 'refund_id');
     }
-    return this.client.get<Refund>(`/api/v1/refunds/${refundId}`, options);
+    return this.client.get<Refund>(`/api/v1/merchants/refunds/${refundId}`, options);
   }
 
   /**
@@ -30,7 +30,7 @@ export class Refunds {
     if (!refundId) {
       throw new FidduPayValidationError('Refund ID is required', 'refund_id');
     }
-    return this.client.request('POST', `/api/v1/refunds/${refundId}/complete`);
+    return this.client.request('POST', `/api/v1/merchants/refunds/${refundId}/complete`);
   }
 
   /**
@@ -42,13 +42,13 @@ export class Refunds {
     has_more: boolean;
   }> {
     const queryParams = new URLSearchParams();
-    
+
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
 
     const query = queryParams.toString();
-    const path = query ? `/refunds?${query}` : '/refunds';
-    
+    const path = query ? `/api/v1/merchants/refunds?${query}` : '/api/v1/merchants/refunds';
+
     return this.client.get(path, options);
   }
 

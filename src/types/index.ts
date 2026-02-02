@@ -1,14 +1,14 @@
 // Core types for FidduPay SDK
 
-export type CryptoType = 'SOL' | 'ETH' | 'BNB' | 'MATIC' | 'ARB' | 'USDT_ETH' | 'USDT_BSC' | 'USDT_POLYGON' | 'USDT_ARBITRUM' | 'USDT_SPL';
+export type CryptoType = 'SOL' | 'ETH' | 'BNB' | 'MATIC' | 'ARB' | 'USDT_ETH' | 'USDT_BEP20' | 'USDT_POLYGON' | 'USDT_ARBITRUM' | 'USDT_SPL';
 
-export type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED';
+export type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
 
-export type WebhookEventType = 
-  | 'payment.confirmed' 
-  | 'payment.expired' 
-  | 'payment.failed' 
-  | 'refund.completed' 
+export type WebhookEventType =
+  | 'payment.confirmed'
+  | 'payment.expired'
+  | 'payment.failed'
+  | 'refund.completed'
   | 'refund.failed';
 
 export interface FidduPayConfig {
@@ -27,6 +27,8 @@ export interface MerchantProfile {
   created_at: string;
   kyc_verified: boolean;
   daily_volume_remaining?: string; // Only present for non-KYC merchants
+  daily_limit_usd?: string;
+  tier_level?: string;
   two_factor_enabled: boolean;
 }
 
@@ -37,7 +39,9 @@ export interface CreatePaymentRequest {
   description?: string;
   metadata?: Record<string, any>;
   expiration_minutes?: number;
+  expires_in?: number; // seconds, alternative to expiration_minutes
   webhook_url?: string;
+  partial_payments_enabled?: boolean;
 }
 
 export interface CreateAddressOnlyPaymentRequest {
@@ -52,20 +56,27 @@ export interface CreateAddressOnlyPaymentRequest {
 
 export interface Payment {
   payment_id: string;
+  amount: string;           // Crypto amount
   amount_usd: string;
-  crypto_amount: string;
   crypto_type: CryptoType;
   status: PaymentStatus;
-  deposit_address: string;
+  to_address: string;       // Backend uses to_address
+  deposit_address?: string; // Also included for convenience
   transaction_hash?: string;
-  confirmations?: number;
+  from_address?: string;
+  confirmations: number;
+  required_confirmations: number;
   created_at: string;
   confirmed_at?: string;
   expires_at: string;
   description?: string;
   metadata?: Record<string, any>;
+  network?: string;
   payment_link?: string;
   qr_code_data?: string;
+  fee_amount?: string;
+  fee_amount_usd?: string;
+  partial_payments?: Record<string, any>;
 }
 
 export interface AddressOnlyPayment {
@@ -110,15 +121,17 @@ export interface CreateRefundRequest {
 export interface Refund {
   refund_id: string;
   payment_id: string;
-  status: 'PROCESSING' | 'COMPLETED' | 'FAILED';
   amount: string;
   amount_usd: string;
-  crypto_type: CryptoType;
-  refund_address: string;
+  status: 'pending' | 'completed' | 'failed';
+  crypto_type?: CryptoType;
+  target_address?: string;
   reason?: string;
-  created_at: string;
-  processed_at?: string;
   transaction_hash?: string;
+  created_at: string;
+  completed_at?: string;
+  // Fields present in some contexts but not always response
+  redundant_field?: never; // Placeholder to clear lines
 }
 
 export interface Merchant {
@@ -187,10 +200,12 @@ export interface UpdateFeeSettingResponse {
 
 // Wallet Management Types
 export interface WalletConfig {
+  id: number;
+  merchant_id: number;
   crypto_type: CryptoType;
-  wallet_address: string;
-  has_private_key: boolean;
-  can_withdraw: boolean;
+  network: string;
+  address: string;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -210,7 +225,7 @@ export interface ExportKeyRequest {
 
 export interface ConfigureAddressRequest {
   crypto_type: CryptoType;
-  wallet_address: string;
+  address: string; // Changed from wallet_address to match backend and resource
 }
 
 export interface GasEstimate {
@@ -240,11 +255,17 @@ export interface Withdrawal {
   crypto_type: CryptoType;
   amount: string;
   destination_address: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  fee: string;
+  net_amount: string;
   transaction_hash?: string;
+  rejection_reason?: string;
+  requires_approval: boolean;
+  approved_by?: number;
+  approved_at?: string;
+  completed_at?: string;
   created_at: string;
-  processed_at?: string;
-  fee_amount?: string;
+  updated_at: string;
 }
 
 export interface ListWithdrawalsParams {
@@ -258,7 +279,7 @@ export interface ListWithdrawalsParams {
 export interface SecurityEvent {
   event_id: string;
   event_type: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: string; // 'low' | 'medium' | 'high' | 'critical'; - backend uses String but values match
   description: string;
   ip_address?: string;
   user_agent?: string;
@@ -268,7 +289,7 @@ export interface SecurityEvent {
 export interface SecurityAlert {
   alert_id: string;
   alert_type: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: string;
   message: string;
   acknowledged: boolean;
   acknowledged_at?: string;
@@ -371,6 +392,7 @@ export interface SandboxPaymentSimulation {
 export interface SimulatePaymentRequest {
   status: 'completed' | 'failed';
   transaction_hash?: string;
+  from_address?: string;
 }
 
 // Generic Types
