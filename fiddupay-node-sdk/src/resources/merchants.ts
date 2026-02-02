@@ -1,8 +1,8 @@
 import { HttpClient } from '../client';
-import { Merchant, RequestOptions } from '../types';
+import { Merchant, MerchantProfile, RequestOptions } from '../types';
 
 export class Merchants {
-  constructor(private client: HttpClient) {}
+  constructor(private client: HttpClient) { }
 
   /**
    * Register new merchant
@@ -18,25 +18,22 @@ export class Merchants {
   /**
    * Get current merchant profile
    */
-  async retrieve(options?: RequestOptions): Promise<Merchant> {
-    return this.client.request<Merchant>('GET', '/api/v1/merchants/profile');
+  async retrieve(options?: RequestOptions): Promise<MerchantProfile> {
+    return this.client.request<MerchantProfile>('GET', '/api/v1/merchants/profile');
   }
 
   /**
    * Set wallet address for a cryptocurrency
    */
-  async setWallet(data: { 
-    crypto_type: string; 
-    address: string 
+  async setWallet(data: {
+    crypto_type: string;
+    address: string
   }, options?: RequestOptions): Promise<{ message: string }> {
     return this.client.request('PUT', '/api/v1/merchants/wallets', data);
   }
 
-  /**
-   * Switch environment (sandbox/production)
-   */
-  async switchEnvironment(data: { 
-    environment: 'sandbox' | 'production' 
+  async switchEnvironment(data: {
+    environment: 'sandbox' | 'production'
   }, options?: RequestOptions): Promise<{ message: string; environment: string }> {
     const requestData = { to_live: data.environment === 'production' };
     return this.client.request('POST', '/api/v1/merchants/environment/switch', requestData);
@@ -45,8 +42,8 @@ export class Merchants {
   /**
    * Generate new API key
    */
-  async generateApiKey(data?: { 
-    environment?: 'sandbox' | 'production' 
+  async generateApiKey(data?: {
+    environment?: 'sandbox' | 'production'
   }, options?: RequestOptions): Promise<{ api_key: string; environment: string }> {
     const requestData = data ? { is_live: data.environment === 'production' } : { is_live: false };
     return this.client.request('POST', '/api/v1/merchants/api-keys/generate', requestData);
@@ -55,8 +52,8 @@ export class Merchants {
   /**
    * Rotate existing API key
    */
-  async rotateApiKey(data?: { 
-    environment?: 'sandbox' | 'production' 
+  async rotateApiKey(data?: {
+    environment?: 'sandbox' | 'production'
   }, options?: RequestOptions): Promise<{ api_key: string }> {
     const requestData = data ? { is_live: data.environment === 'production' } : { is_live: false };
     return this.client.request('POST', '/api/v1/merchants/api-keys/rotate', requestData);
@@ -65,8 +62,8 @@ export class Merchants {
   /**
    * Set webhook URL
    */
-  async setWebhook(data: { 
-    webhook_url: string 
+  async setWebhook(data: {
+    webhook_url: string
   }, options?: RequestOptions): Promise<{ message: string }> {
     const requestData = { url: data.webhook_url };
     return this.client.request('PUT', '/api/v1/merchants/webhook', requestData);
@@ -75,8 +72,8 @@ export class Merchants {
   /**
    * Set IP whitelist
    */
-  async setIpWhitelist(data: { 
-    ip_addresses: string[] 
+  async setIpWhitelist(data: {
+    ip_addresses: string[]
   }, options?: RequestOptions): Promise<{ message: string }> {
     return this.client.request('PUT', '/api/v1/merchants/ip-whitelist', data);
   }
@@ -105,13 +102,5 @@ export class Merchants {
     return this.client.request('GET', '/api/v1/merchants/balance');
   }
 
-  /**
-   * Set wallet addresses for automatic forwarding
-   */
-  async setWallets(
-    wallets: Record<string, string>,
-    options?: RequestOptions
-  ): Promise<{ message: string; wallets: Record<string, string> }> {
-    return this.client.request('PUT', '/api/v1/merchants/wallets', { wallets });
-  }
+
 }

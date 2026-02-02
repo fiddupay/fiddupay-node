@@ -20,6 +20,7 @@ pub struct Payment {
     pub crypto_type: String,
     pub status: String,
     pub to_address: String,
+    pub from_address: Option<String>,
     pub created_at: DateTime<Utc>,
     pub expires_at: DateTime<Utc>,
     pub confirmed_at: Option<DateTime<Utc>>,
@@ -27,4 +28,5 @@ pub struct Payment {
     pub required_confirmations: Option<i32>,
     pub description: Option<String>,
     pub metadata: Option<serde_json::Value>,
+    pub transaction_hash: Option<String>,
 }

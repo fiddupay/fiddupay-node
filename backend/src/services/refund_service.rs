@@ -55,7 +55,7 @@ impl RefundService {
         // Fetch the payment to validate it exists and belongs to the merchant
         let payment = sqlx::query!(
             r#"
-            SELECT id, merchant_id, amount, amount_usd, crypto_type, status
+            SELECT id, merchant_id, amount, amount_usd, crypto_type, status, from_address
             FROM payment_transactions
             WHERE payment_id = $1
             "#,
@@ -158,15 +158,14 @@ impl RefundService {
             status: refund.status,
             reason: refund.reason,
             transaction_hash: refund.transaction_hash,
+            crypto_type: payment.crypto_type,
+            target_address: payment.from_address,
             created_at: refund.created_at,
             completed_at: refund.completed_at,
         })
     }
 
     /// Complete a refund with transaction hash
-    /// 
-    /// Updates a refund record with the blockchain transaction hash and marks it as completed.
-    /// Triggers a webhook notification to inform the merchant.
     /// 
     /// # Arguments
     /// * `refund_id` - Public refund ID (e.g., "ref_abc123")
@@ -274,7 +273,7 @@ impl RefundService {
             r#"
             SELECT r.refund_id, r.merchant_id, r.payment_id, r.amount, r.amount_usd,
                    r.reason, r.status, r.transaction_hash, r.created_at, r.completed_at,
-                   p.payment_id as public_payment_id
+                   p.payment_id as public_payment_id, p.crypto_type, p.from_address
             FROM refunds r
             JOIN payment_transactions p ON r.payment_id = p.id
             WHERE r.refund_id = $1
@@ -295,6 +294,8 @@ impl RefundService {
             transaction_hash: refund.transaction_hash,
             created_at: refund.created_at,
             completed_at: refund.completed_at,
+            crypto_type: refund.crypto_type,
+            target_address: refund.from_address,
         })
     }
 

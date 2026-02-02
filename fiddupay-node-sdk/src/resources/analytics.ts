@@ -2,7 +2,7 @@ import { HttpClient } from '../client';
 import { Analytics, RequestOptions } from '../types';
 
 export class AnalyticsResource {
-  constructor(private client: HttpClient) {}
+  constructor(private client: HttpClient) { }
 
   /**
    * Get analytics data
@@ -13,14 +13,14 @@ export class AnalyticsResource {
     granularity?: 'day' | 'week' | 'month';
   }, options?: RequestOptions): Promise<Analytics> {
     const queryParams = new URLSearchParams();
-    
+
     if (params?.start_date) queryParams.append('start_date', params.start_date);
     if (params?.end_date) queryParams.append('end_date', params.end_date);
     if (params?.granularity) queryParams.append('granularity', params.granularity);
 
     const query = queryParams.toString();
-    const path = query ? `/api/v1/analytics?${query}` : '/api/v1/analytics';
-    
+    const path = query ? `/api/v1/merchants/analytics?${query}` : '/api/v1/merchants/analytics';
+
     return this.client.request<Analytics>('GET', path);
   }
 
@@ -39,6 +39,6 @@ export class AnalyticsResource {
     expires_at: string;
     created_at: string;
   }> {
-    return this.client.request('POST', '/api/v1/analytics/export', params);
+    return this.client.request('POST', '/api/v1/merchants/analytics/export', params);
   }
 }

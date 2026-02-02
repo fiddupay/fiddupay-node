@@ -253,6 +253,7 @@ pub struct PaymentResponse {
     #[serde(with = "rust_decimal::serde::str_option")]
     pub fee_amount_usd: Option<Decimal>,
     pub transaction_hash: Option<String>,
+    pub from_address: Option<String>,
     pub partial_payments: Option<serde_json::Value>,
 }
 
@@ -278,7 +279,8 @@ impl From<crate::models::payment::Payment> for PaymentResponse {
             qr_code_data: None,
             fee_amount: None,
             fee_amount_usd: None,
-            transaction_hash: None,
+            transaction_hash: payment.transaction_hash,
+            from_address: payment.from_address,
             partial_payments: None,
         }
     }

@@ -14,6 +14,8 @@ pub struct RefundResponse {
     pub status: String,
     pub reason: Option<String>,
     pub transaction_hash: Option<String>,
+    pub crypto_type: String,
+    pub target_address: Option<String>,
     pub created_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
 }

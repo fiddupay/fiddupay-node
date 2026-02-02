@@ -1,6 +1,6 @@
 import { HttpClient } from '../client';
-import { 
-  Balance, 
+import {
+  Balance,
   BalanceHistory,
   AuditLog,
   ListAuditLogsParams,
@@ -9,7 +9,7 @@ import {
 } from '../types';
 
 export class Balances {
-  constructor(private client: HttpClient) {}
+  constructor(private client: HttpClient) { }
 
   /**
    * Get current balance
@@ -23,7 +23,7 @@ export class Balances {
    */
   async getHistory(params?: ListBalanceHistoryParams): Promise<PaginatedResponse<BalanceHistory>> {
     const queryParams = new URLSearchParams();
-    
+
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
     if (params?.crypto_type) queryParams.append('crypto_type', params.crypto_type);
@@ -34,21 +34,21 @@ export class Balances {
 }
 
 export class AuditLogs {
-  constructor(private client: HttpClient) {}
+  constructor(private client: HttpClient) { }
 
   /**
    * Get audit logs
    */
   async list(params?: ListAuditLogsParams): Promise<PaginatedResponse<AuditLog>> {
     const queryParams = new URLSearchParams();
-    
+
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
     if (params?.action) queryParams.append('action', params.action);
     if (params?.start_date) queryParams.append('start_date', params.start_date);
     if (params?.end_date) queryParams.append('end_date', params.end_date);
 
-    const url = `/api/v1/audit-logs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const url = `/api/v1/merchants/audit-logs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.client.request<PaginatedResponse<AuditLog>>('GET', url);
   }
 }

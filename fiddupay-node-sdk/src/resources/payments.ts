@@ -14,14 +14,14 @@ import {
 import { FidduPayValidationError } from '../errors';
 
 export class Payments {
-  constructor(private client: HttpClient) {}
+  constructor(private client: HttpClient) { }
 
   /**
    * Create a new payment
    */
   async create(data: CreatePaymentRequest, options?: RequestOptions): Promise<Payment> {
     this.validateCreatePayment(data);
-    return this.client.request<Payment>('POST', '/api/v1/payments', data);
+    return this.client.request<Payment>('POST', '/api/v1/merchants/payments', data);
   }
 
   /**
@@ -31,19 +31,19 @@ export class Payments {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
-    return this.client.get<Payment>(`/api/v1/payments/${paymentId}`, options);
+    return this.client.get<Payment>(`/api/v1/merchants/payments/${paymentId}`, options);
   }
 
   /**
    * Verify a payment with transaction hash
    */
-  async verify(paymentId: string, data: { 
-    transaction_hash: string 
+  async verify(paymentId: string, data: {
+    transaction_hash: string
   }, options?: RequestOptions): Promise<any> {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
-    return this.client.request('POST', `/api/v1/payments/${paymentId}/verify`, data);
+    return this.client.request('POST', `/api/v1/merchants/payments/${paymentId}/verify`, data);
   }
 
   /**
@@ -51,15 +51,15 @@ export class Payments {
    */
   async list(params?: ListPaymentsRequest, options?: RequestOptions): Promise<ListPaymentsResponse> {
     const queryParams = new URLSearchParams();
-    
+
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
     if (params?.status) queryParams.append('status', params.status);
     if (params?.crypto_type) queryParams.append('crypto_type', params.crypto_type);
 
     const query = queryParams.toString();
-    const path = query ? `/api/v1/payments?${query}` : '/api/v1/payments';
-    
+    const path = query ? `/api/v1/merchants/payments?${query}` : '/api/v1/merchants/payments';
+
     return this.client.request<ListPaymentsResponse>('GET', path);
   }
 
@@ -70,7 +70,7 @@ export class Payments {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
-    return this.client.post<Payment>(`/payments/${paymentId}/cancel`, {}, options);
+    return this.client.post<Payment>(`/api/v1/merchants/payments/${paymentId}/cancel`, {}, options);
   }
 
   /**
@@ -78,7 +78,7 @@ export class Payments {
    */
   async createAddressOnly(data: CreateAddressOnlyPaymentRequest, options?: RequestOptions): Promise<AddressOnlyPayment> {
     this.validateCreateAddressOnlyPayment(data);
-    return this.client.post<AddressOnlyPayment>('/address-only-payments', data, options);
+    return this.client.post<AddressOnlyPayment>('/api/v1/merchants/address-only-payments', data, options);
   }
 
   /**
@@ -88,7 +88,7 @@ export class Payments {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
-    return this.client.get<AddressOnlyPayment>(`/address-only-payments/${paymentId}`, options);
+    return this.client.get<AddressOnlyPayment>(`/api/v1/merchants/address-only-payments/${paymentId}`, options);
   }
 
   /**
@@ -98,14 +98,14 @@ export class Payments {
     if (typeof data.customer_pays_fee !== 'boolean') {
       throw new FidduPayValidationError('customer_pays_fee must be a boolean', 'customer_pays_fee');
     }
-    return this.client.post<UpdateFeeSettingResponse>('/fee-setting', data, options);
+    return this.client.post<UpdateFeeSettingResponse>('/api/v1/merchants/fee-setting', data, options);
   }
 
   /**
    * Get current fee setting
    */
   async getFeeSetting(options?: RequestOptions): Promise<FeeSettingResponse> {
-    return this.client.get<FeeSettingResponse>('/fee-setting', options);
+    return this.client.get<FeeSettingResponse>('/api/v1/merchants/fee-setting', options);
   }
 
   private validateCreatePayment(data: CreatePaymentRequest): void {
@@ -135,7 +135,7 @@ export class Payments {
 
     // Note: No maximum amount limit - server enforces daily volume limits based on KYC status
 
-    const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BSC', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
+    const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
     if (!validCryptoTypes.includes(data.crypto_type)) {
       throw new FidduPayValidationError(
         `Invalid crypto type. Must be one of: ${validCryptoTypes.join(', ')}`,
@@ -184,7 +184,7 @@ export class Payments {
 
     // Note: No maximum amount limit - server enforces daily volume limits based on KYC status
 
-    const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BSC', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
+    const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
     if (!validCryptoTypes.includes(data.crypto_type)) {
       throw new FidduPayValidationError(
         `Invalid crypto type. Must be one of: ${validCryptoTypes.join(', ')}`,

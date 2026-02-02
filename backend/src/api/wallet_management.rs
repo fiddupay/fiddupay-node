@@ -48,7 +48,7 @@ pub async fn configure_address_only_wallet(
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
     
     let configure_request = ConfigureWalletRequest {
-        crypto_type: req.network.clone(),
+        crypto_type: req.crypto_type.clone(),
         address: req.address.clone(),
     };
     
@@ -241,7 +241,7 @@ pub async fn process_withdrawal(
 
 #[derive(Debug, Deserialize)]
 pub struct ConfigureAddressRequest {
-    pub network: String,
+    pub crypto_type: String,
     pub address: String,
 }
 

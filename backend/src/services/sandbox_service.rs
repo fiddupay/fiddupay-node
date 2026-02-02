@@ -94,6 +94,8 @@ impl SandboxService {
         payment_id: &str,
         merchant_id: i64,
         success: bool,
+        transaction_hash: Option<String>,
+        from_address: Option<String>,
     ) -> Result<(), ServiceError> {
         if !self.verify_sandbox_merchant(merchant_id).await? {
             return Err(ServiceError::Forbidden(
@@ -115,11 +117,27 @@ impl SandboxService {
 
         let new_status = if success { "CONFIRMED" } else { "FAILED" };
         let confirmed_at = if success { Some(Utc::now()) } else { None };
+        
+        // Use provided values or defaults for successful payments
+        let tx_hash = if success { 
+            Some(transaction_hash.unwrap_or_else(|| format!("sandbox_tx_{}", nanoid!(16))))
+        } else { 
+            None 
+        };
+        
+        // Only set from_address if success (or failed?) - usually on transaction creation, but here we simulate receiving it
+        let sender = if success {
+            Some(from_address.unwrap_or_else(|| "0x_sandbox_mock_sender".to_string()))
+        } else {
+            None
+        };
 
         sqlx::query!(
-            "UPDATE payment_transactions SET status = $1, confirmed_at = $2 WHERE id = $3",
+            "UPDATE payment_transactions SET status = $1, confirmed_at = $2, transaction_hash = $3, from_address = $4 WHERE id = $5",
             new_status,
             confirmed_at,
+            tx_hash,
+            sender,
             payment.id
         )
         .execute(&self.db_pool)

@@ -477,6 +477,8 @@ pub async fn enable_sandbox(
 #[derive(Deserialize)]
 pub struct SimulatePaymentRequest {
     pub success: bool,
+    pub transaction_hash: Option<String>,
+    pub from_address: Option<String>,
 }
 
 pub async fn simulate_payment(
@@ -485,7 +487,7 @@ pub async fn simulate_payment(
     Path(payment_id): Path<String>,
     Json(req): Json<SimulatePaymentRequest>,
 ) -> impl IntoResponse {
-    match state.sandbox_service.simulate_confirmation(&payment_id, context.merchant_id, req.success).await {
+    match state.sandbox_service.simulate_confirmation(&payment_id, context.merchant_id, req.success, req.transaction_hash, req.from_address).await {
         Ok(_) => {
             if req.success {
                 (StatusCode::OK, Json(json!({"success": true, "message": "Payment simulated successfully"}))).into_response()
