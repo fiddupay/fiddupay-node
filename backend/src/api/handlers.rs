@@ -206,7 +206,7 @@ pub async fn get_merchant_profile(
             });
             
             // Calculate real daily volume remaining for non-KYC merchants
-            if !merchant.kyc_verified {
+            if !merchant.kyc_verified.unwrap_or(false) {
                 // Get today's volume from payment_transactions
                 let today_start = chrono::Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
                 let daily_volume = sqlx::query_scalar!(
