@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "FidduPay Complete API v2.3.6",
+    "name": "FidduPay Complete API v2.3.9",
     "description": "Complete API collection for FidduPay cryptocurrency payment gateway. Supports 10 cryptocurrencies across 5 major blockchains with enterprise-grade security and comprehensive admin functionality.",
-    "version": "2.3.6",
+    "version": "2.3.9",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -13,7 +13,7 @@
       "description": "Local development server"
     },
     {
-      "key": "sandboxUrl", 
+      "key": "sandboxUrl",
       "value": "http://localhost:3001",
       "type": "string",
       "description": "Local sandbox server"
@@ -64,8 +64,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/health",
-              "host": ["{{baseUrl}}"],
-              "path": ["health"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
             }
           }
         },
@@ -76,8 +80,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "status"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "status"
+              ]
             }
           }
         }
@@ -96,14 +106,21 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "login"
+              ]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "login"]
             }
           }
         },
@@ -111,11 +128,27 @@
           "name": "Admin Logout",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/logout",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "logout"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "logout"
+              ]
             }
           }
         },
@@ -123,11 +156,23 @@
           "name": "Admin Dashboard",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/dashboard",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "dashboard"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "dashboard"
+              ]
             }
           }
         }
@@ -140,11 +185,23 @@
           "name": "Get All Merchants",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/merchants",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "merchants"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "merchants"
+              ]
             }
           }
         },
@@ -152,11 +209,24 @@
           "name": "Get Merchant Details",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/merchants/123",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "merchants", "123"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "merchants",
+                "123"
+              ]
             }
           }
         },
@@ -168,16 +238,29 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reason\": \"Suspicious activity detected\"\n}"
-            },
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/merchants/123/suspend",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "merchants", "123", "suspend"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "merchants",
+                "123",
+                "suspend"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Suspicious activity\"\n}"
             }
           }
         },
@@ -185,11 +268,29 @@
           "name": "Activate Merchant",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/merchants/123/activate",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "merchants", "123", "activate"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "merchants",
+                "123",
+                "activate"
+              ]
             }
           }
         },
@@ -197,11 +298,24 @@
           "name": "Delete Merchant",
           "request": {
             "method": "DELETE",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/merchants/123",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "merchants", "123"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "merchants",
+                "123"
+              ]
             }
           }
         }
@@ -214,11 +328,24 @@
           "name": "Get Security Events",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/security/events",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "security", "events"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "security",
+                "events"
+              ]
             }
           }
         },
@@ -226,11 +353,24 @@
           "name": "Get Security Alerts",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/security/alerts",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "security", "alerts"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "security",
+                "alerts"
+              ]
             }
           }
         },
@@ -238,11 +378,30 @@
           "name": "Acknowledge Alert",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/security/alerts/456/acknowledge",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "security", "alerts", "456", "acknowledge"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "security",
+                "alerts",
+                "456",
+                "acknowledge"
+              ]
             }
           }
         },
@@ -250,11 +409,24 @@
           "name": "Get Security Settings",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/security/settings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "security", "settings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "security",
+                "settings"
+              ]
             }
           }
         },
@@ -266,16 +438,28 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/security/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "security",
+                "settings"
+              ]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"max_login_attempts\": 5,\n  \"lockout_duration\": 900,\n  \"require_2fa\": true\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/security/settings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "security", "settings"]
             }
           }
         }
@@ -288,11 +472,24 @@
           "name": "Get Environment Config",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/config/environment",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "config", "environment"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "config",
+                "environment"
+              ]
             }
           }
         },
@@ -304,16 +501,28 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/config/environment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "config",
+                "environment"
+              ]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"environment\": \"production\",\n  \"debug_mode\": false\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/config/environment",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "config", "environment"]
             }
           }
         },
@@ -321,11 +530,24 @@
           "name": "Get Fee Config",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/config/fees",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "config", "fees"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "config",
+                "fees"
+              ]
             }
           }
         },
@@ -337,16 +559,28 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"platform_fee_percentage\": 2.5,\n  \"withdrawal_fee_fixed\": 5.0\n}"
-            },
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/config/fees",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "config", "fees"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "config",
+                "fees"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform_fee_percentage\": 2.5,\n  \"withdrawal_fee_fixed\": 5\n}"
             }
           }
         },
@@ -354,11 +588,24 @@
           "name": "Get System Limits",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/config/limits",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "config", "limits"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "config",
+                "limits"
+              ]
             }
           }
         },
@@ -370,16 +617,28 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/config/limits",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "config",
+                "limits"
+              ]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"max_payment_amount\": 10000,\n  \"daily_withdrawal_limit\": 50000\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/config/limits",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "config", "limits"]
             }
           }
         }
@@ -392,11 +651,23 @@
           "name": "Get All Payments",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/payments",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "payments"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "payments"
+              ]
             }
           }
         },
@@ -404,11 +675,24 @@
           "name": "Get Payment Details",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/payments/pay_123",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "payments", "pay_123"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "payments",
+                "pay_123"
+              ]
             }
           }
         },
@@ -416,11 +700,29 @@
           "name": "Force Confirm Payment",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/payments/pay_123/force-confirm",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "payments", "pay_123", "force-confirm"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "payments",
+                "pay_123",
+                "force-confirm"
+              ]
             }
           }
         },
@@ -428,11 +730,29 @@
           "name": "Force Fail Payment",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/payments/pay_123/force-fail",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "payments", "pay_123", "force-fail"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "payments",
+                "pay_123",
+                "force-fail"
+              ]
             }
           }
         }
@@ -445,11 +765,23 @@
           "name": "Get All Withdrawals",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/withdrawals",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "withdrawals"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "withdrawals"
+              ]
             }
           }
         },
@@ -457,11 +789,29 @@
           "name": "Approve Withdrawal",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/withdrawals/wd_123/approve",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "withdrawals", "wd_123", "approve"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "withdrawals",
+                "wd_123",
+                "approve"
+              ]
             }
           }
         },
@@ -473,16 +823,484 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/withdrawals/wd_123/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "withdrawals",
+                "wd_123",
+                "reject"
+              ]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"reason\": \"Insufficient verification\"\n}"
-            },
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Analytics",
+      "item": [
+        {
+          "name": "Get Platform Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/withdrawals/wd_123/reject",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "withdrawals", "wd_123", "reject"]
+              "raw": "{{baseUrl}}/api/v1/admin/analytics/platform",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "analytics",
+                "platform"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Revenue Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/analytics/revenue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "analytics",
+                "revenue"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Transaction Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/reports/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "reports",
+                "transactions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Merchant Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/reports/merchants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "reports",
+                "merchants"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Wallet Management",
+      "item": [
+        {
+          "name": "Get Hot Wallets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/wallets/hot",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "wallets",
+                "hot"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Cold Wallets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/wallets/cold",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "wallets",
+                "cold"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Wallet Balances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/wallets/balances",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "wallets",
+                "balances"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Transfer Funds",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/wallets/transfer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "wallets",
+                "transfer"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from_wallet\": \"hot_1\",\n  \"to_wallet\": \"cold_1\",\n  \"amount\": \"10.0\",\n  \"crypto_type\": \"ETH\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin User Management",
+      "item": [
+        {
+          "name": "Get Admin Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Admin User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"subadmin\",\n  \"password\": \"password123\",\n  \"role\": \"support\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Admin User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Permissions",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/1/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "1",
+                "permissions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissions\": [\n    \"read_payments\"\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin System Maintenance",
+      "item": [
+        {
+          "name": "Get System Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/system/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "system",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get System Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/system/logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "system",
+                "logs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Backup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/system/backup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "system",
+                "backup"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Toggle Maintenance Mode",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/system/maintenance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "system",
+                "maintenance"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true\n}"
             }
           }
         }
@@ -501,14 +1319,21 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "register"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"merchant@example.com\",\n  \"business_name\": \"My Crypto Store\",\n  \"password\": \"SecurePassword123!\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchant/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "merchant", "register"]
+              "raw": "{\n  \"email\": \"m@e.com\",\n  \"business_name\": \"Store\",\n  \"password\": \"p123\"\n}"
             }
           }
         },
@@ -522,19 +1347,26 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "login"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"merchant@example.com\",\n  \"password\": \"SecurePassword123!\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchant/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "merchant", "login"]
+              "raw": "{\n  \"email\": \"m@e.com\",\n  \"password\": \"p123\"\n}"
             }
           }
         },
         {
-          "name": "Get Merchant Profile",
+          "name": "Get Profile",
           "request": {
             "method": "GET",
             "header": [
@@ -544,9 +1376,74 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchant/profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "merchant", "profile"]
+              "raw": "{{baseUrl}}/api/v1/merchants/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Switch Environment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/environment/switch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "environment",
+                "switch"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rotate API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/api-keys/rotate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "api-keys",
+                "rotate"
+              ]
             }
           }
         }
@@ -569,31 +1466,21 @@
                 "value": "Bearer {{apiKey}}"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "payments"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount_usd\": \"100.50\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Test payment\",\n  \"webhook_url\": \"https://merchant.com/webhook\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchant/payments",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "merchant", "payments"]
-            }
-          }
-        },
-        {
-          "name": "Get Payment Status",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchant/payments/pay_123",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "merchant", "payments", "pay_123"]
+              "raw": "{\n  \"amount_usd\": \"100.0\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Test\"\n}"
             }
           }
         },
@@ -608,19 +1495,21 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchant/payments",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "merchant", "payments"]
+              "raw": "{{baseUrl}}/api/v1/merchants/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "payments"
+              ]
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "Merchant Wallets",
-      "item": [
+        },
         {
-          "name": "Get Wallet Configuration",
+          "name": "Get Payment",
           "request": {
             "method": "GET",
             "header": [
@@ -630,14 +1519,173 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchant/wallets",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "merchant", "wallets"]
+              "raw": "{{baseUrl}}/api/v1/merchants/payments/p_123",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "payments",
+                "p_123"
+              ]
             }
           }
         },
         {
-          "name": "Update Wallet Configuration",
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/payments/p_123/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "payments",
+                "p_123",
+                "verify"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Refunds",
+      "item": [
+        {
+          "name": "Create Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/refunds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "refunds"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_id\": \"p_123\",\n  \"amount\": \"10.0\",\n  \"reason\": \"Refund\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Refund",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/refunds/r_123",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "refunds",
+                "r_123"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Complete Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/refunds/r_123/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "refunds",
+                "r_123",
+                "complete"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Wallets",
+      "item": [
+        {
+          "name": "Get Wallets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Wallets",
           "request": {
             "method": "PUT",
             "header": [
@@ -650,14 +1698,112 @@
                 "value": "Bearer {{apiKey}}"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"solana_address\": \"9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM\",\n  \"ethereum_address\": \"0x742d35Cc6634C0532925a3b8D4C9db96C4b4d4d4\"\n}"
-            },
+              "raw": "{\n  \"solana_address\": \"...\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Configure Address Only",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchant/wallets",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "merchant", "wallets"]
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/configure-address",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "configure-address"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"ETH\",\n  \"address\": \"0x...\",\n  \"customer_pays_fee\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Generate Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "generate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Import Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "import"
+              ]
             }
           }
         }
@@ -680,19 +1826,26 @@
                 "value": "Bearer {{apiKey}}"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/withdrawals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "withdrawals"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"amount\": \"10.5\",\n  \"destination_address\": \"9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchant/withdrawals",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "merchant", "withdrawals"]
+              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"amount\": \"1.0\",\n  \"destination_address\": \"...\"\n}"
             }
           }
         },
         {
-          "name": "Get Withdrawal Status",
+          "name": "List Withdrawals",
           "request": {
             "method": "GET",
             "header": [
@@ -702,9 +1855,314 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchant/withdrawals/wd_123",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "merchant", "withdrawals", "wd_123"]
+              "raw": "{{baseUrl}}/api/v1/merchants/withdrawals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "withdrawals"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Withdrawal",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/withdrawals/w_123",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "withdrawals",
+                "w_123"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/withdrawals/w_123/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "withdrawals",
+                "w_123",
+                "cancel"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Analytics",
+      "item": [
+        {
+          "name": "Get Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/analytics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "analytics"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/analytics/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "analytics",
+                "export"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Security",
+      "item": [
+        {
+          "name": "Get IP Whitelist",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/ip-whitelist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "ip-whitelist"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Set IP Whitelist",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/ip-whitelist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "ip-whitelist"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/audit-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "audit-logs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Profile Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/alerts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "alerts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "settings"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Balances",
+      "item": [
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/balance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "balance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/balance/history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "balance",
+                "history"
+              ]
             }
           }
         }
@@ -714,56 +2172,159 @@
       "name": "Sandbox Testing",
       "item": [
         {
-          "name": "Get Sandbox Networks",
+          "name": "Enable Sandbox",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/sandbox/enable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "sandbox",
+                "enable"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Simulate Confirmation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/sandbox/payments/pay_123/simulate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "sandbox",
+                "payments",
+                "pay_123",
+                "simulate"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\",\n  \"transaction_hash\": \"0x...\",\n  \"from_address\": \"0x...\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public API",
+      "item": [
+        {
+          "name": "Supported Currencies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/currencies/supported",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "currencies",
+                "supported"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Blog",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/blog",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "blog"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Careers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/careers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "careers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Payment Page Status",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{sandboxUrl}}/api/v1/sandbox/networks",
-              "host": ["{{sandboxUrl}}"],
-              "path": ["api", "v1", "sandbox", "networks"]
-            }
-          }
-        },
-        {
-          "name": "Create Test Payment",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"amount_usd\": \"50.00\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Sandbox test payment\"\n}"
-            },
-            "url": {
-              "raw": "{{sandboxUrl}}/api/v1/sandbox/payments",
-              "host": ["{{sandboxUrl}}"],
-              "path": ["api", "v1", "sandbox", "payments"]
-            }
-          }
-        },
-        {
-          "name": "Simulate Payment Confirmation",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"payment_id\": \"pay_sandbox_123\",\n  \"status\": \"confirmed\"\n}"
-            },
-            "url": {
-              "raw": "{{sandboxUrl}}/api/v1/sandbox/payments/simulate",
-              "host": ["{{sandboxUrl}}"],
-              "path": ["api", "v1", "sandbox", "payments", "simulate"]
+              "raw": "{{baseUrl}}/pay/pay_123/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pay",
+                "pay_123",
+                "status"
+              ]
             }
           }
         }

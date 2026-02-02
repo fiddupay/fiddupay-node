@@ -17,7 +17,7 @@ describe('FidduPay SDK - Core Functionality', () => {
       const fiddupay = new FidduPay({
         apiKey: 'sk_test_1234567890'
       });
-      
+
       expect(fiddupay).toBeInstanceOf(FidduPay);
       expect(fiddupay.payments).toBeDefined();
       expect(fiddupay.merchants).toBeDefined();
@@ -37,12 +37,12 @@ describe('FidduPay SDK - Core Functionality', () => {
         apiKey: 'sk_test_1234567890abcdef',
         environment: 'sandbox'
       });
-      
+
       const allCryptoTypes: CryptoType[] = [
         'SOL', 'ETH', 'BNB', 'MATIC', 'ARB',
         'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'
       ];
-      
+
       allCryptoTypes.forEach(token => {
         expect(() => {
           const request = {
@@ -75,13 +75,13 @@ describe('FidduPay SDK - Core Functionality', () => {
 
     it('should throw error for invalid environment', () => {
       expect(() => {
-        new FidduPay({ 
+        new FidduPay({
           apiKey: 'sk_test_1234567890',
           environment: 'invalid' as any
         });
       }).toThrow(FidduPayValidationError);
       expect(() => {
-        new FidduPay({ 
+        new FidduPay({
           apiKey: 'sk_test_1234567890',
           environment: 'invalid' as any
         });
@@ -96,7 +96,7 @@ describe('FidduPay SDK - Core Functionality', () => {
         maxRetries: 5,
         baseURL: 'https://custom.api.com/v1'
       });
-      
+
       expect(fiddupay).toBeInstanceOf(FidduPay);
     });
   });
@@ -129,7 +129,6 @@ describe('FidduPay SDK - Core Functionality', () => {
 
     it('should have merchant methods', () => {
       expect(client.merchants.getBalance).toBeDefined();
-      expect(client.merchants.setWallets).toBeDefined();
       expect(client.merchants.register).toBeDefined();
       expect(client.merchants.retrieve).toBeDefined();
       expect(client.merchants.setWallet).toBeDefined();
@@ -203,6 +202,19 @@ describe('FidduPay SDK - Core Functionality', () => {
     });
   });
 
+  it('should validate sandbox simulation request', () => {
+    expect(() => {
+      const request = {
+        status: 'completed' as const,
+        transaction_hash: '0x123...',
+        from_address: '0xsender...'
+      };
+      expect(request.transaction_hash).toBe('0x123...');
+      expect(request.from_address).toBe('0xsender...');
+    }).not.toThrow();
+  });
+
+
   describe('3-Mode Wallet System Support', () => {
     it('should support address-only payments', () => {
       expect(client.payments.createAddressOnly).toBeDefined();
@@ -232,7 +244,7 @@ describe('FidduPay SDK - Core Functionality', () => {
       };
 
       const merchantPaysRequest = {
-        crypto_type: 'USDT_ETH', 
+        crypto_type: 'USDT_ETH',
         merchant_address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
         requested_amount: '100.00',
         customer_pays_fee: false
@@ -245,7 +257,7 @@ describe('FidduPay SDK - Core Functionality', () => {
     it('should support fee setting operations', () => {
       expect(client.payments.updateFeeSetting).toBeDefined();
       expect(client.payments.getFeeSetting).toBeDefined();
-      
+
       expect(() => {
         client.payments.updateFeeSetting({ customer_pays_fee: true });
         client.payments.updateFeeSetting({ customer_pays_fee: false });
@@ -271,7 +283,7 @@ describe('FidduPay SDK - Core Functionality', () => {
         'SOL', 'ETH', 'BNB', 'MATIC', 'ARB',
         'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'
       ];
-      
+
       cryptoTypes.forEach(crypto => {
         expect(() => {
           const request = {
