@@ -1,4 +1,4 @@
-# FidduPay - Cryptocurrency Payment Gateway
+# FidduPay - Cryptocurrency Payment Gateway v2.3.8
 
 **A TechyTro Software Product**
 
@@ -8,16 +8,16 @@ Modern, production-ready cryptocurrency payment gateway for merchants. Accept pa
 
 ```
 fiddupay/
- backend/          # Rust backend API
-    src/         # Rust source code
-    Cargo.toml   # Rust dependencies
-    migrations/  # Database migrations
- frontend/         # React frontend
-    src/         # React source code
-    package.json # Frontend dependencies
-    dist/        # Build output
- package.json     # Monorepo scripts
+  backend/           # Rust backend API
+  frontend/          # React frontend
+  fiddupay-node-sdk/ # Official Node.js SDK (Mirrored to standalone repo)
+  docs/              # System documentation
+  scripts/           # Automation scripts (push-sdk.sh, etc.)
+  package.json       # Monorepo scripts
 ```
+
+> [!NOTE]
+> The `fiddupay-node-sdk` folder is the source of truth for the [@fiddupay/fiddupay-node](https://github.com/fiddupay/fiddupay-node) standalone repository. Use `./scripts/push-sdk.sh` to sync changes.
 
 ## Quick Start
 
@@ -73,6 +73,9 @@ VITE_API_URL=http://localhost:8080
 - **[Platform Roadmap](ROADMAP.md)** - Strategic roadmap for dual-tier platform (Personal + Business)
 - **[Node.js SDK Guide](docs/NODE_SDK.md)** - Complete Node.js SDK development documentation
 - **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation
+- **Postman Collections**:
+  - [Merchant API (SDK)](fiddupay-node-sdk/postman/FidduPay-Merchant-API.postman_collection.json) - For standard integration
+  - [Complete API](docs/postman/FidduPay-Complete-API.postman_collection.json) - Full system reference (includes Admin)
 - **[Setup Guide](docs/SETUP.md)** - Development and production setup
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment guide
 

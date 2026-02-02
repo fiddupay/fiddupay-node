@@ -1,5 +1,12 @@
 # FidduPay Backend Changelog
 
+## [2.3.8] - 2026-02-02
+
+### Added
+- **Dual Postman Collection Generation**: Automated scripts to generate Complete and Merchant-specific collections.
+- **Enhanced Sandbox Simulation**: Added `transaction_hash` and `from_address` fields to simulated payments.
+- **Improved API Documentation**: Complete synchronization of paths and examples across all guides.
+
 ## [2.3.6] - 2026-01-28
 
 ### Fixed

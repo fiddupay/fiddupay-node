@@ -1,4 +1,4 @@
-# FidduPay API Reference v2.3.6
+# FidduPay API Reference v2.3.8
 
 ## Base URL
 - **Sandbox**: `http://localhost:8080`
@@ -23,7 +23,7 @@ Authorization: Bearer sk_your_api_key_here
 
 ### Check Remaining Volume
 ```http
-GET /api/v1/merchant/profile
+GET /api/v1/merchants/profile
 Authorization: Bearer {api_key}
 ```
 
@@ -66,7 +66,7 @@ Returns payment status for a specific payment link.
 
 ### Register Merchant
 ```http
-POST /api/v1/merchant/register
+POST /api/v1/merchants/register
 Content-Type: application/json
 
 {
@@ -78,7 +78,7 @@ Content-Type: application/json
 
 ### Login Merchant
 ```http
-POST /api/v1/merchant/login
+POST /api/v1/merchants/login
 Content-Type: application/json
 
 {
@@ -96,13 +96,13 @@ GET /api/v1/currencies/supported
 
 ### Get Merchant Profile
 ```http
-GET /api/v1/merchant/profile
+GET /api/v1/merchants/profile
 Authorization: Bearer {api_key}
 ```
 
 ### Switch Environment
 ```http
-POST /api/v1/merchant/environment/switch
+POST /api/v1/merchants/environment/switch
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
@@ -113,19 +113,19 @@ Content-Type: application/json
 
 ### Generate API Key
 ```http
-POST /api/v1/merchant/api-keys/generate
+POST /api/v1/merchants/api-keys/generate
 Authorization: Bearer {api_key}
 ```
 
 ### Rotate API Key
 ```http
-POST /api/v1/merchant/api-keys/rotate
+POST /api/v1/merchants/api-keys/rotate
 Authorization: Bearer {api_key}
 ```
 
 ### Set Wallet
 ```http
-PUT /api/v1/merchant/wallets
+PUT /api/v1/merchants/wallets
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
@@ -137,7 +137,7 @@ Content-Type: application/json
 
 ### Set Webhook
 ```http
-PUT /api/v1/merchant/webhook
+PUT /api/v1/merchants/webhook
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
@@ -150,7 +150,7 @@ Content-Type: application/json
 
 ### Create Payment
 ```http
-POST /api/v1/merchant/payments
+POST /api/v1/merchants/payments
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
@@ -165,19 +165,19 @@ Content-Type: application/json
 
 ### List Payments
 ```http
-GET /api/v1/merchant/payments
+GET /api/v1/merchants/payments
 Authorization: Bearer {api_key}
 ```
 
 ### Get Payment
 ```http
-GET /api/v1/merchant/payments/{payment_id}
+GET /api/v1/merchants/payments/{payment_id}
 Authorization: Bearer {api_key}
 ```
 
 ### Verify Payment
 ```http
-POST /api/v1/merchant/payments/{payment_id}/verify
+POST /api/v1/merchants/payments/{payment_id}/verify
 Authorization: Bearer {api_key}
 ```
 
@@ -185,7 +185,7 @@ Authorization: Bearer {api_key}
 
 ### Create Refund
 ```http
-POST /api/v1/merchant/refunds
+POST /api/v1/merchants/refunds
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
@@ -198,13 +198,13 @@ Content-Type: application/json
 
 ### Get Refund
 ```http
-GET /api/v1/merchant/refunds/{refund_id}
+GET /api/v1/merchants/refunds/{refund_id}
 Authorization: Bearer {api_key}
 ```
 
 ### Complete Refund
 ```http
-POST /api/v1/merchant/refunds/{refund_id}/complete
+POST /api/v1/merchants/refunds/{refund_id}/complete
 Authorization: Bearer {api_key}
 ```
 
@@ -212,13 +212,13 @@ Authorization: Bearer {api_key}
 
 ### Get Analytics
 ```http
-GET /api/v1/merchant/analytics
+GET /api/v1/merchants/analytics
 Authorization: Bearer {api_key}
 ```
 
 ### Export Analytics
 ```http
-GET /api/v1/merchant/analytics/export
+GET /api/v1/merchants/analytics/export
 Authorization: Bearer {api_key}
 ```
 
@@ -226,18 +226,20 @@ Authorization: Bearer {api_key}
 
 ### Enable Sandbox
 ```http
-POST /api/v1/merchant/sandbox/enable
+POST /api/v1/merchants/sandbox/enable
 Authorization: Bearer {api_key}
 ```
 
 ### Simulate Payment
 ```http
-POST /api/v1/merchant/sandbox/payments/{payment_id}/simulate
+POST /api/v1/merchants/sandbox/payments/{payment_id}/simulate
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
 {
-  "status": "confirmed" // or "failed"
+  "status": "completed", // or "failed"
+  "transaction_hash": "0xabc...",
+  "from_address": "0xsender..."
 }
 ```
 
@@ -245,7 +247,7 @@ Content-Type: application/json
 
 ### Set IP Whitelist
 ```http
-PUT /api/v1/merchant/ip-whitelist
+PUT /api/v1/merchants/ip-whitelist
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
@@ -256,7 +258,7 @@ Content-Type: application/json
 
 ### Get IP Whitelist
 ```http
-GET /api/v1/merchant/ip-whitelist
+GET /api/v1/merchants/ip-whitelist
 Authorization: Bearer {api_key}
 ```
 
@@ -270,13 +272,13 @@ Authorization: Bearer {api_key}
 
 ### Get Balance
 ```http
-GET /api/v1/merchant/balance
+GET /api/v1/merchants/balance
 Authorization: Bearer {api_key}
 ```
 
 ### Get Balance History
 ```http
-GET /api/v1/merchant/balance/history
+GET /api/v1/merchants/balance/history
 Authorization: Bearer {api_key}
 ```
 
@@ -284,7 +286,7 @@ Authorization: Bearer {api_key}
 
 ### Create Withdrawal
 ```http
-POST /api/v1/merchant/withdrawals
+POST /api/v1/merchants/withdrawals
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
@@ -297,19 +299,19 @@ Content-Type: application/json
 
 ### List Withdrawals
 ```http
-GET /api/v1/merchant/withdrawals
+GET /api/v1/merchants/withdrawals
 Authorization: Bearer {api_key}
 ```
 
 ### Get Withdrawal
 ```http
-GET /api/v1/merchant/withdrawals/{withdrawal_id}
+GET /api/v1/merchants/withdrawals/{withdrawal_id}
 Authorization: Bearer {api_key}
 ```
 
 ### Cancel Withdrawal
 ```http
-POST /api/v1/merchant/withdrawals/{withdrawal_id}/cancel
+POST /api/v1/merchants/withdrawals/{withdrawal_id}/cancel
 Authorization: Bearer {api_key}
 ```
 
@@ -323,7 +325,7 @@ Authorization: Bearer {api_key}
 
 ### Configure Address-Only Wallet
 ```http
-POST /api/v1/wallets/configure-address
+POST /api/v1/merchants/wallets/configure-address
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
@@ -333,9 +335,18 @@ Content-Type: application/json
 }
 ```
 
+#### Node SDK Example
+```javascript
+// Configure wallet addresses
+await fiddupay.merchants.setWallet({
+  crypto_type: 'SOL',
+  address: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
+});
+```
+
 ### Generate Wallet
 ```http
-POST /api/v1/wallets/generate
+POST /api/v1/merchants/wallets/generate
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
@@ -346,7 +357,7 @@ Content-Type: application/json
 
 ### Import Wallet
 ```http
-POST /api/v1/wallets/import
+POST /api/v1/merchants/wallets/import
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
@@ -358,7 +369,7 @@ Content-Type: application/json
 
 ### Export Private Key
 ```http
-POST /api/v1/wallets/export-key
+POST /api/v1/merchants/wallets/export-key
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
@@ -369,19 +380,19 @@ Content-Type: application/json
 
 ### Check Gas Requirements
 ```http
-GET /api/v1/wallets/gas-check
+GET /api/v1/merchants/wallets/gas-check
 Authorization: Bearer {api_key}
 ```
 
 ### Get Gas Estimates
 ```http
-GET /api/v1/wallets/gas-estimates
+GET /api/v1/merchants/wallets/gas-estimates
 Authorization: Bearer {api_key}
 ```
 
 ### Check Withdrawal Capability
 ```http
-GET /api/v1/wallets/withdrawal-capability/{crypto_type}
+GET /api/v1/merchants/wallets/withdrawal-capability/{crypto_type}
 Authorization: Bearer {api_key}
 ```
 

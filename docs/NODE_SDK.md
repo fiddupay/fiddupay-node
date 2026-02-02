@@ -181,9 +181,9 @@ await fiddupay.merchants.updateWebhook({
 const balance = await fiddupay.merchants.getBalance();
 
 // Configure wallet addresses
-await fiddupay.merchants.setWallets({
-  USDT_ETH: '0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4',
-  SOL: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
+await fiddupay.merchants.setWallet({
+  crypto_type: 'SOL',
+  address: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
 });
 ```
 
@@ -260,7 +260,7 @@ interface Payment {
   metadata?: Record<string, any>;
 }
 
-type CryptoType = 'SOL' | 'USDT_ETH' | 'USDT_BSC' | 'USDT_POLYGON' | 'USDT_ARBITRUM' | 'USDT_SPL';
+type CryptoType = 'SOL' | 'ETH' | 'USDT_ETH' | 'USDT_BEP20' | 'USDT_POLYGON' | 'USDT_ARBITRUM' | 'USDT_SPL';
 type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED';
 ```
 
@@ -557,7 +557,7 @@ examples/
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: January 25, 2026  
-**Next Review**: March 1, 2026  
+**Document Version**: 1.1  
+**Last Updated**: February 2, 2026  
+**Next Review**: April 1, 2026  
 **Owner**: TechyTro Software - FidduPay SDK Team

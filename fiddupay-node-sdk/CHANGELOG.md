@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.3.8] - 2026-02-02
+
+### Added
+- **Address-Only Wallet Configuration**: New `merchants.setWallet` method support for configuring external addresses.
+- **Enhanced Sandbox Testing**: `simulatePayment` now supports `transaction_hash` and `from_address` for realistic testing.
+- **Postman Collection**: Dedicated `FidduPay-Merchant-API.postman_collection.json` included in the package.
+
+### Changed
+- **API Path Alignment**: Internal paths updated to use plural `/merchants/` for backend consistency.
+- **Method Renaming**: Standardized `configureWallet` to `setWallet` for cleaner API.
+
 ## [2.3.7] - 2026-01-28
 
 ### 🔧 **Backend Compatibility Updates**

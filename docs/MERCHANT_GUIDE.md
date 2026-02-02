@@ -13,7 +13,7 @@ Complete guide for merchants to integrate FidduPay cryptocurrency payment gatewa
 
 ### Check Your Daily Volume Status
 ```bash
-curl -X GET https://api.fiddupay.com/api/v1/merchant/profile \
+curl -X GET https://api.fiddupay.com/api/v1/merchants/profile \
   -H "Authorization: Bearer your_api_key"
 ```
 
@@ -32,7 +32,7 @@ Response includes your remaining daily volume:
 
 ### 1. Register Account
 ```bash
-curl -X POST https://api.fiddupay.com/api/v1/merchant/register \
+curl -X POST https://api.fiddupay.com/api/v1/merchants/register \
   -H "Content-Type: application/json" \
   -d '{
     "business_name": "My Store",
@@ -51,7 +51,7 @@ Response:
 
 ### 2. Configure Wallets
 ```bash
-curl -X PUT https://api.fiddupay.com/api/v1/merchant/wallets \
+curl -X PUT https://api.fiddupay.com/api/v1/merchants/wallets \
   -H "Authorization: Bearer your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -62,7 +62,7 @@ curl -X PUT https://api.fiddupay.com/api/v1/merchant/wallets \
 
 ### 3. Set Webhook
 ```bash
-curl -X PUT https://api.fiddupay.com/api/v1/merchant/webhook \
+curl -X PUT https://api.fiddupay.com/api/v1/merchants/webhook \
   -H "Authorization: Bearer your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -73,7 +73,7 @@ curl -X PUT https://api.fiddupay.com/api/v1/merchant/webhook \
 ### 4. Create Payment
 ```bash
 # USD-based payment
-curl -X POST https://api.fiddupay.com/api/v1/payments \
+curl -X POST https://api.fiddupay.com/api/v1/merchants/payments \
   -H "Authorization: Bearer your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -83,7 +83,7 @@ curl -X POST https://api.fiddupay.com/api/v1/payments \
   }'
 
 # Crypto-based payment
-curl -X POST https://api.fiddupay.com/api/v1/payments \
+curl -X POST https://api.fiddupay.com/api/v1/merchants/payments \
   -H "Authorization: Bearer your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -332,16 +332,17 @@ sequenceDiagram
 ### Sandbox Mode
 ```bash
 # Enable sandbox
-curl -X POST https://api.fiddupay.com/api/v1/merchant/sandbox/enable \
+curl -X POST https://api.fiddupay.com/api/v1/merchants/sandbox/enable \
   -H "Authorization: Bearer your_api_key"
 
 # Simulate payment
-curl -X POST https://api.fiddupay.com/api/v1/sandbox/simulate-payment \
+curl -X POST https://api.fiddupay.com/api/v1/merchants/sandbox/payments/pay_abc123/simulate \
   -H "Authorization: Bearer your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "payment_id": "pay_abc123",
-    "action": "confirm"
+    "status": "completed",
+    "transaction_hash": "0xabc...",
+    "from_address": "0xsender..."
   }'
 ```
 
@@ -420,7 +421,7 @@ Step 1: Sign Up
 
 **API Endpoint:**
 ```bash
-POST /api/v1/merchant/register
+POST /api/v1/merchants/register
 {
   "email": "merchant@example.com",
   "business_name": "My Store"
@@ -448,7 +449,7 @@ Step 2: Configure Wallets
 
 **API Endpoint:**
 ```bash
-PUT /api/v1/merchant/wallets
+PUT /api/v1/merchants/wallets
 Authorization: Bearer live_your_api_key_here
 {
   "crypto_type": "SOL",
@@ -467,7 +468,7 @@ Step 3: Set Webhook URL
 
 **API Endpoint:**
 ```bash
-PUT /api/v1/merchant/webhook
+PUT /api/v1/merchants/webhook
 Authorization: Bearer live_your_api_key_here
 {
   "url": "https://merchant-site.com/webhooks/crypto-payments"
@@ -646,7 +647,7 @@ Balance Structure:
 
 **Proposed API:**
 ```bash
-GET /api/v1/merchant/balance
+GET /api/v1/merchants/balance
 Authorization: Bearer live_your_api_key_here
 
 Response:
@@ -697,7 +698,7 @@ Daily Volume Check:
 
 **Check Remaining Volume:**
 ```bash
-GET /api/v1/merchant/profile
+GET /api/v1/merchants/profile
 Authorization: Bearer sk_abc123...
 
 Response:
@@ -872,7 +873,7 @@ Current Implementation:
 echo "*.env" >> .gitignore
 
 # Rotate keys regularly
-POST /api/v1/merchant/api-keys/rotate
+POST /api/v1/merchants/api-keys/rotate
 ```
 
 ### 7.2 Two-Factor Authentication (Future)
@@ -901,7 +902,7 @@ Current Implementation:
 
 **API:**
 ```bash
-PUT /api/v1/merchant/ip-whitelist
+PUT /api/v1/merchants/ip-whitelist
 Authorization: Bearer live_your_api_key_here
 {
   "ip_addresses": [
@@ -1001,7 +1002,7 @@ SELECT accepted_currencies FROM merchants WHERE id = 1;
 
 **API:**
 ```bash
-PUT /api/v1/merchant/currencies
+PUT /api/v1/merchants/currencies
 Authorization: Bearer live_your_api_key_here
 {
   "accepted_currencies": ["SOL", "USDT_SPL", "USDT_POLYGON"]
@@ -1148,9 +1149,9 @@ Proposed Metrics:
 All requests: Authorization: Bearer <api_key>
 
 # Merchant Setup
-POST   /api/v1/merchant/register
-PUT    /api/v1/merchant/wallets
-PUT    /api/v1/merchant/webhook
+POST   /api/v1/merchants/register
+PUT    /api/v1/merchants/wallets
+PUT    /api/v1/merchants/webhook
 
 # Payments
 POST   /api/v1/payments
