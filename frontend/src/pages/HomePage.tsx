@@ -228,7 +228,7 @@ const HomePage: React.FC = () => {
                   </div>
                   <div className={styles.faqDecorations}>
                     <div className={styles.faqCoin}>₿</div>
-                    <div className={styles.faqStar}>✨</div>
+                    <div className={styles.faqStar}></div>
                     <div className={styles.faqStar}></div>
                   </div>
                 </div>

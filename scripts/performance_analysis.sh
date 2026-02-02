@@ -10,7 +10,7 @@ echo " Analyzing codebase for performance opportunities..."
 
 # 1. Database Query Analysis
 echo ""
-echo "🗄️  Database Query Analysis:"
+echo "  Database Query Analysis:"
 echo "  Checking for N+1 queries and inefficient patterns..."
 
 # Count database queries
@@ -23,14 +23,14 @@ echo "  Dynamic queries (query): $((QUERY_COUNT - QUERY_MACRO_COUNT))"
 # Check for potential N+1 patterns
 N_PLUS_ONE=$(grep -r "for.*in\|while.*" src/ --include="*.rs" -A 5 | grep -c "sqlx::query")
 if [ $N_PLUS_ONE -gt 0 ]; then
-    echo "  ⚠️  Potential N+1 queries: $N_PLUS_ONE"
+    echo "    Potential N+1 queries: $N_PLUS_ONE"
 else
     echo "   No obvious N+1 patterns detected"
 fi
 
 # 2. Memory Allocation Analysis
 echo ""
-echo "🧠 Memory Allocation Analysis:"
+echo " Memory Allocation Analysis:"
 
 # Check for excessive cloning
 CLONE_COUNT=$(grep -r "\.clone()" src/ --include="*.rs" | wc -l)
@@ -60,7 +60,7 @@ echo "  .await calls: $AWAIT_COUNT"
 
 # 4. Error Handling Analysis
 echo ""
-echo "🚨 Error Handling Analysis:"
+echo " Error Handling Analysis:"
 
 # Check for unwrap usage (potential panics)
 UNWRAP_COUNT=$(grep -r "\.unwrap()" src/ --include="*.rs" | wc -l)
@@ -69,14 +69,14 @@ echo "  .unwrap() calls: $UNWRAP_COUNT"
 echo "  .expect() calls: $EXPECT_COUNT"
 
 if [ $UNWRAP_COUNT -gt 10 ]; then
-    echo "  ⚠️  High unwrap usage - consider proper error handling"
+    echo "    High unwrap usage - consider proper error handling"
 else
     echo "   Reasonable unwrap usage"
 fi
 
 # 5. Serialization Analysis
 echo ""
-echo "📦 Serialization Analysis:"
+echo " Serialization Analysis:"
 
 # Check for JSON operations
 JSON_OPS=$(grep -r "serde_json::\|to_string\|from_str" src/ --include="*.rs" | wc -l)
@@ -105,7 +105,7 @@ echo " Potential Performance Hotspots:"
 echo "  Checking for expensive operations in loops..."
 LOOP_EXPENSIVE=$(grep -r "for.*in\|while.*" src/ --include="*.rs" -A 3 | grep -c "sqlx::\|reqwest::\|serde_json::")
 if [ $LOOP_EXPENSIVE -gt 0 ]; then
-    echo "  ⚠️  Expensive operations in loops: $LOOP_EXPENSIVE"
+    echo "    Expensive operations in loops: $LOOP_EXPENSIVE"
 else
     echo "   No obvious expensive operations in loops"
 fi
@@ -116,7 +116,7 @@ echo " Dependency Analysis:"
 echo "  Checking Cargo.toml for performance-related dependencies..."
 
 if grep -q "tokio.*features.*full" Cargo.toml; then
-    echo "  ⚠️  Using full tokio features - consider selective features"
+    echo "    Using full tokio features - consider selective features"
 else
     echo "   Tokio features appear optimized"
 fi
@@ -124,17 +124,17 @@ fi
 if grep -q "serde.*features.*derive" Cargo.toml; then
     echo "   Serde derive feature enabled"
 else
-    echo "  ⚠️  Consider enabling serde derive feature"
+    echo "    Consider enabling serde derive feature"
 fi
 
 # 10. File Size Analysis
 echo ""
-echo "📏 Code Size Analysis:"
+echo " Code Size Analysis:"
 LARGE_FILES=$(find src/ -name "*.rs" -size +10k | wc -l)
 echo "  Files larger than 10KB: $LARGE_FILES"
 
 if [ $LARGE_FILES -gt 5 ]; then
-    echo "  ⚠️  Consider splitting large files"
+    echo "    Consider splitting large files"
     echo "  Largest files:"
     find src/ -name "*.rs" -exec wc -l {} + | sort -nr | head -5
 else
@@ -159,7 +159,7 @@ if [ $STRING_ALLOC -gt 100 ]; then
 fi
 
 if [ $UNWRAP_COUNT -gt 20 ]; then
-    echo "3. 🚨 Replace unwrap() with proper error handling"
+    echo "3.  Replace unwrap() with proper error handling"
     RECOMMENDATIONS=$((RECOMMENDATIONS + 1))
 fi
 
@@ -183,7 +183,7 @@ if [ $RECOMMENDATIONS -eq 0 ]; then
     echo "   Your codebase appears well-optimized."
 else
     echo ""
-    echo "📈 Priority: Focus on the recommendations above for maximum impact"
+    echo " Priority: Focus on the recommendations above for maximum impact"
 fi
 
 echo ""

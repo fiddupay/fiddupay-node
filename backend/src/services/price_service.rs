@@ -12,16 +12,28 @@ pub struct PriceCache {
     pub timestamp: Instant,
 }
 
+#[derive(Clone)]
+pub struct ApiFailureTracker {
+    pub failure_count: u32,
+    pub last_failure: Instant,
+}
+
 pub struct PriceService {
     cache: Arc<RwLock<HashMap<String, PriceCache>>>,
+    failure_tracker: Arc<RwLock<HashMap<String, ApiFailureTracker>>>,
     cache_ttl: Duration,
+    failure_threshold: u32,
+    failure_reset_duration: Duration,
 }
 
 impl PriceService {
     pub fn new() -> Self {
         Self {
             cache: Arc::new(RwLock::new(HashMap::new())),
-            cache_ttl: Duration::from_secs(180), // 3 minutes
+            failure_tracker: Arc::new(RwLock::new(HashMap::new())),
+            cache_ttl: Duration::from_secs(300), // 5 minutes cache
+            failure_threshold: 3,
+            failure_reset_duration: Duration::from_secs(900), // 15 minutes
         }
     }
 
@@ -53,6 +65,40 @@ impl PriceService {
         Ok(price)
     }
 
+    async fn is_api_failed(&self, api_name: &str) -> bool {
+        let mut tracker = self.failure_tracker.write().await;
+        if let Some(failure_info) = tracker.get_mut(api_name) {
+            // Reset failure count if enough time has passed
+            if failure_info.last_failure.elapsed() > self.failure_reset_duration {
+                tracker.remove(api_name);
+                return false;
+            }
+            failure_info.failure_count >= self.failure_threshold
+        } else {
+            false
+        }
+    }
+
+    async fn record_api_failure(&self, api_name: &str) {
+        let mut tracker = self.failure_tracker.write().await;
+        let failure_info = tracker.entry(api_name.to_string()).or_insert(ApiFailureTracker {
+            failure_count: 0,
+            last_failure: Instant::now(),
+        });
+        
+        failure_info.failure_count += 1;
+        failure_info.last_failure = Instant::now();
+        
+        if failure_info.failure_count >= self.failure_threshold {
+            warn!("[PRICE] API {} marked as failed after {} failures", api_name, failure_info.failure_count);
+        }
+    }
+
+    async fn record_api_success(&self, api_name: &str) {
+        let mut tracker = self.failure_tracker.write().await;
+        tracker.remove(api_name);
+    }
+
     async fn fetch_price(&self, crypto_type: CryptoType) -> Result<f64, String> {
         match crypto_type {
             CryptoType::Sol => self.fetch_sol_price().await,
@@ -61,122 +107,121 @@ impl PriceService {
             CryptoType::Matic => self.fetch_matic_price().await,
             CryptoType::Bnb => self.fetch_bnb_price().await,
             // USDT tokens use their blockchain's native currency price
-            CryptoType::UsdtSpl => self.fetch_sol_price().await,      // USDT on Solana = SOL price
-            CryptoType::UsdtBep20 => self.fetch_bnb_price().await,    // USDT on BSC = BNB price
-            CryptoType::UsdtEth => self.fetch_eth_price().await,      // USDT on Ethereum = ETH price
-            CryptoType::UsdtPolygon => self.fetch_matic_price().await, // USDT on Polygon = MATIC price
-            CryptoType::UsdtArbitrum => self.fetch_arb_price().await,  // USDT on Arbitrum = ARB price
+            CryptoType::UsdtSpl => self.fetch_sol_price().await,
+            CryptoType::UsdtBep20 => self.fetch_bnb_price().await,
+            CryptoType::UsdtEth => self.fetch_eth_price().await,
+            CryptoType::UsdtPolygon => self.fetch_matic_price().await,
+            CryptoType::UsdtArbitrum => self.fetch_arb_price().await,
         }
     }
 
     async fn fetch_sol_price(&self) -> Result<f64, String> {
-        // Try multiple sources
-        if let Some(price) = self.fetch_from_coingecko("solana").await {
-            return Ok(price);
+        // Primary: CoinGecko (only if not failed)
+        if !self.is_api_failed("coingecko").await {
+            if let Some(price) = self.fetch_from_coingecko("solana").await {
+                self.record_api_success("coingecko").await;
+                return Ok(price);
+            } else {
+                self.record_api_failure("coingecko").await;
+            }
         }
-        if let Some(price) = self.fetch_from_coincap("solana").await {
-            return Ok(price);
-        }
-        if let Some(price) = self.fetch_from_coinpaprika("sol-solana").await {
+
+        // Fallback APIs
+        if let Some(price) = self.fetch_from_binance("SOLUSDT").await {
             return Ok(price);
         }
         if let Some(price) = self.fetch_from_cryptocompare("SOL").await {
             return Ok(price);
         }
-        if let Some(price) = self.fetch_from_binance("SOLUSDT").await {
-            return Ok(price);
-        }
-        if let Some(price) = self.fetch_from_kraken("SOLUSD").await {
-            return Ok(price);
-        }
+        
         Err("Failed to fetch SOL price from all sources".to_string())
     }
 
     async fn fetch_eth_price(&self) -> Result<f64, String> {
-        if let Some(price) = self.fetch_from_coingecko("ethereum").await {
-            return Ok(price);
+        // Primary: CoinGecko (only if not failed)
+        if !self.is_api_failed("coingecko").await {
+            if let Some(price) = self.fetch_from_coingecko("ethereum").await {
+                self.record_api_success("coingecko").await;
+                return Ok(price);
+            } else {
+                self.record_api_failure("coingecko").await;
+            }
         }
-        if let Some(price) = self.fetch_from_coincap("ethereum").await {
-            return Ok(price);
-        }
-        if let Some(price) = self.fetch_from_coinpaprika("eth-ethereum").await {
+
+        // Fallback APIs
+        if let Some(price) = self.fetch_from_binance("ETHUSDT").await {
             return Ok(price);
         }
         if let Some(price) = self.fetch_from_cryptocompare("ETH").await {
             return Ok(price);
         }
-        if let Some(price) = self.fetch_from_binance("ETHUSDT").await {
-            return Ok(price);
-        }
-        if let Some(price) = self.fetch_from_kraken("ETHUSD").await {
-            return Ok(price);
-        }
+        
         Err("Failed to fetch ETH price from all sources".to_string())
     }
 
     async fn fetch_arb_price(&self) -> Result<f64, String> {
-        if let Some(price) = self.fetch_from_coingecko("arbitrum").await {
-            return Ok(price);
+        // Primary: CoinGecko (only if not failed)
+        if !self.is_api_failed("coingecko").await {
+            if let Some(price) = self.fetch_from_coingecko("arbitrum").await {
+                self.record_api_success("coingecko").await;
+                return Ok(price);
+            } else {
+                self.record_api_failure("coingecko").await;
+            }
         }
-        if let Some(price) = self.fetch_from_coincap("arbitrum").await {
-            return Ok(price);
-        }
-        if let Some(price) = self.fetch_from_coinpaprika("arb-arbitrum").await {
+
+        // Fallback APIs
+        if let Some(price) = self.fetch_from_binance("ARBUSDT").await {
             return Ok(price);
         }
         if let Some(price) = self.fetch_from_cryptocompare("ARB").await {
             return Ok(price);
         }
-        if let Some(price) = self.fetch_from_binance("ARBUSDT").await {
-            return Ok(price);
-        }
+        
         Err("Failed to fetch ARB price from all sources".to_string())
     }
 
     async fn fetch_matic_price(&self) -> Result<f64, String> {
-        // Try CoinGecko first
-        if let Some(price) = self.fetch_from_coingecko("polygon-ecosystem-token").await {
+        // Primary: CoinGecko (only if not failed)
+        if !self.is_api_failed("coingecko").await {
+            if let Some(price) = self.fetch_from_coingecko("matic-network").await {
+                self.record_api_success("coingecko").await;
+                return Ok(price);
+            } else {
+                self.record_api_failure("coingecko").await;
+            }
+        }
+
+        // Fallback APIs
+        if let Some(price) = self.fetch_from_binance("MATICUSDT").await {
             return Ok(price);
         }
-        if let Some(price) = self.fetch_from_coingecko("matic-network").await {
-            return Ok(price);
-        }
-        // Try CoinCap
-        if let Some(price) = self.fetch_from_coincap("polygon").await {
-            return Ok(price);
-        }
-        // Try CoinPaprika
-        if let Some(price) = self.fetch_from_coinpaprika("matic-polygon").await {
-            return Ok(price);
-        }
-        // Try CryptoCompare
         if let Some(price) = self.fetch_from_cryptocompare("MATIC").await {
             return Ok(price);
         }
+        
         Err("Failed to fetch MATIC price from all sources".to_string())
     }
 
     async fn fetch_bnb_price(&self) -> Result<f64, String> {
-        // Try CoinGecko first (10-30 calls/min free)
-        if let Some(price) = self.fetch_from_coingecko("binancecoin").await {
-            return Ok(price);
+        // Primary: CoinGecko (only if not failed)
+        if !self.is_api_failed("coingecko").await {
+            if let Some(price) = self.fetch_from_coingecko("binancecoin").await {
+                self.record_api_success("coingecko").await;
+                return Ok(price);
+            } else {
+                self.record_api_failure("coingecko").await;
+            }
         }
-        // Try CoinCap (200 calls/min free, no key needed)
-        if let Some(price) = self.fetch_from_coincap("binance-coin").await {
-            return Ok(price);
-        }
-        // Try CoinPaprika (20k calls/month free)
-        if let Some(price) = self.fetch_from_coinpaprika("bnb-binance-coin").await {
-            return Ok(price);
-        }
-        // Try CryptoCompare (50 calls/min free)
-        if let Some(price) = self.fetch_from_cryptocompare("BNB").await {
-            return Ok(price);
-        }
-        // Try Binance as last resort (geo-restricted)
+
+        // Fallback APIs
         if let Some(price) = self.fetch_from_binance("BNBUSDT").await {
             return Ok(price);
         }
+        if let Some(price) = self.fetch_from_cryptocompare("BNB").await {
+            return Ok(price);
+        }
+        
         Err("Failed to fetch BNB price from all sources".to_string())
     }
 
@@ -264,106 +309,25 @@ impl PriceService {
         }
     }
 
-    async fn fetch_from_coincap(&self, asset_id: &str) -> Option<f64> {
-        let url = format!("https://api.coincap.io/v2/assets/{}", asset_id);
-        
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(10))
-            .user_agent("Mozilla/5.0 (compatible; FidduPay/1.0)")
-            .build()
-            .ok()?;
-
-        match client.get(&url).send().await {
-            Ok(resp) => {
-                if !resp.status().is_success() {
-                    warn!("[PRICE] CoinCap returned status: {}", resp.status());
-                    return None;
-                }
-                if let Ok(json) = resp.json::<Value>().await {
-                    json["data"]["priceUsd"].as_str()?.parse().ok()
-                } else {
-                    None
-                }
-            }
-            Err(e) => {
-                warn!("[PRICE] CoinCap error: {}", e);
-                None
-            }
-        }
-    }
-
-    async fn fetch_from_coinpaprika(&self, coin_id: &str) -> Option<f64> {
-        let url = format!("https://api.coinpaprika.com/v1/tickers/{}", coin_id);
-        
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(10))
-            .user_agent("Mozilla/5.0 (compatible; FidduPay/1.0)")
-            .build()
-            .ok()?;
-
-        match client.get(&url).send().await {
-            Ok(resp) => {
-                if !resp.status().is_success() {
-                    warn!("[PRICE] CoinPaprika returned status: {}", resp.status());
-                    return None;
-                }
-                if let Ok(json) = resp.json::<Value>().await {
-                    json["quotes"]["USD"]["price"].as_f64()
-                } else {
-                    None
-                }
-            }
-            Err(e) => {
-                warn!("[PRICE] CoinPaprika error: {}", e);
-                None
-            }
-        }
-    }
-
-    async fn fetch_from_kraken(&self, pair: &str) -> Option<f64> {
-        let url = format!("https://api.kraken.com/0/public/Ticker?pair={}", pair);
-        
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(10))
-            .user_agent("Mozilla/5.0 (compatible; FidduPay/1.0)")
-            .build()
-            .ok()?;
-        
-        match client.get(&url).send().await {
-            Ok(resp) => {
-                if !resp.status().is_success() {
-                    warn!("[PRICE] Kraken returned status: {}", resp.status());
-                    return None;
-                }
-                if let Ok(json) = resp.json::<Value>().await {
-                    json["result"][pair]["c"][0].as_str()?.parse().ok()
-                } else {
-                    None
-                }
-            }
-            Err(e) => {
-                warn!("[PRICE] Kraken error: {}", e);
-                None
-            }
-        }
-    }
-
     pub fn start_background_polling(&self) {
-        let cache = self.cache.clone();
         let service = self.clone();
-        
         tokio::spawn(async move {
-            info!("[PRICE] Starting background price polling...");
-            tokio::time::sleep(Duration::from_secs(2)).await;
-            
-            let mut interval = tokio::time::interval(Duration::from_secs(180));
+            let mut interval = tokio::time::interval(Duration::from_secs(300)); // 5 minutes
             loop {
                 interval.tick().await;
                 
-                // Update all currency prices
-                for crypto_type in [CryptoType::Sol, CryptoType::Eth, CryptoType::Arb, CryptoType::Matic, CryptoType::Bnb] {
-                    if let Ok(price) = service.get_price(crypto_type).await {
-                        info!("[PRICE] Updated {:?}: ${:.2}", crypto_type, price);
+                // Update all cryptocurrency prices
+                let cryptos = vec![
+                    CryptoType::Sol,
+                    CryptoType::Eth,
+                    CryptoType::Arb,
+                    CryptoType::Matic,
+                    CryptoType::Bnb,
+                ];
+                
+                for crypto in cryptos {
+                    if let Ok(price) = service.get_price(crypto).await {
+                        info!("[PRICE] Updated {:?}: ${:.2}", crypto, price);
                     }
                 }
             }
@@ -374,8 +338,11 @@ impl PriceService {
 impl Clone for PriceService {
     fn clone(&self) -> Self {
         Self {
-            cache: self.cache.clone(),
+            cache: Arc::clone(&self.cache),
+            failure_tracker: Arc::clone(&self.failure_tracker),
             cache_ttl: self.cache_ttl,
+            failure_threshold: self.failure_threshold,
+            failure_reset_duration: self.failure_reset_duration,
         }
     }
 }

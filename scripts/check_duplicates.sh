@@ -58,7 +58,7 @@ if [ -f .env ] && [ -f .env.example ]; then
     
     MISSING_IN_ENV=$(comm -23 <(echo "$EXAMPLE_VARS") <(echo "$ENV_VARS"))
     if [ -n "$MISSING_IN_ENV" ]; then
-        echo "⚠️  Variables in .env.example but missing in .env:"
+        echo "  Variables in .env.example but missing in .env:"
         echo "$MISSING_IN_ENV"
     else
         echo " All .env.example variables are present in .env"
@@ -68,7 +68,7 @@ if [ -f .env ] && [ -f .env.example ]; then
     
     EXTRA_IN_ENV=$(comm -13 <(echo "$EXAMPLE_VARS") <(echo "$ENV_VARS"))
     if [ -n "$EXTRA_IN_ENV" ]; then
-        echo "ℹ️  Extra variables in .env (not in .env.example):"
+        echo "ℹ  Extra variables in .env (not in .env.example):"
         echo "$EXTRA_IN_ENV"
     else
         echo " No extra variables in .env"
@@ -87,7 +87,7 @@ echo "$RUST_ENV_VARS" | head -20
 RUST_DUPLICATES=$(echo "$RUST_ENV_VARS" | awk '$1 > 5 {print $2}')
 if [ -n "$RUST_DUPLICATES" ]; then
     echo ""
-    echo "⚠️  Variables used more than 5 times (potential over-usage):"
+    echo "  Variables used more than 5 times (potential over-usage):"
     echo "$RUST_DUPLICATES"
 fi
 

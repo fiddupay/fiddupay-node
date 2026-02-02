@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { publicAPI } from '@/services/apiService'
 import styles from './StatusPage.module.css'
 
 interface SystemStatus {
@@ -34,9 +35,8 @@ const StatusPage: React.FC = () => {
 
   const fetchSystemStatus = async () => {
     try {
-      const response = await fetch('/api/status')
-      const data = await response.json()
-      setStatus(data)
+      const response = await publicAPI.getStatus()
+      setStatus(response.data)
     } catch (error) {
       console.error('Failed to fetch system status:', error)
       // Fallback status

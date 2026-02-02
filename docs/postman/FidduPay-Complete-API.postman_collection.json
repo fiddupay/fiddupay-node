@@ -1,0 +1,773 @@
+{
+  "info": {
+    "name": "FidduPay Complete API v2.3.6",
+    "description": "Complete API collection for FidduPay cryptocurrency payment gateway. Supports 10 cryptocurrencies across 5 major blockchains with enterprise-grade security and comprehensive admin functionality.",
+    "version": "2.3.6",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "Local development server"
+    },
+    {
+      "key": "sandboxUrl", 
+      "value": "http://localhost:3001",
+      "type": "string",
+      "description": "Local sandbox server"
+    },
+    {
+      "key": "productionUrl",
+      "value": "https://api.fiddupay.com",
+      "type": "string",
+      "description": "Production server"
+    },
+    {
+      "key": "apiKey",
+      "value": "sandbox_test_key_12345",
+      "type": "string",
+      "description": "Merchant API key"
+    },
+    {
+      "key": "adminUsername",
+      "value": "admin",
+      "type": "string",
+      "description": "Admin username"
+    },
+    {
+      "key": "adminPassword",
+      "value": "admin_password",
+      "type": "string",
+      "description": "Admin password"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiKey}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "System Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "login"]
+            }
+          }
+        },
+        {
+          "name": "Admin Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Admin Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "dashboard"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Merchant Management",
+      "item": [
+        {
+          "name": "Get All Merchants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/merchants",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "merchants"]
+            }
+          }
+        },
+        {
+          "name": "Get Merchant Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/merchants/123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "merchants", "123"]
+            }
+          }
+        },
+        {
+          "name": "Suspend Merchant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Suspicious activity detected\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/merchants/123/suspend",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "merchants", "123", "suspend"]
+            }
+          }
+        },
+        {
+          "name": "Activate Merchant",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/merchants/123/activate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "merchants", "123", "activate"]
+            }
+          }
+        },
+        {
+          "name": "Delete Merchant",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/merchants/123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "merchants", "123"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Security Management",
+      "item": [
+        {
+          "name": "Get Security Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/security/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "security", "events"]
+            }
+          }
+        },
+        {
+          "name": "Get Security Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/security/alerts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "security", "alerts"]
+            }
+          }
+        },
+        {
+          "name": "Acknowledge Alert",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/security/alerts/456/acknowledge",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "security", "alerts", "456", "acknowledge"]
+            }
+          }
+        },
+        {
+          "name": "Get Security Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/security/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "security", "settings"]
+            }
+          }
+        },
+        {
+          "name": "Update Security Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"max_login_attempts\": 5,\n  \"lockout_duration\": 900,\n  \"require_2fa\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/security/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "security", "settings"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin System Configuration",
+      "item": [
+        {
+          "name": "Get Environment Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/config/environment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "config", "environment"]
+            }
+          }
+        },
+        {
+          "name": "Update Environment Config",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"environment\": \"production\",\n  \"debug_mode\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/config/environment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "config", "environment"]
+            }
+          }
+        },
+        {
+          "name": "Get Fee Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/config/fees",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "config", "fees"]
+            }
+          }
+        },
+        {
+          "name": "Update Fee Config",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform_fee_percentage\": 2.5,\n  \"withdrawal_fee_fixed\": 5.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/config/fees",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "config", "fees"]
+            }
+          }
+        },
+        {
+          "name": "Get System Limits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/config/limits",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "config", "limits"]
+            }
+          }
+        },
+        {
+          "name": "Update System Limits",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"max_payment_amount\": 10000,\n  \"daily_withdrawal_limit\": 50000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/config/limits",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "config", "limits"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Payment Management",
+      "item": [
+        {
+          "name": "Get All Payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Get Payment Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/payments/pay_123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "payments", "pay_123"]
+            }
+          }
+        },
+        {
+          "name": "Force Confirm Payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/payments/pay_123/force-confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "payments", "pay_123", "force-confirm"]
+            }
+          }
+        },
+        {
+          "name": "Force Fail Payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/payments/pay_123/force-fail",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "payments", "pay_123", "force-fail"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Withdrawal Management",
+      "item": [
+        {
+          "name": "Get All Withdrawals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/withdrawals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "withdrawals"]
+            }
+          }
+        },
+        {
+          "name": "Approve Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/withdrawals/wd_123/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "withdrawals", "wd_123", "approve"]
+            }
+          }
+        },
+        {
+          "name": "Reject Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Insufficient verification\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/withdrawals/wd_123/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "withdrawals", "wd_123", "reject"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Authentication",
+      "item": [
+        {
+          "name": "Register Merchant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"merchant@example.com\",\n  \"business_name\": \"My Crypto Store\",\n  \"password\": \"SecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchant/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "merchant", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login Merchant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"merchant@example.com\",\n  \"password\": \"SecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchant/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "merchant", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Merchant Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchant/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "merchant", "profile"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Payments",
+      "item": [
+        {
+          "name": "Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_usd\": \"100.50\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Test payment\",\n  \"webhook_url\": \"https://merchant.com/webhook\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchant/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "merchant", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Get Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchant/payments/pay_123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "merchant", "payments", "pay_123"]
+            }
+          }
+        },
+        {
+          "name": "List Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchant/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "merchant", "payments"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Wallets",
+      "item": [
+        {
+          "name": "Get Wallet Configuration",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchant/wallets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "merchant", "wallets"]
+            }
+          }
+        },
+        {
+          "name": "Update Wallet Configuration",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"solana_address\": \"9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM\",\n  \"ethereum_address\": \"0x742d35Cc6634C0532925a3b8D4C9db96C4b4d4d4\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchant/wallets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "merchant", "wallets"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Withdrawals",
+      "item": [
+        {
+          "name": "Create Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"amount\": \"10.5\",\n  \"destination_address\": \"9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchant/withdrawals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "merchant", "withdrawals"]
+            }
+          }
+        },
+        {
+          "name": "Get Withdrawal Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchant/withdrawals/wd_123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "merchant", "withdrawals", "wd_123"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sandbox Testing",
+      "item": [
+        {
+          "name": "Get Sandbox Networks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{sandboxUrl}}/api/v1/sandbox/networks",
+              "host": ["{{sandboxUrl}}"],
+              "path": ["api", "v1", "sandbox", "networks"]
+            }
+          }
+        },
+        {
+          "name": "Create Test Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_usd\": \"50.00\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Sandbox test payment\"\n}"
+            },
+            "url": {
+              "raw": "{{sandboxUrl}}/api/v1/sandbox/payments",
+              "host": ["{{sandboxUrl}}"],
+              "path": ["api", "v1", "sandbox", "payments"]
+            }
+          }
+        },
+        {
+          "name": "Simulate Payment Confirmation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_id\": \"pay_sandbox_123\",\n  \"status\": \"confirmed\"\n}"
+            },
+            "url": {
+              "raw": "{{sandboxUrl}}/api/v1/sandbox/payments/simulate",
+              "host": ["{{sandboxUrl}}"],
+              "path": ["api", "v1", "sandbox", "payments", "simulate"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -227,7 +227,7 @@ impl PaymentProcessor {
             status: PaymentStatus::Pending,
             amount: crypto_amount,
             amount_usd,
-            crypto_type: request.crypto_type,
+            crypto_type: request.crypto_type.as_str().to_string(), // Convert to string
             to_address: merchant_wallet.clone(),
             network: Some(network.to_string()),
             deposit_address: Some(merchant_wallet),

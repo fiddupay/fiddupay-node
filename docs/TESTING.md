@@ -6,20 +6,20 @@ Complete testing guide for fiddupay cryptocurrency payment gateway.
 
 ```
 tests/
-├── api_endpoints_test.rs        # API endpoint tests
-├── payment_test.rs              # Payment flow tests
-├── withdrawal_test.rs           # Withdrawal tests
-├── services_test.rs             # Service layer tests
-├── utils_test.rs                # Utility tests
-├── workflows_test.rs            # End-to-end workflows
-├── complete_endpoint_test.rs    # Complete API tests
-├── comprehensive_service_test.rs # Service integration
-├── database_integration_test.rs # Database tests
-├── endpoints_test.rs            # Endpoint validation
-├── full_integration_test.rs     # Full integration
-├── payment_listing_tests.rs     # Payment listing
-├── analytics_service_tests.rs   # Analytics tests
-└── standalone_tests.rs          # Standalone tests
+ api_endpoints_test.rs        # API endpoint tests
+ payment_test.rs              # Payment flow tests
+ withdrawal_test.rs           # Withdrawal tests
+ services_test.rs             # Service layer tests
+ utils_test.rs                # Utility tests
+ workflows_test.rs            # End-to-end workflows
+ complete_endpoint_test.rs    # Complete API tests
+ comprehensive_service_test.rs # Service integration
+ database_integration_test.rs # Database tests
+ endpoints_test.rs            # Endpoint validation
+ full_integration_test.rs     # Full integration
+ payment_listing_tests.rs     # Payment listing
+ analytics_service_tests.rs   # Analytics tests
+ standalone_tests.rs          # Standalone tests
 ```
 
 ## Running Tests
@@ -405,11 +405,11 @@ cargo test -- --test-threads=4
 ### 3. API Endpoints (Integration Tests)
 
 **Merchant Endpoints:**
-- [ ] POST /api/v1/merchants/register
-- [ ] PUT /api/v1/merchants/wallets
-- [ ] GET /api/v1/merchants/wallets
-- [ ] PUT /api/v1/merchants/webhook
-- [ ] POST /api/v1/merchants/api-keys/rotate
+- [ ] POST /api/v1/merchant/register
+- [ ] PUT /api/v1/merchant/wallets
+- [ ] GET /api/v1/merchant/wallets
+- [ ] PUT /api/v1/merchant/webhook
+- [ ] POST /api/v1/merchant/api-keys/rotate
 
 **Payment Endpoints:**
 - [ ] POST /api/v1/payments
@@ -418,8 +418,8 @@ cargo test -- --test-threads=4
 - [ ] POST /api/v1/payments/:id/verify
 
 **Balance Endpoints:**
-- [ ] GET /api/v1/merchants/balance
-- [ ] GET /api/v1/merchants/balance/history
+- [ ] GET /api/v1/merchant/balance
+- [ ] GET /api/v1/merchant/balance/history
 
 **Withdrawal Endpoints:**
 - [ ] POST /api/v1/withdrawals
@@ -441,20 +441,20 @@ cargo test -- --test-threads=4
 - [ ] GET /api/v1/analytics/export
 
 **Security Endpoints:**
-- [ ] PUT /api/v1/merchants/ip-whitelist
-- [ ] GET /api/v1/merchants/ip-whitelist
+- [ ] PUT /api/v1/merchant/ip-whitelist
+- [ ] GET /api/v1/merchant/ip-whitelist
 - [ ] GET /api/v1/audit-logs
 
 **2FA Endpoints:**
-- [ ] POST /api/v1/merchants/2fa/setup
-- [ ] POST /api/v1/merchants/2fa/enable
-- [ ] POST /api/v1/merchants/2fa/disable
+- [ ] POST /api/v1/merchant/2fa/setup
+- [ ] POST /api/v1/merchant/2fa/enable
+- [ ] POST /api/v1/merchant/2fa/disable
 
 **Multi-User Endpoints:**
-- [ ] POST /api/v1/merchants/users
-- [ ] GET /api/v1/merchants/users
-- [ ] PUT /api/v1/merchants/users/:id
-- [ ] DELETE /api/v1/merchants/users/:id
+- [ ] POST /api/v1/merchant/users
+- [ ] GET /api/v1/merchant/users
+- [ ] PUT /api/v1/merchant/users/:id
+- [ ] DELETE /api/v1/merchant/users/:id
 
 **Sandbox Endpoints:**
 - [ ] POST /api/v1/sandbox/enable
@@ -602,7 +602,7 @@ Address: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
 
 ```
 Sandbox: test_abc123xyz789
-Production: live_abc123xyz789
+Production: live_placeholderxyz789
 ```
 
 ### Test Merchant

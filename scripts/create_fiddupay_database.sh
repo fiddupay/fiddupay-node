@@ -7,14 +7,14 @@ set -e
 DB_NAME="${DB_NAME:-fiddupay}"
 DB_USER="${DB_USER:-postgres}"
 
-echo "🆕 Creating FidduPay Database"
+echo " Creating FidduPay Database"
 echo "============================="
 echo ""
 
 echo " Creating database: $DB_NAME"
 sudo -u postgres createdb "$DB_NAME"
 
-echo "👤 Creating database user (if needed)..."
+echo " Creating database user (if needed)..."
 sudo -u postgres psql -c "
 DO \$\$
 BEGIN

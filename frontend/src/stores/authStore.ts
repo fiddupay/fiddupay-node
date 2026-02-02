@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { User, LoginCredentials, RegisterData } from '@/types'
-import apiService from '@/services/api'
+import { authAPI, merchantAPI } from '@/services/apiService'
 
 interface AuthState {
   user: User | null
@@ -33,13 +33,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       login: async (credentials: LoginCredentials) => {
         try {
           set({ loading: true, error: null })
-          const response = await apiService.login(credentials)
+          const response = await authAPI.login(credentials)
           
-          localStorage.setItem('fiddupay_token', response.api_key)
+          localStorage.setItem('fiddupay_token', response.data.api_key)
           
           set({
-            user: response.user,
-            token: response.api_key,
+            user: response.data.user,
+            token: response.data.api_key,
             isAuthenticated: true,
             loading: false,
           })
@@ -55,13 +55,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       register: async (data: RegisterData) => {
         try {
           set({ loading: true, error: null })
-          const response = await apiService.register(data)
+          const response = await authAPI.register(data)
           
-          localStorage.setItem('fiddupay_token', response.api_key)
+          localStorage.setItem('fiddupay_token', response.data.api_key)
           
           set({
-            user: response.user,
-            token: response.api_key,
+            user: response.data.user,
+            token: response.data.api_key,
             isAuthenticated: true,
             loading: false,
           })
@@ -94,9 +94,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
         try {
           set({ loading: true })
-          const user = await apiService.getProfile()
+          const user = await merchantAPI.getProfile()
           set({
-            user,
+            user: user.data,
             token,
             isAuthenticated: true,
             loading: false,

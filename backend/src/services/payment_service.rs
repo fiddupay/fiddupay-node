@@ -331,8 +331,8 @@ impl PaymentService {
             status,
             amount: payment.amount,
             amount_usd: payment.amount_usd,
-            crypto_type,
-            network: Some(payment.crypto_type.clone()),
+            crypto_type: payment.crypto_type.clone(), // Use original string instead of parsed enum
+            network: Some(crypto_type.network().to_string()),
             deposit_address: Some(payment.to_address.clone()),
             payment_link: Some(payment_link),
             qr_code_data: Some(qr_code_data),

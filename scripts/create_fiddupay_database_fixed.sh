@@ -7,18 +7,18 @@ set -e
 DB_NAME="${DB_NAME:-fiddupay}"
 DB_USER="${DB_USER:-postgres}"
 
-echo "🆕 Creating FidduPay Database (Fixed)"
+echo " Creating FidduPay Database (Fixed)"
 echo "===================================="
 echo ""
 
 # Drop existing database if it exists
-echo "🗑️  Dropping existing database (if exists)..."
+echo "  Dropping existing database (if exists)..."
 sudo -u postgres dropdb "$DB_NAME" --if-exists
 
 echo " Creating database: $DB_NAME"
 sudo -u postgres createdb "$DB_NAME"
 
-echo "👤 Creating database user (if needed)..."
+echo " Creating database user (if needed)..."
 sudo -u postgres psql -c "
 DO \$\$
 BEGIN
@@ -39,30 +39,30 @@ echo " Running migrations in correct order..."
 cd backend
 
 # Run migrations manually in the correct order
-echo "1️⃣  Creating merchant tables..."
+echo "1⃣  Creating merchant tables..."
 sudo -u postgres psql -d "$DB_NAME" -f "migrations/20240101000001_create_merchant_tables.sql"
 
-echo "2️⃣  Creating payment tables..."
+echo "2⃣  Creating payment tables..."
 sudo -u postgres psql -d "$DB_NAME" -f "migrations/20240101000002_create_payment_tables.sql"
 
-echo "3️⃣  Creating webhook and refund tables..."
+echo "3⃣  Creating webhook and refund tables..."
 sudo -u postgres psql -d "$DB_NAME" -f "migrations/20240101000003_create_webhook_refund_tables.sql"
 
-echo "4️⃣  Setting up balance management..."
+echo "4⃣  Setting up balance management..."
 sudo -u postgres psql -d "$DB_NAME" -f "migrations/20240101000004_balance_management.sql"
 
-echo "5️⃣  Adding withdrawals..."
+echo "5⃣  Adding withdrawals..."
 sudo -u postgres psql -d "$DB_NAME" -f "migrations/20240101000005_withdrawals.sql"
 
-echo "6️⃣  Adding roles, invoices, and 2FA..."
+echo "6⃣  Adding roles, invoices, and 2FA..."
 sudo -u postgres psql -d "$DB_NAME" -f "migrations/20240101000006_roles_invoices_2fa.sql"
 
-echo "7️⃣  Adding merchant currencies..."
+echo "7⃣  Adding merchant currencies..."
 if [ -f "migrations/20240101000007_merchant_currencies.sql" ]; then
     sudo -u postgres psql -d "$DB_NAME" -f "migrations/20240101000007_merchant_currencies.sql"
 fi
 
-echo "8️⃣  Adding performance indexes..."
+echo "8⃣  Adding performance indexes..."
 sudo -u postgres psql -d "$DB_NAME" -f "migrations/20240125000001_performance_indexes.sql"
 
 cd ..

@@ -1,6 +1,7 @@
 // Admin API Handlers
 // HTTP handlers for admin operations
 
+use crate::middleware::admin_auth::AdminContext;
 use crate::api::state::AppState;
 use crate::middleware::auth::MerchantContext;
 use axum::{
@@ -45,6 +46,12 @@ pub struct SecuritySettings {
     pub auto_suspend_suspicious_accounts: Option<bool>,
 }
 
+#[derive(Deserialize)]
+pub struct AdminLoginRequest {
+    pub username: String,
+    pub password: String,
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct AdminUserCreate {
     pub email: String,
@@ -63,6 +70,41 @@ pub struct TransferFunds {
     pub to_wallet: String,
     pub amount: f64,
     pub crypto_type: String,
+}
+
+// Admin Authentication Endpoints
+
+pub async fn admin_login(
+    Json(login_data): Json<AdminLoginRequest>,
+) -> impl IntoResponse {
+    // Simplified admin login - in production use proper password hashing
+    if login_data.username == "admin" && login_data.password == "admin123" {
+        Json(json!({
+            "success": true,
+            "session_token": "admin_session_placeholder",
+            "expires_in": 3600,
+            "user": {
+                "id": 1,
+                "username": "admin",
+                "permissions": ["all"]
+            }
+        })).into_response()
+    } else {
+        (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({
+                "error": "Invalid credentials",
+                "message": "Username or password is incorrect"
+            }))
+        ).into_response()
+    }
+}
+
+pub async fn admin_logout() -> impl IntoResponse {
+    Json(json!({
+        "success": true,
+        "message": "Logged out successfully"
+    }))
 }
 
 /// Admin middleware to verify admin access
@@ -864,4 +906,63 @@ pub async fn toggle_maintenance_mode(
         "maintenance_mode": true,
         "estimated_duration": "30 minutes"
     })).into_response()
+}
+
+// ============================================================================
+// Admin Security Monitoring
+// ============================================================================
+
+#[derive(Deserialize)]
+pub struct SecurityQuery {
+    pub event_type: Option<String>,
+    pub severity: Option<String>,
+    pub limit: Option<i32>,
+}
+
+pub async fn get_security_events(
+    Query(query): Query<SecurityQuery>,
+) -> impl IntoResponse {
+    let events = vec![
+        json!({
+            "id": "evt_001",
+            "event_type": "login",
+            "severity": "medium",
+            "description": "Failed login attempt",
+            "timestamp": chrono::Utc::now(),
+            "merchant_id": 1
+        })
+    ];
+    
+    (StatusCode::OK, Json(json!({
+        "data": events,
+        "total": 1
+    }))).into_response()
+}
+
+pub async fn get_security_alerts(
+    Query(query): Query<SecurityQuery>,
+) -> impl IntoResponse {
+    let alerts = vec![
+        json!({
+            "id": "alert_001",
+            "priority": "high",
+            "status": "active",
+            "description": "Multiple failed login attempts detected",
+            "created_at": chrono::Utc::now()
+        })
+    ];
+    
+    (StatusCode::OK, Json(json!({
+        "data": alerts,
+        "total": 1
+    }))).into_response()
+}
+
+pub async fn acknowledge_alert(
+    Path(alert_id): Path<String>,
+) -> impl IntoResponse {
+    (StatusCode::OK, Json(json!({
+        "success": true,
+        "message": format!("Alert {} acknowledged", alert_id)
+    }))).into_response()
 }

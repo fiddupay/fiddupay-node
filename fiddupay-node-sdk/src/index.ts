@@ -5,12 +5,14 @@ import { Payments } from './resources/payments';
 import { Merchants } from './resources/merchants';
 import { Refunds } from './resources/refunds';
 import { AnalyticsResource } from './resources/analytics';
+import { InvoicesResource } from './resources/invoices';
 import { Webhooks } from './resources/webhooks';
 import { Wallets } from './resources/wallets';
 import { Withdrawals } from './resources/withdrawals';
 import { Security } from './resources/security';
 import { Balances, AuditLogs } from './resources/balances';
 import { Sandbox } from './resources/sandbox';
+import { Contact } from './resources/contact';
 
 export class FidduPayClient {
   private client: HttpClient;
@@ -19,6 +21,7 @@ export class FidduPayClient {
   public readonly merchants: Merchants;
   public readonly refunds: Refunds;
   public readonly analytics: AnalyticsResource;
+  public readonly invoices: InvoicesResource;
   public readonly webhooks = Webhooks;
   public readonly wallets: Wallets;
   public readonly withdrawals: Withdrawals;
@@ -26,6 +29,7 @@ export class FidduPayClient {
   public readonly balances: Balances;
   public readonly auditLogs: AuditLogs;
   public readonly sandbox: Sandbox;
+  public readonly contact: Contact;
 
   constructor(config: FidduPayConfig) {
     this.validateConfig(config);
@@ -37,12 +41,14 @@ export class FidduPayClient {
     this.merchants = new Merchants(this.client);
     this.refunds = new Refunds(this.client);
     this.analytics = new AnalyticsResource(this.client);
+    this.invoices = new InvoicesResource(this.client);
     this.wallets = new Wallets(this.client);
     this.withdrawals = new Withdrawals(this.client);
     this.security = new Security(this.client);
     this.balances = new Balances(this.client);
     this.auditLogs = new AuditLogs(this.client);
     this.sandbox = new Sandbox(this.client);
+    this.contact = new Contact(this.client);
   }
 
   private validateConfig(config: FidduPayConfig): void {

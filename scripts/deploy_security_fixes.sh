@@ -3,9 +3,9 @@
 
 set -e
 
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║          fiddupay - Critical Security Fixes                 ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
+echo "          fiddupay - Critical Security Fixes                 "
+echo ""
 echo ""
 
 # Colors
@@ -116,7 +116,7 @@ fi
 if grep -q "validator::Validate" src/api/handlers.rs; then
     log " Input validation on API endpoints - IMPLEMENTED"
 else
-    warn "⚠️  Input validation not fully implemented in handlers.rs"
+    warn "  Input validation not fully implemented in handlers.rs"
 fi
 
 # 5. Build and test
@@ -172,7 +172,7 @@ cat > SECURITY_STATUS.md << EOF
 - [x] Rate Limiting Table
 - [x] Login Attempts Tracking
 
-## ⚠️ Remaining Tasks
+##  Remaining Tasks
 - [ ] Implement per-API-key rate limiting
 - [ ] Add CSRF protection
 - [ ] Implement account lockout mechanism
@@ -190,7 +190,7 @@ cat > SECURITY_STATUS.md << EOF
 4. Schedule penetration testing
 5. Set up security monitoring
 
-**⚠️ IMPORTANT:** While critical vulnerabilities have been fixed, 
+** IMPORTANT:** While critical vulnerabilities have been fixed, 
 complete the remaining security tasks before production deployment.
 EOF
 
@@ -198,9 +198,9 @@ log "Security status report generated: SECURITY_STATUS.md"
 
 # 8. Final recommendations
 echo ""
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║              Critical Security Fixes Complete              ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
+echo "              Critical Security Fixes Complete              "
+echo ""
 echo ""
 log " Critical security vulnerabilities have been fixed:"
 log "   • XSS prevention implemented"
@@ -208,7 +208,7 @@ log "   • Input validation framework added"
 log "   • Security headers middleware created"
 log "   • Database performance optimizations applied"
 echo ""
-warn "⚠️  Additional security tasks recommended:"
+warn "  Additional security tasks recommended:"
 warn "   • Implement per-API-key rate limiting"
 warn "   • Add CSRF protection for state-changing operations"
 warn "   • Set up comprehensive security monitoring"

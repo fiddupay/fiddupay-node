@@ -1,6 +1,6 @@
 # FidduPay Admin API Reference (INTERNAL)
 
-**⚠️ INTERNAL DOCUMENTATION - NOT FOR PUBLIC DISTRIBUTION**
+** INTERNAL DOCUMENTATION - NOT FOR PUBLIC DISTRIBUTION**
 
 This document contains admin-only endpoints for system administration and should not be shared publicly.
 

@@ -278,7 +278,7 @@ function validatePaymentRequestStructure() {
   if (validationsPassed === totalValidations) {
     console.log('\n All validations passed! SDK structure is correct.');
   } else {
-    console.log(`\n⚠️  ${totalValidations - validationsPassed} validation(s) failed.`);
+    console.log(`\n  ${totalValidations - validationsPassed} validation(s) failed.`);
   }
   
   console.log('\n Validated Components:');
@@ -293,7 +293,7 @@ function validatePaymentRequestStructure() {
 }
 
 // Run validation
-console.log('🧪 FidduPay SDK Structure Validation\n');
+console.log(' FidduPay SDK Structure Validation\n');
 console.log('This test validates SDK structure and expected data formats');
 console.log('without requiring a live backend connection.\n');
 

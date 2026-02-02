@@ -14,7 +14,7 @@ echo " Quick Database Reset"
 echo "======================"
 echo ""
 
-read -p "⚠️  This will DROP and RECREATE the database. Continue? (type 'RESET' to confirm): " confirmation
+read -p "  This will DROP and RECREATE the database. Continue? (type 'RESET' to confirm): " confirmation
 
 if [ "$confirmation" != "RESET" ]; then
     echo " Reset cancelled."
@@ -22,10 +22,10 @@ if [ "$confirmation" != "RESET" ]; then
 fi
 
 echo ""
-echo "🗑️  Dropping database..."
+echo "  Dropping database..."
 dropdb -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" "$DB_NAME" --if-exists
 
-echo "🆕 Creating new database..."
+echo " Creating new database..."
 createdb -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" "$DB_NAME"
 
 echo " Running migrations..."

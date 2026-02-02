@@ -90,7 +90,7 @@ impl SolanaMonitor {
         address: &str,
         limit: usize,
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
-        info!("📡 Fetching Solana transactions for address: {}", address);
+        info!(" Fetching Solana transactions for address: {}", address);
 
         // First, get signatures for address
         let request = RpcRequest {
@@ -233,7 +233,7 @@ impl SolanaMonitor {
         address: &str,
         callback: impl Fn(BlockchainTransaction) + Send + Sync,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("👀 Monitoring Solana address: {}", address);
+        info!(" Monitoring Solana address: {}", address);
 
         let mut known_txs = std::collections::HashSet::new();
 
@@ -242,7 +242,7 @@ impl SolanaMonitor {
                 Ok(transactions) => {
                     for tx in transactions {
                         if !known_txs.contains(&tx.hash) {
-                            info!("🔔 New Solana transaction detected: {}", tx.hash);
+                            info!(" New Solana transaction detected: {}", tx.hash);
                             callback(tx.clone());
                             known_txs.insert(tx.hash);
                         }

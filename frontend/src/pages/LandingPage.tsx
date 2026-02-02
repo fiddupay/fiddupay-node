@@ -143,11 +143,11 @@ const LandingPage: React.FC = () => {
                 <span className={styles.priceUnit}>per transaction</span>
               </div>
               <ul className={styles.pricingFeatures}>
-                <li>✓ All supported cryptocurrencies</li>
-                <li>✓ Automatic forwarding</li>
-                <li>✓ Basic webhook notifications</li>
-                <li>✓ API access</li>
-                <li>✓ Email support</li>
+                <li> All supported cryptocurrencies</li>
+                <li> Automatic forwarding</li>
+                <li> Basic webhook notifications</li>
+                <li> API access</li>
+                <li> Email support</li>
               </ul>
               <Link to="/register" className={styles.pricingBtn}>Get Started</Link>
             </div>
@@ -159,11 +159,11 @@ const LandingPage: React.FC = () => {
                 <span className={styles.priceUnit}>per transaction</span>
               </div>
               <ul className={styles.pricingFeatures}>
-                <li>✓ Everything in Starter</li>
-                <li>✓ Advanced webhooks</li>
-                <li>✓ Priority support</li>
-                <li>✓ Custom integration help</li>
-                <li>✓ Volume discounts</li>
+                <li> Everything in Starter</li>
+                <li> Advanced webhooks</li>
+                <li> Priority support</li>
+                <li> Custom integration help</li>
+                <li> Volume discounts</li>
               </ul>
               <Link to="/register" className={styles.pricingBtn}>Start Free Trial</Link>
             </div>
@@ -174,11 +174,11 @@ const LandingPage: React.FC = () => {
                 <span className={styles.priceUnit}>pricing</span>
               </div>
               <ul className={styles.pricingFeatures}>
-                <li>✓ Everything in Business</li>
-                <li>✓ Dedicated support</li>
-                <li>✓ Custom features</li>
-                <li>✓ SLA guarantees</li>
-                <li>✓ White-label options</li>
+                <li> Everything in Business</li>
+                <li> Dedicated support</li>
+                <li> Custom features</li>
+                <li> SLA guarantees</li>
+                <li> White-label options</li>
               </ul>
               <a href="#contact" className={styles.pricingBtn}>Contact Sales</a>
             </div>

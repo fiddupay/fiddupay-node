@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useToast } from '@/contexts/ToastContext'
 import { useLoading } from '@/contexts/LoadingContext'
-import { apiService } from '@/services/api'
+import { merchantAPI, paymentAPI } from '@/services/apiService'
 import { Payment, PaymentFilters, FeeSettingResponse } from '@/types'
 import styles from './PaymentsPage.module.css'
 
@@ -38,8 +38,8 @@ const PaymentsPage: React.FC = () => {
 
   const loadFeeSetting = async () => {
     try {
-      const setting = await apiService.getFeeSetting()
-      setFeeSetting(setting)
+      const setting = await merchantAPI.getFeeSetting()
+      setFeeSetting(setting.data)
     } catch (error) {
       console.error('Failed to load fee setting:', error)
     }
@@ -48,7 +48,7 @@ const PaymentsPage: React.FC = () => {
   const loadPayments = async () => {
     setLoading(true)
     try {
-      const response = await apiService.getPayments(filters)
+      const response = await paymentAPI.getHistory(filters)
       setPayments(response.data || [])
     } catch (error) {
       showToast('Failed to load payments', 'error')
@@ -59,15 +59,15 @@ const PaymentsPage: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      const analytics = await apiService.getAnalytics()
-      if (analytics) {
-        const successfulPayments = analytics.successful_payments || 0
-        const totalPayments = analytics.total_payments || 0
+      const analytics = await merchantAPI.getAnalytics()
+      if (analytics.data) {
+        const successfulPayments = analytics.data.successful_payments || 0
+        const totalPayments = analytics.data.total_payments || 0
         const successRate = totalPayments > 0 ? ((successfulPayments / totalPayments) * 100).toFixed(1) + '%' : '0%'
         
         setStats({
-          totalPayments: analytics.total_payments || 0,
-          totalVolume: `$${analytics.total_volume_usd || '0.00'}`,
+          totalPayments: analytics.data.total_payments || 0,
+          totalVolume: `$${analytics.data.total_volume_usd || '0.00'}`,
           successRate: successRate
         })
       }
@@ -131,21 +131,21 @@ const PaymentsPage: React.FC = () => {
           showToast('Merchant address is required for address-only payments', 'error')
           return
         }
-        const payment = await apiService.createAddressOnlyPayment({
+        const payment = await paymentAPI.create({
           requested_amount: newPayment.amount_usd,
           crypto_type: newPayment.crypto_type,
           merchant_address: newPayment.merchant_address,
           description: newPayment.description || undefined
         })
-        console.log('Address-only payment created:', payment.payment_id)
+        console.log('Address-only payment created:', payment.data.payment_id)
         showToast('Address-only payment created successfully!', 'success')
       } else {
-        const payment = await apiService.createPayment({
+        const payment = await paymentAPI.create({
           amount_usd: newPayment.amount_usd,
           crypto_type: newPayment.crypto_type,
           description: newPayment.description || undefined
         })
-        setPayments(prev => [payment, ...prev])
+        setPayments(prev => [payment.data, ...prev])
         showToast('Payment created successfully!', 'success')
       }
       
@@ -162,7 +162,7 @@ const PaymentsPage: React.FC = () => {
   const handleUpdateFeeSetting = async (customerPaysFee: boolean) => {
     setLoading(true)
     try {
-      await apiService.updateFeeSetting({ fee_percentage: feeSetting?.fee_percentage || 0.75 })
+      await merchantAPI.updateFeeSetting({ fee_percentage: feeSetting?.fee_percentage || 0.75 })
       showToast(`Fee setting updated: ${customerPaysFee ? 'Customer pays fee' : 'Merchant pays fee'}`, 'success')
       setShowFeeSettingModal(false)
       loadFeeSetting()

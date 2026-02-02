@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { Payment, PaymentData, PaymentFilters } from '@/types'
-import apiService from '@/services/api'
+import { paymentAPI } from '@/services/apiService'
 
 interface PaymentState {
   payments: Payment[]
@@ -47,15 +47,15 @@ export const usePaymentStore = create<PaymentState & PaymentActions>((set: any, 
       set({ loading: true, error: null })
       
       const currentFilters = { ...get().filters, ...filters }
-      const response = await apiService.getPayments(currentFilters)
+      const response = await paymentAPI.getHistory(currentFilters)
       
       set({
         payments: response.data,
         pagination: {
-          page: response.pagination.page,
-          pageSize: response.pagination.page_size,
-          totalPages: response.pagination.total_pages,
-          totalCount: response.pagination.total_count,
+          page: response.data.pagination.page,
+          pageSize: response.data.pagination.page_size,
+          totalPages: response.data.pagination.total_pages,
+          totalCount: response.data.pagination.total_count,
         },
         filters: currentFilters,
         loading: false,
@@ -71,15 +71,15 @@ export const usePaymentStore = create<PaymentState & PaymentActions>((set: any, 
   createPayment: async (data: PaymentData) => {
     try {
       set({ loading: true, error: null })
-      const payment = await apiService.createPayment(data)
+      const payment = await paymentAPI.create(data)
       
       // Add new payment to the beginning of the list
       set((state: any) => ({
-        payments: [payment, ...state.payments],
+        payments: [payment.data, ...state.payments],
         loading: false,
       }))
       
-      return payment
+      return payment.data.data
     } catch (error: any) {
       set({
         error: error.response?.data?.error || 'Failed to create payment',
@@ -92,7 +92,7 @@ export const usePaymentStore = create<PaymentState & PaymentActions>((set: any, 
   getPayment: async (id: string) => {
     try {
       set({ loading: true, error: null })
-      const payment = await apiService.getPayment(id)
+      const payment = await paymentAPI.getStatus(id)
       
       set({
         currentPayment: payment,

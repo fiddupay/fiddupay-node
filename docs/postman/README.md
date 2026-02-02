@@ -1,67 +1,90 @@
-# FidduPay Postman Collection
+# FidduPay API Postman Collections
 
-Complete Postman collection for testing FidduPay API endpoints.
+This directory contains the complete Postman collection and environment files for the FidduPay Cryptocurrency Payment Gateway API.
 
-##  Files
+## Files
 
-- `FidduPay-API.postman_collection.json` - Main API collection
-- `Local-Development.postman_environment.json` - Local development environment
-- `Production.postman_environment.json` - Production environment template
+### Collections
+- **FidduPay-Complete-API.postman_collection.json** - Complete API collection with all merchant and admin endpoints (v2.3.6)
 
-##  Quick Setup
+### Environments
+- **Local-Development.postman_environment.json** - Local development environment (localhost:8080)
+- **Production.postman_environment.json** - Production environment (api.fiddupay.com)
 
-### 1. Import Collection
-1. Open Postman
-2. Click **Import** 
-3. Select `FidduPay-API.postman_collection.json`
+## Features
 
-### 2. Import Environment
-1. Click **Import** again
-2. Select `Local-Development.postman_environment.json`
-3. Select the environment from dropdown (top-right)
+### Merchant API Endpoints
+- Authentication (register, login, profile)
+- Payment management (create, status, list)
+- Wallet configuration
+- Withdrawal processing
+- Balance management
+- Analytics and reporting
 
-### 3. Update API Key
-1. Go to **Environments** tab
-2. Update `apiKey` variable with your actual API key
-3. For production, use `Production.postman_environment.json`
+### Admin API Endpoints (40+ endpoints)
+- Admin authentication and dashboard
+- Merchant management (view, suspend, activate, delete)
+- Security management (events, alerts, settings)
+- System configuration (environment, fees, limits)
+- Payment management (view all, force confirm/fail)
+- Withdrawal management (approve, reject)
+- Analytics and reporting
+- Wallet management (hot/cold wallets, balances)
+- User management
+- System maintenance
 
-##  Available Requests
+### Sandbox Testing
+- Test payment creation
+- Payment simulation
+- Network testing utilities
 
-### Payments
-- **Create Payment** - Create new payment request
-- **Get Payment** - Retrieve payment by ID
-- **List Payments** - Get paginated payment list
-- **Cancel Payment** - Cancel pending payment
+## Usage
 
-### Wallets
-- **List Wallets** - Get merchant wallets
-- **Create Wallet** - Create new wallet
+1. Import the collection file into Postman
+2. Import the appropriate environment file (Local Development or Production)
+3. Set your API key and admin credentials in the environment variables
+4. Start testing the API endpoints
 
-### System
-- **Health Check** - API health status
-- **System Status** - Detailed system status
-- **Supported Currencies** - Available cryptocurrencies
+## Authentication
 
-### Sandbox
-- **Sandbox - Create Payment** - Test payment creation
-- **Sandbox - Test Webhook** - Test webhook endpoint
+### Merchant API
+Uses Bearer token authentication with API keys:
+```
+Authorization: Bearer your_api_key_here
+```
 
-##  Environment Variables
+### Admin API
+Uses session-based authentication with cookies. Login first to establish a session.
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `baseUrl` | Main API URL | `http://localhost:8080` |
-| `sandboxUrl` | Sandbox API URL | `http://localhost:3001` |
-| `apiKey` | Your API key | `sandbox_test_key_12345` |
+## Environment Variables
 
-##  Usage Tips
+### Required for Merchant API
+- `baseUrl` - API base URL
+- `apiKey` - Your merchant API key
 
-1. **Start with Sandbox**: Use sandbox endpoints for testing
-2. **Check Responses**: Review response structure for integration
-3. **Test Webhooks**: Use sandbox webhook endpoint for testing
-4. **Environment Switching**: Switch between Local/Production environments easily
+### Required for Admin API
+- `baseUrl` - API base URL  
+- `adminUsername` - Admin username
+- `adminPassword` - Admin password
 
-##  Related Documentation
+## Security Features
+
+- 10/10 security score with XSS/CSRF protection
+- SQL injection protection
+- Advanced rate limiting (100 req/min, burst 200/10s)
+- Real-time threat detection
+- Account lockout protection
+
+## Supported Cryptocurrencies
+
+**10 cryptocurrencies across 5 blockchains:**
+- **Solana**: SOL, USDT (SPL)
+- **Ethereum**: ETH, USDT (ERC-20)
+- **BSC**: BNB, USDT (BEP-20)
+- **Polygon**: MATIC, USDT
+- **Arbitrum**: ARB, USDT
+
+## Related Documentation
 
 - [API Reference](../API_REFERENCE.md)
 - [Node.js SDK](../NODE_SDK.md)

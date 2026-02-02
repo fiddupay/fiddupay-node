@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!(" Configuration loaded");
 
     // Initialize database connection pool using config values
-    tracing::info!("📦 Connecting to database...");
+    tracing::info!(" Connecting to database...");
     let db_pool = PgPoolOptions::new()
         .max_connections(config.database_max_connections)
         .min_connections(5)  // Keep some connections warm
@@ -43,11 +43,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!(" Database pool connected");
 
     // Run migrations
-    tracing::info!("🔄 Running database migrations...");
+    tracing::info!(" Running database migrations...");
     sqlx::migrate!("./migrations")
         .run(&db_pool)
         .await?;
-    tracing::info!("✅ Migrations complete");
+    tracing::info!(" Migrations complete");
 
     // Initialize application state
     let app_state = AppState::new(
@@ -75,7 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listener = tokio::net::TcpListener::bind(addr).await?;
     tracing::info!(" Server listening on http://{}", addr);
     tracing::info!(" Health check: http://{}/health", addr);
-    tracing::info!("📄 API endpoints: http://{}/api/v1/*", addr);
+    tracing::info!(" API endpoints: http://{}/api/v1/*", addr);
 
     axum::serve(
         listener,

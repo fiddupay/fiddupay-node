@@ -8,15 +8,15 @@ The FidduPay frontend is a React TypeScript application that provides a complete
 
 ## Features
 
-- **🔐 Authentication**: Secure login/registration with JWT tokens
-- **💳 Payment Management**: Create, view, and manage cryptocurrency payments
-- **🏦 Wallet Management**: 3-mode wallet system (address-only, generated, imported)
-- **🔒 Security Dashboard**: Real-time monitoring, alerts, and IP whitelisting
-- **💰 Balance Management**: View balances and transaction history
-- **📊 Analytics**: Comprehensive reporting and data visualization
-- **🔄 Withdrawal Processing**: Create and manage withdrawals
-- **🧪 Sandbox Testing**: Complete testing environment
-- **📋 Audit Logs**: Compliance tracking and activity monitoring
+- ** Authentication**: Secure login/registration with JWT tokens
+- ** Payment Management**: Create, view, and manage cryptocurrency payments
+- ** Wallet Management**: 3-mode wallet system (address-only, generated, imported)
+- ** Security Dashboard**: Real-time monitoring, alerts, and IP whitelisting
+- ** Balance Management**: View balances and transaction history
+- ** Analytics**: Comprehensive reporting and data visualization
+- ** Withdrawal Processing**: Create and manage withdrawals
+- ** Sandbox Testing**: Complete testing environment
+- ** Audit Logs**: Compliance tracking and activity monitoring
 
 ## Tech Stack
 
@@ -32,34 +32,34 @@ The FidduPay frontend is a React TypeScript application that provides a complete
 
 ```
 frontend/
-├── src/
-│   ├── components/          # Reusable UI components
-│   │   ├── ui/             # Base UI components
-│   │   ├── layout/         # Layout components
-│   │   ├── SecurityDashboard.tsx
-│   │   ├── WalletSetupWizard.tsx
-│   │   └── WithdrawalInterface.tsx
-│   ├── pages/              # Page components
-│   │   ├── auth/           # Authentication pages
-│   │   ├── DashboardPage.tsx
-│   │   ├── PaymentsPage.tsx
-│   │   ├── WalletsPage.tsx
-│   │   └── StatusPage.tsx
-│   ├── services/           # API services
-│   │   └── api.ts          # Main API client
-│   ├── stores/             # State management
-│   │   ├── authStore.ts
-│   │   └── paymentStore.ts
-│   ├── types/              # TypeScript definitions
-│   │   └── index.ts
-│   ├── contexts/           # React contexts
-│   │   ├── ToastContext.tsx
-│   │   └── LoadingContext.tsx
-│   ├── App.tsx
-│   └── main.tsx
-├── public/                 # Static assets
-├── package.json
-└── vite.config.ts
+ src/
+    components/          # Reusable UI components
+       ui/             # Base UI components
+       layout/         # Layout components
+       SecurityDashboard.tsx
+       WalletSetupWizard.tsx
+       WithdrawalInterface.tsx
+    pages/              # Page components
+       auth/           # Authentication pages
+       DashboardPage.tsx
+       PaymentsPage.tsx
+       WalletsPage.tsx
+       StatusPage.tsx
+    services/           # API services
+       api.ts          # Main API client
+    stores/             # State management
+       authStore.ts
+       paymentStore.ts
+    types/              # TypeScript definitions
+       index.ts
+    contexts/           # React contexts
+       ToastContext.tsx
+       LoadingContext.tsx
+    App.tsx
+    main.tsx
+ public/                 # Static assets
+ package.json
+ vite.config.ts
 ```
 
 ## API Integration
@@ -107,11 +107,11 @@ const withdrawals = await apiService.getWithdrawals();
 ### Supported API Endpoints
 
 #### Authentication & Merchant Management
-- `POST /api/v1/merchants/login` - User login
-- `POST /api/v1/merchants/register` - User registration
-- `GET /api/v1/merchants/profile` - Get merchant profile
-- `POST /api/v1/merchants/environment/switch` - Switch environment
-- `POST /api/v1/merchants/api-keys/generate` - Generate API key
+- `POST /api/v1/merchant/login` - User login
+- `POST /api/v1/merchant/register` - User registration
+- `GET /api/v1/merchant/profile` - Get merchant profile
+- `POST /api/v1/merchant/environment/switch` - Switch environment
+- `POST /api/v1/merchant/api-keys/generate` - Generate API key
 
 #### Payment Management
 - `POST /api/v1/payments` - Create payment (with `amount_usd` or `amount`)
@@ -134,8 +134,8 @@ const withdrawals = await apiService.getWithdrawals();
 - `PUT /api/v1/security/settings` - Update security settings
 
 #### Balance & Withdrawals
-- `GET /api/v1/merchants/balance` - Get current balance
-- `GET /api/v1/merchants/balance/history` - Get balance history
+- `GET /api/v1/merchant/balance` - Get current balance
+- `GET /api/v1/merchant/balance/history` - Get balance history
 - `POST /api/v1/withdrawals` - Create withdrawal
 - `GET /api/v1/withdrawals` - List withdrawals
 - `POST /api/v1/withdrawals/:id/cancel` - Cancel withdrawal

@@ -22,36 +22,36 @@ console.log('Daily Volume Remaining:', profile.daily_volume_remaining);
 
 ---
 
-## 📦 SDK Architecture
+##  SDK Architecture
 
 ### Core Components
 ```
 fiddupay-node/
-├── src/
-│   ├── index.ts              # Main SDK export
-│   ├── client.ts             # HTTP client wrapper
-│   ├── resources/            # API resource classes
-│   │   ├── payments.ts       # Payment operations
-│   │   ├── merchants.ts      # Merchant management
-│   │   ├── webhooks.ts       # Webhook utilities
-│   │   ├── analytics.ts      # Analytics and reporting
-│   │   └── refunds.ts        # Refund operations
-│   ├── types/                # TypeScript definitions
-│   │   ├── payments.ts       # Payment types
-│   │   ├── merchants.ts      # Merchant types
-│   │   ├── common.ts         # Shared types
-│   │   └── index.ts          # Type exports
-│   ├── utils/                # Utility functions
-│   │   ├── validation.ts     # Input validation
-│   │   ├── crypto.ts         # Cryptographic utilities
-│   │   └── webhooks.ts       # Webhook verification
-│   └── errors/               # Custom error classes
-│       ├── api-error.ts      # API error handling
-│       └── validation-error.ts
-├── tests/                    # Test suites
-├── examples/                 # Usage examples
-├── docs/                     # SDK documentation
-└── package.json
+ src/
+    index.ts              # Main SDK export
+    client.ts             # HTTP client wrapper
+    resources/            # API resource classes
+       payments.ts       # Payment operations
+       merchants.ts      # Merchant management
+       webhooks.ts       # Webhook utilities
+       analytics.ts      # Analytics and reporting
+       refunds.ts        # Refund operations
+    types/                # TypeScript definitions
+       payments.ts       # Payment types
+       merchants.ts      # Merchant types
+       common.ts         # Shared types
+       index.ts          # Type exports
+    utils/                # Utility functions
+       validation.ts     # Input validation
+       crypto.ts         # Cryptographic utilities
+       webhooks.ts       # Webhook verification
+    errors/               # Custom error classes
+        api-error.ts      # API error handling
+        validation-error.ts
+ tests/                    # Test suites
+ examples/                 # Usage examples
+ docs/                     # SDK documentation
+ package.json
 ```
 
 ---
@@ -82,7 +82,7 @@ fiddupay-node/
 
 ### Installation
 ```bash
-npm install fiddupay-node
+npm install @fiddupay/fiddupay-node
 # or
 yarn add fiddupay-node
 ```
@@ -488,25 +488,25 @@ export class PaymentService {
 ### SDK Documentation
 ```
 docs/
-├── README.md                 # Getting started guide
-├── API_REFERENCE.md          # Complete API reference
-├── EXAMPLES.md              # Usage examples
-├── WEBHOOKS.md              # Webhook integration guide
-├── ERROR_HANDLING.md        # Error handling guide
-├── TESTING.md               # Testing strategies
-├── MIGRATION.md             # Version migration guides
-└── CHANGELOG.md             # Version history
+ README.md                 # Getting started guide
+ API_REFERENCE.md          # Complete API reference
+ EXAMPLES.md              # Usage examples
+ WEBHOOKS.md              # Webhook integration guide
+ ERROR_HANDLING.md        # Error handling guide
+ TESTING.md               # Testing strategies
+ MIGRATION.md             # Version migration guides
+ CHANGELOG.md             # Version history
 ```
 
 ### Code Examples Repository
 ```
 examples/
-├── express-basic/           # Basic Express.js integration
-├── nextjs-ecommerce/        # Next.js e-commerce example
-├── nestjs-microservice/     # NestJS microservice
-├── webhook-handler/         # Standalone webhook handler
-├── bulk-operations/         # Bulk payment processing
-└── testing-examples/        # Testing implementations
+ express-basic/           # Basic Express.js integration
+ nextjs-ecommerce/        # Next.js e-commerce example
+ nestjs-microservice/     # NestJS microservice
+ webhook-handler/         # Standalone webhook handler
+ bulk-operations/         # Bulk payment processing
+ testing-examples/        # Testing implementations
 ```
 
 ---
