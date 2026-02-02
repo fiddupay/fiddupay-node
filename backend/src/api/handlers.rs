@@ -188,7 +188,7 @@ pub async fn get_merchant_profile(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     match sqlx::query!(
-        "SELECT id, business_name, email, sandbox_mode, kyc_verified, created_at FROM merchants WHERE id = $1",
+        "SELECT id, business_name, email, sandbox_mode, COALESCE(kyc_verified, false) as \"kyc_verified!\", created_at FROM merchants WHERE id = $1",
         context.merchant_id
     )
     .fetch_optional(&state.db_pool)
