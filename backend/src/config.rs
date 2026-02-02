@@ -132,6 +132,11 @@ pub struct Config {
     // Environment
     pub environment: String,
     pub debug_mode: bool,
+
+    // CORS & URLs
+    pub frontend_url: String,
+    pub backend_url: String,
+    pub allowed_origins: Vec<String>,
 }
 
 impl Config {
@@ -178,16 +183,12 @@ impl Config {
             polygon_rpc_url: env::var("POLYGON_RPC_URL")?,
 
             // Sandbox/Test Network URLs
-            solana_devnet_rpc_url: env::var("SOLANA_DEVNET_RPC_URL")
-                .unwrap_or_else(|_| "https://api.devnet.solana.com".to_string()),
-            ethereum_sepolia_rpc_url: env::var("ETHEREUM_SEPOLIA_RPC_URL")
-                .unwrap_or_else(|_| "https://eth-sepolia.g.alchemy.com/v2/demo".to_string()),
-            bsc_testnet_rpc_url: env::var("BSC_TESTNET_RPC_URL")
-                .unwrap_or_else(|_| "https://data-seed-prebsc-1-s1.binance.org:8545".to_string()),
-            arbitrum_sepolia_rpc_url: env::var("ARBITRUM_SEPOLIA_RPC_URL")
-                .unwrap_or_else(|_| "https://sepolia-rollup.arbitrum.io/rpc".to_string()),
-            polygon_mumbai_rpc_url: env::var("POLYGON_MUMBAI_RPC_URL")
-                .unwrap_or_else(|_| "https://rpc-mumbai.maticvigil.com".to_string()),
+            // Sandbox/Test Network URLs - Required (No insecure defaults)
+            solana_devnet_rpc_url: env::var("SOLANA_DEVNET_RPC_URL")?,
+            ethereum_sepolia_rpc_url: env::var("ETHEREUM_SEPOLIA_RPC_URL")?,
+            bsc_testnet_rpc_url: env::var("BSC_TESTNET_RPC_URL")?,
+            arbitrum_sepolia_rpc_url: env::var("ARBITRUM_SEPOLIA_RPC_URL")?,
+            polygon_mumbai_rpc_url: env::var("POLYGON_MUMBAI_RPC_URL")?,
 
             // Blockchain Settings
             confirmation_blocks_sol: env::var("CONFIRMATION_BLOCKS_SOL")
@@ -206,18 +207,14 @@ impl Config {
                 .unwrap_or_else(|_| "1".to_string())
                 .parse()?,
 
-            // Chain IDs (Production)
-            ethereum_chain_id: env::var("ETHEREUM_CHAIN_ID")
-                .unwrap_or_else(|_| "1".to_string())
+            // Chain IDs (Production) - Required (No defaults)
+            ethereum_chain_id: env::var("ETHEREUM_CHAIN_ID")?
                 .parse()?,
-            bsc_chain_id: env::var("BSC_CHAIN_ID")
-                .unwrap_or_else(|_| "56".to_string())
+            bsc_chain_id: env::var("BSC_CHAIN_ID")?
                 .parse()?,
-            polygon_chain_id: env::var("POLYGON_CHAIN_ID")
-                .unwrap_or_else(|_| "137".to_string())
+            polygon_chain_id: env::var("POLYGON_CHAIN_ID")?
                 .parse()?,
-            arbitrum_chain_id: env::var("ARBITRUM_CHAIN_ID")
-                .unwrap_or_else(|_| "42161".to_string())
+            arbitrum_chain_id: env::var("ARBITRUM_CHAIN_ID")?
                 .parse()?,
 
             // Chain IDs (Sandbox/Testnet)
@@ -309,7 +306,7 @@ impl Config {
             payment_cleanup_interval_hours: env::var("PAYMENT_CLEANUP_INTERVAL_HOURS")
                 .unwrap_or_else(|_| "1".to_string())
                 .parse()?,
-            payment_page_base_url: env::var("PAYMENT_PAGE_BASE_URL")?,
+            payment_page_base_url: env::var("PAYMENT_PAGE_BASE_URL")?, // Hardened: Required
 
             // Fee Configuration
             default_fee_percentage: env::var("DEFAULT_FEE_PERCENTAGE")
@@ -323,7 +320,7 @@ impl Config {
 
             // Merchant Settings
             merchant_registration_enabled: env::var("MERCHANT_REGISTRATION_ENABLED")
-                .unwrap_or_else(|_| "true".to_string())
+                .unwrap_or_else(|_| "false".to_string()) // Hardened: Default to false
                 .parse()?,
             merchant_email_verification_required: env::var("MERCHANT_EMAIL_VERIFICATION_REQUIRED")
                 .unwrap_or_else(|_| "false".to_string())
@@ -332,7 +329,7 @@ impl Config {
                 .unwrap_or_else(|_| "false".to_string())
                 .parse()?,
             merchant_auto_approval: env::var("MERCHANT_AUTO_APPROVAL")
-                .unwrap_or_else(|_| "true".to_string())
+                .unwrap_or_else(|_| "false".to_string()) // Hardened: Default to false
                 .parse()?,
 
             // Webhook Settings
@@ -351,7 +348,7 @@ impl Config {
 
             // Withdrawal Settings
             withdrawal_enabled: env::var("WITHDRAWAL_ENABLED")
-                .unwrap_or_else(|_| "true".to_string())
+                .unwrap_or_else(|_| "false".to_string()) // Hardened: Default to false
                 .parse()?,
             withdrawal_auto_approval_limit_usd: env::var("WITHDRAWAL_AUTO_APPROVAL_LIMIT_USD")
                 .unwrap_or_else(|_| "1000.00".to_string())
@@ -378,11 +375,20 @@ impl Config {
                 .parse()?,
 
             // Environment
-            environment: env::var("ENVIRONMENT")
-                .unwrap_or_else(|_| "development".to_string()),
+            // Environment
+            environment: env::var("ENVIRONMENT")?, // Hardened: Required (No default to 'development')
             debug_mode: env::var("DEBUG_MODE")
                 .unwrap_or_else(|_| "false".to_string())
                 .parse()?,
+
+            // CORS & URLs - Required in Production
+            frontend_url: env::var("FRONTEND_URL")?,
+            backend_url: env::var("BACKEND_URL")?,
+            allowed_origins: env::var("ALLOWED_ORIGINS")
+                .unwrap_or_else(|_| "http://localhost:3000".to_string())
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect(),
         })
     }
 
@@ -433,6 +439,18 @@ impl Config {
 
         if self.payment_page_base_url.is_empty() {
             return Err("PAYMENT_PAGE_BASE_URL is required".to_string());
+        }
+
+        if self.solana_devnet_rpc_url.is_empty() {
+             return Err("SOLANA_DEVNET_RPC_URL is required".to_string());
+        }
+
+        if self.frontend_url.is_empty() {
+            return Err("FRONTEND_URL is required".to_string());
+        }
+
+        if self.backend_url.is_empty() {
+            return Err("BACKEND_URL is required".to_string());
         }
 
         if self.jwt_secret.is_empty() {
@@ -501,6 +519,7 @@ impl Config {
     }
 }
 
+#[cfg(test)]
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -582,6 +601,9 @@ impl Default for Config {
             maintenance_mode: false,
             environment: "test".to_string(),
             debug_mode: true,
+            frontend_url: "http://localhost:3000".to_string(),
+            backend_url: "http://localhost:8080".to_string(),
+            allowed_origins: vec!["http://localhost:3000".to_string()],
         }
     }
 }

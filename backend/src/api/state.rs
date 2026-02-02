@@ -62,7 +62,7 @@ impl AppState {
             payment_service: Arc::new(PaymentService::new(db_pool.clone(), &config.payment_page_base_url, price_service.clone(), &config.webhook_signing_key, config.clone())),
             refund_service: Arc::new(RefundService::new(db_pool.clone(), webhook_service.clone())),
             analytics_service: Arc::new(AnalyticsService::new(db_pool.clone())),
-            sandbox_service: Arc::new(SandboxService::new(db_pool.clone())),
+            sandbox_service: Arc::new(SandboxService::new(db_pool.clone(), config.clone())),
             admin_service: Arc::new(AdminService::new(db_pool.clone())),
             webhook_service: webhook_service.clone(),
             ip_whitelist_service: Arc::new(IpWhitelistService::new(db_pool.clone())),

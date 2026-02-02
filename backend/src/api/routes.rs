@@ -185,10 +185,10 @@ pub fn create_router(state: AppState) -> Router {
     // Combine routes with CORS
     let cors = CorsLayer::new()
         .allow_origin(
-            std::env::var("FRONTEND_URL")
-                .unwrap_or_else(|_| "http://localhost:3000".to_string())
-                .parse::<HeaderValue>()
-                .unwrap()
+            state.config.allowed_origins
+                .iter()
+                .map(|origin| origin.parse::<HeaderValue>().unwrap())
+                .collect::<Vec<HeaderValue>>()
         )
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
