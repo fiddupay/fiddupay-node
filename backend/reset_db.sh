@@ -4,14 +4,17 @@ set -e
 # Configuration
 DB_NAME="fiddupay"
 DB_USER="fiddupay_user"
-# Generate a random secure password
-DB_PASS=$(openssl rand -base64 12)
+# Use hex to ensure alphanumeric characters only (safer for URLs/scripts)
+DB_PASS=$(openssl rand -hex 16)
 
 echo "🛑 Stopping backend service..."
 pm2 stop fiddupay-backend || true
 
 echo "🗑️  Dropping existing database and user..."
 sudo -u postgres psql -c "DROP DATABASE IF EXISTS $DB_NAME;"
+# Handle dependencies (e.g. ownership of other DBs like fiddupay_production)
+sudo -u postgres psql -c "REASSIGN OWNED BY $DB_USER TO postgres;" || true
+sudo -u postgres psql -c "DROP OWNED BY $DB_USER;" || true
 sudo -u postgres psql -c "DROP USER IF EXISTS $DB_USER;"
 
 echo "✨ Creating new secure user and database..."
@@ -21,9 +24,8 @@ sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
 
 # Update .env file with new password
 echo "📝 Updating .env file..."
-# Escape special characters for sed
-ESCAPED_PASS=$(printf '%s\n' "$DB_PASS" | sed -e 's/[\/&]/\\&/g')
-sed -i "s/DATABASE_URL=.*/DATABASE_URL=postgres:\/\/$DB_USER:$ESCAPED_PASS@localhost:5432\/$DB_NAME/g" .env
+# Use | as delimiter for sed to avoid conflicts with / in URL
+sed -i "s|DATABASE_URL=.*|DATABASE_URL=postgres://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME|g" .env
 
 echo "🔄 Running migrations..."
 export DATABASE_URL="postgres://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME"
