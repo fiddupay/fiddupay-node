@@ -3,7 +3,7 @@
 
 use crate::api::{handlers, admin_handlers, wallet_management, security_monitoring, status, blog, careers};
 use crate::api::state::AppState;
-use crate::middleware::{auth, ip_whitelist, logging, rate_limit};
+use crate::api::middleware::create_rate_limit_layer;
 use axum::{
     http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
@@ -16,11 +16,12 @@ use axum::{
 use tower_http::cors::CorsLayer;
 
 pub fn create_router(state: AppState) -> Router {
-    // Create rate limiter with config
-    let rate_limiter = rate_limit::create_rate_limiter(state.config.rate_limit_requests_per_minute);
+    // Create rate limiter layer
+    let rate_limit_layer = create_rate_limit_layer(&state.config);
 
     // Public routes (no auth required)
     let public_routes = Router::new()
+        .route("/", get(handlers::root_handler))
         .route("/health", get(handlers::health_check))
         // .route("/test-auth/:api_key", get(handlers::debug_auth)) // DEBUG ENDPOINT - REMOVED FOR SECURITY
         .route("/pay/:link_id", get(handlers::payment_page))
@@ -40,61 +41,67 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/merchants/webhook", put(handlers::set_webhook))
         
         // Payment endpoints
-        .route("/api/v1/payments", post(handlers::create_payment))
-        .route("/api/v1/payments", get(handlers::list_payments))
-        .route("/api/v1/payments/:payment_id", get(handlers::get_payment))
-        .route("/api/v1/payments/:payment_id/verify", post(handlers::verify_payment))
+        // Payment endpoints - Merchant Context
+        .route("/api/v1/merchants/payments", post(handlers::create_payment))
+        .route("/api/v1/merchants/payments", get(handlers::list_payments))
+        .route("/api/v1/merchants/payments/:payment_id", get(handlers::get_payment))
+        .route("/api/v1/merchants/payments/:payment_id/verify", post(handlers::verify_payment))
         
-        // Refund endpoints
-        .route("/api/v1/refunds", post(handlers::create_refund))
-        .route("/api/v1/refunds/:refund_id", get(handlers::get_refund))
-        .route("/api/v1/refunds/:refund_id/complete", post(handlers::complete_refund))
+        // Refund endpoints - Merchant Context
+        .route("/api/v1/merchants/refunds", post(handlers::create_refund))
+        .route("/api/v1/merchants/refunds/:refund_id", get(handlers::get_refund))
+        .route("/api/v1/merchants/refunds/:refund_id/complete", post(handlers::complete_refund))
         
         // Analytics endpoints
-        .route("/api/v1/analytics", get(handlers::get_analytics))
-        .route("/api/v1/analytics/export", get(handlers::export_analytics))
+        // Analytics endpoints
+        .route("/api/v1/merchants/analytics", get(handlers::get_analytics))
+        .route("/api/v1/merchants/analytics/export", get(handlers::export_analytics))
         
-        // Sandbox endpoints
-        .route("/api/v1/sandbox/enable", post(handlers::enable_sandbox))
-        .route("/api/v1/sandbox/payments/:payment_id/simulate", post(handlers::simulate_payment))
+        // Sandbox endpoints (Merchant)
+        .route("/api/v1/merchants/sandbox/enable", post(handlers::enable_sandbox))
+        .route("/api/v1/merchants/sandbox/payments/:payment_id/simulate", post(handlers::simulate_payment))
         
         // IP Whitelist endpoints
         .route("/api/v1/merchants/ip-whitelist", put(handlers::set_ip_whitelist))
         .route("/api/v1/merchants/ip-whitelist", get(handlers::get_ip_whitelist))
         
         // Audit Log endpoints
-        .route("/api/v1/audit-logs", get(handlers::get_audit_logs))
+        // Audit Log endpoints
+        .route("/api/v1/merchants/audit-logs", get(handlers::get_audit_logs))
         
         // Balance endpoints
         .route("/api/v1/merchants/balance", get(handlers::get_balance))
         .route("/api/v1/merchants/balance/history", get(handlers::get_balance_history))
         
         // Withdrawal endpoints
-        .route("/api/v1/withdrawals", post(handlers::create_withdrawal))
-        .route("/api/v1/withdrawals", get(handlers::list_withdrawals))
-        .route("/api/v1/withdrawals/:withdrawal_id", get(handlers::get_withdrawal))
-        .route("/api/v1/withdrawals/:withdrawal_id/cancel", post(handlers::cancel_withdrawal))
-        .route("/api/v1/withdrawals/:withdrawal_id/process", post(wallet_management::process_withdrawal))
+        // Withdrawal endpoints
+        .route("/api/v1/merchants/withdrawals", post(handlers::create_withdrawal))
+        .route("/api/v1/merchants/withdrawals", get(handlers::list_withdrawals))
+        .route("/api/v1/merchants/withdrawals/:withdrawal_id", get(handlers::get_withdrawal))
+        .route("/api/v1/merchants/withdrawals/:withdrawal_id/cancel", post(handlers::cancel_withdrawal))
+        .route("/api/v1/merchants/withdrawals/:withdrawal_id/process", post(wallet_management::process_withdrawal))
         
         // Wallet Management endpoints
-        .route("/api/v1/wallets", get(wallet_management::get_wallet_configs))
-        .route("/api/v1/wallets/configure-address", post(wallet_management::configure_address_only_wallet))
-        .route("/api/v1/wallets/generate", post(wallet_management::generate_wallet))
-        .route("/api/v1/wallets/import", post(wallet_management::import_wallet))
-        .route("/api/v1/wallets/export-key", post(wallet_management::export_private_key))
-        .route("/api/v1/wallets/gas-check", get(wallet_management::check_gas_requirements))
-        .route("/api/v1/wallets/gas-estimates", get(wallet_management::get_gas_estimates))
-        .route("/api/v1/wallets/withdrawal-capability/:crypto_type", get(wallet_management::check_withdrawal_capability))
+        // Wallet Management endpoints
+        .route("/api/v1/merchants/wallets", get(wallet_management::get_wallet_configs))
+        .route("/api/v1/merchants/wallets/configure-address", post(wallet_management::configure_address_only_wallet))
+        .route("/api/v1/merchants/wallets/generate", post(wallet_management::generate_wallet))
+        .route("/api/v1/merchants/wallets/import", post(wallet_management::import_wallet))
+        .route("/api/v1/merchants/wallets/export-key", post(wallet_management::export_private_key))
+        .route("/api/v1/merchants/wallets/gas-check", get(wallet_management::check_gas_requirements))
+        .route("/api/v1/merchants/wallets/gas-estimates", get(wallet_management::get_gas_estimates))
+        .route("/api/v1/merchants/wallets/withdrawal-capability/:crypto_type", get(wallet_management::check_withdrawal_capability))
         
         // Security Monitoring endpoints
-        .route("/api/v1/security/events", get(security_monitoring::get_security_events))
-        .route("/api/v1/security/alerts", get(security_monitoring::get_security_alerts))
-        .route("/api/v1/security/alerts/:alert_id/acknowledge", post(security_monitoring::acknowledge_security_alert))
-        .route("/api/v1/security/balance-alerts", get(security_monitoring::get_balance_alerts))
-        .route("/api/v1/security/balance-alerts/:alert_id/resolve", post(security_monitoring::resolve_balance_alert))
-        .route("/api/v1/security/gas-check", get(security_monitoring::check_gas_balances))
-        .route("/api/v1/security/settings", get(security_monitoring::get_security_settings))
-        .route("/api/v1/security/settings", put(security_monitoring::update_security_settings))
+        // Security Monitoring endpoints
+        .route("/api/v1/merchants/security/events", get(security_monitoring::get_security_events))
+        .route("/api/v1/merchants/security/alerts", get(security_monitoring::get_security_alerts))
+        .route("/api/v1/merchants/security/alerts/:alert_id/acknowledge", post(security_monitoring::acknowledge_security_alert))
+        .route("/api/v1/merchants/security/balance-alerts", get(security_monitoring::get_balance_alerts))
+        .route("/api/v1/merchants/security/balance-alerts/:alert_id/resolve", post(security_monitoring::resolve_balance_alert))
+        .route("/api/v1/merchants/security/gas-check", get(security_monitoring::check_gas_balances))
+        .route("/api/v1/merchants/security/settings", get(security_monitoring::get_security_settings))
+        .route("/api/v1/merchants/security/settings", put(security_monitoring::update_security_settings))
         
         // Admin endpoints
         .route("/api/v1/admin/dashboard", get(admin_handlers::get_admin_dashboard))
@@ -163,9 +170,7 @@ pub fn create_router(state: AppState) -> Router {
             state.clone(),
             auth::auth_middleware,
         ))
-        .layer(axum_middleware::from_fn(move |req, next| {
-            rate_limit::rate_limit_middleware(rate_limiter.clone(), req, next)
-        }))
+
         .layer(axum_middleware::from_fn(logging::logging_middleware));
 
     // Additional public routes (no auth required)
@@ -191,6 +196,8 @@ pub fn create_router(state: AppState) -> Router {
     public_routes
         .merge(additional_public_routes)
         .merge(protected_routes)
+        // Apply global rate limiting to all routes
+        .layer(rate_limit_layer)
         .layer(cors)
         .with_state(state)
 }

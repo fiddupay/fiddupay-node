@@ -177,51 +177,165 @@ impl AdminService {
         Ok(summaries)
     }
 
-    /// Get security events (mock implementation)
+    /// Get security events from real data
     pub async fn get_security_events(&self) -> Result<Vec<SecurityEvent>, ServiceError> {
-        // Mock security events for testing
-        Ok(vec![
-            SecurityEvent {
-                event_id: "evt_001".to_string(),
-                event_type: "suspicious_login".to_string(),
+        // Query recent failed payments as security events
+        let failed_payments = sqlx::query!(
+            r#"
+            SELECT 
+                payment_id,
+                status::text,
+                created_at,
+                amount_usd
+            FROM payment_transactions
+            WHERE status = 'FAILED'
+            ORDER BY created_at DESC
+            LIMIT 10
+            "#
+        )
+        .fetch_all(&self.db_pool)
+        .await?;
+        
+        let mut events = Vec::new();
+        
+        for payment in failed_payments {
+            events.push(SecurityEvent {
+                event_id: format!("evt_{}", payment.payment_id),
+                event_type: "payment_failed".to_string(),
                 severity: "medium".to_string(),
-                description: "Multiple failed login attempts".to_string(),
-                ip_address: Some("192.168.1.100".to_string()),
-                user_agent: Some("Mozilla/5.0".to_string()),
-                created_at: Utc::now().to_rfc3339(),
-            },
-            SecurityEvent {
-                event_id: "evt_002".to_string(),
-                event_type: "api_key_rotation".to_string(),
+                description: format!("Payment {} failed (${:.2})", payment.payment_id, payment.amount_usd),
+                ip_address: None,
+                user_agent: None,
+                created_at: payment.created_at.to_rfc3339(),
+            });
+        }
+        
+        // Query high-value transactions as security events
+        let high_value = sqlx::query!(
+            r#"
+            SELECT 
+                payment_id,
+                amount_usd,
+                created_at
+            FROM payment_transactions
+            WHERE amount_usd > 500
+            ORDER BY created_at DESC
+            LIMIT 10
+            "#
+        )
+        .fetch_all(&self.db_pool)
+        .await?;
+        
+        for tx in high_value {
+            events.push(SecurityEvent {
+                event_id: format!("evt_hv_{}", tx.payment_id),
+                event_type: "high_value_transaction".to_string(),
                 severity: "low".to_string(),
-                description: "API key rotated successfully".to_string(),
-                ip_address: Some("10.0.0.1".to_string()),
-                user_agent: Some("FidduPay-SDK/1.0".to_string()),
-                created_at: Utc::now().to_rfc3339(),
-            },
-        ])
+                description: format!("High-value transaction: ${:.2}", tx.amount_usd),
+                ip_address: None,
+                user_agent: None,
+                created_at: tx.created_at.to_rfc3339(),
+            });
+        }
+        
+        // Sort by date descending
+        events.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        
+        Ok(events)
     }
 
-    /// Get security alerts (mock implementation)
+    /// Get security alerts - combines persisted and dynamic alerts
     pub async fn get_security_alerts(&self) -> Result<Vec<SecurityAlert>, ServiceError> {
-        // Mock security alerts for testing
-        Ok(vec![
-            SecurityAlert {
-                alert_id: "alert_001".to_string(),
-                alert_type: "high_volume".to_string(),
-                severity: "high".to_string(),
-                message: "Unusual transaction volume detected".to_string(),
-                acknowledged: false,
-                acknowledged_at: None,
-                created_at: Utc::now().to_rfc3339(),
-            },
-        ])
+        // First, get persisted alerts from database
+        let db_alerts = sqlx::query!(
+            r#"
+            SELECT alert_id, alert_type, severity, message, acknowledged, acknowledged_at, created_at
+            FROM security_alerts
+            WHERE (expires_at IS NULL OR expires_at > NOW())
+            ORDER BY created_at DESC
+            LIMIT 50
+            "#
+        )
+        .fetch_all(&self.db_pool)
+        .await?;
+        
+        let mut alerts: Vec<SecurityAlert> = db_alerts.into_iter().map(|a| SecurityAlert {
+            alert_id: a.alert_id,
+            alert_type: a.alert_type,
+            severity: a.severity,
+            message: a.message,
+            acknowledged: a.acknowledged,
+            acknowledged_at: a.acknowledged_at.map(|t| t.to_rfc3339()),
+            created_at: a.created_at.to_rfc3339(),
+        }).collect();
+        
+        // Generate and persist dynamic alerts if they don't exist
+        let today_start = Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap();
+        
+        // Check for high failure rate
+        let total_today = sqlx::query_scalar!(
+            "SELECT COUNT(*) FROM payment_transactions WHERE created_at >= $1",
+            today_start
+        )
+        .fetch_one(&self.db_pool)
+        .await?
+        .unwrap_or(0);
+        
+        let failed_today = sqlx::query_scalar!(
+            "SELECT COUNT(*) FROM payment_transactions WHERE created_at >= $1 AND status = 'FAILED'",
+            today_start
+        )
+        .fetch_one(&self.db_pool)
+        .await?
+        .unwrap_or(0);
+        
+        if total_today > 10 && (failed_today as f64 / total_today as f64) > 0.3 {
+            let alert_id = format!("alert_failure_{}", Utc::now().format("%Y%m%d"));
+            
+            let _ = sqlx::query!(
+                "INSERT INTO security_alerts (alert_id, alert_type, severity, message, expires_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (alert_id) DO NOTHING",
+                alert_id,
+                "high_failure_rate",
+                "high",
+                format!("High failure rate: {} of {} payments failed today", failed_today, total_today),
+                Utc::now() + chrono::Duration::days(1)
+            )
+            .execute(&self.db_pool)
+            .await;
+        }
+        
+        // Refresh alerts list after inserting dynamic ones
+        if alerts.is_empty() {
+            let refreshed = sqlx::query!(
+                "SELECT alert_id, alert_type, severity, message, acknowledged, acknowledged_at, created_at FROM security_alerts WHERE (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC LIMIT 50"
+            )
+            .fetch_all(&self.db_pool)
+            .await?;
+            
+            alerts = refreshed.into_iter().map(|a| SecurityAlert {
+                alert_id: a.alert_id,
+                alert_type: a.alert_type,
+                severity: a.severity,
+                message: a.message,
+                acknowledged: a.acknowledged,
+                acknowledged_at: a.acknowledged_at.map(|t| t.to_rfc3339()),
+                created_at: a.created_at.to_rfc3339(),
+            }).collect();
+        }
+        
+        Ok(alerts)
     }
 
-    /// Acknowledge security alert
+    /// Acknowledge security alert in database
     pub async fn acknowledge_alert(&self, alert_id: &str) -> Result<(), ServiceError> {
-        // Mock implementation - in real system would update database
-        println!("Alert {} acknowledged", alert_id);
+        sqlx::query!(
+            "UPDATE security_alerts SET acknowledged = true, acknowledged_at = NOW() WHERE alert_id = $1",
+            alert_id
+        )
+        .execute(&self.db_pool)
+        .await?;
+        
+        tracing::info!("Security alert {} acknowledged", alert_id);
         Ok(())
     }
 }

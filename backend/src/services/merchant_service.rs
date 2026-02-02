@@ -33,11 +33,14 @@ impl MerchantService {
         // Generate sandbox API key by default (single source of truth)
         let api_key = self.generate_api_key(false);
         
-        // Use simple SHA256 for testing to eliminate Argon2 as bottleneck
-        use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
-        hasher.update(api_key.as_bytes());
-        let api_key_hash = format!("{:x}", hasher.finalize());
+        // Use Argon2 for secure password hashing
+        use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+        use rand::rngs::OsRng;
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        let api_key_hash = argon2.hash_password(api_key.as_bytes(), &salt)
+            .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
+            .to_string();
         
         // Create merchant in sandbox mode by default
         let merchant = sqlx::query_as::<_, Merchant>(
@@ -72,21 +75,17 @@ impl MerchantService {
         merchant_id: i64,
         to_live: bool,
     ) -> Result<String, ServiceError> {
-        let (api_key, api_key_hash) = if merchant_id == 74 {
-            // For admin user (ID 74), keep the existing API key
-            ("sk_admin_test_key_12345".to_string(), "194539d86c4b8004198380d490cc9e58ce981d7884556a212598fa5a5d4722f2".to_string())
-        } else {
-            // Generate new API key for regular merchants
-            let api_key = self.generate_api_key(to_live);
-            
-            // Use simple SHA256 for testing to eliminate Argon2 as bottleneck
-            use sha2::{Sha256, Digest};
-            let mut hasher = Sha256::new();
-            hasher.update(api_key.as_bytes());
-            let api_key_hash = format!("{:x}", hasher.finalize());
-            
-            (api_key, api_key_hash)
-        };
+        // Generate new API key for the merchant
+        let api_key = self.generate_api_key(to_live);
+        
+        // Use Argon2 for secure password hashing
+        use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+        use rand::rngs::OsRng;
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        let api_key_hash = argon2.hash_password(api_key.as_bytes(), &salt)
+            .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
+            .to_string();
         
         // Update merchant environment and API key
         sqlx::query!(
@@ -123,11 +122,6 @@ impl MerchantService {
         merchant_id: i64,
         old_api_key: &str,
     ) -> Result<String, ServiceError> {
-        // For admin user (ID 74), keep the existing API key
-        if merchant_id == 74 {
-            return Ok("sk_admin_test_key_12345".to_string());
-        }
-        
         // First, verify the old API key is correct
         let merchant = sqlx::query_as::<_, Merchant>(
             "SELECT id, email, business_name, api_key_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at FROM merchants WHERE id = $1"
@@ -137,23 +131,26 @@ impl MerchantService {
         .await?
         .ok_or(ServiceError::MerchantNotFound)?;
         
-        // Verify the old API key matches using SHA256
-        use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
-        hasher.update(old_api_key.as_bytes());
-        let old_api_key_hash = format!("{:x}", hasher.finalize());
+        // Verify the old API key matches using Argon2
+        use argon2::{Argon2, PasswordHash, PasswordVerifier, PasswordHasher, password_hash::SaltString};
+        use rand::rngs::OsRng;
         
-        if old_api_key_hash != merchant.api_key_hash {
+        let parsed_hash = PasswordHash::new(&merchant.api_key_hash)
+            .map_err(|_| ServiceError::InvalidApiKey)?;
+        
+        if Argon2::default().verify_password(old_api_key.as_bytes(), &parsed_hash).is_err() {
             return Err(ServiceError::InvalidApiKey);
         }
         
         // Generate a new API key for the merchant
         let new_api_key = self.generate_api_key(false); // Default to sandbox
         
-        // Hash the new API key using SHA256
-        let mut hasher = Sha256::new();
-        hasher.update(new_api_key.as_bytes());
-        let new_api_key_hash = format!("{:x}", hasher.finalize());
+        // Hash the new API key using Argon2
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        let new_api_key_hash = argon2.hash_password(new_api_key.as_bytes(), &salt)
+            .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
+            .to_string();
         
         // Update the merchant with the new API key hash
         sqlx::query!(
@@ -170,7 +167,7 @@ impl MerchantService {
 
     /// Authenticate a merchant using their API key
     /// 
-    /// Validates the provided API key against stored bcrypt hash and
+    /// Validates the provided API key against stored Argon2 hash and
     /// returns the merchant if authentication succeeds.
     /// 
     /// # Arguments
@@ -181,7 +178,7 @@ impl MerchantService {
     /// 
     /// # Requirements
     /// * 7.1: Authenticate merchant with valid API key
-    /// * 1.2: Use bcrypt verification for API keys
+    /// * 1.2: Use Argon2 verification for API keys
     pub async fn authenticate(
         &self,
         token: &str,
@@ -234,31 +231,28 @@ impl MerchantService {
             return Err(ServiceError::InvalidApiKey);
         }
         
-        // Hash the API key using SHA256
-        use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
-        hasher.update(token.as_bytes());
-        let api_key_hash = format!("{:x}", hasher.finalize());
+        // Query database for all active merchants and verify API key using Argon2
+        use argon2::{Argon2, PasswordHash, PasswordVerifier};
         
-        // Query database for merchants only
-        match sqlx::query_as::<_, Merchant>(
+        let merchants = sqlx::query_as::<_, Merchant>(
             "SELECT id, email, business_name, api_key_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at 
              FROM merchants 
-             WHERE api_key_hash = $1 AND is_active = true AND role = 'MERCHANT'"
+             WHERE is_active = true AND role = 'MERCHANT'"
         )
-        .bind(&api_key_hash)
-        .fetch_optional(&self.db_pool)
-        .await {
-            Ok(Some(merchant)) => {
-                Ok(merchant)
-            },
-            Ok(None) => {
-                Err(ServiceError::InvalidApiKey)
-            },
-            Err(e) => {
-                Err(ServiceError::Database(e))
+        .fetch_all(&self.db_pool)
+        .await
+        .map_err(ServiceError::Database)?;
+        
+        // Verify the token against each merchant's stored hash
+        for merchant in merchants {
+            if let Ok(parsed_hash) = PasswordHash::new(&merchant.api_key_hash) {
+                if Argon2::default().verify_password(token.as_bytes(), &parsed_hash).is_ok() {
+                    return Ok(merchant);
+                }
             }
         }
+        
+        Err(ServiceError::InvalidApiKey)
     }
 
     /// Generate and store API key for merchant (sandbox or live)
@@ -267,19 +261,17 @@ impl MerchantService {
         merchant_id: i64,
         is_live: bool,
     ) -> Result<String, ServiceError> {
-        // For admin user (ID 74), keep the existing API key
-        if merchant_id == 74 {
-            return Ok("sk_admin_test_key_12345".to_string());
-        }
-        
         // Use single source of truth for API key generation
         let api_key = self.generate_api_key(is_live);
         
-        // Hash the API key using SHA256
-        use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
-        hasher.update(api_key.as_bytes());
-        let api_key_hash = format!("{:x}", hasher.finalize());
+        // Hash the API key using Argon2
+        use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+        use rand::rngs::OsRng;
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        let api_key_hash = argon2.hash_password(api_key.as_bytes(), &salt)
+            .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
+            .to_string();
         
         // Update merchant with new API key
         sqlx::query!(

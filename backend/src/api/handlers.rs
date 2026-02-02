@@ -19,6 +19,10 @@ use html_escape::encode_text;
 // Import validation functions
 use crate::middleware::validation::{validate_business_email, validate_password_strength, validate_webhook_url};
 
+pub async fn root_handler() -> &'static str {
+    "backend is running"
+}
+
 // DEBUG HANDLER
 pub async fn debug_auth(
     State(state): State<AppState>,
@@ -116,21 +120,6 @@ pub async fn login_merchant(
     .await
     {
         Ok(Some(merchant)) => {
-            let api_key = match merchant.role.as_deref() {
-                Some("SUPER_ADMIN") if req.email == "superadmin@fiddupay.com" => {
-                    "superadmin_api_key_2026_secure".to_string()
-                }
-                Some("ADMIN") if req.email == "admin@fiddupay.com" => {
-                    "admin_api_key_2026_secure".to_string()
-                }
-                _ => {
-                    // For regular merchants, we need to reverse-engineer the API key from the hash
-                    // This is a simplified approach - in production, you'd store the API key securely
-                    // For now, we'll generate a consistent API key based on the merchant ID
-                    format!("sk_merchant_{}_{}", merchant.id, "secure_key")
-                }
-            };
-
             let auth_response = match merchant.role.as_deref() {
                 Some("SUPER_ADMIN") | Some("ADMIN") => {
                     // Admin users get session tokens, not API keys
@@ -142,20 +131,37 @@ pub async fn login_merchant(
                             created_at: merchant.created_at.to_rfc3339(),
                             two_factor_enabled: false,
                         },
-                        api_key: format!("admin_session_{}", merchant.id), // Session token, not API key
+                        api_key: format!("admin_session_{}", merchant.id), // Session token
                     }
                 }
                 _ => {
-                    // Regular merchants get API keys
-                    AuthResponse {
-                        user: MerchantProfile {
-                            id: merchant.id,
-                            business_name: merchant.business_name,
-                            email: merchant.email,
-                            created_at: merchant.created_at.to_rfc3339(),
-                            two_factor_enabled: false,
-                        },
-                        api_key,
+                    // For regular merchants, generate a new API key and store it
+                    // This ensures fresh, unpredictable keys on each login
+                    let merchant_service = crate::services::merchant_service::MerchantService::new(
+                        state.db_pool.clone(),
+                        state.config.clone(),
+                    );
+                    
+                    // Generate and store a new API key (uses sandbox mode by default)
+                    match merchant_service.generate_and_store_api_key(merchant.id, !merchant.sandbox_mode).await {
+                        Ok(new_api_key) => {
+                            AuthResponse {
+                                user: MerchantProfile {
+                                    id: merchant.id,
+                                    business_name: merchant.business_name,
+                                    email: merchant.email,
+                                    created_at: merchant.created_at.to_rfc3339(),
+                                    two_factor_enabled: false,
+                                },
+                                api_key: new_api_key,
+                            }
+                        }
+                        Err(e) => {
+                            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+                                "error": "Failed to generate API key",
+                                "message": e.to_string()
+                            }))).into_response();
+                        }
                     }
                 }
             };
@@ -198,10 +204,23 @@ pub async fn get_merchant_profile(
                 "two_factor_enabled": false
             });
             
-            // Add daily volume remaining for non-KYC merchants
+            // Calculate real daily volume remaining for non-KYC merchants
             if !merchant.kyc_verified {
-                // For now, return a mock value - in production this would be calculated
-                profile["daily_volume_remaining"] = json!("1000.00");
+                // Get today's volume from payment_transactions
+                let today_start = chrono::Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap();
+                let daily_volume = sqlx::query_scalar!(
+                    "SELECT COALESCE(SUM(amount_usd), 0) FROM payment_transactions WHERE merchant_id = $1 AND created_at >= $2 AND status = 'CONFIRMED'",
+                    merchant.id,
+                    today_start
+                )
+                .fetch_one(&state.db_pool)
+                .await
+                .unwrap_or(rust_decimal::Decimal::ZERO);
+                
+                // Non-KYC daily limit is $1000
+                let daily_limit = rust_decimal::Decimal::new(1000, 0);
+                let remaining = (daily_limit - daily_volume.unwrap_or(rust_decimal::Decimal::ZERO)).max(rust_decimal::Decimal::ZERO);
+                profile["daily_volume_remaining"] = json!(remaining.to_string());
             }
             
             (StatusCode::OK, Json(profile)).into_response()
