@@ -1,10 +1,22 @@
-// Test setup file
-global.console = {
-  ...console,
-  // Suppress console.log during tests unless explicitly needed
-  log: jest.fn(),
-  debug: jest.fn(),
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-};
+// Test setup file - temporarily disabled for compilation testing
+// import { jest } from '@jest/globals';
+
+// Mock axios to prevent actual HTTP requests
+// const mockAxios = {
+//   create: jest.fn(() => ({
+//     request: jest.fn().mockResolvedValue({
+//       data: { success: true },
+//       status: 200,
+//       statusText: 'OK',
+//       headers: {},
+//       config: {}
+//     } as any),
+//     interceptors: {
+//       request: { use: jest.fn() },
+//       response: { use: jest.fn() }
+//     }
+//   })),
+//   isAxiosError: jest.fn(() => false)
+// };
+
+// jest.mock('axios', () => mockAxios);
