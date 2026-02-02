@@ -29,4 +29,5 @@ pub struct Payment {
     pub description: Option<String>,
     pub metadata: Option<serde_json::Value>,
     pub transaction_hash: Option<String>,
+    pub webhook_url: Option<String>,
 }

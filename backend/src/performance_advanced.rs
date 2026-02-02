@@ -79,7 +79,8 @@ impl OptimizedQueries {
             r#"
             SELECT id, payment_id, merchant_id, amount, amount_usd, crypto_type, 
                    status, to_address, expires_at, created_at,
-                   confirmed_at, description, metadata, confirmations, required_confirmations
+                   confirmed_at, description, metadata, confirmations, required_confirmations,
+                   transaction_hash, from_address, webhook_url
             FROM payment_transactions 
             WHERE merchant_id = $1 
             ORDER BY created_at DESC 

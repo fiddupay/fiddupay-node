@@ -81,6 +81,14 @@ impl PaymentMonitorService {
             self.address_service
                 .process_received_payment(payment_id, balance, &tx_hash)
                 .await?;
+        } else if balance > Decimal::ZERO {
+             tracing::info!("Partial payment detected for {}: {}/{} {}", payment_id, balance, expected_amount, crypto_type);
+             
+             let tx_hash = format!("partial_tx_{}", uuid::Uuid::new_v4());
+             
+             self.address_service
+                .process_partial_payment(payment_id, balance, &tx_hash)
+                .await?;
         }
 
         Ok(())

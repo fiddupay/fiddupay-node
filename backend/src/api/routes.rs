@@ -3,7 +3,8 @@
 
 use crate::api::{handlers, admin_handlers, wallet_management, security_monitoring, status, blog, careers};
 use crate::api::state::AppState;
-use crate::api::middleware::create_rate_limit_layer;
+use crate::api::middleware::{create_rate_limit_layer, rate_limit_middleware};
+use crate::middleware::{auth, logging, ip_whitelist};
 use axum::{
     http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
@@ -16,8 +17,8 @@ use axum::{
 use tower_http::cors::CorsLayer;
 
 pub fn create_router(state: AppState) -> Router {
-    // Create rate limiter layer
-    let rate_limit_layer = create_rate_limit_layer(&state.config);
+    // Create rate limiter
+    let rate_limiter = create_rate_limit_layer(&state.config);
 
     // Public routes (no auth required)
     let public_routes = Router::new()
@@ -197,7 +198,7 @@ pub fn create_router(state: AppState) -> Router {
         .merge(additional_public_routes)
         .merge(protected_routes)
         // Apply global rate limiting to all routes
-        .layer(rate_limit_layer)
+        .layer(axum_middleware::from_fn_with_state(rate_limiter, rate_limit_middleware))
         .layer(cors)
         .with_state(state)
 }

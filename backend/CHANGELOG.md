@@ -7,6 +7,12 @@
 - **Enhanced Sandbox Simulation**: Added `transaction_hash` and `from_address` fields to simulated payments.
 - **Improved API Documentation**: Complete synchronization of paths and examples across all guides.
 
+## [2.3.9] - 2026-02-02
+
+### Added
+- **Model Synchronization**: Updated backend models and SDK types to include `webhook_url` and `kyc_verified` for full schema alignment.
+- **Enhanced Payment Tracking**: Added `webhook_url`, `transaction_hash`, and `from_address` to standard Payment responses.
+
 ## [2.3.6] - 2026-01-28
 
 ### Fixed

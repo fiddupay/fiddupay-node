@@ -183,7 +183,7 @@ impl PaymentProcessor {
             VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING id, payment_id, merchant_id, crypto_type, amount, amount_usd, to_address,
                      status, expires_at, created_at, confirmed_at, description, metadata,
-                     confirmations, required_confirmations
+                     confirmations, required_confirmations, transaction_hash, from_address, webhook_url
             "#,
             payment_id,
             merchant_id,
@@ -239,6 +239,7 @@ impl PaymentProcessor {
             created_at: payment.created_at,
             confirmed_at: None,
             transaction_hash: None,
+            from_address: None,
             confirmations: 0,
             required_confirmations: 1,
             description: None,

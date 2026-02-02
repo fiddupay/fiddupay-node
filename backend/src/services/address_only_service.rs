@@ -31,6 +31,7 @@ pub struct AddressOnlyPayment {
 pub enum AddressOnlyStatus {
     PendingPayment,
     PaymentReceived,
+    PartialPaymentReceived,
     ForwardingInProgress,
     Completed,
     Failed,
@@ -140,6 +141,36 @@ impl AddressOnlyService {
 
         // Initiate auto-forwarding
         self.initiate_auto_forwarding(&payment, tx_hash).await?;
+
+        Ok(())
+    }
+
+    /// Process partial payment and notify merchant
+    pub async fn process_partial_payment(
+        &self,
+        payment_id: &str,
+        received_amount: Decimal,
+        tx_hash: &str,
+    ) -> Result<(), ServiceError> {
+        // Get payment details
+        let payment = self.get_payment_by_id(payment_id).await?;
+
+        // Update status to partial payment received if not already completed/forwarding
+        match payment.status {
+            AddressOnlyStatus::PendingPayment | AddressOnlyStatus::PartialPaymentReceived => {
+                 self.update_payment_status(payment_id, AddressOnlyStatus::PartialPaymentReceived).await?;
+            }
+            _ => {
+                // If already completed or forwarding, do nothing or log warning
+                return Ok(());
+            }
+        }
+
+        // Send webhook notification with partial payment details
+        if let Ok(updated_payment) = self.get_payment_by_id(payment_id).await {
+            let webhook_service = crate::services::webhook_notification_service::WebhookNotificationService::new(self.db_pool.clone());
+            let _ = webhook_service.notify_status_change(&updated_payment).await;
+        }
 
         Ok(())
     }

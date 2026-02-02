@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FidduPay Complete API v2.3.9",
-    "description": "Complete API collection for FidduPay cryptocurrency payment gateway. Supports 10 cryptocurrencies across 5 major blockchains with enterprise-grade security and comprehensive admin functionality.",
+    "description": "Complete API collection for FidduPay cryptocurrency payment gateway. Supports 10 cryptocurrencies across 5 major blockchains with enterprise-grade security, comprehensive admin functionality, Real-Time Webhooks, and Partial Payment support.",
     "version": "2.3.9",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -1480,7 +1480,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount_usd\": \"100.0\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Test\"\n}"
+              "raw": "{\n  \"amount_usd\": \"100.0\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Test\",\n  \"webhook_url\": \"https://your-server.com/webhooks\" \n}"
             }
           }
         },

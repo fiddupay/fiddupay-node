@@ -141,12 +141,21 @@ app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, re
     );
 
     switch (event.type) {
-      case 'payment.completed':
-        console.log('Payment completed:', event.data);
+      case 'payment.detected':
+        console.log('Payment detected (0-conf):', event.data);
+        break;
+      case 'payment.partially_paid':
+        console.log('Partial payment received:', event.data);
+        break;
+      case 'payment.confirmed':
+        console.log('Payment confirmed:', event.data);
         break;
       case 'payment.failed':
         console.log('Payment failed:', event.data);
         break;
+      case 'wallet.low_balance':
+          console.log('Low gas wallet balance:', event.data);
+          break;
     }
 
     res.status(200).send('OK');

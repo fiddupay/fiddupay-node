@@ -151,11 +151,21 @@ app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, re
     );
     
     switch (event.type) {
+      case 'payment.detected':
+        console.log('Payment detected (0-conf):', event.data);
+        break;
+      case 'payment.partially_paid':
+        console.log('Partial payment received:', event.data);
+        // Check partial balance vs requested amount
+        break;
       case 'payment.confirmed':
         console.log('Payment confirmed:', event.data);
         break;
       case 'payment.failed':
         console.log('Payment failed:', event.data);
+        break;
+      case 'wallet.low_balance':
+        console.log('Low gas wallet balance:', event.data);
         break;
     }
     
@@ -256,6 +266,7 @@ interface Payment {
   created_at: string;
   confirmed_at?: string;
   expires_at: string;
+  webhook_url?: string;
   description?: string;
   metadata?: Record<string, any>;
 }

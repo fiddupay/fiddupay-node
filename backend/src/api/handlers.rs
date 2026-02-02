@@ -4,6 +4,7 @@
 use crate::api::state::AppState;
 use crate::middleware::auth::MerchantContext;
 use crate::payment::models::{CreatePaymentRequest, PaymentFilters, CryptoType};
+use crate::services::invoice_service::{CreateInvoiceRequest, InvoiceItem};
 use axum::{
     extract::{Path, Query, State, Request, Extension},
     http::StatusCode,
@@ -207,7 +208,7 @@ pub async fn get_merchant_profile(
             // Calculate real daily volume remaining for non-KYC merchants
             if !merchant.kyc_verified {
                 // Get today's volume from payment_transactions
-                let today_start = chrono::Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap();
+                let today_start = chrono::Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
                 let daily_volume = sqlx::query_scalar!(
                     "SELECT COALESCE(SUM(amount_usd), 0) FROM payment_transactions WHERE merchant_id = $1 AND created_at >= $2 AND status = 'CONFIRMED'",
                     merchant.id,
@@ -215,7 +216,7 @@ pub async fn get_merchant_profile(
                 )
                 .fetch_one(&state.db_pool)
                 .await
-                .unwrap_or(rust_decimal::Decimal::ZERO);
+                .unwrap_or(Some(rust_decimal::Decimal::ZERO));
                 
                 // Non-KYC daily limit is $1000
                 let daily_limit = rust_decimal::Decimal::new(1000, 0);
@@ -999,4 +1000,42 @@ pub async fn get_pricing_info() -> impl IntoResponse {
     });
 
     (StatusCode::OK, Json(pricing_data)).into_response()
+}
+
+// ============================================================================
+// Invoice Endpoints
+// ============================================================================
+
+pub async fn create_invoice(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<CreateInvoiceRequest>,
+) -> impl IntoResponse {
+    match state.invoice_service.create_invoice(context.merchant_id, req).await {
+        Ok(invoice) => (StatusCode::CREATED, Json(invoice)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+pub async fn list_invoices(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let limit = params.get("limit").and_then(|l| l.parse().ok()).unwrap_or(50);
+    match state.invoice_service.list_invoices(context.merchant_id, limit).await {
+        Ok(invoices) => (StatusCode::OK, Json(invoices)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+pub async fn get_invoice(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(invoice_id): Path<String>,
+) -> impl IntoResponse {
+    match state.invoice_service.get_invoice(context.merchant_id, &invoice_id).await {
+        Ok(invoice) => (StatusCode::OK, Json(invoice)).into_response(),
+        Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": e.to_string()}))).into_response(),
+    }
 }

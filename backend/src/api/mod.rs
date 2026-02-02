@@ -15,3 +15,4 @@ pub mod address_only;
 pub mod status;
 pub mod blog;
 pub mod careers;
+pub mod middleware;

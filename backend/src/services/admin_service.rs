@@ -270,7 +270,7 @@ impl AdminService {
         }).collect();
         
         // Generate and persist dynamic alerts if they don't exist
-        let today_start = Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap();
+        let today_start = Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
         
         // Check for high failure rate
         let total_today = sqlx::query_scalar!(

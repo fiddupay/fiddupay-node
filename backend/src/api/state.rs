@@ -18,6 +18,7 @@ use crate::services::{
     currency_service::CurrencyService,
     price_service::PriceService,
     volume_tracking_service::VolumeTrackingService,
+    invoice_service::InvoiceService,
 };
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -41,6 +42,7 @@ pub struct AppState {
     pub currency_service: Arc<CurrencyService>,
     pub price_service: Arc<PriceService>,
     pub volume_tracking_service: Arc<VolumeTrackingService>,
+    pub invoice_service: Arc<InvoiceService>,
 }
 
 impl AppState {
@@ -71,6 +73,7 @@ impl AppState {
             currency_service: Arc::new(CurrencyService::new(db_pool.clone())),
             price_service,
             volume_tracking_service: Arc::new(VolumeTrackingService::new(db_pool.clone())),
+            invoice_service: Arc::new(InvoiceService::new(db_pool.clone())),
             config,
             db_pool,
         }

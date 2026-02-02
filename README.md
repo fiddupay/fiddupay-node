@@ -99,6 +99,8 @@ FidduPay has achieved a **10/10 security score** with:
 - Advanced Rate Limiting
 - Real-time Threat Detection
 - Account Lockout Protection
+- **Real-Time Webhooks**: Instant transaction detection (0-conf) via WebSocket
+- **Partial Payment Support**: Smart handling of underpayments with automated notifications
 
 ## Supported Cryptocurrencies
 
