@@ -13,6 +13,18 @@
       "description": "Local development server"
     },
     {
+      "key": "event_type",
+      "value": "payment.partially_paid",
+      "type": "string",
+      "description": "Event type (payment.detected, payment.confirmed, payment.partially_paid, payment.expired, payment.failed)"
+    },
+    {
+      "key": "payment_id",
+      "value": "pay_xxxxxxxxxxxxxxxxxxxx",
+      "type": "string",
+      "description": "ID of the payment"
+    },
+    {
       "key": "sandboxUrl",
       "value": "http://localhost:3001",
       "type": "string",

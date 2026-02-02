@@ -5,11 +5,14 @@ export type CryptoType = 'SOL' | 'ETH' | 'BNB' | 'MATIC' | 'ARB' | 'USDT_ETH' | 
 export type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
 
 export type WebhookEventType =
+  | 'payment.detected'
   | 'payment.confirmed'
+  | 'payment.partially_paid'
   | 'payment.expired'
   | 'payment.failed'
   | 'refund.completed'
-  | 'refund.failed';
+  | 'refund.failed'
+  | 'wallet.low_balance';
 
 export interface FidduPayConfig {
   apiKey: string;
@@ -76,6 +79,7 @@ export interface Payment {
   qr_code_data?: string;
   fee_amount?: string;
   fee_amount_usd?: string;
+  webhook_url?: string;
   partial_payments?: Record<string, any>;
 }
 
