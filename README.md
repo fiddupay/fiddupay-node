@@ -61,6 +61,8 @@ To deploy a new version of the Node.js SDK to npm:
    ```bash
    cd fiddupay-node-sdk
    npm publish --access public
+   npm view @fiddupay/fiddupay-node version
+   npm view @fiddupay/fiddupay-node time
    ```
    *Note: Ensure you are logged into npm (`npm login`) before publishing.*
 
