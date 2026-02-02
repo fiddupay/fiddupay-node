@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script to push SDK changes to the isolated SDK repository
-# Usage: ./scripts/push-sdk.sh [branch_name]
+# Usage: git subtree push --prefix fiddupay-node-sdk https://github.com/fiddupay/fiddupay-node.git main
 
 BRANCH=${1:-main}
 REMOTE_URL="https://github.com/fiddupay/fiddupay-node.git"

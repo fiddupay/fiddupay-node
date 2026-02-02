@@ -52,6 +52,18 @@ npm run build:backend
 npm run build:frontend
 ```
 
+### SDK Deployment
+
+To deploy a new version of the Node.js SDK to npm:
+
+1. **Sync Changes**: Run `./scripts/push-sdk.sh` to sync the monorepo folder with the standalone repo.
+2. **Publish**:
+   ```bash
+   cd fiddupay-node-sdk
+   npm publish --access public
+   ```
+   *Note: Ensure you are logged into npm (`npm login`) before publishing.*
+
 ## Configuration
 
 ### Backend (.env)
