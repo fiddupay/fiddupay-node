@@ -148,7 +148,7 @@ impl PaymentVerifier {
         let crypto_type = CryptoType::from_string(&payment.crypto_type);
 
         // Get appropriate blockchain monitor for this crypto type
-        let monitor = get_blockchain_monitor(&crypto_type, &self.config);
+        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone());
 
         // Fetch transaction from blockchain (Requirement 3.1)
         let blockchain_tx = monitor

@@ -10,7 +10,6 @@ pub mod error;
 pub mod config;
 pub mod background_tasks;
 pub mod utils;
-pub mod feature_flags;
 pub mod performance;
 pub mod performance_advanced;
 // pub mod simple_tests; // Removed during test cleanup

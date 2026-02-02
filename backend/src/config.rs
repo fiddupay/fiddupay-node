@@ -137,6 +137,23 @@ pub struct Config {
     pub frontend_url: String,
     pub backend_url: String,
     pub allowed_origins: Vec<String>,
+
+    // Block Explorer APIs
+    pub etherscan_api_url: String,
+    pub bscscan_api_url: String,
+    pub arbiscan_api_url: String,
+    pub polygonscan_api_url: String,
+
+
+    // Email Configuration
+    pub email_enabled: bool,
+    pub email_from: String,
+    pub smtp_host: Option<String>,
+    pub smtp_port: Option<u16>,
+    pub smtp_username: Option<String>,
+    pub smtp_password: Option<String>,
+
+    // Additional Feature Flags
 }
 
 impl Config {
@@ -181,14 +198,12 @@ impl Config {
             bsc_rpc_url: env::var("BSC_RPC_URL")?,
             arbitrum_rpc_url: env::var("ARBITRUM_RPC_URL")?,
             polygon_rpc_url: env::var("POLYGON_RPC_URL")?,
-
-            // Sandbox/Test Network URLs
-            // Sandbox/Test Network URLs - Required (No insecure defaults)
             solana_devnet_rpc_url: env::var("SOLANA_DEVNET_RPC_URL")?,
             ethereum_sepolia_rpc_url: env::var("ETHEREUM_SEPOLIA_RPC_URL")?,
             bsc_testnet_rpc_url: env::var("BSC_TESTNET_RPC_URL")?,
             arbitrum_sepolia_rpc_url: env::var("ARBITRUM_SEPOLIA_RPC_URL")?,
             polygon_mumbai_rpc_url: env::var("POLYGON_MUMBAI_RPC_URL")?,
+
 
             // Blockchain Settings
             confirmation_blocks_sol: env::var("CONFIRMATION_BLOCKS_SOL")
@@ -217,18 +232,15 @@ impl Config {
             arbitrum_chain_id: env::var("ARBITRUM_CHAIN_ID")?
                 .parse()?,
 
+
             // Chain IDs (Sandbox/Testnet)
-            ethereum_sepolia_chain_id: env::var("ETHEREUM_SEPOLIA_CHAIN_ID")
-                .unwrap_or_else(|_| "11155111".to_string())
+            ethereum_sepolia_chain_id: env::var("ETHEREUM_SEPOLIA_CHAIN_ID")?
                 .parse()?,
-            bsc_testnet_chain_id: env::var("BSC_TESTNET_CHAIN_ID")
-                .unwrap_or_else(|_| "97".to_string())
+            bsc_testnet_chain_id: env::var("BSC_TESTNET_CHAIN_ID")?
                 .parse()?,
-            polygon_mumbai_chain_id: env::var("POLYGON_MUMBAI_CHAIN_ID")
-                .unwrap_or_else(|_| "80001".to_string())
+            polygon_mumbai_chain_id: env::var("POLYGON_MUMBAI_CHAIN_ID")?
                 .parse()?,
-            arbitrum_sepolia_chain_id: env::var("ARBITRUM_SEPOLIA_CHAIN_ID")
-                .unwrap_or_else(|_| "421614".to_string())
+            arbitrum_sepolia_chain_id: env::var("ARBITRUM_SEPOLIA_CHAIN_ID")?
                 .parse()?,
 
             // Transaction Monitoring
@@ -239,8 +251,6 @@ impl Config {
                 .unwrap_or_else(|_| "60".to_string())
                 .parse()?,
 
-            // API Keys
-            etherscan_api_key: env::var("ETHERSCAN_API_KEY").ok(),
 
             // Price API - Required, no defaults
             bybit_price_api_url: env::var("BYBIT_PRICE_API_URL")?,
@@ -364,12 +374,6 @@ impl Config {
             invoice_enabled: env::var("INVOICE_ENABLED")
                 .unwrap_or_else(|_| "true".to_string())
                 .parse()?,
-            multi_user_enabled: env::var("MULTI_USER_ENABLED")
-                .unwrap_or_else(|_| "true".to_string())
-                .parse()?,
-            analytics_enabled: env::var("ANALYTICS_ENABLED")
-                .unwrap_or_else(|_| "true".to_string())
-                .parse()?,
             maintenance_mode: env::var("MAINTENANCE_MODE")
                 .unwrap_or_else(|_| "false".to_string())
                 .parse()?,
@@ -389,6 +393,37 @@ impl Config {
                 .split(',')
                 .map(|s| s.trim().to_string())
                 .collect(),
+
+            etherscan_api_key: env::var("ETHERSCAN_API_KEY").ok(),
+            
+            // Block Explorer APIs
+            etherscan_api_url: env::var("ETHERSCAN_API_URL")
+                .unwrap_or_else(|_| "https://api.etherscan.io/v2/api".to_string()),
+            bscscan_api_url: env::var("BSCSCAN_API_URL")
+                .unwrap_or_else(|_| "https://api.bscscan.com/api".to_string()),
+            arbiscan_api_url: env::var("ARBISCAN_API_URL")
+                .unwrap_or_else(|_| "https://api.arbiscan.io/api".to_string()),
+            polygonscan_api_url: env::var("POLYGONSCAN_API_URL")
+                .unwrap_or_else(|_| "https://api.polygonscan.com/api".to_string()),
+
+            // Email Configuration
+            email_enabled: env::var("EMAIL_ENABLED")
+                .unwrap_or_else(|_| "false".to_string())
+                .parse()?,
+            email_from: env::var("EMAIL_FROM")
+                .unwrap_or_else(|_| "noreply@fiddupay.com".to_string()),
+            smtp_host: env::var("SMTP_HOST").ok(),
+            smtp_port: env::var("SMTP_PORT").ok().and_then(|s| s.parse().ok()),
+            smtp_username: env::var("SMTP_USERNAME").ok(),
+            smtp_password: env::var("SMTP_PASSWORD").ok(),
+
+            // Additional Feature Flags
+            multi_user_enabled: env::var("MULTI_USER_ENABLED")
+                .unwrap_or_else(|_| "false".to_string())
+                .parse()?,
+            analytics_enabled: env::var("ANALYTICS_ENABLED")
+                .unwrap_or_else(|_| "true".to_string())
+                .parse()?,
         })
     }
 

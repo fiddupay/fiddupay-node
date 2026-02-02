@@ -1,4 +1,5 @@
 use crate::payment::models::CryptoType;
+use crate::payment::price_fetcher::PriceFetcher;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -24,16 +25,18 @@ pub struct PriceService {
     cache_ttl: Duration,
     failure_threshold: u32,
     failure_reset_duration: Duration,
+    config: crate::config::Config,
 }
 
 impl PriceService {
-    pub fn new() -> Self {
+    pub fn new(config: crate::config::Config) -> Self {
         Self {
             cache: Arc::new(RwLock::new(HashMap::new())),
             failure_tracker: Arc::new(RwLock::new(HashMap::new())),
-            cache_ttl: Duration::from_secs(300), // 5 minutes cache
+            cache_ttl: Duration::from_secs(config.price_cache_ttl_seconds as u64),
             failure_threshold: 3,
             failure_reset_duration: Duration::from_secs(900), // 15 minutes
+            config,
         }
     }
 
@@ -343,6 +346,7 @@ impl Clone for PriceService {
             cache_ttl: self.cache_ttl,
             failure_threshold: self.failure_threshold,
             failure_reset_duration: self.failure_reset_duration,
+            config: self.config.clone(),
         }
     }
 }

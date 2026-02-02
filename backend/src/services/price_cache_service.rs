@@ -14,13 +14,13 @@ pub struct CachedPriceFetcher {
 }
 
 impl CachedPriceFetcher {
-    pub fn new(redis_url: &str) -> Result<Self, ServiceError> {
+    pub fn new(redis_url: &str, config: crate::config::Config) -> Result<Self, ServiceError> {
         let redis = redis::Client::open(redis_url)
             .map_err(|e| ServiceError::InternalError(format!("Redis connection failed: {}", e)))?;
         
         Ok(Self {
             redis,
-            fetcher: PriceFetcher::new(),
+            fetcher: PriceFetcher::new(config),
             circuit_breaker: Arc::new(CircuitBreaker::new(3, 60)),
         })
     }

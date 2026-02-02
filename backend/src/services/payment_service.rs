@@ -315,7 +315,7 @@ impl PaymentService {
 
         // Fetch payment link from database
         let payment_link = format!("{}/pay/{}", 
-            std::env::var("PAYMENT_PAGE_BASE_URL").unwrap_or_else(|_| "http://localhost:8080".to_string()),
+            self.config.payment_page_base_url,
             payment.payment_id
         );
         // Generate QR code data

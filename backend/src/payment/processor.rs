@@ -18,16 +18,16 @@ pub struct PaymentProcessor {
     db_pool: PgPool,
     price_service: Arc<PriceService>,
     merchant_service: MerchantService,
-    payment_page_base_url: String,
+    config: crate::config::Config,
 }
 
 impl PaymentProcessor {
-    pub fn new(db_pool: PgPool, payment_page_base_url: String, price_service: Arc<PriceService>, config: crate::config::Config) -> Self {
+    pub fn new(db_pool: PgPool, _payment_page_base_url: String, price_service: Arc<PriceService>, config: crate::config::Config) -> Self {
         Self {
             db_pool: db_pool.clone(),
             price_service,
-            merchant_service: MerchantService::new(db_pool, config),
-            payment_page_base_url,
+            merchant_service: MerchantService::new(db_pool, config.clone()),
+            config,
         }
     }
 
@@ -192,7 +192,7 @@ impl PaymentProcessor {
             amount_usd,
             merchant_wallet,
             expires_at,
-            Decimal::new(25, 1), // 2.5%
+            self.config.default_fee_percentage,
             fee_amount_crypto,
             fee_amount_usd,
             request.crypto_type.network(),
@@ -205,7 +205,7 @@ impl PaymentProcessor {
 
         // Generate payment link and QR code
         let payment_link = format!("{}/pay/{}", 
-            std::env::var("PAYMENT_PAGE_BASE_URL").unwrap_or_else(|_| "http://localhost:8080".to_string()),
+            self.config.payment_page_base_url,
             payment_id
         );
         

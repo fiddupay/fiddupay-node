@@ -52,7 +52,7 @@ impl AppState {
     ) -> Self {
         let webhook_service = Arc::new(WebhookService::new(db_pool.clone(), config.webhook_signing_key.clone()));
         
-        let price_service = Arc::new(PriceService::new());
+        let price_service = Arc::new(PriceService::new(config.clone()));
         price_service.start_background_polling();
         
         let balance_service = Arc::new(BalanceService::new(db_pool.clone(), price_service.clone()));

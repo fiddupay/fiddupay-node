@@ -40,53 +40,41 @@ pub struct EvmMonitor {
 }
 
 impl EvmMonitor {
-    pub fn new_bsc(api_key: Option<String>) -> Self {
-        let api_url = std::env::var("BSCSCAN_API_URL")
-            .unwrap_or_else(|_| "https://api.bscscan.com/api".to_string());
-
+    pub fn new_bsc(config: &crate::config::Config) -> Self {
         Self {
             client: Client::new(),
-            api_url,
-            api_key,
+            api_url: config.bscscan_api_url.clone(),
+            api_key: config.etherscan_api_key.clone(),
             chain_name: "BSC",
             decimals: 18, // USDT on BSC has 18 decimals
         }
     }
 
-    pub fn new_arbitrum(api_key: Option<String>) -> Self {
-        let api_url = std::env::var("ARBISCAN_API_URL")
-            .unwrap_or_else(|_| "https://api.arbiscan.io/api".to_string());
-
+    pub fn new_arbitrum(config: &crate::config::Config) -> Self {
         Self {
             client: Client::new(),
-            api_url,
-            api_key,
+            api_url: config.arbiscan_api_url.clone(),
+            api_key: config.etherscan_api_key.clone(),
             chain_name: "Arbitrum",
             decimals: 6, // USDT on Arbitrum has 6 decimals
         }
     }
 
-    pub fn new_polygon(api_key: Option<String>) -> Self {
-        let api_url = std::env::var("POLYGONSCAN_API_URL")
-            .unwrap_or_else(|_| "https://api.polygonscan.com/api".to_string());
-
+    pub fn new_polygon(config: &crate::config::Config) -> Self {
         Self {
             client: Client::new(),
-            api_url,
-            api_key,
+            api_url: config.polygonscan_api_url.clone(),
+            api_key: config.etherscan_api_key.clone(),
             chain_name: "Polygon",
             decimals: 6, // USDT on Polygon has 6 decimals
         }
     }
 
-    pub fn new_ethereum(api_key: Option<String>) -> Self {
-        let api_url = std::env::var("ETHERSCAN_API_URL")
-            .unwrap_or_else(|_| "https://api.etherscan.io/v2/api".to_string());
-
+    pub fn new_ethereum(config: &crate::config::Config) -> Self {
         Self {
             client: Client::new(),
-            api_url,
-            api_key,
+            api_url: config.etherscan_api_url.clone(),
+            api_key: config.etherscan_api_key.clone(),
             chain_name: "Ethereum",
             decimals: 6, // USDT on Ethereum has 6 decimals
         }
@@ -321,41 +309,14 @@ impl EvmMonitor {
 }
 
 /// Factory function to create appropriate blockchain monitor
-pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: &crate::config::Config) -> Box<dyn BlockchainMonitor> {
-    match crypto_type {
-        CryptoType::Sol => Box::new(super::sol_monitor::SolanaMonitor::new(config, None)),
-        CryptoType::UsdtSpl => Box::new(super::sol_monitor::SolanaMonitor::new(config, None)),
-        CryptoType::UsdtBep20 => {
-            let api_key = std::env::var("ETHERSCAN_API_KEY").ok();
-            Box::new(EvmMonitor::new_bsc(api_key))
-        }
-        CryptoType::UsdtArbitrum => {
-            let api_key = std::env::var("ETHERSCAN_API_KEY").ok();
-            Box::new(EvmMonitor::new_arbitrum(api_key))
-        }
-        CryptoType::UsdtPolygon => {
-            let api_key = std::env::var("ETHERSCAN_API_KEY").ok();
-            Box::new(EvmMonitor::new_polygon(api_key))
-        }
-        CryptoType::UsdtEth => {
-            let api_key = std::env::var("ETHERSCAN_API_KEY").ok();
-            Box::new(EvmMonitor::new_ethereum(api_key))
-        }
-        CryptoType::Eth => {
-            let api_key = std::env::var("ETHERSCAN_API_KEY").ok();
-            Box::new(EvmMonitor::new_ethereum(api_key))
-        }
-        CryptoType::Arb => {
-            let api_key = std::env::var("ETHERSCAN_API_KEY").ok();
-            Box::new(EvmMonitor::new_arbitrum(api_key))
-        }
-        CryptoType::Matic => {
-            let api_key = std::env::var("ETHERSCAN_API_KEY").ok();
-            Box::new(EvmMonitor::new_polygon(api_key))
-        }
-        CryptoType::Bnb => {
-            let api_key = std::env::var("ETHERSCAN_API_KEY").ok();
-            Box::new(EvmMonitor::new_bsc(api_key))
-        }
+/// Factory function to create appropriate blockchain monitor
+pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::Config) -> Box<dyn BlockchainMonitor> {
+    match crypto_type.network() {
+        "Solana" => Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, None)),
+        "Ethereum" => Box::new(EvmMonitor::new_ethereum(&config)),
+        "BSC" => Box::new(EvmMonitor::new_bsc(&config)),
+        "Polygon" => Box::new(EvmMonitor::new_polygon(&config)),
+        "Arbitrum" => Box::new(EvmMonitor::new_arbitrum(&config)),
+        _ => Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, None)),
     }
 }

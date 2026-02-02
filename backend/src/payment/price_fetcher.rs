@@ -8,9 +8,8 @@ use std::str::FromStr;
 use tracing::{info, warn};
 
 // Get Bybit API URL from environment or use default
-fn get_bybit_api_url() -> String {
-    std::env::var("BYBIT_PRICE_API_URL")
-        .unwrap_or_else(|_| "https://api.bybit.com".to_string())
+fn get_bybit_api_url(config: &crate::config::Config) -> String {
+    config.bybit_price_api_url.clone()
 }
 
 #[derive(Debug, Deserialize)]
@@ -36,12 +35,14 @@ struct TickerData {
 
 pub struct PriceFetcher {
     client: Client,
+    config: crate::config::Config,
 }
 
 impl PriceFetcher {
-    pub fn new() -> Self {
+    pub fn new(config: crate::config::Config) -> Self {
         Self {
             client: Client::new(),
+            config,
         }
     }
 
@@ -66,7 +67,7 @@ impl PriceFetcher {
     ) -> Result<Decimal, Box<dyn std::error::Error + Send + Sync>> {
         let url = format!(
             "{}/v5/market/tickers?category={}&symbol={}",
-            get_bybit_api_url(), category, symbol
+            get_bybit_api_url(&self.config), category, symbol
         );
 
         let response = self.client.get(&url).send().await?;
@@ -109,9 +110,10 @@ impl PriceFetcher {
     }
 }
 
+#[cfg(test)]
 impl Default for PriceFetcher {
     fn default() -> Self {
-        Self::new()
+        Self::new(crate::config::Config::default())
     }
 }
 
