@@ -2,6 +2,10 @@
 // Application configuration from environment variables
 
 use std::env;
+use sqlx::PgPool;
+use std::str::FromStr;
+use rust_decimal::Decimal;
+use tracing::warn;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -435,6 +439,64 @@ impl Config {
             return Err("JWT_SECRET is required".to_string());
         }
 
+        Ok(())
+    }
+
+    pub async fn load_from_db(&mut self, pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
+        // Query all settings
+        let settings = sqlx::query!("SELECT key, value FROM system_settings")
+            .fetch_all(pool)
+            .await?;
+
+        for setting in settings {
+            match setting.key.as_str() {
+                // Fee Configuration
+                "DEFAULT_FEE_PERCENTAGE" => {
+                    if let Ok(val) = Decimal::from_str(&setting.value) {
+                         // Convert percentage to decimal (e.g. 0.75 -> 0.0075) if stored as percentage
+                         self.default_fee_percentage = val;
+                    }
+                },
+                
+                // Limits
+                "DAILY_VOLUME_LIMIT_NON_KYC_USD" => {
+                    if let Ok(val) = Decimal::from_str(&setting.value) {
+                        self.daily_volume_limit_non_kyc_usd = val;
+                    }
+                },
+                "WITHDRAWAL_AUTO_APPROVAL_LIMIT_USD" => {
+                    if let Ok(val) = Decimal::from_str(&setting.value) {
+                        self.withdrawal_auto_approval_limit_usd = val;
+                    }
+                },
+
+                // Feature Flags
+                "MAINTENANCE_MODE" => self.maintenance_mode = setting.value == "true",
+                "MERCHANT_REGISTRATION_ENABLED" => self.merchant_registration_enabled = setting.value == "true",
+                "WITHDRAWAL_ENABLED" => self.withdrawal_enabled = setting.value == "true", 
+                "INVOICE_ENABLED" => self.invoice_enabled = setting.value == "true",
+                "TWO_FACTOR_ENABLED" => self.two_factor_enabled = setting.value == "true",
+
+                // Security Policies
+                "MAX_LOGIN_ATTEMPTS" => {
+                    if let Ok(val) = setting.value.parse() { self.max_login_attempts = val; }
+                },
+                "ACCOUNT_LOCKOUT_DURATION_MINUTES" => {
+                    if let Ok(val) = setting.value.parse() { self.account_lockout_duration_minutes = val; }
+                },
+
+                // Rate Limiting
+                "RATE_LIMIT_REQUESTS_PER_MINUTE" => {
+                    if let Ok(val) = setting.value.parse() { self.rate_limit_requests_per_minute = val; }
+                },
+                "RATE_LIMIT_BURST_SIZE" => {
+                    if let Ok(val) = setting.value.parse() { self.rate_limit_burst_size = val; }
+                },
+
+                _ => warn!("Unknown system setting key: {}", setting.key)
+            }
+        }
+        
         Ok(())
     }
 }

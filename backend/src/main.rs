@@ -49,6 +49,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     tracing::info!(" Migrations complete");
 
+    // Load dynamic settings from database
+    tracing::info!(" Loading dynamic settings from database...");
+    let mut config = config;
+    if let Err(e) = config.load_from_db(&db_pool).await {
+        tracing::error!("Failed to load dynamic settings: {}", e);
+        // Continue with env defaults, but log error
+    } else {
+        tracing::info!(" Dynamic settings loaded");
+    }
+
     // Initialize application state
     let app_state = AppState::new(
         db_pool.clone(),
