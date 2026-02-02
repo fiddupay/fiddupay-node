@@ -36,7 +36,7 @@ info:
     - Real-time threat detection
     - Account lockout protection
     
-  version: 2.3.6
+  version: 2.3.8
   contact:
     name: FidduPay Support
     email: support@fiddupay.com
@@ -991,7 +991,7 @@ paths:
           description: Alert acknowledged successfully
 
   # Merchant Authentication
-  /api/v1/merchant/register:
+  /api/v1/merchants/register:
     post:
       tags:
         - Authentication
@@ -1017,7 +1017,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchant/login:
+  /api/v1/merchants/login:
     post:
       tags:
         - Authentication
@@ -1043,7 +1043,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchant/profile:
+  /api/v1/merchants/profile:
     get:
       tags:
         - Authentication
@@ -1065,7 +1065,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchant/environment/switch:
+  /api/v1/merchants/environment/switch:
     post:
       tags:
         - Authentication
@@ -1106,7 +1106,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchant/api-keys/generate:
+  /api/v1/merchants/api-keys/generate:
     post:
       tags:
         - Authentication
@@ -1144,7 +1144,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchant/api-keys/rotate:
+  /api/v1/merchants/api-keys/rotate:
     post:
       tags:
         - Authentication
@@ -1409,7 +1409,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchant/wallets:
+  /api/v1/merchants/wallets:
     put:
       tags:
         - Wallets
@@ -1443,7 +1443,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/v1/merchant/webhook:
+  /api/v1/merchants/webhook:
     put:
       tags:
         - Wallets
@@ -1897,7 +1897,7 @@ paths:
               schema:
                 type: string
 
-  /api/v1/merchant/balance:
+  /api/v1/merchants/balance:
     get:
       tags:
         - Balance
@@ -1913,7 +1913,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/BalanceResponse'
 
-  /api/v1/merchant/balance/history:
+  /api/v1/merchants/balance/history:
     get:
       tags:
         - Balance
@@ -2021,7 +2021,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/SecurityEvent'
 
-  /api/v1/merchant/ip-whitelist:
+  /api/v1/merchants/ip-whitelist:
     put:
       tags:
         - Security

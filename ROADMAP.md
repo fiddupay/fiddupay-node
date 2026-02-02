@@ -312,7 +312,7 @@ Transform FidduPay from a merchant-only crypto payment gateway into a comprehens
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: January 25, 2026  
+**Document Version**: 2.3.8  
+**Last Updated**: February 2, 2026  
 **Next Review**: April 1, 2026  
 **Owner**: TechyTro Software - FidduPay Team
