@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://fiddupay-backend.duckdns.org',
+  baseURL: import.meta.env.VITE_API_URL || 'https://api.fiddupay.com',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
