@@ -102,7 +102,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/merchants/security/balance-alerts/:alert_id/resolve", post(security_monitoring::resolve_balance_alert))
         .route("/api/v1/merchants/security/gas-check", get(security_monitoring::check_gas_balances))
         .route("/api/v1/merchants/security/settings", get(security_monitoring::get_security_settings))
-        .route("/api/v1/merchants/security/settings", put(security_monitoring::update_security_settings))
+        .route("/api/v1/merchants/security/settings", put(security_monitoring::update_security_settings));
         
         // .route("/api/v1/merchants/api-keys", get(handlers::list_api_keys))
         // .route("/api/v1/merchants/webhook-settings", put(handlers::update_webhook_settings))
