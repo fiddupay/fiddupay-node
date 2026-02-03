@@ -10,6 +10,7 @@ const LoginPage: React.FC = () => {
   const { showToast } = useToast()
   const { setLoading } = useLoading()
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -22,7 +23,7 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Validation
     if (!formData.email.trim()) {
       showToast('Email is required', 'error')
@@ -46,7 +47,7 @@ const LoginPage: React.FC = () => {
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
         two_factor_code: formData.two_factor_code.trim() || undefined
-      })
+      }, rememberMe)
       showToast('Login successful!', 'success')
     } catch (error: any) {
       showToast(error.message || 'Login failed. Please check your credentials.', 'error')
@@ -112,8 +113,18 @@ const LoginPage: React.FC = () => {
                   <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                 </button>
               </div>
+            </div>
+            <div className={styles.formOptions}>
+              <label className={styles.rememberMe}>
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                Remember me
+              </label>
               <Link to="/forgot-password" className={styles.forgotPassword}>
-                Forgot your password?
+                Forgot password?
               </Link>
             </div>
 

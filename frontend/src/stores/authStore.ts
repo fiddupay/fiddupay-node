@@ -12,7 +12,7 @@ interface AuthState {
 }
 
 interface AuthActions {
-  login: (credentials: LoginCredentials) => Promise<void>
+  login: (credentials: LoginCredentials, rememberMe?: boolean) => Promise<void>
   register: (data: RegisterData) => Promise<void>
   logout: () => void
   clearError: () => void
@@ -30,12 +30,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       error: null,
 
       // Actions
-      login: async (credentials: LoginCredentials) => {
+      login: async (credentials: LoginCredentials, rememberMe: boolean = false) => {
         try {
           set({ loading: true, error: null })
           const response = await authAPI.login(credentials)
 
-          localStorage.setItem('fiddupay_token', response.data.api_key)
+          const storage = rememberMe ? localStorage : sessionStorage
+          storage.setItem('fiddupay_token', response.data.api_key)
 
           set({
             user: response.data.user,
@@ -57,6 +58,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           set({ loading: true, error: null })
           const response = await authAPI.register(data)
 
+          // Registration always defaults to persistent for convenience, 
+          // but we follow current pattern of using localStorage.
           localStorage.setItem('fiddupay_token', response.data.api_key)
 
           set({
@@ -76,6 +79,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       logout: () => {
         localStorage.removeItem('fiddupay_token')
+        sessionStorage.removeItem('fiddupay_token')
         set({
           user: null,
           token: null,
@@ -89,8 +93,11 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
 
       loadUser: async () => {
-        const token = localStorage.getItem('fiddupay_token')
-        if (!token) return
+        const token = localStorage.getItem('fiddupay_token') || sessionStorage.getItem('fiddupay_token')
+        if (!token) {
+          set({ loading: false })
+          return
+        }
 
         try {
           set({ loading: true })
@@ -105,6 +112,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           // Only log out if it's an authentication error (401)
           if (error.response && error.response.status === 401) {
             localStorage.removeItem('fiddupay_token')
+            sessionStorage.removeItem('fiddupay_token')
             set({
               user: null,
               token: null,
@@ -123,7 +131,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       name: 'fiddupay-auth',
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
+        // We still partialize these for Zustand persistence, 
+        // but loadUser and logout handle the manual token storage.
         isAuthenticated: state.isAuthenticated,
       }),
     }
