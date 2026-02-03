@@ -8,6 +8,10 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fiddupay-node-sdk
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -16,6 +20,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'  # Node 22 LTS with npm 11
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+          cache-dependency-path: fiddupay-node-sdk/package-lock.json
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
