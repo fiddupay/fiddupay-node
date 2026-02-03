@@ -320,7 +320,7 @@ impl Config {
 
             // Fee Configuration
             default_fee_percentage: env::var("DEFAULT_FEE_PERCENTAGE")
-                .unwrap_or_else(|_| "1.50".to_string())
+                .unwrap_or_else(|_| "0.75".to_string())
                 .parse()?,
 
             // Daily Volume Limits
