@@ -19,6 +19,16 @@ pub struct AdminDashboard {
 }
 
 #[derive(Debug, Serialize)]
+pub struct PlatformAnalytics {
+    pub total_merchants: i64,
+    pub active_merchants: i64,
+    pub total_payments: i64,
+    pub total_volume_usd: String,
+    pub platform_revenue_usd: String,
+    pub period: String,
+}
+
+#[derive(Debug, Serialize)]
 pub struct SecurityEvent {
     pub event_id: String,
     pub event_type: String,
@@ -136,15 +146,6 @@ impl AdminService {
         })
     }
 
-#[derive(Debug, Serialize)]
-pub struct PlatformAnalytics {
-    pub total_merchants: i64,
-    pub active_merchants: i64,
-    pub total_payments: i64,
-    pub total_volume_usd: String,
-    pub platform_revenue_usd: String,
-    pub period: String,
-}
 
     /// Get platform analytics (Real Data)
     pub async fn get_platform_analytics(&self) -> Result<PlatformAnalytics, ServiceError> {

@@ -109,15 +109,15 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/merchants/login", post(handlers::login_merchant))
         .route("/api/v1/merchants/me", get(handlers::get_merchant_profile))
         .route("/api/v1/merchants/api-keys", post(handlers::generate_api_key))
-        .route("/api/v1/merchants/api-keys", get(handlers::list_api_keys))
-        .route("/api/v1/merchants/webhook-settings", put(handlers::update_webhook_settings))
-        .route("/api/v1/merchants/webhook-settings", get(handlers::get_webhook_settings))
+        // .route("/api/v1/merchants/api-keys", get(handlers::list_api_keys))
+        // .route("/api/v1/merchants/webhook-settings", put(handlers::update_webhook_settings))
+        // .route("/api/v1/merchants/webhook-settings", get(handlers::get_webhook_settings))
         
         // Multi-user routes
-        .route("/api/v1/users", post(wallet_management::create_user))
-        .route("/api/v1/users", get(wallet_management::list_users))
-        .route("/api/v1/users/:user_id/role", put(wallet_management::update_user_role))
-        .route("/api/v1/users/:user_id", delete(wallet_management::deactivate_user));
+        // .route("/api/v1/users", post(wallet_management::create_user))
+        // .route("/api/v1/users", get(wallet_management::list_users))
+        // .route("/api/v1/users/:user_id/role", put(wallet_management::update_user_role))
+        // .route("/api/v1/users/:user_id", delete(wallet_management::deactivate_user));
         
         // Admin endpoints
         let admin_routes = Router::new()
