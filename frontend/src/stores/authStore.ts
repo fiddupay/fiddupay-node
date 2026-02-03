@@ -34,9 +34,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         try {
           set({ loading: true, error: null })
           const response = await authAPI.login(credentials)
-          
+
           localStorage.setItem('fiddupay_token', response.data.api_key)
-          
+
           set({
             user: response.data.user,
             token: response.data.api_key,
@@ -56,9 +56,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         try {
           set({ loading: true, error: null })
           const response = await authAPI.register(data)
-          
+
           localStorage.setItem('fiddupay_token', response.data.api_key)
-          
+
           set({
             user: response.data.user,
             token: response.data.api_key,
@@ -101,14 +101,21 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             isAuthenticated: true,
             loading: false,
           })
-        } catch (error) {
-          localStorage.removeItem('fiddupay_token')
-          set({
-            user: null,
-            token: null,
-            isAuthenticated: false,
-            loading: false,
-          })
+        } catch (error: any) {
+          // Only log out if it's an authentication error (401)
+          if (error.response && error.response.status === 401) {
+            localStorage.removeItem('fiddupay_token')
+            set({
+              user: null,
+              token: null,
+              isAuthenticated: false,
+              loading: false,
+            })
+          } else {
+            // For other errors (like 500), keep the session but stop loading
+            set({ loading: false })
+            console.error('Failed to load user profile:', error)
+          }
         }
       },
     }),
