@@ -91,7 +91,7 @@ pub async fn register_merchant(
     State(state): State<AppState>,
     Json(req): Json<RegisterMerchantRequest>,
 ) -> impl IntoResponse {
-    match state.merchant_service.register_merchant(&req.email, &req.business_name).await {
+    match state.merchant_service.register_merchant(&req.email, &req.business_name, &req.password).await {
         Ok(response) => {
             let auth_response = AuthResponse {
                 user: MerchantProfile {
@@ -115,7 +115,7 @@ pub async fn login_merchant(
 ) -> impl IntoResponse {
     // Query the database for the user
     match sqlx::query!(
-        "SELECT id, business_name, email, sandbox_mode, created_at, role::text as role, api_key_hash FROM merchants WHERE email = $1 AND is_active = true",
+        "SELECT id, business_name, email, sandbox_mode, created_at, role::text as role, api_key_hash, password_hash FROM merchants WHERE email = $1 AND is_active = true",
         req.email
     )
     .fetch_optional(&state.db_pool)
@@ -124,9 +124,23 @@ pub async fn login_merchant(
         Ok(Some(merchant)) => {
             // VERIFY PASSWORD
             use argon2::{Argon2, PasswordHash, PasswordVerifier};
-            let parsed_hash = PasswordHash::new(&merchant.api_key_hash)
+            
+            // Check if password_hash exists (it might be NULL for old users or API-only users)
+            let hash_to_check = merchant.password_hash.as_ref().ok_or_else(|| {
+                // If no password hash, user cannot login via password (API key only)
+                 ServiceError::Unauthorized("Password login not available for this account".to_string())
+            });
+
+            if let Err(_) = hash_to_check {
+                 return (StatusCode::UNAUTHORIZED, Json(json!({
+                    "error": "Invalid credentials",
+                    "message": "Password login not enabled"
+                }))).into_response();
+            }
+
+            let parsed_hash = PasswordHash::new(hash_to_check.unwrap())
                 .map_err(|e| ServiceError::InternalError(format!("Invalid hash structure: {}", e)))
-                .unwrap(); // In production handle unwraps better, but failed hash structure means DB corruption
+                .unwrap(); 
 
             let valid = Argon2::default().verify_password(req.password.as_bytes(), &parsed_hash).is_ok();
 

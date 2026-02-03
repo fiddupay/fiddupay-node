@@ -29,30 +29,40 @@ impl MerchantService {
         &self,
         email: &str,
         business_name: &str,
+        password: &str,
     ) -> Result<MerchantRegistrationResponse, ServiceError> {
         // Generate sandbox API key by default (single source of truth)
         let api_key = self.generate_api_key(false);
         
-        // Use Argon2 for secure password hashing
+        // Use Argon2 for secure hashing
         use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
         use rand::rngs::OsRng;
-        let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
+
+        // 1. Hash the API Key
+        let salt = SaltString::generate(&mut OsRng);
         let api_key_hash = argon2.hash_password(api_key.as_bytes(), &salt)
             .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
+            .to_string();
+
+        // 2. Hash the User Password
+        let password_salt = SaltString::generate(&mut OsRng);
+        let password_hash = argon2.hash_password(password.as_bytes(), &password_salt)
+            .map_err(|_| ServiceError::InternalError("Failed to hash password".to_string()))?
             .to_string();
         
         // Create merchant in sandbox mode by default
         let merchant = sqlx::query_as::<_, Merchant>(
             r#"
-            INSERT INTO merchants (email, business_name, api_key_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING id, email, business_name, api_key_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at
+            INSERT INTO merchants (email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            RETURNING id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at
             "#
         )
         .bind(&email)
         .bind(&business_name)
         .bind(&api_key_hash)
+        .bind(&password_hash)
         .bind(self.config.default_fee_percentage)
         .bind(true) // customer_pays_fee (default)
         .bind(true) // is_active
