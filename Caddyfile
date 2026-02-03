@@ -3,16 +3,15 @@
     email techytrosoftware@gmail.com
 }
 
-fiddupay.com, www.fiddupay.com, api.fiddupay.com {
-    # Proxy all requests to the Rust backend
-    reverse_proxy localhost:8080 {
-        header_up Host {host}
-    }
-
-    # Enable compression
+# Frontend (React/Vite SPA)
+fiddupay.com, www.fiddupay.com {
+    root * /home/vibes/crypto-payment-gateway/frontend/dist
     encode gzip
+    file_server
 
-    # Security headers (Let Rust handle CORS)
+    # SPA Routing: If file doesn't exist, serve index.html
+    try_files {path} /index.html
+
     header {
         Strict-Transport-Security "max-age=31536000;"
         X-XSS-Protection "1; mode=block"
@@ -22,6 +21,21 @@ fiddupay.com, www.fiddupay.com, api.fiddupay.com {
     }
 
     log {
-        output file /var/log/caddy/fiddupay.access.log
+        output file /var/log/caddy/fiddupay.frontend.log
+    }
+}
+
+# Backend API
+api.fiddupay.com {
+    reverse_proxy localhost:8080 {
+        header_up Host {host}
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000;"
+    }
+
+    log {
+        output file /var/log/caddy/fiddupay.api.log
     }
 }
