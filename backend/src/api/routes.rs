@@ -104,11 +104,6 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/merchants/security/settings", get(security_monitoring::get_security_settings))
         .route("/api/v1/merchants/security/settings", put(security_monitoring::update_security_settings))
         
-        // Merchant routes
-        .route("/api/v1/merchants", post(handlers::register_merchant))
-        .route("/api/v1/merchants/login", post(handlers::login_merchant))
-        .route("/api/v1/merchants/me", get(handlers::get_merchant_profile))
-        .route("/api/v1/merchants/api-keys", post(handlers::generate_api_key));
         // .route("/api/v1/merchants/api-keys", get(handlers::list_api_keys))
         // .route("/api/v1/merchants/webhook-settings", put(handlers::update_webhook_settings))
         // .route("/api/v1/merchants/webhook-settings", get(handlers::get_webhook_settings))
