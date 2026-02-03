@@ -28,6 +28,11 @@ import '@/styles/globals.css'
 const DashboardPage = React.lazy(() => import('@/pages/DashboardPage'))
 const PaymentsPage = React.lazy(() => import('@/pages/PaymentsPage'))
 const WalletsPage = React.lazy(() => import('@/pages/WalletsPage'))
+const BalancePage = React.lazy(() => import('@/pages/BalancePage'))
+const WithdrawalsPage = React.lazy(() => import('@/pages/WithdrawalsPage'))
+const AnalyticsPage = React.lazy(() => import('@/pages/AnalyticsPage'))
+const ReportsPage = React.lazy(() => import('@/pages/ReportsPage'))
+const SettingsPage = React.lazy(() => import('@/pages/SettingsPage'))
 
 const App: React.FC = () => {
   const { loadUser, loading } = useAuthStore()
@@ -75,41 +80,81 @@ const App: React.FC = () => {
             <Route path="/security" element={<Layout><SecurityPage /></Layout>} />
             <Route path="/compliance" element={<Layout><CompliancePage /></Layout>} />
             <Route path="/cookies" element={<Layout><CookiesPage /></Layout>} />
-            
+
             {/* Auth routes */}
             <Route path="/login" element={<Layout><LoginPage /></Layout>} />
             <Route path="/register" element={<Layout><RegisterPage /></Layout>} />
             <Route path="/forgot-password" element={<Layout><ForgotPasswordPage /></Layout>} />
-            
+
             {/* Protected routes */}
             <Route path="/app" element={<AppLayout />}>
               <Route index element={<Navigate to="/app/dashboard" replace />} />
-              <Route 
-                path="dashboard" 
+              <Route
+                path="dashboard"
                 element={
                   <React.Suspense fallback={<div>Loading...</div>}>
                     <DashboardPage />
                   </React.Suspense>
-                } 
+                }
               />
-              <Route 
-                path="payments" 
+              <Route
+                path="payments"
                 element={
                   <React.Suspense fallback={<div>Loading...</div>}>
                     <PaymentsPage />
                   </React.Suspense>
-                } 
+                }
               />
-              <Route 
-                path="wallets" 
+              <Route
+                path="wallets"
                 element={
                   <React.Suspense fallback={<div>Loading...</div>}>
                     <WalletsPage />
                   </React.Suspense>
-                } 
+                }
+              />
+              <Route
+                path="balance"
+                element={
+                  <React.Suspense fallback={<div>Loading...</div>}>
+                    <BalancePage />
+                  </React.Suspense>
+                }
+              />
+              <Route
+                path="withdrawals"
+                element={
+                  <React.Suspense fallback={<div>Loading...</div>}>
+                    <WithdrawalsPage />
+                  </React.Suspense>
+                }
+              />
+              <Route
+                path="analytics"
+                element={
+                  <React.Suspense fallback={<div>Loading...</div>}>
+                    <AnalyticsPage />
+                  </React.Suspense>
+                }
+              />
+              <Route
+                path="reports"
+                element={
+                  <React.Suspense fallback={<div>Loading...</div>}>
+                    <ReportsPage />
+                  </React.Suspense>
+                }
+              />
+              <Route
+                path="settings"
+                element={
+                  <React.Suspense fallback={<div>Loading...</div>}>
+                    <SettingsPage />
+                  </React.Suspense>
+                }
               />
             </Route>
-            
+
             {/* Catch all route */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

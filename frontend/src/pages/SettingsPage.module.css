@@ -1,0 +1,48 @@
+.page {
+    padding: 24px;
+}
+
+.header {
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+}
+
+.header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--black);
+    margin-bottom: 8px;
+}
+
+.header p {
+    color: var(--gray);
+}
+
+.content {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.emptyState {
+    text-align: center;
+    color: var(--gray);
+}
+
+.emptyState i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: var(--brand-blue);
+    opacity: 0.5;
+}
+
+.emptyState h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+    color: var(--black);
+}
