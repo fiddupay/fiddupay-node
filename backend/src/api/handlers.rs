@@ -1085,8 +1085,8 @@ pub async fn get_fee_setting(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    let merchant = sqlx::query_as::<_, crate::api::handlers::Merchant>(
-        "SELECT * FROM merchants WHERE id = $1"
+    let merchant = sqlx::query_as::<_, crate::models::merchant::Merchant>(
+        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role FROM merchants WHERE id = $1"
     )
     .bind(context.merchant_id)
     .fetch_optional(&state.db_pool)
@@ -1117,8 +1117,8 @@ pub async fn update_fee_setting(
     Json(req): Json<UpdateFeeSettingRequest>,
 ) -> impl IntoResponse {
     // Fetch current merchant first to handle partial updates
-    let merchant_result = sqlx::query_as::<_, crate::api::handlers::Merchant>(
-        "SELECT * FROM merchants WHERE id = $1"
+    let merchant_result = sqlx::query_as::<_, crate::models::merchant::Merchant>(
+        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role FROM merchants WHERE id = $1"
     )
     .bind(context.merchant_id)
     .fetch_optional(&state.db_pool)
