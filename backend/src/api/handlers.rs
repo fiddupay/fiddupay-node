@@ -823,10 +823,11 @@ pub async fn get_supported_currencies(
     
     let mut currency_groups = std::collections::HashMap::new();
     
-    for (crypto_type, group, network) in currencies {
+    for (crypto_type, group, network, icon_url) in currencies {
         currency_groups.entry(group).or_insert_with(Vec::new).push(json!({
             "crypto_type": crypto_type,
             "network": network,
+            "icon_url": icon_url,
             "confirmations": state.currency_service.get_required_confirmations(crypto_type)
         }));
     }

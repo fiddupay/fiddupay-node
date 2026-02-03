@@ -17,19 +17,19 @@ impl CurrencyService {
         Self { pool }
     }
 
-    pub async fn get_supported_currencies(&self) -> Vec<(&'static str, &'static str, &'static str)> {
+    pub async fn get_supported_currencies(&self) -> Vec<(&'static str, &'static str, &'static str, &'static str)> {
         vec![
-            // (crypto_type, currency_group, network_name)
-            ("USDT_ETH", "USDT", "Ethereum (ERC-20)"),
-            ("USDT_BSC", "USDT", "Binance Smart Chain (BEP-20)"),
-            ("USDT_POLYGON", "USDT", "Polygon (MATIC)"),
-            ("USDT_ARBITRUM", "USDT", "Arbitrum One"),
-            ("USDT_SOL", "USDT", "Solana (SPL)"),
-            ("ETH", "ETH", "Ethereum"),
-            ("ARB", "ARB", "Arbitrum One"),
-            ("SOL", "SOL", "Solana"),
-            ("MATIC", "MATIC", "Polygon"),
-            ("BNB", "BNB", "Binance Smart Chain"),
+            // (crypto_type, currency_group, network_name, icon_url)
+            ("USDT_ETH", "USDT", "Ethereum (ERC-20)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
+            ("USDT_BSC", "USDT", "Binance Smart Chain (BEP-20)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
+            ("USDT_POLYGON", "USDT", "Polygon (MATIC)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
+            ("USDT_ARBITRUM", "USDT", "Arbitrum One", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
+            ("USDT_SOL", "USDT", "Solana (SPL)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
+            ("ETH", "ETH", "Ethereum", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/eth.png"),
+            ("ARB", "ARB", "Arbitrum One", "https://cryptologos.cc/logos/arbitrum-arb-logo.png"),
+            ("SOL", "SOL", "Solana", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
+            ("MATIC", "MATIC", "Polygon", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/matic.png"),
+            ("BNB", "BNB", "Binance Smart Chain", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/bnb.png"),
         ]
     }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { walletAPI } from '@/services/apiService'
+import { walletAPI, publicAPI } from '@/services/apiService'
 import { Wallet, WalletConfig } from '../types'
 import styles from './WalletsPage.module.css'
 import { Copy, Check, Plus, RefreshCw, X, ShieldCheck } from 'lucide-react'
@@ -17,33 +17,40 @@ const WalletsPage: React.FC = () => {
     address: ''
   })
 
-  // Grouped for cleaner config selection
-  const supportedCryptos = [
-    { type: 'SOL', name: 'Solana', network: 'Solana', icon: '◎' },
-    { type: 'USDT_ETH', name: 'USDT', network: 'Ethereum', icon: '₮' },
-    { type: 'USDT_BSC', name: 'USDT', network: 'BSC (BEP20)', icon: '₮' },
-    { type: 'USDT_POLYGON', name: 'USDT', network: 'Polygon', icon: '₮' },
-    { type: 'USDT_ARBITRUM', name: 'USDT', network: 'Arbitrum', icon: '₮' },
-    { type: 'ETH', name: 'Ethereum', network: 'Ethereum', icon: 'Ξ' },
-    { type: 'BNB', name: 'BNB', network: 'BSC', icon: 'BNB' },
-    { type: 'MATIC', name: 'MATIC', network: 'Polygon', icon: 'M' },
-    { type: 'ARB', name: 'Arbitrum', network: 'Arbitrum', icon: 'ARB' }
-  ]
+  const [supportedCryptos, setSupportedCryptos] = useState<any[]>([])
 
   useEffect(() => {
-    loadWallets()
+    fetchInitialData()
   }, [])
+
+  const fetchInitialData = async () => {
+    try {
+      setLoading(true)
+      const [walletsRes, currenciesRes] = await Promise.all([
+        walletAPI.getAll(),
+        publicAPI.getSupportedCurrencies()
+      ])
+
+      setWallets(Array.isArray(walletsRes.data) ? walletsRes.data : [])
+
+      const groups = currenciesRes.data.currency_groups
+      const flattenedCurrencies = Object.values(groups).flat()
+      setSupportedCryptos(flattenedCurrencies)
+
+    } catch (error) {
+      console.error('Failed to load data:', error)
+      showToast('Failed to load wallet data', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const loadWallets = async () => {
     try {
-      setLoading(true)
       const walletsData = await walletAPI.getAll()
       setWallets(Array.isArray(walletsData.data) ? walletsData.data : [])
     } catch (error) {
       console.error('Failed to load wallets:', error)
-      showToast('Failed to load wallets', 'error')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -80,14 +87,24 @@ const WalletsPage: React.FC = () => {
     }
   }
 
-  const handleGenerateWallet = async (cryptoType: string) => {
-    if (!confirm('Are you sure you want to generate a new wallet? This will create a fresh address for you.')) return
+  const [confirmModal, setConfirmModal] = useState<{ show: boolean; type: string | null }>({
+    show: false,
+    type: null
+  })
+
+  const handleGenerateWallet = (cryptoType: string) => {
+    setConfirmModal({ show: true, type: cryptoType })
+  }
+
+  const confirmGeneration = async () => {
+    if (!confirmModal.type) return
 
     try {
       setRefreshing(true)
-      await walletAPI.generate(cryptoType)
+      await walletAPI.generate(confirmModal.type)
       await loadWallets()
       showToast('New wallet generated successfully!', 'success')
+      setConfirmModal({ show: false, type: null })
     } catch (error: any) {
       showToast(error.response?.data?.error || 'Failed to generate wallet', 'error')
     } finally {
@@ -128,15 +145,17 @@ const WalletsPage: React.FC = () => {
 
       <div className={styles.walletGrid}>
         {supportedCryptos.map((crypto) => {
-          const wallet = wallets?.find(w => w?.crypto_type === crypto.type)
+          const wallet = wallets?.find(w => w?.crypto_type === crypto.crypto_type)
 
           return (
-            <div key={crypto.type} className={styles.walletCard}>
+            <div key={crypto.crypto_type} className={styles.walletCard}>
               <div className={styles.walletHeader}>
                 <div className={styles.coinInfo}>
-                  <div className={styles.coinIcon}>{crypto.icon}</div>
+                  <div className={styles.coinIcon}>
+                    <img src={crypto.iconUrl} alt={crypto.name} />
+                  </div>
                   <div className={styles.coinDetails}>
-                    <h3>{crypto.name}</h3>
+                    <h3>{crypto.crypto_type.split('_')[0]}</h3>
                     <span className={styles.networkBadge}>{crypto.network}</span>
                   </div>
                 </div>
@@ -180,7 +199,7 @@ const WalletsPage: React.FC = () => {
                 ) : (
                   <button
                     className={styles.generateBtn}
-                    onClick={() => handleGenerateWallet(crypto.type)}
+                    onClick={() => handleGenerateWallet(crypto.crypto_type)}
                   >
                     <RefreshCw size={16} />
                     Generate Address
@@ -210,8 +229,8 @@ const WalletsPage: React.FC = () => {
                 onChange={(e) => setNewWallet({ ...newWallet, crypto_type: e.target.value })}
               >
                 {supportedCryptos.map(crypto => (
-                  <option key={crypto.type} value={crypto.type}>
-                    {crypto.name} on {crypto.network}
+                  <option key={crypto.crypto_type} value={crypto.crypto_type}>
+                    {crypto.crypto_type.split('_')[0]} on {crypto.network}
                   </option>
                 ))}
               </select>
@@ -244,6 +263,49 @@ const WalletsPage: React.FC = () => {
                 disabled={refreshing}
               >
                 {refreshing ? 'Saving...' : 'Save Configuration'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmModal.show && (
+        <div className={styles.modalOverlay} onClick={() => setConfirmModal({ show: false, type: null })}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className={styles.modalHeader}>
+              <h2>Generate New Wallet?</h2>
+              <button
+                className={styles.closeButton}
+                onClick={() => setConfirmModal({ show: false, type: null })}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="py-4 text-gray-600">
+              <p className="mb-4">
+                Are you sure you want to generate a new <strong>{confirmModal.type?.split('_')[0]}</strong> wallet address?
+              </p>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex gap-3 text-sm text-yellow-800">
+                <ShieldCheck size={20} className="shrink-0" />
+                <p>This will create a dedicated deposit address for your merchant account. You can replace it later if needed.</p>
+              </div>
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setConfirmModal({ show: false, type: null })}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.confirmBtn}
+                onClick={confirmGeneration}
+                disabled={refreshing}
+              >
+                {refreshing ? 'Generating...' : 'Yes, Generate Wallet'}
               </button>
             </div>
           </div>
