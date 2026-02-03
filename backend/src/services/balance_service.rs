@@ -16,12 +16,16 @@ pub struct Balance {
     pub available_balance: Decimal,
     pub reserved_balance: Decimal,
     pub balance_usd: Decimal,
+    pub available_usd: Decimal,
+    pub reserved_usd: Decimal,
     pub last_updated: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BalanceSummary {
     pub total_usd: Decimal,
+    pub available_usd: Decimal,
+    pub reserved_usd: Decimal,
     pub balances: Vec<Balance>,
 }
 
@@ -66,7 +70,11 @@ impl BalanceService {
 
         // Get current USD value
         let price: f64 = self.price_service.get_price(crypto_type).await.unwrap_or(0.0);
-        let balance_usd = available * Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
+        let price_decimal = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
+        
+        let available_usd = available * price_decimal;
+        let reserved_usd = pending * price_decimal;
+        let balance_usd = available_usd; // Keeping existing field consistent with previous logic
 
         Ok(Balance {
             crypto_type,
@@ -74,6 +82,8 @@ impl BalanceService {
             available_balance: available,
             reserved_balance: pending,
             balance_usd,
+            available_usd,
+            reserved_usd,
             last_updated,
         })
     }
@@ -94,10 +104,14 @@ impl BalanceService {
 
         let mut balances = Vec::new();
         let mut total_usd = Decimal::ZERO;
+        let mut total_available_usd = Decimal::ZERO;
+        let mut total_reserved_usd = Decimal::ZERO;
 
         for crypto_type in crypto_types {
             let balance = self.get_balance(merchant_id, crypto_type).await?;
-            total_usd += balance.balance_usd;
+            
+            total_available_usd += balance.available_usd;
+            total_reserved_usd += balance.reserved_usd;
             
             // Only include non-zero balances
             if balance.total_balance > Decimal::ZERO {
@@ -105,8 +119,12 @@ impl BalanceService {
             }
         }
 
+        total_usd = total_available_usd + total_reserved_usd;
+
         Ok(BalanceSummary {
             total_usd,
+            available_usd: total_available_usd,
+            reserved_usd: total_reserved_usd,
             balances,
         })
     }

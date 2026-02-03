@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import { MdPayment, MdTrendingUp, MdAccountBalance, MdPending, MdVerifiedUser, MdWarning } from 'react-icons/md'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI, paymentAPI } from '@/services/apiService'
 import { Analytics, Balance, Payment } from '../types'
@@ -63,28 +62,28 @@ const DashboardPage: React.FC = () => {
       value: analytics?.total_payments?.toLocaleString() || '0',
       change: calculatePaymentTrend(analytics?.payment_trends || []),
       changeType: getChangeType(calculatePaymentTrend(analytics?.payment_trends || [])),
-      icon: MdPayment,
+      iconClass: 'fas fa-money-bill-wave',
     },
     {
       name: 'Total Volume',
       value: analytics?.total_volume_usd ? `$${parseFloat(analytics.total_volume_usd).toLocaleString()}` : '$0',
       change: calculateVolumeTrend(analytics?.payment_trends || []),
       changeType: getChangeType(calculateVolumeTrend(analytics?.payment_trends || [])),
-      icon: MdTrendingUp,
+      iconClass: 'fas fa-chart-line',
     },
     {
       name: 'Balance',
       value: balance?.total_usd ? `$${parseFloat(balance.total_usd).toLocaleString()}` : '$0',
       change: '+0%', // Balance doesn't have historical comparison yet
       changeType: 'neutral' as const,
-      icon: MdAccountBalance,
+      iconClass: 'fas fa-wallet',
     },
     {
       name: 'Pending',
       value: analytics?.pending_payments?.toString() || '0',
       change: calculatePendingTrend(analytics || undefined),
       changeType: getChangeType(calculatePendingTrend(analytics || undefined)),
-      icon: MdPending,
+      iconClass: 'fas fa-clock',
     },
   ]
 
@@ -148,7 +147,7 @@ const DashboardPage: React.FC = () => {
                 <p className={styles.statValue}>{stat.value}</p>
               </div>
               <div className={styles.statIcon}>
-                <stat.icon />
+                <i className={stat.iconClass}></i>
               </div>
             </div>
             <div className={styles.statFooter}>
@@ -167,7 +166,7 @@ const DashboardPage: React.FC = () => {
           <div className={styles.volumeLimitCard}>
             <div className={styles.volumeLimitHeader}>
               <div className={styles.volumeLimitIcon}>
-                {user.kyc_verified ? <MdVerifiedUser /> : <MdWarning />}
+                {user.kyc_verified ? <i className="fas fa-check-circle"></i> : <i className="fas fa-exclamation-triangle"></i>}
               </div>
               <div className={styles.volumeLimitInfo}>
                 <h3 className={styles.volumeLimitTitle}>
@@ -214,7 +213,9 @@ const DashboardPage: React.FC = () => {
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Balance Overview</h2>
           {loading ? (
-            <div className={styles.loading}>Loading balance...</div>
+            <div className={styles.loading}>
+              <i className="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+            </div>
           ) : balance ? (
             <div className={styles.balanceOverview}>
               <div className={styles.balanceItem}>
@@ -222,7 +223,7 @@ const DashboardPage: React.FC = () => {
                 <span className={styles.balanceValue}>${parseFloat(balance.available_usd).toLocaleString()}</span>
               </div>
               <div className={styles.balanceItem}>
-                <span className={styles.balanceLabel}>Reserved:</span>
+                <span className={styles.balanceLabel}>Processing:</span>
                 <span className={styles.balanceValue}>${parseFloat(balance.reserved_usd).toLocaleString()}</span>
               </div>
               {balance.balances.map((currencyBalance) => (

@@ -1,27 +1,17 @@
 import React from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import {
-  MdDashboard,
-  MdPayment,
-  MdAccountBalanceWallet,
-  MdBarChart,
-  MdSettings,
-  MdLogout,
-  MdAccountBalance,
-  MdAssessment,
-} from 'react-icons/md'
 import { useAuthStore } from '@/stores/authStore'
 import styles from './Sidebar.module.css'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: MdDashboard },
-  { name: 'Payments', href: '/payments', icon: MdPayment },
-  { name: 'Wallets', href: '/wallets', icon: MdAccountBalanceWallet },
-  { name: 'Balance', href: '/balance', icon: MdAccountBalance },
-  { name: 'Withdrawals', href: '/withdrawals', icon: MdLogout },
-  { name: 'Analytics', href: '/analytics', icon: MdBarChart },
-  { name: 'Reports', href: '/reports', icon: MdAssessment },
-  { name: 'Settings', href: '/settings', icon: MdSettings },
+  { name: 'Dashboard', href: '/app/dashboard', iconClass: 'fas fa-tachometer-alt' },
+  { name: 'Payments', href: '/app/payments', iconClass: 'fas fa-money-bill-wave' },
+  { name: 'Wallets', href: '/app/wallets', iconClass: 'fas fa-wallet' },
+  { name: 'Balance', href: '/app/balance', iconClass: 'fas fa-university' },
+  { name: 'Withdrawals', href: '/app/withdrawals', iconClass: 'fas fa-sign-out-alt' },
+  { name: 'Analytics', href: '/app/analytics', iconClass: 'fas fa-chart-bar' },
+  { name: 'Reports', href: '/app/reports', iconClass: 'fas fa-file-invoice' },
+  { name: 'Settings', href: '/app/settings', iconClass: 'fas fa-cog' },
 ]
 
 const Sidebar: React.FC = () => {
@@ -34,7 +24,7 @@ const Sidebar: React.FC = () => {
         <div className={styles.logo}>
           <h1>FidduPay</h1>
         </div>
-        
+
         <nav className={styles.nav}>
           <ul className={styles.navList}>
             {navigation.map((item) => {
@@ -45,14 +35,14 @@ const Sidebar: React.FC = () => {
                     to={item.href}
                     className={`${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
                   >
-                    <item.icon className={styles.navIcon} />
+                    <i className={`${item.iconClass} ${styles.navIcon}`}></i>
                     {item.name}
                   </NavLink>
                 </li>
               )
             })}
           </ul>
-          
+
           <div className={styles.userSection}>
             <div className={styles.userInfo}>
               <div className={styles.userAvatar}>
@@ -63,9 +53,9 @@ const Sidebar: React.FC = () => {
                 <p className={styles.userEmail}>{user?.email}</p>
               </div>
             </div>
-            
+
             <button onClick={logout} className={styles.logoutButton}>
-              <MdLogout className={styles.navIcon} />
+              <i className={`fas fa-sign-out-alt ${styles.navIcon}`}></i>
               Sign out
             </button>
           </div>
