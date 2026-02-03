@@ -12,6 +12,7 @@ pub struct Merchant {
     pub email: String,
     pub business_name: String,
     pub api_key_hash: String,
+    pub password_hash: String,
     pub fee_percentage: Decimal,
     pub customer_pays_fee: bool, // true = customer pays, false = merchant pays
     pub is_active: bool,
@@ -19,6 +20,9 @@ pub struct Merchant {
     pub kyc_verified: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub api_key_expires_at: Option<DateTime<Utc>>,
+    pub daily_limit_usd: Option<Decimal>,
+    pub role: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -56,12 +60,17 @@ mod tests {
             email: "test@example.com".to_string(),
             business_name: "Test Business".to_string(),
             api_key_hash: "hashed_key".to_string(),
+            password_hash: "hashed_password".to_string(),
             fee_percentage: Decimal::new(150, 2), // 1.50%
             customer_pays_fee: true,
             is_active: true,
             sandbox_mode: false,
+            kyc_verified: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            api_key_expires_at: None,
+            daily_limit_usd: None,
+            role: "MERCHANT".to_string(),
         };
 
         assert_eq!(merchant.id, 1);
@@ -99,11 +108,17 @@ mod tests {
             email: "test@example.com".to_string(),
             business_name: "Test Business".to_string(),
             api_key_hash: "hashed_key".to_string(),
+            password_hash: "hashed_password".to_string(),
             fee_percentage: Decimal::new(150, 2),
-            customer_pays_fee: true,            is_active: true,
+            customer_pays_fee: true,
+            is_active: true,
             sandbox_mode: false,
+            kyc_verified: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            api_key_expires_at: None,
+            daily_limit_usd: None,
+            role: "MERCHANT".to_string(),
         };
 
         // Test serialization
@@ -181,12 +196,17 @@ mod tests {
             email: "min@example.com".to_string(),
             business_name: "Min Fee".to_string(),
             api_key_hash: "hash".to_string(),
+            password_hash: "hash".to_string(),
             fee_percentage: Decimal::new(10, 2), // 0.10%
             customer_pays_fee: true,
             is_active: true,
             sandbox_mode: false,
+            kyc_verified: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            api_key_expires_at: None,
+            daily_limit_usd: None,
+            role: "MERCHANT".to_string(),
         };
         assert_eq!(merchant_min.fee_percentage, Decimal::new(10, 2));
 
@@ -196,12 +216,17 @@ mod tests {
             email: "max@example.com".to_string(),
             business_name: "Max Fee".to_string(),
             api_key_hash: "hash".to_string(),
+            password_hash: "hash".to_string(),
             fee_percentage: Decimal::new(500, 2), // 5.00%
             customer_pays_fee: true,
             is_active: true,
             sandbox_mode: false,
+            kyc_verified: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            api_key_expires_at: None,
+            daily_limit_usd: None,
+            role: "MERCHANT".to_string(),
         };
         assert_eq!(merchant_max.fee_percentage, Decimal::new(500, 2));
     }
