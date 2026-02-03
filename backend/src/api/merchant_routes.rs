@@ -34,6 +34,10 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/merchants/analytics", get(merchant_handlers::get_analytics))
         .route("/api/v1/merchants/analytics/export", get(merchant_handlers::export_analytics))
         .route("/api/v1/merchants/audit-logs", get(merchant_handlers::get_audit_logs))
+
+        // Fee Settings
+        .route("/api/v1/merchants/fee-setting", get(merchant_handlers::get_fee_setting))
+        .route("/api/v1/merchants/fee-setting", put(merchant_handlers::update_fee_setting))
         
         // Balance and financial
         .route("/api/v1/merchants/balance", get(merchant_handlers::get_balance))

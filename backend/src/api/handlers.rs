@@ -1057,3 +1057,93 @@ pub async fn get_invoice(
         Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
+
+// ============================================================================
+// Fee Setting Endpoints
+// ============================================================================
+
+#[derive(Serialize)]
+pub struct GetFeeSettingResponse {
+    pub fee_percentage: Decimal,
+    pub customer_pays_fee: bool,
+}
+
+pub async fn get_fee_setting(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    let merchant = sqlx::query_as::<_, crate::api::handlers::Merchant>(
+        "SELECT * FROM merchants WHERE id = $1"
+    )
+    .bind(context.merchant_id)
+    .fetch_optional(&state.db)
+    .await;
+
+    match merchant {
+        Ok(Some(m)) => Json(GetFeeSettingResponse {
+            fee_percentage: m.fee_percentage,
+            customer_pays_fee: m.customer_pays_fee,
+        }).into_response(),
+        Ok(None) => (StatusCode::NOT_FOUND, "Merchant not found").into_response(),
+        Err(e) => {
+            tracing::error!("Failed to fetch merchant fees: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response()
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct UpdateFeeSettingRequest {
+    pub fee_percentage: Option<Decimal>,
+    pub customer_pays_fee: Option<bool>,
+}
+
+pub async fn update_fee_setting(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<UpdateFeeSettingRequest>,
+) -> impl IntoResponse {
+    // Fetch current merchant first to handle partial updates
+    let merchant_result = sqlx::query_as::<_, crate::api::handlers::Merchant>(
+        "SELECT * FROM merchants WHERE id = $1"
+    )
+    .bind(context.merchant_id)
+    .fetch_optional(&state.db)
+    .await;
+
+    let current_merchant = match merchant_result {
+        Ok(Some(m)) => m,
+        Ok(None) => return (StatusCode::NOT_FOUND, "Merchant not found").into_response(),
+        Err(e) => {
+            tracing::error!("Failed to fetch merchant for update: {:?}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response();
+        }
+    };
+
+    let new_fee = req.fee_percentage.unwrap_or(current_merchant.fee_percentage);
+    let new_payer_setting = req.customer_pays_fee.unwrap_or(current_merchant.customer_pays_fee);
+
+    let result = sqlx::query(
+        "UPDATE merchants SET fee_percentage = $1, customer_pays_fee = $2, updated_at = NOW() WHERE id = $3"
+    )
+    .bind(new_fee)
+    .bind(new_payer_setting)
+    .bind(context.merchant_id)
+    .execute(&state.db)
+    .await;
+
+    match result {
+        Ok(_) => Json(json!({
+            "status": "success",
+            "message": "Fee settings updated",
+            "data": {
+                "fee_percentage": new_fee,
+                "customer_pays_fee": new_payer_setting
+            }
+        })).into_response(),
+        Err(e) => {
+            tracing::error!("Failed to update fee settings: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response()
+        }
+    }
+}

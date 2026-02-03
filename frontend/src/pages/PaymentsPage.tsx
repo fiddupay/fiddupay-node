@@ -26,7 +26,7 @@ const PaymentsPage: React.FC = () => {
     description: '',
     merchant_address: ''
   })
-  
+
   const { showToast } = useToast()
   const { setLoading } = useLoading()
 
@@ -49,7 +49,7 @@ const PaymentsPage: React.FC = () => {
     setLoading(true)
     try {
       const response = await paymentAPI.getHistory(filters)
-      setPayments(response.data || [])
+      setPayments(response.data.data || [])
     } catch (error) {
       showToast('Failed to load payments', 'error')
     } finally {
@@ -64,7 +64,7 @@ const PaymentsPage: React.FC = () => {
         const successfulPayments = analytics.data.successful_payments || 0
         const totalPayments = analytics.data.total_payments || 0
         const successRate = totalPayments > 0 ? ((successfulPayments / totalPayments) * 100).toFixed(1) + '%' : '0%'
-        
+
         setStats({
           totalPayments: analytics.data.total_payments || 0,
           totalVolume: `$${analytics.data.total_volume_usd || '0.00'}`,
@@ -78,7 +78,7 @@ const PaymentsPage: React.FC = () => {
 
   const handleCreatePayment = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Comprehensive validation
     const amount = parseFloat(newPayment.amount_usd)
     if (!newPayment.amount_usd || isNaN(amount) || amount <= 0) {
@@ -148,7 +148,7 @@ const PaymentsPage: React.FC = () => {
         setPayments(prev => [payment.data, ...prev])
         showToast('Payment created successfully!', 'success')
       }
-      
+
       setShowCreateModal(false)
       setNewPayment({ amount_usd: '', crypto_type: 'USDT_ETH', description: '', merchant_address: '' })
       loadPayments()
@@ -202,14 +202,14 @@ const PaymentsPage: React.FC = () => {
           <p>Manage and track all your cryptocurrency payments</p>
         </div>
         <div className={styles.headerActions}>
-          <button 
+          <button
             className={styles.feeSettingBtn}
             onClick={() => setShowFeeSettingModal(true)}
           >
             <i className="fas fa-cog"></i>
             Fee Settings
           </button>
-          <button 
+          <button
             className={styles.createBtn}
             onClick={() => setShowCreateModal(true)}
           >
@@ -266,7 +266,7 @@ const PaymentsPage: React.FC = () => {
         <div className={styles.tableHeader}>
           <h2>Recent Payments</h2>
           <div className={styles.filters}>
-            <select 
+            <select
               value={filters.status || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value || undefined }))}
               className={styles.filterSelect}
@@ -280,7 +280,7 @@ const PaymentsPage: React.FC = () => {
             </select>
           </div>
         </div>
-        
+
         <div className={styles.table}>
           <div className={styles.tableHeader}>
             <div className={styles.tableCell}><strong>Payment ID</strong></div>
@@ -290,13 +290,13 @@ const PaymentsPage: React.FC = () => {
             <div className={styles.tableCell}><strong>Created</strong></div>
             <div className={styles.tableCell}><strong>Actions</strong></div>
           </div>
-          
+
           {payments.length === 0 ? (
             <div className={styles.emptyState}>
               <i className="fas fa-receipt"></i>
               <h3>No payments yet</h3>
               <p>Create your first payment to get started</p>
-              <button 
+              <button
                 className={styles.createBtn}
                 onClick={() => setShowCreateModal(true)}
               >
@@ -348,14 +348,14 @@ const PaymentsPage: React.FC = () => {
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
               <h2><i className="fas fa-plus"></i> Create New Payment</h2>
-              <button 
+              <button
                 className={styles.closeBtn}
                 onClick={() => setShowCreateModal(false)}
               >
                 <i className="fas fa-times"></i>
               </button>
             </div>
-            
+
             <form onSubmit={handleCreatePayment} className={styles.form}>
               <div className={styles.inputGroup}>
                 <label>Payment Type</label>
@@ -394,7 +394,7 @@ const PaymentsPage: React.FC = () => {
                   required
                 />
               </div>
-              
+
               <div className={styles.inputGroup}>
                 <label htmlFor="crypto_type">Cryptocurrency</label>
                 <select
@@ -428,7 +428,7 @@ const PaymentsPage: React.FC = () => {
                   />
                 </div>
               )}
-              
+
               <div className={styles.inputGroup}>
                 <label htmlFor="description">Description (Optional)</label>
                 <input
@@ -439,10 +439,10 @@ const PaymentsPage: React.FC = () => {
                   placeholder="Order #12345"
                 />
               </div>
-              
+
               <div className={styles.modalActions}>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className={styles.cancelBtn}
                   onClick={() => setShowCreateModal(false)}
                 >
@@ -464,17 +464,17 @@ const PaymentsPage: React.FC = () => {
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
               <h2>Fee Settings</h2>
-              <button 
+              <button
                 className={styles.closeBtn}
                 onClick={() => setShowFeeSettingModal(false)}
               >
                 <i className="fas fa-times"></i>
               </button>
             </div>
-            
+
             <div className={styles.feeSettingOptions}>
               <p>Choose who pays the processing fee:</p>
-              
+
               <div className={styles.feeOption}>
                 <button
                   className={`${styles.feeOptionBtn} ${feeSetting?.customer_pays_fee ? styles.active : ''}`}

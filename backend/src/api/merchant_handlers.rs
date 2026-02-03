@@ -65,4 +65,8 @@ pub use crate::api::handlers::{
     // Auth
     register_merchant,
     login_merchant,
+    
+    // Fee Settings
+    get_fee_setting,
+    update_fee_setting,
 };
