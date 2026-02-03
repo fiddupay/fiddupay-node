@@ -1,5 +1,5 @@
 -- Add customer_pays_fee column to merchants table
-ALTER TABLE merchants ADD COLUMN customer_pays_fee BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE merchants ADD COLUMN customer_pays_fee BOOLEAN NOT NULL DEFAULT true;
 
 -- Add customer_amount column to address_only_payments table
 ALTER TABLE address_only_payments ADD COLUMN customer_amount DECIMAL(20,8);

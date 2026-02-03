@@ -33,7 +33,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       login: async (credentials: LoginCredentials, rememberMe: boolean = false) => {
         try {
           set({ loading: true, error: null })
-          const response = await authAPI.login(credentials)
+          const response = await authAPI.login({ ...credentials, remember_me: rememberMe })
 
           const storage = rememberMe ? localStorage : sessionStorage
           storage.setItem('fiddupay_token', response.data.api_key)

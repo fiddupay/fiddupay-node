@@ -5,7 +5,7 @@ export const authAPI = {
   register: (data: { business_name: string; email: string; password: string }) =>
     api.post('/api/v1/merchants/register', data),
 
-  login: (data: { email: string; password: string }) =>
+  login: (data: { email: string; password: string; remember_me?: boolean }) =>
     api.post('/api/v1/merchants/login', data),
 }
 
