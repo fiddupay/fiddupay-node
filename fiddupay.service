@@ -8,7 +8,7 @@ User=vibes
 WorkingDirectory=/home/vibes/crypto-payment-gateway
 Environment="RUST_LOG=info"
 EnvironmentFile=/home/vibes/crypto-payment-gateway/.env.production
-ExecStart=/home/vibes/crypto-payment-gateway/target/release/crypto-payment-gateway
+ExecStart=/home/vibes/crypto-payment-gateway/target/release/fiddupay
 Restart=always
 RestartSec=10
 
