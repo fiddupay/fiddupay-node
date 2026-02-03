@@ -4,7 +4,7 @@
 use crate::api::{handlers, admin_handlers, wallet_management, security_monitoring, status, blog, careers};
 use crate::api::state::AppState;
 use crate::api::middleware::{create_rate_limit_layer, rate_limit_middleware};
-use crate::middleware::{auth, logging, ip_whitelist};
+use crate::api::{merchant_routes, admin_routes};
 use axum::{
     http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
@@ -31,165 +31,17 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/merchants/login", post(handlers::login_merchant))
         .route("/api/v1/currencies/supported", get(handlers::get_supported_currencies));
 
-    // Protected routes (auth required)
-    let protected_routes = Router::new()
-        // Merchant endpoints
-        .route("/api/v1/merchants/profile", get(handlers::get_merchant_profile))
-        .route("/api/v1/merchants/environment/switch", post(handlers::switch_environment))
-        .route("/api/v1/merchants/api-keys/generate", post(handlers::generate_api_key))
-        .route("/api/v1/merchants/api-keys/rotate", post(handlers::rotate_api_key))
-        .route("/api/v1/merchants/wallets", put(handlers::set_wallet))
-        .route("/api/v1/merchants/webhook", put(handlers::set_webhook))
-        
-        // Payment endpoints
-        // Payment endpoints - Merchant Context
-        .route("/api/v1/merchants/payments", post(handlers::create_payment))
-        .route("/api/v1/merchants/payments", get(handlers::list_payments))
-        .route("/api/v1/merchants/payments/:payment_id", get(handlers::get_payment))
-        .route("/api/v1/merchants/payments/:payment_id/verify", post(handlers::verify_payment))
-        
-        // Refund endpoints - Merchant Context
-        .route("/api/v1/merchants/refunds", post(handlers::create_refund))
-        .route("/api/v1/merchants/refunds/:refund_id", get(handlers::get_refund))
-        .route("/api/v1/merchants/refunds/:refund_id/complete", post(handlers::complete_refund))
-        
-        // Analytics endpoints
-        // Analytics endpoints
-        .route("/api/v1/merchants/analytics", get(handlers::get_analytics))
-        .route("/api/v1/merchants/analytics/export", get(handlers::export_analytics))
-        
-        // Sandbox endpoints (Merchant)
-        .route("/api/v1/merchants/sandbox/enable", post(handlers::enable_sandbox))
-        .route("/api/v1/merchants/sandbox/payments/:payment_id/simulate", post(handlers::simulate_payment))
-        
-        // IP Whitelist endpoints
-        .route("/api/v1/merchants/ip-whitelist", put(handlers::set_ip_whitelist))
-        .route("/api/v1/merchants/ip-whitelist", get(handlers::get_ip_whitelist))
-        
-        // Audit Log endpoints
-        // Audit Log endpoints
-        .route("/api/v1/merchants/audit-logs", get(handlers::get_audit_logs))
-        
-        // Balance endpoints
-        .route("/api/v1/merchants/balance", get(handlers::get_balance))
-        .route("/api/v1/merchants/balance/history", get(handlers::get_balance_history))
-        
-        // Withdrawal endpoints
-        // Withdrawal endpoints
-        .route("/api/v1/merchants/withdrawals", post(handlers::create_withdrawal))
-        .route("/api/v1/merchants/withdrawals", get(handlers::list_withdrawals))
-        .route("/api/v1/merchants/withdrawals/:withdrawal_id", get(handlers::get_withdrawal))
-        .route("/api/v1/merchants/withdrawals/:withdrawal_id/cancel", post(handlers::cancel_withdrawal))
-        .route("/api/v1/merchants/withdrawals/:withdrawal_id/process", post(wallet_management::process_withdrawal))
-        
-        // Wallet Management endpoints
-        // Wallet Management endpoints
-        .route("/api/v1/merchants/wallets", get(wallet_management::get_wallet_configs))
-        .route("/api/v1/merchants/wallets/configure-address", post(wallet_management::configure_address_only_wallet))
-        .route("/api/v1/merchants/wallets/generate", post(wallet_management::generate_wallet))
-        .route("/api/v1/merchants/wallets/import", post(wallet_management::import_wallet))
-        .route("/api/v1/merchants/wallets/export-key", post(wallet_management::export_private_key))
-        .route("/api/v1/merchants/wallets/gas-check", get(wallet_management::check_gas_requirements))
-        .route("/api/v1/merchants/wallets/gas-estimates", get(wallet_management::get_gas_estimates))
-        .route("/api/v1/merchants/wallets/withdrawal-capability/:crypto_type", get(wallet_management::check_withdrawal_capability))
-        
-        // Security Monitoring endpoints
-        // Security Monitoring endpoints
-        .route("/api/v1/merchants/security/events", get(security_monitoring::get_security_events))
-        .route("/api/v1/merchants/security/alerts", get(security_monitoring::get_security_alerts))
-        .route("/api/v1/merchants/security/alerts/:alert_id/acknowledge", post(security_monitoring::acknowledge_security_alert))
-        .route("/api/v1/merchants/security/balance-alerts", get(security_monitoring::get_balance_alerts))
-        .route("/api/v1/merchants/security/balance-alerts/:alert_id/resolve", post(security_monitoring::resolve_balance_alert))
-        .route("/api/v1/merchants/security/gas-check", get(security_monitoring::check_gas_balances))
-        .route("/api/v1/merchants/security/settings", get(security_monitoring::get_security_settings))
-        .route("/api/v1/merchants/security/settings", put(security_monitoring::update_security_settings))
-        .layer(axum_middleware::from_fn_with_state(
-            state.clone(),
-            auth::auth_middleware,
-        ));
-        
-        // .route("/api/v1/merchants/api-keys", get(handlers::list_api_keys))
-        // .route("/api/v1/merchants/webhook-settings", put(handlers::update_webhook_settings))
-        // .route("/api/v1/merchants/webhook-settings", get(handlers::get_webhook_settings))
-        
-        // Multi-user routes
-        // .route("/api/v1/users", post(wallet_management::create_user))
-        // .route("/api/v1/users", get(wallet_management::list_users))
-        // .route("/api/v1/users/:user_id/role", put(wallet_management::update_user_role))
-        // .route("/api/v1/users/:user_id", delete(wallet_management::deactivate_user));
-        
-        // Admin endpoints
-        let admin_routes = Router::new()
-        .route("/api/v1/admin/dashboard", get(admin_handlers::get_admin_dashboard))
-        .route("/api/v1/admin/merchants", get(admin_handlers::get_merchants_summary))
-        .route("/api/v1/admin/merchants/:merchant_id", get(admin_handlers::get_merchant_details))
-        .route("/api/v1/admin/merchants/:merchant_id/suspend", post(admin_handlers::suspend_merchant))
-        .route("/api/v1/admin/merchants/:merchant_id/activate", post(admin_handlers::activate_merchant))
-        .route("/api/v1/admin/merchants/:merchant_id/delete", delete(admin_handlers::delete_merchant))
-        
-        // Admin Security Management
-        .route("/api/v1/admin/security/events", get(admin_handlers::get_admin_security_events))
-        .route("/api/v1/admin/security/alerts", get(admin_handlers::get_admin_security_alerts))
-        .route("/api/v1/admin/security/alerts/:alert_id/acknowledge", post(admin_handlers::acknowledge_admin_security_alert))
-        .route("/api/v1/admin/security/settings", get(admin_handlers::get_security_settings))
-        .route("/api/v1/admin/security/settings", put(admin_handlers::update_security_settings))
-        
-        // Admin System Configuration
-        .route("/api/v1/admin/config/environment", get(admin_handlers::get_environment_config))
-        .route("/api/v1/admin/config/environment", put(admin_handlers::update_environment_config))
-        .route("/api/v1/admin/config/fees", get(admin_handlers::get_fee_config))
-        .route("/api/v1/admin/config/fees", put(admin_handlers::update_fee_config))
-        .route("/api/v1/admin/config/limits", get(admin_handlers::get_system_limits))
-        .route("/api/v1/admin/config/limits", put(admin_handlers::update_system_limits))
-        
-        // Admin Payment Management
-        .route("/api/v1/admin/payments", get(admin_handlers::get_all_payments))
-        .route("/api/v1/admin/payments/:payment_id", get(admin_handlers::get_payment_details))
-        .route("/api/v1/admin/payments/:payment_id/force-confirm", post(admin_handlers::force_confirm_payment))
-        .route("/api/v1/admin/payments/:payment_id/force-fail", post(admin_handlers::force_fail_payment))
-        
-        // Admin Withdrawal Management
-        .route("/api/v1/admin/withdrawals", get(admin_handlers::get_all_withdrawals))
-        .route("/api/v1/admin/withdrawals/:withdrawal_id/approve", post(admin_handlers::approve_withdrawal))
-        .route("/api/v1/admin/withdrawals/:withdrawal_id/reject", post(admin_handlers::reject_withdrawal))
-        
-        // Admin Analytics & Reporting
-        .route("/api/v1/admin/analytics/platform", get(admin_handlers::get_platform_analytics))
-        .route("/api/v1/admin/analytics/revenue", get(admin_handlers::get_revenue_analytics))
-        .route("/api/v1/admin/reports/transactions", get(admin_handlers::get_transaction_reports))
-        .route("/api/v1/admin/reports/merchants", get(admin_handlers::get_merchant_reports))
-        
-        // Admin Wallet Management
-        .route("/api/v1/admin/wallets/hot", get(admin_handlers::get_hot_wallets))
-        .route("/api/v1/admin/wallets/cold", get(admin_handlers::get_cold_wallets))
-        .route("/api/v1/admin/wallets/balances", get(admin_handlers::get_wallet_balances))
-        .route("/api/v1/admin/wallets/transfer", post(admin_handlers::transfer_funds))
-        
-        // Admin User Management
-        .route("/api/v1/admin/users", get(admin_handlers::get_admin_users))
-        .route("/api/v1/admin/users", post(admin_handlers::create_admin_user))
-        .route("/api/v1/admin/users/:user_id", delete(admin_handlers::delete_admin_user))
-        .route("/api/v1/admin/users/:user_id/permissions", put(admin_handlers::update_user_permissions))
-        
-        // Admin System Maintenance
-        .route("/api/v1/admin/system/health", get(admin_handlers::get_system_health))
-        .route("/api/v1/admin/system/logs", get(admin_handlers::get_system_logs))
-        .route("/api/v1/admin/system/backup", post(admin_handlers::create_system_backup))
-        .route("/api/v1/admin/system/maintenance", post(admin_handlers::toggle_maintenance_mode))
-        
-        // Admin specific middleware
-        .layer(axum_middleware::from_fn_with_state(
-            state.clone(),
-            crate::middleware::admin_auth::admin_auth_middleware,
-        ));
-
-    // Additional public routes (no auth required)
+    // Additional public routes
     let additional_public_routes = Router::new()
         .route("/api/v1/status", get(status::get_system_status))
         .route("/api/v1/blog", get(blog::get_blog_posts))
         .route("/api/v1/careers", get(careers::get_careers))
         .route("/api/v1/contact", post(handlers::submit_contact_form))
         .route("/api/v1/pricing", get(handlers::get_pricing_info));
+
+    // Create modular routers
+    let merchant_router = merchant_routes::create_merchant_router(state.clone());
+    let admin_router = admin_routes::create_admin_router(state.clone());
 
     // Combine routes with CORS
     let cors = CorsLayer::new()
@@ -205,8 +57,8 @@ pub fn create_router(state: AppState) -> Router {
 
     public_routes
         .merge(additional_public_routes)
-        .merge(protected_routes)
-        .merge(admin_routes)
+        .merge(merchant_router)
+        .merge(admin_router)
         // Apply global rate limiting to all routes
         .layer(axum_middleware::from_fn_with_state(rate_limiter, rate_limit_middleware))
         .layer(cors)
