@@ -58,7 +58,7 @@ impl OptimizedQueries {
             SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, 
                    COALESCE(customer_pays_fee, true) as "customer_pays_fee!",
                    is_active, sandbox_mode, COALESCE(kyc_verified, false) as "kyc_verified!", created_at, updated_at,
-                   api_key_expires_at, daily_limit_usd, role::text as role
+                   api_key_expires_at, daily_limit_usd, role::text as "role!"
             FROM merchants 
             WHERE id = $1 AND is_active = true
             "#,
