@@ -32,7 +32,7 @@ const WalletsPage: React.FC = () => {
     try {
       setLoading(true)
       const walletsData = await walletAPI.getAll()
-      setWallets(walletsData.data)
+      setWallets(Array.isArray(walletsData.data) ? walletsData.data : [])
     } catch (error) {
       console.error('Failed to load wallets:', error)
     } finally {
@@ -55,9 +55,9 @@ const WalletsPage: React.FC = () => {
           alert('Invalid Solana address format. Should be 32-44 characters.')
           return
         }
-      } else if (newWallet.crypto_type.includes('ETH') || newWallet.crypto_type.includes('BSC') || 
-                 newWallet.crypto_type.includes('POLYGON') || newWallet.crypto_type.includes('ARBITRUM') ||
-                 newWallet.crypto_type === 'BNB' || newWallet.crypto_type === 'MATIC' || newWallet.crypto_type === 'ARB') {
+      } else if (newWallet.crypto_type.includes('ETH') || newWallet.crypto_type.includes('BSC') ||
+        newWallet.crypto_type.includes('POLYGON') || newWallet.crypto_type.includes('ARBITRUM') ||
+        newWallet.crypto_type === 'BNB' || newWallet.crypto_type === 'MATIC' || newWallet.crypto_type === 'ARB') {
         if (!address.startsWith('0x') || address.length !== 42) {
           alert('Invalid EVM address format. Should start with 0x and be 42 characters long.')
           return
@@ -101,7 +101,7 @@ const WalletsPage: React.FC = () => {
       <div className={styles.header}>
         <h1>Wallets</h1>
         <p>Configure your cryptocurrency wallet addresses for automatic forwarding</p>
-        <button 
+        <button
           className={styles.configureBtn}
           onClick={() => setShowConfigModal(true)}
         >
@@ -111,8 +111,8 @@ const WalletsPage: React.FC = () => {
 
       <div className={styles.walletGrid}>
         {supportedCryptos.map((crypto) => {
-          const wallet = wallets.find(w => w.crypto_type === crypto.type)
-          
+          const wallet = wallets?.find(w => w?.crypto_type === crypto.type)
+
           return (
             <div key={crypto.type} className={styles.walletCard}>
               <div className={styles.walletHeader}>
@@ -121,17 +121,17 @@ const WalletsPage: React.FC = () => {
                   {wallet ? 'Configured' : 'Not Configured'}
                 </span>
               </div>
-              
+
               {wallet ? (
                 <div className={styles.walletAddress}>
                   <label>Wallet Address</label>
                   <div className={styles.addressInput}>
-                    <input 
-                      type="text" 
-                      value={wallet.address} 
-                      readOnly 
+                    <input
+                      type="text"
+                      value={wallet.address}
+                      readOnly
                     />
-                    <button 
+                    <button
                       className={styles.copyBtn}
                       onClick={() => copyToClipboard(wallet.address)}
                     >
@@ -144,7 +144,7 @@ const WalletsPage: React.FC = () => {
                 </div>
               ) : (
                 <div className={styles.walletActions}>
-                  <button 
+                  <button
                     className={styles.generateBtn}
                     onClick={() => handleGenerateWallet(crypto.type)}
                   >
@@ -167,9 +167,9 @@ const WalletsPage: React.FC = () => {
             <h2>Configure Wallet</h2>
             <div className={styles.formGroup}>
               <label>Cryptocurrency</label>
-              <select 
+              <select
                 value={newWallet.crypto_type}
-                onChange={(e) => setNewWallet({...newWallet, crypto_type: e.target.value})}
+                onChange={(e) => setNewWallet({ ...newWallet, crypto_type: e.target.value })}
               >
                 {supportedCryptos.map(crypto => (
                   <option key={crypto.type} value={crypto.type}>
@@ -180,10 +180,10 @@ const WalletsPage: React.FC = () => {
             </div>
             <div className={styles.formGroup}>
               <label>Wallet Address</label>
-              <input 
+              <input
                 type="text"
                 value={newWallet.address}
-                onChange={(e) => setNewWallet({...newWallet, address: e.target.value})}
+                onChange={(e) => setNewWallet({ ...newWallet, address: e.target.value })}
                 placeholder="Enter your wallet address"
               />
             </div>

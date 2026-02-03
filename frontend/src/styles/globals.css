@@ -1,5 +1,47 @@
 @import '@fortawesome/fontawesome-free/css/all.min.css';
 
+:root {
+  /* Generic Colors */
+  --white: #ffffff;
+  --black: #111827;
+  --gray: #6b7280;
+  --gray-light: #f3f4f6;
+  --border: #e5e7eb;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --brand-blue: #2563eb;
+  
+  /* Fiddu Design System */
+  --fiddu-brand-primary: #2563eb;
+  --fiddu-brand-hover: #1d4ed8;
+  --fiddu-bg-primary: #f0f9ff;
+  --fiddu-bg-secondary: #ffffff;
+  --fiddu-text-primary: #111827;
+  --fiddu-text-secondary: #4b5563;
+  --fiddu-text-muted: #9ca3af;
+  --fiddu-border: #e5e7eb;
+  --fiddu-primary-hover: #1d4ed8;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; 
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; 
+}
+
+
 * {
   margin: 0;
   padding: 0;
