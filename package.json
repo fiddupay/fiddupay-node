@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "FidduPay - Cryptocurrency Payment Gateway",
   "private": true,
-  "workspaces": [
-    "frontend"
-  ],
   "scripts": {
     "dev:frontend": "cd frontend && npm run dev",
     "build:frontend": "cd frontend && npm run build",
