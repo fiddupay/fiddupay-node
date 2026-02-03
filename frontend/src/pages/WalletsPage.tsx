@@ -152,7 +152,7 @@ const WalletsPage: React.FC = () => {
               <div className={styles.walletHeader}>
                 <div className={styles.coinInfo}>
                   <div className={styles.coinIcon}>
-                    <img src={crypto.iconUrl} alt={crypto.name} />
+                    <img src={crypto.icon_url} alt={crypto.crypto_type} />
                   </div>
                   <div className={styles.coinDetails}>
                     <h3>{crypto.crypto_type.split('_')[0]}</h3>

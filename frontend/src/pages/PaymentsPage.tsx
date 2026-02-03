@@ -40,11 +40,13 @@ const PaymentsPage: React.FC = () => {
   const loadSupportedCurrencies = async () => {
     try {
       const response = await publicAPI.getSupportedCurrencies()
-      setSupportedCryptos(response.data.currencies || [])
+      const groups = response.data.currency_groups
+      const flattenedCurrencies = Object.values(groups).flat() as any[]
+      setSupportedCryptos(flattenedCurrencies)
 
       // Set default if empty and not set
-      if (response.data.currencies?.length > 0 && !newPayment.crypto_type) {
-        setNewPayment(prev => ({ ...prev, crypto_type: response.data.currencies[0].crypto_type }))
+      if (flattenedCurrencies.length > 0 && !newPayment.crypto_type) {
+        setNewPayment(prev => ({ ...prev, crypto_type: flattenedCurrencies[0].crypto_type }))
       }
     } catch (error) {
       console.error('Failed to load supported currencies', error)
@@ -427,7 +429,7 @@ const PaymentsPage: React.FC = () => {
                 >
                   {supportedCryptos.map((crypto: any) => (
                     <option key={crypto.crypto_type} value={crypto.crypto_type}>
-                      {crypto.display_name}
+                      {crypto.crypto_type.split('_')[0]} ({crypto.network})
                     </option>
                   ))}
                 </select>
