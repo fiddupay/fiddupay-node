@@ -5,10 +5,10 @@ After=network.target postgresql.service redis.service
 [Service]
 Type=simple
 User=vibes
-WorkingDirectory=/home/vibes/crypto-payment-gateway
+WorkingDirectory=/home/vibes/crypto-payment-gateway/backend
 Environment="RUST_LOG=info"
-EnvironmentFile=/home/vibes/crypto-payment-gateway/.env.production
-ExecStart=/home/vibes/crypto-payment-gateway/target/release/fiddupay
+EnvironmentFile=/home/vibes/crypto-payment-gateway/backend/.env.production
+ExecStart=/home/vibes/crypto-payment-gateway/backend/target/release/fiddupay
 Restart=always
 RestartSec=10
 

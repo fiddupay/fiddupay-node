@@ -57,6 +57,9 @@ npm run build:frontend
 This project uses Caddy as a reverse proxy and file server. The `Caddyfile` is located in the project root.
 
 ```bash
+# Check status
+sudo systemctl status fiddupay
+sudo systemctl restart fiddupay
 # Start Caddy in the background
 caddy start
 

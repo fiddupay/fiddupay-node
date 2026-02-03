@@ -16,6 +16,8 @@ backend/.sqlx/
 # Environment Files (CRITICAL - Contains API keys and secrets)
 .env
 .env.local
+.env*
+*.env
 .env.production
 .env.staging
 .env.test
