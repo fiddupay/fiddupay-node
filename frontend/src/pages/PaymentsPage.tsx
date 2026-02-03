@@ -282,7 +282,7 @@ const PaymentsPage: React.FC = () => {
         </div>
 
         <div className={styles.table}>
-          <div className={styles.tableHeader}>
+          <div className={`${styles.tableHeader} ${styles.tableRow}`}>
             <div className={styles.tableCell}><strong>Payment ID</strong></div>
             <div className={styles.tableCell}><strong>Amount</strong></div>
             <div className={styles.tableCell}><strong>Currency</strong></div>
