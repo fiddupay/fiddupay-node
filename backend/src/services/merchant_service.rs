@@ -64,7 +64,7 @@ impl MerchantService {
         .bind(&api_key_hash)
         .bind(&password_hash)
         .bind(self.config.default_fee_percentage)
-        .bind(true) // customer_pays_fee (default)
+        .bind(false) // customer_pays_fee (default: Merchant pays fee)
         .bind(true) // is_active
         .bind(true) // sandbox_mode (default)
         .bind(false) // kyc_verified (default)
@@ -245,7 +245,7 @@ impl MerchantService {
         use argon2::{Argon2, PasswordHash, PasswordVerifier};
         
         let merchants = sqlx::query_as::<_, Merchant>(
-            "SELECT id, email, business_name, api_key_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at 
+            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role 
              FROM merchants 
              WHERE is_active = true AND role = 'MERCHANT'"
         )
@@ -257,6 +257,12 @@ impl MerchantService {
         for merchant in merchants {
             if let Ok(parsed_hash) = PasswordHash::new(&merchant.api_key_hash) {
                 if Argon2::default().verify_password(token.as_bytes(), &parsed_hash).is_ok() {
+                    // Check for token expiration
+                    if let Some(expires_at) = merchant.api_key_expires_at {
+                        if Utc::now() > expires_at {
+                            return Err(ServiceError::InvalidApiKey); // Token expired
+                        }
+                    }
                     return Ok(merchant);
                 }
             }
@@ -265,11 +271,12 @@ impl MerchantService {
         Err(ServiceError::InvalidApiKey)
     }
 
-    /// Generate and store API key for merchant (sandbox or live)
-    pub async fn generate_and_store_api_key(
+    /// Generate and store API key for merchant with optional expiration
+    pub async fn generate_and_store_api_key_with_expiry(
         &self,
         merchant_id: i64,
         is_live: bool,
+        expires_at: Option<chrono::DateTime<Utc>>,
     ) -> Result<String, ServiceError> {
         // Use single source of truth for API key generation
         let api_key = self.generate_api_key(is_live);
@@ -283,11 +290,12 @@ impl MerchantService {
             .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
             .to_string();
         
-        // Update merchant with new API key
+        // Update merchant with new API key and expiration
         sqlx::query!(
-            "UPDATE merchants SET api_key_hash = $1, sandbox_mode = $2, updated_at = $3 WHERE id = $4",
+            "UPDATE merchants SET api_key_hash = $1, sandbox_mode = $2, api_key_expires_at = $3, updated_at = $4 WHERE id = $5",
             api_key_hash,
             !is_live,
+            expires_at,
             Utc::now(),
             merchant_id
         )
@@ -295,6 +303,15 @@ impl MerchantService {
         .await?;
         
         Ok(api_key)
+    }
+
+    /// Generate and store API key for merchant (sandbox or live) - Legacy wrapper
+    pub async fn generate_and_store_api_key(
+        &self,
+        merchant_id: i64,
+        is_live: bool,
+    ) -> Result<String, ServiceError> {
+        self.generate_and_store_api_key_with_expiry(merchant_id, is_live, None).await
     }
 
     /// Set or update wallet address for a specific blockchain

@@ -66,15 +66,16 @@ impl PaymentProcessor {
             .get_wallet_address(merchant_id, request.crypto_type)
             .await?;
         
-        // Get merchant to retrieve fee percentage
+        // Get merchant to retrieve fee percentage and preference
         let merchant = sqlx::query!(
-            "SELECT fee_percentage, sandbox_mode FROM merchants WHERE id = $1",
+            "SELECT fee_percentage, customer_pays_fee, sandbox_mode FROM merchants WHERE id = $1",
             merchant_id
         )
         .fetch_one(&self.db_pool)
         .await?;
         
         let fee_percentage = merchant.fee_percentage;
+        let customer_pays_fee = merchant.customer_pays_fee;
         let is_sandbox = merchant.sandbox_mode;
         
         // Validate fee percentage is within acceptable bounds (0.1% - 5%)
@@ -84,9 +85,15 @@ impl PaymentProcessor {
         let (crypto_amount, amount_usd, fee_amount_crypto, fee_amount_usd) = if let Some(usd_amount) = request.amount_usd {
             // Case 1: amount_usd provided - calculate crypto amount from USD
             let fee_amount_usd = FeeCalculator::calculate_fee_usd(usd_amount, fee_percentage);
-            let total_amount_usd = FeeCalculator::calculate_total_with_fee(usd_amount, fee_amount_usd);
             
-            let (crypto_amount, fee_amount_crypto) = if request.crypto_type.as_str() == "USDT" {
+            // If customer pays fee, add it to the total. Otherwise, merchant absorbs it from the base amount.
+            let total_amount_usd = if customer_pays_fee {
+                FeeCalculator::calculate_total_with_fee(usd_amount, fee_amount_usd)
+            } else {
+                usd_amount
+            };
+            
+            let (crypto_total, fee_crypto) = if request.crypto_type.as_str() == "USDT" {
                 (total_amount_usd, fee_amount_usd)
             } else {
                 let crypto_price = self.price_service
@@ -103,10 +110,10 @@ impl PaymentProcessor {
                 )
             };
             
-            (crypto_amount, total_amount_usd, fee_amount_crypto, fee_amount_usd)
+            (crypto_total, total_amount_usd, fee_crypto, fee_amount_usd)
         } else if let Some(crypto_amt) = request.amount {
-            // Case 2: amount provided - use as crypto amount and calculate USD equivalent
-            let amount_usd = if request.crypto_type.as_str() == "USDT" {
+            // Case 2: amount provided - use as base crypto amount and calculate USD equivalent
+            let base_amount_usd = if request.crypto_type.as_str() == "USDT" {
                 crypto_amt
             } else {
                 let crypto_price = self.price_service
@@ -120,22 +127,43 @@ impl PaymentProcessor {
                 crypto_amt * crypto_price_decimal
             };
             
-            let fee_amount_usd = FeeCalculator::calculate_fee_usd(amount_usd, fee_percentage);
-            let fee_amount_crypto = if request.crypto_type.as_str() == "USDT" {
-                fee_amount_usd
+            let fee_amount_usd = FeeCalculator::calculate_fee_usd(base_amount_usd, fee_percentage);
+            
+            // If customer pays fee, add it to the total crypto/usd.
+            // If merchant pays, the provided crypto_amt is the total customer pays.
+            let (final_crypto, final_usd, fee_crypto) = if customer_pays_fee {
+                let fee_crypto = if request.crypto_type.as_str() == "USDT" {
+                    fee_amount_usd
+                } else {
+                    let crypto_price = self.price_service
+                        .get_price(request.crypto_type)
+                        .await
+                        .map_err(|e| ServiceError::Internal(format!("Failed to fetch price: {}", e)))?;
+                    
+                    let crypto_price_decimal = Decimal::from_f64_retain(crypto_price)
+                        .ok_or_else(|| ServiceError::Internal("Invalid price conversion".to_string()))?;
+                    
+                    fee_amount_usd / crypto_price_decimal
+                };
+                (crypto_amt + fee_crypto, base_amount_usd + fee_amount_usd, fee_crypto)
             } else {
-                let crypto_price = self.price_service
-                    .get_price(request.crypto_type)
-                    .await
-                    .map_err(|e| ServiceError::Internal(format!("Failed to fetch price: {}", e)))?;
-                
-                let crypto_price_decimal = Decimal::from_f64_retain(crypto_price)
-                    .ok_or_else(|| ServiceError::Internal("Invalid price conversion".to_string()))?;
-                
-                fee_amount_usd / crypto_price_decimal
+                let fee_crypto = if request.crypto_type.as_str() == "USDT" {
+                    fee_amount_usd
+                } else {
+                    let crypto_price = self.price_service
+                        .get_price(request.crypto_type)
+                        .await
+                        .map_err(|e| ServiceError::Internal(format!("Failed to fetch price: {}", e)))?;
+                    
+                    let crypto_price_decimal = Decimal::from_f64_retain(crypto_price)
+                        .ok_or_else(|| ServiceError::Internal("Invalid price conversion".to_string()))?;
+                    
+                    fee_amount_usd / crypto_price_decimal
+                };
+                (crypto_amt, base_amount_usd, fee_crypto)
             };
             
-            (crypto_amt, amount_usd, fee_amount_crypto, fee_amount_usd)
+            (final_crypto, final_usd, fee_crypto, fee_amount_usd)
         } else {
             return Err(ServiceError::ValidationError("Either amount or amount_usd must be provided".to_string()));
         };
