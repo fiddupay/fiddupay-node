@@ -52,6 +52,27 @@ npm run build:backend
 npm run build:frontend
 ```
 
+### Caddy Server (Reverse Proxy)
+
+This project uses Caddy as a reverse proxy and file server. The `Caddyfile` is located in the project root.
+
+```bash
+# Start Caddy in the background
+caddy start
+
+# Run Caddy in the foreground
+caddy run
+
+# Reload Caddy config (zero downtime)
+caddy reload
+
+# Stop Caddy
+caddy stop
+
+# Format Caddyfile
+caddy fmt --overwrite
+```
+
 ### SDK Deployment
 
 To deploy a new version of the Node.js SDK to npm:
