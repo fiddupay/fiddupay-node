@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { MdPayment, MdTrendingUp, MdAccountBalance, MdPending, MdVerifiedUser, MdWarning } from 'react-icons/md'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI, paymentAPI } from '@/services/apiService'
 import { Analytics, Balance, Payment } from '../types'
 import styles from './DashboardPage.module.css'
 
 const DashboardPage: React.FC = () => {
-  const { user } = useAuth()
+  const { user } = useAuthStore()
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [balance, setBalance] = useState<Balance | null>(null)
   const [loading, setLoading] = useState(true)
@@ -174,7 +174,7 @@ const DashboardPage: React.FC = () => {
                   {user.kyc_verified ? 'KYC Verified Account' : 'Daily Volume Limit'}
                 </h3>
                 <p className={styles.volumeLimitSubtitle}>
-                  {user.kyc_verified 
+                  {user.kyc_verified
                     ? 'No daily volume limits apply to your account'
                     : `$${user.daily_volume_remaining} remaining today`
                   }
@@ -184,10 +184,10 @@ const DashboardPage: React.FC = () => {
             {!user.kyc_verified && (
               <div className={styles.volumeLimitProgress}>
                 <div className={styles.progressBar}>
-                  <div 
+                  <div
                     className={styles.progressFill}
-                    style={{ 
-                      width: `${((1000 - parseFloat(user.daily_volume_remaining || '1000')) / 1000) * 100}%` 
+                    style={{
+                      width: `${((1000 - parseFloat(user.daily_volume_remaining || '1000')) / 1000) * 100}%`
                     }}
                   />
                 </div>
