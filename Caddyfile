@@ -7,9 +7,6 @@ fiddupay.com, www.fiddupay.com {
     # Proxy all requests to the Rust backend
     reverse_proxy localhost:8080 {
         header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
     }
 
     # Enable compression
