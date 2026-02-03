@@ -60,6 +60,8 @@ This project uses Caddy as a reverse proxy and file server. The `Caddyfile` is l
 # Check status
 sudo systemctl status fiddupay
 sudo systemctl restart fiddupay
+sudo systemctl restart caddy
+sudo systemctl status caddy
 # Start Caddy in the background
 sudo caddy start
 
