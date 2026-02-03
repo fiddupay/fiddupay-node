@@ -245,9 +245,9 @@ impl MerchantService {
         use argon2::{Argon2, PasswordHash, PasswordVerifier};
         
         let merchants = sqlx::query_as::<_, Merchant>(
-            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role 
+            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
              FROM merchants 
-             WHERE is_active = true AND role = 'MERCHANT'"
+             WHERE is_active = true"
         )
         .fetch_all(&self.db_pool)
         .await

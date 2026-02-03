@@ -72,6 +72,8 @@ pub struct LoginMerchantRequest {
     
     #[validate(length(equal = 6))]
     pub two_factor_code: Option<String>,
+
+    pub remember_me: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -161,8 +163,15 @@ pub async fn login_merchant(
                     state.config.clone(),
                 );
                 
+                // Calculate expiration based on remember_me
+                let expires_at = if req.remember_me.unwrap_or(false) {
+                    Some(chrono::Utc::now() + chrono::Duration::days(30))
+                } else {
+                    Some(chrono::Utc::now() + chrono::Duration::hours(24)) // Default 24h session
+                };
+
                 // Generate and store a new API key (uses sandbox mode by default)
-                match merchant_service.generate_and_store_api_key(merchant.id, !merchant.sandbox_mode).await {
+                match merchant_service.generate_and_store_api_key_with_expiry(merchant.id, !merchant.sandbox_mode, expires_at).await {
                     Ok(new_api_key) => {
                         AuthResponse {
                             user: MerchantProfile {
