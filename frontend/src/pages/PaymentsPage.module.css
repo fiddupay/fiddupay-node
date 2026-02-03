@@ -612,3 +612,24 @@
   line-height: 1.4;
   margin: 0;
 }
+
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #6b7280;
+  gap: 1rem;
+}
+
+.loadingState i {
+  font-size: 2rem;
+  color: #3b82f6;
+}
+
+.loadingState p {
+  font-size: 0.875rem;
+  /* Smaller text as requested */
+  font-weight: 500;
+}

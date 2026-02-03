@@ -102,13 +102,24 @@ impl BalanceService {
             CryptoType::UsdtArbitrum,
         ];
 
+        let mut tasks = Vec::new();
+        for crypto_type in crypto_types {
+            tasks.push(self.get_balance(merchant_id, crypto_type));
+        }
+
+        let results = futures::future::join_all(tasks).await;
+
         let mut balances = Vec::new();
         let mut total_usd = Decimal::ZERO;
         let mut total_available_usd = Decimal::ZERO;
         let mut total_reserved_usd = Decimal::ZERO;
 
-        for crypto_type in crypto_types {
-            let balance = self.get_balance(merchant_id, crypto_type).await?;
+        for result in results {
+            // handle error mostly by ignoring or logging, but for now propagate if strict or just skip
+            // The original code tried one by one and returned error. 
+            // We should arguably still return error if one fails, or maybe just log it.
+            // Let's stick to original behavior: if one fails, we return error.
+            let balance = result?;
             
             total_available_usd += balance.available_usd;
             total_reserved_usd += balance.reserved_usd;

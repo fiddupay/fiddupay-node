@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { useToast } from '@/contexts/ToastContext'
-import { useLoading } from '@/contexts/LoadingContext'
-import { merchantAPI, paymentAPI } from '@/services/apiService'
+import { merchantAPI, paymentAPI, publicAPI } from '@/services/apiService'
 import { Payment, PaymentFilters, FeeSettingResponse } from '@/types'
 import styles from './PaymentsPage.module.css'
 
 const PaymentsPage: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([])
   const [feeSetting, setFeeSetting] = useState<FeeSettingResponse | null>(null)
+  const [supportedCryptos, setSupportedCryptos] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     totalPayments: 0,
     totalVolume: '$0.00',
@@ -28,13 +29,27 @@ const PaymentsPage: React.FC = () => {
   })
 
   const { showToast } = useToast()
-  const { setLoading } = useLoading()
 
   useEffect(() => {
     loadPayments()
     loadStats()
     loadFeeSetting()
+    loadSupportedCurrencies()
   }, [filters])
+
+  const loadSupportedCurrencies = async () => {
+    try {
+      const response = await publicAPI.getSupportedCurrencies()
+      setSupportedCryptos(response.data.currencies || [])
+
+      // Set default if empty and not set
+      if (response.data.currencies?.length > 0 && !newPayment.crypto_type) {
+        setNewPayment(prev => ({ ...prev, crypto_type: response.data.currencies[0].crypto_type }))
+      }
+    } catch (error) {
+      console.error('Failed to load supported currencies', error)
+    }
+  }
 
   const loadFeeSetting = async () => {
     try {
@@ -294,7 +309,12 @@ const PaymentsPage: React.FC = () => {
             <div className={styles.tableCell}><strong>Actions</strong></div>
           </div>
 
-          {payments.length === 0 ? (
+          {loading ? (
+            <div className={styles.loadingState}>
+              <i className="fas fa-spinner fa-spin"></i>
+              <p>Loading payments...</p>
+            </div>
+          ) : payments.length === 0 ? (
             <div className={styles.emptyState}>
               <i className="fas fa-receipt"></i>
               <h3>No payments yet</h3>
@@ -405,16 +425,11 @@ const PaymentsPage: React.FC = () => {
                   value={newPayment.crypto_type}
                   onChange={(e) => setNewPayment(prev => ({ ...prev, crypto_type: e.target.value }))}
                 >
-                  <option value="ETH">ETH (Ethereum)</option>
-                  <option value="BNB">BNB (BSC)</option>
-                  <option value="MATIC">MATIC (Polygon)</option>
-                  <option value="ARB">ARB (Arbitrum)</option>
-                  <option value="SOL">SOL (Solana)</option>
-                  <option value="USDT_ETH">USDT (Ethereum)</option>
-                  <option value="USDT_BSC">USDT (BSC)</option>
-                  <option value="USDT_POLYGON">USDT (Polygon)</option>
-                  <option value="USDT_ARBITRUM">USDT (Arbitrum)</option>
-                  <option value="USDT_SPL">USDT (Solana)</option>
+                  {supportedCryptos.map((crypto: any) => (
+                    <option key={crypto.crypto_type} value={crypto.crypto_type}>
+                      {crypto.display_name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
