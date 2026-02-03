@@ -3,7 +3,7 @@
     email techytrosoftware@gmail.com
 }
 
-fiddupay.com, www.fiddupay.com {
+fiddupay.com, www.fiddupay.com, api.fiddupay.com {
     # Proxy all requests to the Rust backend
     reverse_proxy localhost:8080 {
         header_up Host {host}
