@@ -192,7 +192,7 @@ impl PaymentProcessor {
             amount_usd,
             merchant_wallet,
             expires_at,
-            self.config.default_fee_percentage,
+            fee_percentage,
             fee_amount_crypto,
             fee_amount_usd,
             request.crypto_type.network(),

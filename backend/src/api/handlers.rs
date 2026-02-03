@@ -20,6 +20,8 @@ use html_escape::encode_text;
 
 // Import validation functions
 use crate::middleware::validation::{validate_business_email, validate_password_strength, validate_webhook_url};
+use rust_decimal::Decimal;
+use crate::models::merchant::Merchant;
 
 pub async fn root_handler() -> &'static str {
     "backend is running"
@@ -987,9 +989,11 @@ async fn save_contact_message(
     Ok(result.id)
 }
 
-pub async fn get_pricing_info() -> impl IntoResponse {
+pub async fn get_pricing_info(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
     let pricing_data = json!({
-        "transaction_fee_percentage": 0.75,
+        "transaction_fee_percentage": state.config.default_fee_percentage,
         "daily_volume_limit_non_kyc_usd": "1000.00",
         "supported_networks": 5,
         "supported_cryptocurrencies": [
@@ -1076,7 +1080,7 @@ pub async fn get_fee_setting(
         "SELECT * FROM merchants WHERE id = $1"
     )
     .bind(context.merchant_id)
-    .fetch_optional(&state.db)
+    .fetch_optional(&state.db_pool)
     .await;
 
     match merchant {
@@ -1108,7 +1112,7 @@ pub async fn update_fee_setting(
         "SELECT * FROM merchants WHERE id = $1"
     )
     .bind(context.merchant_id)
-    .fetch_optional(&state.db)
+    .fetch_optional(&state.db_pool)
     .await;
 
     let current_merchant = match merchant_result {
@@ -1129,7 +1133,7 @@ pub async fn update_fee_setting(
     .bind(new_fee)
     .bind(new_payer_setting)
     .bind(context.merchant_id)
-    .execute(&state.db)
+    .execute(&state.db_pool)
     .await;
 
     match result {

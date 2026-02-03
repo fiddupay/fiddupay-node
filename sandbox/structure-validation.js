@@ -16,7 +16,7 @@ const VALID_CRYPTO_TYPES = [
 // Mock response validation
 function validatePaymentRequestStructure() {
   console.log(' Validating Payment Request Structures...\n');
-  
+
   let validationsPassed = 0;
   let totalValidations = 0;
 
@@ -33,21 +33,21 @@ function validatePaymentRequestStructure() {
         customerId: 'customer-456'
       }
     };
-    
+
     // Validate required fields
     if (!standardPaymentRequest.amount_usd || !standardPaymentRequest.crypto_type) {
       throw new Error('Missing required fields');
     }
-    
+
     // Validate data types
     if (typeof standardPaymentRequest.amount_usd !== 'string') {
       throw new Error('amount_usd should be string');
     }
-    
+
     if (!VALID_CRYPTO_TYPES.includes(standardPaymentRequest.crypto_type)) {
       throw new Error('Invalid crypto_type');
     }
-    
+
     console.log('    Structure valid');
     console.log('    Required fields present');
     console.log('    Data types correct');
@@ -67,7 +67,7 @@ function validatePaymentRequestStructure() {
       requested_amount: 0.05,
       customer_pays_fee: true
     };
-    
+
     // Validate required fields
     const requiredFields = ['crypto_type', 'merchant_address', 'requested_amount', 'customer_pays_fee'];
     for (const field of requiredFields) {
@@ -75,22 +75,22 @@ function validatePaymentRequestStructure() {
         throw new Error(`Missing required field: ${field}`);
       }
     }
-    
+
     // Validate data types
     if (typeof addressOnlyRequest.requested_amount !== 'number') {
       throw new Error('requested_amount should be number');
     }
-    
+
     if (typeof addressOnlyRequest.customer_pays_fee !== 'boolean') {
       throw new Error('customer_pays_fee should be boolean');
     }
-    
+
     // Validate address format
-    if (addressOnlyRequest.crypto_type !== 'SOL' && 
-        !addressOnlyRequest.merchant_address.startsWith('0x')) {
+    if (addressOnlyRequest.crypto_type !== 'SOL' &&
+      !addressOnlyRequest.merchant_address.startsWith('0x')) {
       throw new Error('Invalid EVM address format');
     }
-    
+
     console.log('    Structure valid');
     console.log('    Required fields present');
     console.log('    Data types correct');
@@ -112,7 +112,7 @@ function validatePaymentRequestStructure() {
       payment_link: 'https://pay.fiddupay.com/pay_1234567890',
       expires_at: '2026-01-26T14:00:00Z'
     };
-    
+
     const expectedAddressOnlyResponse = {
       payment_id: 'pay_addr_1234567890',
       gateway_deposit_address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
@@ -123,7 +123,7 @@ function validatePaymentRequestStructure() {
       customer_instructions: 'Send exactly 0.05375 ETH to the deposit address',
       supported_currencies: ['ETH', 'BNB', 'MATIC', 'ARB', 'SOL']
     };
-    
+
     // Validate standard response structure
     const standardRequiredFields = ['payment_id', 'amount_usd', 'crypto_type', 'status'];
     for (const field of standardRequiredFields) {
@@ -131,10 +131,10 @@ function validatePaymentRequestStructure() {
         throw new Error(`Standard response missing: ${field}`);
       }
     }
-    
+
     // Validate address-only response structure
     const addressOnlyRequiredFields = [
-      'payment_id', 'requested_amount', 'customer_amount', 
+      'payment_id', 'requested_amount', 'customer_amount',
       'processing_fee', 'customer_pays_fee', 'customer_instructions'
     ];
     for (const field of addressOnlyRequiredFields) {
@@ -142,7 +142,7 @@ function validatePaymentRequestStructure() {
         throw new Error(`Address-only response missing: ${field}`);
       }
     }
-    
+
     console.log('    Standard response structure valid');
     console.log('    Address-only response structure valid');
     console.log('    All required fields present');
@@ -158,7 +158,7 @@ function validatePaymentRequestStructure() {
     const baseAmount = 100;
     const processingFeeRate = 0.0075; // 0.75%
     const processingFee = baseAmount * processingFeeRate;
-    
+
     // Customer pays fee scenario
     const customerPaysScenario = {
       requested_amount: baseAmount,
@@ -166,7 +166,7 @@ function validatePaymentRequestStructure() {
       customer_amount: baseAmount + processingFee,
       customer_pays_fee: true
     };
-    
+
     // Merchant pays fee scenario
     const merchantPaysScenario = {
       requested_amount: baseAmount,
@@ -174,16 +174,16 @@ function validatePaymentRequestStructure() {
       customer_amount: baseAmount,
       customer_pays_fee: false
     };
-    
+
     // Validate logic
     if (customerPaysScenario.customer_amount <= merchantPaysScenario.customer_amount) {
       throw new Error('Customer-pays amount should be higher');
     }
-    
+
     if (customerPaysScenario.processing_fee !== merchantPaysScenario.processing_fee) {
       throw new Error('Processing fee should be same in both scenarios');
     }
-    
+
     console.log('    Fee calculation logic valid');
     console.log('    Customer pays scenario:', customerPaysScenario.customer_amount);
     console.log('    Merchant pays scenario:', merchantPaysScenario.customer_amount);
@@ -199,7 +199,7 @@ function validatePaymentRequestStructure() {
   try {
     const nativeTokens = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB'];
     const stablecoins = ['USDT_ETH', 'USDT_BSC', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
-    
+
     console.log('   Native Tokens:');
     nativeTokens.forEach(token => {
       if (VALID_CRYPTO_TYPES.includes(token)) {
@@ -208,7 +208,7 @@ function validatePaymentRequestStructure() {
         console.log(`      ${token} - Not supported`);
       }
     });
-    
+
     console.log('   Stablecoins:');
     stablecoins.forEach(token => {
       if (VALID_CRYPTO_TYPES.includes(token)) {
@@ -217,7 +217,7 @@ function validatePaymentRequestStructure() {
         console.log(`      ${token} - Not supported`);
       }
     });
-    
+
     const totalSupported = VALID_CRYPTO_TYPES.length;
     console.log(`    Total supported: ${totalSupported} crypto types`);
     console.log(`    Coverage: 5 blockchains, 10 currencies`);
@@ -237,10 +237,10 @@ function validatePaymentRequestStructure() {
       analytics: ['retrieve', 'export'],
       webhooks: ['verifySignature', 'constructEvent']
     };
-    
+
     let methodsFound = 0;
     let totalMethods = 0;
-    
+
     for (const [resource, methods] of Object.entries(expectedMethods)) {
       console.log(`   ${resource.toUpperCase()}:`);
       if (client[resource]) {
@@ -258,7 +258,7 @@ function validatePaymentRequestStructure() {
         totalMethods += methods.length;
       }
     }
-    
+
     console.log(`    Methods coverage: ${methodsFound}/${totalMethods}`);
     if (methodsFound >= totalMethods * 0.8) { // 80% coverage acceptable
       validationsPassed++;
@@ -274,13 +274,13 @@ function validatePaymentRequestStructure() {
   console.log(`Passed: ${validationsPassed}`);
   console.log(`Failed: ${totalValidations - validationsPassed}`);
   console.log(`Success Rate: ${((validationsPassed / totalValidations) * 100).toFixed(1)}%`);
-  
+
   if (validationsPassed === totalValidations) {
     console.log('\n All validations passed! SDK structure is correct.');
   } else {
     console.log(`\n  ${totalValidations - validationsPassed} validation(s) failed.`);
   }
-  
+
   console.log('\n Validated Components:');
   console.log('   • Request Structure Validation');
   console.log('   • Response Structure Validation');
@@ -288,7 +288,7 @@ function validatePaymentRequestStructure() {
   console.log('   • Crypto Type Coverage');
   console.log('   • SDK Method Coverage');
   console.log('   • Data Type Validation');
-  
+
   return validationsPassed === totalValidations;
 }
 

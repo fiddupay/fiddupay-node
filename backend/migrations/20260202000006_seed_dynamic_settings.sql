@@ -2,7 +2,7 @@
 
 INSERT INTO system_settings (key, value, description, updated_at) VALUES
 -- Fee Configuration
-('DEFAULT_FEE_PERCENTAGE', '0.75', 'Default platform fee percentage per transaction', NOW()),
+('DEFAULT_FEE_PERCENTAGE', '1.50', 'Default platform fee percentage per transaction', NOW()),
 
 -- Limits
 ('DAILY_VOLUME_LIMIT_NON_KYC_USD', '1000.00', 'Daily transaction volume limit for non-KYC merchants in USD', NOW()),

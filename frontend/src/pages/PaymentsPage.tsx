@@ -162,7 +162,7 @@ const PaymentsPage: React.FC = () => {
   const handleUpdateFeeSetting = async (customerPaysFee: boolean) => {
     setLoading(true)
     try {
-      await merchantAPI.updateFeeSetting({ fee_percentage: feeSetting?.fee_percentage || 0.75 })
+      await merchantAPI.updateFeeSetting({ fee_percentage: feeSetting?.fee_percentage || 0 })
       showToast(`Fee setting updated: ${customerPaysFee ? 'Customer pays fee' : 'Merchant pays fee'}`, 'success')
       setShowFeeSettingModal(false)
       loadFeeSetting()

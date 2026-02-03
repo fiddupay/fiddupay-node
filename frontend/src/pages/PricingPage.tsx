@@ -47,7 +47,7 @@ const PricingPage: React.FC = () => {
         <div className={styles.header}>
           <h1 className={styles.title}>Simple, Transparent Pricing</h1>
           <p className={styles.subtitle}>
-            Start accepting crypto payments today with our straightforward pricing. 
+            Start accepting crypto payments today with our straightforward pricing.
             No hidden fees, no setup costs, no monthly subscriptions.
           </p>
         </div>
@@ -65,7 +65,7 @@ const PricingPage: React.FC = () => {
                 Perfect for businesses of all sizes. Only pay when you receive payments.
               </p>
             </div>
-            
+
             <div className={styles.planFeatures}>
               <h4>What's included:</h4>
               <ul className={styles.features}>
@@ -79,7 +79,7 @@ const PricingPage: React.FC = () => {
                 <li><i className="fas fa-check"></i> Email support</li>
               </ul>
             </div>
-            
+
             <Link to="/register" className={`${styles.planBtn} ${styles.primaryBtn}`}>
               <i className="fas fa-arrow-right"></i>
               Start Accepting Payments
@@ -97,7 +97,7 @@ const PricingPage: React.FC = () => {
                 For high-volume businesses with custom requirements and dedicated support.
               </p>
             </div>
-            
+
             <div className={styles.planFeatures}>
               <h4>Everything in Pay-Per-Use, plus:</h4>
               <ul className={styles.features}>
@@ -113,7 +113,7 @@ const PricingPage: React.FC = () => {
                 <li><i className="fas fa-check"></i> Phone support</li>
               </ul>
             </div>
-            
+
             <a href="mailto:sales@fiddupay.com" className={`${styles.planBtn} ${styles.secondaryBtn}`}>
               <i className="fas fa-envelope"></i>
               Contact Sales
