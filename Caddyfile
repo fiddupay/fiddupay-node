@@ -1,41 +1,41 @@
 {
-    # Global options
-    email techytrosoftware@gmail.com
+	# Global options
+	email techytrosoftware@gmail.com
 }
 
 # Frontend (React/Vite SPA)
 fiddupay.com, www.fiddupay.com {
-    root * /home/vibes/crypto-payment-gateway/frontend/dist
-    encode gzip
-    file_server
+	root * /home/vibes/crypto-payment-gateway/frontend/dist
+	encode gzip
+	file_server
 
-    # SPA Routing: If file doesn't exist, serve index.html
-    try_files {path} /index.html
+	# SPA Routing: If file doesn't exist, serve index.html
+	try_files {path} /index.html
 
-    header {
-        Strict-Transport-Security "max-age=31536000;"
-        X-XSS-Protection "1; mode=block"
-        X-Frame-Options "DENY"
-        X-Content-Type-Options "nosniff"
-        -Server
-    }
+	header {
+		Strict-Transport-Security "max-age=31536000;"
+		X-XSS-Protection "1; mode=block"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
 
-    log {
-        output file /var/log/caddy/fiddupay.frontend.log
-    }
+	log {
+		output file /var/log/caddy/fiddupay.frontend.log
+	}
 }
 
 # Backend API
 api.fiddupay.com {
-    reverse_proxy localhost:8080 {
-        header_up Host {host}
-    }
+	reverse_proxy localhost:8080 {
+		header_up Host {host}
+	}
 
-    header {
-        Strict-Transport-Security "max-age=31536000;"
-    }
+	header {
+		Strict-Transport-Security "max-age=31536000;"
+	}
 
-    log {
-        output file /var/log/caddy/fiddupay.api.log
-    }
+	log {
+		output file /var/log/caddy/fiddupay.api.log
+	}
 }
