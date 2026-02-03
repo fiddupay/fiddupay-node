@@ -71,7 +71,7 @@ const DocsPage: React.FC = () => {
               <h3>Complete API Reference</h3>
               <p>Full documentation of all merchant API endpoints with examples</p>
             </a>
-            <a href="https://github.com/CHToken/crypto-payment-gateway/blob/main/docs/NODE_SDK.md" target="_blank" rel="noopener noreferrer" className={styles.quickLinkCard}>
+            <a href="https://www.npmjs.com/package/@fiddupay/fiddupay-node" target="_blank" rel="noopener noreferrer" className={styles.quickLinkCard}>
               <i className="fas fa-code"></i>
               <h3>Node.js SDK</h3>
               <p>Official SDK for easy integration with Node.js applications</p>
@@ -88,7 +88,7 @@ const DocsPage: React.FC = () => {
           <div className={styles.section}>
             <h1>FidduPay API Documentation</h1>
             <p className={styles.lead}>
-              The FidduPay API is organized around REST. Our API has predictable resource-oriented URLs, 
+              The FidduPay API is organized around REST. Our API has predictable resource-oriented URLs,
               accepts JSON request bodies, returns JSON-encoded responses, and uses standard HTTP response codes.
             </p>
 
@@ -269,8 +269,8 @@ const DocsPage: React.FC = () => {
                 <h3>Generate API Keys</h3>
                 <p>After registration, you'll receive your API keys. Start with test keys for development.</p>
                 <div className={styles.keyExample}>
-                  <strong>Test Keys:</strong><br/>
-                  <code>sk_test_...</code> (Secret Key)<br/>
+                  <strong>Test Keys:</strong><br />
+                  <code>sk_test_...</code> (Secret Key)<br />
                   <code>pk_test_...</code> (Publishable Key)
                 </div>
               </div>
@@ -448,7 +448,7 @@ const DocsPage: React.FC = () => {
             </p>
 
             <div className={styles.endpointCard}>
-              <div 
+              <div
                 className={styles.endpointHeader}
                 onClick={() => toggleEndpoint('create-payment')}
               >
@@ -459,7 +459,7 @@ const DocsPage: React.FC = () => {
                 <div className={styles.endpointTitle}>Create Payment</div>
                 <i className={`fas fa-chevron-${expandedEndpoint === 'create-payment' ? 'up' : 'down'}`}></i>
               </div>
-              
+
               {expandedEndpoint === 'create-payment' && (
                 <div className={styles.endpointContent}>
                   <h3><i className="fas fa-cog"></i> Request Parameters</h3>
@@ -514,7 +514,7 @@ const DocsPage: React.FC = () => {
             </div>
 
             <div className={styles.endpointCard}>
-              <div 
+              <div
                 className={styles.endpointHeader}
                 onClick={() => toggleEndpoint('get-payment')}
               >
@@ -525,7 +525,7 @@ const DocsPage: React.FC = () => {
                 <div className={styles.endpointTitle}>Get Payment</div>
                 <i className={`fas fa-chevron-${expandedEndpoint === 'get-payment' ? 'up' : 'down'}`}></i>
               </div>
-              
+
               {expandedEndpoint === 'get-payment' && (
                 <div className={styles.endpointContent}>
                   <h3><i className="fas fa-route"></i> Path Parameters</h3>
@@ -558,7 +558,7 @@ const DocsPage: React.FC = () => {
             </div>
 
             <div className={styles.endpointCard}>
-              <div 
+              <div
                 className={styles.endpointHeader}
                 onClick={() => toggleEndpoint('list-payments')}
               >
@@ -569,7 +569,7 @@ const DocsPage: React.FC = () => {
                 <div className={styles.endpointTitle}>List Payments</div>
                 <i className={`fas fa-chevron-${expandedEndpoint === 'list-payments' ? 'up' : 'down'}`}></i>
               </div>
-              
+
               {expandedEndpoint === 'list-payments' && (
                 <div className={styles.endpointContent}>
                   <h3><i className="fas fa-filter"></i> Query Parameters</h3>
@@ -632,7 +632,7 @@ const DocsPage: React.FC = () => {
             </div>
 
             <div className={styles.endpointCard}>
-              <div 
+              <div
                 className={styles.endpointHeader}
                 onClick={() => toggleEndpoint('update-fee-setting')}
               >
@@ -643,7 +643,7 @@ const DocsPage: React.FC = () => {
                 <div className={styles.endpointTitle}>Update Fee Setting</div>
                 <i className={`fas fa-chevron-${expandedEndpoint === 'update-fee-setting' ? 'up' : 'down'}`}></i>
               </div>
-              
+
               {expandedEndpoint === 'update-fee-setting' && (
                 <div className={styles.endpointContent}>
                   <h3><i className="fas fa-cog"></i> Request Parameters</h3>
@@ -811,7 +811,7 @@ const DocsPage: React.FC = () => {
             </p>
 
             <div className={styles.endpointCard}>
-              <div 
+              <div
                 className={styles.endpointHeader}
                 onClick={() => toggleEndpoint('get-analytics')}
               >
@@ -822,7 +822,7 @@ const DocsPage: React.FC = () => {
                 <div className={styles.endpointTitle}>Get Analytics Data</div>
                 <i className={`fas fa-chevron-${expandedEndpoint === 'get-analytics' ? 'up' : 'down'}`}></i>
               </div>
-              
+
               {expandedEndpoint === 'get-analytics' && (
                 <div className={styles.endpointContent}>
                   <h3><i className="fas fa-filter"></i> Query Parameters</h3>
@@ -880,7 +880,7 @@ const DocsPage: React.FC = () => {
             </div>
 
             <div className={styles.endpointCard}>
-              <div 
+              <div
                 className={styles.endpointHeader}
                 onClick={() => toggleEndpoint('export-analytics')}
               >
@@ -891,7 +891,7 @@ const DocsPage: React.FC = () => {
                 <div className={styles.endpointTitle}>Export Analytics Data</div>
                 <i className={`fas fa-chevron-${expandedEndpoint === 'export-analytics' ? 'up' : 'down'}`}></i>
               </div>
-              
+
               {expandedEndpoint === 'export-analytics' && (
                 <div className={styles.endpointContent}>
                   <h3><i className="fas fa-filter"></i> Query Parameters</h3>
@@ -968,7 +968,7 @@ const DocsPage: React.FC = () => {
             </div>
 
             <div className={styles.endpointCard}>
-              <div 
+              <div
                 className={styles.endpointHeader}
                 onClick={() => toggleEndpoint('set-wallets')}
               >
@@ -979,7 +979,7 @@ const DocsPage: React.FC = () => {
                 <div className={styles.endpointTitle}>Set Wallet Addresses</div>
                 <i className={`fas fa-chevron-${expandedEndpoint === 'set-wallets' ? 'up' : 'down'}`}></i>
               </div>
-              
+
               {expandedEndpoint === 'set-wallets' && (
                 <div className={styles.endpointContent}>
                   <h3><i className="fas fa-cog"></i> Request Parameters</h3>
@@ -1006,7 +1006,7 @@ const DocsPage: React.FC = () => {
             </div>
 
             <div className={styles.endpointCard}>
-              <div 
+              <div
                 className={styles.endpointHeader}
                 onClick={() => toggleEndpoint('set-webhook')}
               >
@@ -1017,7 +1017,7 @@ const DocsPage: React.FC = () => {
                 <div className={styles.endpointTitle}>Configure Webhook URL</div>
                 <i className={`fas fa-chevron-${expandedEndpoint === 'set-webhook' ? 'up' : 'down'}`}></i>
               </div>
-              
+
               {expandedEndpoint === 'set-webhook' && (
                 <div className={styles.endpointContent}>
                   <h3><i className="fas fa-cog"></i> Request Parameters</h3>
@@ -1148,7 +1148,7 @@ const DocsPage: React.FC = () => {
             <h2>Daily Volume Limits</h2>
             <div className={styles.section}>
               <p>FidduPay enforces daily volume limits based on merchant KYC status:</p>
-              
+
               <div className={styles.limitInfo}>
                 <h3>Non-KYC Merchants</h3>
                 <ul>

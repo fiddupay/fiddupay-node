@@ -132,7 +132,7 @@ const DashboardPage: React.FC = () => {
             <i className="fas fa-book"></i>
             API Documentation
           </a>
-          <a href="https://github.com/CHToken/crypto-payment-gateway/blob/main/docs/NODE_SDK.md" target="_blank" rel="noopener noreferrer" className={styles.sdkLink}>
+          <a href="https://www.npmjs.com/package/@fiddupay/fiddupay-node" target="_blank" rel="noopener noreferrer" className={styles.sdkLink}>
             <i className="fas fa-code"></i>
             Node.js SDK
           </a>

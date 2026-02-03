@@ -767,7 +767,10 @@ pub async fn get_balance(
     // Get all balances instead of single balance
     match state.balance_service.get_all_balances(context.merchant_id).await {
         Ok(balance) => (StatusCode::OK, Json(balance)).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => {
+            tracing::error!("Failed to get balances: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response()
+        },
     }
 }
 
