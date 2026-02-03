@@ -254,9 +254,19 @@ const RecentPaymentsList: React.FC = () => {
   const loadRecentPayments = async () => {
     try {
       const response = await paymentAPI.getHistory({ limit: 5, offset: 0 })
-      setPayments(response.data.data || [])
+      console.log('Payments API Response:', response.data) // Debugging
+      if (response.data && Array.isArray(response.data.data)) {
+        setPayments(response.data.data)
+      } else if (Array.isArray(response.data)) {
+        // Fallback if structure is different
+        setPayments(response.data)
+      } else {
+        console.error('Unexpected payments format:', response.data)
+        setPayments([])
+      }
     } catch (error) {
       console.error('Failed to load recent payments:', error)
+      setPayments([])
     } finally {
       setLoading(false)
     }
@@ -266,7 +276,7 @@ const RecentPaymentsList: React.FC = () => {
     return <div className={styles.loading}>Loading recent payments...</div>
   }
 
-  if (payments.length === 0) {
+  if (!Array.isArray(payments) || payments.length === 0) {
     return <div className={styles.placeholder}>No recent payments</div>
   }
 
