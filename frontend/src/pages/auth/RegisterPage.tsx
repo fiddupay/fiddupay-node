@@ -68,7 +68,7 @@ const RegisterPage: React.FC = () => {
         password: formData.password
       })
 
-      showToast('Registration successful! Please check your email to verify your account.', 'success')
+      showToast('Registration successful! You can now log in to your dashboard.', 'success')
       setTimeout(() => navigate('/login'), 2000)
     } catch (error: any) {
       const message = error.response?.data?.message || error.message || 'Registration failed. Please try again.'

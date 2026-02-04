@@ -30,11 +30,28 @@ const WalletsPage: React.FC = () => {
         publicAPI.getSupportedCurrencies()
       ])
 
-      setWallets(Array.isArray(walletsRes.data) ? walletsRes.data : [])
+      // Fix: Access wallets array from response object
+      setWallets(Array.isArray(walletsRes.data.wallets) ? walletsRes.data.wallets : [])
 
       const groups = currenciesRes.data.currency_groups
-      const flattenedCurrencies = Object.values(groups).flat()
-      setSupportedCryptos(flattenedCurrencies)
+
+      // Group by network instead of showing all currencies individually
+      const networksMap: { [key: string]: any } = {}
+
+      Object.values(groups).flat().forEach((crypto: any) => {
+        const networkName = crypto.network.split(' (')[0] // Group by base network name
+        if (!networksMap[networkName]) {
+          networksMap[networkName] = {
+            name: networkName,
+            fullName: crypto.network,
+            icon_url: crypto.icon_url,
+            cryptos: []
+          }
+        }
+        networksMap[networkName].cryptos.push(crypto)
+      })
+
+      setSupportedCryptos(Object.values(networksMap))
 
     } catch (error) {
       console.error('Failed to load data:', error)
@@ -47,7 +64,8 @@ const WalletsPage: React.FC = () => {
   const loadWallets = async () => {
     try {
       const walletsData = await walletAPI.getAll()
-      setWallets(Array.isArray(walletsData.data) ? walletsData.data : [])
+      // Fix: Access wallets array from response object
+      setWallets(Array.isArray(walletsData.data.wallets) ? walletsData.data.wallets : [])
     } catch (error) {
       console.error('Failed to load wallets:', error)
     }
@@ -62,7 +80,7 @@ const WalletsPage: React.FC = () => {
       }
 
       // Basic validation
-      if (newWallet.crypto_type === 'SOL') {
+      if (newWallet.crypto_type === 'SOL' || newWallet.crypto_type === 'USDT_SOL') {
         if (address.length < 32 || address.length > 44) {
           showToast('Invalid Solana address format', 'error')
           return
@@ -86,13 +104,14 @@ const WalletsPage: React.FC = () => {
     }
   }
 
-  const [confirmModal, setConfirmModal] = useState<{ show: boolean; type: string | null }>({
+  const [confirmModal, setConfirmModal] = useState<{ show: boolean; type: string | null; networkName: string | null }>({
     show: false,
-    type: null
+    type: null,
+    networkName: null
   })
 
-  const handleGenerateWallet = (cryptoType: string) => {
-    setConfirmModal({ show: true, type: cryptoType })
+  const handleGenerateWallet = (cryptoType: string, networkName: string) => {
+    setConfirmModal({ show: true, type: cryptoType, networkName })
   }
 
   const confirmGeneration = async () => {
@@ -103,7 +122,7 @@ const WalletsPage: React.FC = () => {
       await walletAPI.generate(confirmModal.type)
       await loadWallets()
       showToast('New wallet generated successfully!', 'success')
-      setConfirmModal({ show: false, type: null })
+      setConfirmModal({ show: false, type: null, networkName: null })
     } catch (error: any) {
       showToast(error.response?.data?.error || 'Failed to generate wallet', 'error')
     } finally {
@@ -131,7 +150,7 @@ const WalletsPage: React.FC = () => {
       <header className={styles.header}>
         <div>
           <h1>Wallet Management</h1>
-          <p>Manage your deposit addresses for automatic payments</p>
+          <p>Manage your deposit addresses per blockchain network</p>
         </div>
         <button
           className={styles.configureBtn}
@@ -143,19 +162,27 @@ const WalletsPage: React.FC = () => {
       </header>
 
       <div className={styles.walletGrid}>
-        {supportedCryptos.map((crypto) => {
-          const wallet = wallets?.find(w => w?.crypto_type === crypto.crypto_type)
+        {supportedCryptos.map((network) => {
+          // A network wallet is active if any of its currencies have an address configured
+          // Since our backend now syncs them, checking one is enough, but we'll be robust.
+          const wallet = wallets?.find(w => network.cryptos.some((c: any) => c.crypto_type === w.crypto_type))
 
           return (
-            <div key={crypto.crypto_type} className={styles.walletCard}>
+            <div key={network.name} className={styles.walletCard}>
               <div className={styles.walletHeader}>
                 <div className={styles.coinInfo}>
                   <div className={styles.coinIcon}>
-                    <img src={crypto.icon_url} alt={crypto.crypto_type} />
+                    <img src={network.icon_url} alt={network.name} />
                   </div>
                   <div className={styles.coinDetails}>
-                    <h3>{crypto.crypto_type.split('_')[0]}</h3>
-                    <span className={styles.networkBadge}>{crypto.network}</span>
+                    <h3>{network.name}</h3>
+                    <div className="flex gap-1 mt-1">
+                      {network.cryptos.map((c: any) => (
+                        <span key={c.crypto_type} className={styles.networkBadge} title={c.network}>
+                          {c.crypto_type.split('_')[0]}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div
@@ -167,7 +194,7 @@ const WalletsPage: React.FC = () => {
               <div className={styles.walletContent}>
                 {wallet ? (
                   <div className={styles.addressContainer}>
-                    <label className={styles.addressLabel}>Deposit Address</label>
+                    <label className={styles.addressLabel}>Network Deposit Address</label>
                     <div className={styles.addressRow}>
                       <span className={styles.addressText}>{wallet.address}</span>
                       <button
@@ -178,11 +205,14 @@ const WalletsPage: React.FC = () => {
                         <i className="fas fa-copy"></i>
                       </button>
                     </div>
+                    <p className="text-[10px] text-gray-400 mt-2">
+                      Supports: {network.cryptos.map((c: any) => c.crypto_type.split('_')[0]).join(', ')}
+                    </p>
                   </div>
                 ) : (
                   <div className={styles.emptyState}>
                     <i className="fas fa-shield-alt text-gray-300 text-3xl mb-2 mx-auto block"></i>
-                    <p className="text-sm">No wallet configured</p>
+                    <p className="text-sm">No wallet configured for {network.name}</p>
                   </div>
                 )}
               </div>
@@ -198,10 +228,10 @@ const WalletsPage: React.FC = () => {
                 ) : (
                   <button
                     className={styles.generateBtn}
-                    onClick={() => handleGenerateWallet(crypto.crypto_type)}
+                    onClick={() => handleGenerateWallet(network.cryptos[0].crypto_type, network.name)}
                   >
                     <i className="fas fa-sync-alt"></i>
-                    Generate Address
+                    Generate {network.name} Address
                   </button>
                 )}
               </div>
@@ -227,10 +257,14 @@ const WalletsPage: React.FC = () => {
                 value={newWallet.crypto_type}
                 onChange={(e) => setNewWallet({ ...newWallet, crypto_type: e.target.value })}
               >
-                {supportedCryptos.map(crypto => (
-                  <option key={crypto.crypto_type} value={crypto.crypto_type}>
-                    {crypto.crypto_type.split('_')[0]} on {crypto.network}
-                  </option>
+                {supportedCryptos.map(network => (
+                  <optgroup key={network.name} label={network.name}>
+                    {network.cryptos.map((crypto: any) => (
+                      <option key={crypto.crypto_type} value={crypto.crypto_type}>
+                        {crypto.crypto_type.split('_')[0]} on {crypto.network}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -270,13 +304,13 @@ const WalletsPage: React.FC = () => {
 
       {/* Confirmation Modal */}
       {confirmModal.show && (
-        <div className={styles.modalOverlay} onClick={() => setConfirmModal({ show: false, type: null })}>
+        <div className={styles.modalOverlay} onClick={() => setConfirmModal({ show: false, type: null, networkName: null })}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className={styles.modalHeader}>
               <h2>Generate New Wallet?</h2>
               <button
                 className={styles.closeButton}
-                onClick={() => setConfirmModal({ show: false, type: null })}
+                onClick={() => setConfirmModal({ show: false, type: null, networkName: null })}
               >
                 <i className="fas fa-times text-xl"></i>
               </button>
@@ -295,7 +329,7 @@ const WalletsPage: React.FC = () => {
             <div className={styles.modalActions}>
               <button
                 className={styles.cancelBtn}
-                onClick={() => setConfirmModal({ show: false, type: null })}
+                onClick={() => setConfirmModal({ show: false, type: null, networkName: null })}
               >
                 Cancel
               </button>

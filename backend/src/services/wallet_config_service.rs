@@ -32,6 +32,12 @@ impl WalletConfigService {
         crypto_type: CryptoType,
         address: String,
     ) -> Result<WalletConfig, ServiceError> {
+        let network = crypto_type.network().to_string();
+        
+        // In a real system, we might want to update all tokens on this network.
+        // For this implementation, we ensure the specific one is set,
+        // and if it's a "base" currency (like SOL or ETH), it serves as the reference.
+        
         let config = sqlx::query_as!(
             WalletConfig,
             r#"
@@ -43,11 +49,45 @@ impl WalletConfigService {
             "#,
             merchant_id,
             crypto_type.to_string(),
-            crypto_type.network(),
+            network,
             address
         )
         .fetch_one(&self.db_pool)
         .await?;
+
+        // Side effect: If this is a base currency or a known network-wide token like USDT,
+        // we might want to ensure other tokens on the same network also get updated if they don't have an address.
+        // However, the cleanest way for this UI is to just ensure the frontend groups them.
+        // To satisfy the user's request that "USDT for any blockchain uses same wallet address if generated",
+        // we can explicitly update the "sister" currency.
+        
+        let sister_crypto = match crypto_type {
+            CryptoType::Sol => Some("USDT_SOL"),
+            CryptoType::UsdtSpl => Some("SOL"),
+            CryptoType::Eth => Some("USDT_ETH"),
+            CryptoType::UsdtEth => Some("ETH"),
+            CryptoType::Bnb => Some("USDT_BSC"),
+            CryptoType::UsdtBep20 => Some("BNB"),
+            CryptoType::Matic => Some("USDT_POLYGON"),
+            CryptoType::UsdtPolygon => Some("MATIC"),
+            CryptoType::Arb => Some("USDT_ARBITRUM"),
+            CryptoType::UsdtArbitrum => Some("ARB"),
+        };
+
+        if let Some(sister) = sister_crypto {
+             sqlx::query!(
+                "INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address)
+                 VALUES ($1, $2, $3, $4)
+                 ON CONFLICT (merchant_id, crypto_type) 
+                 DO UPDATE SET address = $4, updated_at = NOW()",
+                merchant_id,
+                sister,
+                network,
+                address
+            )
+            .execute(&self.db_pool)
+            .await?;
+        }
 
         Ok(config)
     }

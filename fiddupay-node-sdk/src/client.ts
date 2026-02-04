@@ -34,7 +34,7 @@ export class HttpClient {
   }
 
   private getBaseURL(environment: string): string {
-    return environment === 'production' 
+    return environment === 'production'
       ? 'https://api.fiddupay.com/v1'
       : 'https://api-sandbox.fiddupay.com/v1';
   }
@@ -83,7 +83,7 @@ export class HttpClient {
   }
 
   private generateRequestId(): string {
-    return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   }
 
   private async sleep(ms: number): Promise<void> {

@@ -136,9 +136,9 @@ pub async fn login_merchant(
             });
 
             if let Err(_) = hash_to_check {
-                 return (StatusCode::UNAUTHORIZED, Json(json!({
+                return (StatusCode::UNAUTHORIZED, Json(json!({
                     "error": "Invalid credentials",
-                    "message": "Password login not enabled"
+                    "message": "Invalid email or password"
                 }))).into_response();
             }
 
@@ -151,7 +151,7 @@ pub async fn login_merchant(
             if !valid {
                 return (StatusCode::UNAUTHORIZED, Json(json!({
                     "error": "Invalid credentials",
-                    "message": "Email or password is incorrect"
+                    "message": "Invalid email or password"
                 }))).into_response();
             }
 
@@ -197,7 +197,7 @@ pub async fn login_merchant(
         Ok(None) => {
             (StatusCode::UNAUTHORIZED, Json(json!({
                 "error": "Invalid credentials",
-                "message": "Email or password is incorrect"
+                "message": "Invalid email or password"
             }))).into_response()
         }
         Err(e) => {
