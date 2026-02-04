@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 import styles from '@/styles/pages/DocsPage.module.css';
 import mobileStyles from '@/styles/pages/DocsPageMobile.module.css';
 import CodeSnippet from '../components/docs/CodeSnippet';
@@ -7,19 +8,60 @@ import ApiSection from '../components/docs/ApiSection';
 import { API_DATA, Endpoint } from './docs/ApiData';
 
 const DocsPage: React.FC = () => {
-  const [activeSection, setActiveSection] = useState('getting-started');
+  const { sectionId } = useParams<{ sectionId: string }>();
+  const location = useLocation();
+  const [activeSection, setActiveSection] = useState(sectionId || 'getting-started');
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const isScrollingRef = useRef(false);
+
+  // Scroll to section/hash on mount
+  useEffect(() => {
+    if (sectionId) {
+      setActiveSection(sectionId);
+      // Allow DOM to render then scroll
+      setTimeout(() => {
+        const hash = location.hash.replace('#', '');
+        const targetId = hash || sectionId;
+        const element = document.getElementById(targetId);
+        if (element) {
+          isScrollingRef.current = true;
+          element.scrollIntoView({ behavior: 'smooth' });
+          setTimeout(() => { isScrollingRef.current = false; }, 1000);
+        }
+      }, 100);
+    }
+  }, [sectionId, location.hash]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
+        // Find the "most visible" section
+        let maxRatio = 0;
+        let bestTarget = '';
+
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveSection(entry.target.id);
+          if (entry.intersectionRatio > maxRatio) {
+            maxRatio = entry.intersectionRatio;
+            bestTarget = entry.target.id;
           }
         });
+
+        if (bestTarget && !isScrollingRef.current) {
+          // Check if section is actually a top-level section or an endpoint
+          // Usually we want to track the endpoint if it's visible?
+          // The original logic tracked section IDs. 
+          // Let's assume sectionRefs track actual Sections or Endpoints.
+
+          // To stick to the requirement: update URL
+          // Avoid re-triggering navigation if it matches
+          if (activeSection !== bestTarget) {
+            setActiveSection(bestTarget);
+            // Update URL silently to avoid router thrashing
+            window.history.replaceState(null, '', `/docs/${bestTarget}`);
+          }
+        }
       },
-      { threshold: 0.2, rootMargin: '-80px 0px -20% 0px' }
+      { threshold: [0.1, 0.5, 0.8], rootMargin: '-80px 0px -20% 0px' }
     );
 
     Object.values(sectionRefs.current).forEach((ref) => {
