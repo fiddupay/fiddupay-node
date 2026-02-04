@@ -31,6 +31,9 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .methodBadge {
@@ -42,6 +45,7 @@
     color: #0f172a;
     background: #e2e8f0;
     /* Default */
+    flex-shrink: 0;
 }
 
 /* Method Colors */
@@ -70,6 +74,13 @@
     font-size: 13px;
     color: #f8fafc;
     opacity: 0.9;
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.path::-webkit-scrollbar {
+    display: none;
 }
 
 /* Header Title (e.g. Sample Response) */
