@@ -47,9 +47,12 @@ impl KeyGenerator {
     /// Generate Solana wallet using ed25519-dalek
     pub fn generate_solana_wallet() -> Result<WalletKeyPair, ServiceError> {
         use ed25519_dalek::SigningKey;
+        use rand::RngCore;
         
         // Generate a random 32-byte secret key
-        let signing_key = SigningKey::generate(&mut OsRng);
+        let mut seed = [0u8; 32];
+        rand::thread_rng().fill_bytes(&mut seed);
+        let signing_key = SigningKey::from_bytes(&seed);
         let verifying_key = signing_key.verifying_key();
         
         let private_key_bytes = signing_key.to_bytes();
