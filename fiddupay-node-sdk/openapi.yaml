@@ -222,6 +222,14 @@ components:
         two_factor_enabled:
           type: boolean
           example: false
+        sandbox_mode:
+          type: boolean
+          example: true
+        settlement_mode:
+          type: string
+          enum: [forwarding, managed, imported]
+          example: "managed"
+          description: "Global settlement strategy for the merchant"
 
     AuthResponse:
       type: object
@@ -798,6 +806,47 @@ paths:
           content:
             application/json:
               schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/merchants/settlement-mode:
+    put:
+      tags:
+        - Authentication
+      summary: Update settlement mode
+      description: Update the global settlement strategy for the merchant account.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mode
+              properties:
+                mode:
+                  type: string
+                  enum: [forwarding, managed, imported]
+                  example: "forwarding"
+      responses:
+        '200':
+          description: Settlement mode updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  mode:
+                    type: string
+                    example: "forwarding"
+        '401':
+          description: Unauthorized
+        '400':
+          description: Invalid mode provided
                 $ref: '#/components/schemas/Error'
 
   /api/v1/merchants/environment/switch:

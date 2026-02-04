@@ -102,5 +102,10 @@ export class Merchants {
     return this.client.request('GET', '/api/v1/merchants/balance');
   }
 
-
+  /**
+   * Update global settlement mode
+   */
+  async updateSettlementMode(mode: 'forwarding' | 'managed' | 'imported', options?: RequestOptions): Promise<{ status: string; mode: string }> {
+    return this.client.request('PUT', '/api/v1/merchants/settlement-mode', { mode });
+  }
 }

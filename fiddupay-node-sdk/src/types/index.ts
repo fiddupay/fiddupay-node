@@ -33,6 +33,7 @@ export interface MerchantProfile {
   daily_limit_usd?: string;
   tier_level?: string;
   two_factor_enabled: boolean;
+  settlement_mode: 'forwarding' | 'managed' | 'imported';
 }
 
 export interface CreatePaymentRequest {

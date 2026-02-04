@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.4.1] - 2026-02-04
+
+### Added
+- **Global Settlement Mode Support**: New `merchants.updateSettlementMode` method to toggle account-wide strategy.
+- **Enhanced Profile Type**: `MerchantProfile` now includes `settlement_mode`.
+- **Environment Context awareness**: Improved profile responses with `sandbox_mode`.
+
+### Changed
+- **API Version alignment**: Core library synchronized with backend v2.4.1.
+
 ## [2.4.0] - 2026-02-04
 
 ### Added
