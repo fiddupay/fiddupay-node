@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.4.0] - 2026-02-04
+
+### Added
+- **Merchant API Standardization**: Standardized all merchant endpoints with `/api/v1/merchants/` prefix for consistent integration.
+- **Invoice Management**: New support for creating and retrieving merchant invoices.
+- **Enhanced Security Documentation**: Comprehensive documentation and Postman requests for security settings, events, and alerts.
+- **Specialized Wallet Tools**: Added endpoints for gas checking, wallet key export, and withdrawal capability verification.
+
+### Changed
+- **Privacy & Security**: Removed all admin-only information from the public SDK documentation and Postman collection.
+- **Version Bump**: Major update to v2.4.0 reflecting complete merchant API coverage.
+
+
 ## [2.3.8] - 2026-02-02
 
 ### Added
