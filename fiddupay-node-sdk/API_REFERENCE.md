@@ -27,13 +27,15 @@ GET /api/v1/merchants/profile
 Authorization: Bearer {api_key}
 ```
 
-Response includes `daily_volume_remaining` for non-KYC merchants:
+Response includes `settlement_mode`, `sandbox_mode`, and `daily_volume_remaining` for non-KYC merchants:
 ```json
 {
   "id": 123,
   "business_name": "My Business",
   "email": "merchant@example.com",
   "kyc_verified": false,
+  "sandbox_mode": true,
+  "settlement_mode": "managed",
   "daily_volume_remaining": "750.00"
 }
 ```
@@ -132,6 +134,17 @@ Content-Type: application/json
 {
   "crypto_type": "SOL",
   "wallet_address": "your_wallet_address"
+}
+```
+
+### Update settlement Mode
+```http
+PUT /api/v1/merchants/settlement-mode
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "mode": "forwarding" // or "managed", "imported"
 }
 ```
 

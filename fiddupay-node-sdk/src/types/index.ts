@@ -33,6 +33,7 @@ export interface MerchantProfile {
   daily_limit_usd?: string;
   tier_level?: string;
   two_factor_enabled: boolean;
+  sandbox_mode: boolean;
   settlement_mode: 'forwarding' | 'managed' | 'imported';
 }
 
