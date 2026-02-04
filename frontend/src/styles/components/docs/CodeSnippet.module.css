@@ -83,13 +83,72 @@
 .headerRight {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 16px;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdownToggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.dropdownToggle:hover {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .langLabel {
     font-size: 12px;
     color: #cbd5e1;
-    font-weight: 600;
+    font-weight: 700;
+}
+
+.chevron {
+    font-size: 10px;
+    color: #94a3b8;
+    transition: transform 0.2s;
+}
+
+.dropdownMenu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    min-width: 120px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    z-index: 50;
+    overflow: hidden;
+    padding: 4px 0;
+}
+
+.dropdownItem {
+    padding: 8px 16px;
+    font-size: 12px;
+    color: #cbd5e1;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.dropdownItem:hover {
+    background: #334155;
+    color: #ffffff;
+}
+
+.dropdownItem.active {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
 }
 
 .statusLabel {

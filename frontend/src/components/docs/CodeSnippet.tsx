@@ -12,7 +12,9 @@ interface CodeSnippetProps {
 }
 
 const CodeSnippet: React.FC<CodeSnippetProps> = ({ request, response, method, path }) => {
-    const [activeLanguage] = useState<'curl' | 'node'>('curl');
+    const [activeLanguage, setActiveLanguage] = useState<'curl' | 'node'>('curl');
+    const [showLangDropdown, setShowLangDropdown] = useState(false);
+    const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -82,7 +84,39 @@ const CodeSnippet: React.FC<CodeSnippetProps> = ({ request, response, method, pa
                             {path && <span className={styles.path}>{path}</span>}
                         </div>
                         <div className={styles.headerRight}>
-                            <span className={styles.langLabel}>{activeLanguage === 'curl' ? 'cURL' : 'Node.js'}</span>
+                            <div className={styles.dropdown}>
+                                <div
+                                    className={styles.dropdownToggle}
+                                    onClick={() => setShowLangDropdown(!showLangDropdown)}
+                                >
+                                    <span className={styles.langLabel}>
+                                        {activeLanguage === 'curl' ? 'cURL' : 'Node.js'}
+                                    </span>
+                                    <i className={`fas fa-chevron-down ${styles.chevron}`} style={{ transform: showLangDropdown ? 'rotate(180deg)' : 'none' }}></i>
+                                </div>
+                                {showLangDropdown && (
+                                    <div className={styles.dropdownMenu}>
+                                        <div
+                                            className={`${styles.dropdownItem} ${activeLanguage === 'curl' ? styles.active : ''}`}
+                                            onClick={() => { setActiveLanguage('curl'); setShowLangDropdown(false); }}
+                                        >
+                                            cURL
+                                        </div>
+                                        <div
+                                            className={`${styles.dropdownItem} ${activeLanguage === 'node' ? styles.active : ''}`}
+                                            onClick={() => { setActiveLanguage('node'); setShowLangDropdown(false); }}
+                                        >
+                                            Node.js
+                                        </div>
+                                        <div className={styles.dropdownItem}>
+                                            PHP
+                                        </div>
+                                        <div className={styles.dropdownItem}>
+                                            Python
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                     <div className={styles.codeArea}>
@@ -105,7 +139,22 @@ const CodeSnippet: React.FC<CodeSnippetProps> = ({ request, response, method, pa
                     <div className={styles.header}>
                         <span className={styles.headerTitle}>Sample Response</span>
                         <div className={styles.headerRight}>
-                            <span className={styles.statusLabel}>200 OK</span>
+                            <div className={styles.dropdown}>
+                                <div
+                                    className={styles.dropdownToggle}
+                                    onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                                >
+                                    <span className={styles.statusLabel}>200 OK</span>
+                                    <i className={`fas fa-chevron-down ${styles.chevron}`} style={{ transform: showStatusDropdown ? 'rotate(180deg)' : 'none' }}></i>
+                                </div>
+                                {showStatusDropdown && (
+                                    <div className={styles.dropdownMenu}>
+                                        <div className={`${styles.dropdownItem} ${styles.active}`}>200 OK</div>
+                                        <div className={styles.dropdownItem}>400 Bad Request</div>
+                                        <div className={styles.dropdownItem}>401 Unauthorized</div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                     <div className={styles.codeArea}>

@@ -113,8 +113,8 @@
 /* Right Column (Code Samples - Column 3) */
 .codeColumn {
   width: 480px;
-  background: #0f172a;
-  height: calc(100vh - 80px);
+  /* background: #0f172a;
+  height: calc(100vh - 80px); */
   /* Fixed height */
   overflow-y: auto;
   /* Independent scrolling */
