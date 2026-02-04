@@ -63,29 +63,30 @@ const DocsPage: React.FC = () => {
         </main>
 
         {/* Column 3: Code Samples */}
-        <aside className={styles.codeColumn}>
-          <div className={styles.codeSticky}>
-            {activeSection && (
-              <div key={activeSection}>
-                {API_DATA.flatMap(s => [s, ...s.endpoints]).find(e => e.id === activeSection && (e as Endpoint).request)?.id && (
-                  <>
-                    {(() => {
-                      const item = API_DATA.flatMap(s => [s, ...s.endpoints]).find(e => e.id === activeSection && (e as Endpoint).request) as Endpoint;
-                      return (
-                        <CodeSnippet
-                          request={item.request}
-                          response={item.response}
-                          method={item.method}
-                          path={item.path}
-                        />
-                      );
-                    })()}
-                  </>
+        {(() => {
+          const item = API_DATA.flatMap(s => [s, ...s.endpoints]).find(e => e.id === activeSection);
+          const hasCode = item && (item as Endpoint).request;
+
+          return (
+            <aside
+              className={styles.codeColumn}
+              style={{ display: hasCode ? 'block' : 'none' }}
+            >
+              <div className={styles.codeSticky}>
+                {hasCode && (
+                  <div key={activeSection}>
+                    <CodeSnippet
+                      request={(item as Endpoint).request}
+                      response={(item as Endpoint).response}
+                      method={(item as Endpoint).method}
+                      path={(item as Endpoint).path}
+                    />
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-        </aside>
+            </aside>
+          );
+        })()}
       </div>
     </div>
   );
