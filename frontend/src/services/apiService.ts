@@ -90,7 +90,7 @@ export const securityAPI = {
 export const publicAPI = {
   contact: (data: any) => api.post('/api/v1/contact', data),
   getSupportedCurrencies: () => api.get('/api/v1/currencies/supported'),
-  getStatus: () => api.get('/api/status'),
+  getStatus: () => api.get('/api/v1/status'),
   getPricing: () => api.get('/api/v1/pricing'),
 }
 

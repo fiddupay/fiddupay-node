@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import ScrollToTop from '@/components/ScrollToTop'
 import { useAuthStore } from '@/stores/authStore'
 import { ToastProvider } from '@/contexts/ToastContext'
 import { LoadingProvider } from '@/contexts/LoadingContext'
@@ -64,6 +65,7 @@ const App: React.FC = () => {
     <ToastProvider>
       <LoadingProvider>
         <Router>
+          <ScrollToTop />
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Layout><HomePage /></Layout>} />

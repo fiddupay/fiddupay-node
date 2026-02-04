@@ -94,7 +94,7 @@ const ContactPage: React.FC = () => {
               <i className="fas fa-phone"></i>
               <div>
                 <h3>Phone Support</h3>
-                <p>+1 (555) 123-4567</p>
+                <p>+234 (806) 802-2509</p>
                 <span>Mon-Fri, 9AM-6PM EST</span>
               </div>
             </div>
@@ -103,7 +103,7 @@ const ContactPage: React.FC = () => {
               <i className="fas fa-comments"></i>
               <div>
                 <h3>Live Chat</h3>
-                <p>Available in dashboard</p>
+                <p>Coming soon in dashboard</p>
                 <span>Real-time support</span>
               </div>
             </div>

@@ -50,7 +50,7 @@ const AboutPage: React.FC = () => {
 
           <div className={styles.stats}>
             <div className={styles.statCard}>
-              <div className={styles.statNumber}>enterprise-grade</div>
+              <div className={`${styles.statNumber} ${styles.statText}`}>enterprise-grade</div>
               <div className={styles.statLabel}>Security Score</div>
             </div>
             <div className={styles.statCard}>

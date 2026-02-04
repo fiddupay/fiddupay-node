@@ -74,18 +74,6 @@ const CookiesPage: React.FC = () => {
           </section>
 
           <section className={styles.section}>
-            <h2>Third-Party Cookies</h2>
-            <p>
-              We may use third-party services that set their own cookies. These services include:
-            </p>
-            <ul>
-              <li>Google Analytics for website analytics</li>
-              <li>Cloudflare for security and performance</li>
-              <li>Stripe for payment processing</li>
-            </ul>
-          </section>
-
-          <section className={styles.section}>
             <h2>Contact Us</h2>
             <p>
               If you have any questions about our Cookie Policy, please contact us at{' '}

@@ -47,7 +47,7 @@
   direction: rtl;
 }
 
-.section:nth-child(even) > * {
+.section:nth-child(even)>* {
   direction: ltr;
 }
 
@@ -103,6 +103,10 @@
   font-weight: 800;
   color: #1e40af;
   margin-bottom: 0.5rem;
+}
+
+.statText {
+  font-size: 1.75rem;
 }
 
 .statLabel {
@@ -198,20 +202,20 @@
   .hero h1 {
     font-size: 2.5rem;
   }
-  
+
   .section {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
-  
+
   .section:nth-child(even) {
     direction: ltr;
   }
-  
+
   .stats {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .ctaButtons {
     flex-direction: column;
     align-items: center;

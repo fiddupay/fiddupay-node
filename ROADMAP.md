@@ -50,6 +50,7 @@ Transform FidduPay from a merchant-only crypto payment gateway into a comprehens
 - Webhook retry mechanisms and monitoring
 - Rate limiting and quota management
 - Sandbox environment enhancements
+- CAPTCHA integration for public forms (Contact, Registration) to prevent bot spam
 
 ###  Enhanced Business Pricing Tiers
 
