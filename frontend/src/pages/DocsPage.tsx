@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '@/styles/pages/DocsPage.module.css';
+import mobileStyles from '@/styles/pages/DocsPageMobile.module.css';
 import CodeSnippet from '../components/docs/CodeSnippet';
 import DocsSidebar from '../components/docs/DocsSidebar';
 import ApiSection from '../components/docs/ApiSection';
@@ -36,17 +37,19 @@ const DocsPage: React.FC = () => {
   };
 
   return (
-    <div className={styles.docsPage}>
+    <div className={`${styles.docsPage} ${mobileStyles.docsPage}`}>
       {/* Column 1: Navigation */}
-      <DocsSidebar
-        apiData={API_DATA}
-        activeSection={activeSection}
-        scrollToSection={scrollToSection}
-      />
+      <aside className={`${styles.sidebar} ${mobileStyles.sidebar}`}>
+        <DocsSidebar
+          apiData={API_DATA}
+          activeSection={activeSection}
+          scrollToSection={scrollToSection}
+        />
+      </aside>
 
       {/* Column 2 & 3 Wrap */}
-      <div className={styles.contentArea}>
-        <main className={styles.mainContent}>
+      <div className={`${styles.contentArea} ${mobileStyles.contentArea}`}>
+        <main className={`${styles.mainContent} ${mobileStyles.mainContent}`}>
           {API_DATA.map((section) => (
             <ApiSection
               key={section.id}
@@ -69,10 +72,10 @@ const DocsPage: React.FC = () => {
 
           return (
             <aside
-              className={styles.codeColumn}
+              className={`${styles.codeColumn} ${mobileStyles.codeColumn}`}
               style={{ display: hasCode ? 'block' : 'none' }}
             >
-              <div className={styles.codeSticky}>
+              <div className={`${styles.codeSticky} ${mobileStyles.codeSticky}`}>
                 {hasCode && (
                   <div key={activeSection}>
                     <CodeSnippet

@@ -1,0 +1,23 @@
+/* Global Responsive Overrides */
+
+:root {
+    --header-height: 80px;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --header-height: 64px;
+    }
+
+    html,
+    body {
+        font-size: 14px;
+        /* Slightly smaller base font */
+    }
+
+    /* Common Container Resets */
+    .container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+}
