@@ -110,13 +110,18 @@
 }
 
 /* Right Column (Code Samples - Column 3) */
+/* Right Column (Code Samples - Column 3) */
 .codeColumn {
   width: 480px;
   background: #0f172a;
-  min-height: calc(100vh - 80px);
+  height: calc(100vh - 80px);
+  /* Fixed height */
+  overflow-y: auto;
+  /* Independent scrolling */
   padding: 64px 28px;
   position: sticky;
-  top: 0;
+  top: 80px;
+  /* Sticks below the header */
   flex-shrink: 0;
   border-left: 1px solid #1e293b;
 }

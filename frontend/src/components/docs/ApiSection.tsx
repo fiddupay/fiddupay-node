@@ -25,14 +25,14 @@ const ApiSection: React.FC<ApiSectionProps> = ({ section, sectionRefs }) => {
                     ref={(el) => (sectionRefs.current[endpoint.id] = el)}
                     style={{ marginTop: '64px' }}
                 >
+                    <h2>{endpoint.title}</h2>
+                    <p className={styles.lead}>{endpoint.description}</p>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
                         <span className={`${styles.methodBadge} ${styles[endpoint.method.toLowerCase()]}`}>
                             {endpoint.method}
                         </span>
                         <span className={styles.endpointPath}>{endpoint.path}</span>
                     </div>
-                    <h2>{endpoint.title}</h2>
-                    <p className={styles.lead}>{endpoint.description}</p>
 
                     <ParameterTable title="Query Parameters" parameters={endpoint.parameters || []} />
                     <ParameterTable title="Request Body" parameters={endpoint.body || []} />
