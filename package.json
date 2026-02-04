@@ -1,6 +1,6 @@
 {
   "name": "fiddupay-monorepo",
-  "version": "--help",
+  "version": "2.4.1",
   "description": "FidduPay - Cryptocurrency Payment Gateway",
   "private": true,
   "scripts": {
