@@ -222,6 +222,21 @@ export const API_DATA: DocSection[] = [
                     network: "SOLANA",
                     min_withdrawal: "0.1"
                 }, null, 2)
+            },
+            {
+                id: 'revoke-wallet',
+                method: 'DELETE',
+                path: '/api/v1/merchants/wallets/:crypto_type',
+                title: 'Revoke Wallet',
+                description: 'Remove a specific wallet configuration or deposit address from your account.',
+                request: {
+                    curl: 'curl -X DELETE https://api.fiddupay.com/api/v1/merchants/wallets/SOL \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'await fiddupay.wallets.revoke("SOL");'
+                },
+                response: JSON.stringify({
+                    success: true,
+                    message: "Wallet configuration removed successfully"
+                }, null, 2)
             }
         ]
     },

@@ -197,6 +197,46 @@ impl WalletConfigService {
         let balance = self.get_balance(merchant_id, crypto_type).await?;
         Ok(balance >= amount)
     }
+
+    pub async fn delete_wallet_config(&self, merchant_id: i64, crypto_type_str: String) -> Result<(), ServiceError> {
+        let crypto_type = CryptoType::from_string(&crypto_type_str);
+        
+        sqlx::query!(
+            "UPDATE merchant_wallets SET address = '', is_active = false, updated_at = NOW() 
+             WHERE merchant_id = $1 AND crypto_type = $2",
+            merchant_id,
+            crypto_type.to_string()
+        )
+        .execute(&self.db_pool)
+        .await?;
+
+        // Also update sister currency
+        let sister_crypto = match crypto_type {
+            CryptoType::Sol => Some("USDT_SOL"),
+            CryptoType::UsdtSpl => Some("SOL"),
+            CryptoType::Eth => Some("USDT_ETH"),
+            CryptoType::UsdtEth => Some("ETH"),
+            CryptoType::Bnb => Some("USDT_BSC"),
+            CryptoType::UsdtBep20 => Some("BNB"),
+            CryptoType::Matic => Some("USDT_POLYGON"),
+            CryptoType::UsdtPolygon => Some("MATIC"),
+            CryptoType::Arb => Some("USDT_ARBITRUM"),
+            CryptoType::UsdtArbitrum => Some("ARB"),
+        };
+
+        if let Some(sister) = sister_crypto {
+            sqlx::query!(
+                "UPDATE merchant_wallets SET address = '', is_active = false, updated_at = NOW() 
+                 WHERE merchant_id = $1 AND crypto_type = $2",
+                merchant_id,
+                sister
+            )
+            .execute(&self.db_pool)
+            .await?;
+        }
+
+        Ok(())
+    }
 }
 #[derive(Debug, Deserialize)]
 pub struct ConfigureWalletRequest {

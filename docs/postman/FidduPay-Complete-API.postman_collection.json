@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "FidduPay Complete API v2.4.1",
+    "name": "FidduPay Complete API v2.4.1.1",
     "description": "Complete API collection for FidduPay cryptocurrency payment gateway. Supports 10 cryptocurrencies across 5 major blockchains with enterprise-grade security, comprehensive admin functionality, Real-Time Webhooks, and Partial Payment support.",
-    "version": "2.4.1",
+    "version": "2.4.1.1",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -1835,6 +1835,31 @@
                 "merchants",
                 "wallets",
                 "import"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Revoke Wallet",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/SOL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "SOL"
               ]
             }
           }

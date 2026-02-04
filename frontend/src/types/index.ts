@@ -110,6 +110,7 @@ export interface Wallet {
   crypto_type: string
   address: string
   configured_at: string
+  updated_at?: string
 }
 
 // Analytics Types

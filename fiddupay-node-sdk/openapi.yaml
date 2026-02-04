@@ -36,7 +36,7 @@ info:
     - Real-time threat detection
     - Account lockout protection
     
-  version: 2.4.1
+  version: 2.4.1.1
   contact:
     name: FidduPay Support
     email: support@fiddupay.com
@@ -1214,6 +1214,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
+
+  /api/v1/merchants/wallets/{crypto_type}:
+    delete:
+      tags:
+        - Wallets
+      summary: Revoke wallet
+      description: Remove wallet configuration for a specific cryptocurrency
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: crypto_type
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "SOL"
+      responses:
+        '200':
+          description: Wallet revoked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '400':
           description: Bad request
           content:

@@ -320,13 +320,7 @@ const PaymentsPage: React.FC = () => {
             <div className={styles.emptyState}>
               <i className="fas fa-receipt"></i>
               <h3>No payments yet</h3>
-              <p>Create your first payment to get started</p>
-              <button
-                className={styles.createBtn}
-                onClick={() => setShowCreateModal(true)}
-              >
-                Create Payment
-              </button>
+              <p>Create your first payment using the button at the top right</p>
             </div>
           ) : (
             payments.map((payment) => (

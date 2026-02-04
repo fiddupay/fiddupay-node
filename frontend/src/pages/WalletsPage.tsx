@@ -3,6 +3,8 @@ import { walletAPI, publicAPI } from '@/services/apiService'
 import { Wallet, WalletConfig } from '../types'
 import styles from '@/styles/pages/WalletsPage.module.css'
 import { useToast } from '@/contexts/ToastContext'
+import { useAuthStore } from '@/stores/authStore'
+import { Link } from 'react-router-dom'
 
 const WalletsPage: React.FC = () => {
   const [wallets, setWallets] = useState<Wallet[]>([])
@@ -10,6 +12,9 @@ const WalletsPage: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false)
   const [showConfigModal, setShowConfigModal] = useState(false)
   const { showToast } = useToast()
+  const { user } = useAuthStore()
+
+  const settlementMode = user?.settlement_mode || 'managed'
 
   const [newWallet, setNewWallet] = useState<WalletConfig>({
     crypto_type: 'SOL',
@@ -30,16 +35,13 @@ const WalletsPage: React.FC = () => {
         publicAPI.getSupportedCurrencies()
       ])
 
-      // Fix: Access wallets array from response object
       setWallets(Array.isArray(walletsRes.data.wallets) ? walletsRes.data.wallets : [])
 
       const groups = currenciesRes.data.currency_groups
-
-      // Group by network instead of showing all currencies individually
       const networksMap: { [key: string]: any } = {}
 
       Object.values(groups).flat().forEach((crypto: any) => {
-        const networkName = crypto.network.split(' (')[0] // Group by base network name
+        const networkName = crypto.network.split(' (')[0]
         if (!networksMap[networkName]) {
           networksMap[networkName] = {
             name: networkName,
@@ -52,7 +54,6 @@ const WalletsPage: React.FC = () => {
       })
 
       setSupportedCryptos(Object.values(networksMap))
-
     } catch (error) {
       console.error('Failed to load data:', error)
       showToast('Failed to load wallet data', 'error')
@@ -64,7 +65,6 @@ const WalletsPage: React.FC = () => {
   const loadWallets = async () => {
     try {
       const walletsData = await walletAPI.getAll()
-      // Fix: Access wallets array from response object
       setWallets(Array.isArray(walletsData.data.wallets) ? walletsData.data.wallets : [])
     } catch (error) {
       console.error('Failed to load wallets:', error)
@@ -79,17 +79,6 @@ const WalletsPage: React.FC = () => {
         return
       }
 
-      // Basic validation
-      if (newWallet.crypto_type === 'SOL' || newWallet.crypto_type === 'USDT_SOL') {
-        if (address.length < 32 || address.length > 44) {
-          showToast('Invalid Solana address format', 'error')
-          return
-        }
-      } else if (address.startsWith('0x') && address.length !== 42) {
-        showToast('Invalid EVM address format', 'error')
-        return
-      }
-
       setRefreshing(true)
       await walletAPI.configure(newWallet)
       await loadWallets()
@@ -97,43 +86,56 @@ const WalletsPage: React.FC = () => {
       setNewWallet({ crypto_type: 'SOL', address: '' })
       showToast('Wallet configured successfully!', 'success')
     } catch (error: any) {
-      console.error('Configuration failed:', error)
       showToast(error.response?.data?.error || 'Failed to configure wallet', 'error')
     } finally {
       setRefreshing(false)
     }
   }
 
-  const [confirmModal, setConfirmModal] = useState<{ show: boolean; type: string | null; networkName: string | null }>({
+  const [activeMenu, setActiveMenu] = useState<string | null>(null)
+  const [confirmModal, setConfirmModal] = useState<{ show: boolean; type: string | null; networkName: string | null; action: 'generate' | 'revoke' | null }>({
     show: false,
     type: null,
-    networkName: null
+    networkName: null,
+    action: null
   })
 
   const [generatedKey, setGeneratedKey] = useState<{ address: string; privateKey: string; network: string } | null>(null)
 
-  const handleGenerateWallet = (cryptoType: string, networkName: string) => {
-    setConfirmModal({ show: true, type: cryptoType, networkName })
+  const handleWalletAction = (cryptoType: string, networkName: string, action: 'generate' | 'revoke') => {
+    setConfirmModal({ show: true, type: cryptoType, networkName, action })
+    setActiveMenu(null)
+  }
+
+  const handleRevokeWallet = async () => {
+    if (!confirmModal.type) return
+    try {
+      setRefreshing(true)
+      await walletAPI.revoke(confirmModal.type)
+      await loadWallets()
+      showToast(`${confirmModal.networkName} wallet revoked successfully`, 'success')
+      setConfirmModal({ show: false, type: null, networkName: null, action: null })
+    } catch (error: any) {
+      showToast(error.response?.data?.error || 'Failed to revoke wallet', 'error')
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   const confirmGeneration = async () => {
     if (!confirmModal.type) return
-
     try {
       setRefreshing(true)
       const response = await walletAPI.generate(confirmModal.type)
-
-      // Capture the generated data
       const { config, private_key } = response.data.wallet
       setGeneratedKey({
         address: config.address,
         privateKey: private_key,
         network: confirmModal.networkName || ''
       })
-
       await loadWallets()
       showToast('New wallet generated successfully!', 'success')
-      setConfirmModal({ show: false, type: null, networkName: null })
+      setConfirmModal({ show: false, type: null, networkName: null, action: null })
     } catch (error: any) {
       showToast(error.response?.data?.error || 'Failed to generate wallet', 'error')
     } finally {
@@ -141,9 +143,9 @@ const WalletsPage: React.FC = () => {
     }
   }
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, label: string = 'Address') => {
     navigator.clipboard.writeText(text)
-    showToast('Address copied to clipboard', 'success')
+    showToast(`${label} copied to clipboard`, 'success')
   }
 
   if (loading && wallets.length === 0) {
@@ -161,25 +163,41 @@ const WalletsPage: React.FC = () => {
       <header className={styles.header}>
         <div>
           <h1>Wallet Management</h1>
-          <p>Manage your deposit addresses per blockchain network</p>
+          <p>Network-specific configuration for your deposit addresses</p>
         </div>
-        <button
-          className={styles.configureBtn}
-          onClick={() => setShowConfigModal(true)}
-        >
+        <button className={styles.configureBtn} onClick={() => setShowConfigModal(true)}>
           <i className="fas fa-plus mr-2"></i>
           Add / Configure Wallet
         </button>
       </header>
 
+      {/* Smart Mode Awareness Header */}
+      <div className={styles.smartHeader}>
+        <div className={styles.modeInfo}>
+          <h3>
+            <i className={`fas ${settlementMode === 'managed' ? 'fa-cloud' :
+                settlementMode === 'imported' ? 'fa-key' : 'fa-share-square'
+              }`}></i>
+            Global Settlement Mode: <span className="text-blue-600">{settlementMode.toUpperCase()}</span>
+          </h3>
+          <p>
+            {settlementMode === 'managed' && "FidduPay securely manages your keys. You can withdraw anytime."}
+            {settlementMode === 'imported' && "Using your own private keys. You have full custody."}
+            {settlementMode === 'forwarding' && "Funds are auto-forwards to your destination addresses."}
+          </p>
+        </div>
+        <Link to="/settings" className={styles.changeModeLink}>
+          Change in Settings <i className="fas fa-external-link-alt"></i>
+        </Link>
+      </div>
+
       <div className={styles.walletGrid}>
         {supportedCryptos.map((network) => {
-          // A network wallet is active if any of its currencies have an address configured
-          // Since our backend now syncs them, checking one is enough, but we'll be robust.
-          const wallet = wallets?.find(w => network.cryptos.some((c: any) => c.crypto_type === w.crypto_type))
+          const wallet = wallets?.find(w => network.cryptos.some((c: any) => c.crypto_type === w.crypto_type && w.address !== ""))
+          const baseCryptoType = network.cryptos[0].crypto_type
 
           return (
-            <div key={network.name} className={styles.walletCard}>
+            <div key={network.name} className={styles.walletCard} style={{ position: 'relative' }}>
               <div className={styles.walletHeader}>
                 <div className={styles.coinInfo}>
                   <div className={styles.coinIcon}>
@@ -196,6 +214,34 @@ const WalletsPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {wallet && (
+                  <div className={styles.walletActions}>
+                    <button
+                      className={styles.actionMenuToggle}
+                      onClick={() => setActiveMenu(activeMenu === network.name ? null : network.name)}
+                    >
+                      <i className="fas fa-ellipsis-v"></i>
+                    </button>
+                    {activeMenu === network.name && (
+                      <div className={styles.actionDropdown}>
+                        <button
+                          className={styles.actionItem}
+                          onClick={() => handleWalletAction(baseCryptoType, network.name, 'generate')}
+                        >
+                          <i className="fas fa-sync-alt"></i> Generate New
+                        </button>
+                        <button
+                          className={`${styles.actionItem} ${styles.danger}`}
+                          onClick={() => handleWalletAction(baseCryptoType, network.name, 'revoke')}
+                        >
+                          <i className="fas fa-trash-alt"></i> Revoke / Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div
                   className={wallet ? styles.statusActive : styles.statusInactive}
                   title={wallet ? 'Active' : 'Not Configured'}
@@ -205,14 +251,12 @@ const WalletsPage: React.FC = () => {
               <div className={styles.walletContent}>
                 {wallet ? (
                   <div className={styles.addressContainer}>
-                    <label className={styles.addressLabel}>Network Deposit Address</label>
+                    <label className={styles.addressLabel}>
+                      {settlementMode === 'forwarding' ? 'Forwarding Payout Address' : 'Network Deposit Address'}
+                    </label>
                     <div className={styles.addressRow}>
                       <span className={styles.addressText}>{wallet.address}</span>
-                      <button
-                        className={styles.copyBtn}
-                        onClick={() => copyToClipboard(wallet.address)}
-                        title="Copy Address"
-                      >
+                      <button className={styles.copyBtn} onClick={() => copyToClipboard(wallet.address)} title="Copy Address">
                         <i className="fas fa-copy"></i>
                       </button>
                     </div>
@@ -223,7 +267,11 @@ const WalletsPage: React.FC = () => {
                 ) : (
                   <div className={styles.emptyState}>
                     <i className="fas fa-shield-alt text-gray-300 text-3xl mb-2 mx-auto block"></i>
-                    <p className="text-sm">No wallet configured for {network.name}</p>
+                    <p className="text-sm">
+                      {settlementMode === 'managed' ? "No wallet generated yet" :
+                        settlementMode === 'imported' ? "Provide private key to start" :
+                          "Provide destination address"}
+                    </p>
                   </div>
                 )}
               </div>
@@ -232,18 +280,23 @@ const WalletsPage: React.FC = () => {
                 {wallet ? (
                   <div className="flex justify-between items-center text-xs text-gray-500">
                     <span className="flex items-center gap-1">
-                      <i className="fas fa-check text-green-500 text-xs"></i> Verified
+                      <i className="fas fa-check-circle text-green-500"></i> Active
                     </span>
-                    <span>{new Date(wallet.configured_at || Date.now()).toLocaleDateString()}</span>
+                    <span>Last configured: {new Date(wallet.updated_at || wallet.configured_at || Date.now()).toLocaleDateString()}</span>
                   </div>
                 ) : (
-                  <button
-                    className={styles.generateBtn}
-                    onClick={() => handleGenerateWallet(network.cryptos[0].crypto_type, network.name)}
-                  >
-                    <i className="fas fa-sync-alt"></i>
-                    Generate {network.name} Address
-                  </button>
+                  <div className="flex gap-2">
+                    {settlementMode === 'managed' && (
+                      <button className={styles.generateBtn} onClick={() => handleWalletAction(baseCryptoType, network.name, 'generate')}>
+                        <i className="fas fa-magic"></i> Generate {network.name}
+                      </button>
+                    )}
+                    {settlementMode !== 'managed' && (
+                      <button className={styles.generateBtn} onClick={() => setShowConfigModal(true)}>
+                        <i className="fas fa-edit"></i> Configure {network.name}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -261,13 +314,9 @@ const WalletsPage: React.FC = () => {
                 <i className="fas fa-times text-xl"></i>
               </button>
             </div>
-
             <div className={styles.formGroup}>
               <label>Select Cryptocurrency</label>
-              <select
-                value={newWallet.crypto_type}
-                onChange={(e) => setNewWallet({ ...newWallet, crypto_type: e.target.value })}
-              >
+              <select value={newWallet.crypto_type} onChange={(e) => setNewWallet({ ...newWallet, crypto_type: e.target.value })}>
                 {supportedCryptos.map(network => (
                   <optgroup key={network.name} label={network.name}>
                     {network.cryptos.map((crypto: any) => (
@@ -279,135 +328,101 @@ const WalletsPage: React.FC = () => {
                 ))}
               </select>
             </div>
-
             <div className={styles.formGroup}>
               <label>Wallet Address</label>
-              <input
-                type="text"
-                value={newWallet.address}
-                onChange={(e) => setNewWallet({ ...newWallet, address: e.target.value })}
-                placeholder="Enter 0x... or specific address"
-                autoFocus
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Payments sent to this address will be detected automatically.
-              </p>
+              <input type="text" value={newWallet.address} onChange={(e) => setNewWallet({ ...newWallet, address: e.target.value })} placeholder="Enter 0x... or specific address" autoFocus />
+              <p className="text-xs text-gray-500 mt-1">Payments sent to this address will be detected automatically.</p>
             </div>
-
             <div className={styles.modalActions}>
-              <button
-                className={styles.cancelBtn}
-                onClick={() => setShowConfigModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className={styles.confirmBtn}
-                onClick={handleConfigureWallet}
-                disabled={refreshing}
-              >
-                {refreshing ? 'Saving...' : 'Save Configuration'}
-              </button>
+              <button className={styles.cancelBtn} onClick={() => setShowConfigModal(false)}>Cancel</button>
+              <button className={styles.confirmBtn} onClick={handleConfigureWallet} disabled={refreshing}>{refreshing ? 'Saving...' : 'Save Configuration'}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Confirmation Modal */}
+      {/* Revoke/Generate Confirmation Modal */}
       {confirmModal.show && (
-        <div className={styles.modalOverlay} onClick={() => setConfirmModal({ show: false, type: null, networkName: null })}>
+        <div className={styles.modalOverlay} onClick={() => setConfirmModal({ show: false, type: null, networkName: null, action: null })}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className={styles.modalHeader}>
-              <h2>Generate New Wallet?</h2>
-              <button
-                className={styles.closeButton}
-                onClick={() => setConfirmModal({ show: false, type: null, networkName: null })}
-              >
+              <h2>{confirmModal.action === 'revoke' ? 'Revoke Wallet?' : 'Generate New?'}</h2>
+              <button className={styles.closeButton} onClick={() => setConfirmModal({ show: false, type: null, networkName: null, action: null })}>
                 <i className="fas fa-times text-xl"></i>
               </button>
             </div>
-
             <div className="py-4 text-gray-600">
               <p className="mb-4">
-                Are you sure you want to generate a new <strong>{confirmModal.type?.split('_')[0]}</strong> wallet address?
+                {confirmModal.action === 'revoke'
+                  ? `Are you sure you want to revoke the ${confirmModal.networkName} wallet configuration? You will need to re-configure it to receive payments.`
+                  : `Are you sure you want to generate a new ${confirmModal.networkName} wallet address? This will replace your current one.`}
               </p>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex gap-3 text-sm text-yellow-800">
-                <i className="fas fa-shield-alt text-xl shrink-0"></i>
-                <p>This will create a dedicated deposit address for your merchant account. You can replace it later if needed.</p>
+              <div className={`bg-${confirmModal.action === 'revoke' ? 'red' : 'yellow'}-50 border border-${confirmModal.action === 'revoke' ? 'red' : 'yellow'}-200 rounded-lg p-3 flex gap-3 text-sm text-${confirmModal.action === 'revoke' ? 'red' : 'yellow'}-800`}>
+                <i className="fas fa-exclamation-triangle mt-1"></i>
+                <p>This action cannot be undone. Make sure you don't have pending funds.</p>
               </div>
             </div>
-
             <div className={styles.modalActions}>
-              <button
-                className={styles.cancelBtn}
-                onClick={() => setConfirmModal({ show: false, type: null, networkName: null })}
-              >
-                Cancel
-              </button>
+              <button className={styles.cancelBtn} onClick={() => setConfirmModal({ show: false, type: null, networkName: null, action: null })}>Cancel</button>
               <button
                 className={styles.confirmBtn}
-                onClick={confirmGeneration}
+                style={{ backgroundColor: confirmModal.action === 'revoke' ? '#ef4444' : '#2563eb' }}
+                onClick={confirmModal.action === 'revoke' ? handleRevokeWallet : confirmGeneration}
                 disabled={refreshing}
               >
-                {refreshing ? 'Generating...' : 'Yes, Generate Wallet'}
+                {refreshing ? 'Processing...' : `Yes, ${confirmModal.action === 'revoke' ? 'Revoke' : 'Generate'}`}
               </button>
             </div>
           </div>
         </div>
       )}
-      {/* Private Key Reveal Modal */}
+
+      {/* Redesigned Private Key Reveal Modal */}
       {generatedKey && (
-        <div className={styles.modalOverlay} onClick={() => setGeneratedKey(null)}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
-            <div className={styles.modalHeader}>
-              <h2 className="text-red-600">⚠️ Secure Your Private Key</h2>
-              <button
-                className={styles.closeButton}
-                onClick={() => setGeneratedKey(null)}
-              >
-                <i className="fas fa-times text-xl"></i>
+        <div className={styles.modalOverlay}>
+          <div className={`${styles.modalContent} ${styles.premiumModal}`} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalContentRedesign}>
+              <div className={styles.securityHeader}>
+                <div className={styles.securityIcon}>
+                  <i className="fas fa-shield-alt"></i>
+                </div>
+                <h2>Secure Your Wallet</h2>
+                <p>Your new {generatedKey.network} wallet is ready.</p>
+              </div>
+
+              <div className={styles.keySection}>
+                <div className={styles.keyField}>
+                  <label className={styles.keyLabel}>
+                    <i className="fas fa-link"></i> Public Address
+                  </label>
+                  <code className={styles.keyValue}>{generatedKey.address}</code>
+                </div>
+                <div className={styles.keyField}>
+                  <label className={styles.keyLabel}>
+                    <i className="fas fa-key"></i> Private Key (Secret)
+                  </label>
+                  <code className={`${styles.keyValue} ${styles.secret}`}>{generatedKey.privateKey}</code>
+                </div>
+              </div>
+
+              <button className={styles.copyKeyBtn} onClick={() => copyToClipboard(generatedKey.privateKey, 'Private Key')}>
+                <i className="fas fa-copy"></i> Copy Private Key
               </button>
-            </div>
 
-            <div className="py-4">
-              <p className="text-sm text-gray-600 mb-4">
-                Your new <strong>{generatedKey.network}</strong> wallet has been created.
-                <span className="text-red-500 font-bold"> This private key will NEVER be shown again.</span>
-              </p>
-
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
-                <div className="mb-3">
-                  <label className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Generated Address</label>
-                  <code className="text-xs break-all block text-gray-800">{generatedKey.address}</code>
+              <div className="mt-6">
+                <div className={styles.warningBox}>
+                  <i className="fas fa-exclamation-circle"></i>
+                  <p>
+                    <strong>WARNING:</strong> This key is NEVER stored. If you close this window without saving it,
+                    <strong> any funds sent to this address will be lost forever.</strong>
+                  </p>
                 </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-red-400 block mb-1">Private Key (Secret)</label>
-                  <code className="text-xs break-all block text-red-600 font-bold bg-red-50 p-2 rounded border border-red-100">{generatedKey.privateKey}</code>
-                </div>
-              </div>
-
-              <div className="flex gap-2 mb-4">
-                <button
-                  className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                  onClick={() => copyToClipboard(generatedKey.privateKey)}
-                >
-                  <i className="fas fa-copy"></i> Copy Key
-                </button>
-              </div>
-
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-800">
-                <strong>CRITICAL:</strong> If you lose this key, you will lose access to all funds sent to this address.
-                We do not store this key and cannot recover it for you.
               </div>
             </div>
 
-            <div className={styles.modalActions}>
-              <button
-                className={styles.confirmBtn}
-                style={{ backgroundColor: '#10b981' }}
-                onClick={() => setGeneratedKey(null)}
-              >
-                I have saved my private key
+            <div className={styles.modalFooterRedesign}>
+              <button className={styles.finishBtn} onClick={() => setGeneratedKey(null)}>
+                I Have Safely Stored My Key
               </button>
             </div>
           </div>

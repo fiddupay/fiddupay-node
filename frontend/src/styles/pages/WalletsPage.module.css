@@ -212,6 +212,269 @@
   background-color: #dbeafe;
 }
 
+/* Smart Header */
+.smartHeader {
+  background: #f8fafc;
+  border-left: 4px solid var(--fiddu-brand-primary);
+  padding: 1.25rem 1.5rem;
+  border-radius: 0 0.75rem 0.75rem 0;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modeInfo h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modeInfo p {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.changeModeLink {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--fiddu-brand-primary);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.changeModeLink:hover {
+  text-decoration: underline;
+}
+
+/* Wallet Card Actions */
+.walletActions {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+}
+
+.actionMenuToggle {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.actionMenuToggle:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.actionDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  min-width: 140px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.actionItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  text-align: left;
+}
+
+.actionItem:hover {
+  background: #f8fafc;
+}
+
+.actionItem.danger {
+  color: #ef4444;
+}
+
+.actionItem.danger:hover {
+  background: #fef2f2;
+}
+
+/* Private Key Modal Redesign */
+.premiumModal {
+  max-width: 500px !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.modalContentRedesign {
+  padding: 2.5rem;
+}
+
+.securityHeader {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.securityIcon {
+  width: 64px;
+  height: 64px;
+  background: #fff7ed;
+  color: #f97316;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin: 0 auto 1rem;
+}
+
+.securityHeader h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.securityHeader p {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.keySection {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.keyField {
+  margin-bottom: 1.25rem;
+}
+
+.keyField:last-child {
+  margin-bottom: 0;
+}
+
+.keyLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+}
+
+.keyValue {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  color: #334155;
+  word-break: break-all;
+  line-height: 1.5;
+  background: white;
+  padding: 0.75rem;
+  border: 1px solid #f1f5f9;
+  border-radius: 0.5rem;
+  display: block;
+}
+
+.keyValue.secret {
+  color: #e11d48;
+  background: #fff1f2;
+  border-color: #ffe4e6;
+}
+
+.copyKeyBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 1.5rem;
+}
+
+.copyKeyBtn:hover {
+  border-color: var(--fiddu-brand-primary);
+  color: var(--fiddu-brand-primary);
+  background: #f0f9ff;
+}
+
+.warningBox {
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.warningBox i {
+  color: #ef4444;
+  font-size: 1.1rem;
+  margin-top: 2px;
+}
+
+.warningBox p {
+  font-size: 0.75rem;
+  color: #991b1b;
+  line-height: 1.5;
+}
+
+.modalFooterRedesign {
+  padding: 1.5rem 2.5rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: center;
+}
+
+.finishBtn {
+  width: 100%;
+  padding: 1rem;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.finishBtn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
 /* Modal */
 .modalOverlay {
   position: fixed;

@@ -117,6 +117,23 @@ pub async fn export_private_key(
     }
 }
 
+pub async fn delete_wallet(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(crypto_type): Path<String>,
+) -> impl IntoResponse {
+    let wallet_service = WalletConfigService::new(state.db_pool.clone());
+    
+    match wallet_service.delete_wallet_config(context.merchant_id, crypto_type).await {
+        Ok(_) => (StatusCode::OK, Json(json!({
+            "message": "Wallet configuration removed successfully"
+        }))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
+            "error": e.to_string()
+        }))).into_response(),
+    }
+}
+
 // ============================================================================
 // Gas Fee Validation Endpoints
 // ============================================================================

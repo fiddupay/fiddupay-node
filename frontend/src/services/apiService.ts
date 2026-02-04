@@ -76,6 +76,7 @@ export const walletAPI = {
   generate: (cryptoType: string) => api.post('/api/v1/merchants/wallets/generate', { crypto_type: cryptoType }),
   import: (data: any) => api.post('/api/v1/merchants/wallets/import', data),
   getAll: () => api.get('/api/v1/merchants/wallets'),
+  revoke: (cryptoType: string) => api.delete(`/api/v1/merchants/wallets/${cryptoType}`),
 }
 
 export const securityAPI = {

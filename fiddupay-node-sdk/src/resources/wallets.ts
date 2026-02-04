@@ -73,4 +73,11 @@ export class Wallets {
   async checkWithdrawalCapability(cryptoType: string, options?: RequestOptions): Promise<any> {
     return this.client.request('GET', `/api/v1/merchants/wallets/withdrawal-capability/${cryptoType}`);
   }
+
+  /**
+   * Revoke/Remove wallet configuration
+   */
+  async revoke(cryptoType: string, options?: RequestOptions): Promise<any> {
+    return this.client.request('DELETE', `/api/v1/merchants/wallets/${cryptoType}`);
+  }
 }

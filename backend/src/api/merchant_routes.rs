@@ -57,6 +57,7 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/merchants/wallets/generate", post(wallet_management::generate_wallet))
         .route("/api/v1/merchants/wallets/import", post(wallet_management::import_wallet))
         .route("/api/v1/merchants/wallets/export-key", post(wallet_management::export_private_key))
+        .route("/api/v1/merchants/wallets/:crypto_type", axum::routing::delete(wallet_management::delete_wallet))
         .route("/api/v1/merchants/wallets/gas-check", get(wallet_management::check_gas_requirements))
         .route("/api/v1/merchants/wallets/gas-estimates", get(wallet_management::get_gas_estimates))
         .route("/api/v1/merchants/wallets/withdrawal-capability/:crypto_type", get(wallet_management::check_withdrawal_capability))
