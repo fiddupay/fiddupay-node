@@ -17,7 +17,10 @@ const DocsSidebar: React.FC<DocsSidebarProps> = ({ apiData, activeSection, scrol
                     <div key={section.id}>
                         <a
                             href={`#${section.id}`}
-                            className={`${styles.sidebarLink} ${activeSection === section.id ? styles.active : ''}`}
+                            className={`${styles.sidebarLink} ${activeSection === section.id || section.endpoints.some(e => e.id === activeSection)
+                                    ? styles.active
+                                    : ''
+                                }`}
                             onClick={(e) => {
                                 e.preventDefault();
                                 scrollToSection(section.id);
@@ -52,7 +55,7 @@ const DocsSidebar: React.FC<DocsSidebarProps> = ({ apiData, activeSection, scrol
                     <i className="fab fa-npm" style={{ marginRight: '8px' }}></i> Node.js SDK
                 </a>
             </div>
-        </aside>
+        </aside >
     );
 };
 
