@@ -10,6 +10,8 @@ Complete guide for merchants to integrate FidduPay cryptocurrency payment gatewa
 - **KYC Verified Merchants**: No daily volume limits
 - **Reset**: Daily limits reset at midnight UTC
 - **Tracking**: Real-time volume tracking across all transaction types
+- **v2.4.1 Update**: Introduced Global Settlement Modes and Visual Environment Indicators.
+
 
 ### Check Your Daily Volume Status
 ```bash
@@ -60,7 +62,18 @@ curl -X PUT https://api.fiddupay.com/api/v1/merchants/wallets \
   }'
 ```
 
-### 3. Set Webhook
+### 3. Global Settlement Mode
+```bash
+curl -X PUT https://api.fiddupay.com/api/v1/merchants/settlement-mode \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mode": "managed" 
+  }'
+```
+Valid modes: `forwarding` (auto-redirect to cold storage), `managed` (held in gateway balance), `imported` (self-custody with platform tracking).
+
+### 4. Set Webhook
 ```bash
 curl -X PUT https://api.fiddupay.com/api/v1/merchants/webhook \
   -H "Authorization: Bearer your_api_key" \

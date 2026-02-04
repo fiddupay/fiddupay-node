@@ -195,6 +195,9 @@ await fiddupay.merchants.setWallet({
   crypto_type: 'SOL',
   address: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
 });
+
+// Update settlement mode
+await fiddupay.merchants.updateSettlementMode('managed');
 ```
 
 ### Analytics
@@ -568,7 +571,7 @@ examples/
 
 ---
 
-**Document Version**: 1.1  
-**Last Updated**: February 2, 2026  
+**Document Version**: 1.1.1 
+**Last Updated**: February 4, 2026
 **Next Review**: April 1, 2026  
 **Owner**: TechyTro Software - FidduPay SDK Team
