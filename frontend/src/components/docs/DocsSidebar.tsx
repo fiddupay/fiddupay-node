@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from '@/styles/pages/DocsPage.module.css';
+import styles from '@/styles/components/docs/DocsSidebar.module.css';
 import { DocSection } from '../../pages/docs/ApiData';
 
 interface DocsSidebarProps {

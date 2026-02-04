@@ -1,0 +1,55 @@
+/* Parameter Tables */
+.tableContainer {
+    margin: 24px 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.paramTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.paramTable th {
+    background: #f8fafc;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.paramTable td {
+    padding: 16px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: top;
+}
+
+.paramName {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.paramType {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.required {
+    color: #dc2626;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-left: 4px;
+}
+
+.paramDesc {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #475569;
+}
