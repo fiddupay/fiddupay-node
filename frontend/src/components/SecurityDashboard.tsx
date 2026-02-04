@@ -8,15 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Shield, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  Fuel,
-  Activity,
-  Settings
-} from 'lucide-react';
+
 
 interface SecurityEvent {
   event_type: string;
@@ -60,7 +52,7 @@ export default function SecurityDashboard() {
   const loadSecurityData = async () => {
     try {
       setLoading(true);
-      
+
       // Load security events
       const eventsResponse = await securityAPI.getEvents({ limit: 20 })
       setSecurityEvents(eventsResponse.data.events || [])
@@ -118,7 +110,7 @@ export default function SecurityDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Clock className="h-6 w-6 animate-spin mr-2" />
+        <i className="fas fa-spinner fa-spin h-6 w-6 mr-2"></i>
         Loading security data...
       </div>
     );
@@ -129,7 +121,7 @@ export default function SecurityDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
+            <i className="fas fa-shield-alt h-5 w-5"></i>
             Security Dashboard
           </CardTitle>
         </CardHeader>
@@ -152,7 +144,7 @@ export default function SecurityDashboard() {
                         <p className="text-sm text-gray-600">Security Status</p>
                         <p className="text-2xl font-bold text-green-600">Secure</p>
                       </div>
-                      <Shield className="h-8 w-8 text-green-600" />
+                      <i className="fas fa-shield-alt text-3xl text-green-600"></i>
                     </div>
                   </CardContent>
                 </Card>
@@ -167,7 +159,7 @@ export default function SecurityDashboard() {
                           {securityAlerts.filter(a => !a.acknowledged_at).length + balanceAlerts.length}
                         </p>
                       </div>
-                      <AlertTriangle className="h-8 w-8 text-orange-600" />
+                      <i className="fas fa-exclamation-triangle text-3xl text-orange-600"></i>
                     </div>
                   </CardContent>
                 </Card>
@@ -180,7 +172,7 @@ export default function SecurityDashboard() {
                         <p className="text-sm text-gray-600">Gas Warnings</p>
                         <p className="text-2xl font-bold text-blue-600">{gasAlerts.length}</p>
                       </div>
-                      <Fuel className="h-8 w-8 text-blue-600" />
+                      <i className="fas fa-gas-pump text-3xl text-blue-600"></i>
                     </div>
                   </CardContent>
                 </Card>
@@ -189,7 +181,7 @@ export default function SecurityDashboard() {
               {/* Recent Critical Events */}
               {securityEvents.filter(e => e.severity === 'Critical' || e.severity === 'High').length > 0 && (
                 <Alert className="border-red-200 bg-red-50">
-                  <AlertTriangle className="h-4 w-4" />
+                  <i className="fas fa-exclamation-triangle mr-2"></i>
                   <AlertDescription>
                     <strong>High Priority Events Detected</strong>
                     <div className="mt-2 space-y-1">
@@ -227,7 +219,7 @@ export default function SecurityDashboard() {
                             {formatTimestamp(event.timestamp)}
                           </p>
                         </div>
-                        <Activity className="h-5 w-5 text-gray-400" />
+                        <i className="fas fa-chart-line text-gray-400"></i>
                       </div>
                     </CardContent>
                   </Card>
@@ -250,9 +242,9 @@ export default function SecurityDashboard() {
                                 {alert.alert_type}
                               </Badge>
                               {alert.acknowledged_at ? (
-                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                <i className="fas fa-check-circle text-green-600"></i>
                               ) : (
-                                <AlertTriangle className="h-4 w-4 text-red-600" />
+                                <i className="fas fa-exclamation-triangle text-red-600"></i>
                               )}
                             </div>
                             <p className="text-sm mb-2">{alert.message}</p>
@@ -319,7 +311,7 @@ export default function SecurityDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Fuel className="h-5 w-5" />
+                    <i className="fas fa-gas-pump"></i>
                     Gas Balance Monitoring
                   </CardTitle>
                 </CardHeader>
@@ -328,7 +320,7 @@ export default function SecurityDashboard() {
                     <div className="space-y-3">
                       {gasAlerts.map((alert, index) => (
                         <Alert key={index} className="border-orange-200 bg-orange-50">
-                          <Fuel className="h-4 w-4" />
+                          <i className="fas fa-gas-pump mr-2"></i>
                           <AlertDescription>
                             <strong>Low Gas Balance:</strong> {alert.message}
                           </AlertDescription>
@@ -337,7 +329,7 @@ export default function SecurityDashboard() {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
-                      <CheckCircle className="h-12 w-12 mx-auto mb-2 text-green-600" />
+                      <i className="fas fa-check-circle text-4xl mx-auto mb-2 text-green-600 block"></i>
                       <p>All gas balances are sufficient</p>
                     </div>
                   )}
@@ -348,7 +340,7 @@ export default function SecurityDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Settings className="h-5 w-5" />
+                    <i className="fas fa-cog"></i>
                     Security Settings
                   </CardTitle>
                 </CardHeader>
@@ -378,7 +370,7 @@ export default function SecurityDashboard() {
 
           {error && (
             <Alert className="mt-4" variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
+              <i className="fas fa-exclamation-triangle h-4 w-4"></i>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}

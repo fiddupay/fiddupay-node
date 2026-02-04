@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDownUp, Fuel, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+
 
 interface Balance {
   crypto_type: string;
@@ -106,11 +106,11 @@ export default function WithdrawalInterface() {
         to_address: toAddress,
         description: 'Manual withdrawal'
       })
-      
+
       // Process withdrawal
       setProcessing(true)
       const processData = await withdrawalAPI.process(createData.data.id, password)
-      
+
       setSuccess(`Withdrawal processed successfully! Transaction: ${processData.data.withdrawal.transaction_hash}`)
       setAmount('')
       setToAddress('')
@@ -136,7 +136,7 @@ export default function WithdrawalInterface() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ArrowDownUp className="h-5 w-5" />
+            <i className="fas fa-exchange-alt h-5 w-5"></i>
             Withdraw Funds
           </CardTitle>
         </CardHeader>
@@ -166,7 +166,7 @@ export default function WithdrawalInterface() {
             </Select>
             {balance && (
               <div className="mt-1 text-sm text-gray-600">
-                Available: {parseFloat(balance.available_balance).toFixed(6)} {selectedCryptoInfo?.label} 
+                Available: {parseFloat(balance.available_balance).toFixed(6)} {selectedCryptoInfo?.label}
                 (${parseFloat(balance.balance_usd).toFixed(2)})
               </div>
             )}
@@ -204,7 +204,7 @@ export default function WithdrawalInterface() {
           {/* Gas Validation */}
           {gasValidation && (
             <Alert className={gasValidation.can_withdraw ? '' : 'border-orange-200 bg-orange-50'}>
-              <Fuel className="h-4 w-4" />
+              <i className="fas fa-gas-pump mr-2"></i>
               <AlertDescription>
                 <div className="flex items-center justify-between">
                   <span>{gasValidation.message}</span>
@@ -243,7 +243,7 @@ export default function WithdrawalInterface() {
           >
             {processing ? (
               <>
-                <Clock className="h-4 w-4 mr-2 animate-spin" />
+                <i className="fas fa-spinner fa-spin mr-2"></i>
                 Processing Withdrawal...
               </>
             ) : loading ? (
@@ -255,14 +255,14 @@ export default function WithdrawalInterface() {
 
           {error && (
             <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
+              <i className="fas fa-exclamation-triangle mr-2"></i>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
           {success && (
             <Alert>
-              <CheckCircle className="h-4 w-4" />
+              <i className="fas fa-check-circle mr-2"></i>
               <AlertDescription>{success}</AlertDescription>
             </Alert>
           )}

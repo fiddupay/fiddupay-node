@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { walletAPI, publicAPI } from '@/services/apiService'
 import { Wallet, WalletConfig } from '../types'
 import styles from '@/styles/pages/WalletsPage.module.css'
-import { Copy, Check, Plus, RefreshCw, X, ShieldCheck } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
 
 const WalletsPage: React.FC = () => {
@@ -138,7 +137,7 @@ const WalletsPage: React.FC = () => {
           className={styles.configureBtn}
           onClick={() => setShowConfigModal(true)}
         >
-          <Plus size={20} />
+          <i className="fas fa-plus mr-2"></i>
           Add / Configure Wallet
         </button>
       </header>
@@ -176,13 +175,13 @@ const WalletsPage: React.FC = () => {
                         onClick={() => copyToClipboard(wallet.address)}
                         title="Copy Address"
                       >
-                        <Copy size={16} />
+                        <i className="fas fa-copy"></i>
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className={styles.emptyState}>
-                    <ShieldCheck className="text-gray-300 mx-auto mb-2" size={32} />
+                    <i className="fas fa-shield-alt text-gray-300 text-3xl mb-2 mx-auto block"></i>
                     <p className="text-sm">No wallet configured</p>
                   </div>
                 )}
@@ -192,7 +191,7 @@ const WalletsPage: React.FC = () => {
                 {wallet ? (
                   <div className="flex justify-between items-center text-xs text-gray-500">
                     <span className="flex items-center gap-1">
-                      <Check size={12} className="text-green-500" /> Verified
+                      <i className="fas fa-check text-green-500 text-xs"></i> Verified
                     </span>
                     <span>{new Date(wallet.configured_at || Date.now()).toLocaleDateString()}</span>
                   </div>
@@ -201,7 +200,7 @@ const WalletsPage: React.FC = () => {
                     className={styles.generateBtn}
                     onClick={() => handleGenerateWallet(crypto.crypto_type)}
                   >
-                    <RefreshCw size={16} />
+                    <i className="fas fa-sync-alt"></i>
                     Generate Address
                   </button>
                 )}
@@ -218,7 +217,7 @@ const WalletsPage: React.FC = () => {
             <div className={styles.modalHeader}>
               <h2>Configure Wallet</h2>
               <button className={styles.closeButton} onClick={() => setShowConfigModal(false)}>
-                <X size={24} />
+                <i className="fas fa-times text-xl"></i>
               </button>
             </div>
 
@@ -279,7 +278,7 @@ const WalletsPage: React.FC = () => {
                 className={styles.closeButton}
                 onClick={() => setConfirmModal({ show: false, type: null })}
               >
-                <X size={24} />
+                <i className="fas fa-times text-xl"></i>
               </button>
             </div>
 
@@ -288,7 +287,7 @@ const WalletsPage: React.FC = () => {
                 Are you sure you want to generate a new <strong>{confirmModal.type?.split('_')[0]}</strong> wallet address?
               </p>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex gap-3 text-sm text-yellow-800">
-                <ShieldCheck size={20} className="shrink-0" />
+                <i className="fas fa-shield-alt text-xl shrink-0"></i>
                 <p>This will create a dedicated deposit address for your merchant account. You can replace it later if needed.</p>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react'
 import styles from '@/styles/contexts/ToastContext.module.css'
-import { CheckCircle2, AlertCircle, Info, X, AlertTriangle } from 'lucide-react'
+
 
 interface Toast {
   id: string
@@ -66,10 +66,10 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
             role="alert"
           >
             <div className={styles.toastIcon}>
-              {toast.type === 'success' && <CheckCircle2 size={20} />}
-              {toast.type === 'error' && <AlertCircle size={20} />}
-              {toast.type === 'info' && <Info size={20} />}
-              {toast.type === 'warning' && <AlertTriangle size={20} />}
+              {toast.type === 'success' && <i className="fas fa-check-circle"></i>}
+              {toast.type === 'error' && <i className="fas fa-exclamation-circle"></i>}
+              {toast.type === 'info' && <i className="fas fa-info-circle"></i>}
+              {toast.type === 'warning' && <i className="fas fa-exclamation-triangle"></i>}
             </div>
             <div className={styles.toastMessage}>{toast.message}</div>
             <button
@@ -77,7 +77,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
               onClick={() => removeToast(toast.id)}
               aria-label="Close notification"
             >
-              <X size={16} />
+              <i className="fas fa-times"></i>
             </button>
           </div>
         ))}

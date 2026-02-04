@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Key, Wallet, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface WalletConfig {
   network: string;
@@ -145,7 +144,7 @@ export default function WalletSetupWizard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Wallet className="h-5 w-5" />
+            <i className="fas fa-wallet text-xl"></i>
             Wallet Setup Wizard
           </CardTitle>
         </CardHeader>
@@ -173,7 +172,7 @@ export default function WalletSetupWizard() {
                         </div>
                         {wallet && (
                           <div className="flex items-center gap-1 text-green-600">
-                            <CheckCircle className="h-4 w-4" />
+                            <i className="fas fa-check-circle text-sm"></i>
                             <span className="text-xs">
                               {wallet.wallet_mode === 'address_only' ? 'Address Only' :
                                 wallet.wallet_mode === 'gateway_generated' ? 'Generated' : 'Imported'}
@@ -193,25 +192,27 @@ export default function WalletSetupWizard() {
               <Tabs value={selectedMode} onValueChange={setSelectedMode} className="mt-2">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="address_only" className="text-xs">
-                    <Shield className="h-3 w-3 mr-1" />
+                    <i className="fas fa-shield-alt mr-1"></i>
                     Address Only
                   </TabsTrigger>
                   <TabsTrigger value="gateway_generated" className="text-xs">
-                    <Key className="h-3 w-3 mr-1" />
+                    <i className="fas fa-key mr-1"></i>
                     Generate
                   </TabsTrigger>
                   <TabsTrigger value="merchant_provided" className="text-xs">
-                    <Wallet className="h-3 w-3 mr-1" />
+                    <i className="fas fa-file-import mr-1"></i>
                     Import
                   </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="address_only" className="space-y-4">
                   <Alert>
-                    <Shield className="h-4 w-4" />
-                    <AlertDescription>
-                      Maximum security - you control private keys externally. No withdrawal capability through FidduPay.
-                    </AlertDescription>
+                    <div className="flex items-center gap-3">
+                      <i className="fas fa-shield-alt text-lg"></i>
+                      <AlertDescription>
+                        Maximum security - you control private keys externally. No withdrawal capability through FidduPay.
+                      </AlertDescription>
+                    </div>
                   </Alert>
                   <div>
                     <Label htmlFor="address">Wallet Address</Label>
@@ -229,10 +230,12 @@ export default function WalletSetupWizard() {
 
                 <TabsContent value="gateway_generated" className="space-y-4">
                   <Alert>
-                    <Key className="h-4 w-4" />
-                    <AlertDescription>
-                      FidduPay generates encrypted keys. Withdrawal capability enabled. You can export keys anytime.
-                    </AlertDescription>
+                    <div className="flex items-center gap-3">
+                      <i className="fas fa-key text-lg"></i>
+                      <AlertDescription>
+                        FidduPay generates encrypted keys. Withdrawal capability enabled. You can export keys anytime.
+                      </AlertDescription>
+                    </div>
                   </Alert>
                   <div>
                     <Label htmlFor="gen-password">Encryption Password</Label>
@@ -261,10 +264,12 @@ export default function WalletSetupWizard() {
 
                 <TabsContent value="merchant_provided" className="space-y-4">
                   <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                      Import your existing private key. Withdrawal capability enabled. Key will be encrypted and stored securely.
-                    </AlertDescription>
+                    <div className="flex items-center gap-3">
+                      <i className="fas fa-exclamation-triangle text-lg"></i>
+                      <AlertDescription>
+                        Import your existing private key. Withdrawal capability enabled. Key will be encrypted and stored securely.
+                      </AlertDescription>
+                    </div>
                   </Alert>
                   <div>
                     <Label htmlFor="private-key">Private Key</Label>
@@ -306,15 +311,19 @@ export default function WalletSetupWizard() {
 
           {error && (
             <Alert className="mt-4" variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <div className="flex items-center gap-3">
+                <i className="fas fa-exclamation-circle text-lg"></i>
+                <AlertDescription>{error}</AlertDescription>
+              </div>
             </Alert>
           )}
 
           {success && (
             <Alert className="mt-4">
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>{success}</AlertDescription>
+              <div className="flex items-center gap-3">
+                <i className="fas fa-check-circle text-lg"></i>
+                <AlertDescription>{success}</AlertDescription>
+              </div>
             </Alert>
           )}
         </CardContent>
@@ -322,3 +331,4 @@ export default function WalletSetupWizard() {
     </div>
   );
 }
+
