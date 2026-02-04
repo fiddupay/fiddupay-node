@@ -69,12 +69,16 @@ const DocsPage: React.FC = () => {
               <div key={activeSection}>
                 {API_DATA.flatMap(s => [s, ...s.endpoints]).find(e => e.id === activeSection && (e as Endpoint).request)?.id && (
                   <>
-                    <div style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.05em' }}>
-                      Sample Request & Response
-                    </div>
                     {(() => {
-                      const item = API_DATA.flatMap(s => [s, ...s.endpoints]).find(e => e.id === activeSection) as Endpoint;
-                      return <CodeSnippet request={item.request} response={item.response} />;
+                      const item = API_DATA.flatMap(s => [s, ...s.endpoints]).find(e => e.id === activeSection && (e as Endpoint).request) as Endpoint;
+                      return (
+                        <CodeSnippet
+                          request={item.request}
+                          response={item.response}
+                          method={item.method}
+                          path={item.path}
+                        />
+                      );
                     })()}
                   </>
                 )}
