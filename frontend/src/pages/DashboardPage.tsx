@@ -131,8 +131,8 @@ const DashboardPage: React.FC = () => {
             <i className="fas fa-book"></i>
             API Documentation
           </a>
-          <a href="https://www.npmjs.com/package/@fiddupay/fiddupay-node" target="_blank" rel="noopener noreferrer" className={styles.sdkLink}>
-            <i className="fas fa-code"></i>
+          <a href="https://github.com/fiddupay/fiddupay-node" target="_blank" rel="noopener noreferrer" className={styles.sdkLink}>
+            <i className="fab fa-github"></i>
             Node.js SDK
           </a>
         </div>

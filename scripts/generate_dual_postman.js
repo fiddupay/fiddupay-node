@@ -5,12 +5,14 @@ const path = require('path');
 const completePath = path.join(__dirname, '../docs/postman/FidduPay-Complete-API.postman_collection.json');
 const merchantPath = path.join(__dirname, '../fiddupay-node-sdk/postman/FidduPay-Merchant-API.postman_collection.json');
 
+const VERSION = "2.4.0";
+
 // 1. Define the base structure (based on the original 773-line version)
 const baseCollection = {
     "info": {
-        "name": "FidduPay Complete API v2.3.8",
+        "name": `FidduPay Complete API v${VERSION}`,
         "description": "Complete API collection for FidduPay cryptocurrency payment gateway. Supports 10 cryptocurrencies across 5 major blockchains with enterprise-grade security and comprehensive admin functionality.",
-        "version": "2.3.8",
+        "version": VERSION,
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [

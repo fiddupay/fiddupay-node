@@ -2,7 +2,7 @@
   "info": {
     "name": "FidduPay Merchant API SDK",
     "description": "Official Merchant API documentation for FidduPay Node.js SDK users.",
-    "version": "2.3.8",
+    "version": "2.4.0",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -41,18 +41,6 @@
       "value": "sandbox_test_key_12345",
       "type": "string",
       "description": "Merchant API key"
-    },
-    {
-      "key": "adminUsername",
-      "value": "admin",
-      "type": "string",
-      "description": "Admin username"
-    },
-    {
-      "key": "adminPassword",
-      "value": "admin_password",
-      "type": "string",
-      "description": "Admin password"
     }
   ],
   "auth": {
@@ -279,7 +267,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount_usd\": \"100.0\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Test\"\n}"
+              "raw": "{\n  \"amount_usd\": \"100.0\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Test Payment\",\n  \"webhook_url\": \"https://example.com/webhook\",\n  \"metadata\": {\"order_id\": \"123\"},\n  \"partial_payments_enabled\": false\n}"
             }
           }
         },
@@ -457,6 +445,35 @@
       ]
     },
     {
+      "name": "Merchant Fees",
+      "item": [
+        {
+          "name": "Get Fees",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/fee-setting",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "fee-setting"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Merchant Wallets",
       "item": [
         {
@@ -484,9 +501,9 @@
           }
         },
         {
-          "name": "Update Wallets",
+          "name": "Set Wallet",
           "request": {
-            "method": "PUT",
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
@@ -511,7 +528,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"solana_address\": \"...\"\n}"
+              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"address\": \"your_solana_address\"\n}"
             }
           }
         },
@@ -602,6 +619,111 @@
                 "merchants",
                 "wallets",
                 "import"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export Wallet Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/export-key",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "export-key"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Check Gas Requirements",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/gas-check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "gas-check"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Gas Estimates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/gas-estimates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "gas-estimates"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Check Withdrawal Capability",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/withdrawal-capability/SOL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "withdrawal-capability",
+                "SOL"
               ]
             }
           }
@@ -721,6 +843,32 @@
               ]
             }
           }
+        },
+        {
+          "name": "Process Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/withdrawals/w_123/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "withdrawals",
+                "w_123",
+                "process"
+              ]
+            }
+          }
         }
       ]
     },
@@ -782,6 +930,118 @@
       "name": "Merchant Security",
       "item": [
         {
+          "name": "Get Security Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "settings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Acknowledge Security Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/alerts/alert_123/acknowledge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "alerts",
+                "alert_123",
+                "acknowledge"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Resolve Balance Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/balance-alerts/alert_123/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "balance-alerts",
+                "alert_123",
+                "resolve"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Security Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "settings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"two_factor_enabled\": true,\n  \"login_notifications\": true\n}"
+            }
+          }
+        },
+        {
           "name": "Get IP Whitelist",
           "request": {
             "method": "GET",
@@ -830,6 +1090,10 @@
                 "merchants",
                 "ip-whitelist"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ip_addresses\": [\"192.168.1.1\"]\n}"
             }
           }
         },
@@ -858,7 +1122,32 @@
           }
         },
         {
-          "name": "Get Profile Alerts",
+          "name": "Get Security Events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "events"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Security Alerts",
           "request": {
             "method": "GET",
             "header": [
@@ -883,21 +1172,17 @@
           }
         },
         {
-          "name": "Update Settings",
+          "name": "Get Balance Alerts",
           "request": {
-            "method": "PUT",
+            "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{apiKey}}"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/security/settings",
+              "raw": "{{baseUrl}}/api/v1/merchants/security/balance-alerts",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -906,7 +1191,32 @@
                 "v1",
                 "merchants",
                 "security",
-                "settings"
+                "balance-alerts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Check Gas Balances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/gas-check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "gas-check"
               ]
             }
           }
@@ -1123,6 +1433,92 @@
                 "pay",
                 "pay_123",
                 "status"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Invoices",
+      "item": [
+        {
+          "name": "Create Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "invoices"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_usd\": \"150.0\",\n  \"customer_email\": \"customer@example.com\",\n  \"description\": \"Consulting Services\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Invoices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "invoices"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Invoice",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/invoices/inv_123",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "invoices",
+                "inv_123"
               ]
             }
           }

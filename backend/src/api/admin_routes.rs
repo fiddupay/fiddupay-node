@@ -24,6 +24,7 @@ pub fn create_admin_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/admin/merchants/:merchant_id/suspend", post(admin_handlers::suspend_merchant))
         .route("/api/v1/admin/merchants/:merchant_id/activate", post(admin_handlers::activate_merchant))
         .route("/api/v1/admin/merchants/:merchant_id/delete", delete(admin_handlers::delete_merchant))
+        .route("/api/v1/admin/merchants/:merchant_id/fee", put(admin_handlers::update_merchant_fee))
         
         // Admin Security Management
         .route("/api/v1/admin/security/events", get(admin_handlers::get_security_events))

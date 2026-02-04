@@ -1,4 +1,4 @@
-# FidduPay API Reference v2.3.8
+# FidduPay API Reference v2.4.0
 
 ## Base URL
 - **Sandbox**: `http://localhost:8080`
@@ -155,13 +155,17 @@ Authorization: Bearer {api_key}
 Content-Type: application/json
 
 {
-  "amount": "100.00",
-  "currency": "USD",
+  "amount_usd": "100.00",
   "crypto_type": "SOL",
   "description": "Payment for order #123",
-  "customer_email": "customer@example.com"
+  "webhook_url": "https://your-site.com/webhook",
+  "metadata": { "order_id": 123 },
+  "expires_in": 3600,
+  "partial_payments_enabled": false
 }
 ```
+
+**Note**: You must provide either `amount` (in crypto) or `amount_usd` (in USD), but not both.
 
 ### List Payments
 ```http
@@ -222,6 +226,34 @@ GET /api/v1/merchants/analytics/export
 Authorization: Bearer {api_key}
 ```
 
+## Invoice Management
+
+### Create Invoice
+```http
+POST /api/v1/merchants/invoices
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "amount_usd": "150.00",
+  "customer_email": "customer@example.com",
+  "description": "Consulting services",
+  "expires_in": 86400
+}
+```
+
+### List Invoices
+```http
+GET /api/v1/merchants/invoices
+Authorization: Bearer {api_key}
+```
+
+### Get Invoice
+```http
+GET /api/v1/merchants/invoices/{invoice_id}
+Authorization: Bearer {api_key}
+```
+
 ## Sandbox Endpoints
 
 ### Enable Sandbox
@@ -264,7 +296,7 @@ Authorization: Bearer {api_key}
 
 ### Get Audit Logs
 ```http
-GET /api/v1/audit-logs
+GET /api/v1/merchants/audit-logs
 Authorization: Bearer {api_key}
 ```
 
@@ -274,6 +306,27 @@ Authorization: Bearer {api_key}
 ```http
 GET /api/v1/merchants/balance
 Authorization: Bearer {api_key}
+```
+
+Response:
+```json
+{
+  "total_usd": "1250.50",
+  "available_usd": "1100.00",
+  "reserved_usd": "150.50",
+  "balances": [
+    {
+      "crypto_type": "SOL",
+      "total_balance": "10.0234",
+      "available_balance": "9.5234",
+      "reserved_balance": "0.5",
+      "balance_usd": "1250.50",
+      "available_usd": "1100.00",
+      "reserved_usd": "150.50",
+      "last_updated": "2024-01-01T12:00:00Z"
+    }
+  ]
+}
 ```
 
 ### Get Balance History
@@ -319,7 +372,7 @@ Authorization: Bearer {api_key}
 
 ### Get Wallet Configs
 ```http
-GET /api/v1/wallets
+GET /api/v1/merchants/wallets
 Authorization: Bearer {api_key}
 ```
 
@@ -400,49 +453,49 @@ Authorization: Bearer {api_key}
 
 ### Get Security Events
 ```http
-GET /api/v1/security/events
+GET /api/v1/merchants/security/events
 Authorization: Bearer {api_key}
 ```
 
 ### Get Security Alerts
 ```http
-GET /api/v1/security/alerts
+GET /api/v1/merchants/security/alerts
 Authorization: Bearer {api_key}
 ```
 
 ### Acknowledge Security Alert
 ```http
-POST /api/v1/security/alerts/{alert_id}/acknowledge
+POST /api/v1/merchants/security/alerts/{alert_id}/acknowledge
 Authorization: Bearer {api_key}
 ```
 
 ### Get Balance Alerts
 ```http
-GET /api/v1/security/balance-alerts
+GET /api/v1/merchants/security/balance-alerts
 Authorization: Bearer {api_key}
 ```
 
 ### Resolve Balance Alert
 ```http
-POST /api/v1/security/balance-alerts/{alert_id}/resolve
+POST /api/v1/merchants/security/balance-alerts/{alert_id}/resolve
 Authorization: Bearer {api_key}
 ```
 
 ### Check Gas Balances
 ```http
-GET /api/v1/security/gas-check
+GET /api/v1/merchants/security/gas-check
 Authorization: Bearer {api_key}
 ```
 
 ### Get Security Settings
 ```http
-GET /api/v1/security/settings
+GET /api/v1/merchants/security/settings
 Authorization: Bearer {api_key}
 ```
 
 ### Update Security Settings
 ```http
-PUT /api/v1/security/settings
+PUT /api/v1/merchants/security/settings
 Authorization: Bearer {api_key}
 Content-Type: application/json
 
@@ -450,6 +503,34 @@ Content-Type: application/json
   "two_factor_enabled": true,
   "login_notifications": true
 }
+```
+
+## Merchant Fee Settings
+
+### Get Fee Settings
+```http
+GET /api/v1/merchants/fee-setting
+Authorization: Bearer {api_key}
+```
+
+## Advanced Wallet & Withdrawal Endpoints
+
+### Check Withdrawal Capability
+```http
+GET /api/v1/merchants/wallets/withdrawal-capability/{crypto_type}
+Authorization: Bearer {api_key}
+```
+
+### Check Gas Requirements
+```http
+GET /api/v1/merchants/wallets/gas-check
+Authorization: Bearer {api_key}
+```
+
+### Get Gas Estimates
+```http
+GET /api/v1/merchants/wallets/gas-estimates
+Authorization: Bearer {api_key}
 ```
 
 ## Error Codes

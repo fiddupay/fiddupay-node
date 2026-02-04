@@ -1,4 +1,4 @@
-# FidduPay - Cryptocurrency Payment Gateway v2.3.8
+# FidduPay - Cryptocurrency Payment Gateway v2.4.0
 
 **A TechyTro Software Product**
 

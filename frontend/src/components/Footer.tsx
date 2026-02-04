@@ -13,7 +13,7 @@ const Footer: React.FC = () => {
               <span>FidduPay</span>
             </div>
             <p className={styles.description}>
-              Enterprise-grade cryptocurrency payment gateway trusted by businesses worldwide. 
+              Enterprise-grade cryptocurrency payment gateway trusted by businesses worldwide.
               Accept payments across 5 blockchain networks with bank-level security.
             </p>
             <div className={styles.social}>
@@ -23,7 +23,7 @@ const Footer: React.FC = () => {
               <a href="#" className={styles.socialLink}>
                 <i className="fab fa-linkedin"></i>
               </a>
-              <a href="#" className={styles.socialLink}>
+              <a href="https://github.com/fiddupay/fiddupay-node" className={styles.socialLink} target="_blank" rel="noopener noreferrer">
                 <i className="fab fa-github"></i>
               </a>
               <a href="#" className={styles.socialLink}>
@@ -31,7 +31,7 @@ const Footer: React.FC = () => {
               </a>
             </div>
           </div>
-          
+
           <div className={styles.links}>
             <div className={styles.linkGroup}>
               <h4><i className="fas fa-cube"></i> Product</h4>
@@ -39,7 +39,7 @@ const Footer: React.FC = () => {
               <Link to="/docs">API Documentation</Link>
               <Link to="/features">Features</Link>
             </div>
-            
+
             <div className={styles.linkGroup}>
               <h4><i className="fas fa-building"></i> Company</h4>
               <Link to="/about">About Us</Link>
@@ -47,14 +47,14 @@ const Footer: React.FC = () => {
               <Link to="/careers">Careers</Link>
               <Link to="/blog">Blog</Link>
             </div>
-            
+
             <div className={styles.linkGroup}>
               <h4><i className="fas fa-headset"></i> Support</h4>
               <Link to="/contact">Support</Link>
               <Link to="/status">System Status</Link>
               <Link to="/security">Security</Link>
             </div>
-            
+
             <div className={styles.linkGroup}>
               <h4><i className="fas fa-gavel"></i> Legal</h4>
               <Link to="/terms">Terms of Service</Link>
@@ -64,7 +64,7 @@ const Footer: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className={styles.bottom}>
           <div className={styles.bottomContent}>
             <p>&copy; 2026 FidduPay by TechyTro Software. All rights reserved.</p>

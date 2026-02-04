@@ -1,5 +1,16 @@
 # FidduPay Backend Changelog
 
+## [2.4.0] - 2026-02-04
+
+### Added
+- **API Version 2.4.0**: Synchronized platform-wide versioning.
+- **Unified Merchant Paths**: All merchant routes now strictly follow the `/api/v1/merchants/` structure.
+- **Invoice Management Logic**: Full backend support for merchant-driven invoicing.
+
+### Changed
+- **Documentation Security**: Sanitized OpenAPI and Postman files to exclude admin-sensitive data from public SDK targets.
+
+
 ## [2.3.8] - 2026-02-02
 
 ### Added

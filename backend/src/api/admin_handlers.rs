@@ -328,6 +328,50 @@ pub async fn delete_merchant(
     })).into_response()
 }
 
+#[derive(Deserialize)]
+pub struct UpdateMerchantFeeRequest {
+    pub fee_percentage: Option<rust_decimal::Decimal>,
+    pub customer_pays_fee: Option<bool>,
+}
+
+/// Update specific merchant fee settings
+pub async fn update_merchant_fee(
+    State(state): State<AppState>,
+    Extension(context): Extension<AdminContext>,
+    Path(merchant_id): Path<i64>,
+    Json(req): Json<UpdateMerchantFeeRequest>,
+) -> impl IntoResponse {
+    if let Err(response) = verify_admin_access(&state, &context).await {
+        return response.into_response();
+    }
+
+    // Update in database
+    let result = sqlx::query(
+        "UPDATE merchants SET fee_percentage = COALESCE($1, fee_percentage), customer_pays_fee = COALESCE($2, customer_pays_fee), updated_at = NOW() WHERE id = $3"
+    )
+    .bind(req.fee_percentage)
+    .bind(req.customer_pays_fee)
+    .bind(merchant_id)
+    .execute(&state.db_pool)
+    .await;
+
+    match result {
+        Ok(_) => Json(json!({
+            "status": "success",
+            "message": "Merchant fee settings updated",
+            "data": {
+                "merchant_id": merchant_id,
+                "fee_percentage": req.fee_percentage,
+                "customer_pays_fee": req.customer_pays_fee
+            }
+        })).into_response(),
+        Err(e) => {
+            tracing::error!("Failed to update merchant fee: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response()
+        }
+    }
+}
+
 /// Get security settings
 pub async fn get_security_settings(
     State(state): State<AppState>,
@@ -426,8 +470,31 @@ pub async fn update_fee_config(
         return response.into_response();
     }
 
+    // Update Platform Fee in system_settings
+    if let Some(platform_fee) = config.platform_fee_percentage {
+        let _ = sqlx::query(
+            "INSERT INTO system_settings (key, value) VALUES ('DEFAULT_FEE_PERCENTAGE', $1) 
+             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value"
+        )
+        .bind(platform_fee.to_string())
+        .execute(&state.db_pool)
+        .await;
+    }
+
+    // Update Withdrawal Approval Limit in system_settings
+    if let Some(withdrawal_limit) = config.withdrawal_auto_approval_limit_usd {
+        let _ = sqlx::query(
+            "INSERT INTO system_settings (key, value) VALUES ('WITHDRAWAL_AUTO_APPROVAL_LIMIT_USD', $1) 
+             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value"
+        )
+        .bind(withdrawal_limit.to_string())
+        .execute(&state.db_pool)
+        .await;
+    }
+
     Json(json!({
-        "message": "Fee configuration updated successfully",
+        "status": "success",
+        "message": "Global fee configuration updated successfully",
         "config": config
     })).into_response()
 }
