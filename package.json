@@ -1,6 +1,6 @@
 {
   "name": "fiddupay-monorepo",
-  "version": "1.0.0",
+  "version": "--help",
   "description": "FidduPay - Cryptocurrency Payment Gateway",
   "private": true,
   "scripts": {
@@ -11,7 +11,8 @@
     "test:backend": "cd backend && cargo test",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "install:frontend": "cd frontend && npm install",
-    "install:backend": "cd backend && cargo build"
+    "install:backend": "cd backend && cargo build",
+    "release": "node scripts/release.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.0"

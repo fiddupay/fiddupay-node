@@ -4,14 +4,27 @@
 # Usage: git subtree push --prefix fiddupay-node-sdk https://github.com/fiddupay/fiddupay-node.git main
 
 BRANCH=${1:-main}
+TAG=$2
 REMOTE_URL="https://github.com/fiddupay/fiddupay-node.git"
 
 echo "Pushing 'fiddupay-node-sdk' folder to $REMOTE_URL branch '$BRANCH'..."
 
 # Use git subtree to push only the subfolder
 if git subtree push --prefix fiddupay-node-sdk "$REMOTE_URL" "$BRANCH"; then
-  echo "✅ SDK Push Successful!"
+  echo "✅ SDK Code Push Successful!"
+  
+  if [ -n "$TAG" ]; then
+    echo "🏷️  Pushing tag '$TAG' to $REMOTE_URL..."
+    # We need to push the tag to the remote. 
+    # Since we can't easily 'subtree push' a tag, we'll push the current commit as a tag to the remote.
+    CURRENT_COMMIT=$(git rev-parse HEAD)
+    if git push "$REMOTE_URL" "$CURRENT_COMMIT:refs/tags/$TAG"; then
+      echo "✅ SDK Tag Push Successful!"
+    else
+      echo "❌ SDK Tag Push Failed."
+    fi
+  fi
 else
-  echo "❌ SDK Push Failed. You might need to force push or handle conflicts."
+  echo "❌ SDK Code Push Failed. You might need to force push or handle conflicts."
   echo "Try running: git subtree split --prefix fiddupay-node-sdk -b sdk-split && git push $REMOTE_URL sdk-split:$BRANCH --force && git branch -D sdk-split"
 fi
