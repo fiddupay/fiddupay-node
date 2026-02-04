@@ -36,7 +36,7 @@
 .right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 24px;
 }
 
 .notificationButton {
@@ -152,6 +152,85 @@
   background: var(--fiddu-bg-hover);
   border-color: var(--fiddu-brand-primary);
   color: var(--fiddu-brand-primary);
+}
+
+.envControl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px;
+  background: var(--fiddu-bg-secondary);
+  border: 1px solid var(--fiddu-border);
+  border-radius: 999px;
+  padding-left: 12px;
+}
+
+.toggleContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggleLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fiddu-text-secondary);
+}
+
+.toggleLabel.active {
+  color: var(--fiddu-brand-primary);
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: .4s;
+  border-radius: 20px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+input:checked+.slider {
+  background-color: var(--fiddu-brand-primary);
+}
+
+input:focus+.slider {
+  box-shadow: 0 0 1px var(--fiddu-brand-primary);
+}
+
+input:checked+.slider:before {
+  transform: translateX(16px);
 }
 
 @media (max-width: 1024px) {

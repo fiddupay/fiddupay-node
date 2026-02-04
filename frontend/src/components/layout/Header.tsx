@@ -34,32 +34,30 @@ const Header: React.FC = () => {
           <button className={styles.menuButton}>
             <MdMenu />
           </button>
-
-          <div className="flex items-center gap-4 ml-2">
-            {user?.sandbox_mode ? (
-              <div className={`${styles.envBadge} ${styles.sandbox}`}>
-                <div className={styles.pulse} />
-                <MdScience className="text-sm" />
-                Sandbox
-              </div>
-            ) : (
-              <div className={`${styles.envBadge} ${styles.live}`}>
-                <div className={styles.pulse} />
-                <MdFlashOn className="text-sm" />
-                Live
-              </div>
-            )}
-
-            <button
-              className={styles.envToggle}
-              onClick={handleSwitchEnvironment}
-            >
-              Switch to {user?.sandbox_mode ? 'Live' : 'Sandbox'}
-            </button>
-          </div>
         </div>
 
         <div className={styles.right}>
+          <div className={styles.envControl}>
+            <div className={`${styles.envBadge} ${user?.sandbox_mode ? styles.sandbox : styles.live}`}>
+              <div className={styles.pulse} />
+              {user?.sandbox_mode ? <MdScience className="text-sm" /> : <MdFlashOn className="text-sm" />}
+              {user?.sandbox_mode ? 'Sandbox' : 'Live'}
+            </div>
+
+            <div className={styles.toggleContainer} onClick={handleSwitchEnvironment}>
+              <span className={`${styles.toggleLabel} ${!user?.sandbox_mode ? styles.active : ''}`}>Live</span>
+              <label className={styles.switch}>
+                <input
+                  type="checkbox"
+                  checked={user?.sandbox_mode}
+                  readOnly
+                />
+                <span className={styles.slider}></span>
+              </label>
+              <span className={`${styles.toggleLabel} ${user?.sandbox_mode ? styles.active : ''}`}>Sandbox</span>
+            </div>
+          </div>
+
           <button className={styles.notificationButton}>
             <MdNotifications />
           </button>
