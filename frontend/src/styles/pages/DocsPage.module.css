@@ -205,13 +205,14 @@
 
 /* Right Column (Code Samples - Column 3) */
 .codeColumn {
-  width: 440px;
+  width: 480px;
   background: #0f172a;
   min-height: calc(100vh - 80px);
-  padding: 64px 24px;
+  padding: 64px 28px;
   position: sticky;
   top: 0;
   flex-shrink: 0;
+  border-left: 1px solid #1e293b;
 }
 
 .codeSticky {
