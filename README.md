@@ -78,19 +78,30 @@ sudo caddy stop
 caddy fmt --overwrite
 ```
 
-### SDK Deployment
+### Deployment & Releases
 
-To deploy a new version of the Node.js SDK to npm:
+#### Automated Release (Recommended)
+This is a unified command that:
+1.  Bumps versions in both the monorepo and SDK `package.json`.
+2.  Commits and pushes changes to the main `fiddupay` repository.
+3.  Synchronizes and tags the standalone SDK repository to trigger automated GitHub Actions and NPM publishing.
 
-1. **Sync Changes**: Run `./scripts/push-sdk.sh` to sync the monorepo folder with the standalone repo.
-2. **Publish**:
-   ```bash
-   cd fiddupay-node-sdk
-   npm publish --access public
-   npm view @fiddupay/fiddupay-node version
-   npm view @fiddupay/fiddupay-node time
-   ```
-   *Note: Ensure you are logged into npm (`npm login`) before publishing.*
+```bash
+npm run release <version>  # Example: npm run release 2.4.1
+```
+
+#### Manual SDK Sync
+To sync code changes to the standalone SDK repository without creating a release tag:
+
+```bash
+./scripts/push-sdk.sh main
+```
+
+To sync code AND push a version tag manually (triggering the automated pipeline):
+
+```bash
+./scripts/push-sdk.sh main v2.4.1
+```
 
 ## Configuration
 
