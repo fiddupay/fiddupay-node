@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './BalancePage.module.css'
+import styles from '@/styles/pages/BalancePage.module.css'
 
 const BalancePage: React.FC = () => {
     return (

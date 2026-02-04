@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './WithdrawalsPage.module.css'
+import styles from '@/styles/pages/WithdrawalsPage.module.css'
 
 const WithdrawalsPage: React.FC = () => {
     return (

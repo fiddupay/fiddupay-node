@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from './DocsPage.module.css';
+import styles from '@/styles/pages/DocsPage.module.css';
 import { Parameter } from '../../pages/docs/ApiData';
 
 interface ParameterTableProps {

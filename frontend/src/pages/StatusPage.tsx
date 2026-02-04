@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { publicAPI } from '@/services/apiService'
-import styles from './StatusPage.module.css'
+import styles from '@/styles/pages/StatusPage.module.css'
 
 interface SystemStatus {
   overall_status: 'operational' | 'degraded' | 'outage'
@@ -135,7 +135,7 @@ const StatusPage: React.FC = () => {
         <div className={styles.header}>
           <h1>System Status</h1>
           <p>Real-time monitoring of FidduPay services and infrastructure</p>
-          
+
           {/* Overall Health Chart */}
           <div className={styles.overallHealth}>
             <div className={styles.healthChart}>
@@ -196,9 +196,9 @@ const StatusPage: React.FC = () => {
                   </div>
                 </div>
                 <div className={styles.healthBar}>
-                  <div 
+                  <div
                     className={styles.healthProgress}
-                    style={{ 
+                    style={{
                       width: `${getHealthPercentage(service.status)}%`,
                       backgroundColor: getStatusColor(service.status)
                     }}

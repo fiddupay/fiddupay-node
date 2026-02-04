@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './ReportsPage.module.css'
+import styles from '@/styles/pages/ReportsPage.module.css'
 
 const ReportsPage: React.FC = () => {
     return (

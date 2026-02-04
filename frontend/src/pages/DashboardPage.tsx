@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI, paymentAPI } from '@/services/apiService'
 import { Analytics, Balance, Payment } from '../types'
-import styles from './DashboardPage.module.css'
+import styles from '@/styles/pages/DashboardPage.module.css'
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuthStore()

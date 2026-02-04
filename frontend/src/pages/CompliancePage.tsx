@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './CompliancePage.module.css'
+import styles from '@/styles/pages/CompliancePage.module.css'
 
 const CompliancePage: React.FC = () => {
   return (

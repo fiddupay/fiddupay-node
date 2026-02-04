@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useToast } from '@/contexts/ToastContext'
 import { merchantAPI, paymentAPI, publicAPI } from '@/services/apiService'
 import { Payment, PaymentFilters, FeeSettingResponse } from '@/types'
-import styles from './PaymentsPage.module.css'
+import styles from '@/styles/pages/PaymentsPage.module.css'
 
 const PaymentsPage: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([])

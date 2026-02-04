@@ -3,7 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/contexts/ToastContext'
 import { useLoading } from '@/contexts/LoadingContext'
-import styles from './LoginPage.module.css'
+import styles from '@/styles/pages/auth/LoginPage.module.css'
 
 const LoginPage: React.FC = () => {
   const { login, error, isAuthenticated } = useAuthStore()

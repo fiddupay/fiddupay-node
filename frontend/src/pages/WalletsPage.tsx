@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { walletAPI, publicAPI } from '@/services/apiService'
 import { Wallet, WalletConfig } from '../types'
-import styles from './WalletsPage.module.css'
+import styles from '@/styles/pages/WalletsPage.module.css'
 import { Copy, Check, Plus, RefreshCw, X, ShieldCheck } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
 

@@ -1,7 +1,7 @@
 import React from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
-import styles from './Sidebar.module.css'
+import styles from '@/styles/components/layout/Sidebar.module.css'
 
 const navigation = [
   { name: 'Dashboard', href: '/app/dashboard', iconClass: 'fas fa-tachometer-alt' },

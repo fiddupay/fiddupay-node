@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './AnalyticsPage.module.css'
+import styles from '@/styles/pages/AnalyticsPage.module.css'
 
 const AnalyticsPage: React.FC = () => {
     return (

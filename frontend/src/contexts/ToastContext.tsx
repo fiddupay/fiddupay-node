@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react'
-import styles from './ToastContext.module.css'
+import styles from '@/styles/contexts/ToastContext.module.css'
 import { CheckCircle2, AlertCircle, Info, X, AlertTriangle } from 'lucide-react'
 
 interface Toast {

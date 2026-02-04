@@ -1,7 +1,7 @@
 import React from 'react'
 import { MdNotifications, MdMenu } from 'react-icons/md'
 import { useAuthStore } from '@/stores/authStore'
-import styles from './Header.module.css'
+import styles from '@/styles/components/layout/Header.module.css'
 
 const Header: React.FC = () => {
   const { user } = useAuthStore()
@@ -14,12 +14,12 @@ const Header: React.FC = () => {
             <MdMenu />
           </button>
         </div>
-        
+
         <div className={styles.right}>
           <button className={styles.notificationButton}>
             <MdNotifications />
           </button>
-          
+
           <div className={styles.userInfo}>
             <div className={styles.userAvatar}>
               {user?.business_name?.charAt(0).toUpperCase()}

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
-import styles from './LoadingContext.module.css'
+import styles from '@/styles/contexts/LoadingContext.module.css'
 
 interface LoadingContextType {
   isLoading: boolean

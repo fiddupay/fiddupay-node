@@ -3,7 +3,7 @@ import { Outlet, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import Sidebar from './Sidebar'
 import Header from './Header'
-import styles from './AppLayout.module.css'
+import styles from '@/styles/components/layout/AppLayout.module.css'
 
 const AppLayout: React.FC = () => {
   const { isAuthenticated, loading } = useAuthStore()

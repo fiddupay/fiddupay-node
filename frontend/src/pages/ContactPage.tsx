@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useToast } from '@/contexts/ToastContext'
 import { useLoading } from '@/contexts/LoadingContext'
 import { publicAPI } from '@/services/apiService'
-import styles from './ContactPage.module.css'
+import styles from '@/styles/pages/ContactPage.module.css'
 
 const ContactPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -11,7 +11,7 @@ const ContactPage: React.FC = () => {
     subject: '',
     message: ''
   })
-  
+
   const { showToast } = useToast()
   const { setLoading } = useLoading()
 
@@ -26,7 +26,7 @@ const ContactPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Validate required fields
     if (!formData.name || !formData.email || !formData.subject || !formData.message) {
       showToast('Please fill in all required fields', 'error')
@@ -80,7 +80,7 @@ const ContactPage: React.FC = () => {
         <div className={styles.content}>
           <div className={styles.contactInfo}>
             <h2>Contact Information</h2>
-            
+
             <div className={styles.contactItem}>
               <i className="fas fa-envelope"></i>
               <div>

@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './BlogPage.module.css'
+import styles from '@/styles/pages/BlogPage.module.css'
 
 const BlogPage: React.FC = () => {
   return (

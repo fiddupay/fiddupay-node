@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useToast } from '@/contexts/ToastContext'
 import { useLoading } from '@/contexts/LoadingContext'
 import { authAPI } from '@/services/apiService'
-import styles from './RegisterPage.module.css'
+import styles from '@/styles/pages/auth/RegisterPage.module.css'
 
 const RegisterPage: React.FC = () => {
   const [formData, setFormData] = useState({

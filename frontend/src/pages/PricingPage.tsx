@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { publicAPI } from '@/services/apiService'
-import styles from './PricingPage.module.css'
+import styles from '@/styles/pages/PricingPage.module.css'
 
 interface PricingData {
   transaction_fee_percentage: number

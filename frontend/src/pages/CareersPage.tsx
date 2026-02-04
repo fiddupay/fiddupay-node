@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './CareersPage.module.css'
+import styles from '@/styles/pages/CareersPage.module.css'
 
 const CareersPage: React.FC = () => {
   const openPositions = [

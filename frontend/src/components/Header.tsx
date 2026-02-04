@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import styles from './Header.module.css'
+import styles from '@/styles/components/Header.module.css'
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -14,45 +14,45 @@ const Header: React.FC = () => {
         <Link to="/" className={styles.logo}>
           FidduPay
         </Link>
-        
+
         <nav className={`${styles.nav} ${isMenuOpen ? styles.navOpen : ''}`}>
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className={`${styles.navLink} ${isActive('/') ? styles.active : ''}`}
             onClick={() => setIsMenuOpen(false)}
           >
             Home
           </Link>
-          <Link 
-            to="/features" 
+          <Link
+            to="/features"
             className={`${styles.navLink} ${isActive('/features') ? styles.active : ''}`}
             onClick={() => setIsMenuOpen(false)}
           >
             Features
           </Link>
-          <Link 
-            to="/pricing" 
+          <Link
+            to="/pricing"
             className={`${styles.navLink} ${isActive('/pricing') ? styles.active : ''}`}
             onClick={() => setIsMenuOpen(false)}
           >
             Pricing
           </Link>
-          <Link 
-            to="/docs" 
+          <Link
+            to="/docs"
             className={`${styles.navLink} ${isActive('/docs') ? styles.active : ''}`}
             onClick={() => setIsMenuOpen(false)}
           >
             Docs
           </Link>
-          <Link 
-            to="/contact" 
+          <Link
+            to="/contact"
             className={`${styles.navLink} ${isActive('/contact') ? styles.active : ''}`}
             onClick={() => setIsMenuOpen(false)}
           >
             Contact
           </Link>
-          <Link 
-            to="/login" 
+          <Link
+            to="/login"
             className={styles.loginBtn}
             onClick={() => setIsMenuOpen(false)}
           >
@@ -60,7 +60,7 @@ const Header: React.FC = () => {
           </Link>
         </nav>
 
-        <button 
+        <button
           className={styles.menuBtn}
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           aria-label="Toggle menu"

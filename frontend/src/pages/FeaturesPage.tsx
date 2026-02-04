@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './FeaturesPage.module.css'
+import styles from '@/styles/pages/FeaturesPage.module.css'
 
 const FeaturesPage: React.FC = () => {
   return (

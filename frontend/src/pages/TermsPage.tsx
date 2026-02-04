@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './TermsPage.module.css'
+import styles from '@/styles/pages/TermsPage.module.css'
 
 const TermsPage: React.FC = () => {
   return (

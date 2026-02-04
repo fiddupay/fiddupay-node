@@ -33,6 +33,7 @@ pub struct EnvironmentConfig {
 pub struct FeeConfig {
     pub platform_fee_percentage: Option<f64>,
     pub withdrawal_fee_percentage: Option<f64>,
+    pub withdrawal_auto_approval_limit_usd: Option<f64>,
 }
 
 #[derive(Deserialize, Serialize)]

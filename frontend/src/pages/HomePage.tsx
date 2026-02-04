@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import styles from './HomePage.module.css'
+import styles from '@/styles/pages/HomePage.module.css'
 
 const HomePage: React.FC = () => {
   return (
@@ -15,7 +15,7 @@ const HomePage: React.FC = () => {
                 <span className={styles.highlight}> Across 5 Networks</span>
               </h1>
               <p className={styles.heroDescription}>
-                Modern payment gateway supporting SOL, ETH, BNB, MATIC, ARB, and USDT across 
+                Modern payment gateway supporting SOL, ETH, BNB, MATIC, ARB, and USDT across
                 Ethereum, BSC, Polygon, Arbitrum, and Solana networks with automatic forwarding.
               </p>
               <div className={styles.heroActions}>
@@ -54,7 +54,7 @@ const HomePage: React.FC = () => {
         <div className={styles.container}>
           <h2 className={styles.sectionTitle}>Supported Cryptocurrencies</h2>
           <p className={styles.sectionSubtitle}>Accept payments in multiple cryptocurrencies across 5 major blockchain networks</p>
-          
+
           <div className={styles.cryptoShowcase}>
             <div className={styles.cryptoItem}>
               <div className={styles.cryptoIcon}>
@@ -109,7 +109,7 @@ const HomePage: React.FC = () => {
             <h2 className={styles.sectionTitle}>Why Choose FidduPay?</h2>
             <p className={styles.sectionSubtitle}>Everything you need to accept cryptocurrency payments with confidence</p>
           </div>
-          
+
           <div className={styles.featuresGrid}>
             <div className={styles.featureCard}>
               <div className={styles.featureIconWrapper}>

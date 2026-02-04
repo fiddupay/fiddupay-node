@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './SecurityPage.module.css'
+import styles from '@/styles/pages/SecurityPage.module.css'
 
 const SecurityPage: React.FC = () => {
   return (

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useToast } from '@/contexts/ToastContext'
 import { useLoading } from '@/contexts/LoadingContext'
-import styles from './ForgotPasswordPage.module.css'
+import styles from '@/styles/pages/auth/ForgotPasswordPage.module.css'
 
 const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -12,18 +12,18 @@ const ForgotPasswordPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!email) {
       showToast('Please enter your email address', 'error')
       return
     }
 
     setLoading(true)
-    
+
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000))
-      
+
       setIsSubmitted(true)
       showToast('Password reset instructions sent to your email', 'success')
     } catch (error) {
@@ -48,12 +48,12 @@ const ForgotPasswordPage: React.FC = () => {
               <i className="fas fa-envelope-open"></i>
               <h2>Email Sent!</h2>
               <p>
-                If an account with that email exists, you'll receive password reset 
+                If an account with that email exists, you'll receive password reset
                 instructions within a few minutes.
               </p>
               <p>
                 Didn't receive the email? Check your spam folder or{' '}
-                <button 
+                <button
                   onClick={() => setIsSubmitted(false)}
                   className={styles.linkButton}
                 >

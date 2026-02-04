@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './CookiesPage.module.css'
+import styles from '@/styles/pages/CookiesPage.module.css'
 
 const CookiesPage: React.FC = () => {
   return (
@@ -15,15 +15,15 @@ const CookiesPage: React.FC = () => {
           <section className={styles.section}>
             <h2>What Are Cookies</h2>
             <p>
-              Cookies are small text files that are placed on your device when you visit our website. 
-              They help us provide you with a better experience by remembering your preferences and 
+              Cookies are small text files that are placed on your device when you visit our website.
+              They help us provide you with a better experience by remembering your preferences and
               understanding how you use our services.
             </p>
           </section>
 
           <section className={styles.section}>
             <h2>Types of Cookies We Use</h2>
-            
+
             <div className={styles.cookieType}>
               <h3><i className="fas fa-cog"></i> Essential Cookies</h3>
               <p>These cookies are necessary for the website to function properly. They enable core functionality such as security, network management, and accessibility.</p>
@@ -58,10 +58,10 @@ const CookiesPage: React.FC = () => {
           <section className={styles.section}>
             <h2>Managing Your Cookie Preferences</h2>
             <p>
-              You can control and manage cookies in various ways. Most web browsers automatically accept cookies, 
+              You can control and manage cookies in various ways. Most web browsers automatically accept cookies,
               but you can modify your browser settings to decline cookies if you prefer.
             </p>
-            
+
             <div className={styles.browserList}>
               <h3>Browser Settings:</h3>
               <ul>

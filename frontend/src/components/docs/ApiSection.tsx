@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from '../../pages/DocsPage.module.css';
+import styles from '@/styles/pages/DocsPage.module.css';
 import { DocSection } from '../../pages/docs/ApiData';
 import ParameterTable from './ParameterTable';
 

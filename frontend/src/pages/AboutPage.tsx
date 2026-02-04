@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import styles from './AboutPage.module.css'
+import styles from '@/styles/pages/AboutPage.module.css'
 
 const AboutPage: React.FC = () => {
   return (
@@ -9,7 +9,7 @@ const AboutPage: React.FC = () => {
         <div className={styles.hero}>
           <h1>About FidduPay</h1>
           <p className={styles.heroSubtitle}>
-            We're building the future of cryptocurrency payments, making it simple 
+            We're building the future of cryptocurrency payments, making it simple
             for businesses to accept digital currencies securely and efficiently.
           </p>
         </div>
@@ -19,14 +19,14 @@ const AboutPage: React.FC = () => {
             <div className={styles.textContent}>
               <h2>Our Mission</h2>
               <p>
-                FidduPay was founded with a simple mission: to bridge the gap between 
-                traditional business operations and the revolutionary world of cryptocurrency. 
-                We believe that every business, regardless of size, should have access to 
+                FidduPay was founded with a simple mission: to bridge the gap between
+                traditional business operations and the revolutionary world of cryptocurrency.
+                We believe that every business, regardless of size, should have access to
                 secure, fast, and reliable crypto payment processing.
               </p>
               <p>
-                Our platform supports payments across 5 major blockchain networks, 
-                ensuring your customers can pay with their preferred cryptocurrency 
+                Our platform supports payments across 5 major blockchain networks,
+                ensuring your customers can pay with their preferred cryptocurrency
                 while you receive the security and reliability you need.
               </p>
             </div>
@@ -36,13 +36,13 @@ const AboutPage: React.FC = () => {
             <div className={styles.textContent}>
               <h2>Security First</h2>
               <p>
-                Security isn't just a feature for us—it's our foundation. With a enterprise-grade 
-                security score, we implement bank-level encryption, advanced threat 
+                Security isn't just a feature for us—it's our foundation. With a enterprise-grade
+                security score, we implement bank-level encryption, advanced threat
                 detection, and comprehensive monitoring to protect every transaction.
               </p>
               <p>
-                Our platform is SOC 2 compliant and undergoes regular security audits 
-                to ensure we meet the highest standards of data protection and 
+                Our platform is SOC 2 compliant and undergoes regular security audits
+                to ensure we meet the highest standards of data protection and
                 financial security.
               </p>
             </div>
@@ -70,13 +70,13 @@ const AboutPage: React.FC = () => {
           <div className={styles.team}>
             <h2>Built by TechyTro Software</h2>
             <p>
-              FidduPay is proudly developed by TechyTro Software, a team of experienced 
-              developers and blockchain specialists dedicated to creating innovative 
+              FidduPay is proudly developed by TechyTro Software, a team of experienced
+              developers and blockchain specialists dedicated to creating innovative
               financial technology solutions.
             </p>
             <p>
-              Our team combines years of experience in traditional finance, blockchain 
-              technology, and software development to deliver a platform that businesses 
+              Our team combines years of experience in traditional finance, blockchain
+              technology, and software development to deliver a platform that businesses
               can trust and rely on.
             </p>
           </div>

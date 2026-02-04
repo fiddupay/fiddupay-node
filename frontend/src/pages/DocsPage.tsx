@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import styles from './DocsPage.module.css';
+import styles from '@/styles/pages/DocsPage.module.css';
 import CodeSnippet from '../components/docs/CodeSnippet';
 import DocsSidebar from '../components/docs/DocsSidebar';
 import ApiSection from '../components/docs/ApiSection';

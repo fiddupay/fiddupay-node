@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { MdSecurity, MdSpeed, MdAccountBalance, MdIntegrationInstructions } from 'react-icons/md'
-import styles from './LandingPage.module.css'
+import styles from '@/styles/pages/LandingPage.module.css'
 
 const LandingPage: React.FC = () => {
   const features = [

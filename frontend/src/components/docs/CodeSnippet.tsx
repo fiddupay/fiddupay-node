@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from './CodeSnippet.module.css';
+import styles from '@/styles/components/docs/CodeSnippet.module.css';
 
 interface CodeSnippetProps {
     request?: {

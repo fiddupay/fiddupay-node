@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './SettingsPage.module.css'
+import styles from '@/styles/pages/SettingsPage.module.css'
 
 const SettingsPage: React.FC = () => {
     return (

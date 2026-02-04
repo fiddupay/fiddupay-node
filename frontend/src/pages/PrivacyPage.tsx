@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './PrivacyPage.module.css'
+import styles from '@/styles/pages/PrivacyPage.module.css'
 
 const PrivacyPage: React.FC = () => {
   return (
