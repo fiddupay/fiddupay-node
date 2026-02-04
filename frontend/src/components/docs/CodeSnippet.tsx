@@ -38,19 +38,29 @@ const CodeSnippet: React.FC<CodeSnippetProps> = ({ request, response, method, pa
 
     // Basic syntax highlighting helper
     const highlightSyntax = (line: string) => {
-        // This is a naive implementation. For production, use PrismJS or similar.
-        // It wraps strings in green, keys in blue.
+        // Wrap strings, numbers, booleans.
+        // We split by capturing groups to keep separators.
         const parts = line.split(/(".*?"|'.*?'|\b\d+\b|\btrue\b|\bfalse\b)/g);
+
         return parts.map((part, index) => {
+            // Check for strings (double or single quoted)
             if (part.startsWith('"') || part.startsWith("'")) {
+                // Peek ahead: if the NEXT part starts with ':', this string is a KEY.
+                const nextPart = parts[index + 1];
+                if (nextPart && nextPart.trim().startsWith(':')) {
+                    return <span key={index} className={styles.key}>{part}</span>;
+                }
                 return <span key={index} className={styles.string}>{part}</span>;
-            } else if (!isNaN(Number(part)) && part.trim() !== '') {
-                return <span key={index} className={styles.number}>{part}</span>;
-            } else if (part === 'true' || part === 'false') {
-                return <span key={index} className={styles.boolean}>{part}</span>;
-            } else if (part.trim().endsWith(':')) {
-                return <span key={index} className={styles.key}>{part}</span>;
             }
+            // Check for numbers
+            else if (!isNaN(Number(part)) && part.trim() !== '') {
+                return <span key={index} className={styles.number}>{part}</span>;
+            }
+            // Check for booleans
+            else if (part === 'true' || part === 'false') {
+                return <span key={index} className={styles.boolean}>{part}</span>;
+            }
+            // Regular text (punctuation, whitespace)
             return <span key={index}>{part}</span>;
         });
     };
