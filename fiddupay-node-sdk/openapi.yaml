@@ -36,7 +36,7 @@ info:
     - Real-time threat detection
     - Account lockout protection
     
-  version: 2.4.0
+  version: 2.4.1
   contact:
     name: FidduPay Support
     email: support@fiddupay.com
