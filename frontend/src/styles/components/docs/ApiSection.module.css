@@ -80,5 +80,8 @@
 @media (max-width: 1024px) {
     .mobileCodeSnippet {
         display: block;
+        max-width: 100%;
+        overflow: hidden;
+        /* Prevent localized blowout */
     }
 }

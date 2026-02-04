@@ -18,6 +18,14 @@
         height: auto;
         min-height: 100vh;
         overflow-x: hidden;
+        overflow: visible;
+        /* Must be visible for sticky to work on window */
+    }
+
+    /* Reset overflow for body to allow sticky header to stick to viewport/page */
+    .docsBody {
+        overflow: visible;
+        height: auto;
     }
 
     /* --- Mobile Header Styling --- */
@@ -156,12 +164,17 @@
         height: auto;
         overflow: visible;
         padding-top: 0;
+        width: 100%;
+        max-width: 100%;
         /* Header takes care of it */
     }
 
     .mainContent {
+        width: 100%;
         max-width: 100%;
         padding: 32px 16px;
+        overflow-x: hidden;
+        /* Ensure content doesn't spill over */
     }
 
     /* Hide global code column on mobile */

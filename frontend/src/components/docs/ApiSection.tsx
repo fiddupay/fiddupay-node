@@ -28,11 +28,11 @@ const ApiSection: React.FC<ApiSectionProps> = ({ section, sectionRefs }) => {
                 >
                     <h2>{endpoint.title}</h2>
                     <p className={styles.lead}>{endpoint.description}</p>
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
                         <span className={`${styles.methodBadge} ${styles[endpoint.method.toLowerCase()]}`}>
                             {endpoint.method}
                         </span>
-                        <span className={styles.endpointPath}>{endpoint.path}</span>
+                        <span className={styles.endpointPath} style={{ wordBreak: 'break-all' }}>{endpoint.path}</span>
                     </div>
 
                     <div className={styles.mobileCodeSnippet}>

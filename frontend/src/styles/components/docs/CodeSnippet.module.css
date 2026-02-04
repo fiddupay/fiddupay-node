@@ -202,6 +202,8 @@
     white-space: pre;
     overflow-x: auto;
     /* Enable horizontal scroll if needed */
+    min-width: 0;
+    /* Allow grid item to shrink below content size */
 }
 
 /* Syntax Highlighting Simulators (applied via inline styles or spans if complex, 
