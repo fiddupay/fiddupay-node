@@ -40,6 +40,15 @@
         gap: 12px;
     }
 
+    .logoText {
+        font-size: 20px;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.02em;
+        text-decoration: none;
+        margin-left: 8px;
+    }
+
     .burgerIcon {
         display: flex;
         flex-direction: column;

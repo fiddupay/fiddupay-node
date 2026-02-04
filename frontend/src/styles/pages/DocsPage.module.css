@@ -1,11 +1,96 @@
 .docsPage {
   display: flex;
-  min-height: calc(100vh - 80px);
-  /* Adjust to match header height */
+  flex-direction: column;
+  height: 100vh;
   background: #ffffff;
   color: #1e293b;
   font-family: 'Inter', -apple-system, sans-serif;
   overflow: hidden;
+}
+
+.docsBody {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  /* Prevent body scroll, children scroll independently */
+}
+
+/* Desktop Header */
+.desktopHeader {
+  height: 80px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  flex-shrink: 0;
+  z-index: 50;
+}
+
+.headerLogo {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.searchContainer {
+  position: relative;
+  width: 320px;
+}
+
+.searchInput {
+  width: 100%;
+  height: 40px;
+  padding: 0 16px 0 40px;
+  background: #f1f5f9;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #0f172a;
+  transition: all 0.2s;
+}
+
+.searchInput:focus {
+  background: #ffffff;
+  border-color: #3b82f6;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.headerActions {
+  display: flex;
+  gap: 16px;
+}
+
+.headerLink {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.headerLink:hover {
+  color: #0f172a;
+}
+
+@media (max-width: 1024px) {
+  .desktopHeader {
+    display: none;
+  }
 }
 
 /* Sidebar Navigation (Column 1) */

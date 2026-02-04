@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import styles from '@/styles/pages/DocsPage.module.css';
 import mobileStyles from '@/styles/pages/DocsPageMobile.module.css';
 import CodeSnippet from '../components/docs/CodeSnippet';
@@ -112,6 +112,26 @@ const DocsPage: React.FC = () => {
   return (
     <div className={`${styles.docsPage} ${mobileStyles.docsPage}`}>
 
+      {/* Desktop Header (Hidden on Mobile) */}
+      <header className={styles.desktopHeader}>
+        <Link to="/" className={styles.headerLogo}>FidduPay</Link>
+
+        <div className={styles.searchContainer}>
+          <i className={`fas fa-search ${styles.searchIcon}`}></i>
+          <input
+            type="text"
+            placeholder="Search documentation..."
+            className={styles.searchInput}
+            onClick={() => alert('Global search coming soon!')}
+          />
+        </div>
+
+        <div className={styles.headerActions}>
+          <a href="https://github.com/fiddupay/fiddupay-node" target="_blank" rel="noopener noreferrer" className={styles.headerLink}>GitHub</a>
+          <a href="https://dashboard.fiddupay.com" className={styles.headerLink}>Dashboard</a>
+        </div>
+      </header>
+
       {/* Mobile Header (Visible only on mobile via CSS) */}
       <div className={mobileStyles.mobileHeader}>
         <div className={mobileStyles.logoSection}>
@@ -120,6 +140,7 @@ const DocsPage: React.FC = () => {
             <div className={mobileStyles.bar}></div>
             <div className={mobileStyles.bar}></div>
           </div>
+          <Link to="/" className={mobileStyles.logoText}>FidduPay</Link>
         </div>
         <div className={mobileStyles.headerActions}>
           <button className={mobileStyles.searchBtn} onClick={() => alert('Search functionality coming soon!')}>
@@ -142,86 +163,90 @@ const DocsPage: React.FC = () => {
         />
       )}
 
-      {/* Column 1: Navigation */}
-      <aside className={`${styles.sidebar} ${mobileStyles.sidebar} ${isMobileMenuOpen ? mobileStyles.open : ''}`}>
-        <div className={mobileStyles.mobileMenuHeader}>
-          <button
-            className={mobileStyles.closeBtn}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <i className="fas fa-times"></i> Close
-          </button>
-        </div>
-        <DocsSidebar
-          apiData={API_DATA}
-          activeSection={activeSection}
-          scrollToSection={(id) => {
-            scrollToSection(id);
-            setIsMobileMenuOpen(false);
-          }}
-        />
-      </aside>
+      {/* Main Body Wrapper */}
+      <div className={styles.docsBody}>
 
-      {/* Column 2 & 3 Wrap */}
-      <div className={`${styles.contentArea} ${mobileStyles.contentArea}`}>
-        <main className={`${styles.mainContent} ${mobileStyles.mainContent}`}>
-          {API_DATA.map((section) => (
-            <ApiSection
-              key={section.id}
-              section={section}
-              sectionRefs={sectionRefs}
-            />
-          ))}
-
-          <div className={styles.infoBox}>
-            <p>
-              Looking for older documentation? Check our <a href="https://github.com/fiddupay/fiddupay-node/releases" target="_blank" rel="noopener noreferrer">release notes</a> for version changes and migration guides.
-            </p>
+        {/* Column 1: Navigation */}
+        <aside className={`${styles.sidebar} ${mobileStyles.sidebar} ${isMobileMenuOpen ? mobileStyles.open : ''}`}>
+          <div className={mobileStyles.mobileMenuHeader}>
+            <button
+              className={mobileStyles.closeBtn}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <i className="fas fa-times"></i> Close
+            </button>
           </div>
-        </main>
+          <DocsSidebar
+            apiData={API_DATA}
+            activeSection={activeSection}
+            scrollToSection={(id) => {
+              scrollToSection(id);
+              setIsMobileMenuOpen(false);
+            }}
+          />
+        </aside>
 
-        {/* Column 3: Code Samples */}
-        {(() => {
-          let item = API_DATA.flatMap(s => [s, ...s.endpoints]).find(e => e.id === activeSection);
+        {/* Column 2 & 3 Wrap */}
+        <div className={`${styles.contentArea} ${mobileStyles.contentArea}`}>
+          <main className={`${styles.mainContent} ${mobileStyles.mainContent}`}>
+            {API_DATA.map((section) => (
+              <ApiSection
+                key={section.id}
+                section={section}
+                sectionRefs={sectionRefs}
+              />
+            ))}
 
-          // Fallback: If item is a Section (no request) but has endpoints, show the first endpoint's code
-          let hasCode = false;
-          let displayItem: Endpoint | undefined;
+            <div className={styles.infoBox}>
+              <p>
+                Looking for older documentation? Check our <a href="https://github.com/fiddupay/fiddupay-node/releases" target="_blank" rel="noopener noreferrer">release notes</a> for version changes and migration guides.
+              </p>
+            </div>
+          </main>
 
-          if (item) {
-            if ((item as any).request) {
-              hasCode = true;
-              displayItem = item as Endpoint;
-            } else if ((item as any).endpoints && (item as any).endpoints.length > 0) {
-              // It's a section with children
-              const firstChild = (item as any).endpoints[0];
-              if (firstChild.request) {
+          {/* Column 3: Code Samples */}
+          {(() => {
+            let item = API_DATA.flatMap(s => [s, ...s.endpoints]).find(e => e.id === activeSection);
+
+            // Fallback: If item is a Section (no request) but has endpoints, show the first endpoint's code
+            let hasCode = false;
+            let displayItem: Endpoint | undefined;
+
+            if (item) {
+              if ((item as any).request) {
                 hasCode = true;
-                displayItem = firstChild;
+                displayItem = item as Endpoint;
+              } else if ((item as any).endpoints && (item as any).endpoints.length > 0) {
+                // It's a section with children
+                const firstChild = (item as any).endpoints[0];
+                if (firstChild.request) {
+                  hasCode = true;
+                  displayItem = firstChild;
+                }
               }
             }
-          }
 
-          return (
-            <aside
-              className={`${styles.codeColumn} ${mobileStyles.codeColumn}`}
-              style={{ display: hasCode ? 'block' : 'none' }}
-            >
-              <div className={`${styles.codeSticky} ${mobileStyles.codeSticky}`}>
-                {hasCode && displayItem && (
-                  <div key={displayItem.id || activeSection}>
-                    <CodeSnippet
-                      request={displayItem.request}
-                      response={displayItem.response}
-                      method={displayItem.method}
-                      path={displayItem.path}
-                    />
-                  </div>
-                )}
-              </div>
-            </aside>
-          );
-        })()}
+            return (
+              <aside
+                className={`${styles.codeColumn} ${mobileStyles.codeColumn}`}
+                style={{ display: hasCode ? 'block' : 'none' }}
+              >
+                <div className={`${styles.codeSticky} ${mobileStyles.codeSticky}`}>
+                  {hasCode && displayItem && (
+                    <div key={displayItem.id || activeSection}>
+                      <CodeSnippet
+                        request={displayItem.request}
+                        response={displayItem.response}
+                        method={displayItem.method}
+                        path={displayItem.path}
+                      />
+                    </div>
+                  )}
+                </div>
+              </aside>
+            );
+          })()}
+        </div>
       </div>
     </div>
   );
