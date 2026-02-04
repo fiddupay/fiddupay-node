@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from '@/styles/components/docs/ApiSection.module.css';
+import CodeSnippet from './CodeSnippet';
 import { DocSection } from '../../pages/docs/ApiData';
 import ParameterTable from './ParameterTable';
 
@@ -32,6 +33,17 @@ const ApiSection: React.FC<ApiSectionProps> = ({ section, sectionRefs }) => {
                             {endpoint.method}
                         </span>
                         <span className={styles.endpointPath}>{endpoint.path}</span>
+                    </div>
+
+                    <div className={styles.mobileCodeSnippet}>
+                        {endpoint.request && (
+                            <CodeSnippet
+                                request={endpoint.request}
+                                response={endpoint.response}
+                                method={endpoint.method}
+                                path={endpoint.path}
+                            />
+                        )}
                     </div>
 
                     <ParameterTable title="Query Parameters" parameters={endpoint.parameters || []} />

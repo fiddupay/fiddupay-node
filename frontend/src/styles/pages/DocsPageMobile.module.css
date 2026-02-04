@@ -55,13 +55,6 @@
         border-radius: 2px;
     }
 
-    .logoText {
-        font-size: 20px;
-        font-weight: 800;
-        color: #0f172a;
-        letter-spacing: -0.02em;
-    }
-
     .headerActions {
         display: flex;
         gap: 12px;
@@ -162,16 +155,9 @@
         padding: 32px 16px;
     }
 
+    /* Hide global code column on mobile */
     .codeColumn {
-        width: 100%;
-        height: auto;
-        position: relative;
-        top: 0;
-        border-left: none;
-        border-top: 1px solid #e2e8f0;
-        padding: 32px 16px;
-        background: #f1f5f9;
-        /* Contrast background for code section on mobile */
+        display: none !important;
     }
 
     .codeSticky {

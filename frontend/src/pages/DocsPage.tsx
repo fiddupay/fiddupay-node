@@ -48,17 +48,28 @@ const DocsPage: React.FC = () => {
         });
 
         if (bestTarget && !isScrollingRef.current) {
-          // Check if section is actually a top-level section or an endpoint
-          // Usually we want to track the endpoint if it's visible?
-          // The original logic tracked section IDs. 
-          // Let's assume sectionRefs track actual Sections or Endpoints.
-
-          // To stick to the requirement: update URL
-          // Avoid re-triggering navigation if it matches
           if (activeSection !== bestTarget) {
             setActiveSection(bestTarget);
-            // Update URL silently to avoid router thrashing
-            window.history.replaceState(null, '', `/docs/${bestTarget}`);
+
+            // Determine if target is a top-level section or endpoint
+            const section = API_DATA.find(s => s.id === bestTarget);
+            const endpoint = API_DATA.flatMap(s => s.endpoints).find(e => e.id === bestTarget);
+
+            let newUrl = `/docs/${bestTarget}`; // Default fallback
+
+            if (section) {
+              // It's a top-level section
+              newUrl = `/docs/${section.id}`;
+            } else if (endpoint) {
+              // It's an endpoint, find its parent section
+              const parentSection = API_DATA.find(s => s.endpoints.some(e => e.id === bestTarget));
+              if (parentSection) {
+                newUrl = `/docs/${parentSection.id}#${bestTarget}`;
+              }
+            }
+
+            // Update URL silently
+            window.history.replaceState(null, '', newUrl);
           }
         }
       },
@@ -90,7 +101,6 @@ const DocsPage: React.FC = () => {
             <div className={mobileStyles.bar}></div>
             <div className={mobileStyles.bar}></div>
           </div>
-          <span className={mobileStyles.logoText}>api</span>
         </div>
         <div className={mobileStyles.headerActions}>
           <button className={mobileStyles.searchBtn} onClick={() => alert('Search functionality coming soon!')}>
