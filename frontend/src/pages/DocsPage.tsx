@@ -11,10 +11,11 @@ const DocsPage: React.FC = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
   const location = useLocation();
   const [activeSection, setActiveSection] = useState(sectionId || 'getting-started');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const isScrollingRef = useRef(false);
 
-  // Scroll to section/hash on mount
+  // Scroll to section/hash logic... (unchanged)
   useEffect(() => {
     if (sectionId) {
       setActiveSection(sectionId);
@@ -80,12 +81,55 @@ const DocsPage: React.FC = () => {
 
   return (
     <div className={`${styles.docsPage} ${mobileStyles.docsPage}`}>
+
+      {/* Mobile Header (Visible only on mobile via CSS) */}
+      <div className={mobileStyles.mobileHeader}>
+        <div className={mobileStyles.logoSection}>
+          <div className={mobileStyles.burgerIcon}>
+            <div className={mobileStyles.bar}></div>
+            <div className={mobileStyles.bar}></div>
+            <div className={mobileStyles.bar}></div>
+          </div>
+          <span className={mobileStyles.logoText}>api</span>
+        </div>
+        <div className={mobileStyles.headerActions}>
+          <button className={mobileStyles.searchBtn} onClick={() => alert('Search functionality coming soon!')}>
+            <i className="fas fa-search"></i> Search
+          </button>
+          <button
+            className={mobileStyles.menuBtn}
+            onClick={() => setIsMobileMenuOpen(true)}
+          >
+            <i className="fas fa-bars"></i> Menu
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu Overlay Backdrop */}
+      {isMobileMenuOpen && (
+        <div
+          className={mobileStyles.overlayBackdrop}
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Column 1: Navigation */}
-      <aside className={`${styles.sidebar} ${mobileStyles.sidebar}`}>
+      <aside className={`${styles.sidebar} ${mobileStyles.sidebar} ${isMobileMenuOpen ? mobileStyles.open : ''}`}>
+        <div className={mobileStyles.mobileMenuHeader}>
+          <button
+            className={mobileStyles.closeBtn}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <i className="fas fa-times"></i> Close
+          </button>
+        </div>
         <DocsSidebar
           apiData={API_DATA}
           activeSection={activeSection}
-          scrollToSection={scrollToSection}
+          scrollToSection={(id) => {
+            scrollToSection(id);
+            setIsMobileMenuOpen(false);
+          }}
         />
       </aside>
 
