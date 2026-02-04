@@ -18,6 +18,7 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/merchants/api-keys/generate", post(merchant_handlers::generate_api_key))
         .route("/api/v1/merchants/api-keys/rotate", post(merchant_handlers::rotate_api_key))
         .route("/api/v1/merchants/webhook", put(merchant_handlers::set_webhook))
+        .route("/api/v1/merchants/settlement-mode", put(merchant_handlers::update_settlement_mode))
         
         // Payment management
         .route("/api/v1/merchants/payments", post(merchant_handlers::create_payment))

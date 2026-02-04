@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "FidduPay Complete API v2.4.0",
+    "name": "FidduPay Complete API v2.4.1",
     "description": "Complete API collection for FidduPay cryptocurrency payment gateway. Supports 10 cryptocurrencies across 5 major blockchains with enterprise-grade security, comprehensive admin functionality, Real-Time Webhooks, and Partial Payment support.",
-    "version": "2.4.0",
+    "version": "2.4.1",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -1444,6 +1444,38 @@
                 "api-keys",
                 "rotate"
               ]
+            }
+          }
+        },
+        {
+          "name": "Update Settlement Mode",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/settlement-mode",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "settlement-mode"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"managed\"\n}"
             }
           }
         }

@@ -1,5 +1,16 @@
 # FidduPay Backend Changelog
 
+## [2.4.1] - 2026-02-04
+
+### Added
+- **Global Settlement Mode**: Merchants can now choose between 'forwarding', 'managed', and 'imported' modes.
+- **Environment Indicator Support**: Backend now supports returning `sandbox_mode` and `settlement_mode` in profile responses.
+- **Settlement Mode Management**: New endpoint `PUT /api/v1/merchants/settlement-mode` to toggle account-wide strategy.
+
+### Fixed
+- **Wallet Generation**: Implemented real Solana and EVM key generation logic, replacing placeholders.
+- **Profile response**: Fixed `get_merchant_profile` to include `settlement_mode` and `sandbox_mode`.
+
 ## [2.4.0] - 2026-02-04
 
 ### Added

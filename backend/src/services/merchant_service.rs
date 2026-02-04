@@ -54,10 +54,10 @@ impl MerchantService {
         // Create merchant in sandbox mode by default
         let merchant = sqlx::query_as::<_, Merchant>(
             r#"
-            INSERT INTO merchants (email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            RETURNING id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at
-            "#
+            INSERT INTO merchants (email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at
+            "#,
         )
         .bind(&email)
         .bind(&business_name)
@@ -67,6 +67,7 @@ impl MerchantService {
         .bind(false) // customer_pays_fee (default: Merchant pays fee)
         .bind(true) // is_active
         .bind(true) // sandbox_mode (default)
+        .bind("managed") // settlement_mode (default)
         .bind(false) // kyc_verified (default)
         .bind(Utc::now())
         .bind(Utc::now())
@@ -134,7 +135,7 @@ impl MerchantService {
     ) -> Result<String, ServiceError> {
         // First, verify the old API key is correct
         let merchant = sqlx::query_as::<_, Merchant>(
-            "SELECT id, email, business_name, api_key_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at FROM merchants WHERE id = $1"
+            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role FROM merchants WHERE id = $1"
         )
         .bind(merchant_id)
         .fetch_optional(&self.db_pool)
@@ -200,7 +201,7 @@ impl MerchantService {
             if parts.len() >= 3 {
                 if let Ok(admin_id) = parts[2].parse::<i64>() {
                     return match sqlx::query_as::<_, Merchant>(
-                        "SELECT id, email, business_name, api_key_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at 
+                        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role 
                          FROM merchants 
                          WHERE id = $1 AND is_active = true AND (role = 'ADMIN' OR role = 'SUPER_ADMIN')"
                     )
@@ -221,7 +222,7 @@ impl MerchantService {
             if parts.len() >= 3 {
                 if let Ok(merchant_id) = parts[2].parse::<i64>() {
                     return match sqlx::query_as::<_, Merchant>(
-                        "SELECT id, email, business_name, api_key_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at 
+                        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role 
                          FROM merchants 
                          WHERE id = $1 AND is_active = true AND role = 'MERCHANT'"
                     )
@@ -245,7 +246,7 @@ impl MerchantService {
         use argon2::{Argon2, PasswordHash, PasswordVerifier};
         
         let merchants = sqlx::query_as::<_, Merchant>(
-            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
+            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
              FROM merchants 
              WHERE is_active = true"
         )
@@ -429,6 +430,28 @@ impl MerchantService {
         .ok_or(ServiceError::WalletNotFound)?;
         
         Ok(wallet.address)
+    }
+
+    pub async fn update_settlement_mode(
+        &self,
+        merchant_id: i64,
+        mode: &str,
+    ) -> Result<(), ServiceError> {
+        // Validate the mode
+        if !["forwarding", "managed", "imported"].contains(&mode) {
+            return Err(ServiceError::ValidationError("Invalid settlement mode".to_string()));
+        }
+
+        sqlx::query!(
+            "UPDATE merchants SET settlement_mode = $1, updated_at = $2 WHERE id = $3",
+            mode,
+            Utc::now(),
+            merchant_id
+        )
+        .execute(&self.db_pool)
+        .await?;
+
+        Ok(())
     }
 
     /// Validate wallet address format for specific blockchain

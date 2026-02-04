@@ -214,7 +214,7 @@ pub async fn get_merchant_profile(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     match sqlx::query!(
-        "SELECT id, business_name, email, sandbox_mode, COALESCE(kyc_verified, false) as \"kyc_verified!\", created_at FROM merchants WHERE id = $1",
+        "SELECT id, business_name, email, sandbox_mode, settlement_mode, COALESCE(kyc_verified, false) as \"kyc_verified!\", created_at FROM merchants WHERE id = $1",
         context.merchant_id
     )
     .fetch_optional(&state.db_pool)
@@ -226,6 +226,7 @@ pub async fn get_merchant_profile(
                 "business_name": merchant.business_name,
                 "email": merchant.email,
                 "sandbox_mode": merchant.sandbox_mode,
+                "settlement_mode": merchant.settlement_mode,
                 "kyc_verified": merchant.kyc_verified,
                 "created_at": merchant.created_at.to_rfc3339(),
                 "two_factor_enabled": false
@@ -295,6 +296,22 @@ pub async fn rotate_api_key(
 ) -> impl IntoResponse {
     match state.merchant_service.rotate_api_key(context.merchant_id, &context.api_key).await {
         Ok(new_api_key) => (StatusCode::OK, Json(json!({"api_key": new_api_key}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct UpdateSettlementModeRequest {
+    pub mode: String,
+}
+
+pub async fn update_settlement_mode(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<UpdateSettlementModeRequest>,
+) -> impl IntoResponse {
+    match state.merchant_service.update_settlement_mode(context.merchant_id, &req.mode).await {
+        Ok(_) => (StatusCode::OK, Json(json!({"status": "success", "mode": req.mode}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }

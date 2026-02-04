@@ -79,11 +79,86 @@
   color: var(--fiddu-text-primary);
 }
 
+.envBadge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sandbox {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.live {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.sandbox .pulse {
+  background-color: #d97706;
+}
+
+.live .pulse {
+  background-color: #10b981;
+  box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.envToggle {
+  padding: 6px 12px;
+  background: var(--fiddu-bg-secondary);
+  border: 1px solid var(--fiddu-border);
+  color: var(--fiddu-text-primary);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.envToggle:hover {
+  background: var(--fiddu-bg-hover);
+  border-color: var(--fiddu-brand-primary);
+  color: var(--fiddu-brand-primary);
+}
+
 @media (max-width: 1024px) {
   .menuButton {
     display: block;
   }
-  
+
   .userName {
     display: none;
   }

@@ -4,45 +4,146 @@
 
 .header {
     margin-bottom: 24px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--fiddu-border);
     padding-bottom: 16px;
 }
 
 .header h1 {
     font-size: 28px;
     font-weight: 700;
-    color: var(--black);
+    color: var(--fiddu-text-primary);
     margin-bottom: 8px;
 }
 
 .header p {
-    color: var(--gray);
+    color: var(--fiddu-text-secondary);
 }
 
 .content {
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.section {
+    background: var(--fiddu-bg-primary);
+    border: 1px solid var(--fiddu-border);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.section h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--fiddu-text-primary);
+}
+
+.section p {
+    font-size: 14px;
+    color: var(--fiddu-text-secondary);
+    margin-bottom: 24px;
+}
+
+.modeGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.modeCard {
+    padding: 20px;
+    border: 2px solid var(--fiddu-border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--fiddu-bg-primary);
+}
+
+.modeCard:hover {
+    border-color: var(--fiddu-brand-primary);
+    background-color: var(--fiddu-bg-secondary);
+}
+
+.activeCard {
+    border-color: var(--fiddu-brand-primary);
+    background-color: #f0f7ff;
+}
+
+.checkIcon {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    color: var(--fiddu-brand-primary);
+    font-size: 20px;
+}
+
+.modeCard i {
+    font-size: 24px;
+    color: var(--fiddu-brand-primary);
+    margin-bottom: 16px;
+}
+
+.modeCard h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--fiddu-text-primary);
+}
+
+.modeCard span {
+    font-size: 13px;
+    color: var(--fiddu-text-secondary);
+    line-height: 1.4;
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+.saveBtn {
+    padding: 10px 24px;
+    background-color: var(--fiddu-brand-primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.saveBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.toggleGroup {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: var(--fiddu-bg-secondary);
+    border-radius: 8px;
 }
 
-.emptyState {
-    text-align: center;
-    color: var(--gray);
+.toggleLabel {
+    display: flex;
+    flex-direction: column;
 }
 
-.emptyState i {
-    font-size: 48px;
-    margin-bottom: 16px;
-    color: var(--brand-blue);
-    opacity: 0.5;
+.toggleLabel h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--fiddu-text-primary);
 }
 
-.emptyState h3 {
-    font-size: 20px;
-    margin-bottom: 8px;
-    color: var(--black);
+.toggleLabel span {
+    font-size: 13px;
+    color: var(--fiddu-text-secondary);
 }

@@ -47,7 +47,9 @@ export const API_DATA: DocSection[] = [
                     id: 123,
                     business_name: "My Crypto Store",
                     email: "merchant@example.com",
-                    created_at: "2026-01-26T06:00:00Z"
+                    created_at: "2026-01-26T06:00:00Z",
+                    sandbox_mode: true,
+                    settlement_mode: "managed"
                 }, null, 2)
             },
             {
@@ -80,6 +82,24 @@ export const API_DATA: DocSection[] = [
                 response: JSON.stringify({
                     api_key: "sk_test_sandbox_key_...",
                     environment: "sandbox"
+                }, null, 2)
+            },
+            {
+                id: 'settlement-mode',
+                method: 'PUT',
+                path: '/api/v1/merchants/settlement-mode',
+                title: 'Update Settlement Mode',
+                description: 'Toggle your global account-wide settlement strategy between Forwarding, Managed, and Imported modes.',
+                body: [
+                    { name: 'mode', type: 'string', required: true, description: 'One of: forwarding, managed, imported' }
+                ],
+                request: {
+                    curl: 'curl -X PUT https://api.fiddupay.com/api/v1/merchants/settlement-mode \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"mode": "forwarding"}\'',
+                    node: 'await fiddupay.merchants.updateSettlementMode("forwarding");'
+                },
+                response: JSON.stringify({
+                    status: "success",
+                    mode: "forwarding"
                 }, null, 2)
             }
         ]

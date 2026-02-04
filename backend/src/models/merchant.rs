@@ -17,6 +17,7 @@ pub struct Merchant {
     pub customer_pays_fee: bool, // true = customer pays, false = merchant pays
     pub is_active: bool,
     pub sandbox_mode: bool,
+    pub settlement_mode: String,
     pub kyc_verified: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -65,6 +66,7 @@ mod tests {
             customer_pays_fee: true,
             is_active: true,
             sandbox_mode: false,
+            settlement_mode: "managed".to_string(),
             kyc_verified: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -221,6 +223,7 @@ mod tests {
             customer_pays_fee: true,
             is_active: true,
             sandbox_mode: false,
+            settlement_mode: "managed".to_string(),
             kyc_verified: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),

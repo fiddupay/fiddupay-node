@@ -110,6 +110,8 @@ const WalletsPage: React.FC = () => {
     networkName: null
   })
 
+  const [generatedKey, setGeneratedKey] = useState<{ address: string; privateKey: string; network: string } | null>(null)
+
   const handleGenerateWallet = (cryptoType: string, networkName: string) => {
     setConfirmModal({ show: true, type: cryptoType, networkName })
   }
@@ -119,7 +121,16 @@ const WalletsPage: React.FC = () => {
 
     try {
       setRefreshing(true)
-      await walletAPI.generate(confirmModal.type)
+      const response = await walletAPI.generate(confirmModal.type)
+
+      // Capture the generated data
+      const { config, private_key } = response.data.wallet
+      setGeneratedKey({
+        address: config.address,
+        privateKey: private_key,
+        network: confirmModal.networkName || ''
+      })
+
       await loadWallets()
       showToast('New wallet generated successfully!', 'success')
       setConfirmModal({ show: false, type: null, networkName: null })
@@ -339,6 +350,64 @@ const WalletsPage: React.FC = () => {
                 disabled={refreshing}
               >
                 {refreshing ? 'Generating...' : 'Yes, Generate Wallet'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Private Key Reveal Modal */}
+      {generatedKey && (
+        <div className={styles.modalOverlay} onClick={() => setGeneratedKey(null)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className={styles.modalHeader}>
+              <h2 className="text-red-600">⚠️ Secure Your Private Key</h2>
+              <button
+                className={styles.closeButton}
+                onClick={() => setGeneratedKey(null)}
+              >
+                <i className="fas fa-times text-xl"></i>
+              </button>
+            </div>
+
+            <div className="py-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Your new <strong>{generatedKey.network}</strong> wallet has been created.
+                <span className="text-red-500 font-bold"> This private key will NEVER be shown again.</span>
+              </p>
+
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
+                <div className="mb-3">
+                  <label className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Generated Address</label>
+                  <code className="text-xs break-all block text-gray-800">{generatedKey.address}</code>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-red-400 block mb-1">Private Key (Secret)</label>
+                  <code className="text-xs break-all block text-red-600 font-bold bg-red-50 p-2 rounded border border-red-100">{generatedKey.privateKey}</code>
+                </div>
+              </div>
+
+              <div className="flex gap-2 mb-4">
+                <button
+                  className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                  onClick={() => copyToClipboard(generatedKey.privateKey)}
+                >
+                  <i className="fas fa-copy"></i> Copy Key
+                </button>
+              </div>
+
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-800">
+                <strong>CRITICAL:</strong> If you lose this key, you will lose access to all funds sent to this address.
+                We do not store this key and cannot recover it for you.
+              </div>
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                className={styles.confirmBtn}
+                style={{ backgroundColor: '#10b981' }}
+                onClick={() => setGeneratedKey(null)}
+              >
+                I have saved my private key
               </button>
             </div>
           </div>

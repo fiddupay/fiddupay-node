@@ -8,6 +8,7 @@ export interface User {
   kyc_verified: boolean
   daily_volume_remaining: string
   sandbox_mode: boolean
+  settlement_mode: 'forwarding' | 'managed' | 'imported'
 }
 
 export interface LoginCredentials {

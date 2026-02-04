@@ -44,16 +44,29 @@ impl KeyGenerator {
         })
     }
 
-    /// Generate Solana wallet (placeholder)
+    /// Generate Solana wallet using ed25519-dalek
     pub fn generate_solana_wallet() -> Result<WalletKeyPair, ServiceError> {
-        // Placeholder implementation without ed25519-dalek
-        let private_key = format!("solana_private_key_{}", uuid::Uuid::new_v4());
-        let public_key = format!("solana_public_key_{}", uuid::Uuid::new_v4());
+        use ed25519_dalek::SigningKey;
+        
+        // Generate a random 32-byte secret key
+        let signing_key = SigningKey::generate(&mut OsRng);
+        let verifying_key = signing_key.verifying_key();
+        
+        let private_key_bytes = signing_key.to_bytes();
+        let public_key_bytes = verifying_key.to_bytes();
+        
+        // Solana private key is typically represented as a Base58-encoded 64-byte array (32-byte secret + 32-byte public key)
+        let mut secret_plus_public = [0u8; 64];
+        secret_plus_public[..32].copy_from_slice(&private_key_bytes);
+        secret_plus_public[32..].copy_from_slice(&public_key_bytes);
+        
+        let private_key_base58 = bs58::encode(secret_plus_public).into_string();
+        let address = bs58::encode(public_key_bytes).into_string();
         
         Ok(WalletKeyPair {
-            private_key,
-            public_key: public_key.clone(),
-            address: public_key, // In Solana, address = public key
+            private_key: private_key_base58,
+            public_key: address.clone(),
+            address,
         })
     }
 
@@ -122,16 +135,41 @@ impl KeyGenerator {
         Ok(address)
     }
 
-    fn validate_solana_private_key(private_key: &str) -> Result<String, ServiceError> {
-        // Placeholder validation for Solana keys
-        if private_key.len() < 32 {
-            return Err(ServiceError::ValidationError(
-                "Solana private key too short".to_string()
-            ));
-        }
-        
-        // Return a placeholder address
-        Ok(format!("solana_address_for_{}", &private_key[..8]))
+    fn validate_solana_private_key(private_key_base58: &str) -> Result<String, ServiceError> {
+        use ed25519_dalek::{SigningKey, VerifyingKey};
+
+        // Decocde base58 private key
+        let key_bytes = bs58::decode(private_key_base58)
+            .into_vec()
+            .map_err(|_| ServiceError::ValidationError("Invalid Base58 format".to_string()))?;
+
+        // Solana private keys can be 32 bytes (seed) or 64 bytes (seed + pubkey)
+        let public_key_bytes = match key_bytes.len() {
+            32 => {
+                let seed: [u8; 32] = key_bytes.try_into().unwrap();
+                let signing_key = SigningKey::from_bytes(&seed);
+                signing_key.verifying_key().to_bytes()
+            }
+            64 => {
+                let bytes: [u8; 64] = key_bytes.try_into().unwrap();
+                let seed: [u8; 32] = bytes[..32].try_into().unwrap();
+                let signing_key = SigningKey::from_bytes(&seed);
+                let verifying_key = signing_key.verifying_key();
+                
+                // Verify the stored public key matches the one derived from the seed
+                if verifying_key.to_bytes() != bytes[32..] {
+                    return Err(ServiceError::ValidationError("Invalid Solana key: Seed and public key mismatch".to_string()));
+                }
+                verifying_key.to_bytes()
+            }
+            _ => {
+                return Err(ServiceError::ValidationError(
+                    "Solana private key must be 32 or 64 bytes (Base58 encoded)".to_string()
+                ));
+            }
+        };
+
+        Ok(bs58::encode(public_key_bytes).into_string())
     }
 
     fn public_key_to_eth_address(public_key_hex: &str) -> Result<String, ServiceError> {

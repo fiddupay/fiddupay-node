@@ -1,5 +1,6 @@
 use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
+use crate::utils::keygen::KeyGenerator;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -141,18 +142,34 @@ impl WalletConfigService {
         self.set_wallet_address(merchant_id, crypto_type, request.address).await
     }
 
-    pub async fn generate_wallet(&self, merchant_id: i64, request: GenerateWalletRequest) -> Result<WalletConfig, ServiceError> {
-        // For now, return a placeholder - this would integrate with actual wallet generation
+    pub async fn generate_wallet(&self, merchant_id: i64, request: GenerateWalletRequest) -> Result<GeneratedWalletResponse, ServiceError> {
         let crypto_type = CryptoType::from_string(&request.crypto_type);
-        let placeholder_address = format!("generated_address_for_{}", request.crypto_type);
-        self.set_wallet_address(merchant_id, crypto_type, placeholder_address).await
+        
+        // Generate real wallet based on network
+        let wallet = match crypto_type {
+            CryptoType::Sol | CryptoType::UsdtSpl => KeyGenerator::generate_solana_wallet()?,
+            _ => KeyGenerator::generate_evm_wallet()?,
+        };
+        
+        // Save the address to merchant_wallets
+        let config = self.set_wallet_address(merchant_id, crypto_type, wallet.address.clone()).await?;
+        
+        Ok(GeneratedWalletResponse {
+            config,
+            private_key: wallet.private_key,
+        })
     }
 
     pub async fn import_wallet(&self, merchant_id: i64, request: ImportWalletRequest) -> Result<WalletConfig, ServiceError> {
-        // For now, return a placeholder - this would integrate with actual wallet import
         let crypto_type = CryptoType::from_string(&request.crypto_type);
-        let placeholder_address = format!("imported_address_for_{}", request.crypto_type);
-        self.set_wallet_address(merchant_id, crypto_type, placeholder_address).await
+        
+        // Validate and get address from private key
+        let address = match crypto_type {
+            CryptoType::Sol | CryptoType::UsdtSpl => KeyGenerator::validate_private_key(&request.private_key, "solana")?,
+            _ => KeyGenerator::validate_private_key(&request.private_key, "ethereum")?, // Works for all EVM
+        };
+        
+        self.set_wallet_address(merchant_id, crypto_type, address).await
     }
 
     pub async fn export_private_key(&self, merchant_id: i64, request: ExportKeyRequest) -> Result<String, ServiceError> {
@@ -201,6 +218,12 @@ pub struct ImportWalletRequest {
 #[derive(Debug, Deserialize)]
 pub struct ExportKeyRequest {
     pub crypto_type: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct GeneratedWalletResponse {
+    pub config: WalletConfig,
+    pub private_key: String,
 }
 
 #[derive(Debug, Serialize)]

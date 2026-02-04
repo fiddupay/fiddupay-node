@@ -19,6 +19,7 @@ pub use crate::api::handlers::{
     generate_api_key,
     rotate_api_key,
     set_webhook,
+    update_settlement_mode,
     
     // Payment management
     create_payment,

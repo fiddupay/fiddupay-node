@@ -33,8 +33,10 @@ export const merchantAPI = {
   getInvoice: (invoiceId: string) => api.get(`/api/v1/merchants/invoices/${invoiceId}`),
   getFeeSetting: () => api.get('/api/v1/merchants/fee-setting'),
   updateFeeSetting: (data: any) => api.put('/api/v1/merchants/fee-setting', data),
-  switchEnvironment: (environment: string) =>
-    api.post('/api/v1/merchants/environment/switch', { environment }),
+  switchEnvironment: (toLive: boolean) =>
+    api.post('/api/v1/merchants/environment/switch', { to_live: toLive }),
+  updateSettlementMode: (mode: string) =>
+    api.put('/api/v1/merchants/settlement-mode', { mode }),
   generateApiKey: () => api.post('/api/v1/merchants/api-keys/generate'),
   rotateApiKey: () => api.post('/api/v1/merchants/api-keys/rotate'),
   setWallet: (data: any) => api.put('/api/v1/merchants/wallets', data),
