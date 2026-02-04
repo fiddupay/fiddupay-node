@@ -4,10 +4,12 @@ import styles from '@/styles/pages/DocsPage.module.css';
 import mobileStyles from '@/styles/pages/DocsPageMobile.module.css';
 import CodeSnippet from '../components/docs/CodeSnippet';
 import DocsSidebar from '../components/docs/DocsSidebar';
+import { useToast } from '@/contexts/ToastContext';
 import ApiSection from '../components/docs/ApiSection';
 import { Endpoint, API_DATA } from './docs/ApiData';
 
 const DocsPage: React.FC = () => {
+  const { showToast } = useToast();
   const { sectionId } = useParams<{ sectionId: string }>();
   const location = useLocation();
   const [activeSection, setActiveSection] = useState(sectionId || 'getting-started');
@@ -122,28 +124,23 @@ const DocsPage: React.FC = () => {
             type="text"
             placeholder="Search documentation..."
             className={styles.searchInput}
-            onClick={() => alert('Global search coming soon!')}
+            onClick={() => showToast('Global search coming soon!', 'info')}
           />
         </div>
 
         <div className={styles.headerActions}>
           <a href="https://github.com/fiddupay/fiddupay-node" target="_blank" rel="noopener noreferrer" className={styles.headerLink}>GitHub</a>
-          <a href="https://dashboard.fiddupay.com" className={styles.headerLink}>Dashboard</a>
+          <Link to="/app/dashboard" className={styles.headerLink}>Dashboard</Link>
         </div>
       </header>
 
       {/* Mobile Header (Visible only on mobile via CSS) */}
       <div className={mobileStyles.mobileHeader}>
         <div className={mobileStyles.logoSection}>
-          <div className={mobileStyles.burgerIcon}>
-            <div className={mobileStyles.bar}></div>
-            <div className={mobileStyles.bar}></div>
-            <div className={mobileStyles.bar}></div>
-          </div>
           <Link to="/" className={mobileStyles.logoText}>FidduPay</Link>
         </div>
         <div className={mobileStyles.headerActions}>
-          <button className={mobileStyles.searchBtn} onClick={() => alert('Search functionality coming soon!')}>
+          <button className={mobileStyles.searchBtn} onClick={() => showToast('Search functionality coming soon!', 'info')}>
             <i className="fas fa-search"></i> Search
           </button>
           <button

@@ -74,7 +74,7 @@ export default function WalletSetupWizard() {
         network: selectedNetwork,
         address: address
       })
-      
+
       setSuccess(`Address-only wallet configured for ${selectedNetwork}`)
       setAddress('')
       loadWalletConfigs()
@@ -95,8 +95,8 @@ export default function WalletSetupWizard() {
     setError('');
 
     try {
-      const data = await walletAPI.generate(selectedNetwork, password)
-      
+      const data = await walletAPI.generate(selectedNetwork)
+
       setSuccess(`Wallet generated for ${selectedNetwork}. Private key: ${data.data.wallet.private_key}`)
       setPassword('')
       setConfirmPassword('')
@@ -123,7 +123,7 @@ export default function WalletSetupWizard() {
         private_key: privateKey,
         encryption_password: password
       })
-      
+
       setSuccess(`Private key imported for ${selectedNetwork}`)
       setPrivateKey('')
       setPassword('')
@@ -160,11 +160,10 @@ export default function WalletSetupWizard() {
                   return (
                     <div
                       key={network.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                        selectedNetwork === network.id
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedNetwork === network.id
                           ? 'border-blue-500 bg-blue-50'
                           : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                        }`}
                       onClick={() => setSelectedNetwork(network.id)}
                     >
                       <div className="flex items-center justify-between">
@@ -177,7 +176,7 @@ export default function WalletSetupWizard() {
                             <CheckCircle className="h-4 w-4" />
                             <span className="text-xs">
                               {wallet.wallet_mode === 'address_only' ? 'Address Only' :
-                               wallet.wallet_mode === 'gateway_generated' ? 'Generated' : 'Imported'}
+                                wallet.wallet_mode === 'gateway_generated' ? 'Generated' : 'Imported'}
                             </span>
                           </div>
                         )}

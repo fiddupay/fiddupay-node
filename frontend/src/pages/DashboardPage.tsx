@@ -186,7 +186,7 @@ const DashboardPage: React.FC = () => {
                   <div
                     className={styles.progressFill}
                     style={{
-                      width: `${((1000 - parseFloat(user.daily_volume_remaining || '1000')) / 1000) * 100}%`
+                      width: `${((1000 - parseFloat(user.daily_volume_remaining)) / 1000) * 100}%`
                     }}
                   />
                 </div>

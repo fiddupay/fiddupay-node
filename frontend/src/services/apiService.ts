@@ -71,7 +71,7 @@ export const withdrawalAPI = {
 
 export const walletAPI = {
   configure: (data: any) => api.post('/api/v1/merchants/wallets/configure-address', data),
-  generate: (network: string, password?: string) => api.post('/api/v1/merchants/wallets/generate', { network, encryption_password: password }),
+  generate: (cryptoType: string) => api.post('/api/v1/merchants/wallets/generate', { crypto_type: cryptoType }),
   import: (data: any) => api.post('/api/v1/merchants/wallets/import', data),
   getAll: () => api.get('/api/v1/merchants/wallets'),
 }
