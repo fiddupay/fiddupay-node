@@ -101,6 +101,8 @@ To sync code AND push a version tag manually (triggering the automated pipeline)
 
 ```bash
 ./scripts/push-sdk.sh main v2.4.1
+cd fiddupay-node-sdk
+npm publish --access public
 ```
 
 ## Configuration
