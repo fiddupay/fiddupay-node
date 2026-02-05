@@ -270,7 +270,7 @@ impl PaymentProcessor {
             payment_id
         );
         
-        let qr_code_data = if let (Some(net), Some(wallet), Some(amt)) = (&network, &merchant_wallet, crypto_amount) {
+        let qr_code_data = if let (Some(net), Some(wallet), Some(amt)) = (network.as_ref(), merchant_wallet.as_ref(), crypto_amount) {
             Some(format!(
                 "{}:{}?amount={}",
                 net.to_lowercase(),
