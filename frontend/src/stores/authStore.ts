@@ -101,9 +101,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
         try {
           set({ loading: true })
-          const user = await merchantAPI.getProfile()
+          const response = await merchantAPI.getProfile()
           set({
-            user: user.data,
+            user: response.data.user,
             token,
             isAuthenticated: true,
             loading: false,

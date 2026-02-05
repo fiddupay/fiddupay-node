@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { useToast } from '@/contexts/ToastContext'
 import { merchantAPI, paymentAPI, publicAPI } from '@/services/apiService'
 import { useAuthStore } from '@/stores/authStore'
-import { Payment, PaymentFilters, FeeSettingResponse } from '@/types'
+import { Payment, PaymentFilters } from '@/types'
 import styles from '@/styles/pages/PaymentsPage.module.css'
 
 const PaymentsPage: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([])
-  const [feeSetting, setFeeSetting] = useState<FeeSettingResponse | null>(null)
   const [supportedCryptos, setSupportedCryptos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
@@ -20,7 +19,6 @@ const PaymentsPage: React.FC = () => {
     page_size: 20
   })
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showFeeSettingModal, setShowFeeSettingModal] = useState(false)
   const [paymentType, setPaymentType] = useState<'standard' | 'address-only'>('standard')
   const [newPayment, setNewPayment] = useState({
     amount_usd: '',
@@ -35,7 +33,6 @@ const PaymentsPage: React.FC = () => {
   useEffect(() => {
     loadPayments()
     loadStats()
-    loadFeeSetting()
     loadSupportedCurrencies()
   }, [filters, user?.sandbox_mode])
 
@@ -55,14 +52,6 @@ const PaymentsPage: React.FC = () => {
     }
   }
 
-  const loadFeeSetting = async () => {
-    try {
-      const setting = await merchantAPI.getFeeSetting()
-      setFeeSetting(setting.data)
-    } catch (error) {
-      console.error('Failed to load fee setting:', error)
-    }
-  }
 
   const loadPayments = async () => {
     setLoading(true)
@@ -178,22 +167,6 @@ const PaymentsPage: React.FC = () => {
     }
   }
 
-  const handleUpdateFeeSetting = async (customerPaysFee: boolean) => {
-    setLoading(true)
-    try {
-      await merchantAPI.updateFeeSetting({
-        fee_percentage: feeSetting?.fee_percentage || 0,
-        customer_pays_fee: customerPaysFee
-      })
-      showToast(`Fee setting updated: ${customerPaysFee ? 'Customer pays fee' : 'Merchant pays fee'}`, 'success')
-      setShowFeeSettingModal(false)
-      loadFeeSetting()
-    } catch (error) {
-      showToast('Failed to update fee setting', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const getStatusBadge = (status: string) => {
     const statusClasses = {
@@ -225,13 +198,6 @@ const PaymentsPage: React.FC = () => {
         </div>
         <div className={styles.headerActions}>
           <button
-            className={styles.feeSettingBtn}
-            onClick={() => setShowFeeSettingModal(true)}
-          >
-            <i className="fas fa-cog"></i>
-            Fee Settings
-          </button>
-          <button
             className={styles.createBtn}
             onClick={() => setShowCreateModal(true)}
           >
@@ -244,20 +210,20 @@ const PaymentsPage: React.FC = () => {
       <div className={styles.stats}>
         <div className={styles.statCard}>
           <div className={styles.statIcon}>
-            <i className="fas fa-receipt"></i>
-          </div>
-          <div className={styles.statContent}>
-            <h3>Total Payments</h3>
-            <div className={styles.statValue}>{stats.totalPayments.toLocaleString()}</div>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>
             <i className="fas fa-dollar-sign"></i>
           </div>
           <div className={styles.statContent}>
             <h3>Total Volume</h3>
             <div className={styles.statValue}>{stats.totalVolume}</div>
+          </div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statIcon}>
+            <i className="fas fa-receipt"></i>
+          </div>
+          <div className={styles.statContent}>
+            <h3>Total Payments</h3>
+            <div className={styles.statValue}>{stats.totalPayments.toLocaleString()}</div>
           </div>
         </div>
         <div className={styles.statCard}>
@@ -269,19 +235,6 @@ const PaymentsPage: React.FC = () => {
             <div className={styles.statValue}>{stats.successRate}</div>
           </div>
         </div>
-        {feeSetting && (
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <i className="fas fa-percentage"></i>
-            </div>
-            <div className={styles.statContent}>
-              <h3>Fee Model</h3>
-              <div className={styles.statValue}>
-                {feeSetting?.customer_pays_fee ? 'Customer Pays' : 'Merchant Pays'}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className={styles.tableContainer}>
@@ -474,56 +427,6 @@ const PaymentsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Fee Setting Modal */}
-      {showFeeSettingModal && (
-        <div className={styles.modal}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h2>Fee Settings</h2>
-              <button
-                className={styles.closeBtn}
-                onClick={() => setShowFeeSettingModal(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-
-            <div className={styles.feeSettingOptions}>
-              <p>Choose who pays the processing fee:</p>
-
-              <div className={styles.feeOption}>
-                <button
-                  className={`${styles.feeOptionBtn} ${feeSetting?.customer_pays_fee ? styles.active : ''}`}
-                  onClick={() => handleUpdateFeeSetting(true)}
-                >
-                  <div className={styles.feeOptionIcon}>
-                    <i className="fas fa-user"></i>
-                  </div>
-                  <div className={styles.feeOptionContent}>
-                    <h3>Customer Pays Fee</h3>
-                    <p>Customer pays the requested amount plus processing fee</p>
-                  </div>
-                </button>
-              </div>
-
-              <div className={styles.feeOption}>
-                <button
-                  className={`${styles.feeOptionBtn} ${!feeSetting?.customer_pays_fee ? styles.active : ''}`}
-                  onClick={() => handleUpdateFeeSetting(false)}
-                >
-                  <div className={styles.feeOptionIcon}>
-                    <i className="fas fa-store"></i>
-                  </div>
-                  <div className={styles.feeOptionContent}>
-                    <h3>Merchant Pays Fee</h3>
-                    <p>Customer pays the requested amount, fee deducted from merchant</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

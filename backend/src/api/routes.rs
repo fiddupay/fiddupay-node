@@ -51,7 +51,7 @@ pub fn create_router(state: AppState) -> Router {
                 .map(|origin| origin.parse::<HeaderValue>().unwrap())
                 .collect::<Vec<HeaderValue>>()
         )
-        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::PATCH, Method::DELETE, Method::OPTIONS])
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
         .allow_credentials(true);
 

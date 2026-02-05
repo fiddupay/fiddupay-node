@@ -10,6 +10,7 @@ export interface User {
   daily_limit_usd?: string
   sandbox_mode: boolean
   settlement_mode: 'forwarding' | 'managed' | 'imported'
+  webhook_url?: string
 }
 
 export interface LoginCredentials {

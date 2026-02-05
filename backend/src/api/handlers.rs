@@ -217,7 +217,14 @@ pub async fn get_merchant_profile(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     match sqlx::query!(
-        "SELECT id, business_name, email, sandbox_mode, settlement_mode, COALESCE(kyc_verified, false) as \"kyc_verified!\", daily_limit_usd, created_at FROM merchants WHERE id = $1",
+        r#"
+        SELECT m.id, m.business_name, m.email, m.sandbox_mode, m.settlement_mode, 
+               COALESCE(m.kyc_verified, false) as "kyc_verified!", m.daily_limit_usd, m.created_at,
+               w.url as webhook_url
+        FROM merchants m
+        LEFT JOIN webhook_configs w ON m.id = w.merchant_id AND w.is_active = true
+        WHERE m.id = $1
+        "#,
         context.merchant_id
     )
     .fetch_optional(&state.db_pool)
@@ -232,6 +239,7 @@ pub async fn get_merchant_profile(
                 "settlement_mode": merchant.settlement_mode,
                 "kyc_verified": merchant.kyc_verified,
                 "daily_limit_usd": merchant.daily_limit_usd.map(|d| d.to_string()),
+                "webhook_url": merchant.webhook_url,
                 "created_at": merchant.created_at.to_rfc3339(),
                 "two_factor_enabled": false
             });
@@ -255,7 +263,7 @@ pub async fn get_merchant_profile(
                 profile["daily_volume_remaining"] = json!(remaining.to_string());
             }
             
-            (StatusCode::OK, Json(profile)).into_response()
+            (StatusCode::OK, Json(json!({ "user": profile }))).into_response()
         },
         Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Merchant not found"}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
@@ -579,6 +587,50 @@ pub async fn set_webhook(
         Ok(_) => (StatusCode::OK, Json(json!({"success": true}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
+}
+
+pub async fn get_merchant_settings(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    let merchant_id = context.merchant_id;
+    
+    // 1. Get core merchant settings
+    let merchant = match sqlx::query!(
+        "SELECT settlement_mode, customer_pays_fee, sandbox_mode FROM merchants WHERE id = $1",
+        merchant_id
+    )
+    .fetch_one(&state.db_pool)
+    .await {
+        Ok(m) => m,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    };
+
+    // 2. Get webhook URL
+    let webhook_url = sqlx::query_scalar!(
+        "SELECT url FROM webhook_configs WHERE merchant_id = $1 AND is_active = true",
+        merchant_id
+    )
+    .fetch_optional(&state.db_pool)
+    .await
+    .unwrap_or(None);
+
+    // 3. Get IP whitelist
+    let ip_whitelist = sqlx::query_scalar!(
+        "SELECT ip_address FROM ip_whitelist WHERE merchant_id = $1",
+        merchant_id
+    )
+    .fetch_all(&state.db_pool)
+    .await
+    .unwrap_or_default();
+
+    (StatusCode::OK, Json(json!({
+        "webhook_url": webhook_url,
+        "settlement_mode": merchant.settlement_mode,
+        "customer_pays_fee": merchant.customer_pays_fee,
+        "sandbox_mode": merchant.sandbox_mode,
+        "ip_whitelist": ip_whitelist
+    }))).into_response()
 }
 
 // ============================================================================

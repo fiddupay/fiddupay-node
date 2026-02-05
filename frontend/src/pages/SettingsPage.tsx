@@ -24,7 +24,7 @@ const SettingsPage: React.FC = () => {
         try {
             const profileRes = await merchantAPI.getProfile()
             const feeRes = await merchantAPI.getFeeSetting()
-            setWebhookUrl(profileRes.data.merchant.webhook_url || '')
+            setWebhookUrl(profileRes.data.user.webhook_url || '')
             setCustomerPaysFee(feeRes.data.customer_pays_fee)
         } catch (error) {
             console.error('Failed to fetch settings', error)

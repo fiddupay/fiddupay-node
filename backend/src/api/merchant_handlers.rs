@@ -70,6 +70,7 @@ pub use crate::api::handlers::{
     // Fee Settings
     get_fee_setting,
     update_fee_setting,
+    get_merchant_settings,
     update_merchant_settings,
     get_merchant_readiness,
     list_unified_transactions,
