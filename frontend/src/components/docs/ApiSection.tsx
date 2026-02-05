@@ -33,6 +33,9 @@ const ApiSection: React.FC<ApiSectionProps> = ({ section, sectionRefs }) => {
                             {endpoint.method}
                         </span>
                         <span className={styles.endpointPath} style={{ wordBreak: 'break-all' }}>{endpoint.path}</span>
+                        {endpoint.deprecated && (
+                            <span className={styles.deprecatedBadge}>DEPRECATED</span>
+                        )}
                     </div>
 
                     <div className={styles.mobileCodeSnippet}>

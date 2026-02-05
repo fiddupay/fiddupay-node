@@ -29,6 +29,15 @@ impl IpRateLimiter {
     }
 
     pub async fn check(&self, ip: &str) -> Result<(), ()> {
+        // Try to get a read lock first to avoid blocking other readers
+        {
+            let limiters = self.limiters.read().await;
+            if let Some(limiter) = limiters.get(ip) {
+                return limiter.check().map_err(|_| ());
+            }
+        }
+
+        // If not found, upgrade to a write lock
         let mut limiters = self.limiters.write().await;
         let limiter = limiters
             .entry(ip.to_string())

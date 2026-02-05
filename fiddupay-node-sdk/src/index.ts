@@ -13,10 +13,11 @@ import { Security } from './resources/security';
 import { Balances, AuditLogs } from './resources/balances';
 import { Sandbox } from './resources/sandbox';
 import { Contact } from './resources/contact';
+import { Transactions } from './resources/transactions';
 
 export class FidduPayClient {
   private client: HttpClient;
-  
+
   public readonly payments: Payments;
   public readonly merchants: Merchants;
   public readonly refunds: Refunds;
@@ -30,12 +31,13 @@ export class FidduPayClient {
   public readonly auditLogs: AuditLogs;
   public readonly sandbox: Sandbox;
   public readonly contact: Contact;
+  public readonly transactions: Transactions;
 
   constructor(config: FidduPayConfig) {
     this.validateConfig(config);
-    
+
     this.client = new HttpClient(config);
-    
+
     // Initialize resource classes
     this.payments = new Payments(this.client);
     this.merchants = new Merchants(this.client);
@@ -49,6 +51,7 @@ export class FidduPayClient {
     this.auditLogs = new AuditLogs(this.client);
     this.sandbox = new Sandbox(this.client);
     this.contact = new Contact(this.client);
+    this.transactions = new Transactions(this.client);
   }
 
   private validateConfig(config: FidduPayConfig): void {

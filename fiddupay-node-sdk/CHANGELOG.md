@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.4.3] - 2026-02-05
+
+### 🚀 Developer Experience (DX) Simplification
+- **Unified Merchant Settings**: New `PATCH /api/v1/merchants/settings` endpoint (and `merchants.updateSettings` in SDK) to atomically update webhook URL, settlement mode, fee settings, and IP whitelist in a single request.
+- **Simplified Wallet Setup**: Consolidated `configure-address`, `generate`, and `import` into a single `POST /api/v1/merchants/wallets` endpoint (and `wallets.setup` in SDK).
+- **Merchant Readiness Status**: New `GET /api/v1/merchants/status` endpoint (and `merchants.getStatus` in SDK) providing a comprehensive health check for operational readiness (wallet coverage, gas status, security alerts).
+- **Universal Transaction Feed**: New `GET /api/v1/merchants/transactions` endpoint (and `transactions.list` in SDK) providing a unified chronological feed of all financial events (Payments, Refunds, Withdrawals).
+
+### Added
+- **Transactions Resource**: New `sdk.transactions` resource in Node.js SDK for easier access to the universal feed.
+- **PATCH support**: SDK `HttpClient` now supports the `PATCH` method.
+
+### Deprecated
+- `merchants.setWebhook`: Deprecated in favor of the unified `merchants.updateSettings`.
+- `merchants.setIpWhitelist`: Deprecated in favor of the unified `merchants.updateSettings`.
+- `merchants.updateSettlementMode`: Deprecated in favor of the unified `merchants.updateSettings`.
+- `wallets.generate`, `wallets.import`, `wallets.configureAddress`: Deprecated in favor of the unified `wallets.setup`.
+
 ## [2.4.2] - 2026-02-05
 
 ### Added

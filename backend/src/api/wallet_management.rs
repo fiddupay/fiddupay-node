@@ -50,6 +50,7 @@ pub async fn configure_address_only_wallet(
     let configure_request = ConfigureWalletRequest {
         crypto_type: req.crypto_type.clone(),
         address: req.address.clone(),
+        is_active: req.is_active,
     };
     
     match wallet_service.configure_address_only(context.merchant_id, configure_request).await {
@@ -260,6 +261,7 @@ pub async fn process_withdrawal(
 pub struct ConfigureAddressRequest {
     pub crypto_type: String,
     pub address: String,
+    pub is_active: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -271,4 +273,76 @@ pub struct GasCheckQuery {
 #[derive(Debug, Deserialize)]
 pub struct ProcessWithdrawalRequest {
     pub encryption_password: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UnifiedWalletSetupRequest {
+    pub crypto_type: String,
+    pub mode: String, // "address", "generate", "import"
+    pub address: Option<String>,
+    pub private_key: Option<String>,
+    pub is_active: Option<bool>,
+}
+
+pub async fn setup_wallet(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<UnifiedWalletSetupRequest>,
+) -> impl IntoResponse {
+    let wallet_service = WalletConfigService::new(state.db_pool.clone());
+    
+    match req.mode.as_str() {
+        "address" => {
+            if let Some(address) = req.address {
+                let configure_request = ConfigureWalletRequest {
+                    crypto_type: req.crypto_type,
+                    address,
+                    is_active: req.is_active,
+                };
+                match wallet_service.configure_address_only(context.merchant_id, configure_request).await {
+                    Ok(config) => (StatusCode::OK, Json(json!({
+                        "wallet": config,
+                        "mode": "address",
+                        "message": "Address-only wallet configured successfully."
+                    }))).into_response(),
+                    Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+                }
+            } else {
+                (StatusCode::BAD_REQUEST, Json(json!({"error": "Address is required for mode 'address'"}))).into_response()
+            }
+        },
+        "generate" => {
+            let generate_request = GenerateWalletRequest {
+                crypto_type: req.crypto_type,
+            };
+            match wallet_service.generate_wallet(context.merchant_id, generate_request).await {
+                Ok(response) => (StatusCode::CREATED, Json(json!({
+                    "wallet": response,
+                    "mode": "generate",
+                    "message": "Wallet generated successfully."
+                }))).into_response(),
+                Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+            }
+        },
+        "import" => {
+            if let Some(private_key) = req.private_key {
+                let import_request = ImportWalletRequest {
+                    crypto_type: req.crypto_type,
+                    private_key,
+                    is_active: req.is_active,
+                };
+                match wallet_service.import_wallet(context.merchant_id, import_request).await {
+                    Ok(config) => (StatusCode::OK, Json(json!({
+                        "wallet": config,
+                        "mode": "import",
+                        "message": "Private key imported successfully."
+                    }))).into_response(),
+                    Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+                }
+            } else {
+                (StatusCode::BAD_REQUEST, Json(json!({"error": "Private key is required for mode 'import'"}))).into_response()
+            }
+        },
+        _ => (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid mode. Use 'address', 'generate', or 'import'."}))).into_response(),
+    }
 }

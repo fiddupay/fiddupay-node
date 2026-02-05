@@ -12,14 +12,29 @@ export class Wallets {
   }
 
   /**
-   * Generate new wallet
+   * Unified wallet setup (address, generate, or import)
+   */
+  async setup(data: {
+    crypto_type: string;
+    mode: 'address' | 'generate' | 'import';
+    address?: string;
+    private_key?: string;
+    is_active?: boolean;
+  }, options?: RequestOptions): Promise<any> {
+    return this.client.request('POST', '/api/v1/merchants/wallets', data);
+  }
+
+  /**
+   * Generate a new wallet for a cryptocurrency
+   * @deprecated Use setup with mode 'generate' instead
    */
   async generate(data: { crypto_type: string }, options?: RequestOptions): Promise<any> {
     return this.client.request('POST', '/api/v1/merchants/wallets/generate', data);
   }
 
   /**
-   * Import wallet
+   * Import an existing wallet using private key
+   * @deprecated Use setup with mode 'import' instead
    */
   async import(data: {
     crypto_type: string;
@@ -29,7 +44,8 @@ export class Wallets {
   }
 
   /**
-   * Configure wallet address
+   * Configure a wallet with just an address (no private key)
+   * @deprecated Use setup with mode 'address' instead
    */
   async configureAddress(data: {
     crypto_type: string;

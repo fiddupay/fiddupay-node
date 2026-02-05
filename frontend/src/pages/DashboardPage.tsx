@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI, paymentAPI } from '@/services/apiService'
-import { Analytics, Balance, Payment } from '../types'
+import { Analytics, Balance } from '../types'
 import styles from '@/styles/pages/DashboardPage.module.css'
 
 const DashboardPage: React.FC = () => {
@@ -16,7 +16,9 @@ const DashboardPage: React.FC = () => {
     // Calculate daily volume used
     if (user?.daily_volume_remaining) {
       const remaining = parseFloat(user.daily_volume_remaining)
-      const limit = user.kyc_verified ? 0 : 1000 // $1000 limit for non-KYC
+      // Use dynamic limit from backend if set, otherwise fallback to system default ($1000 for non-kyc, 0 for unlimited)
+      const systemDefaultLimit = user.kyc_verified ? 0 : 1000
+      const limit = user.daily_limit_usd ? parseFloat(user.daily_limit_usd) : systemDefaultLimit
       const used = limit > 0 ? limit - remaining : 0
       setDailyVolumeUsed(used)
     }
@@ -186,13 +188,15 @@ const DashboardPage: React.FC = () => {
                   <div
                     className={styles.progressFill}
                     style={{
-                      width: `${((1000 - parseFloat(user.daily_volume_remaining)) / 1000) * 100}%`
+                      width: `${user.daily_limit_usd && parseFloat(user.daily_limit_usd) > 0
+                        ? ((parseFloat(user.daily_limit_usd) - parseFloat(user.daily_volume_remaining)) / parseFloat(user.daily_limit_usd)) * 100
+                        : ((1000 - parseFloat(user.daily_volume_remaining)) / 1000) * 100}%`
                     }}
                   />
                 </div>
                 <div className={styles.progressLabels}>
                   <span>${dailyVolumeUsed.toFixed(2)} used</span>
-                  <span>$1,000.00 limit</span>
+                  <span>${user.daily_limit_usd ? parseFloat(user.daily_limit_usd).toLocaleString() : '1,000.00'} limit</span>
                 </div>
               </div>
             )}
@@ -202,11 +206,11 @@ const DashboardPage: React.FC = () => {
 
       <div className={styles.content}>
         <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Recent Payments</h2>
+          <h2 className={styles.sectionTitle}>Recent Activity</h2>
           {loading ? (
-            <div className={styles.loading}>Loading payments...</div>
+            <div className={styles.loading}>Loading activity...</div>
           ) : (
-            <RecentPaymentsList />
+            <RecentActivityList />
           )}
         </div>
 
@@ -243,58 +247,67 @@ const DashboardPage: React.FC = () => {
   )
 }
 
-// Recent Payments Component
-const RecentPaymentsList: React.FC = () => {
-  const [payments, setPayments] = useState<Payment[]>([])
+// Recent Activity Component
+const RecentActivityList: React.FC = () => {
+  const [activities, setActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadRecentPayments()
+    loadRecentActivity()
   }, [])
 
-  const loadRecentPayments = async () => {
+  const loadRecentActivity = async () => {
     try {
-      const response = await paymentAPI.getHistory({ limit: 5, offset: 0 })
-      console.log('Payments API Response:', response.data) // Debugging
-      if (response.data && Array.isArray(response.data.data)) {
-        setPayments(response.data.data)
-      } else if (Array.isArray(response.data)) {
-        // Fallback if structure is different
-        setPayments(response.data)
+      const response = await paymentAPI.getUnifiedTransactions({ limit: 5 })
+      if (response.data && Array.isArray(response.data.transactions)) {
+        setActivities(response.data.transactions)
       } else {
-        console.error('Unexpected payments format:', response.data)
-        setPayments([])
+        setActivities([])
       }
     } catch (error) {
-      console.error('Failed to load recent payments:', error)
-      setPayments([])
+      console.error('Failed to load activity:', error)
+      setActivities([])
     } finally {
       setLoading(false)
     }
   }
 
   if (loading) {
-    return <div className={styles.loading}>Loading recent payments...</div>
+    return <div className={styles.loading}>Loading recent activity...</div>
   }
 
-  if (!Array.isArray(payments) || payments.length === 0) {
-    return <div className={styles.placeholder}>No recent payments</div>
+  if (activities.length === 0) {
+    return <div className={styles.placeholder}>No recent activity</div>
+  }
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'payment': return 'fa-arrow-down text-green-500';
+      case 'refund': return 'fa-undo text-orange-500';
+      case 'withdrawal': return 'fa-arrow-up text-blue-500';
+      default: return 'fa-exchange-alt';
+    }
   }
 
   return (
     <div className={styles.paymentsList}>
-      {payments.slice(0, 5).map((payment: any) => (
-        <div key={payment.payment_id} className={styles.paymentItem}>
+      {activities.map((activity: any) => (
+        <div key={`${activity.type}-${activity.id}`} className={styles.paymentItem}>
           <div className={styles.paymentInfo}>
-            <span className={styles.paymentId}>{payment.payment_id.substring(0, 8)}...</span>
-            <span className={styles.paymentAmount}>${payment.amount_usd}</span>
+            <div className="flex items-center gap-2">
+              <i className={`fas ${getTypeIcon(activity.type)} w-4 text-center`}></i>
+              <span className={styles.paymentId}>{activity.id.substring(0, 8)}...</span>
+            </div>
+            <span className={styles.paymentAmount}>
+              {activity.type === 'withdrawal' ? '-' : ''}${activity.usd_amount}
+            </span>
           </div>
           <div className={styles.paymentMeta}>
-            <span className={`${styles.paymentStatus} ${styles[payment.status.toLowerCase()]}`}>
-              {payment.status}
+            <span className={`${styles.paymentStatus} ${styles[activity.status.toLowerCase()]}`}>
+              {activity.status}
             </span>
             <span className={styles.paymentDate}>
-              {new Date(payment.created_at).toLocaleDateString()}
+              {new Date(activity.created_at).toLocaleDateString()}
             </span>
           </div>
         </div>

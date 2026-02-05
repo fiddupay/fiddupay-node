@@ -68,4 +68,26 @@ impl CurrencyService {
             _ => 1,
         }
     }
+
+    pub async fn get_merchant_enabled_currencies(&self, merchant_id: i64) -> Vec<(&'static str, &'static str, &'static str, &'static str)> {
+        let all_supported = self.get_supported_currencies().await;
+        
+        // Fetch active wallets for this merchant
+        let active_wallets: Vec<String> = match sqlx::query!(
+            "SELECT crypto_type FROM merchant_wallets WHERE merchant_id = $1 AND is_active = true",
+            merchant_id
+        )
+        .fetch_all(&self.pool)
+        .await {
+            Ok(rows) => rows.into_iter().map(|r| r.crypto_type).collect(),
+            Err(_) => return vec![], // Return empty if error or no wallets
+        };
+
+        // Filter supported list
+        all_supported.into_iter()
+            .filter(|(crypto_type, _, _, _)| {
+                active_wallets.contains(&crypto_type.to_string())
+            })
+            .collect()
+    }
 }

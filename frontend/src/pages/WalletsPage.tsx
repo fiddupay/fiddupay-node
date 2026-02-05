@@ -25,7 +25,7 @@ const WalletsPage: React.FC = () => {
 
   useEffect(() => {
     fetchInitialData()
-  }, [])
+  }, [user?.sandbox_mode])
 
   const fetchInitialData = async () => {
     try {
@@ -75,12 +75,22 @@ const WalletsPage: React.FC = () => {
     try {
       const address = newWallet.address.trim()
       if (!address) {
-        showToast('Please enter a wallet address', 'error')
+        showToast(`Please enter a ${settlementMode === 'imported' ? 'private key' : 'wallet address'}`, 'error')
         return
       }
 
       setRefreshing(true)
-      await walletAPI.configure(newWallet)
+
+      const mode = settlementMode === 'imported' ? 'import' : 'address';
+
+      await walletAPI.setup({
+        crypto_type: newWallet.crypto_type,
+        mode: mode,
+        address: settlementMode === 'imported' ? undefined : address,
+        private_key: settlementMode === 'imported' ? address : undefined,
+        is_active: true
+      })
+
       await loadWallets()
       setShowConfigModal(false)
       setNewWallet({ crypto_type: 'SOL', address: '' })
@@ -122,14 +132,46 @@ const WalletsPage: React.FC = () => {
     }
   }
 
+  const handleToggleNetwork = async (cryptoType: string, address: string, isActive: boolean) => {
+    try {
+      setRefreshing(true)
+      // For address-only (Forwarding) or network status toggle
+      if (settlementMode === 'forwarding' || settlementMode === 'managed') {
+        await walletAPI.setup({
+          crypto_type: cryptoType,
+          mode: 'address',
+          address: address,
+          is_active: isActive
+        })
+      } else if (settlementMode === 'imported') {
+        await walletAPI.setup({
+          crypto_type: cryptoType,
+          mode: 'address', // When toggling, we just send mode address to update status
+          address: address,
+          is_active: isActive
+        })
+      }
+      await loadWallets()
+      showToast(`${isActive ? 'Enabled' : 'Disabled'} network successfully`, 'success')
+    } catch (error: any) {
+      showToast(error.response?.data?.error || 'Failed to toggle network', 'error')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   const confirmGeneration = async () => {
     if (!confirmModal.type) return
     try {
       setRefreshing(true)
-      const response = await walletAPI.generate(confirmModal.type)
-      const { config, private_key } = response.data.wallet
+      const response = await walletAPI.setup({
+        crypto_type: confirmModal.type,
+        mode: 'generate',
+        is_active: true
+      })
+      const { wallet: walletData, private_key } = response.data
       setGeneratedKey({
-        address: config.address,
+        address: walletData.address,
         privateKey: private_key,
         network: confirmModal.networkName || ''
       })
@@ -176,7 +218,7 @@ const WalletsPage: React.FC = () => {
         <div className={styles.modeInfo}>
           <h3>
             <i className={`fas ${settlementMode === 'managed' ? 'fa-cloud' :
-                settlementMode === 'imported' ? 'fa-key' : 'fa-share-square'
+              settlementMode === 'imported' ? 'fa-key' : 'fa-share-square'
               }`}></i>
             Global Settlement Mode: <span className="text-blue-600">{settlementMode.toUpperCase()}</span>
           </h3>
@@ -215,37 +257,46 @@ const WalletsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {wallet && (
-                  <div className={styles.walletActions}>
-                    <button
-                      className={styles.actionMenuToggle}
-                      onClick={() => setActiveMenu(activeMenu === network.name ? null : network.name)}
-                    >
-                      <i className="fas fa-ellipsis-v"></i>
-                    </button>
-                    {activeMenu === network.name && (
-                      <div className={styles.actionDropdown}>
-                        <button
-                          className={styles.actionItem}
-                          onClick={() => handleWalletAction(baseCryptoType, network.name, 'generate')}
-                        >
-                          <i className="fas fa-sync-alt"></i> Generate New
-                        </button>
-                        <button
-                          className={`${styles.actionItem} ${styles.danger}`}
-                          onClick={() => handleWalletAction(baseCryptoType, network.name, 'revoke')}
-                        >
-                          <i className="fas fa-trash-alt"></i> Revoke / Remove
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="flex items-center gap-3">
+                  <label className={styles.networkToggle} title={`${wallet?.is_active ? 'Disable' : 'Enable'} Network`}>
+                    <input
+                      type="checkbox"
+                      checked={wallet?.is_active ?? false}
+                      onChange={(e) => handleToggleNetwork(baseCryptoType, wallet?.address || '', e.target.checked)}
+                      disabled={!wallet && settlementMode === 'managed'}
+                    />
+                    <span className={styles.slider}></span>
+                  </label>
 
-                <div
-                  className={wallet ? styles.statusActive : styles.statusInactive}
-                  title={wallet ? 'Active' : 'Not Configured'}
-                />
+                  {wallet && (
+                    <div className={styles.walletActions}>
+                      <button
+                        className={styles.actionMenuToggle}
+                        onClick={() => setActiveMenu(activeMenu === network.name ? null : network.name)}
+                      >
+                        <i className="fas fa-ellipsis-v"></i>
+                      </button>
+                      {activeMenu === network.name && (
+                        <div className={styles.actionDropdown}>
+                          {settlementMode === 'managed' && (
+                            <button
+                              className={styles.actionItem}
+                              onClick={() => handleWalletAction(baseCryptoType, network.name, 'generate')}
+                            >
+                              <i className="fas fa-sync-alt"></i> Generate New
+                            </button>
+                          )}
+                          <button
+                            className={`${styles.actionItem} ${styles.danger}`}
+                            onClick={() => handleWalletAction(baseCryptoType, network.name, 'revoke')}
+                          >
+                            <i className="fas fa-trash-alt"></i> Revoke / Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className={styles.walletContent}>
@@ -260,9 +311,6 @@ const WalletsPage: React.FC = () => {
                         <i className="fas fa-copy"></i>
                       </button>
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-2">
-                      Supports: {network.cryptos.map((c: any) => c.crypto_type.split('_')[0]).join(', ')}
-                    </p>
                   </div>
                 ) : (
                   <div className={styles.emptyState}>
@@ -280,19 +328,29 @@ const WalletsPage: React.FC = () => {
                 {wallet ? (
                   <div className="flex justify-between items-center text-xs text-gray-500">
                     <span className="flex items-center gap-1">
-                      <i className="fas fa-check-circle text-green-500"></i> Active
+                      {wallet.is_active ? (
+                        <>
+                          <i className="fas fa-check-circle text-green-500"></i> Active
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-pause-circle text-gray-400"></i> Disabled
+                        </>
+                      )}
                     </span>
-                    <span>Last configured: {new Date(wallet.updated_at || wallet.configured_at || Date.now()).toLocaleDateString()}</span>
+                    <span>Updated: {new Date(wallet.updated_at || wallet.configured_at || Date.now()).toLocaleDateString()}</span>
                   </div>
                 ) : (
                   <div className="flex gap-2">
-                    {settlementMode === 'managed' && (
+                    {settlementMode === 'managed' ? (
                       <button className={styles.generateBtn} onClick={() => handleWalletAction(baseCryptoType, network.name, 'generate')}>
                         <i className="fas fa-magic"></i> Generate {network.name}
                       </button>
-                    )}
-                    {settlementMode !== 'managed' && (
-                      <button className={styles.generateBtn} onClick={() => setShowConfigModal(true)}>
+                    ) : (
+                      <button className={styles.generateBtn} onClick={() => {
+                        setNewWallet({ crypto_type: baseCryptoType, address: '' })
+                        setShowConfigModal(true)
+                      }}>
                         <i className="fas fa-edit"></i> Configure {network.name}
                       </button>
                     )}
@@ -329,13 +387,26 @@ const WalletsPage: React.FC = () => {
               </select>
             </div>
             <div className={styles.formGroup}>
-              <label>Wallet Address</label>
-              <input type="text" value={newWallet.address} onChange={(e) => setNewWallet({ ...newWallet, address: e.target.value })} placeholder="Enter 0x... or specific address" autoFocus />
-              <p className="text-xs text-gray-500 mt-1">Payments sent to this address will be detected automatically.</p>
+              <label>{settlementMode === 'imported' ? 'Private Key' : 'Wallet Address'}</label>
+              <input
+                type={settlementMode === 'imported' ? 'password' : 'text'}
+                value={newWallet.address}
+                onChange={(e) => setNewWallet({ ...newWallet, address: e.target.value })}
+                placeholder={settlementMode === 'imported' ? 'Enter private key' : 'Enter 0x... or specific address'}
+                className={settlementMode === 'imported' ? styles.privateKeyInput : ''}
+                autoFocus
+              />
+              <p className={styles.inputHelper}>
+                {settlementMode === 'imported'
+                  ? "Your private key will be encrypted and used to derive your wallet address."
+                  : "Payments sent to this address will be detected automatically."}
+              </p>
             </div>
             <div className={styles.modalActions}>
               <button className={styles.cancelBtn} onClick={() => setShowConfigModal(false)}>Cancel</button>
-              <button className={styles.confirmBtn} onClick={handleConfigureWallet} disabled={refreshing}>{refreshing ? 'Saving...' : 'Save Configuration'}</button>
+              <button className={styles.confirmBtn} onClick={handleConfigureWallet} disabled={refreshing}>
+                {refreshing ? 'Processing...' : 'Save Configuration'}
+              </button>
             </div>
           </div>
         </div>

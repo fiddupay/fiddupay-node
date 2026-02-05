@@ -198,6 +198,39 @@ await fiddupay.merchants.setWallet({
 
 // Update settlement mode
 await fiddupay.merchants.updateSettlementMode('managed');
+
+// NEW: Unified Settings Update
+await fiddupay.merchants.updateSettings({
+  webhook_url: 'https://example.com/webhooks',
+  settlement_mode: 'forwarding',
+  customer_pays_fee: true
+});
+
+// NEW: Operational Readiness Check
+const status = await fiddupay.merchants.getStatus();
+if (!status.is_ready) {
+  console.log('Action items:', status.issues);
+}
+```
+
+### Wallet Operations
+```typescript
+// NEW: Unified Wallet Setup
+await fiddupay.wallets.setup({
+  crypto_type: 'SOL',
+  mode: 'generate', // or 'import' or 'address'
+  is_active: true
+});
+
+// Get configurations
+const configs = await fiddupay.wallets.getConfigurations();
+```
+
+### Transaction Feed
+```typescript
+// NEW: Unified Transaction History
+const { transactions } = await fiddupay.transactions.list();
+// Returns combined payments, refunds, and withdrawals
 ```
 
 ### Analytics

@@ -11,49 +11,52 @@ const SettingsPage: React.FC = () => {
     const [loading, setLoading] = useState(false)
     const [selectedMode, setSelectedMode] = useState<'forwarding' | 'managed' | 'imported'>('managed')
     const [customerPaysFee, setCustomerPaysFee] = useState(false)
+    const [webhookUrl, setWebhookUrl] = useState('')
 
     useEffect(() => {
         if (user) {
             setSelectedMode(user.settlement_mode || 'managed')
-            // Fetch fee settings if needed, but for now we'll assume we might add an API for this
             fetchSettings()
         }
-    }, [user])
+    }, [user, user?.sandbox_mode])
 
     const fetchSettings = async () => {
         try {
-            const response = await merchantAPI.getFeeSetting()
-            setCustomerPaysFee(response.data.customer_pays_fee)
+            const profileRes = await merchantAPI.getProfile()
+            const feeRes = await merchantAPI.getFeeSetting()
+            setWebhookUrl(profileRes.data.merchant.webhook_url || '')
+            setCustomerPaysFee(feeRes.data.customer_pays_fee)
         } catch (error) {
-            console.error('Failed to fetch fee settings', error)
+            console.error('Failed to fetch settings', error)
+        }
+    }
+
+    const handleUpdateSettings = async (updates: any) => {
+        try {
+            setLoading(true)
+            await merchantAPI.updateSettings(updates)
+            await loadUser()
+            showToast('Settings updated successfully', 'success')
+        } catch (error: any) {
+            showToast(error.response?.data?.error || 'Failed to update settings', 'error')
+        } finally {
+            setLoading(false)
         }
     }
 
     const handleUpdateSettlementMode = async (mode: 'forwarding' | 'managed' | 'imported') => {
-        try {
-            setLoading(true)
-            await merchantAPI.updateSettlementMode(mode)
-            await loadUser()
-            setSelectedMode(mode)
-            showToast(`Settlement mode updated to ${mode}`, 'success')
-        } catch (error: any) {
-            showToast(error.response?.data?.error || 'Failed to update settlement mode', 'error')
-        } finally {
-            setLoading(false)
-        }
+        await handleUpdateSettings({ settlement_mode: mode })
+        setSelectedMode(mode)
     }
 
     const handleUpdateFeeSetting = async () => {
-        try {
-            setLoading(true)
-            await merchantAPI.updateFeeSetting({ customer_pays_fee: !customerPaysFee })
-            setCustomerPaysFee(!customerPaysFee)
-            showToast('Fee preferences updated', 'success')
-        } catch (error: any) {
-            showToast(error.response?.data?.error || 'Failed to update fee preferences', 'error')
-        } finally {
-            setLoading(false)
-        }
+        const newValue = !customerPaysFee
+        await handleUpdateSettings({ customer_pays_fee: newValue })
+        setCustomerPaysFee(newValue)
+    }
+
+    const handleUpdateWebhook = async () => {
+        await handleUpdateSettings({ webhook_url: webhookUrl })
     }
 
     return (
@@ -127,6 +130,32 @@ const SettingsPage: React.FC = () => {
                                     } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
                             />
                         </button>
+                    </div>
+                </section>
+
+                {/* Webhook Configuration Section */}
+                <section className={styles.section}>
+                    <h2>Webhook Configuration</h2>
+                    <p>FidduPay will send POST requests to this URL for all transaction events.</p>
+
+                    <div className={styles.inputGroup}>
+                        <div className={styles.inputWrapper}>
+                            <input
+                                type="url"
+                                value={webhookUrl}
+                                onChange={(e) => setWebhookUrl(e.target.value)}
+                                placeholder="https://your-domain.com/webhooks/fiddupay"
+                                className={styles.urlInput}
+                            />
+                            <button
+                                className={styles.saveBtn}
+                                onClick={handleUpdateWebhook}
+                                disabled={loading || !webhookUrl}
+                            >
+                                {loading ? 'Saving...' : 'Update Webhook'}
+                            </button>
+                        </div>
+                        <p className={styles.helperText}>All event data is signed for security. Ensure your endpoint is publicly accessible via HTTPS.</p>
                     </div>
                 </section>
             </div>

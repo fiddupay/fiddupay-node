@@ -242,9 +242,7 @@ impl MerchantService {
             return Err(ServiceError::InvalidApiKey);
         }
         
-        // Query database for all active merchants and verify API key using Argon2
-        use argon2::{Argon2, PasswordHash, PasswordVerifier};
-        
+        // Query database for all active merchants
         let merchants = sqlx::query_as::<_, Merchant>(
             "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
              FROM merchants 
@@ -254,22 +252,34 @@ impl MerchantService {
         .await
         .map_err(ServiceError::Database)?;
         
-        // Verify the token against each merchant's stored hash
-        for merchant in merchants {
-            if let Ok(parsed_hash) = PasswordHash::new(&merchant.api_key_hash) {
-                if Argon2::default().verify_password(token.as_bytes(), &parsed_hash).is_ok() {
-                    // Check for token expiration
-                    if let Some(expires_at) = merchant.api_key_expires_at {
-                        if Utc::now() > expires_at {
-                            return Err(ServiceError::InvalidApiKey); // Token expired
+        let token_owned = token.to_string();
+        
+        // Verify the token against each merchant's stored hash in a blocking task
+        // to avoid blocking the Tokio executor
+        let authenticated_merchant = tokio::task::spawn_blocking(move || {
+            use argon2::{Argon2, PasswordHash, PasswordVerifier};
+            use chrono::Utc;
+            
+            for merchant in merchants {
+                if let Ok(parsed_hash) = PasswordHash::new(&merchant.api_key_hash) {
+                    if Argon2::default().verify_password(token_owned.as_bytes(), &parsed_hash).is_ok() {
+                        // Check for token expiration
+                        if let Some(expires_at) = merchant.api_key_expires_at {
+                            if Utc::now() > expires_at {
+                                return None; // Token expired (effectively invalid)
+                            }
                         }
+                        return Some(merchant);
                     }
-                    return Ok(merchant);
                 }
             }
+            None
+        }).await.map_err(|e| ServiceError::InternalError(format!("Auth task failed: {}", e)))?;
+
+        match authenticated_merchant {
+            Some(m) => Ok(m),
+            None => Err(ServiceError::InvalidApiKey),
         }
-        
-        Err(ServiceError::InvalidApiKey)
     }
 
     /// Generate and store API key for merchant with optional expiration
@@ -445,6 +455,41 @@ impl MerchantService {
         sqlx::query!(
             "UPDATE merchants SET settlement_mode = $1, updated_at = $2 WHERE id = $3",
             mode,
+            Utc::now(),
+            merchant_id
+        )
+        .execute(&self.db_pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_settings(
+        &self,
+        merchant_id: i64,
+        settlement_mode: Option<String>,
+        customer_pays_fee: Option<bool>,
+        sandbox_mode: Option<bool>,
+    ) -> Result<(), ServiceError> {
+        if let Some(ref mode) = settlement_mode {
+            if !["forwarding", "managed", "imported"].contains(&mode.as_str()) {
+                return Err(ServiceError::ValidationError("Invalid settlement mode".to_string()));
+            }
+        }
+
+        sqlx::query!(
+            r#"
+            UPDATE merchants 
+            SET 
+                settlement_mode = COALESCE($1, settlement_mode),
+                customer_pays_fee = COALESCE($2, customer_pays_fee),
+                sandbox_mode = COALESCE($3, sandbox_mode),
+                updated_at = $4
+            WHERE id = $5
+            "#,
+            settlement_mode,
+            customer_pays_fee,
+            sandbox_mode,
             Utc::now(),
             merchant_id
         )

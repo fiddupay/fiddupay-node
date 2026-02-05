@@ -91,7 +91,7 @@ export class HttpClient {
   }
 
   async request<T>(
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     path: string,
     data?: any,
     options: RequestOptions = {}
@@ -177,5 +177,9 @@ export class HttpClient {
 
   async delete<T>(path: string, options?: RequestOptions): Promise<T> {
     return this.request<T>('DELETE', path, undefined, options);
+  }
+
+  async patch<T>(path: string, data?: any, options?: RequestOptions): Promise<T> {
+    return this.request<T>('PATCH', path, data, options);
   }
 }

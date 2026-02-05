@@ -2,7 +2,7 @@
   "info": {
     "name": "FidduPay Merchant API SDK",
     "description": "Official Merchant API documentation for FidduPay Node.js SDK users.",
-    "version": "2.4.2",
+    "version": "2.4.3",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -206,6 +206,62 @@
           }
         },
         {
+          "name": "Update Settings (Unified)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"webhook_url\": \"https://example.com/webhook\",\n  \"settlement_mode\": \"forwarding\",\n  \"customer_pays_fee\": true,\n  \"ip_whitelist\": [\"1.2.3.4\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "settings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Readiness Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "status"
+              ]
+            }
+          }
+        },
+        {
           "name": "Rotate API Key",
           "request": {
             "method": "POST",
@@ -235,7 +291,7 @@
           }
         },
         {
-          "name": "Update Settlement Mode",
+          "name": "Update Settlement Mode (DEPRECATED)",
           "request": {
             "method": "PUT",
             "header": [
@@ -378,6 +434,30 @@
                 "payments",
                 "p_123",
                 "verify"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unified Transaction Feed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "transactions"
               ]
             }
           }
@@ -565,7 +645,39 @@
           }
         },
         {
-          "name": "Configure Address Only",
+          "name": "Unified Wallet Setup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"mode\": \"generate\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Configure Wallet (DEPRECATED)",
           "request": {
             "method": "POST",
             "header": [
@@ -598,7 +710,7 @@
           }
         },
         {
-          "name": "Generate Wallet",
+          "name": "Generate Wallet (DEPRECATED)",
           "request": {
             "method": "POST",
             "header": [
@@ -627,7 +739,7 @@
           }
         },
         {
-          "name": "Import Wallet",
+          "name": "Import Wallet (DEPRECATED)",
           "request": {
             "method": "POST",
             "header": [
@@ -1123,7 +1235,7 @@
           }
         },
         {
-          "name": "Set IP Whitelist",
+          "name": "Set IP Whitelist (DEPRECATED)",
           "request": {
             "method": "PUT",
             "header": [

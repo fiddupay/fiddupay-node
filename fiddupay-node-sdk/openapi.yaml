@@ -36,7 +36,7 @@ info:
     - Real-time threat detection
     - Account lockout protection
     
-  version: 2.4.2
+  version: 2.4.3
   contact:
     name: FidduPay Support
     email: support@fiddupay.com
@@ -805,14 +805,15 @@ paths:
           description: Unauthorized
           content:
             application/json:
-              schema:
+          schema:
                 $ref: '#/components/schemas/Error'
 
   /api/v1/merchants/settlement-mode:
     put:
+      deprecated: true
       tags:
         - Authentication
-      summary: Update settlement mode
+      summary: Update settlement strategy
       description: Update the global settlement strategy for the merchant account.
       security:
         - BearerAuth: []
@@ -1194,6 +1195,46 @@ paths:
                 $ref: '#/components/schemas/Error'
 
   /api/v1/merchants/wallets:
+    post:
+      tags:
+        - Wallets
+      summary: Unified Wallet Setup
+      description: Streamlined entry point for configuring, generating, or importing wallets
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [crypto_type, mode]
+              properties:
+                crypto_type:
+                  type: string
+                mode:
+                  type: string
+                  enum: [address, generate, import]
+                address:
+                  type: string
+                private_key:
+                  type: string
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Wallet setup successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wallet:
+                    type: object
+                  mode:
+                    type: string
+                  message:
+                    type: string
     put:
       tags:
         - Wallets

@@ -36,11 +36,21 @@ export const merchantAPI = {
   switchEnvironment: (toLive: boolean) =>
     api.post('/api/v1/merchants/environment/switch', { to_live: toLive }),
   updateSettlementMode: (mode: string) =>
-    api.put('/api/v1/merchants/settlement-mode', { mode }),
+    api.put('/api/v1/merchants/settlement-mode', { mode }), // DEPRECATED: Use updateSettings
   generateApiKey: () => api.post('/api/v1/merchants/api-keys/generate'),
   rotateApiKey: () => api.post('/api/v1/merchants/api-keys/rotate'),
-  setWallet: (data: any) => api.put('/api/v1/merchants/wallets', data),
-  setWebhook: (data: any) => api.put('/api/v1/merchants/webhook', data),
+  setWallet: (data: any) => api.put('/api/v1/merchants/wallets', data), // DEPRECATED: Use walletAPI.setup
+  setWebhook: (data: any) => api.put('/api/v1/merchants/webhook', data), // DEPRECATED: Use updateSettings
+
+  // Unified Settings & Status
+  updateSettings: (data: {
+    webhook_url?: string;
+    settlement_mode?: string;
+    customer_pays_fee?: boolean;
+    ip_whitelist?: string[];
+    sandbox_mode?: boolean;
+  }) => api.patch('/api/v1/merchants/settings', data),
+  getReadinessStatus: () => api.get('/api/v1/merchants/status'),
 }
 
 export const paymentAPI = {
@@ -62,6 +72,12 @@ export const paymentAPI = {
   },
   get: (paymentId: string) => api.get(`/api/v1/merchants/payments/${paymentId}`),
   verify: (paymentId: string, data: any) => api.post(`/api/v1/merchants/payments/${paymentId}/verify`, data),
+
+  // Unified Transactions
+  getUnifiedTransactions: (params?: any) => {
+    const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+    return api.get(`/api/v1/merchants/transactions${query}`);
+  },
 }
 
 export const withdrawalAPI = {
@@ -72,9 +88,16 @@ export const withdrawalAPI = {
 }
 
 export const walletAPI = {
-  configure: (data: any) => api.post('/api/v1/merchants/wallets/configure-address', data),
-  generate: (cryptoType: string) => api.post('/api/v1/merchants/wallets/generate', { crypto_type: cryptoType }),
-  import: (data: any) => api.post('/api/v1/merchants/wallets/import', data),
+  setup: (data: {
+    crypto_type: string;
+    mode: 'address' | 'generate' | 'import';
+    address?: string;
+    private_key?: string;
+    is_active?: boolean;
+  }) => api.post('/api/v1/merchants/wallets', data),
+  configure: (data: any) => api.post('/api/v1/merchants/wallets/configure-address', data), // DEPRECATED: Use setup
+  generate: (cryptoType: string) => api.post('/api/v1/merchants/wallets/generate', { crypto_type: cryptoType }), // DEPRECATED: Use setup
+  import: (data: any) => api.post('/api/v1/merchants/wallets/import', data), // DEPRECATED: Use setup
   getAll: () => api.get('/api/v1/merchants/wallets'),
   revoke: (cryptoType: string) => api.delete(`/api/v1/merchants/wallets/${cryptoType}`),
 }
@@ -92,7 +115,10 @@ export const securityAPI = {
 
 export const publicAPI = {
   contact: (data: any) => api.post('/api/v1/contact', data),
-  getSupportedCurrencies: () => api.get('/api/v1/currencies/supported'),
+  getSupportedCurrencies: (merchantId?: number) => {
+    const query = merchantId ? `?merchant_id=${merchantId}` : '';
+    return api.get(`/api/v1/currencies/supported${query}`);
+  },
   getStatus: () => api.get('/api/v1/status'),
   getPricing: () => api.get('/api/v1/pricing'),
 }

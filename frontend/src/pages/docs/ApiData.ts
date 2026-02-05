@@ -7,7 +7,7 @@ export interface Parameter {
 
 export interface Endpoint {
     id: string;
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
     path: string;
     title: string;
     description: string;
@@ -18,6 +18,7 @@ export interface Endpoint {
         node: string;
     };
     response?: string;
+    deprecated?: boolean;
 }
 
 export interface DocSection {
@@ -90,6 +91,7 @@ export const API_DATA: DocSection[] = [
                 path: '/api/v1/merchants/settlement-mode',
                 title: 'Update Settlement Mode',
                 description: 'Toggle your global account-wide settlement strategy between Forwarding, Managed, and Imported modes.',
+                deprecated: true,
                 body: [
                     { name: 'mode', type: 'string', required: true, description: 'One of: forwarding, managed, imported' }
                 ],
@@ -100,6 +102,50 @@ export const API_DATA: DocSection[] = [
                 response: JSON.stringify({
                     status: "success",
                     mode: "forwarding"
+                }, null, 2)
+            },
+            {
+                id: 'update-settings',
+                method: 'PATCH',
+                path: '/api/v1/merchants/settings',
+                title: 'Update Settings (Unified)',
+                description: 'Consolidated endpoint to update all merchant settings atomically, including webhook URL, settlement mode, fee settings, and IP whitelist.',
+                body: [
+                    { name: 'webhook_url', type: 'string', required: false, description: 'New webhook destination' },
+                    { name: 'settlement_mode', type: 'string', required: false, description: 'forwarding, managed, or imported' },
+                    { name: 'customer_pays_fee', type: 'boolean', required: false, description: 'Toggle who pays network fees' },
+                    { name: 'ip_whitelist', type: 'string[]', required: false, description: 'Array of allowed IP addresses' },
+                    { name: 'sandbox_mode', type: 'boolean', required: false, description: 'Toggle sandbox environment' }
+                ],
+                request: {
+                    curl: 'curl -X PATCH https://api.fiddupay.com/api/v1/merchants/settings \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "webhook_url": "https://example.com/webhook",\n    "settlement_mode": "forwarding",\n    "customer_pays_fee": true\n  }\'',
+                    node: 'await fiddupay.merchants.updateSettings({\n  webhook_url: "https://example.com/webhook",\n  settlement_mode: "forwarding",\n  customer_pays_fee: true\n});'
+                },
+                response: JSON.stringify({
+                    status: "success",
+                    message: "Settings updated successfully"
+                }, null, 2)
+            },
+            {
+                id: 'get-status',
+                method: 'GET',
+                path: '/api/v1/merchants/status',
+                title: 'Get Readiness Status',
+                description: 'Assess merchant readiness, network coverage, and active security alerts to ensure the account is fully operational.',
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/status \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const status = await fiddupay.merchants.getStatus();'
+                },
+                response: JSON.stringify({
+                    is_ready: true,
+                    environment: "production",
+                    settlement_mode: "forwarding",
+                    network_coverage: ["SOLANA", "ETHEREUM"],
+                    security: {
+                        active_alerts: 0,
+                        critical_alerts: 0
+                    },
+                    issues: []
                 }, null, 2)
             }
         ]
@@ -167,6 +213,30 @@ export const API_DATA: DocSection[] = [
                     confirmed: true,
                     status: "CONFIRMED"
                 }, null, 2)
+            },
+            {
+                id: 'list-transactions',
+                method: 'GET',
+                path: '/api/v1/merchants/transactions',
+                title: 'Unified Transaction Feed',
+                description: 'Get a unified chronological feed of all payments, refunds, and withdrawals associated with your account.',
+                parameters: [
+                    { name: 'limit', type: 'integer', required: false, description: 'Number of records to return' },
+                    { name: 'offset', type: 'integer', required: false, description: 'Pagination offset' },
+                    { name: 'start_date', type: 'string', required: false, description: 'ISO-8601 start date' },
+                    { name: 'end_date', type: 'string', required: false, description: 'ISO-8601 end date' },
+                    { name: 'transaction_type', type: 'string', required: false, description: 'payment, refund, or withdrawal' }
+                ],
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/transactions \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const transactions = await fiddupay.transactions.list();'
+                },
+                response: JSON.stringify({
+                    transactions: [
+                        { type: "payment", id: "pay_123", amount: "10.0", status: "completed", created_at: "2026-02-04T10:00:00Z" },
+                        { type: "refund", id: "ref_456", amount: "5.0", status: "processed", created_at: "2026-02-04T11:00:00Z" }
+                    ]
+                }, null, 2)
             }
         ]
     },
@@ -188,6 +258,29 @@ export const API_DATA: DocSection[] = [
                 response: JSON.stringify([
                     { crypto_type: "USDT_ETH", address: "0x...", wallet_type: "managed" }
                 ], null, 2)
+            },
+            {
+                id: 'setup-wallet',
+                method: 'POST',
+                path: '/api/v1/merchants/wallets',
+                title: 'Unified Wallet Setup',
+                description: 'A single endpoint to configure, generate, or import wallets for any supported cryptocurrency.',
+                body: [
+                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, ETH, USDT_SPL, etc.' },
+                    { name: 'mode', type: 'string', required: true, description: 'address, generate, or import' },
+                    { name: 'address', type: 'string', required: false, description: 'Required for mode "address"' },
+                    { name: 'private_key', type: 'string', required: false, description: 'Required for mode "import"' },
+                    { name: 'is_active', type: 'boolean', required: false, description: 'Set as primary wallet' }
+                ],
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/wallets \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "crypto_type": "SOL",\n    "mode": "generate"\n  }\'',
+                    node: 'const wallet = await fiddupay.wallets.setup({\n  crypto_type: "SOL",\n  mode: "generate"\n});'
+                },
+                response: JSON.stringify({
+                    wallet: { crypto_type: "SOL", address: "your_new_address...", is_active: true },
+                    mode: "generate",
+                    message: "Wallet generated successfully"
+                }, null, 2)
             },
             {
                 id: 'export-key',
@@ -469,6 +562,7 @@ export const API_DATA: DocSection[] = [
                 path: '/api/v1/merchants/webhook',
                 title: 'Configure Global Webhook',
                 description: 'Set a default destination for all system events and payment notifications.',
+                deprecated: true,
                 body: [
                     { name: 'webhook_url', type: 'string', required: true, description: 'The absolute URL to receive POST events' }
                 ],

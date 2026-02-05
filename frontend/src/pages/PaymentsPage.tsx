@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useToast } from '@/contexts/ToastContext'
 import { merchantAPI, paymentAPI, publicAPI } from '@/services/apiService'
+import { useAuthStore } from '@/stores/authStore'
 import { Payment, PaymentFilters, FeeSettingResponse } from '@/types'
 import styles from '@/styles/pages/PaymentsPage.module.css'
 
@@ -29,17 +30,18 @@ const PaymentsPage: React.FC = () => {
   })
 
   const { showToast } = useToast()
+  const { user } = useAuthStore()
 
   useEffect(() => {
     loadPayments()
     loadStats()
     loadFeeSetting()
     loadSupportedCurrencies()
-  }, [filters])
+  }, [filters, user?.sandbox_mode])
 
   const loadSupportedCurrencies = async () => {
     try {
-      const response = await publicAPI.getSupportedCurrencies()
+      const response = await publicAPI.getSupportedCurrencies(user?.id)
       const groups = response.data.currency_groups
       const flattenedCurrencies = Object.values(groups).flat() as any[]
       setSupportedCryptos(flattenedCurrencies)

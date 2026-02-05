@@ -14,6 +14,7 @@ pub struct WalletConfig {
     pub network: String,
     pub address: String,
     pub is_active: bool,
+    pub encrypted_private_key: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -32,26 +33,26 @@ impl WalletConfigService {
         merchant_id: i64,
         crypto_type: CryptoType,
         address: String,
+        is_active: bool,
+        encrypted_private_key: Option<String>,
     ) -> Result<WalletConfig, ServiceError> {
         let network = crypto_type.network().to_string();
-        
-        // In a real system, we might want to update all tokens on this network.
-        // For this implementation, we ensure the specific one is set,
-        // and if it's a "base" currency (like SOL or ETH), it serves as the reference.
         
         let config = sqlx::query_as!(
             WalletConfig,
             r#"
-            INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, encrypted_private_key)
+            VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (merchant_id, crypto_type) 
-            DO UPDATE SET address = $4, updated_at = NOW()
-            RETURNING id, merchant_id, crypto_type, network, address, is_active, created_at, updated_at
+            DO UPDATE SET address = $4, is_active = $5, encrypted_private_key = COALESCE($6, merchant_wallets.encrypted_private_key), updated_at = NOW()
+            RETURNING id, merchant_id, crypto_type, network, address, is_active, encrypted_private_key, created_at, updated_at
             "#,
             merchant_id,
             crypto_type.to_string(),
             network,
-            address
+            address,
+            is_active,
+            encrypted_private_key
         )
         .fetch_one(&self.db_pool)
         .await?;
@@ -77,14 +78,16 @@ impl WalletConfigService {
 
         if let Some(sister) = sister_crypto {
              sqlx::query!(
-                "INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address)
-                 VALUES ($1, $2, $3, $4)
+                "INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, encrypted_private_key)
+                 VALUES ($1, $2, $3, $4, $5, $6)
                  ON CONFLICT (merchant_id, crypto_type) 
-                 DO UPDATE SET address = $4, updated_at = NOW()",
+                 DO UPDATE SET address = $4, is_active = $5, encrypted_private_key = COALESCE($6, merchant_wallets.encrypted_private_key), updated_at = NOW()",
                 merchant_id,
                 sister,
                 network,
-                address
+                address,
+                is_active,
+                encrypted_private_key
             )
             .execute(&self.db_pool)
             .await?;
@@ -128,7 +131,7 @@ impl WalletConfigService {
     pub async fn get_wallet_configs(&self, merchant_id: i64) -> Result<Vec<WalletConfig>, ServiceError> {
         let configs = sqlx::query_as!(
             WalletConfig,
-            "SELECT id, merchant_id, crypto_type, network, address, is_active, created_at, updated_at FROM merchant_wallets WHERE merchant_id = $1",
+            "SELECT id, merchant_id, crypto_type, network, address, is_active, encrypted_private_key, created_at, updated_at FROM merchant_wallets WHERE merchant_id = $1",
             merchant_id
         )
         .fetch_all(&self.db_pool)
@@ -139,7 +142,7 @@ impl WalletConfigService {
 
     pub async fn configure_address_only(&self, merchant_id: i64, request: ConfigureWalletRequest) -> Result<WalletConfig, ServiceError> {
         let crypto_type = CryptoType::from_string(&request.crypto_type);
-        self.set_wallet_address(merchant_id, crypto_type, request.address).await
+        self.set_wallet_address(merchant_id, crypto_type, request.address, request.is_active.unwrap_or(true), None).await
     }
 
     pub async fn generate_wallet(&self, merchant_id: i64, request: GenerateWalletRequest) -> Result<GeneratedWalletResponse, ServiceError> {
@@ -151,8 +154,19 @@ impl WalletConfigService {
             _ => KeyGenerator::generate_evm_wallet()?,
         };
         
-        // Save the address to merchant_wallets
-        let config = self.set_wallet_address(merchant_id, crypto_type, wallet.address.clone()).await?;
+        // Save the address to merchant_wallets and encrypt private key
+        let encryption = crate::utils::encryption::Encryption::new()
+            .map_err(|e| ServiceError::InternalError(format!("Encryption error: {}", e)))?;
+        let encrypted_key = encryption.encrypt(&wallet.private_key)
+            .map_err(|e| ServiceError::InternalError(format!("Encryption error: {}", e)))?;
+
+        let config = self.set_wallet_address(
+            merchant_id, 
+            crypto_type, 
+            wallet.address.clone(), 
+            true, 
+            Some(encrypted_key)
+        ).await?;
         
         Ok(GeneratedWalletResponse {
             config,
@@ -168,8 +182,20 @@ impl WalletConfigService {
             CryptoType::Sol | CryptoType::UsdtSpl => KeyGenerator::validate_private_key(&request.private_key, "solana")?,
             _ => KeyGenerator::validate_private_key(&request.private_key, "ethereum")?, // Works for all EVM
         };
-        
-        self.set_wallet_address(merchant_id, crypto_type, address).await
+
+        // Encrypt private key
+        let encryption = crate::utils::encryption::Encryption::new()
+            .map_err(|e| ServiceError::InternalError(format!("Encryption error: {}", e)))?;
+        let encrypted_key = encryption.encrypt(&request.private_key)
+            .map_err(|e| ServiceError::InternalError(format!("Encryption error: {}", e)))?;
+            
+        self.set_wallet_address(
+            merchant_id, 
+            crypto_type, 
+            address, 
+            request.is_active.unwrap_or(true), 
+            Some(encrypted_key)
+        ).await
     }
 
     pub async fn export_private_key(&self, merchant_id: i64, request: ExportKeyRequest) -> Result<String, ServiceError> {
@@ -242,6 +268,7 @@ impl WalletConfigService {
 pub struct ConfigureWalletRequest {
     pub crypto_type: String,
     pub address: String,
+    pub is_active: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -253,6 +280,7 @@ pub struct GenerateWalletRequest {
 pub struct ImportWalletRequest {
     pub crypto_type: String,
     pub private_key: String,
+    pub is_active: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]

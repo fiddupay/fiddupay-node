@@ -14,14 +14,14 @@ const Header: React.FC = () => {
       const toLive = user?.sandbox_mode || false
       const response = await merchantAPI.switchEnvironment(toLive)
 
-      // The API returns a new API key, which our auth store uses for the session
+      // Update the token in both storage locations to ensure all future requests use the correct one
       localStorage.setItem('fiddupay_token', response.data.api_key)
+      if (sessionStorage.getItem('fiddupay_token')) {
+        sessionStorage.setItem('fiddupay_token', response.data.api_key)
+      }
 
       await loadUser()
       showToast(`Switched to ${toLive ? 'Live' : 'Sandbox'} mode`, 'success')
-
-      // Force refresh to clear states if necessary, or just rely on loadUser
-      window.location.reload()
     } catch (error: any) {
       showToast('Failed to switch environment', 'error')
     }

@@ -23,6 +23,13 @@ export class Merchants {
   }
 
   /**
+   * Get merchant readiness status
+   */
+  async getStatus(options?: RequestOptions): Promise<any> {
+    return this.client.request('GET', '/api/v1/merchants/status');
+  }
+
+  /**
    * Set wallet address for a cryptocurrency
    */
   async setWallet(data: {
@@ -61,6 +68,7 @@ export class Merchants {
 
   /**
    * Set webhook URL
+   * @deprecated Use updateSettings instead
    */
   async setWebhook(data: {
     webhook_url: string
@@ -71,6 +79,7 @@ export class Merchants {
 
   /**
    * Set IP whitelist
+   * @deprecated Use updateSettings instead
    */
   async setIpWhitelist(data: {
     ip_addresses: string[]
@@ -105,7 +114,23 @@ export class Merchants {
   /**
    * Update global settlement mode
    */
-  async updateSettlementMode(mode: 'forwarding' | 'managed' | 'imported', options?: RequestOptions): Promise<{ status: string; mode: string }> {
+  /**
+   * @deprecated Use updateSettings instead
+   */
+  async updateSettlementMode(mode: 'forwarding' | 'managed' | 'imported'): Promise<any> {
     return this.client.request('PUT', '/api/v1/merchants/settlement-mode', { mode });
+  }
+
+  /**
+   * Update global merchant settings (Unified)
+   */
+  async updateSettings(data: {
+    webhook_url?: string;
+    settlement_mode?: 'forwarding' | 'managed' | 'imported';
+    customer_pays_fee?: boolean;
+    ip_whitelist?: string[];
+    sandbox_mode?: boolean;
+  }, options?: RequestOptions): Promise<{ status: string; message: string }> {
+    return this.client.request('PATCH', '/api/v1/merchants/settings', data);
   }
 }

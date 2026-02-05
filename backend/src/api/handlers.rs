@@ -89,6 +89,7 @@ pub struct MerchantProfile {
     pub email: String,
     pub created_at: String,
     pub two_factor_enabled: bool,
+    pub daily_limit_usd: Option<String>,
 }
 
 pub async fn register_merchant(
@@ -104,6 +105,7 @@ pub async fn register_merchant(
                     email: req.email,
                     created_at: chrono::Utc::now().to_rfc3339(),
                     two_factor_enabled: false,
+                    daily_limit_usd: None,
                 },
                 api_key: response.api_key,
             };
@@ -119,7 +121,7 @@ pub async fn login_merchant(
 ) -> impl IntoResponse {
     // Query the database for the user
     match sqlx::query!(
-        "SELECT id, business_name, email, sandbox_mode, created_at, role::text as role, api_key_hash, password_hash FROM merchants WHERE email = $1 AND is_active = true",
+        "SELECT id, business_name, email, sandbox_mode, created_at, role::text as role, api_key_hash, password_hash, daily_limit_usd FROM merchants WHERE email = $1 AND is_active = true",
         req.email
     )
     .fetch_optional(&state.db_pool)
@@ -180,6 +182,7 @@ pub async fn login_merchant(
                                 email: merchant.email,
                                 created_at: merchant.created_at.to_rfc3339(),
                                 two_factor_enabled: false,
+                                daily_limit_usd: merchant.daily_limit_usd.map(|d| d.to_string()),
                             },
                             api_key: new_api_key,
                         }
@@ -214,7 +217,7 @@ pub async fn get_merchant_profile(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     match sqlx::query!(
-        "SELECT id, business_name, email, sandbox_mode, settlement_mode, COALESCE(kyc_verified, false) as \"kyc_verified!\", created_at FROM merchants WHERE id = $1",
+        "SELECT id, business_name, email, sandbox_mode, settlement_mode, COALESCE(kyc_verified, false) as \"kyc_verified!\", daily_limit_usd, created_at FROM merchants WHERE id = $1",
         context.merchant_id
     )
     .fetch_optional(&state.db_pool)
@@ -228,6 +231,7 @@ pub async fn get_merchant_profile(
                 "sandbox_mode": merchant.sandbox_mode,
                 "settlement_mode": merchant.settlement_mode,
                 "kyc_verified": merchant.kyc_verified,
+                "daily_limit_usd": merchant.daily_limit_usd.map(|d| d.to_string()),
                 "created_at": merchant.created_at.to_rfc3339(),
                 "two_factor_enabled": false
             });
@@ -245,8 +249,8 @@ pub async fn get_merchant_profile(
                 .await
                 .unwrap_or(Some(rust_decimal::Decimal::ZERO));
                 
-                // Non-KYC daily limit is $1000
-                let daily_limit = rust_decimal::Decimal::new(1000, 0);
+                // Use dynamic limit from db, or fallback to system default ($1000)
+                let daily_limit = merchant.daily_limit_usd.unwrap_or(rust_decimal::Decimal::new(1000, 0));
                 let remaining = (daily_limit - daily_volume.unwrap_or(rust_decimal::Decimal::ZERO)).max(rust_decimal::Decimal::ZERO);
                 profile["daily_volume_remaining"] = json!(remaining.to_string());
             }
@@ -254,6 +258,169 @@ pub async fn get_merchant_profile(
             (StatusCode::OK, Json(profile)).into_response()
         },
         Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Merchant not found"}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+pub async fn get_merchant_readiness(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    let merchant_id = context.merchant_id;
+    let wallet_service = crate::services::wallet_config_service::WalletConfigService::new(state.db_pool.clone());
+    let currency_service = crate::services::currency_service::CurrencyService::new(state.db_pool.clone());
+    
+    // 1. Fetch data
+    let merchant_res = sqlx::query!("SELECT sandbox_mode, settlement_mode, kyc_verified FROM merchants WHERE id = $1", merchant_id).fetch_one(&state.db_pool).await;
+    let wallets_res = wallet_service.get_wallet_configs(merchant_id).await;
+    let currencies_res = currency_service.get_merchant_enabled_currencies(merchant_id).await;
+
+    let merchant = match merchant_res {
+        Ok(m) => m,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    };
+
+    let wallets = wallets_res.unwrap_or_default();
+    let enabled_currencies = currencies_res; // It's already a Vec
+
+    // 2. Determine enabled networks
+    let mut enabled_networks = std::collections::HashSet::new();
+    for curr in enabled_currencies {
+        enabled_networks.insert(curr.network);
+    }
+
+    // 3. Analyze wallet coverage
+    let mut network_status = json!({});
+    let mut issues = Vec::new();
+    let mut is_ready = true;
+
+    for network in &enabled_networks {
+        let wallet = wallets.iter().find(|w| w.network == *network);
+        match wallet {
+            Some(w) => {
+                network_status[network] = json!({
+                    "status": "configured",
+                    "address": w.address,
+                    "is_active": w.is_active
+                });
+                if !w.is_active {
+                    issues.push(format!("Network {} is configured but inactive", network));
+                    is_ready = false;
+                }
+            },
+            None => {
+                network_status[network] = json!({
+                    "status": "missing",
+                    "action_required": "configure_wallet"
+                });
+                issues.push(format!("Wallet not configured for enabled network: {}", network));
+                is_ready = false;
+            }
+        }
+    }
+
+    // 4. Security status check
+    let security_alerts = sqlx::query_scalar!("SELECT COUNT(*) FROM security_alerts WHERE merchant_id = $1 AND status = 'active'", merchant_id)
+        .fetch_one(&state.db_pool)
+        .await
+        .unwrap_or(Some(0))
+        .unwrap_or(0);
+
+    if security_alerts > 0 {
+        issues.push(format!("{} active security alerts require attention", security_alerts));
+    }
+
+    // 5. Build final response
+    let response = json!({
+        "is_ready": is_ready && security_alerts == 0,
+        "environment": if merchant.sandbox_mode { "sandbox" } else { "live" },
+        "settlement_mode": merchant.settlement_mode,
+        "kyc_verified": merchant.kyc_verified.unwrap_or(false),
+        "network_coverage": network_status,
+        "security": {
+            "active_alerts": security_alerts
+        },
+        "issues": issues
+    });
+
+    (StatusCode::OK, Json(response)).into_response()
+}
+
+pub async fn list_unified_transactions(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    let merchant_id = context.merchant_id;
+
+    // A unified query to get payments, refunds, and withdrawals in one feed
+    let query = r#"
+        (SELECT 
+            'payment' as txn_type,
+            payment_id as id,
+            amount::text as crypto_amount,
+            amount_usd::text as usd_amount,
+            crypto_type,
+            status,
+            transaction_hash,
+            created_at
+        FROM payment_transactions
+        WHERE merchant_id = $1)
+        
+        UNION ALL
+        
+        (SELECT 
+            'refund' as txn_type,
+            r.refund_id as id,
+            r.amount::text as crypto_amount,
+            r.amount_usd::text as usd_amount,
+            p.crypto_type,
+            r.status,
+            r.transaction_hash,
+            r.created_at
+        FROM refunds r
+        JOIN payment_transactions p ON r.payment_id = p.id
+        WHERE r.merchant_id = $1)
+        
+        UNION ALL
+        
+        (SELECT 
+            'withdrawal' as txn_type,
+            withdrawal_id as id,
+            amount::text as crypto_amount,
+            amount::text as usd_amount, -- Fallback to crypto amount if USD not stored
+            crypto_type,
+            status,
+            transaction_hash,
+            created_at
+        FROM withdrawals
+        WHERE merchant_id = $1)
+        
+        ORDER BY created_at DESC
+        LIMIT 50
+    "#;
+
+    match sqlx::query(query)
+        .bind(merchant_id)
+        .fetch_all(&state.db_pool)
+        .await
+    {
+        Ok(rows) => {
+            use sqlx::Row;
+            let txns: Vec<serde_json::Value> = rows.into_iter().map(|row| {
+                json!({
+                    "type": row.get::<String, _>("txn_type"),
+                    "id": row.get::<String, _>("id"),
+                    "crypto_amount": row.get::<String, _>("crypto_amount"),
+                    "usd_amount": row.get::<String, _>("usd_amount"),
+                    "crypto_type": row.get::<String, _>("crypto_type"),
+                    "status": row.get::<String, _>("status"),
+                    "transaction_hash": row.get::<Option<String>, _>("transaction_hash"),
+                    "created_at": row.get::<chrono::DateTime<chrono::Utc>, _>("created_at").to_rfc3339()
+                })
+            }).collect();
+            
+            (StatusCode::OK, Json(json!({"transactions": txns}))).into_response()
+        },
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -345,6 +512,61 @@ pub async fn set_wallet(
         Ok(_) => (StatusCode::OK, Json(json!({"success": true}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
+}
+
+#[derive(Deserialize, Validate)]
+pub struct UnifiedSettingsRequest {
+    #[validate(custom(function = "validate_optional_webhook_url"))]
+    pub webhook_url: Option<String>,
+    pub settlement_mode: Option<String>,
+    pub customer_pays_fee: Option<bool>,
+    pub ip_whitelist: Option<Vec<String>>,
+    pub sandbox_mode: Option<bool>,
+}
+
+fn validate_optional_webhook_url(url: &Option<String>) -> Result<(), validator::ValidationError> {
+    if let Some(url_str) = url {
+        validate_webhook_url(url_str)
+    } else {
+        Ok(())
+    }
+}
+
+pub async fn update_merchant_settings(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<UnifiedSettingsRequest>,
+) -> impl IntoResponse {
+    // 1. Update Merchant core settings
+    if req.settlement_mode.is_some() || req.customer_pays_fee.is_some() || req.sandbox_mode.is_some() {
+        if let Err(e) = state.merchant_service.update_settings(
+            context.merchant_id,
+            req.settlement_mode.clone(),
+            req.customer_pays_fee,
+            req.sandbox_mode,
+        ).await {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
+        }
+    }
+
+    // 2. Update Webhook if provided
+    if let Some(url) = req.webhook_url {
+        if let Err(e) = state.webhook_service.set_webhook_url(context.merchant_id, url).await {
+            return (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response();
+        }
+    }
+
+    // 3. Update IP Whitelist if provided
+    if let Some(ips) = req.ip_whitelist {
+        if let Err(e) = state.ip_whitelist_service.set_whitelist(context.merchant_id, ips).await {
+            return (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response();
+        }
+    }
+
+    (StatusCode::OK, Json(json!({
+        "status": "success",
+        "message": "Settings updated successfully"
+    }))).into_response()
 }
 
 #[derive(Deserialize, Validate)]
@@ -833,10 +1055,20 @@ pub async fn create_withdrawal(
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct CurrencyFilters {
+    pub merchant_id: Option<i64>,
+}
+
 pub async fn get_supported_currencies(
     State(state): State<AppState>,
+    Query(filters): Query<CurrencyFilters>,
 ) -> impl IntoResponse {
-    let currencies = state.currency_service.get_supported_currencies().await;
+    let currencies = if let Some(merchant_id) = filters.merchant_id {
+        state.currency_service.get_merchant_enabled_currencies(merchant_id).await
+    } else {
+        state.currency_service.get_supported_currencies().await
+    };
     
     let mut currency_groups = std::collections::HashMap::new();
     
@@ -1104,7 +1336,7 @@ pub async fn get_fee_setting(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     let merchant = sqlx::query_as::<_, crate::models::merchant::Merchant>(
-        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role FROM merchants WHERE id = $1"
+        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role FROM merchants WHERE id = $1"
     )
     .bind(context.merchant_id)
     .fetch_optional(&state.db_pool)
@@ -1136,7 +1368,7 @@ pub async fn update_fee_setting(
 ) -> impl IntoResponse {
     // Fetch current merchant first to handle partial updates
     let merchant_result = sqlx::query_as::<_, crate::models::merchant::Merchant>(
-        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role FROM merchants WHERE id = $1"
+        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role FROM merchants WHERE id = $1"
     )
     .bind(context.merchant_id)
     .fetch_optional(&state.db_pool)

@@ -7,6 +7,7 @@ export interface User {
   two_factor_enabled: boolean
   kyc_verified: boolean
   daily_volume_remaining: string
+  daily_limit_usd?: string
   sandbox_mode: boolean
   settlement_mode: 'forwarding' | 'managed' | 'imported'
 }
@@ -104,11 +105,13 @@ export interface PaymentFilters {
 export interface WalletConfig {
   crypto_type: string
   address: string
+  is_active?: boolean
 }
 
 export interface Wallet {
   crypto_type: string
   address: string
+  is_active: boolean
   configured_at: string
   updated_at?: string
 }

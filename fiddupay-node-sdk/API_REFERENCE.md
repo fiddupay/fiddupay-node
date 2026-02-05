@@ -1,4 +1,4 @@
-# FidduPay API Reference v2.4.1
+# FidduPay API Reference v2.4.3
 
 ## Base URL
 - **Sandbox**: `http://localhost:8080`
@@ -125,7 +125,33 @@ POST /api/v1/merchants/api-keys/rotate
 Authorization: Bearer {api_key}
 ```
 
-### Set Wallet
+### Update Merchant Settings (Unified)
+```http
+PATCH /api/v1/merchants/settings
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "webhook_url": "https://your-site.com/webhook",
+  "settlement_mode": "forwarding",
+  "customer_pays_fee": true,
+  "ip_whitelist": ["1.2.3.4"],
+  "sandbox_mode": false
+}
+```
+**Recommended**: Use this single endpoint to update all merchant-level configurations atomically.
+
+### Get Merchant Readiness Status
+```http
+GET /api/v1/merchants/status
+Authorization: Bearer {api_key}
+```
+Returns a comprehensive health check of the merchant's integration, including wallet coverage and security alerts.
+
+### Set Wallet (Legacy)
+> [!WARNING]
+> Deprecated in favor of `POST /api/v1/merchants/wallets` (Unified Setup).
+
 ```http
 PUT /api/v1/merchants/wallets
 Authorization: Bearer {api_key}
@@ -137,7 +163,10 @@ Content-Type: application/json
 }
 ```
 
-### Update settlement Mode
+### Update Settlement Mode (Legacy)
+> [!WARNING]
+> Deprecated in favor of `PATCH /api/v1/merchants/settings`.
+
 ```http
 PUT /api/v1/merchants/settlement-mode
 Authorization: Bearer {api_key}
@@ -148,7 +177,10 @@ Content-Type: application/json
 }
 ```
 
-### Set Webhook
+### Set Webhook (Legacy)
+> [!WARNING]
+> Deprecated in favor of `PATCH /api/v1/merchants/settings`.
+
 ```http
 PUT /api/v1/merchants/webhook
 Authorization: Bearer {api_key}
@@ -197,6 +229,13 @@ Authorization: Bearer {api_key}
 POST /api/v1/merchants/payments/{payment_id}/verify
 Authorization: Bearer {api_key}
 ```
+
+### Unified Transaction Feed
+```http
+GET /api/v1/merchants/transactions
+Authorization: Bearer {api_key}
+```
+Returns a chronological feed combining payments, refunds, and withdrawals.
 
 ## Refund Endpoints
 
@@ -290,7 +329,10 @@ Content-Type: application/json
 
 ## Security Endpoints
 
-### Set IP Whitelist
+### Set IP Whitelist (Legacy)
+> [!WARNING]
+> Deprecated in favor of `PATCH /api/v1/merchants/settings`.
+
 ```http
 PUT /api/v1/merchants/ip-whitelist
 Authorization: Bearer {api_key}
@@ -383,13 +425,35 @@ Authorization: Bearer {api_key}
 
 ## Wallet Management Endpoints
 
-### Get Wallet Configs
+### Unified Wallet Setup
+```http
+POST /api/v1/merchants/wallets
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "crypto_type": "SOL",
+  "mode": "generate", // or "import" or "address"
+  "address": "external_address_if_mode_is_address",
+  "private_key": "private_key_if_mode_is_import",
+  "is_active": true
+}
+```
+**Recommended**: Use this single endpoint for all wallet onboarding methods.
+
+### Get Wallet Configs (Legacy)
+> [!WARNING]
+> Deprecated in favor of `GET /api/v1/merchants/status` for health, or `GET /api/v1/merchants/wallets` for raw config.
+
 ```http
 GET /api/v1/merchants/wallets
 Authorization: Bearer {api_key}
 ```
 
-### Configure Address-Only Wallet
+### Configure Address-Only Wallet (Legacy)
+> [!WARNING]
+> Deprecated in favor of `POST /api/v1/merchants/wallets` with `mode: "address"`.
+
 ```http
 POST /api/v1/merchants/wallets/configure-address
 Authorization: Bearer {api_key}
@@ -403,14 +467,18 @@ Content-Type: application/json
 
 #### Node SDK Example
 ```javascript
-// Configure wallet addresses
-await fiddupay.merchants.setWallet({
+// Unified wallet setup
+await fiddupay.wallets.setup({
   crypto_type: 'SOL',
-  address: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
+  mode: 'generate', 
+  is_active: true
 });
 ```
 
-### Generate Wallet
+### Generate Wallet (Legacy)
+> [!WARNING]
+> Deprecated in favor of `POST /api/v1/merchants/wallets` with `mode: "generate"`.
+
 ```http
 POST /api/v1/merchants/wallets/generate
 Authorization: Bearer {api_key}
@@ -421,7 +489,10 @@ Content-Type: application/json
 }
 ```
 
-### Import Wallet
+### Import Wallet (Legacy)
+> [!WARNING]
+> Deprecated in favor of `POST /api/v1/merchants/wallets` with `mode: "import"`.
+
 ```http
 POST /api/v1/merchants/wallets/import
 Authorization: Bearer {api_key}

@@ -14,11 +14,13 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Merchant profile management
         .route("/api/v1/merchants/profile", get(merchant_handlers::get_merchant_profile))
+        .route("/api/v1/merchants/status", get(merchant_handlers::get_merchant_readiness))
         .route("/api/v1/merchants/environment/switch", post(merchant_handlers::switch_environment))
         .route("/api/v1/merchants/api-keys/generate", post(merchant_handlers::generate_api_key))
         .route("/api/v1/merchants/api-keys/rotate", post(merchant_handlers::rotate_api_key))
-        .route("/api/v1/merchants/webhook", put(merchant_handlers::set_webhook))
-        .route("/api/v1/merchants/settlement-mode", put(merchant_handlers::update_settlement_mode))
+        .route("/api/v1/merchants/webhook", put(merchant_handlers::set_webhook)) // DEPRECATED: Use PATCH /api/v1/merchants/settings
+        .route("/api/v1/merchants/settlement-mode", put(merchant_handlers::update_settlement_mode)) // DEPRECATED: Use PATCH /api/v1/merchants/settings
+        .route("/api/v1/merchants/settings", axum::routing::patch(merchant_handlers::update_merchant_settings))
         
         // Payment management
         .route("/api/v1/merchants/payments", post(merchant_handlers::create_payment))
@@ -33,6 +35,7 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         
         // Analytics and reporting
         .route("/api/v1/merchants/analytics", get(merchant_handlers::get_analytics))
+        .route("/api/v1/merchants/transactions", get(merchant_handlers::list_unified_transactions))
         .route("/api/v1/merchants/analytics/export", get(merchant_handlers::export_analytics))
         .route("/api/v1/merchants/audit-logs", get(merchant_handlers::get_audit_logs))
 
@@ -52,10 +55,11 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         
         // Wallet management
         .route("/api/v1/merchants/wallets", get(wallet_management::get_wallet_configs))
-        .route("/api/v1/merchants/wallets", put(merchant_handlers::set_wallet))
-        .route("/api/v1/merchants/wallets/configure-address", post(wallet_management::configure_address_only_wallet))
-        .route("/api/v1/merchants/wallets/generate", post(wallet_management::generate_wallet))
-        .route("/api/v1/merchants/wallets/import", post(wallet_management::import_wallet))
+        .route("/api/v1/merchants/wallets", post(wallet_management::setup_wallet))
+        .route("/api/v1/merchants/wallets", put(merchant_handlers::set_wallet)) // DEPRECATED: Use POST /api/v1/merchants/wallets (Unified)
+        .route("/api/v1/merchants/wallets/configure-address", post(wallet_management::configure_address_only_wallet)) // DEPRECATED: Use POST /api/v1/merchants/wallets (Unified)
+        .route("/api/v1/merchants/wallets/generate", post(wallet_management::generate_wallet)) // DEPRECATED: Use POST /api/v1/merchants/wallets (Unified)
+        .route("/api/v1/merchants/wallets/import", post(wallet_management::import_wallet)) // DEPRECATED: Use POST /api/v1/merchants/wallets (Unified)
         .route("/api/v1/merchants/wallets/export-key", post(wallet_management::export_private_key))
         .route("/api/v1/merchants/wallets/:crypto_type", axum::routing::delete(wallet_management::delete_wallet))
         .route("/api/v1/merchants/wallets/gas-check", get(wallet_management::check_gas_requirements))
@@ -73,7 +77,7 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/merchants/security/gas-check", get(security_monitoring::check_gas_balances))
         
         // IP whitelist management
-        .route("/api/v1/merchants/ip-whitelist", put(merchant_handlers::set_ip_whitelist))
+        .route("/api/v1/merchants/ip-whitelist", put(merchant_handlers::set_ip_whitelist)) // DEPRECATED: Use PATCH /api/v1/merchants/settings
         .route("/api/v1/merchants/ip-whitelist", get(merchant_handlers::get_ip_whitelist))
         
         // Invoice management
