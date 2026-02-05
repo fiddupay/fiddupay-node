@@ -248,25 +248,35 @@ pub async fn get_merchant_profile(
             if !merchant.kyc_verified {
                 // Get today's volume from payment_transactions
                 let today_start = chrono::Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
-                let daily_volume = sqlx::query_scalar!(
-                    "SELECT COALESCE(SUM(amount_usd), 0) FROM payment_transactions WHERE merchant_id = $1 AND created_at >= $2 AND status = 'CONFIRMED'",
+                match sqlx::query_scalar!(
+                    "SELECT COALESCE(SUM(amount_usd), 0.0) FROM payment_transactions WHERE merchant_id = $1 AND created_at >= $2 AND status = 'CONFIRMED'",
                     merchant.id,
                     today_start
                 )
                 .fetch_one(&state.db_pool)
                 .await
-                .unwrap_or(Some(rust_decimal::Decimal::ZERO));
-                
-                // Use dynamic limit from db, or fallback to system default ($1000)
-                let daily_limit = merchant.daily_limit_usd.unwrap_or(rust_decimal::Decimal::new(1000, 0));
-                let remaining = (daily_limit - daily_volume.unwrap_or(rust_decimal::Decimal::ZERO)).max(rust_decimal::Decimal::ZERO);
-                profile["daily_volume_remaining"] = json!(remaining.to_string());
+                {
+                    Ok(daily_volume) => {
+                        let daily_limit = merchant.daily_limit_usd.unwrap_or(rust_decimal::Decimal::new(1000, 0));
+                        let volume = daily_volume.unwrap_or(rust_decimal::Decimal::ZERO);
+                        let remaining = (daily_limit - volume).max(rust_decimal::Decimal::ZERO);
+                        profile["daily_volume_remaining"] = json!(remaining.to_string());
+                    },
+                    Err(e) => {
+                        eprintln!("Error calculating daily volume: {:?}", e);
+                        // Fallback to default if query fails
+                        profile["daily_volume_remaining"] = json!("1000");
+                    }
+                }
             }
             
             (StatusCode::OK, Json(json!({ "user": profile }))).into_response()
         },
         Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Merchant not found"}))).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => {
+            eprintln!("Error in get_merchant_profile: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response()
+        },
     }
 }
 
