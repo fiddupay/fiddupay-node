@@ -9,7 +9,8 @@ import {
     MdVpnKey,
     MdCode,
     MdPayment,
-    MdNotificationsActive
+    MdNotificationsActive,
+    MdFlashOn
 } from 'react-icons/md'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI } from '@/services/apiService'
@@ -90,6 +91,32 @@ const SettingsPage: React.FC = () => {
     }
 
     const handleRotateKey = async () => {
+        if (!user) return
+
+        // If no key exists, we can generate directly without confirmation
+        if (!apiKey) {
+            try {
+                setLoading(true)
+                const response = await merchantAPI.generateApiKey(!user.sandbox_mode)
+                const newKey = response.data.api_key
+
+                localStorage.setItem('fiddupay_token', newKey)
+                if (sessionStorage.getItem('fiddupay_token')) {
+                    sessionStorage.setItem('fiddupay_token', newKey)
+                }
+
+                setApiKey(newKey)
+                await loadUser(true)
+                showToast('API key generated successfully', 'success')
+            } catch (error: any) {
+                showToast('Failed to generate API key', 'error')
+            } finally {
+                setLoading(false)
+            }
+            return
+        }
+
+        // Existing key rotation requires confirmation
         if (!showRotateConfirm) {
             setShowRotateConfirm(true)
             showToast('Click rotate again to confirm. This will invalidate your current key.', 'info')
@@ -249,8 +276,17 @@ const SettingsPage: React.FC = () => {
                                         onClick={handleRotateKey}
                                         disabled={loading}
                                     >
-                                        <MdRefresh className={loading ? 'animate-spin' : ''} />
-                                        {showRotateConfirm ? 'Confirm Rotation' : 'Rotate Key'}
+                                        {apiKey ? (
+                                            <>
+                                                <MdRefresh className={loading ? 'animate-spin' : ''} />
+                                                {showRotateConfirm ? 'Confirm Rotation' : 'Rotate Key'}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <MdFlashOn className={loading ? 'animate-pulse' : ''} />
+                                                Generate Key
+                                            </>
+                                        )}
                                     </button>
                                 </div>
 

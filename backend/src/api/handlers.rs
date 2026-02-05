@@ -280,6 +280,7 @@ pub async fn get_merchant_profile(
         "id": merchant.id,
         "business_name": merchant.business_name,
         "email": merchant.email,
+        "api_key": context.api_key,
         "sandbox_mode": merchant.sandbox_mode,
         "settlement_mode": merchant.settlement_mode,
         "kyc_verified": merchant.kyc_verified,
@@ -501,7 +502,7 @@ pub async fn rotate_api_key(
 ) -> impl IntoResponse {
     match state.merchant_service.rotate_api_key(context.merchant_id, &context.api_key).await {
         Ok(new_api_key) => (StatusCode::OK, Json(json!({"api_key": new_api_key}))).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 

@@ -168,7 +168,7 @@ impl MerchantService {
     ) -> Result<String, ServiceError> {
         // First, verify the old API key is correct
         let merchant = sqlx::query_as::<_, Merchant>(
-            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role FROM merchants WHERE id = $1"
+            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role FROM merchants WHERE id = $1"
         )
         .bind(merchant_id)
         .fetch_optional(&self.db_pool)
@@ -186,8 +186,8 @@ impl MerchantService {
             return Err(ServiceError::InvalidApiKey);
         }
         
-        // Generate a new API key for the merchant
-        let new_api_key = self.generate_api_key(false); // Default to sandbox
+        // Generate a new API key for the merchant based on current mode
+        let new_api_key = self.generate_api_key(!merchant.sandbox_mode);
         
         // Hash the new API key using Argon2
         let salt = SaltString::generate(&mut OsRng);

@@ -37,7 +37,7 @@ export const merchantAPI = {
     api.post('/api/v1/merchants/environment/switch', { to_live: toLive }),
   updateSettlementMode: (mode: string) =>
     api.put('/api/v1/merchants/settlement-mode', { mode }), // DEPRECATED: Use updateSettings
-  generateApiKey: () => api.post('/api/v1/merchants/api-keys/generate'),
+  generateApiKey: (isLive: boolean) => api.post('/api/v1/merchants/api-keys/generate', { is_live: isLive }),
   rotateApiKey: () => api.post('/api/v1/merchants/api-keys/rotate'),
   setWallet: (data: any) => api.put('/api/v1/merchants/wallets', data), // DEPRECATED: Use walletAPI.setup
   setWebhook: (data: any) => api.put('/api/v1/merchants/webhook', data), // DEPRECATED: Use updateSettings

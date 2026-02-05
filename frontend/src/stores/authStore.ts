@@ -102,9 +102,22 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         try {
           if (!silent) set({ loading: true })
           const response = await merchantAPI.getProfile()
+          const profileUser = response.data.user
+          const newApiToken = profileUser.api_key || token
+
+          // Update storage with the latest token from profile if it changed
+          if (profileUser.api_key && profileUser.api_key !== token) {
+            if (localStorage.getItem('fiddupay_token')) {
+              localStorage.setItem('fiddupay_token', profileUser.api_key)
+            }
+            if (sessionStorage.getItem('fiddupay_token')) {
+              sessionStorage.setItem('fiddupay_token', profileUser.api_key)
+            }
+          }
+
           set({
-            user: response.data.user,
-            token,
+            user: profileUser,
+            token: newApiToken,
             isAuthenticated: true,
             loading: false,
           })
