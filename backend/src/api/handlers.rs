@@ -96,6 +96,11 @@ pub async fn register_merchant(
     State(state): State<AppState>,
     Json(req): Json<RegisterMerchantRequest>,
 ) -> impl IntoResponse {
+    // 1. Check if registration is enabled
+    if !state.config.merchant_registration_enabled {
+        return ServiceError::Forbidden("Registration is currently disabled".to_string()).into_response();
+    }
+
     match state.merchant_service.register_merchant(&req.email, &req.business_name, &req.password).await {
         Ok(response) => {
             let auth_response = AuthResponse {
