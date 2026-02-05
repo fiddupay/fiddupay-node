@@ -153,7 +153,15 @@ impl IntoResponse for ServiceError {
                 "INVALID_REFUND_AMOUNT",
                 msg.as_str(),
             ),
-            ServiceError::Database(_) | ServiceError::DatabaseError(_) | ServiceError::Json(_) | ServiceError::Internal(_) | ServiceError::InternalError(_) => (
+            ServiceError::Database(err) => {
+                let msg = err.to_string();
+                if msg.contains("unique constraint") || msg.contains("already exists") {
+                    (StatusCode::CONFLICT, "ALREADY_EXISTS", "Resource already exists")
+                } else {
+                    (StatusCode::INTERNAL_SERVER_ERROR, "DATABASE_ERROR", "Internal server error")
+                }
+            },
+            ServiceError::DatabaseError(_) | ServiceError::Json(_) | ServiceError::Internal(_) | ServiceError::InternalError(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "INTERNAL_SERVER_ERROR",
                 "Internal server error",
