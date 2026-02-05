@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { merchantAPI } from '../services/apiService';
+import { useToast } from '../contexts/ToastContext';
 
 interface Invoice {
   invoice_id: string;
@@ -12,6 +13,7 @@ interface Invoice {
 }
 
 export const InvoiceManager: React.FC = () => {
+  const { showToast } = useToast();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -58,7 +60,7 @@ export const InvoiceManager: React.FC = () => {
 
   const copyPaymentUrl = (url: string) => {
     navigator.clipboard.writeText(url);
-    alert('Payment URL copied to clipboard!');
+    showToast('Payment URL copied to clipboard!', 'success');
   };
 
   return (
@@ -134,7 +136,7 @@ export const InvoiceManager: React.FC = () => {
         <div className="p-4 border-b">
           <h2 className="text-lg font-semibold">Invoices</h2>
         </div>
-        
+
         {loading ? (
           <div className="p-8 text-center">Loading invoices...</div>
         ) : invoices.length === 0 ? (
@@ -159,11 +161,10 @@ export const InvoiceManager: React.FC = () => {
                     <td className="px-4 py-3 text-sm">${invoice.amount_usd}</td>
                     <td className="px-4 py-3 text-sm">{invoice.description}</td>
                     <td className="px-4 py-3 text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
+                      <span className={`px-2 py-1 rounded-full text-xs ${invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
                         invoice.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
+                          'bg-red-100 text-red-800'
+                        }`}>
                         {invoice.status}
                       </span>
                     </td>
