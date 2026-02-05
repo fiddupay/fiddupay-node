@@ -983,7 +983,16 @@ pub async fn finalize_payment_selection(
     // 2. Get payment details
     let payment_record = match sqlx::query_as!(
         crate::models::payment::Payment,
-        "SELECT * FROM payment_transactions WHERE id = $1",
+        r#"
+        SELECT id, payment_id, merchant_id, amount, amount_usd, crypto_type, network,
+               status, to_address, from_address, created_at, expires_at, confirmed_at,
+               confirmations, required_confirmations, description, metadata,
+               transaction_hash, webhook_url, fee_percentage, fee_amount, fee_amount_usd,
+               user_id, subscription_id, block_number, partial_payments_enabled,
+               total_paid, remaining_balance, is_non_custodial
+        FROM payment_transactions 
+        WHERE id = $1
+        "#,
         payment_link.payment_id
     )
     .fetch_optional(&pool)

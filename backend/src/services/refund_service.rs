@@ -161,7 +161,7 @@ impl RefundService {
             reason: refund.reason,
             transaction_hash: refund.transaction_hash,
             crypto_type: payment.crypto_type.unwrap_or_else(|| "UNKNOWN".to_string()),
-            target_address: payment.from_address.unwrap_or_default(),
+            target_address: payment.from_address,
             created_at: refund.created_at,
             completed_at: refund.completed_at,
         })
@@ -297,7 +297,7 @@ impl RefundService {
             created_at: refund.created_at,
             completed_at: refund.completed_at,
             crypto_type: refund.crypto_type.unwrap_or_else(|| "UNKNOWN".to_string()),
-            target_address: refund.from_address.unwrap_or_default(),
+            target_address: refund.from_address,
         })
     }
 
