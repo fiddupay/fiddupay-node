@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.4.1.1] - 2026-02-05
+## [2.4.2] - 2026-02-05
 
 ### Added
 - **Wallet Revocation support**: New `merchants.revokeWallet` method to remove network-specific wallet configurations.
