@@ -20,6 +20,39 @@ impl MerchantService {
         Self { db_pool, config }
     }
 
+    /// Get daily volume remaining for a merchant
+    pub async fn get_daily_volume_remaining(
+        &self,
+        merchant_id: i64,
+        kyc_verified: bool,
+        daily_limit_usd: Option<Decimal>,
+    ) -> Result<Decimal, ServiceError> {
+        if kyc_verified {
+            return Ok(Decimal::ZERO);
+        }
+
+        let today_start = Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
+        
+        let daily_volume: Option<Decimal> = match sqlx::query_scalar!(
+            "SELECT SUM(amount_usd) FROM payment_transactions WHERE merchant_id = $1 AND created_at >= $2 AND status = 'CONFIRMED'",
+            merchant_id,
+            today_start
+        )
+        .fetch_one(&self.db_pool)
+        .await {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("Volume calculation DB error: {:?}", e);
+                None
+            }
+        };
+
+        let limit = daily_limit_usd.unwrap_or(self.config.daily_volume_limit_non_kyc_usd);
+        let settled_volume = daily_volume.unwrap_or(Decimal::ZERO);
+        
+        Ok((limit - settled_volume).max(Decimal::ZERO))
+    }
+
     /// Generate API key with proper prefix (single source of truth)
     pub fn generate_api_key(&self, is_live: bool) -> String {
         ApiKeyGenerator::generate_key(is_live)

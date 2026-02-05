@@ -61,9 +61,9 @@ impl PaymentProcessor {
         // Generate unique payment ID (e.g., "pay_abc123xyz")
         let payment_id = self.generate_payment_id();
         
-        // Get merchant to retrieve fee percentage and preference
+        // Get merchant to retrieve fee percentage, preference and limits
         let merchant = sqlx::query!(
-            "SELECT fee_percentage, customer_pays_fee, sandbox_mode FROM merchants WHERE id = $1",
+            "SELECT fee_percentage, customer_pays_fee, sandbox_mode, kyc_verified, daily_limit_usd FROM merchants WHERE id = $1",
             merchant_id
         )
         .fetch_one(&self.db_pool)
@@ -203,10 +203,27 @@ impl PaymentProcessor {
             (None, total_amount_usd, None, Some(fee_amount_usd), None, PaymentStatus::SelectionRequired, None)
         };
 
+        // 5. ENFORCE DAILY VOLUME LIMIT for non-KYC merchants
+        if !merchant.kyc_verified {
+            let limit = merchant.daily_limit_usd.unwrap_or(self.config.daily_volume_limit_non_kyc_usd);
+            let remaining = self.merchant_service.get_daily_volume_remaining(
+                merchant_id,
+                merchant.kyc_verified,
+                merchant.daily_limit_usd
+            ).await?;
+
+            if amount_usd > remaining {
+                return Err(ServiceError::Forbidden(format!(
+                    "Daily volume limit exceeded. Remaining: ${}, Requested: ${}. Please complete KYC to increase your limit.",
+                    remaining, amount_usd
+                )));
+            }
+        }
+
         // Calculate expiration time
         let expiration_minutes = request.expiration_minutes.unwrap_or(15);
         let expires_at = Utc::now() + Duration::minutes(expiration_minutes as i64);
-        
+
         // Store payment in database
         let payment = sqlx::query_as!(
             crate::models::payment::Payment,

@@ -90,6 +90,10 @@ pub struct MerchantProfile {
     pub created_at: String,
     pub two_factor_enabled: bool,
     pub daily_limit_usd: Option<String>,
+    pub daily_volume_remaining: String,
+    pub kyc_verified: bool,
+    pub sandbox_mode: bool,
+    pub settlement_mode: String,
 }
 
 pub async fn register_merchant(
@@ -111,6 +115,10 @@ pub async fn register_merchant(
                     created_at: chrono::Utc::now().to_rfc3339(),
                     two_factor_enabled: false,
                     daily_limit_usd: None,
+                    daily_volume_remaining: state.config.daily_volume_limit_non_kyc_usd.to_string(), // Use configured limit for new accounts
+                    kyc_verified: false,
+                    sandbox_mode: true,
+                    settlement_mode: "managed".to_string(),
                 },
                 api_key: response.api_key,
             };
@@ -126,7 +134,7 @@ pub async fn login_merchant(
 ) -> impl IntoResponse {
     // Query the database for the user
     match sqlx::query!(
-        "SELECT id, business_name, email, sandbox_mode, created_at, role::text as role, api_key_hash, password_hash, daily_limit_usd FROM merchants WHERE email = $1 AND is_active = true",
+        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role::text as role, api_key_hash, password_hash, daily_limit_usd FROM merchants WHERE email = $1 AND is_active = true",
         req.email
     )
     .fetch_optional(&state.db_pool)
@@ -177,6 +185,12 @@ pub async fn login_merchant(
                     Some(chrono::Utc::now() + chrono::Duration::hours(24)) // Default 24h session
                 };
 
+                let remaining_volume: Decimal = merchant_service.get_daily_volume_remaining(
+                    merchant.id,
+                    merchant.kyc_verified,
+                    merchant.daily_limit_usd
+                ).await.unwrap_or(Decimal::new(1000, 0));
+
                 // Generate and store a new API key (uses sandbox mode by default)
                 match merchant_service.generate_and_store_api_key_with_expiry(merchant.id, !merchant.sandbox_mode, expires_at).await {
                     Ok(new_api_key) => {
@@ -188,6 +202,10 @@ pub async fn login_merchant(
                                 created_at: merchant.created_at.to_rfc3339(),
                                 two_factor_enabled: false,
                                 daily_limit_usd: merchant.daily_limit_usd.map(|d| d.to_string()),
+                                daily_volume_remaining: remaining_volume.to_string(),
+                                kyc_verified: merchant.kyc_verified,
+                                sandbox_mode: merchant.sandbox_mode,
+                                settlement_mode: merchant.settlement_mode,
                             },
                             api_key: new_api_key,
                         }
@@ -271,31 +289,14 @@ pub async fn get_merchant_profile(
         "two_factor_enabled": false
     });
     
-    // 4. Calculate daily volume remaining for non-KYC merchants
-    if !merchant.kyc_verified {
-        // Get today's volume from payment_transactions
-        let today_start = chrono::Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
-        
-        let daily_volume: Option<rust_decimal::Decimal> = match sqlx::query_scalar!(
-            "SELECT SUM(amount_usd) FROM payment_transactions WHERE merchant_id = $1 AND created_at >= $2 AND status = 'CONFIRMED'",
-            merchant_id,
-            today_start
-        )
-        .fetch_one(&state.db_pool)
-        .await {
-            Ok(v) => v,
-            Err(e) => {
-                eprintln!("Profile DB Error (Volume Calc): {:?}", e);
-                None
-            }
-        };
-
-        // Use dynamic limit from db, or fallback to system default ($1000)
-        let daily_limit = merchant.daily_limit_usd.unwrap_or(rust_decimal::Decimal::new(1000, 0));
-        let settled_volume = daily_volume.unwrap_or(rust_decimal::Decimal::ZERO);
-        let remaining = (daily_limit - settled_volume).max(rust_decimal::Decimal::ZERO);
-        profile["daily_volume_remaining"] = json!(remaining.to_string());
-    }
+    // 4. Calculate daily volume remaining
+    let remaining = state.merchant_service.get_daily_volume_remaining(
+        merchant.id,
+        merchant.kyc_verified,
+        merchant.daily_limit_usd
+    ).await.unwrap_or(Decimal::ZERO);
+    
+    profile["daily_volume_remaining"] = json!(remaining.to_string());
     
     (StatusCode::OK, Json(json!({ "user": profile }))).into_response()
 }

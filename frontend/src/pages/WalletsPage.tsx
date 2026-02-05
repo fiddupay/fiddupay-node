@@ -103,7 +103,7 @@ const WalletsPage: React.FC = () => {
       setNewWallet({ crypto_type: 'SOL', address: '' })
       showToast('Wallet configured successfully for all assets on this network!', 'success')
     } catch (error: any) {
-      showToast(error.response?.data?.error || 'Failed to configure wallet', 'error')
+      showToast(error.response?.data?.error?.message || error.response?.data?.error || 'Failed to configure wallet', 'error')
     } finally {
       setRefreshing(false)
     }
@@ -133,7 +133,7 @@ const WalletsPage: React.FC = () => {
       showToast(`${confirmModal.networkName} wallet revoked successfully`, 'success')
       setConfirmModal({ show: false, type: null, networkName: null, action: null })
     } catch (error: any) {
-      showToast(error.response?.data?.error || 'Failed to revoke wallet', 'error')
+      showToast(error.response?.data?.error?.message || error.response?.data?.error || 'Failed to revoke wallet', 'error')
     } finally {
       setRefreshing(false)
     }
@@ -171,7 +171,7 @@ const WalletsPage: React.FC = () => {
     } catch (error: any) {
       // Revert on error
       await loadWallets()
-      showToast(error.response?.data?.error || 'Failed to toggle network', 'error')
+      showToast(error.response?.data?.error?.message || error.response?.data?.error || 'Failed to toggle network', 'error')
     } finally {
       setRefreshing(false)
     }
@@ -196,7 +196,7 @@ const WalletsPage: React.FC = () => {
       showToast('New wallet generated successfully!', 'success')
       setConfirmModal({ show: false, type: null, networkName: null, action: null })
     } catch (error: any) {
-      showToast(error.response?.data?.error || 'Failed to generate wallet', 'error')
+      showToast(error.response?.data?.error?.message || error.response?.data?.error || 'Failed to generate wallet', 'error')
     } finally {
       setRefreshing(false)
     }

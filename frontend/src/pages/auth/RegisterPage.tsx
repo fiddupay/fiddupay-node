@@ -71,7 +71,7 @@ const RegisterPage: React.FC = () => {
       showToast('Registration successful! You can now log in to your dashboard.', 'success')
       setTimeout(() => navigate('/login'), 2000)
     } catch (error: any) {
-      const message = error.response?.data?.message || error.message || 'Registration failed. Please try again.'
+      const message = error.response?.data?.error?.message || error.response?.data?.message || error.message || 'Registration failed. Please try again.'
       showToast(message, 'error')
     } finally {
       setLoading(false)

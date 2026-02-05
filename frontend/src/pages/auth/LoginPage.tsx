@@ -50,7 +50,7 @@ const LoginPage: React.FC = () => {
       }, rememberMe)
       showToast('Login successful!', 'success')
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Login failed. Please check your credentials.'
+      const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || error.response?.data?.error || error.message || 'Login failed. Please check your credentials.'
       showToast(errorMessage, 'error')
     } finally {
       setLoading(false)

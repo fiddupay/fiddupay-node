@@ -191,11 +191,6 @@ impl IntoResponse for ServiceError {
                 "WALLET_NOT_CONFIGURED",
                 msg.as_str(),
             ),
-            ServiceError::ValidationError(ref msg) => (
-                StatusCode::BAD_REQUEST,
-                "VALIDATION_ERROR",
-                msg.as_str(),
-            ),
         };
 
         let error_response = ErrorResponse {

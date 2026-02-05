@@ -38,7 +38,7 @@ const SettingsPage: React.FC = () => {
             await loadUser(true)
             showToast('Settings updated successfully', 'success')
         } catch (error: any) {
-            showToast(error.response?.data?.error || 'Failed to update settings', 'error')
+            showToast(error.response?.data?.error?.message || error.response?.data?.error || 'Failed to update settings', 'error')
         } finally {
             setLoading(false)
         }

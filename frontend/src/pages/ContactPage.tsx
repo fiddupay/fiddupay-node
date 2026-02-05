@@ -52,7 +52,7 @@ const ContactPage: React.FC = () => {
       showToast('Message sent successfully! We\'ll get back to you soon.', 'success')
       setFormData({ name: '', email: '', subject: '', message: '' })
     } catch (error: any) {
-      const message = error.response?.data?.error || error.message || 'Failed to send message. Please try again.'
+      const message = error.response?.data?.error?.message || error.response?.data?.error || error.message || 'Failed to send message. Please try again.'
       showToast(message, 'error')
     } finally {
       setLoading(false)
