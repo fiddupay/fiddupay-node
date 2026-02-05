@@ -111,7 +111,7 @@ pub async fn register_merchant(
             };
             (StatusCode::CREATED, Json(auth_response)).into_response()
         },
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
