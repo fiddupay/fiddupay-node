@@ -100,7 +100,7 @@ To sync code changes to the standalone SDK repository without creating a release
 To sync code AND push a version tag manually (triggering the automated pipeline):
 
 ```bash
-./scripts/push-sdk.sh main v2.4.3
+sudo bash ./scripts/push-sdk.sh main v2.4.3
 cd fiddupay-node-sdk
 npm publish --access public
 ```
