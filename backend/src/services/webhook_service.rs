@@ -36,80 +36,60 @@ impl WebhookService {
         }
     }
 
-    /// Configure webhook URL for a merchant
-    /// 
-    /// Validates that the URL is a valid HTTPS endpoint and stores it in the database.
-    /// If a webhook URL already exists for the merchant, it will be updated.
-    /// 
-    /// # Arguments
-    /// * `merchant_id` - ID of the merchant
-    /// * `url` - Webhook URL (must be HTTPS)
-    /// 
-    /// # Returns
-    /// * `Ok(())` if the webhook URL was successfully configured
-    /// * `Err(ServiceError::InvalidWebhookUrl)` if the URL is not HTTPS or invalid
-    /// 
-    /// # Requirements
-    /// * 4.1: Validate webhook URL is a valid HTTPS endpoint
+    /// Configure webhook URL and format for a merchant
     pub async fn set_webhook_url(
         &self,
         merchant_id: i64,
-        url: String,
+        url: Option<String>,
+        payload_format: Option<String>,
     ) -> Result<(), ServiceError> {
-        // Validate URL format
-        let parsed_url = Url::parse(&url)
-            .map_err(|_| ServiceError::InvalidWebhookUrl("Invalid URL format".to_string()))?;
+        let format = payload_format.unwrap_or_else(|| "standard".to_string());
+        
+        if let Some(url_str) = url {
+            // Validate URL format
+            let parsed_url = Url::parse(&url_str)
+                .map_err(|_| ServiceError::InvalidWebhookUrl("Invalid URL format".to_string()))?;
 
-        // Validate HTTPS scheme
-        if parsed_url.scheme() != "https" {
-            return Err(ServiceError::InvalidWebhookUrl(
-                "Webhook URL must use HTTPS protocol".to_string()
-            ));
+            // Validate HTTPS scheme
+            if parsed_url.scheme() != "https" {
+                return Err(ServiceError::InvalidWebhookUrl(
+                    "Webhook URL must use HTTPS protocol".to_string()
+                ));
+            }
+
+            sqlx::query!(
+                r#"
+                INSERT INTO webhook_configs (merchant_id, url, payload_format, is_active)
+                VALUES ($1, $2, $3, true)
+                ON CONFLICT (merchant_id) 
+                DO UPDATE SET url = $2, payload_format = $3, is_active = true, updated_at = NOW()
+                "#,
+                merchant_id,
+                url_str,
+                format
+            )
+            .execute(&self.db_pool)
+            .await
+            .map_err(|e| ServiceError::Internal(format!("Failed to set webhook URL: {}", e)))?;
+        } else {
+             sqlx::query!(
+                r#"
+                UPDATE webhook_configs 
+                SET payload_format = $1, updated_at = NOW()
+                WHERE merchant_id = $2
+                "#,
+                format,
+                merchant_id
+            )
+            .execute(&self.db_pool)
+            .await
+            .map_err(|e| ServiceError::Internal(format!("Failed to update webhook format: {}", e)))?;
         }
-
-        // Validate host is present
-        if parsed_url.host_str().is_none() {
-            return Err(ServiceError::InvalidWebhookUrl(
-                "Webhook URL must have a valid host".to_string()
-            ));
-        }
-
-        // Insert or update webhook configuration
-        sqlx::query!(
-            r#"
-            INSERT INTO webhook_configs (merchant_id, url, is_active, created_at, updated_at)
-            VALUES ($1, $2, true, NOW(), NOW())
-            ON CONFLICT (merchant_id)
-            DO UPDATE SET
-                url = EXCLUDED.url,
-                is_active = true,
-                updated_at = NOW()
-            "#,
-            merchant_id,
-            &url
-        )
-        .execute(&self.db_pool)
-        .await?;
-
-        info!("Configured webhook URL for merchant {}: {}", merchant_id, url);
 
         Ok(())
     }
 
     /// Generate HMAC-SHA256 signature for webhook payload
-    /// 
-    /// Creates a signature using the webhook signing key to allow merchants
-    /// to verify the authenticity of webhook requests.
-    /// 
-    /// # Arguments
-    /// * `payload` - JSON string of the webhook payload
-    /// * `timestamp` - Unix timestamp when the webhook is sent
-    /// 
-    /// # Returns
-    /// Hex-encoded HMAC-SHA256 signature
-    /// 
-    /// # Requirements
-    /// * 4.5: Include signature in webhook requests for verification
     fn generate_signature(&self, payload: &str, timestamp: i64) -> String {
         let message = format!("{}.{}", timestamp, payload);
         
@@ -122,33 +102,15 @@ impl WebhookService {
     }
 
     /// Send webhook notification with signature
-    /// 
-    /// Delivers a webhook to the merchant's configured URL with HMAC-SHA256
-    /// signature for verification. Includes X-Signature and X-Timestamp headers.
-    /// 
-    /// # Arguments
-    /// * `url` - Webhook URL to send to
-    /// * `payload` - Webhook payload to send
-    /// 
-    /// # Returns
-    /// * `Ok((status_code, response_body))` if the request was sent successfully
-    /// * `Err(ServiceError)` if the request failed
-    /// 
-    /// # Requirements
-    /// * 4.2: Send webhook notification on payment status change to confirmed
-    /// * 4.3: Send webhook notification on payment status change to expired
-    /// * 4.5: Include signature in webhook requests for verification
-    /// * 4.6: Include payment details, status, and timestamp in payload
     pub async fn send_webhook(
         &self,
         url: &str,
-        payload: &WebhookPayload,
+        payload_value: &serde_json::Value,
     ) -> Result<(u16, String), ServiceError> {
         let timestamp = Utc::now().timestamp();
         
         // Serialize payload
-        let payload_json = serde_json::to_string(payload)
-            .map_err(|e| ServiceError::Internal(format!("Failed to serialize webhook payload: {}", e)))?;
+        let payload_json = payload_value.to_string();
         
         // Generate signature
         let signature = self.generate_signature(&payload_json, timestamp);
@@ -180,71 +142,51 @@ impl WebhookService {
     }
 
     /// Queue a webhook notification for delivery
-    /// 
-    /// Creates a webhook delivery record in the database that will be
-    /// processed by the webhook retry background task.
-    /// 
-    /// # Arguments
-    /// * `merchant_id` - ID of the merchant to notify
-    /// * `payment_id` - Database ID of the payment
-    /// * `payload` - Webhook payload to send
-    /// 
-    /// # Requirements
-    /// * 4.2: Send webhook notification on payment status change to confirmed
-    /// * 4.3: Send webhook notification on payment status change to expired
     pub async fn queue_webhook(
         &self,
         merchant_id: i64,
         payment_id: i64,
         payload: WebhookPayload,
     ) -> Result<(), ServiceError> {
-        // Get merchant's webhook URL
-        let webhook_config = sqlx::query!(
-            "SELECT url FROM webhook_configs WHERE merchant_id = $1 AND is_active = true",
+        // Get merchant's webhook configuration
+        let config = sqlx::query!(
+            "SELECT url, payload_format FROM webhook_configs WHERE merchant_id = $1 AND is_active = true",
             merchant_id
         )
         .fetch_optional(&self.db_pool)
-        .await?;
+        .await
+        .map_err(|e| ServiceError::Internal(format!("Failed to fetch webhook config: {}", e)))?;
 
-        let url = match webhook_config {
-            Some(config) => config.url,
-            None => {
-                // No webhook configured, skip
-                info!("No webhook configured for merchant {}", merchant_id);
-                return Ok(());
-            }
-        };
+        if let Some(config) = config {
+            let payload_value = if config.payload_format == "discord" {
+                let content = match payload.event_type.as_str() {
+                    "payment.confirmed" => format!("✅ **Payment Confirmed**\nID: `{}`\nAmount: `{} {}`", 
+                        payload.payment_id, payload.amount, payload.crypto_type),
+                    "payment.expired" => format!("❌ **Payment Expired**\nID: `{}`", payload.payment_id),
+                    _ => format!("🔔 **Webhook Alert**: `{}` for payment `{}`", payload.event_type, payload.payment_id),
+                };
+                serde_json::json!({ "content": content })
+            } else {
+                serde_json::to_value(&payload)
+                    .map_err(|e| ServiceError::Internal(format!("Failed to serialize payload: {}", e)))?
+            };
 
-        // Serialize payload
-        let payload_json = serde_json::to_value(&payload)
-            .map_err(|e| ServiceError::Internal(format!("Failed to serialize webhook payload: {}", e)))?;
-
-        // Insert webhook delivery record
-        sqlx::query!(
-            r#"
-            INSERT INTO webhook_deliveries (
-                merchant_id, payment_id, event_type, url, payload,
-                status, attempts, next_retry_at, created_at
+            // Queue notification for background delivery
+            sqlx::query!(
+                r#"
+                INSERT INTO webhook_deliveries (merchant_id, payment_id, event_type, url, payload, status, created_at)
+                VALUES ($1, $2, $3, $4, $5, 'pending', NOW())
+                "#,
+                merchant_id,
+                payment_id,
+                payload.event_type,
+                config.url,
+                payload_value
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            "#,
-            merchant_id,
-            payment_id,
-            &payload.event_type,
-            &url,
-            payload_json,
-            "pending",
-            0,
-            Utc::now(), // Retry immediately
-            Utc::now()
-        )
-        .execute(&self.db_pool)
-        .await?;
-
-        info!(
-            "Queued webhook for merchant {} - event: {}",
-            merchant_id, payload.event_type
-        );
+            .execute(&self.db_pool)
+            .await
+            .map_err(|e| ServiceError::Internal(format!("Failed to queue webhook: {}", e)))?;
+        }
 
         Ok(())
     }

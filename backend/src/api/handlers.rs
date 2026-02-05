@@ -261,17 +261,18 @@ pub async fn get_merchant_profile(
         }
     };
 
-    // 2. Fetch Webhook URL separately
-    let webhook_url = match sqlx::query_scalar!(
-        "SELECT url FROM webhook_configs WHERE merchant_id = $1 AND is_active = true",
+    // 2. Fetch Webhook config separately
+    let (webhook_url, webhook_format) = match sqlx::query!(
+        r#"SELECT url, payload_format FROM webhook_configs WHERE merchant_id = $1 AND is_active = true"#,
         merchant_id
     )
     .fetch_optional(&state.db_pool)
     .await {
-        Ok(url) => url,
+        Ok(Some(cfg)) => (Some(cfg.url), Some(cfg.payload_format)),
+        Ok(None) => (None, None),
         Err(e) => {
             eprintln!("Profile DB Error (Webhook Fetch): {:?}", e);
-            None // Non-critical failure
+            (None, None) // Non-critical failure
         }
     };
 
@@ -281,6 +282,8 @@ pub async fn get_merchant_profile(
         "business_name": merchant.business_name,
         "email": merchant.email,
         "api_key": context.api_key,
+        "webhook_url": webhook_url,
+        "webhook_format": webhook_format,
         "sandbox_mode": merchant.sandbox_mode,
         "settlement_mode": merchant.settlement_mode,
         "kyc_verified": merchant.kyc_verified,
@@ -557,6 +560,7 @@ pub async fn set_wallet(
 pub struct UnifiedSettingsRequest {
     #[validate(custom(function = "validate_optional_webhook_url"))]
     pub webhook_url: Option<String>,
+    pub webhook_format: Option<String>,
     pub settlement_mode: Option<String>,
     pub customer_pays_fee: Option<bool>,
     pub ip_whitelist: Option<Vec<String>>,
@@ -585,8 +589,12 @@ pub async fn update_merchant_settings(
     }
 
     // 2. Update Webhook if provided
-    if let Some(url) = req.webhook_url {
-        if let Err(e) = state.webhook_service.set_webhook_url(context.merchant_id, url).await {
+    if req.webhook_url.is_some() || req.webhook_format.is_some() {
+        if let Err(e) = state.webhook_service.set_webhook_url(
+            context.merchant_id, 
+            req.webhook_url,
+            req.webhook_format.clone()
+        ).await {
             return (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response();
         }
     }

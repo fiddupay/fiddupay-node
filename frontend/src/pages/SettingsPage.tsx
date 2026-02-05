@@ -10,7 +10,12 @@ import {
     MdCode,
     MdPayment,
     MdNotificationsActive,
-    MdFlashOn
+    MdFlashOn,
+    MdInfo,
+    MdVisibility,
+    MdVisibilityOff,
+    MdHelp,
+    MdLock
 } from 'react-icons/md'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI } from '@/services/apiService'
@@ -27,8 +32,10 @@ const SettingsPage: React.FC = () => {
     const [selectedMode, setSelectedMode] = useState<'forwarding' | 'managed' | 'imported'>('managed')
     const [customerPaysFee, setCustomerPaysFee] = useState(false)
     const [webhookUrl, setWebhookUrl] = useState('')
+    const [webhookFormat, setWebhookFormat] = useState('standard')
     const [apiKey, setApiKey] = useState('')
     const [showRotateConfirm, setShowRotateConfirm] = useState(false)
+    const [showSecret, setShowSecret] = useState(false)
 
     useEffect(() => {
         if (user) {
@@ -43,6 +50,7 @@ const SettingsPage: React.FC = () => {
             const profileRes = await merchantAPI.getProfile()
             const feeRes = await merchantAPI.getFeeSetting()
             setWebhookUrl(profileRes.data.user.webhook_url || '')
+            setWebhookFormat(profileRes.data.user.webhook_format || 'standard')
             setCustomerPaysFee(feeRes.data.customer_pays_fee)
         } catch (error) {
             console.error('Failed to fetch settings', error)
@@ -82,7 +90,10 @@ const SettingsPage: React.FC = () => {
     }
 
     const handleUpdateWebhook = async () => {
-        await handleUpdateSettings({ webhook_url: webhookUrl })
+        await handleUpdateSettings({
+            webhook_url: webhookUrl,
+            webhook_format: webhookFormat
+        })
     }
 
     const copyToClipboard = (text: string, label: string) => {
@@ -302,25 +313,150 @@ const SettingsPage: React.FC = () => {
 
                 {activeTab === 'webhooks' && (
                     <section className={styles.section}>
-                        <h2>Webhook Configuration</h2>
-                        <p>FidduPay will send POST requests to this URL for all events.</p>
+                        <div className={styles.webhookLayout}>
+                            <div className={styles.webhookMain}>
+                                <div className={styles.configSide}>
+                                    <h2>Webhook Configuration</h2>
+                                    <p>FidduPay will send real-time notifications to your URL when payment statuses change.</p>
 
-                        <div className={styles.inputGroup}>
-                            <div className={styles.inputWrapper}>
-                                <input
-                                    type="url"
-                                    value={webhookUrl}
-                                    onChange={(e) => setWebhookUrl(e.target.value)}
-                                    placeholder="https://your-domain.com/webhooks/fiddupay"
-                                    className={styles.urlInput}
-                                />
-                                <button
-                                    className={styles.saveBtn}
-                                    onClick={handleUpdateWebhook}
-                                    disabled={loading || !webhookUrl}
-                                >
-                                    {loading ? 'Saving...' : 'Update Webhook'}
-                                </button>
+                                    <div className={styles.inputGroup}>
+                                        <label className={styles.toggleLabel} style={{ marginBottom: '12px' }}>
+                                            <h4>Notification Format</h4>
+                                        </label>
+                                        <div className={styles.formatSelector}>
+                                            <button
+                                                className={`${styles.formatBtn} ${webhookFormat === 'standard' ? styles.activeFormat : ''}`}
+                                                onClick={() => setWebhookFormat('standard')}
+                                            >
+                                                Standard JSON
+                                            </button>
+                                            <button
+                                                className={`${styles.formatBtn} ${webhookFormat === 'discord' ? styles.activeFormat : ''}`}
+                                                onClick={() => setWebhookFormat('discord')}
+                                            >
+                                                Discord Webhook
+                                            </button>
+                                        </div>
+
+                                        <div className={styles.inputWrapper}>
+                                            <input
+                                                type="url"
+                                                value={webhookUrl}
+                                                onChange={(e) => setWebhookUrl(e.target.value)}
+                                                placeholder={webhookFormat === 'discord' ? "https://discord.com/api/webhooks/..." : "https://your-domain.com/webhooks/fiddupay"}
+                                                className={styles.urlInput}
+                                            />
+                                            <button
+                                                className={styles.saveBtn}
+                                                onClick={handleUpdateWebhook}
+                                                disabled={loading || !webhookUrl}
+                                            >
+                                                {loading ? 'Saving...' : 'Update Settings'}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.secretSection}>
+                                        <div className={styles.secretHeader}>
+                                            <h4>Webhook Signing Secret</h4>
+                                            <span className={styles.badge}>Global Key</span>
+                                        </div>
+                                        <div className={styles.secretWrapper}>
+                                            <div className={styles.secretDisplay}>
+                                                {showSecret ? 'whsec_8b2f9c4d1e0a7b6c5d4e3f2a1b0c9d8e' : '••••••••••••••••••••••••••••••••'}
+                                            </div>
+                                            <button
+                                                className={styles.viewBtn}
+                                                onClick={() => setShowSecret(!showSecret)}
+                                            >
+                                                {showSecret ? <MdVisibilityOff /> : <MdVisibility />}
+                                                {showSecret ? 'Hide' : 'View'}
+                                            </button>
+                                        </div>
+                                        <p className={styles.keyNote} style={{ marginTop: '12px', marginBottom: 0 }}>
+                                            <MdInfo /> Use this secret to verify that webhook requests are genuinely from FidduPay.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className={styles.docSide}>
+                                    <div className={styles.docSection}>
+                                        <h3><MdHelp /> How it works</h3>
+                                        <div className={styles.docGrid}>
+                                            <div className={styles.docItem}>
+                                                <div className={styles.docIcon}>1</div>
+                                                <div className={styles.docContent}>
+                                                    <h4>Event Triggered</h4>
+                                                    <p>An event occurs (e.g., a payment is confirmed by the network).</p>
+                                                </div>
+                                            </div>
+                                            <div className={styles.docItem}>
+                                                <div className={styles.docIcon}>2</div>
+                                                <div className={styles.docContent}>
+                                                    <h4>POST Request</h4>
+                                                    <p>
+                                                        {webhookFormat === 'discord'
+                                                            ? "FidduPay sends a Discord-formatted message directly to your channel."
+                                                            : "FidduPay sends a structured JSON payload to your server."
+                                                        }
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className={styles.docItem}>
+                                                <div className={styles.docIcon}>3</div>
+                                                <div className={styles.docContent}>
+                                                    <h4>Acknowledgement</h4>
+                                                    <p>Your server (or Discord) acknowledges the notification.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className={styles.verificationBox}>
+                                <div className={styles.boxHeader}>
+                                    <span><MdLock /> {webhookFormat === 'discord' ? 'Discord Formatting' : 'Signature Verification'}</span>
+                                    <span>{webhookFormat === 'discord' ? 'No Verification' : 'Standard Headers'}</span>
+                                </div>
+                                {webhookFormat === 'standard' ? (
+                                    <>
+                                        <div className={styles.headerList}>
+                                            <div className={styles.headerItem}>
+                                                <span className={styles.headerKey}>X-Signature:</span>
+                                                <span className={styles.headerValue}>t=1707172800,v1=sha256_hmac_hex_result...</span>
+                                            </div>
+                                            <div className={styles.headerItem}>
+                                                <span className={styles.headerKey}>X-Timestamp:</span>
+                                                <span className={styles.headerValue}>1707172800</span>
+                                            </div>
+                                        </div>
+                                        <span className={styles.payloadLabel}>Example Payload JSON:</span>
+                                        <pre className={styles.payloadPre}>
+                                            {`{
+  "event_type": "payment.confirmed",
+  "payment_id": "pay_5f9a2c3b4",
+  "status": "CONFIRMED",
+  "amount": "150.00",
+  "crypto_type": "SOL",
+  "timestamp": 1707172800
+}`}
+                                        </pre>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p style={{ fontSize: '13px', color: '#888', marginBottom: '16px' }}>
+                                            Discord webhooks do not support HMAC signatures.
+                                            FidduPay will send a simplified message format compatible with Discord.
+                                        </p>
+                                        <span className={styles.payloadLabel}>Example Discord Payload:</span>
+                                        <pre className={styles.payloadPre}>
+                                            {`{
+  "content": "✅ **Payment Confirmed**\\nID: \`pay_5f9a2c3b4\`\\nAmount: \`150.00 SOL\`"
+}`}
+                                        </pre>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </section>

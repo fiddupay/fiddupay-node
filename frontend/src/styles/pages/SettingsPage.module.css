@@ -300,6 +300,261 @@ input:checked+.slider:before {
     text-overflow: ellipsis;
 }
 
+/* Webhook Specific Styles */
+.webhookLayout {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.webhookMain {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+@media (max-width: 992px) {
+    .webhookMain {
+        grid-template-columns: 1fr;
+    }
+}
+
+.inputGroup {
+    margin-bottom: 24px;
+}
+
+.formatSelector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.formatBtn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--fiddu-border);
+    background: var(--fiddu-bg-primary);
+    color: var(--fiddu-text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.formatBtn:hover {
+    border-color: var(--fiddu-brand-primary);
+    color: var(--fiddu-brand-primary);
+}
+
+.activeFormat {
+    background: var(--fiddu-brand-primary);
+    color: white;
+    border-color: var(--fiddu-brand-primary);
+}
+
+.activeFormat:hover {
+    color: white;
+}
+
+.inputWrapper {
+    display: flex;
+    gap: 12px;
+}
+
+.urlInput {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid var(--fiddu-border);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--fiddu-bg-secondary);
+    color: var(--fiddu-text-primary);
+    transition: border-color 0.2s;
+}
+
+.urlInput:focus {
+    outline: none;
+    border-color: var(--fiddu-brand-primary);
+    background: white;
+}
+
+.docSection {
+    background: var(--fiddu-bg-secondary);
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid var(--fiddu-border);
+}
+
+.docSection h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--fiddu-brand-primary);
+}
+
+.docGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.docItem {
+    display: flex;
+    gap: 12px;
+}
+
+.docIcon {
+    width: 28px;
+    height: 28px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid var(--fiddu-border);
+    color: var(--fiddu-brand-primary);
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.docContent h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.docContent p {
+    font-size: 13px;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.verificationBox {
+    background: #1e1e1e;
+    border-radius: 12px;
+    padding: 20px;
+    color: #d4d4d4;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+}
+
+.boxHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #333;
+}
+
+.boxHeader span {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+}
+
+.headerList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.headerItem {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.headerKey {
+    color: #569cd6;
+    font-size: 12px;
+}
+
+.headerValue {
+    color: #ce9178;
+    font-size: 13px;
+    word-break: break-all;
+}
+
+.payloadLabel {
+    color: #888;
+    font-size: 11px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.payloadPre {
+    margin: 0;
+    padding: 12px;
+    background: #252526;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #9cdcfe;
+    overflow-x: auto;
+}
+
+.secretSection {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px dashed var(--fiddu-border);
+}
+
+.secretHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.secretHeader h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fiddu-text-primary);
+}
+
+.secretWrapper {
+    display: flex;
+    gap: 12px;
+}
+
+.secretDisplay {
+    flex: 1;
+    background: var(--fiddu-bg-secondary);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 13px;
+    color: var(--fiddu-text-primary);
+    border: 1px solid var(--fiddu-border);
+    display: flex;
+    align-items: center;
+}
+
+.viewBtn {
+    background: transparent;
+    border: 1px solid var(--fiddu-border);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--fiddu-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.viewBtn:hover {
+    background: var(--fiddu-bg-secondary);
+    color: var(--fiddu-brand-primary);
+    border-color: var(--fiddu-brand-primary);
+}
+
 .copyBtn,
 .rotateBtn {
     display: flex;
