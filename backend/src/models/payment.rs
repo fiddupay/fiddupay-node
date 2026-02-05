@@ -34,4 +34,11 @@ pub struct Payment {
     pub fee_percentage: Decimal,
     pub fee_amount: Option<Decimal>,
     pub fee_amount_usd: Decimal,
+    pub user_id: Option<i64>,
+    pub subscription_id: Option<i64>,
+    pub block_number: Option<i64>,
+    pub partial_payments_enabled: Option<bool>,
+    pub total_paid: Option<Decimal>,
+    pub remaining_balance: Option<Decimal>,
+    pub is_non_custodial: Option<bool>,
 }

@@ -125,8 +125,8 @@ impl BackgroundTasks {
                         payment_id: payment.payment_id,
                         merchant_id: payment.merchant_id,
                         status: PaymentStatus::Failed,
-                        amount: payment.amount,
-                        crypto_type: payment.crypto_type,
+                        amount: payment.amount.unwrap_or_default(),
+                        crypto_type: payment.crypto_type.unwrap_or_else(|| "UNKNOWN".to_string()),
                         transaction_hash: None,
                         timestamp: Utc::now().timestamp(),
                     };

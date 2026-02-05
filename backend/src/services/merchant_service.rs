@@ -459,7 +459,7 @@ impl MerchantService {
             };
             
             let response = wallet_service.generate_wallet(merchant_id, gen_req).await?;
-            return Ok(response.wallet.address);
+            return Ok(response.config.address);
         }
         
         Err(ServiceError::WalletNotFound)

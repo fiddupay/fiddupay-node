@@ -92,10 +92,11 @@ impl RefundService {
         .unwrap_or(Decimal::ZERO);
 
         // Determine refund amount (full or partial)
-        let refund_amount = amount.unwrap_or(payment.amount);
+        let refund_amount = amount.or(payment.amount).ok_or_else(|| ServiceError::Internal("Payment amount is missing".to_string()))?;
 
         // Validate refund amount doesn't exceed remaining payment amount
-        let remaining_amount = payment.amount - total_refunded;
+        let payment_amount = payment.amount.unwrap_or(Decimal::ZERO);
+        let remaining_amount = payment_amount - total_refunded;
         if refund_amount > remaining_amount {
             return Err(ServiceError::Internal(format!(
                 "Refund amount {} exceeds remaining payment amount {}",
@@ -111,12 +112,13 @@ impl RefundService {
         }
 
         // Calculate USD amount for the refund (proportional to original payment)
-        let refund_amount_usd = if refund_amount == payment.amount {
+        let refund_amount_usd = if Some(refund_amount) == payment.amount {
             // Full refund - use exact USD amount
             payment.amount_usd
         } else {
             // Partial refund - calculate proportional USD amount
-            (payment.amount_usd / payment.amount) * refund_amount
+            let payment_amt = payment.amount.unwrap_or(Decimal::ONE); // Prevent div by zero
+            (payment.amount_usd / payment_amt) * refund_amount
         };
 
         // Generate unique refund ID
@@ -158,8 +160,8 @@ impl RefundService {
             status: refund.status,
             reason: refund.reason,
             transaction_hash: refund.transaction_hash,
-            crypto_type: payment.crypto_type,
-            target_address: payment.from_address,
+            crypto_type: payment.crypto_type.unwrap_or_else(|| "UNKNOWN".to_string()),
+            target_address: payment.from_address.unwrap_or_default(),
             created_at: refund.created_at,
             completed_at: refund.completed_at,
         })
@@ -241,8 +243,8 @@ impl RefundService {
             payment_id: payment.payment_id,
             merchant_id: refund.merchant_id,
             status: PaymentStatus::Refunded,
-            amount: payment.amount,
-            crypto_type: payment.crypto_type,
+            amount: payment.amount.unwrap_or_default(),
+            crypto_type: payment.crypto_type.unwrap_or_else(|| "UNKNOWN".to_string()),
             transaction_hash: Some(transaction_hash),
             timestamp: Utc::now().timestamp(),
         };
@@ -294,8 +296,8 @@ impl RefundService {
             transaction_hash: refund.transaction_hash,
             created_at: refund.created_at,
             completed_at: refund.completed_at,
-            crypto_type: refund.crypto_type,
-            target_address: refund.from_address,
+            crypto_type: refund.crypto_type.unwrap_or_else(|| "UNKNOWN".to_string()),
+            target_address: refund.from_address.unwrap_or_default(),
         })
     }
 

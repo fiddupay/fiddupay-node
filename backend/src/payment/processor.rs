@@ -220,7 +220,9 @@ impl PaymentProcessor {
             RETURNING id, payment_id, merchant_id, crypto_type, amount, amount_usd, to_address,
                      status, expires_at, created_at, confirmed_at, description, metadata,
                      confirmations, required_confirmations, transaction_hash, from_address, webhook_url,
-                     fee_percentage, fee_amount, fee_amount_usd
+                     fee_percentage, fee_amount, fee_amount_usd, network,
+                     user_id, subscription_id, block_number, partial_payments_enabled,
+                     total_paid, remaining_balance, is_non_custodial
             "#,
             payment_id,
             merchant_id,
