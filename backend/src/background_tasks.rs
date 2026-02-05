@@ -218,25 +218,13 @@ impl BackgroundTasks {
         for webhook in pending_webhooks {
             let attempt_number = webhook.attempts + 1;
 
-            // Deserialize payload
-            let payload: WebhookPayload = match serde_json::from_value(webhook.payload) {
-                Ok(p) => p,
-                Err(e) => {
-                    error!(
-                        "Failed to deserialize webhook payload for delivery {}: {}",
-                        webhook.id, e
-                    );
-                    continue;
-                }
-            };
-
             info!(
                 "Retrying webhook delivery {} (attempt {}/5) for merchant {} - event: {}",
                 webhook.id, attempt_number, webhook.merchant_id, webhook.event_type
             );
 
             // Attempt delivery
-            let delivery_result = self.webhook_service.send_webhook(&webhook.url, &payload).await;
+            let delivery_result = self.webhook_service.send_webhook(&webhook.url, &webhook.payload).await;
 
             match delivery_result {
                 Ok((status_code, response_body)) => {

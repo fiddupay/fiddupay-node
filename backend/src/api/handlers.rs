@@ -623,7 +623,7 @@ pub async fn set_webhook(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<SetWebhookRequest>,
 ) -> impl IntoResponse {
-    match state.webhook_service.set_webhook_url(context.merchant_id, req.url).await {
+    match state.webhook_service.set_webhook_url(context.merchant_id, Some(req.url), None).await {
         Ok(_) => (StatusCode::OK, Json(json!({"success": true}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }

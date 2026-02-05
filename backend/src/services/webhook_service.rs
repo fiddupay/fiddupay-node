@@ -234,7 +234,8 @@ mod tests {
 
         let result = service.set_webhook_url(
             merchant_id,
-            "https://example.com/webhook".to_string()
+            Some("https://example.com/webhook".to_string()),
+            None
         ).await;
 
         assert!(result.is_ok());
@@ -271,7 +272,8 @@ mod tests {
 
         let result = service.set_webhook_url(
             merchant_id,
-            "http://example.com/webhook".to_string()
+            Some("http://example.com/webhook".to_string()),
+            None
         ).await;
 
         assert!(result.is_err());
@@ -298,7 +300,8 @@ mod tests {
 
         let result = service.set_webhook_url(
             merchant_id,
-            "not-a-valid-url".to_string()
+            Some("not-a-valid-url".to_string()),
+            None
         ).await;
 
         assert!(result.is_err());
@@ -325,7 +328,8 @@ mod tests {
 
         let result = service.set_webhook_url(
             merchant_id,
-            "https://".to_string()
+            Some("https://".to_string()),
+            None
         ).await;
 
         assert!(result.is_err());
@@ -353,13 +357,15 @@ mod tests {
         // Set initial webhook URL
         service.set_webhook_url(
             merchant_id,
-            "https://example.com/webhook1".to_string()
+            Some("https://example.com/webhook1".to_string()),
+            None
         ).await.unwrap();
 
         // Update to new URL
         service.set_webhook_url(
             merchant_id,
-            "https://example.com/webhook2".to_string()
+            Some("https://example.com/webhook2".to_string()),
+            None
         ).await.unwrap();
 
         // Verify only one config exists with the new URL
@@ -394,7 +400,8 @@ mod tests {
 
         let result = service.set_webhook_url(
             merchant_id,
-            "https://example.com/api/webhooks?token=abc123".to_string()
+            Some("https://example.com/api/webhooks?token=abc123".to_string()),
+            None
         ).await;
 
         assert!(result.is_ok());
@@ -430,7 +437,8 @@ mod tests {
 
         let result = service.set_webhook_url(
             merchant_id,
-            "https://example.com:8443/webhook".to_string()
+            Some("https://example.com:8443/webhook".to_string()),
+            None
         ).await;
 
         assert!(result.is_ok());
