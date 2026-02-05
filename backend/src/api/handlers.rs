@@ -320,7 +320,7 @@ pub async fn get_merchant_readiness(
     }
 
     // 4. Security status check
-    let security_alerts = sqlx::query_scalar!("SELECT COUNT(*) as \"count!\" FROM security_alerts WHERE merchant_id = $1 AND status = 'active'", merchant_id)
+    let security_alerts: i64 = sqlx::query_scalar!("SELECT COUNT(*) as \"count!\" FROM security_alerts WHERE merchant_id = $1 AND acknowledged = FALSE", merchant_id)
         .fetch_one(&state.db_pool)
         .await
         .unwrap_or(0);
