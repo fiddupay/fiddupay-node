@@ -216,68 +216,83 @@ pub async fn get_merchant_profile(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    match sqlx::query!(
+    let merchant_id = context.merchant_id;
+
+    // 1. Fetch BASIC merchant info
+    let merchant = match sqlx::query!(
         r#"
-        SELECT m.id, m.business_name, m.email, m.sandbox_mode, m.settlement_mode, 
-               COALESCE(m.kyc_verified, false) as "kyc_verified!", m.daily_limit_usd, m.created_at,
-               w.url as webhook_url
-        FROM merchants m
-        LEFT JOIN webhook_configs w ON m.id = w.merchant_id AND w.is_active = true
-        WHERE m.id = $1
+        SELECT id, business_name, email, sandbox_mode, settlement_mode, 
+               kyc_verified, daily_limit_usd, created_at
+        FROM merchants
+        WHERE id = $1
         "#,
-        context.merchant_id
+        merchant_id
     )
     .fetch_optional(&state.db_pool)
-    .await
-    {
-        Ok(Some(merchant)) => {
-            let mut profile = json!({
-                "id": merchant.id,
-                "business_name": merchant.business_name,
-                "email": merchant.email,
-                "sandbox_mode": merchant.sandbox_mode,
-                "settlement_mode": merchant.settlement_mode,
-                "kyc_verified": merchant.kyc_verified,
-                "daily_limit_usd": merchant.daily_limit_usd.map(|d| d.to_string()),
-                "webhook_url": merchant.webhook_url,
-                "created_at": merchant.created_at.to_rfc3339(),
-                "two_factor_enabled": false
-            });
-            
-            // Calculate real daily volume remaining for non-KYC merchants
-            if !merchant.kyc_verified {
-                // Get today's volume from payment_transactions
-                let today_start = chrono::Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
-                match sqlx::query_scalar!(
-                    "SELECT COALESCE(SUM(amount_usd), 0.0) FROM payment_transactions WHERE merchant_id = $1 AND created_at >= $2 AND status = 'CONFIRMED'",
-                    merchant.id,
-                    today_start
-                )
-                .fetch_one(&state.db_pool)
-                .await
-                {
-                    Ok(daily_volume) => {
-                        let daily_limit = merchant.daily_limit_usd.unwrap_or(rust_decimal::Decimal::new(1000, 0));
-                        let volume = daily_volume.unwrap_or(rust_decimal::Decimal::ZERO);
-                        let remaining = (daily_limit - volume).max(rust_decimal::Decimal::ZERO);
-                        profile["daily_volume_remaining"] = json!(remaining.to_string());
-                    },
-                    Err(e) => {
-                        eprintln!("Error calculating daily volume: {:?}", e);
-                        // Fallback to default if query fails
-                        profile["daily_volume_remaining"] = json!("1000");
-                    }
-                }
-            }
-            
-            (StatusCode::OK, Json(json!({ "user": profile }))).into_response()
-        },
-        Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Merchant not found"}))).into_response(),
+    .await {
+        Ok(Some(m)) => m,
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Merchant not found"}))).into_response(),
         Err(e) => {
-            eprintln!("Error in get_merchant_profile: {:?}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response()
-        },
+            eprintln!("Profile DB Error (Main Query): {:?}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Database error: {}", e)}))).into_response();
+        }
+    };
+
+    // 2. Fetch Webhook URL separately
+    let webhook_url = match sqlx::query_scalar!(
+        "SELECT url FROM webhook_configs WHERE merchant_id = $1 AND is_active = true",
+        merchant_id
+    )
+    .fetch_optional(&state.db_pool)
+    .await {
+        Ok(url) => url,
+        Err(e) => {
+            eprintln!("Profile DB Error (Webhook Fetch): {:?}", e);
+            None // Non-critical failure
+        }
+    };
+
+    // 3. Construct profile
+    let mut profile = json!({
+        "id": merchant.id,
+        "business_name": merchant.business_name,
+        "email": merchant.email,
+        "sandbox_mode": merchant.sandbox_mode,
+        "settlement_mode": merchant.settlement_mode,
+        "kyc_verified": merchant.kyc_verified,
+        "daily_limit_usd": merchant.daily_limit_usd.map(|d| d.to_string()),
+        "webhook_url": webhook_url,
+        "created_at": merchant.created_at.to_rfc3339(),
+        "two_factor_enabled": false
+    });
+    
+    // 4. Calculate daily volume remaining for non-KYC merchants
+    if !merchant.kyc_verified {
+        // Get today's volume from payment_transactions
+        let today_start = chrono::Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
+        
+        let daily_volume: Option<rust_decimal::Decimal> = match sqlx::query_scalar!(
+            "SELECT SUM(amount_usd) FROM payment_transactions WHERE merchant_id = $1 AND created_at >= $2 AND status = 'CONFIRMED'",
+            merchant_id,
+            today_start
+        )
+        .fetch_one(&state.db_pool)
+        .await {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("Profile DB Error (Volume Calc): {:?}", e);
+                None
+            }
+        };
+
+        // Use dynamic limit from db, or fallback to system default ($1000)
+        let daily_limit = merchant.daily_limit_usd.unwrap_or(rust_decimal::Decimal::new(1000, 0));
+        let settled_volume = daily_volume.unwrap_or(rust_decimal::Decimal::ZERO);
+        let remaining = (daily_limit - settled_volume).max(rust_decimal::Decimal::ZERO);
+        profile["daily_volume_remaining"] = json!(remaining.to_string());
     }
+    
+    (StatusCode::OK, Json(json!({ "user": profile }))).into_response()
 }
 
 pub async fn get_merchant_readiness(
