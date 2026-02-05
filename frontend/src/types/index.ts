@@ -11,6 +11,7 @@ export interface User {
   sandbox_mode: boolean
   settlement_mode: 'forwarding' | 'managed' | 'imported'
   webhook_url?: string
+  api_key?: string
 }
 
 export interface LoginCredentials {

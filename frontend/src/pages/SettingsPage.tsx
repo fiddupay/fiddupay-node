@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { MdAccountBalanceWallet, MdForward, MdCloudDone, MdCheckCircle } from 'react-icons/md'
+import { MdAccountBalanceWallet, MdForward, MdCloudDone, MdCheckCircle, MdContentCopy, MdRefresh, MdVpnKey } from 'react-icons/md'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI } from '@/services/apiService'
 import { useToast } from '@/contexts/ToastContext'
@@ -12,11 +12,13 @@ const SettingsPage: React.FC = () => {
     const [selectedMode, setSelectedMode] = useState<'forwarding' | 'managed' | 'imported'>('managed')
     const [customerPaysFee, setCustomerPaysFee] = useState(false)
     const [webhookUrl, setWebhookUrl] = useState('')
+    const [apiKey, setApiKey] = useState('')
 
     useEffect(() => {
         if (user) {
             setSelectedMode(user.settlement_mode || 'managed')
             fetchSettings()
+            setApiKey(user.api_key || '')
         }
     }, [user, user?.sandbox_mode])
 
@@ -51,12 +53,51 @@ const SettingsPage: React.FC = () => {
 
     const handleUpdateFeeSetting = async () => {
         const newValue = !customerPaysFee
-        await handleUpdateSettings({ customer_pays_fee: newValue })
-        setCustomerPaysFee(newValue)
+        try {
+            setLoading(true)
+            await merchantAPI.updateFeeSetting({ customer_pays_fee: newValue })
+            setCustomerPaysFee(newValue)
+            showToast(`Fees will now be paid by ${newValue ? 'customers' : 'you'}`, 'success')
+        } catch (error: any) {
+            showToast('Failed to update fee preferences', 'error')
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleUpdateWebhook = async () => {
         await handleUpdateSettings({ webhook_url: webhookUrl })
+    }
+
+    const copyToClipboard = (text: string, label: string) => {
+        navigator.clipboard.writeText(text)
+        showToast(`${label} copied to clipboard`, 'success')
+    }
+
+    const handleRotateKey = async () => {
+        if (!window.confirm('Are you sure you want to rotate your API key? This will invalidate your current key and you will need to update your integration and log in again.')) {
+            return
+        }
+
+        try {
+            setLoading(true)
+            const response = await merchantAPI.rotateApiKey()
+            const newKey = response.data.api_key
+
+            // Update local storage and session storage to reflect the new key
+            localStorage.setItem('fiddupay_token', newKey)
+            if (sessionStorage.getItem('fiddupay_token')) {
+                sessionStorage.setItem('fiddupay_token', newKey)
+            }
+
+            setApiKey(newKey)
+            await loadUser(true)
+            showToast('API key rotated successfully', 'success')
+        } catch (error: any) {
+            showToast('Failed to rotate API key', 'error')
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
@@ -108,6 +149,59 @@ const SettingsPage: React.FC = () => {
                     </div>
                 </section>
 
+                {/* API Settings Section */}
+                <section className={styles.section}>
+                    <h2>API Settings</h2>
+                    <p>Manage your API credentials for integrating FidduPay with your application.</p>
+
+                    <div className={styles.keyGrid}>
+                        <div className={styles.keyCard}>
+                            <div className={styles.keyHeader}>
+                                <div className="flex items-center gap-2">
+                                    <MdVpnKey className="text-blue-500" />
+                                    <h4>Merchant API Key</h4>
+                                </div>
+                                <span className={`${styles.badge} ${user?.sandbox_mode ? styles.badgeSandbox : styles.badgeLive}`}>
+                                    {user?.sandbox_mode ? 'Sandbox' : 'Live'}
+                                </span>
+                            </div>
+
+                            <div className={styles.keyInputGroup}>
+                                <div className={styles.keyDisplay}>
+                                    {apiKey ? `${apiKey.substring(0, 12)}**************************` : 'No API key generated'}
+                                </div>
+                                <button
+                                    className={styles.copyBtn}
+                                    onClick={() => copyToClipboard(apiKey, 'API Key')}
+                                    disabled={!apiKey}
+                                    title="Copy API Key"
+                                >
+                                    <MdContentCopy />
+                                    Copy
+                                </button>
+                                <button
+                                    className={styles.rotateBtn}
+                                    onClick={handleRotateKey}
+                                    disabled={loading}
+                                    title="Rotate API Key"
+                                >
+                                    <MdRefresh />
+                                    Rotate
+                                </button>
+                            </div>
+
+                            <div className={styles.keyFooter}>
+                                <span className={styles.keyNote}>
+                                    Keep your keys secure. Never share them in client-side code.
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                    Last rotated: {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 {/* Fee Preferences Section */}
                 <section className={styles.section}>
                     <h2>Fee Preferences</h2>
@@ -119,17 +213,15 @@ const SettingsPage: React.FC = () => {
                             <span>When enabled, the processing fee is added to the customer's total.</span>
                         </div>
 
-                        <button
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${customerPaysFee ? 'bg-blue-600' : 'bg-gray-200'
-                                }`}
-                            onClick={handleUpdateFeeSetting}
-                            disabled={loading}
-                        >
-                            <span
-                                className={`${customerPaysFee ? 'translate-x-6' : 'translate-x-1'
-                                    } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                        <label className={styles.switch}>
+                            <input
+                                type="checkbox"
+                                checked={customerPaysFee}
+                                onChange={handleUpdateFeeSetting}
+                                disabled={loading}
                             />
-                        </button>
+                            <span className={styles.slider}></span>
+                        </label>
                     </div>
                 </section>
 
