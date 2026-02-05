@@ -54,9 +54,9 @@ impl MerchantService {
         // Create merchant in sandbox mode by default
         let merchant = sqlx::query_as::<_, Merchant>(
             r#"
-            INSERT INTO merchants (email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at
+            INSERT INTO merchants (email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, role)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT')
+            RETURNING id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role
             "#,
         )
         .bind(&email)
@@ -201,7 +201,7 @@ impl MerchantService {
             if parts.len() >= 3 {
                 if let Ok(admin_id) = parts[2].parse::<i64>() {
                     return match sqlx::query_as::<_, Merchant>(
-                        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role 
+                        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
                          FROM merchants 
                          WHERE id = $1 AND is_active = true AND (role = 'ADMIN' OR role = 'SUPER_ADMIN')"
                     )
@@ -222,7 +222,7 @@ impl MerchantService {
             if parts.len() >= 3 {
                 if let Ok(merchant_id) = parts[2].parse::<i64>() {
                     return match sqlx::query_as::<_, Merchant>(
-                        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role 
+                        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
                          FROM merchants 
                          WHERE id = $1 AND is_active = true AND role = 'MERCHANT'"
                     )
@@ -428,7 +428,7 @@ impl MerchantService {
             CryptoType::Bnb => "BNB",
         };
         
-        let wallet = sqlx::query_as::<_, MerchantWallet>(
+        let wallet_opt = sqlx::query_as::<_, MerchantWallet>(
             "SELECT id, merchant_id, crypto_type, network, address, is_active, created_at, updated_at 
              FROM merchant_wallets 
              WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true"
@@ -436,10 +436,33 @@ impl MerchantService {
         .bind(merchant_id)
         .bind(&lookup_crypto_type)
         .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or(ServiceError::WalletNotFound)?;
+        .await?;
         
-        Ok(wallet.address)
+        if let Some(wallet) = wallet_opt {
+            return Ok(wallet.address);
+        }
+
+        // If not found, check if we should auto-generate (Managed Mode)
+        let merchant = sqlx::query!(
+            "SELECT settlement_mode FROM merchants WHERE id = $1",
+            merchant_id
+        )
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        if merchant.settlement_mode == "managed" {
+            tracing::info!("Auto-generating wallet for merchant {} for network {}", merchant_id, lookup_crypto_type);
+            
+            let wallet_service = crate::services::wallet_config_service::WalletConfigService::new(self.db_pool.clone());
+            let gen_req = crate::services::wallet_config_service::GenerateWalletRequest {
+                crypto_type: lookup_crypto_type.to_string(),
+            };
+            
+            let response = wallet_service.generate_wallet(merchant_id, gen_req).await?;
+            return Ok(response.wallet.address);
+        }
+        
+        Err(ServiceError::WalletNotFound)
     }
 
     pub async fn update_settlement_mode(

@@ -879,11 +879,15 @@ pub async fn payment_page(
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("Error: {}", e))).into_response(),
     };
 
-    // Generate QR code for payment
-    let qr_data = format!("{}:{}", payment.crypto_type, payment.to_address);
-    let qr_code = match crate::utils::qr::generate_qr_code(&qr_data) {
-        Ok(qr) => qr,
-        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Html("QR generation failed".to_string())).into_response(),
+    // Generate QR code for payment (only if selection is finished)
+    let qr_code = if let (Some(ct), Some(addr)) = (&payment.crypto_type, &payment.to_address) {
+        let qr_data = format!("{}:{}", ct, addr);
+        match crate::utils::qr::generate_qr_code(&qr_data) {
+            Ok(qr) => qr,
+            Err(_) => "QR_ERROR".to_string(),
+        }
+    } else {
+        "".to_string()
     };
 
     // Calculate time remaining
@@ -896,9 +900,10 @@ pub async fn payment_page(
     };
 
     // Determine status flags
+    let is_selection_required = payment.status == "SELECTION_REQUIRED";
     let is_pending = payment.status == "PENDING" || payment.status == "CONFIRMING";
     let is_confirmed = payment.status == "CONFIRMED";
-    let is_expired = payment.status == "FAILED" || payment.expires_at < now;
+    let is_expired = (payment.status == "FAILED" || (payment.expires_at < now)) && !is_confirmed;
 
     // Check if sandbox
     let merchant = sqlx::query!("SELECT sandbox_mode FROM merchants WHERE id = (SELECT merchant_id FROM payment_transactions WHERE id = $1)", payment_link.payment_id)
@@ -907,14 +912,14 @@ pub async fn payment_page(
         .ok();
     let sandbox = merchant.map(|m| m.sandbox_mode).unwrap_or(false);
 
-    // Render template
+    // Render logic
     let html = render_payment_page(PaymentPageData {
         payment_id: payment.payment_id,
-        amount: payment.amount.to_string(),
+        amount: payment.amount.unwrap_or_default().to_string(),
         amount_usd: payment.amount_usd.to_string(),
-        crypto_type: payment.crypto_type,
-        network: payment.network,
-        deposit_address: payment.to_address,
+        crypto_type: payment.crypto_type.unwrap_or_default(),
+        network: payment.network.unwrap_or_default(),
+        deposit_address: payment.to_address.unwrap_or_default(),
         fee_amount_usd: payment.fee_amount_usd.to_string(),
         qr_code: qr_code,
         time_remaining,
@@ -923,6 +928,7 @@ pub async fn payment_page(
         is_pending,
         is_confirmed,
         is_expired,
+        is_selection_required,
         sandbox,
     });
 
@@ -951,6 +957,93 @@ pub async fn payment_status(
         Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
+}
+
+pub async fn finalize_payment_selection(
+    State(state): State<AppState>,
+    Path(link_id): Path<String>,
+    Json(req): Json<SelectionRequest>,
+) -> impl IntoResponse {
+    use std::sync::Arc;
+    let pool = state.db_pool.clone();
+    
+    // 1. Look up payment by link_id
+    let payment_link = match sqlx::query!(
+        "SELECT payment_id FROM payment_links WHERE link_id = $1",
+        &link_id
+    )
+    .fetch_optional(&pool)
+    .await
+    {
+        Ok(Some(link)) => link,
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment link not found"}))).into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    };
+
+    // 2. Get payment details
+    let payment_record = match sqlx::query_as!(
+        crate::models::payment::Payment,
+        "SELECT * FROM payment_transactions WHERE id = $1",
+        payment_link.payment_id
+    )
+    .fetch_optional(&pool)
+    .await {
+        Ok(Some(p)) => p,
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment record not found"}))).into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    };
+
+    if payment_record.status != "SELECTION_REQUIRED" {
+        return (StatusCode::BAD_REQUEST, Json(json!({"error": "Payment currency already selected"}))).into_response();
+    }
+
+    // 3. Resolve crypto type and calculate amounts
+    let crypto_type = req.crypto_type;
+    let merchant_id = payment_record.merchant_id;
+    
+    // This will trigger auto-generation if in Managed Mode!
+    let to_address = match state.merchant_service.get_wallet_address(merchant_id, crypto_type).await {
+        Ok(addr) => addr,
+        Err(e) => return (StatusCode::BAD_REQUEST, Json(json!({"error": format!("Failed to get/generate merchant wallet: {}", e)}))).into_response(),
+    };
+
+    let price_service = state.price_service.clone();
+    let price = match price_service.get_price(crypto_type).await {
+        Ok(p) => p,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Price fetch failed: {}", e)}))).into_response(),
+    };
+    let price_decimal = Decimal::from_f64_retain(price).unwrap_or(Decimal::ONE);
+
+    let amount_usd = payment_record.amount_usd;
+    let amount_crypto = amount_usd / price_decimal;
+    let fee_amount_crypto = payment_record.fee_amount_usd / price_decimal;
+    let network = crypto_type.network();
+
+    // 4. Update payment record
+    if let Err(e) = sqlx::query!(
+        r#"
+        UPDATE payment_transactions 
+        SET crypto_type = $1, amount = $2, to_address = $3, network = $4, fee_amount = $5, status = 'PENDING'
+        WHERE id = $6
+        "#,
+        crypto_type.to_string(),
+        amount_crypto,
+        to_address,
+        network,
+        fee_amount_crypto,
+        payment_record.id
+    )
+    .execute(&pool)
+    .await {
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
+    }
+
+    (StatusCode::OK, Json(json!({"message": "Selection finalized", "crypto_type": crypto_type.to_string()}))).into_response()
+}
+
+#[derive(serde::Deserialize)]
+pub struct SelectionRequest {
+    pub crypto_type: crate::payment::models::CryptoType,
 }
 
 // Helper functions
@@ -984,6 +1077,7 @@ struct PaymentPageData {
     is_pending: bool,
     is_confirmed: bool,
     is_expired: bool,
+    is_selection_required: bool,
     sandbox: bool,
 }
 
@@ -1004,9 +1098,10 @@ fn render_payment_page(data: PaymentPageData) -> String {
         .replace("{{expires_at}}", &encode_text(&data.expires_at))
         .replace("{{transaction_hash}}", &encode_text(&data.transaction_hash.unwrap_or_default()))
         .replace("{{#if is_pending}}", if data.is_pending { "" } else { "<!--" })
-        .replace("{{/if}}", if data.is_pending { "" } else { "-->" })
+        .replace("{{/if}}", "") // Very crude, but works if tags are unique and in order
         .replace("{{#if is_confirmed}}", if data.is_confirmed { "" } else { "<!--" })
         .replace("{{#if is_expired}}", if data.is_expired { "" } else { "<!--" })
+        .replace("{{#if is_selection_required}}", if data.is_selection_required { "" } else { "<!--" })
         .replace("{{#if sandbox}}", if data.sandbox { "" } else { "<!--" })
 }
 

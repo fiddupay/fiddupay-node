@@ -15,6 +15,7 @@ pub enum PaymentStatus {
     Expired,
     Confirming,
     Refunded,
+    SelectionRequired,
 }
 
 impl PaymentStatus {
@@ -26,6 +27,7 @@ impl PaymentStatus {
             "EXPIRED" => PaymentStatus::Expired,
             "CONFIRMING" => PaymentStatus::Confirming,
             "REFUNDED" => PaymentStatus::Refunded,
+            "SELECTION_REQUIRED" => PaymentStatus::SelectionRequired,
             _ => PaymentStatus::Pending, // Default fallback
         }
     }
@@ -201,7 +203,7 @@ pub struct CreatePaymentRequest {
     pub amount: Option<Decimal>,
     #[serde(with = "rust_decimal::serde::str_option", default)]
     pub amount_usd: Option<Decimal>,
-    pub crypto_type: CryptoType,
+    pub crypto_type: Option<CryptoType>,
     #[serde(default)]
     pub description: Option<String>,
     #[serde(default)]
@@ -243,12 +245,12 @@ impl CreatePaymentRequest {
 #[derive(Debug, Serialize)]
 pub struct PaymentResponse {
     pub payment_id: String,
-    pub crypto_type: String, // Changed from CryptoType to String to preserve original value
-    #[serde(with = "rust_decimal::serde::str")]
-    pub amount: Decimal,
+    pub crypto_type: Option<String>, 
+    #[serde(with = "rust_decimal::serde::str_option")]
+    pub amount: Option<Decimal>,
     #[serde(with = "rust_decimal::serde::str")]
     pub amount_usd: Decimal,
-    pub to_address: String,
+    pub to_address: Option<String>,
     pub status: PaymentStatus,
     pub confirmations: i32,
     pub required_confirmations: i32,
@@ -274,7 +276,7 @@ impl From<crate::models::payment::Payment> for PaymentResponse {
     fn from(payment: crate::models::payment::Payment) -> Self {
         Self {
             payment_id: payment.payment_id,
-            crypto_type: payment.crypto_type.clone(), // Use original string
+            crypto_type: payment.crypto_type, 
             amount: payment.amount,
             amount_usd: payment.amount_usd,
             to_address: payment.to_address.clone(),
@@ -286,12 +288,12 @@ impl From<crate::models::payment::Payment> for PaymentResponse {
             confirmed_at: payment.confirmed_at,
             description: payment.description,
             metadata: payment.metadata,
-            network: Some(payment.crypto_type.clone()),
-            deposit_address: Some(payment.to_address),
+            network: payment.network,
+            deposit_address: payment.to_address,
             payment_link: None,
             qr_code_data: None,
-            fee_amount: None,
-            fee_amount_usd: None,
+            fee_amount: payment.fee_amount,
+            fee_amount_usd: Some(payment.fee_amount_usd),
             transaction_hash: payment.transaction_hash,
             from_address: payment.from_address,
             partial_payments: None,

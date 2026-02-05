@@ -304,40 +304,42 @@ impl PaymentService {
         &self,
         payment: PaymentTransaction,
     ) -> Result<PaymentResponse, PaymentServiceError> {
-        // Parse crypto type from string
-        let crypto_type = self.parse_crypto_type(&payment.crypto_type);
+        // Parse crypto type from string if exists
+        let crypto_type = payment.crypto_type.as_deref().map(|s| self.parse_crypto_type(s));
 
         // Parse status from string
         let status = self.parse_status(&payment.status);
-
-        // Get partial payment info if enabled
-        let partial_payments: Option<serde_json::Value> = None;
 
         // Fetch payment link from database
         let payment_link = format!("{}/pay/{}", 
             self.config.payment_page_base_url,
             payment.payment_id
         );
-        // Generate QR code data
-        let qr_code_data = format!(
-            "{}:{}?amount={}",
-            crypto_type.network().to_lowercase(),
-            payment.to_address,
-            payment.amount
-        );
+        
+        // Generate QR code data only if we have the necessary info
+        let qr_code_data = if let (Some(ct), Some(addr), Some(amt)) = (&crypto_type, &payment.to_address, &payment.amount) {
+            Some(format!(
+                "{}:{}?amount={}",
+                ct.network().to_lowercase(),
+                addr,
+                amt
+            ))
+        } else {
+            None
+        };
 
         Ok(PaymentResponse {
             payment_id: payment.payment_id,
             status,
             amount: payment.amount,
             amount_usd: payment.amount_usd,
-            crypto_type: payment.crypto_type.clone(), // Use original string instead of parsed enum
-            network: Some(crypto_type.network().to_string()),
-            deposit_address: Some(payment.to_address.clone()),
+            crypto_type: payment.crypto_type.clone(),
+            network: payment.network,
+            deposit_address: payment.to_address.clone(),
             payment_link: Some(payment_link),
-            qr_code_data: Some(qr_code_data),
-            fee_amount: None,
-            fee_amount_usd: None,
+            qr_code_data,
+            fee_amount: payment.fee_amount,
+            fee_amount_usd: Some(payment.fee_amount_usd),
             expires_at: payment.expires_at,
             created_at: payment.created_at,
             confirmed_at: payment.confirmed_at,

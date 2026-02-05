@@ -35,7 +35,7 @@ const SettingsPage: React.FC = () => {
         try {
             setLoading(true)
             await merchantAPI.updateSettings(updates)
-            await loadUser()
+            await loadUser(true)
             showToast('Settings updated successfully', 'success')
         } catch (error: any) {
             showToast(error.response?.data?.error || 'Failed to update settings', 'error')

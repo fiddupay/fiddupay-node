@@ -16,7 +16,7 @@ interface AuthActions {
   register: (data: RegisterData) => Promise<void>
   logout: () => void
   clearError: () => void
-  loadUser: () => Promise<void>
+  loadUser: (silent?: boolean) => Promise<void>
 }
 
 export const useAuthStore = create<AuthState & AuthActions>()(
@@ -92,7 +92,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         set({ error: null })
       },
 
-      loadUser: async () => {
+      loadUser: async (silent: boolean = false) => {
         const token = localStorage.getItem('fiddupay_token') || sessionStorage.getItem('fiddupay_token')
         if (!token) {
           set({ loading: false })
@@ -100,7 +100,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
 
         try {
-          set({ loading: true })
+          if (!silent) set({ loading: true })
           const response = await merchantAPI.getProfile()
           set({
             user: response.data.user,

@@ -1,5 +1,17 @@
 # FidduPay Backend Changelog
 
+## [2.4.3] - 2026-02-05
+
+### Added
+- **Multi-Currency Selection Checkout**: Introduced a new checkout flow where customers can select their preferred cryptocurrency and network.
+- **On-Demand Managed Wallet Generation**: Merchants in 'Managed' mode now have wallets automatically generated upon the first payment request for any supported network.
+- **Selection Finalization Endpoint**: Added `POST /api/v1/payments/:link_id/select` to process customer currency choices.
+- **Dynamic Checkouts**: Updated hosted payment page with a modern currency selection interface and interactive network grid.
+
+### Changed
+- **Nullable Payment Model**: Transitioned `amount`, `crypto_type`, and `to_address` fields to be optional in the database to accommodate the pre-selection payment state.
+- **Service Layer Optimization**: Refactored `AnalyticsService`, `PaymentService`, and `PaymentVerifier` to handle optional payment fields and improved reliability for multi-currency transactions.
+
 ## [2.4.1] - 2026-02-04
 
 ### Added

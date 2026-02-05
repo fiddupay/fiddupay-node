@@ -83,18 +83,25 @@ const WalletsPage: React.FC = () => {
 
       const mode = settlementMode === 'imported' ? 'import' : 'address';
 
-      await walletAPI.setup({
-        crypto_type: newWallet.crypto_type,
-        mode: mode,
-        address: settlementMode === 'imported' ? undefined : address,
-        private_key: settlementMode === 'imported' ? address : undefined,
-        is_active: true
-      })
+      // Find the network object for the selected crypto_type to get all related cryptos
+      const network = supportedCryptos.find(n => n.cryptos.some((c: any) => c.crypto_type === newWallet.crypto_type));
+      const cryptosToUpdate = network ? network.cryptos.map((c: any) => c.crypto_type) : [newWallet.crypto_type];
+
+      // Update all crypto types on this network
+      await Promise.all(cryptosToUpdate.map((ct: string) =>
+        walletAPI.setup({
+          crypto_type: ct,
+          mode: mode,
+          address: settlementMode === 'imported' ? undefined : address,
+          private_key: settlementMode === 'imported' ? address : undefined,
+          is_active: true
+        })
+      ));
 
       await loadWallets()
       setShowConfigModal(false)
       setNewWallet({ crypto_type: 'SOL', address: '' })
-      showToast('Wallet configured successfully!', 'success')
+      showToast('Wallet configured successfully for all assets on this network!', 'success')
     } catch (error: any) {
       showToast(error.response?.data?.error || 'Failed to configure wallet', 'error')
     } finally {
@@ -132,28 +139,38 @@ const WalletsPage: React.FC = () => {
     }
   }
 
-  const handleToggleNetwork = async (cryptoType: string, address: string, isActive: boolean) => {
+  const handleToggleNetwork = async (networkName: string, isActive: boolean) => {
+    const network = supportedCryptos.find(n => n.name === networkName);
+    if (!network) return;
+
+    // Optimistically update all wallets on this network in the local state
+    const cryptosOnNetwork = network.cryptos.map((c: any) => c.crypto_type);
+    const updatedWallets = wallets.map(w =>
+      cryptosOnNetwork.includes(w.crypto_type) ? { ...w, is_active: isActive } : w
+    );
+    setWallets(updatedWallets);
+
     try {
       setRefreshing(true)
-      // For address-only (Forwarding) or network status toggle
-      if (settlementMode === 'forwarding' || settlementMode === 'managed') {
-        await walletAPI.setup({
-          crypto_type: cryptoType,
-          mode: 'address',
-          address: address,
-          is_active: isActive
-        })
-      } else if (settlementMode === 'imported') {
-        await walletAPI.setup({
-          crypto_type: cryptoType,
-          mode: 'address', // When toggling, we just send mode address to update status
-          address: address,
-          is_active: isActive
-        })
-      }
+
+      // Update all crypto types on this network
+      await Promise.all(cryptosOnNetwork.map(async (ct: string) => {
+        const existingWallet = wallets.find(w => w.crypto_type === ct);
+        if (existingWallet || settlementMode !== 'managed') {
+          return walletAPI.setup({
+            crypto_type: ct,
+            mode: 'address',
+            address: existingWallet?.address || '',
+            is_active: isActive
+          });
+        }
+      }));
+
       await loadWallets()
-      showToast(`${isActive ? 'Enabled' : 'Disabled'} network successfully`, 'success')
+      showToast(`${isActive ? 'Enabled' : 'Disabled'} ${networkName} network successfully`, 'success')
     } catch (error: any) {
+      // Revert on error
+      await loadWallets()
       showToast(error.response?.data?.error || 'Failed to toggle network', 'error')
     } finally {
       setRefreshing(false)
@@ -209,7 +226,7 @@ const WalletsPage: React.FC = () => {
         </div>
         <button className={styles.configureBtn} onClick={() => setShowConfigModal(true)}>
           <i className="fas fa-plus mr-2"></i>
-          Add / Configure Wallet
+          Configure Networks
         </button>
       </header>
 
@@ -262,7 +279,7 @@ const WalletsPage: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={wallet?.is_active ?? false}
-                      onChange={(e) => handleToggleNetwork(baseCryptoType, wallet?.address || '', e.target.checked)}
+                      onChange={(e) => handleToggleNetwork(network.name, e.target.checked)}
                       disabled={!wallet && settlementMode === 'managed'}
                     />
                     <span className={styles.slider}></span>
@@ -373,35 +390,42 @@ const WalletsPage: React.FC = () => {
               </button>
             </div>
             <div className={styles.formGroup}>
-              <label>Select Cryptocurrency</label>
+              <label>Select Network</label>
               <select value={newWallet.crypto_type} onChange={(e) => setNewWallet({ ...newWallet, crypto_type: e.target.value })}>
                 {supportedCryptos.map(network => (
-                  <optgroup key={network.name} label={network.name}>
-                    {network.cryptos.map((crypto: any) => (
-                      <option key={crypto.crypto_type} value={crypto.crypto_type}>
-                        {crypto.crypto_type.split('_')[0]} on {crypto.network}
-                      </option>
-                    ))}
-                  </optgroup>
+                  <option key={network.name} value={network.cryptos[0].crypto_type}>
+                    {network.name}
+                  </option>
                 ))}
               </select>
             </div>
-            <div className={styles.formGroup}>
-              <label>{settlementMode === 'imported' ? 'Private Key' : 'Wallet Address'}</label>
-              <input
-                type={settlementMode === 'imported' ? 'password' : 'text'}
-                value={newWallet.address}
-                onChange={(e) => setNewWallet({ ...newWallet, address: e.target.value })}
-                placeholder={settlementMode === 'imported' ? 'Enter private key' : 'Enter 0x... or specific address'}
-                className={settlementMode === 'imported' ? styles.privateKeyInput : ''}
-                autoFocus
-              />
-              <p className={styles.inputHelper}>
-                {settlementMode === 'imported'
-                  ? "Your private key will be encrypted and used to derive your wallet address."
-                  : "Payments sent to this address will be detected automatically."}
-              </p>
-            </div>
+            {settlementMode === 'managed' ? (
+              <div className="py-6 text-center bg-gray-50 rounded-lg border border-gray-200">
+                <i className="fas fa-magic text-blue-500 text-3xl mb-3"></i>
+                <p className="text-gray-700 font-medium">Automatic Wallet Generation</p>
+                <p className="text-sm text-gray-500 px-6 mt-2">
+                  In Managed mode, FidduPay creates and secures your wallets.
+                  Simply click the <strong>Generate</strong> button on any network card in the main view.
+                </p>
+              </div>
+            ) : (
+              <div className={styles.formGroup}>
+                <label>{settlementMode === 'imported' ? 'Private Key' : 'Wallet Address'}</label>
+                <input
+                  type={settlementMode === 'imported' ? 'password' : 'text'}
+                  value={newWallet.address}
+                  onChange={(e) => setNewWallet({ ...newWallet, address: e.target.value })}
+                  placeholder={settlementMode === 'imported' ? 'Enter private key' : 'Enter 0x... or specific address'}
+                  className={settlementMode === 'imported' ? styles.privateKeyInput : ''}
+                  autoFocus
+                />
+                <p className={styles.inputHelper}>
+                  {settlementMode === 'imported'
+                    ? "Your private key will be encrypted and used to derive your wallet address."
+                    : "Payments sent to this address will be detected automatically."}
+                </p>
+              </div>
+            )}
             <div className={styles.modalActions}>
               <button className={styles.cancelBtn} onClick={() => setShowConfigModal(false)}>Cancel</button>
               <button className={styles.confirmBtn} onClick={handleConfigureWallet} disabled={refreshing}>

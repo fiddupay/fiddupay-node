@@ -144,8 +144,9 @@ impl PaymentVerifier {
         }
 
         // 6. Fetch blockchain transaction using the provided hash
-        // Parse crypto type from string
-        let crypto_type = CryptoType::from_string(&payment.crypto_type);
+        // Parse crypto type from string (Requirement 3.1)
+        let crypto_type_str = payment.crypto_type.as_ref().ok_or("Currency selection required before verification")?;
+        let crypto_type = CryptoType::from_string(crypto_type_str);
 
         // Get appropriate blockchain monitor for this crypto type
         let monitor = get_blockchain_monitor(&crypto_type, self.config.clone());
@@ -219,21 +220,23 @@ impl PaymentVerifier {
         }
 
         // Check recipient address matches merchant's wallet (Requirement 3.3)
-        if blockchain_tx.to_address.to_lowercase() != payment.to_address.to_lowercase() {
+        let payment_to_address = payment.to_address.as_ref().ok_or("Merchant address missing")?;
+        if blockchain_tx.to_address.to_lowercase() != payment_to_address.to_lowercase() {
             warn!("Recipient address mismatch: expected merchant wallet {}, got {}",
-                payment.to_address,
+                payment_to_address,
                 blockchain_tx.to_address
             );
             return Ok(false);
         }
 
         // Check amount matches (allow 0.1% tolerance for fees) (Requirement 3.2)
-        let amount_diff = (blockchain_tx.amount - payment.amount).abs();
-        let tolerance = payment.amount * Decimal::from_str("0.001")?; // 0.1%
+        let payment_amount = payment.amount.ok_or("Payment amount missing")?;
+        let amount_diff = (blockchain_tx.amount - payment_amount).abs();
+        let tolerance = payment_amount * Decimal::from_str("0.001")?; // 0.1%
 
         if amount_diff > tolerance {
             warn!("Amount mismatch: expected {}, got {} (diff: {})",
-                payment.amount,
+                payment_amount,
                 blockchain_tx.amount,
                 amount_diff
             );
@@ -257,7 +260,7 @@ impl PaymentVerifier {
         // Fetch payment to get fee information for logging (Requirement 6.3)
         let payment = sqlx::query!(
             r#"
-            SELECT fee_amount, fee_amount_usd, fee_percentage, amount, amount_usd
+            SELECT fee_amount, fee_amount_usd, fee_percentage, amount, amount_usd, crypto_type
             FROM payment_transactions
             WHERE id = $1
             "#,
@@ -283,7 +286,7 @@ impl PaymentVerifier {
 
         // Log fee recording for audit trail (Requirement 6.3)
         info!(
-            " Payment {} confirmed for merchant {} - Fee recorded: {} crypto (${}) at {}% rate",
+            " Payment {} confirmed for merchant {} - Fee recorded: {:?} crypto (${}) at {}% rate",
             payment_id,
             merchant_id,
             payment.fee_amount,
@@ -297,8 +300,8 @@ impl PaymentVerifier {
             payment_id: payment_id.to_string(),
             merchant_id,
             status: crate::payment::models::PaymentStatus::Confirmed,
-            amount: payment.amount,
-            crypto_type: "SOL".to_string(), // Would need to fetch from payment record
+            amount: payment.amount.unwrap_or_default(),
+            crypto_type: payment.crypto_type.unwrap_or_else(|| "UNKNOWN".to_string()),
             transaction_hash: Some("tx_hash".to_string()), // Would need transaction hash parameter
             timestamp: chrono::Utc::now().timestamp(),
         };
@@ -382,7 +385,11 @@ impl PaymentVerifier {
         .await?;
 
         // Check if payment is now complete
-        let is_complete = payment.total_paid >= payment.amount;
+        let is_complete = if let Some(amt) = payment.amount {
+            payment.total_paid >= amt
+        } else {
+            false
+        };
         
         if is_complete {
             sqlx::query!(
@@ -396,7 +403,7 @@ impl PaymentVerifier {
 
         tx.commit().await?;
 
-        info!(" Partial payment recorded for payment {}: {} (total: {}/{})", 
+        info!(" Partial payment recorded for payment {}: {} (total: {}/{:?})", 
             payment_id, amount, payment.total_paid, payment.amount);
 
         Ok(is_complete)
