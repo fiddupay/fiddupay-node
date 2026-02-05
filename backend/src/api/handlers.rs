@@ -286,7 +286,7 @@ pub async fn get_merchant_readiness(
     // 2. Determine enabled networks
     let mut enabled_networks = std::collections::HashSet::new();
     for curr in enabled_currencies {
-        enabled_networks.insert(curr.network);
+        enabled_networks.insert(curr.2);
     }
 
     // 3. Analyze wallet coverage
@@ -320,10 +320,9 @@ pub async fn get_merchant_readiness(
     }
 
     // 4. Security status check
-    let security_alerts = sqlx::query_scalar!("SELECT COUNT(*) FROM security_alerts WHERE merchant_id = $1 AND status = 'active'", merchant_id)
+    let security_alerts = sqlx::query_scalar!("SELECT COUNT(*) as \"count!\" FROM security_alerts WHERE merchant_id = $1 AND status = 'active'", merchant_id)
         .fetch_one(&state.db_pool)
         .await
-        .unwrap_or(Some(0))
         .unwrap_or(0);
 
     if security_alerts > 0 {
@@ -335,7 +334,7 @@ pub async fn get_merchant_readiness(
         "is_ready": is_ready && security_alerts == 0,
         "environment": if merchant.sandbox_mode { "sandbox" } else { "live" },
         "settlement_mode": merchant.settlement_mode,
-        "kyc_verified": merchant.kyc_verified.unwrap_or(false),
+        "kyc_verified": merchant.kyc_verified,
         "network_coverage": network_status,
         "security": {
             "active_alerts": security_alerts
@@ -524,12 +523,8 @@ pub struct UnifiedSettingsRequest {
     pub sandbox_mode: Option<bool>,
 }
 
-fn validate_optional_webhook_url(url: &Option<String>) -> Result<(), validator::ValidationError> {
-    if let Some(url_str) = url {
-        validate_webhook_url(url_str)
-    } else {
-        Ok(())
-    }
+fn validate_optional_webhook_url(url: &String) -> Result<(), validator::ValidationError> {
+    validate_webhook_url(url)
 }
 
 pub async fn update_merchant_settings(
