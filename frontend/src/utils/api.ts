@@ -12,7 +12,7 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('fiddupay_token')
+    const token = localStorage.getItem('fiddupay_token') || sessionStorage.getItem('fiddupay_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -30,6 +30,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Clear auth data and redirect to login
       localStorage.removeItem('fiddupay_token')
+      sessionStorage.removeItem('fiddupay_token')
       localStorage.removeItem('user')
       window.location.href = '/login'
     }
