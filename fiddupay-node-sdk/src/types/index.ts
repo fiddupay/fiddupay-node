@@ -2,7 +2,7 @@
 
 export type CryptoType = 'SOL' | 'ETH' | 'BNB' | 'MATIC' | 'ARB' | 'USDT_ETH' | 'USDT_BEP20' | 'USDT_POLYGON' | 'USDT_ARBITRUM' | 'USDT_SPL';
 
-export type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
+export type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'REFUNDED' | 'SELECTION_REQUIRED';
 
 export type WebhookEventType =
   | 'payment.detected'
@@ -40,13 +40,17 @@ export interface MerchantProfile {
 export interface CreatePaymentRequest {
   amount?: string;
   amount_usd?: string;
-  crypto_type: CryptoType;
+  crypto_type?: CryptoType;
   description?: string;
   metadata?: Record<string, any>;
   expiration_minutes?: number;
   expires_in?: number; // seconds, alternative to expiration_minutes
   webhook_url?: string;
   partial_payments_enabled?: boolean;
+}
+
+export interface SelectionRequest {
+  crypto_type: CryptoType;
 }
 
 export interface CreateAddressOnlyPaymentRequest {
@@ -61,11 +65,11 @@ export interface CreateAddressOnlyPaymentRequest {
 
 export interface Payment {
   payment_id: string;
-  amount: string;           // Crypto amount
+  amount?: string;           // Crypto amount (optional if status is SELECTION_REQUIRED)
   amount_usd: string;
-  crypto_type: CryptoType;
+  crypto_type?: CryptoType;  // Optional if status is SELECTION_REQUIRED
   status: PaymentStatus;
-  to_address: string;       // Backend uses to_address
+  to_address?: string;       // Backend uses to_address (optional if status is SELECTION_REQUIRED)
   deposit_address?: string; // Also included for convenience
   transaction_hash?: string;
   from_address?: string;

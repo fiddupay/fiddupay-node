@@ -15,26 +15,25 @@ npm run dev
 ### Authentication
 ```typescript
 // Login
-const { user, api_key } = await apiService.login({
+const { user, api_key } = await apiService.auth.login({
   email: 'merchant@example.com',
   password: 'password123'
 });
 
 // Get profile
-const profile = await apiService.getProfile();
+const profile = await apiService.merchant.getProfile();
 ```
 
 ### Payments
 ```typescript
-// Create payment
-const payment = await apiService.createPayment({
+// Create payment (Multi-currency checkout)
+const payment = await apiService.payment.create({
   amount_usd: '100.00',
-  crypto_type: 'SOL',
   description: 'Order #123'
 });
 
 // List payments
-const payments = await apiService.getPayments({
+const payments = await apiService.payment.getHistory({
   limit: 10,
   status: 'PENDING'
 });
@@ -43,27 +42,30 @@ const payments = await apiService.getPayments({
 ### Wallets
 ```typescript
 // Get wallets
-const wallets = await apiService.getWallets();
+const wallets = await apiService.wallet.getAll();
 
-// Generate wallet
-const wallet = await apiService.generateWallet('ETH');
+// Setup new wallet (Auto-generate)
+const wallet = await apiService.wallet.setup({
+  crypto_type: 'ETH',
+  mode: 'generate'
+});
 
 // Check gas requirements
-const gasCheck = await apiService.checkGasRequirements();
+const gasCheck = await apiService.withdrawal.validateGas('ETH', 0.1);
 ```
 
 ### Security
 ```typescript
 // Get security events
-const events = await apiService.getSecurityEvents({ limit: 50 });
+const events = await apiService.security.getEvents({ limit: 50 });
 
 // Get security alerts
-const alerts = await apiService.getSecurityAlerts();
+const alerts = await apiService.security.getAlerts();
 
-// Update security settings
-await apiService.updateSecuritySettings({
-  enable_notifications: true,
-  alert_thresholds: { low_balance: '1.0' }
+// Update merchant settings (Unified)
+await apiService.merchant.updateSettings({
+  webhook_url: 'https://example.com/webhook',
+  settlement_mode: 'managed'
 });
 ```
 

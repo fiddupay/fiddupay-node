@@ -72,6 +72,8 @@ export const paymentAPI = {
   },
   get: (paymentId: string) => api.get(`/api/v1/merchants/payments/${paymentId}`),
   verify: (paymentId: string, data: any) => api.post(`/api/v1/merchants/payments/${paymentId}/verify`, data),
+  finalizeSelection: (paymentId: string, cryptoType: string) =>
+    api.post(`/api/v1/merchants/payments/${paymentId}/select`, { crypto_type: cryptoType }),
 
   // Unified Transactions
   getUnifiedTransactions: (params?: any) => {

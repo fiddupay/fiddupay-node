@@ -1,4 +1,4 @@
-# FidduPay Frontend Documentation v2.2
+# FidduPay Frontend Documentation v2.4.3
 
 React-based frontend for the FidduPay cryptocurrency payment gateway with comprehensive API integration and modern UI components.
 
@@ -9,11 +9,12 @@ The FidduPay frontend is a React TypeScript application that provides a complete
 ## Features
 
 - ** Authentication**: Secure login/registration with JWT tokens
-- ** Payment Management**: Create, view, and manage cryptocurrency payments
-- ** Wallet Management**: 3-mode wallet system (address-only, generated, imported)
+- ** Payment Management**: Create, view, and manage cryptocurrency payments (Standard & Multi-Currency)
+- ** Wallet Management**: 3-mode wallet system with **On-Demand Auto-Generation** for managed mode
+- ** Unified Settings**: Atomically manage webhooks, settlement modes, and fees
 - ** Security Dashboard**: Real-time monitoring, alerts, and IP whitelisting
 - ** Balance Management**: View balances and transaction history
-- ** Analytics**: Comprehensive reporting and data visualization
+- ** Analytics**: Comprehensive reporting and **Unified Transaction Feed**
 - ** Withdrawal Processing**: Create and manage withdrawals
 - ** Sandbox Testing**: Complete testing environment
 - ** Audit Logs**: Compliance tracking and activity monitoring
@@ -75,15 +76,21 @@ import { apiService } from '@/services/api';
 const { user, api_key } = await apiService.login(credentials);
 const profile = await apiService.getProfile();
 
-// Payments - USD-based
-const payment = await apiService.createPayment({
+// Payments - Multi-currency Checkout (USD-based)
+const mcPayment = await apiService.payment.create({
   amount_usd: "100.00",
-  crypto_type: "SOL",
-  description: "Order payment"
+  description: "Customer selects currency at checkout"
 });
 
-// Payments - Crypto-based
-const cryptoPayment = await apiService.createPayment({
+// Payments - Fixed currency (USD-based)
+const fixedPayment = await apiService.payment.create({
+  amount_usd: "100.00",
+  crypto_type: "SOL",
+  description: "Fixed SOL payment"
+});
+
+// Payments - Fixed currency (Crypto-based)
+const cryptoPayment = await apiService.payment.create({
   amount: "2.5",
   crypto_type: "SOL", 
   description: "Order payment"
@@ -134,16 +141,17 @@ const withdrawals = await apiService.getWithdrawals();
 - `PUT /api/v1/security/settings` - Update security settings
 
 #### Balance & Withdrawals
-- `GET /api/v1/merchant/balance` - Get current balance
-- `GET /api/v1/merchant/balance/history` - Get balance history
-- `POST /api/v1/withdrawals` - Create withdrawal
-- `GET /api/v1/withdrawals` - List withdrawals
-- `POST /api/v1/withdrawals/:id/cancel` - Cancel withdrawal
+- `GET /api/v1/merchants/balance` - Get current balance
+- `GET /api/v1/merchants/balance/history` - Get balance history
+- `POST /api/v1/merchants/withdrawals` - Create withdrawal
+- `GET /api/v1/merchants/withdrawals` - List withdrawals
+- `POST /api/v1/merchants/withdrawals/:id/cancel` - Cancel withdrawal
 
 #### Analytics & Reporting
-- `GET /api/v1/analytics` - Get analytics data
-- `GET /api/v1/analytics/export` - Export analytics
-- `GET /api/v1/audit-logs` - Get audit logs
+- `GET /api/v1/merchants/analytics` - Get analytics data
+- `GET /api/v1/merchants/transactions` - Unified transaction feed
+- `GET /api/v1/merchants/analytics/export` - Export analytics
+- `GET /api/v1/merchants/audit-logs` - Get audit logs
 
 #### Sandbox & Testing
 - `POST /api/v1/sandbox/enable` - Enable sandbox mode
@@ -194,6 +202,7 @@ interface PaymentState {
   loading: boolean;
   fetchPayments: () => Promise<void>;
   createPayment: (data: PaymentData) => Promise<Payment>;
+  finalizeSelection: (id: string, crypto: string) => Promise<void>;
   updatePayment: (id: string, data: Partial<Payment>) => void;
 }
 ```
@@ -203,19 +212,21 @@ interface PaymentState {
 ### Core Types (`src/types/index.ts`)
 ```typescript
 export interface User {
-  merchant_id: string;
+  id: number;
   email: string;
   business_name: string;
-  status: 'pending_verification' | 'verified' | 'suspended';
+  settlement_mode: 'forwarding' | 'managed' | 'imported';
+  sandbox_mode: boolean;
+  webhook_url?: string;
   created_at: string;
 }
 
 export interface Payment {
   payment_id: string;
   amount_usd: string;
-  crypto_amount: string;
-  crypto_type: CryptoType;
-  status: PaymentStatus;
+  amount?: string;
+  crypto_type?: string;
+  status: 'PENDING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'SELECTION_REQUIRED';
   deposit_address: string;
   transaction_hash?: string;
   created_at: string;

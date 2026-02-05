@@ -242,8 +242,6 @@ components:
 
     CreatePaymentRequest:
       type: object
-      required:
-        - crypto_type
       properties:
         amount:
           type: string
@@ -297,19 +295,22 @@ components:
           example: "payment_123"
         crypto_type:
           type: string
+          nullable: true
           example: "USDT_ETH"
         amount:
           type: string
+          nullable: true
           example: "100.50"
         amount_usd:
           type: string
           example: "100.50"
         to_address:
           type: string
+          nullable: true
           example: "0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82"
         status:
           type: string
-          enum: [PENDING, CONFIRMED, FAILED, EXPIRED, CONFIRMING, REFUNDED]
+          enum: [PENDING, CONFIRMED, FAILED, EXPIRED, CONFIRMING, REFUNDED, SELECTION_REQUIRED]
           example: "PENDING"
         confirmations:
           type: integer
@@ -694,6 +695,85 @@ components:
           type: string
           example: "Operation completed successfully"
 
+    MerchantReadiness:
+      type: object
+      properties:
+        is_ready:
+          type: boolean
+          example: true
+        issues:
+          type: array
+          items:
+            type: string
+          example: []
+        network_status:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "configured"
+              address:
+                type: string
+                example: "0x..."
+              is_active:
+                type: boolean
+                example: true
+        settlement_mode:
+          type: string
+          example: "managed"
+
+    MerchantSettings:
+      type: object
+      properties:
+        settlement_mode:
+          type: string
+          enum: [forwarding, managed, imported]
+          example: "managed"
+        customer_pays_fee:
+          type: boolean
+          example: true
+        sandbox_mode:
+          type: boolean
+          example: true
+        webhook_url:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://example.com/webhook"
+
+    UnifiedTransaction:
+      type: object
+      properties:
+        txn_type:
+          type: string
+          enum: [payment, refund, withdrawal]
+          example: "payment"
+        id:
+          type: string
+          example: "txn_123"
+        crypto_amount:
+          type: string
+          example: "1.5"
+        usd_amount:
+          type: string
+          example: "3000.00"
+        crypto_type:
+          type: string
+          example: "ETH"
+        status:
+          type: string
+          example: "confirmed"
+        transaction_hash:
+          type: string
+          nullable: true
+          example: "0x..."
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-02-05T12:00:00Z"
+
         created_at:
           type: string
           format: date-time
@@ -805,8 +885,72 @@ paths:
           description: Unauthorized
           content:
             application/json:
-          schema:
+              schema:
                 $ref: '#/components/schemas/Error'
+
+  /api/v1/merchants/status:
+    get:
+      tags:
+        - Authentication
+      summary: Get readiness status
+      description: Get detailed operational readiness status (wallet coverage, gas, settings)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Readiness status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantReadiness'
+
+  /api/v1/merchants/settings:
+    get:
+      tags:
+        - Authentication
+      summary: Get merchant settings
+      description: Get current merchant configuration (settlement, fees, webhooks)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantSettings'
+    patch:
+      tags:
+        - Authentication
+      summary: Update merchant settings
+      description: Atomically update webhook URL, settlement mode, and fee settings
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                webhook_url:
+                  type: string
+                  format: uri
+                settlement_mode:
+                  type: string
+                  enum: [forwarding, managed, imported]
+                customer_pays_fee:
+                  type: boolean
+                ip_whitelist:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Settings updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
 
   /api/v1/merchants/settlement-mode:
     put:
@@ -1017,7 +1161,7 @@ paths:
           description: Filter by payment status
           schema:
             type: string
-            enum: [PENDING, CONFIRMED, FAILED, EXPIRED, CONFIRMING, REFUNDED]
+            enum: [PENDING, CONFIRMED, FAILED, EXPIRED, CONFIRMING, REFUNDED, SELECTION_REQUIRED]
         - name: crypto_type
           in: query
           description: Filter by cryptocurrency
@@ -1133,6 +1277,55 @@ paths:
                 $ref: '#/components/schemas/Error'
         '401':
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/merchants/payments/{payment_id}/select:
+    post:
+      tags:
+        - Payments
+      summary: Finalize payment selection
+      description: Finalize the cryptocurrency selection for a multi-currency payment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          description: Payment ID
+          schema:
+            type: string
+            example: "payment_123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - crypto_type
+              properties:
+                crypto_type:
+                  type: string
+                  enum: [SOL, USDT_SPL, USDT_ETH, USDT_BEP20, USDT_POLYGON, USDT_ARBITRUM, ETH, BNB, MATIC, ARB]
+                  example: "USDT_ETH"
+      responses:
+        '200':
+          description: Payment selection finalized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          description: Invalid selection or payment not in SELECTION_REQUIRED status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Payment not found
           content:
             application/json:
               schema:
@@ -1736,20 +1929,45 @@ paths:
           description: Start date (ISO 8601)
           schema:
             type: string
-            format: date-time
+            format: date
         - name: to_date
           in: query
           description: End date (ISO 8601)
           schema:
             type: string
-            format: date-time
+            format: date
       responses:
         '200':
-          description: CSV data
+          description: Analytics exported successfully
           content:
             text/csv:
               schema:
                 type: string
+                format: binary
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/merchants/transactions:
+    get:
+      tags:
+        - Analytics
+      summary: Unified transaction feed
+      description: Get a chronologically merged feed of all payments, refunds, and withdrawals
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Transactions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UnifiedTransaction'
 
   /api/v1/merchants/balance:
     get:

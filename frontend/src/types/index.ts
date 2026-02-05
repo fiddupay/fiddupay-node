@@ -28,10 +28,10 @@ export interface RegisterData {
 // Payment Types
 export interface Payment {
   payment_id: string
-  status: 'PENDING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED'
-  amount: string
+  status: 'PENDING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'SELECTION_REQUIRED'
+  amount?: string
   amount_usd: string
-  crypto_type: string
+  crypto_type?: string
   network: string
   deposit_address: string
   payment_link: string
@@ -56,7 +56,7 @@ export interface AddressOnlyPayment {
   customer_instructions: string
   supported_currencies: string[]
   expires_at?: string
-  status?: 'PENDING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED'
+  status?: 'PENDING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'SELECTION_REQUIRED'
   transaction_hash?: string
   confirmations?: number
   created_at?: string
@@ -68,7 +68,7 @@ export interface AddressOnlyPayment {
 export interface PaymentData {
   amount_usd?: string  // USD-based payment
   amount?: string      // Crypto-based payment
-  crypto_type: string
+  crypto_type?: string
   description?: string
   webhook_url?: string
   metadata?: Record<string, any>
@@ -192,4 +192,7 @@ export interface PaginatedResponse<T> {
     total_pages: number
     total_count: number
   }
+}
+export interface SelectionRequest {
+  crypto_type: string
 }

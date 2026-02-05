@@ -3,6 +3,8 @@
 ## [2.4.3] - 2026-02-05
 
 ### 🚀 Developer Experience (DX) Simplification
+- **Multi-Currency Checkout Support**: Customers can now select their preferred currency during checkout. Added `payments.finalizeSelection` to the SDK.
+- **On-Demand Managed Flow**: Wallets are now automatically generated for merchants in 'managed' settlement mode when needed.
 - **Unified Merchant Settings**: New `PATCH /api/v1/merchants/settings` endpoint (and `merchants.updateSettings` in SDK) to atomically update webhook URL, settlement mode, fee settings, and IP whitelist in a single request.
 - **Simplified Wallet Setup**: Consolidated `configure-address`, `generate`, and `import` into a single `POST /api/v1/merchants/wallets` endpoint (and `wallets.setup` in SDK).
 - **Merchant Readiness Status**: New `GET /api/v1/merchants/status` endpoint (and `merchants.getStatus` in SDK) providing a comprehensive health check for operational readiness (wallet coverage, gas status, security alerts).
@@ -33,7 +35,7 @@
 - **Environment Context awareness**: Improved profile responses with `sandbox_mode`.
 
 ### Changed
-- **API Version alignment**: Core library synchronized with backend v2.4.1.
+- **API Version alignment**: Core library synchronized with backend v2.4.3.
 
 ## [2.4.0] - 2026-02-04
 

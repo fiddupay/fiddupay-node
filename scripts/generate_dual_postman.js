@@ -5,7 +5,7 @@ const path = require('path');
 const completePath = path.join(__dirname, '../docs/postman/FidduPay-Complete-API.postman_collection.json');
 const merchantPath = path.join(__dirname, '../fiddupay-node-sdk/postman/FidduPay-Merchant-API.postman_collection.json');
 
-const VERSION = "2.4.1";
+const VERSION = "2.4.3";
 
 // 1. Define the base structure (based on the original 773-line version)
 const baseCollection = {
@@ -131,21 +131,25 @@ addRequest(complete, 'Merchant Authentication', 'Login Merchant', 'POST', 'api/v
 addRequest(complete, 'Merchant Authentication', 'Get Profile', 'GET', 'api/v1/merchants/profile');
 addRequest(complete, 'Merchant Authentication', 'Switch Environment', 'POST', 'api/v1/merchants/environment/switch');
 addRequest(complete, 'Merchant Authentication', 'Rotate API Key', 'POST', 'api/v1/merchants/api-keys/rotate');
+addRequest(complete, 'Merchant Authentication', 'Update Settings', 'PATCH', 'api/v1/merchants/settings', { webhook_url: "https://e.com/w", settlement_mode: "managed", customer_pays_fee: true });
+addRequest(complete, 'Merchant Authentication', 'Get Settings', 'GET', 'api/v1/merchants/settings');
+addRequest(complete, 'Merchant Authentication', 'Get Readiness Status', 'GET', 'api/v1/merchants/status');
 
-addRequest(complete, 'Merchant Payments', 'Create Payment', 'POST', 'api/v1/merchants/payments', { amount_usd: "100.0", crypto_type: "SOL", description: "Test" });
+addRequest(complete, 'Merchant Payments', 'Create Payment', 'POST', 'api/v1/merchants/payments', { amount_usd: "100.0", description: "Multi-currency checkout" });
+addRequest(complete, 'Merchant Payments', 'Create Fixed Payment', 'POST', 'api/v1/merchants/payments', { amount_usd: "100.0", crypto_type: "SOL", description: "Fixed currency" });
 addRequest(complete, 'Merchant Payments', 'List Payments', 'GET', 'api/v1/merchants/payments');
 addRequest(complete, 'Merchant Payments', 'Get Payment', 'GET', 'api/v1/merchants/payments/p_123');
 addRequest(complete, 'Merchant Payments', 'Verify Payment', 'POST', 'api/v1/merchants/payments/p_123/verify');
+addRequest(complete, 'Merchant Payments', 'Finalize Selection', 'POST', 'api/v1/merchants/payments/p_123/select', { crypto_type: "SOL" });
 
 addRequest(complete, 'Merchant Refunds', 'Create Refund', 'POST', 'api/v1/merchants/refunds', { payment_id: "p_123", amount: "10.0", reason: "Refund" });
 addRequest(complete, 'Merchant Refunds', 'Get Refund', 'GET', 'api/v1/merchants/refunds/r_123');
 addRequest(complete, 'Merchant Refunds', 'Complete Refund', 'POST', 'api/v1/merchants/refunds/r_123/complete');
 
+addRequest(complete, 'Merchant Wallets', 'Unified Wallet Setup', 'POST', 'api/v1/merchants/wallets', { crypto_type: "SOL", address: "Optional address for imported mode" });
 addRequest(complete, 'Merchant Wallets', 'Get Wallets', 'GET', 'api/v1/merchants/wallets');
-addRequest(complete, 'Merchant Wallets', 'Update Wallets', 'PUT', 'api/v1/merchants/wallets', { solana_address: "..." });
-addRequest(complete, 'Merchant Wallets', 'Configure Address Only', 'POST', 'api/v1/merchants/wallets/configure-address', { crypto_type: "ETH", address: "0x...", customer_pays_fee: true });
-addRequest(complete, 'Merchant Wallets', 'Generate Wallet', 'POST', 'api/v1/merchants/wallets/generate');
-addRequest(complete, 'Merchant Wallets', 'Import Wallet', 'POST', 'api/v1/merchants/wallets/import');
+addRequest(complete, 'Merchant Wallets', 'Generate Wallet (Legacy)', 'POST', 'api/v1/merchants/wallets/generate');
+addRequest(complete, 'Merchant Wallets', 'Import Wallet (Legacy)', 'POST', 'api/v1/merchants/wallets/import');
 
 addRequest(complete, 'Merchant Withdrawals', 'Create Withdrawal', 'POST', 'api/v1/merchants/withdrawals', { crypto_type: "SOL", amount: "1.0", destination_address: "..." });
 addRequest(complete, 'Merchant Withdrawals', 'List Withdrawals', 'GET', 'api/v1/merchants/withdrawals');
@@ -153,6 +157,7 @@ addRequest(complete, 'Merchant Withdrawals', 'Get Withdrawal', 'GET', 'api/v1/me
 addRequest(complete, 'Merchant Withdrawals', 'Cancel Withdrawal', 'POST', 'api/v1/merchants/withdrawals/w_123/cancel');
 
 addRequest(complete, 'Merchant Analytics', 'Get Analytics', 'GET', 'api/v1/merchants/analytics');
+addRequest(complete, 'Merchant Analytics', 'Unified Transaction Feed', 'GET', 'api/v1/merchants/transactions');
 addRequest(complete, 'Merchant Analytics', 'Export Analytics', 'GET', 'api/v1/merchants/analytics/export');
 
 addRequest(complete, 'Merchant Security', 'Get IP Whitelist', 'GET', 'api/v1/merchants/ip-whitelist');
@@ -177,6 +182,7 @@ const merchant = JSON.parse(JSON.stringify(complete));
 merchant.info.name = "FidduPay Merchant API SDK";
 merchant.info.description = "Official Merchant API documentation for FidduPay Node.js SDK users.";
 merchant.item = merchant.item.filter(folder => !folder.name.includes('Admin'));
+merchant.variable = merchant.variable.filter(v => !v.key.includes('admin'));
 
 // 4. Save both
 fs.writeFileSync(completePath, JSON.stringify(complete, null, 2));

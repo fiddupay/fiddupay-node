@@ -9,7 +9,8 @@ import {
   UpdateFeeSettingRequest,
   FeeSettingResponse,
   UpdateFeeSettingResponse,
-  RequestOptions
+  RequestOptions,
+  SelectionRequest
 } from '../types';
 import { FidduPayValidationError } from '../errors';
 
@@ -22,6 +23,19 @@ export class Payments {
   async create(data: CreatePaymentRequest, options?: RequestOptions): Promise<Payment> {
     this.validateCreatePayment(data);
     return this.client.request<Payment>('POST', '/api/v1/merchants/payments', data);
+  }
+
+  /**
+   * Finalize currency selection for a multi-currency payment
+   */
+  async finalizeSelection(paymentId: string, data: SelectionRequest, options?: RequestOptions): Promise<Payment> {
+    if (!paymentId) {
+      throw new FidduPayValidationError('Payment ID is required', 'payment_id');
+    }
+    if (!data.crypto_type) {
+      throw new FidduPayValidationError('Crypto type is required', 'crypto_type');
+    }
+    return this.client.post<Payment>(`/api/v1/merchants/payments/${paymentId}/select`, data, options);
   }
 
   /**
@@ -118,10 +132,6 @@ export class Payments {
       throw new FidduPayValidationError('Either amount or amount_usd must be provided', 'amount');
     }
 
-    if (!data.crypto_type) {
-      throw new FidduPayValidationError('Crypto type is required', 'crypto_type');
-    }
-
     // Validate the provided amount (either amount or amount_usd)
     const amountValue = data.amount || data.amount_usd;
     const amount = parseFloat(amountValue!);
@@ -133,14 +143,15 @@ export class Payments {
       throw new FidduPayValidationError('Minimum amount is $0.01', data.amount ? 'amount' : 'amount_usd');
     }
 
-    // Note: No maximum amount limit - server enforces daily volume limits based on KYC status
-
-    const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
-    if (!validCryptoTypes.includes(data.crypto_type)) {
-      throw new FidduPayValidationError(
-        `Invalid crypto type. Must be one of: ${validCryptoTypes.join(', ')}`,
-        'crypto_type'
-      );
+    // crypto_type is optional for multi-currency checkout
+    if (data.crypto_type) {
+      const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
+      if (!validCryptoTypes.includes(data.crypto_type)) {
+        throw new FidduPayValidationError(
+          `Invalid crypto type. Must be one of: ${validCryptoTypes.join(', ')}`,
+          'crypto_type'
+        );
+      }
     }
 
     if (data.expiration_minutes !== undefined) {

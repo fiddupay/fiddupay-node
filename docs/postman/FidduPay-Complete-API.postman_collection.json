@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "FidduPay Complete API v2.4.2",
-    "description": "Complete API collection for FidduPay cryptocurrency payment gateway. Supports 10 cryptocurrencies across 5 major blockchains with enterprise-grade security, comprehensive admin functionality, Real-Time Webhooks, and Partial Payment support.",
-    "version": "2.4.2",
+    "name": "FidduPay Complete API v2.4.3",
+    "description": "Complete API collection for FidduPay cryptocurrency payment gateway. Supports 10 cryptocurrencies across 5 major blockchains with enterprise-grade security and comprehensive admin functionality.",
+    "version": "2.4.3",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -1448,21 +1448,17 @@
           }
         },
         {
-          "name": "Update Settlement Mode",
+          "name": "Update Settings",
           "request": {
-            "method": "PUT",
+            "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{apiKey}}"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/settlement-mode",
+              "raw": "{{baseUrl}}/api/v1/merchants/settings",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1470,12 +1466,51 @@
                 "api",
                 "v1",
                 "merchants",
-                "settlement-mode"
+                "settings"
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"mode\": \"managed\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "settings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Readiness Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "status"
+              ]
             }
           }
         }
@@ -1512,7 +1547,39 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount_usd\": \"100.0\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Test\",\n  \"webhook_url\": \"https://your-server.com/webhooks\" \n}"
+              "raw": "{\n  \"amount_usd\": \"100.0\",\n  \"description\": \"Multi-currency checkout\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Fixed Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_usd\": \"100.0\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Fixed currency\"\n}"
             }
           }
         },
@@ -1592,6 +1659,40 @@
                 "p_123",
                 "verify"
               ]
+            }
+          }
+        },
+        {
+          "name": "Finalize Selection",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/payments/p_123/select",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "payments",
+                "p_123",
+                "select"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"SOL\"\n}"
             }
           }
         }
@@ -1693,6 +1794,38 @@
       "name": "Merchant Wallets",
       "item": [
         {
+          "name": "Unified Wallet Setup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"address\": \"Optional address for imported mode\"\n}"
+            }
+          }
+        },
+        {
           "name": "Get Wallets",
           "request": {
             "method": "GET",
@@ -1717,72 +1850,7 @@
           }
         },
         {
-          "name": "Update Wallets",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/wallets",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "wallets"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"solana_address\": \"...\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Configure Address Only",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/wallets/configure-address",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "wallets",
-                "configure-address"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"ETH\",\n  \"address\": \"0x...\",\n  \"customer_pays_fee\": true\n}"
-            }
-          }
-        },
-        {
-          "name": "Generate Wallet",
+          "name": "Generate Wallet (Legacy)",
           "request": {
             "method": "POST",
             "header": [
@@ -1811,7 +1879,7 @@
           }
         },
         {
-          "name": "Import Wallet",
+          "name": "Import Wallet (Legacy)",
           "request": {
             "method": "POST",
             "header": [
@@ -1835,31 +1903,6 @@
                 "merchants",
                 "wallets",
                 "import"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Revoke Wallet",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/wallets/SOL",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "wallets",
-                "SOL"
               ]
             }
           }
@@ -2005,6 +2048,30 @@
                 "v1",
                 "merchants",
                 "analytics"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unified Transaction Feed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "transactions"
               ]
             }
           }

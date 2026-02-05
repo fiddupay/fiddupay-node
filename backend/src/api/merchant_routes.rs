@@ -28,6 +28,7 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/merchants/payments", get(merchant_handlers::list_payments))
         .route("/api/v1/merchants/payments/:payment_id", get(merchant_handlers::get_payment))
         .route("/api/v1/merchants/payments/:payment_id/verify", post(merchant_handlers::verify_payment))
+        .route("/api/v1/merchants/payments/:payment_id/select", post(merchant_handlers::finalize_payment_selection))
         
         // Refund management
         .route("/api/v1/merchants/refunds", post(merchant_handlers::create_refund))

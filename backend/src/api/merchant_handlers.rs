@@ -26,6 +26,7 @@ pub use crate::api::handlers::{
     list_payments,
     get_payment,
     verify_payment,
+    finalize_payment_selection,
     
     // Refund management
     create_refund,
