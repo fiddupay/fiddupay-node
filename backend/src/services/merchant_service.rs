@@ -227,17 +227,11 @@ impl MerchantService {
         &self,
         token: &str,
     ) -> Result<Merchant, ServiceError> {
-        // Handle admin prefix if applicable
-        if token.starts_with("sk_admin_") {
-            return self.authenticate_admin(token).await;
-        }
-
         // Searchable token logic (sk_s_{id}_{random} or sk_live_s_{id}_{random} or sk_merchant_{id}_{token})
         if token.starts_with("sk_s_") || token.starts_with("sk_live_s_") || token.starts_with("sk_merchant_") {
             let parts: Vec<&str> = token.split('_').collect();
             if parts.len() >= 4 || (token.starts_with("sk_merchant_") && parts.len() >= 3) {
-                // For sk_s_ and sk_live_s_, ID is at index 2 (sk, s, ID, random) or 3 (sk, live, s, ID, random)
-                // For sk_merchant_, ID is at index 2
+                // Determine ID position based on prefix
                 let id_str = if token.starts_with("sk_live_s_") { 
                     parts.get(3).copied() 
                 } else { 
@@ -280,56 +274,10 @@ impl MerchantService {
             }
         }
 
-        // Fallback for static API keys (sk_ or live_) - still slow but necessary for backward compatibility
-        if !token.starts_with("sk_") && !token.starts_with("live_") {
-            return Err(ServiceError::InvalidApiKey);
-        }
-
-        // Query database for all active merchants
-        let merchants = sqlx::query_as::<_, Merchant>(
-            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
-             FROM merchants 
-             WHERE is_active = true"
-        )
-        .fetch_all(&self.db_pool)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to fetch merchants for auth: {:?}", e);
-            ServiceError::Database(e)
-        })?;
-        
-        let token_owned = token.to_string();
-        
-        // Use a blocking task for password hashing to avoid blocking the async executor
-        let authenticated_merchant = tokio::task::spawn_blocking(move || {
-            use argon2::{Argon2, PasswordHash, PasswordVerifier};
-            use chrono::Utc;
-            for merchant in merchants {
-                if let Ok(parsed_hash) = PasswordHash::new(&merchant.api_key_hash) {
-                    if Argon2::default().verify_password(token_owned.as_bytes(), &parsed_hash).is_ok() {
-                        // Check for token expiration
-                        if let Some(expires_at) = merchant.api_key_expires_at {
-                            if Utc::now() > expires_at {
-                                continue; // Token expired
-                            }
-                        }
-                        return Some(merchant);
-                    }
-                }
-            }
-            None
-        }).await.map_err(|e| ServiceError::InternalError(format!("Auth task failed: {}", e)))?;
-
-        match authenticated_merchant {
-            Some(m) => {
-                tracing::info!("Successfully authenticated merchant {} via static API key", m.id);
-                Ok(m)
-            },
-            None => {
-                tracing::warn!("No matching merchant found for the provided API key");
-                Err(ServiceError::InvalidApiKey)
-            },
-        }
+        // All other key formats (sk_, live_, etc.) without ID prefixes are no longer supported
+        // for better security and performance (O(1) lookup only).
+        tracing::warn!("Rejecting legacy or malformed API key format");
+        Err(ServiceError::InvalidApiKey)
     }
 
     /// Store an API key for a merchant with optional expiration
@@ -373,37 +321,9 @@ impl MerchantService {
         // Use single source of truth for API key generation
         let api_key = self.generate_api_key(is_live);
         
-        // Hash the API key using Argon2
-        use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
-        use rand::rngs::OsRng;
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-        let api_key_hash = argon2.hash_password(api_key.as_bytes(), &salt)
-            .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
-            .to_string();
-        
-        // Update merchant with new API key and expiration
-        sqlx::query!(
-            "UPDATE merchants SET api_key_hash = $1, sandbox_mode = $2, api_key_expires_at = $3, updated_at = $4 WHERE id = $5",
-            api_key_hash,
-            !is_live,
-            expires_at,
-            Utc::now(),
-            merchant_id
-        )
-        .execute(&self.db_pool)
-        .await?;
+        self.store_api_key_with_expiry(merchant_id, &api_key, expires_at).await?;
         
         Ok(api_key)
-    }
-
-    /// Generate and store API key for merchant (sandbox or live) - Legacy wrapper
-    pub async fn generate_and_store_api_key(
-        &self,
-        merchant_id: i64,
-        is_live: bool,
-    ) -> Result<String, ServiceError> {
-        self.generate_and_store_api_key_with_expiry(merchant_id, is_live, None).await
     }
 
     /// Set or update wallet address for a specific blockchain
