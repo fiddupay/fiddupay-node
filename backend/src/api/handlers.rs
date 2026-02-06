@@ -245,7 +245,7 @@ pub async fn get_merchant_profile(
     let merchant = match sqlx::query!(
         r#"
         SELECT id, business_name, email, sandbox_mode, settlement_mode, 
-               kyc_verified, daily_limit_usd, created_at
+               kyc_verified, daily_limit_usd, created_at, redirect_url
         FROM merchants
         WHERE id = $1
         "#,
@@ -1082,22 +1082,29 @@ pub struct SelectionRequest {
 fn generate_qr_code(data: &str) -> Result<String, Box<dyn std::error::Error>> {
     use qrcode::QrCode;
     use base64::Engine;
-    use image::Luma;
+    use image::{ImageBuffer, Luma};
     use std::io::Cursor;
 
     let code = QrCode::new(data.as_bytes())?;
-    
-    // Render the QR code into an ImageBuffer
-    let image = code.render::<Luma<u8>>()
-        .quiet_zone(false)
-        .module_dimensions(10, 10) // Larger modules for better readability
-        .build();
-    
-    // Use a Cursor to write the image data into a memory buffer as PNG
+    let size = code.width() as u32;
+    let scale = 8; // Adjust scale for base64 size vs quality
+    let mut image = ImageBuffer::new(size * scale, size * scale);
+
+    for x in 0..size {
+        for y in 0..size {
+            // Draw a module (square) of scale x scale pixels
+            let color = if code[(x as usize, y as usize)] { Luma([0u8]) } else { Luma([255u8]) };
+            for ix in 0..scale {
+                for iy in 0..scale {
+                    image.put_pixel(x * scale + ix, y * scale + iy, color);
+                }
+            }
+        }
+    }
+
     let mut buffer = Cursor::new(Vec::new());
     image.write_to(&mut buffer, image::ImageFormat::Png)?;
     
-    // Base64 encode the PNG buffer
     Ok(base64::engine::general_purpose::STANDARD.encode(buffer.into_inner()))
 }
 

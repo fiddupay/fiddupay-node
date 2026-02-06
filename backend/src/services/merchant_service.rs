@@ -87,8 +87,8 @@ impl MerchantService {
         // Create merchant in sandbox mode by default
         let merchant = sqlx::query_as::<_, Merchant>(
             r#"
-            INSERT INTO merchants (email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, role)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT')
+            INSERT INTO merchants (email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, daily_limit_usd, role)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'MERCHANT')
             RETURNING id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role
             "#,
         )
@@ -543,7 +543,7 @@ impl MerchantService {
                 sandbox_mode = COALESCE($3, sandbox_mode),
                 redirect_url = COALESCE($4, redirect_url),
                 updated_at = $5
-            WHERE id = $5
+            WHERE id = $6
             "#,
             settlement_mode,
             customer_pays_fee,
