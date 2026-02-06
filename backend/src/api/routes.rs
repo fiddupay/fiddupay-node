@@ -15,6 +15,7 @@ use axum::{
     Router,
 };
 use tower_http::cors::CorsLayer;
+use tower_http::trace::TraceLayer;
 
 pub fn create_router(state: AppState) -> Router {
     // Create rate limiter
@@ -63,5 +64,6 @@ pub fn create_router(state: AppState) -> Router {
         // Apply global rate limiting to all routes
         .layer(axum_middleware::from_fn_with_state(rate_limiter, rate_limit_middleware))
         .layer(cors)
+        .layer(TraceLayer::new_for_http())
         .with_state(state)
 }
