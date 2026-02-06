@@ -1082,16 +1082,23 @@ pub struct SelectionRequest {
 fn generate_qr_code(data: &str) -> Result<String, Box<dyn std::error::Error>> {
     use qrcode::QrCode;
     use base64::Engine;
-    
+    use image::Luma;
+    use std::io::Cursor;
+
     let code = QrCode::new(data.as_bytes())?;
-    let string = code.render::<char>()
+    
+    // Render the QR code into an ImageBuffer
+    let image = code.render::<Luma<u8>>()
         .quiet_zone(false)
-        .module_dimensions(2, 1)
+        .module_dimensions(10, 10) // Larger modules for better readability
         .build();
     
-    // For now, return a simple text representation
-    // In production, use a proper QR code image library
-    Ok(base64::engine::general_purpose::STANDARD.encode(string.as_bytes()))
+    // Use a Cursor to write the image data into a memory buffer as PNG
+    let mut buffer = Cursor::new(Vec::new());
+    image.write_to(&mut buffer, image::ImageFormat::Png)?;
+    
+    // Base64 encode the PNG buffer
+    Ok(base64::engine::general_purpose::STANDARD.encode(buffer.into_inner()))
 }
 
 struct PaymentPageData {

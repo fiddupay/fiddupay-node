@@ -68,7 +68,7 @@ async-trait = "0.1"
 
 # Template engine and QR codes
 askama = { version = "0.12", features = ["with-axum"] }
-qrcode = "0.14"
+qrcode = { version = "0.14", features = ["image"] }
 image = "0.24"
 base64 = "0.22"
 futures = "0.3"
