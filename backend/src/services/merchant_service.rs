@@ -89,7 +89,7 @@ impl MerchantService {
             r#"
             INSERT INTO merchants (email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, daily_limit_usd, role)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'MERCHANT')
-            RETURNING id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role
+            RETURNING id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url
             "#,
         )
         .bind(&email)
@@ -168,7 +168,7 @@ impl MerchantService {
     ) -> Result<String, ServiceError> {
         // First, verify the old API key is correct
         let merchant = sqlx::query_as::<_, Merchant>(
-            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role FROM merchants WHERE id = $1"
+            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
         )
         .bind(merchant_id)
         .fetch_optional(&self.db_pool)
@@ -241,7 +241,7 @@ impl MerchantService {
                 if let Some(id_str) = id_str {
                     if let Ok(merchant_id) = id_str.parse::<i64>() {
                         let merchant = sqlx::query_as::<_, Merchant>(
-                            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
+                            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url 
                              FROM merchants 
                              WHERE id = $1 AND is_active = true"
                         )
