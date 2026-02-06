@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware'
 import { User, LoginCredentials, RegisterData } from '@/types'
 import { authAPI, merchantAPI } from '@/services/apiService'
 
@@ -9,14 +9,45 @@ interface AuthState {
   isAuthenticated: boolean
   loading: boolean
   error: string | null
+  rememberMe: boolean
 }
 
 interface AuthActions {
-  login: (credentials: LoginCredentials, rememberMe?: boolean) => Promise<void>
+  login: (credentials: LoginCredentials) => Promise<void>
   register: (data: RegisterData) => Promise<void>
   logout: () => void
   clearError: () => void
   loadUser: (silent?: boolean) => Promise<void>
+}
+
+
+// Custom storage to handle "Remember Me" logic
+// This ensures that the Zustand state (user, isAuthenticated) is stored 
+// in the same place as the token.
+const customStateStorage: StateStorage = {
+  getItem: (name: string): string | null => {
+    return localStorage.getItem(name) || sessionStorage.getItem(name)
+  },
+  setItem: (name: string, value: string): void => {
+    try {
+      const parsed = JSON.parse(value)
+      // If rememberMe is true, store in localStorage, otherwise sessionStorage
+      if (parsed.state?.rememberMe) {
+        localStorage.setItem(name, value)
+        sessionStorage.removeItem(name)
+      } else {
+        sessionStorage.setItem(name, value)
+        localStorage.removeItem(name)
+      }
+    } catch (error) {
+      // Fallback to localStorage if parsing fails
+      localStorage.setItem(name, value)
+    }
+  },
+  removeItem: (name: string): void => {
+    localStorage.removeItem(name)
+    sessionStorage.removeItem(name)
+  }
 }
 
 export const useAuthStore = create<AuthState & AuthActions>()(
@@ -28,12 +59,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       isAuthenticated: false,
       loading: false,
       error: null,
+      rememberMe: false,
 
       // Actions
-      login: async (credentials: LoginCredentials, rememberMe: boolean = false) => {
+      login: async (credentials: LoginCredentials) => {
         try {
+          const rememberMe = !!credentials.remember_me
           set({ loading: true, error: null })
-          const response = await authAPI.login({ ...credentials, remember_me: rememberMe })
+          const response = await authAPI.login(credentials)
 
           // Clear both storages before setting the new token to avoid conflicts
           localStorage.removeItem('fiddupay_token')
@@ -47,6 +80,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             token: response.data.api_key,
             isAuthenticated: true,
             loading: false,
+            rememberMe: rememberMe
           })
         } catch (error: any) {
           set({
@@ -71,6 +105,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             token: response.data.api_key,
             isAuthenticated: true,
             loading: false,
+            rememberMe: true // Default to true for registration
           })
         } catch (error: any) {
           set({
@@ -89,6 +124,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           token: null,
           isAuthenticated: false,
           error: null,
+          rememberMe: false
         })
       },
 
@@ -144,12 +180,12 @@ export const useAuthStore = create<AuthState & AuthActions>()(
     }),
     {
       name: 'fiddupay-auth',
+      storage: createJSONStorage(() => customStateStorage),
       partialize: (state) => ({
         user: state.user,
-        // We still partialize these for Zustand persistence, 
-        // but loadUser and logout handle the manual token storage.
         isAuthenticated: state.isAuthenticated,
-      }),
+        rememberMe: state.rememberMe
+      } as any),
     }
   )
 )

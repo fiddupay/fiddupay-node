@@ -1,11 +1,12 @@
 // API Service - Centralized API calls
 import api from '@/utils/api'
+import { LoginCredentials } from '@/types'
 
 export const authAPI = {
   register: (data: { business_name: string; email: string; password: string }) =>
     api.post('/api/v1/merchants/register', data),
 
-  login: (data: { email: string; password: string; remember_me?: boolean }) =>
+  login: (data: LoginCredentials) =>
     api.post('/api/v1/merchants/login', data),
 }
 

@@ -46,8 +46,9 @@ const LoginPage: React.FC = () => {
       await login({
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
-        two_factor_code: formData.two_factor_code.trim() || undefined
-      }, rememberMe)
+        two_factor_code: formData.two_factor_code.trim() || undefined,
+        remember_me: rememberMe
+      })
       showToast('Login successful!', 'success')
     } catch (error: any) {
       const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || error.response?.data?.error || error.message || 'Login failed. Please check your credentials.'

@@ -31,12 +31,13 @@ api.interceptors.response.use(
       const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register';
 
       if (!isAuthPage) {
-        // Clear auth tokens
+        // Clear auth tokens from both storages
         localStorage.removeItem('fiddupay_token')
         sessionStorage.removeItem('fiddupay_token')
 
-        // Clear the Zustand auth state to fully reset the app state
+        // Clear the Zustand auth state from both storages
         localStorage.removeItem('fiddupay-auth')
+        sessionStorage.removeItem('fiddupay-auth')
 
         // Redirect to login
         window.location.href = '/login'
