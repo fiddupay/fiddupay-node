@@ -227,58 +227,52 @@ impl MerchantService {
         &self,
         token: &str,
     ) -> Result<Merchant, ServiceError> {
-        
-        // Handle admin session tokens
-        if token.starts_with("admin_session_") {
-            let parts: Vec<&str> = token.split('_').collect();
-            if parts.len() >= 3 {
-                if let Ok(admin_id) = parts[2].parse::<i64>() {
-                    return match sqlx::query_as::<_, Merchant>(
-                        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
-                         FROM merchants 
-                         WHERE id = $1 AND is_active = true AND (role = 'ADMIN' OR role = 'SUPER_ADMIN')"
-                    )
-        // Authenticate with admin prefix if applicable
+        // Handle admin prefix if applicable
         if token.starts_with("sk_admin_") {
             return self.authenticate_admin(token).await;
         }
 
-        // Searchable token logic (sk_s_{id}_{random} or sk_live_s_{id}_{random})
+        // Searchable token logic (sk_s_{id}_{random} or sk_live_s_{id}_{random} or sk_merchant_{id}_{token})
         if token.starts_with("sk_s_") || token.starts_with("sk_live_s_") || token.starts_with("sk_merchant_") {
             let parts: Vec<&str> = token.split('_').collect();
             if parts.len() >= 4 || (token.starts_with("sk_merchant_") && parts.len() >= 3) {
                 // For sk_s_ and sk_live_s_, ID is at index 2 (sk, s, ID, random) or 3 (sk, live, s, ID, random)
-                let id_str = if token.starts_with("sk_live_s_") { parts[3] } 
-                             else if token.starts_with("sk_s_") { parts[2] }
-                             else { parts[2] }; // sk_merchant_{id}_{token}
+                // For sk_merchant_, ID is at index 2
+                let id_str = if token.starts_with("sk_live_s_") { 
+                    parts.get(3).copied() 
+                } else { 
+                    parts.get(2).copied() 
+                };
 
-                if let Ok(merchant_id) = id_str.parse::<i64>() {
-                    let merchant = sqlx::query_as::<_, Merchant>(
-                        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
-                         FROM merchants 
-                         WHERE id = $1 AND is_active = true"
-                    )
-                    .bind(merchant_id)
-                    .fetch_optional(&self.db_pool)
-                    .await
-                    .map_err(|e| {
-                        tracing::error!("Failed to fetch merchant {} for auth: {:?}", merchant_id, e);
-                        ServiceError::Database(e)
-                    })?;
+                if let Some(id_str) = id_str {
+                    if let Ok(merchant_id) = id_str.parse::<i64>() {
+                        let merchant = sqlx::query_as::<_, Merchant>(
+                            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
+                             FROM merchants 
+                             WHERE id = $1 AND is_active = true"
+                        )
+                        .bind(merchant_id)
+                        .fetch_optional(&self.db_pool)
+                        .await
+                        .map_err(|e| {
+                            tracing::error!("Failed to fetch merchant {} for auth: {:?}", merchant_id, e);
+                            ServiceError::Database(e)
+                        })?;
 
-                    if let Some(merchant) = merchant {
-                        use argon2::{Argon2, PasswordHash, PasswordVerifier};
-                        use chrono::Utc;
-                        if let Ok(parsed_hash) = PasswordHash::new(&merchant.api_key_hash) {
-                            if Argon2::default().verify_password(token.as_bytes(), &parsed_hash).is_ok() {
-                                if let Some(expires_at) = merchant.api_key_expires_at {
-                                    if Utc::now() > expires_at {
-                                        tracing::warn!("Session token for merchant {} expired", merchant.id);
-                                        return Err(ServiceError::InvalidApiKey);
+                        if let Some(merchant) = merchant {
+                            use argon2::{Argon2, PasswordHash, PasswordVerifier};
+                            use chrono::Utc;
+                            if let Ok(parsed_hash) = PasswordHash::new(&merchant.api_key_hash) {
+                                if Argon2::default().verify_password(token.as_bytes(), &parsed_hash).is_ok() {
+                                    if let Some(expires_at) = merchant.api_key_expires_at {
+                                        if Utc::now() > expires_at {
+                                            tracing::warn!("Session token for merchant {} expired", merchant.id);
+                                            return Err(ServiceError::InvalidApiKey);
+                                        }
                                     }
+                                    tracing::info!("Successfully authenticated merchant {} via searchable session key", merchant.id);
+                                    return Ok(merchant);
                                 }
-                                tracing::info!("Successfully authenticated merchant {} via searchable session key", merchant.id);
-                                return Ok(merchant);
                             }
                         }
                     }
