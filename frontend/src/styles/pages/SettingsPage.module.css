@@ -356,6 +356,31 @@ input:checked+.slider:before {
     color: white;
 }
 
+.redirectSection {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--fiddu-border);
+}
+
+.redirectHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.redirectHeader h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.redirectNote {
+    font-size: 13px;
+    color: var(--fiddu-text-secondary);
+    margin-bottom: 16px;
+}
+
 .inputWrapper {
     display: flex;
     gap: 12px;

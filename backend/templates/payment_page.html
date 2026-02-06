@@ -1,28 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FidduPay - Payment Page</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
-        .sandbox-badge { background: #ff9800; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-        .network-info { background: #f5f5f5; padding: 10px; border-radius: 4px; margin: 10px 0; }
-        .amount { font-size: 24px; font-weight: bold; color: #2196F3; }
-        .address { font-family: monospace; background: #f0f0f0; padding: 8px; border-radius: 4px; word-break: break-all; }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .sandbox-badge {
+            background: #ff9800;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .network-info {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .amount {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+
+        .address {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 8px;
+            border-radius: 4px;
+            word-break: break-all;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <h1>FidduPay Checkout 
-            {{#if sandbox}}<span class="sandbox-badge">SANDBOX</span>{{/if}}
+        <h1>FidduPay Checkout
+            {{#if sandbox}}<span class="sandbox-badge">SANDBOX</span>{{/if_sandbox}}
         </h1>
-        
+
         {{#if is_selection_required}}
         <div class="selection-container">
             <h3>Select Payment Method</h3>
-            <p>Please choose the blockchain and currency you'd like to use for this payment of <strong>${{amount_usd}}</strong>.</p>
-            
+            <p>Please choose the blockchain and currency you'd like to use for this payment of
+                <strong>${{amount_usd}}</strong>.
+            </p>
+
             <div class="network-grid">
                 <div class="network-option" onclick="selectCurrency('Sol')">
                     <img src="https://cryptologos.cc/logos/solana-sol-logo.png?v=029" width="32" alt="Solana">
@@ -44,8 +78,9 @@
         </div>
         <script>
             async function selectCurrency(cryptoType) {
+                const LINK_ID = window.location.pathname.split('/').pop();
                 try {
-                    const response = await fetch(`/api/v1/payments/{{payment_id}}/select`, {
+                    const response = await fetch(`/pay/${LINK_ID}/select`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ crypto_type: cryptoType })
@@ -61,59 +96,195 @@
                 }
             }
         </script>
-        {{else}}
+        {{else_is_selection_required}}
         <div class="network-info">
-            <strong>Network:</strong> {{network}} 
-            {{#if sandbox}}(Testnet/Devnet){{else}}(Mainnet){{/if}}
+            <strong>Network:</strong> {{network}}
+            {{#if sandbox}}(Testnet/Devnet){{else_is_sandbox}}(Mainnet){{/if_sandbox}}
         </div>
-        
+
         <p><strong>Payment ID:</strong> {{payment_id}}</p>
         <p class="amount">{{amount}} {{crypto_type}} (≈ ${{amount_usd}})</p>
-        
+
         <h3>Send Payment To:</h3>
         <div class="address">{{deposit_address}}</div>
-        
+
         {{#if qr_code}}
         <h3>QR Code:</h3>
         <div class="qr-container">
             <img src="data:image/png;base64,{{qr_code}}" alt="Payment QR Code" />
         </div>
-        {{/if}}
-        
-        <p class="status"><strong>Status:</strong> 
-            {{#if is_confirmed}} ✅ Confirmed{{else}}
-            {{#if is_pending}}⏳ Waiting for payment{{else}}
-            {{#if is_expired}} ❌ Expired{{else}}⏳ Pending{{/if}}
-            {{/if}}
-            {{/if}}
-        </p>
+        {{/if_qr_code}}
+
+        <p class="status"><strong>Status:</strong> {{status_display}}</p>
 
         <p class="timer">Expires in: <strong>{{time_remaining}}</strong></p>
-        {{/if}}
-        
+        {{/if_is_selection_required}}
+
         {{#if sandbox}}
         <div class="sandbox-warning">
             <strong> Sandbox Mode:</strong> This is a test payment. No real funds will be transferred.
         </div>
-        {{/if}}
+        {{/if_sandbox}}
     </div>
 
     <style>
-        body { font-family: 'Inter', -apple-system, sans-serif; background: #f9fafb; color: #111827; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .container { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); max-width: 480px; width: 100%; text-align: center; }
-        h1 { font-size: 24px; margin-bottom: 24px; }
-        .sandbox-badge { background: #f59e0b; color: white; padding: 4px 10px; border-radius: 99px; font-size: 11px; vertical-align: middle; margin-left: 8px; }
-        .selection-container { text-align: left; }
-        .network-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
-        .network-option { border: 1px solid #e5e7eb; padding: 16px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: all 0.2s; }
-        .network-option:hover { border-color: #3b82f6; background: #eff6ff; transform: translateY(-2px); }
-        .network-option span { margin-top: 8px; font-size: 14px; font-weight: 500; }
-        .amount { font-size: 32px; font-weight: 800; color: #2563eb; margin: 20px 0; }
-        .address { font-family: monospace; background: #f3f4f6; padding: 12px; border-radius: 8px; word-break: break-all; font-size: 13px; color: #374151; }
-        .qr-container { margin: 24px 0; background: white; padding: 16px; display: inline-block; border: 1px solid #e5e7eb; border-radius: 12px; }
-        .status { margin-top: 24px; font-size: 18px; }
-        .timer { font-size: 14px; color: #6b7280; }
-        .sandbox-warning { background: #fef3c7; border: 1px solid #fcd34d; padding: 12px; border-radius: 8px; margin-top: 32px; font-size: 13px; text-align: left; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #f9fafb;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 24px;
+        }
+
+        .sandbox-badge {
+            background: #f59e0b;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 99px;
+            font-size: 11px;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+
+        .selection-container {
+            text-align: left;
+        }
+
+        .network-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .network-option {
+            border: 1px solid #e5e7eb;
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .network-option:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            transform: translateY(-2px);
+        }
+
+        .network-option span {
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .amount {
+            font-size: 32px;
+            font-weight: 800;
+            color: #2563eb;
+            margin: 20px 0;
+        }
+
+        .address {
+            font-family: monospace;
+            background: #f3f4f6;
+            padding: 12px;
+            border-radius: 8px;
+            word-break: break-all;
+            font-size: 13px;
+            color: #374151;
+        }
+
+        .qr-container {
+            margin: 24px 0;
+            background: white;
+            padding: 16px;
+            display: inline-block;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+        }
+
+        .status {
+            margin-top: 24px;
+            font-size: 18px;
+        }
+
+        .timer {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .sandbox-warning {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 32px;
+            font-size: 13px;
+            text-align: left;
+        }
     </style>
+    <script>
+        const REDIRECT_URL = '{{redirect_url}}';
+        const LINK_ID = window.location.pathname.split('/').pop();
+
+        const isConfirmedInitial = '{{is_confirmed_bool}}' === 'true';
+        const isExpiredInitial = '{{is_expired_bool}}' === 'true';
+        const isSelectionRequiredInitial = '{{is_selection_required_bool}}' === 'true';
+
+        if (!isConfirmedInitial && !isExpiredInitial && !isSelectionRequiredInitial) {
+            const pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/pay/${LINK_ID}/status`);
+                    const data = await response.json();
+
+                    if (data.status === 'CONFIRMED') {
+                        clearInterval(pollInterval);
+                        if (REDIRECT_URL) {
+                            // Smoothly show status then redirect
+                            const statusEl = document.querySelector('.status');
+                            if (statusEl) statusEl.innerHTML = '<strong>Status:</strong> ✅ Confirmed. Redirecting...';
+                            setTimeout(() => {
+                                window.location.href = REDIRECT_URL;
+                            }, 2500);
+                        } else {
+                            window.location.reload();
+                        }
+                    } else if (data.status === 'FAILED' || data.status === 'EXPIRED') {
+                        clearInterval(pollInterval);
+                        window.location.reload();
+                    }
+                } catch (e) {
+                    console.error("Polling error:", e);
+                }
+            }, 3000);
+        } else if (isConfirmedInitial && REDIRECT_URL) {
+            // If already confirmed when page loaded, redirect after 3s
+            setTimeout(() => {
+                window.location.href = REDIRECT_URL;
+            }, 3000);
+        }
+    </script>
 </body>
+
 </html>

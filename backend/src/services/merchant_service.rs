@@ -526,6 +526,7 @@ impl MerchantService {
         settlement_mode: Option<String>,
         customer_pays_fee: Option<bool>,
         sandbox_mode: Option<bool>,
+        redirect_url: Option<String>,
     ) -> Result<(), ServiceError> {
         if let Some(ref mode) = settlement_mode {
             if !["forwarding", "managed", "imported"].contains(&mode.as_str()) {
@@ -540,12 +541,14 @@ impl MerchantService {
                 settlement_mode = COALESCE($1, settlement_mode),
                 customer_pays_fee = COALESCE($2, customer_pays_fee),
                 sandbox_mode = COALESCE($3, sandbox_mode),
-                updated_at = $4
+                redirect_url = COALESCE($4, redirect_url),
+                updated_at = $5
             WHERE id = $5
             "#,
             settlement_mode,
             customer_pays_fee,
             sandbox_mode,
+            redirect_url,
             Utc::now(),
             merchant_id
         )

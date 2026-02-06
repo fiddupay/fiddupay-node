@@ -282,13 +282,13 @@ pub async fn get_merchant_profile(
         "business_name": merchant.business_name,
         "email": merchant.email,
         "api_key": context.api_key,
+        "redirect_url": merchant.redirect_url,
         "webhook_url": webhook_url,
         "webhook_format": webhook_format,
         "sandbox_mode": merchant.sandbox_mode,
         "settlement_mode": merchant.settlement_mode,
         "kyc_verified": merchant.kyc_verified,
         "daily_limit_usd": merchant.daily_limit_usd.map(|d| d.to_string()),
-        "webhook_url": webhook_url,
         "created_at": merchant.created_at.to_rfc3339(),
         "two_factor_enabled": false
     });
@@ -560,6 +560,7 @@ pub async fn set_wallet(
 pub struct UnifiedSettingsRequest {
     #[validate(custom(function = "validate_optional_webhook_url"))]
     pub webhook_url: Option<String>,
+    pub redirect_url: Option<String>,
     pub webhook_format: Option<String>,
     pub settlement_mode: Option<String>,
     pub customer_pays_fee: Option<bool>,
@@ -577,12 +578,13 @@ pub async fn update_merchant_settings(
     Json(req): Json<UnifiedSettingsRequest>,
 ) -> impl IntoResponse {
     // 1. Update Merchant core settings
-    if req.settlement_mode.is_some() || req.customer_pays_fee.is_some() || req.sandbox_mode.is_some() {
+    if req.settlement_mode.is_some() || req.customer_pays_fee.is_some() || req.sandbox_mode.is_some() || req.redirect_url.is_some() {
         if let Err(e) = state.merchant_service.update_settings(
             context.merchant_id,
             req.settlement_mode.clone(),
             req.customer_pays_fee,
             req.sandbox_mode,
+            req.redirect_url.clone(),
         ).await {
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
         }
@@ -920,12 +922,17 @@ pub async fn payment_page(
     let is_confirmed = payment.status == "CONFIRMED";
     let is_expired = (payment.status == "FAILED" || (payment.expires_at < now)) && !is_confirmed;
 
-    // Check if sandbox
-    let merchant = sqlx::query!("SELECT sandbox_mode FROM merchants WHERE id = (SELECT merchant_id FROM payment_transactions WHERE id = $1)", payment_link.payment_id)
-        .fetch_one(&state.db_pool)
-        .await
-        .ok();
-    let sandbox = merchant.map(|m| m.sandbox_mode).unwrap_or(false);
+    // Check if sandbox and get redirect_url
+    let merchant_info = sqlx::query!(
+        "SELECT sandbox_mode, redirect_url FROM merchants WHERE id = (SELECT merchant_id FROM payment_transactions WHERE id = $1)", 
+        payment_link.payment_id
+    )
+    .fetch_one(&state.db_pool)
+    .await
+    .ok();
+    
+    let sandbox = merchant_info.as_ref().map(|m| m.sandbox_mode).unwrap_or(false);
+    let redirect_url = merchant_info.and_then(|m| m.redirect_url);
 
     // Render logic
     let html = render_payment_page(PaymentPageData {
@@ -945,6 +952,7 @@ pub async fn payment_page(
         is_expired,
         is_selection_required,
         sandbox,
+        redirect_url,
     });
 
     (StatusCode::OK, Html(html)).into_response()
@@ -1103,13 +1111,25 @@ struct PaymentPageData {
     is_expired: bool,
     is_selection_required: bool,
     sandbox: bool,
+    redirect_url: Option<String>,
 }
 
 fn render_payment_page(data: PaymentPageData) -> String {
     let template = include_str!("../../templates/payment_page.html");
     
-    // HTML escape all user-controlled data to prevent XSS attacks
-    template
+    // Generate status HTML in Rust to avoid broken template logic
+    let status_html = if data.is_confirmed {
+        "✅ Confirmed"
+    } else if data.is_pending {
+        "⏳ Waiting for payment"
+    } else if data.is_expired {
+        "❌ Expired"
+    } else {
+        "⏳ Pending"
+    };
+
+    // Replace basic tags
+    let mut html = template
         .replace("{{payment_id}}", &encode_text(&data.payment_id))
         .replace("{{amount}}", &encode_text(&data.amount))
         .replace("{{amount_usd}}", &encode_text(&data.amount_usd))
@@ -1121,12 +1141,44 @@ fn render_payment_page(data: PaymentPageData) -> String {
         .replace("{{time_remaining}}", &encode_text(&data.time_remaining))
         .replace("{{expires_at}}", &encode_text(&data.expires_at))
         .replace("{{transaction_hash}}", &encode_text(&data.transaction_hash.unwrap_or_default()))
-        .replace("{{#if is_pending}}", if data.is_pending { "" } else { "<!--" })
-        .replace("{{/if}}", "") // Very crude, but works if tags are unique and in order
-        .replace("{{#if is_confirmed}}", if data.is_confirmed { "" } else { "<!--" })
-        .replace("{{#if is_expired}}", if data.is_expired { "" } else { "<!--" })
-        .replace("{{#if is_selection_required}}", if data.is_selection_required { "" } else { "<!--" })
-        .replace("{{#if sandbox}}", if data.sandbox { "" } else { "<!--" })
+        .replace("{{status_display}}", status_html)
+        .replace("{{redirect_url}}", &encode_text(&data.redirect_url.unwrap_or_default()))
+        .replace("{{is_confirmed_bool}}", if data.is_confirmed { "true" } else { "false" })
+        .replace("{{is_expired_bool}}", if data.is_expired { "true" } else { "false" })
+        .replace("{{is_selection_required_bool}}", if data.is_selection_required { "true" } else { "false" });
+
+    // Handle the two main view blocks manually
+    if data.is_selection_required {
+        html = html.replace("{{#if is_selection_required}}", "");
+        html = html.replace("{{else_is_selection_required}}", "<!--");
+        html = html.replace("{{/if_is_selection_required}}", "-->");
+    } else {
+        html = html.replace("{{#if is_selection_required}}", "<!--");
+        html = html.replace("{{else_is_selection_required}}", "-->");
+        html = html.replace("{{/if_is_selection_required}}", "");
+    }
+
+    // Handle sandbox badge and warning
+    if data.sandbox {
+        html = html.replace("{{#if sandbox}}", "");
+        html = html.replace("{{else_is_sandbox}}", "<!--");
+        html = html.replace("{{/if_sandbox}}", "-->");
+    } else {
+        html = html.replace("{{#if sandbox}}", "<!--");
+        html = html.replace("{{else_is_sandbox}}", "-->");
+        html = html.replace("{{/if_sandbox}}", "");
+    }
+
+    // Handle optional QR code
+    if !data.qr_code.is_empty() {
+        html = html.replace("{{#if qr_code}}", "");
+        html = html.replace("{{/if_qr_code}}", "");
+    } else {
+        html = html.replace("{{#if qr_code}}", "<!--");
+        html = html.replace("{{/if_qr_code}}", "-->");
+    }
+
+    html
 }
 
 // ============================================================================

@@ -32,6 +32,7 @@ const SettingsPage: React.FC = () => {
     const [selectedMode, setSelectedMode] = useState<'forwarding' | 'managed' | 'imported'>('managed')
     const [customerPaysFee, setCustomerPaysFee] = useState(false)
     const [webhookUrl, setWebhookUrl] = useState('')
+    const [redirectUrl, setRedirectUrl] = useState('')
     const [webhookFormat, setWebhookFormat] = useState('standard')
     const [apiKey, setApiKey] = useState('')
     const [showRotateConfirm, setShowRotateConfirm] = useState(false)
@@ -42,6 +43,7 @@ const SettingsPage: React.FC = () => {
             setSelectedMode(user.settlement_mode || 'managed')
             fetchSettings()
             setApiKey(user.api_key || '')
+            setRedirectUrl(user.redirect_url || '')
         }
     }, [user, user?.sandbox_mode])
 
@@ -50,6 +52,7 @@ const SettingsPage: React.FC = () => {
             const profileRes = await merchantAPI.getProfile()
             const feeRes = await merchantAPI.getFeeSetting()
             setWebhookUrl(profileRes.data.user.webhook_url || '')
+            setRedirectUrl(profileRes.data.user.redirect_url || '')
             setWebhookFormat(profileRes.data.user.webhook_format || 'standard')
             setCustomerPaysFee(feeRes.data.customer_pays_fee)
         } catch (error) {
@@ -93,6 +96,12 @@ const SettingsPage: React.FC = () => {
         await handleUpdateSettings({
             webhook_url: webhookUrl,
             webhook_format: webhookFormat
+        })
+    }
+
+    const handleUpdateRedirect = async () => {
+        await handleUpdateSettings({
+            redirect_url: redirectUrl
         })
     }
 
@@ -305,6 +314,35 @@ const SettingsPage: React.FC = () => {
                                     <span className={styles.keyNote}>
                                         Keep your keys secure. Never share them in client-side code.
                                     </span>
+                                </div>
+                            </div>
+
+                            <div className={styles.redirectSection}>
+                                <div className={styles.redirectHeader}>
+                                    <div className="flex items-center gap-2">
+                                        <MdForward className="text-blue-500" />
+                                        <h4>Customer Redirect URL</h4>
+                                    </div>
+                                    <span className={styles.badge}>Optional</span>
+                                </div>
+                                <p className={styles.redirectNote}>
+                                    After a successful payment, the customer will be automatically sent back to this URL.
+                                </p>
+                                <div className={styles.inputWrapper}>
+                                    <input
+                                        type="url"
+                                        value={redirectUrl}
+                                        onChange={(e) => setRedirectUrl(e.target.value)}
+                                        placeholder="https://your-site.com/checkout/success"
+                                        className={styles.urlInput}
+                                    />
+                                    <button
+                                        className={styles.saveBtn}
+                                        onClick={handleUpdateRedirect}
+                                        disabled={loading || !redirectUrl}
+                                    >
+                                        {loading ? 'Saving...' : 'Update URL'}
+                                    </button>
                                 </div>
                             </div>
                         </div>

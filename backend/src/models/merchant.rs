@@ -24,6 +24,7 @@ pub struct Merchant {
     pub api_key_expires_at: Option<DateTime<Utc>>,
     pub daily_limit_usd: Option<Decimal>,
     pub role: String,
+    pub redirect_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
