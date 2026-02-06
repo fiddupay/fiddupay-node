@@ -28,15 +28,19 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear auth tokens
-      localStorage.removeItem('fiddupay_token')
-      sessionStorage.removeItem('fiddupay_token')
+      const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register';
 
-      // Clear the Zustand auth state to fully reset the app state
-      localStorage.removeItem('fiddupay-auth')
+      if (!isAuthPage) {
+        // Clear auth tokens
+        localStorage.removeItem('fiddupay_token')
+        sessionStorage.removeItem('fiddupay_token')
 
-      // Redirect to login
-      window.location.href = '/login'
+        // Clear the Zustand auth state to fully reset the app state
+        localStorage.removeItem('fiddupay-auth')
+
+        // Redirect to login
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }
