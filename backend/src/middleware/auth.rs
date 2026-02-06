@@ -22,7 +22,7 @@ pub struct MerchantContext {
 /// 
 /// Expected format: "Bearer <api_key>"
 fn extract_api_key(headers: &HeaderMap) -> Option<String> {
-    headers
+    let api_key = headers
         .get("authorization")
         .and_then(|value| value.to_str().ok())
         .and_then(|auth| {
@@ -31,7 +31,16 @@ fn extract_api_key(headers: &HeaderMap) -> Option<String> {
             } else {
                 None
             }
-        })
+        });
+    
+    if api_key.is_none() {
+        if let Some(auth) = headers.get("authorization").and_then(|v| v.to_str().ok()) {
+            tracing::warn!("Malformed Authorization header: {}", auth);
+        } else {
+            tracing::warn!("Missing Authorization header");
+        }
+    }
+    api_key
 }
 
 /// Authentication middleware
@@ -68,7 +77,6 @@ pub async fn auth_middleware(
     // Authenticate with merchant service
     match state.merchant_service.authenticate(&api_key).await {
         Ok(merchant) => {
-            
             // Create merchant context
             let context = MerchantContext {
                 merchant_id: merchant.id,
@@ -83,6 +91,8 @@ pub async fn auth_middleware(
             Ok(next.run(request).await)
         }
         Err(e) => {
+            tracing::warn!("Authentication failed for key prefix {}: {:?}", 
+                if api_key.len() > 7 { &api_key[..7] } else { &api_key }, e);
             Err((
                 StatusCode::UNAUTHORIZED,
                 axum::Json(json!({

@@ -275,7 +275,6 @@ impl MerchantService {
             return Err(ServiceError::InvalidApiKey);
         }
         
-        // Query database for all active merchants
         let merchants = sqlx::query_as::<_, Merchant>(
             "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
              FROM merchants 
@@ -283,7 +282,12 @@ impl MerchantService {
         )
         .fetch_all(&self.db_pool)
         .await
-        .map_err(ServiceError::Database)?;
+        .map_err(|e| {
+            tracing::error!("Failed to fetch merchants for auth: {:?}", e);
+            ServiceError::Database(e)
+        })?;
+        
+        tracing::debug!("Comparing token against {} active merchants", merchants.len());
         
         let token_owned = token.to_string();
         
@@ -310,8 +314,14 @@ impl MerchantService {
         }).await.map_err(|e| ServiceError::InternalError(format!("Auth task failed: {}", e)))?;
 
         match authenticated_merchant {
-            Some(m) => Ok(m),
-            None => Err(ServiceError::InvalidApiKey),
+            Some(m) => {
+                tracing::info!("Successfully authenticated merchant {} via API key", m.id);
+                Ok(m)
+            },
+            None => {
+                tracing::warn!("No matching merchant found for the provided API key");
+                Err(ServiceError::InvalidApiKey)
+            },
         }
     }
 
