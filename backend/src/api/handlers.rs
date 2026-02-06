@@ -489,9 +489,9 @@ pub async fn generate_api_key(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<GenerateApiKeyRequest>,
 ) -> impl IntoResponse {
-    match state.merchant_service.generate_and_store_api_key(context.merchant_id, req.is_live).await {
+    match state.merchant_service.generate_and_store_api_key_with_expiry(context.merchant_id, req.is_live, None).await {
         Ok(api_key) => (StatusCode::OK, Json(json!({"api_key": api_key}))).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)}))).into_response(),
     }
 }
 

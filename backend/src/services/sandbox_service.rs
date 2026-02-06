@@ -40,7 +40,6 @@ impl SandboxService {
             .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
             .to_string();
         
-        (api_key, api_key_hash)
 
         sqlx::query!(
             "UPDATE merchants SET sandbox_mode = true, api_key_hash = $1, updated_at = $2 WHERE id = $3",
@@ -63,7 +62,7 @@ impl SandboxService {
     /// # Requirements
     /// * 10.4: Distinguish sandbox from production
     pub fn is_sandbox_key(&self, api_key: &str) -> bool {
-        api_key.starts_with("test_")
+        api_key.starts_with("sk_s_")
     }
 
     /// Verify merchant is in sandbox mode
