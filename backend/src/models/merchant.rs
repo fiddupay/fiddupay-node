@@ -74,6 +74,7 @@ mod tests {
             api_key_expires_at: None,
             daily_limit_usd: None,
             role: "MERCHANT".to_string(),
+            redirect_url: None,
         };
 
         assert_eq!(merchant.id, 1);
@@ -116,12 +117,14 @@ mod tests {
             customer_pays_fee: true,
             is_active: true,
             sandbox_mode: false,
+            settlement_mode: "managed".to_string(),
             kyc_verified: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),
             api_key_expires_at: None,
             daily_limit_usd: None,
             role: "MERCHANT".to_string(),
+            redirect_url: None,
         };
 
         // Test serialization
@@ -204,12 +207,14 @@ mod tests {
             customer_pays_fee: true,
             is_active: true,
             sandbox_mode: false,
+            settlement_mode: "managed".to_string(),
             kyc_verified: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),
             api_key_expires_at: None,
             daily_limit_usd: None,
             role: "MERCHANT".to_string(),
+            redirect_url: None,
         };
         assert_eq!(merchant_min.fee_percentage, Decimal::new(10, 2));
 
@@ -231,6 +236,7 @@ mod tests {
             api_key_expires_at: None,
             daily_limit_usd: None,
             role: "MERCHANT".to_string(),
+            redirect_url: None,
         };
         assert_eq!(merchant_max.fee_percentage, Decimal::new(500, 2));
     }

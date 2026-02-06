@@ -22,6 +22,7 @@ serde_json = "1.0"
 
 # Decimal handling
 rust_decimal = { version = "1.33", features = ["serde-with-str"] }
+rust_decimal_macros = "1.33"
 
 # Date/Time
 chrono = { version = "0.4", features = ["serde"] }

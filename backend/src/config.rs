@@ -639,6 +639,18 @@ impl Default for Config {
             frontend_url: "http://localhost:3000".to_string(),
             backend_url: "http://localhost:8080".to_string(),
             allowed_origins: vec!["http://localhost:3000".to_string()],
+            etherscan_api_url: "https://api.etherscan.io/v2/api".to_string(),
+            bscscan_api_url: "https://api.bscscan.com/api".to_string(),
+            arbiscan_api_url: "https://api.arbiscan.io/api".to_string(),
+            polygonscan_api_url: "https://api.polygonscan.com/api".to_string(),
+            email_enabled: false,
+            email_from: "noreply@fiddupay.com".to_string(),
+            smtp_host: None,
+            smtp_port: None,
+            smtp_username: None,
+            smtp_password: None,
+            multi_user_enabled: false,
+            analytics_enabled: true,
         }
     }
 }

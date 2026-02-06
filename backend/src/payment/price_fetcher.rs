@@ -124,7 +124,7 @@ mod tests {
     #[tokio::test]
     #[ignore] // Requires network access
     async fn test_get_sol_price() {
-        let fetcher = PriceFetcher::new();
+        let fetcher = PriceFetcher::default();
         match fetcher.get_sol_price().await {
             Ok(price) => {
                 println!("SOL/USDT price: ${}", price);
@@ -139,7 +139,7 @@ mod tests {
     #[tokio::test]
     #[ignore] // Requires network access
     async fn test_calculate_crypto_amount() {
-        let fetcher = PriceFetcher::new();
+        let fetcher = PriceFetcher::default();
         let usd_amount = Decimal::from(100); // $100
 
         // Test USDT (should be 1:1)

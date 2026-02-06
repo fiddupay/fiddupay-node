@@ -36,6 +36,8 @@ mod tests {
             status: "pending".to_string(),
             reason: Some("Customer requested refund".to_string()),
             transaction_hash: None,
+            crypto_type: "SOL".to_string(),
+            target_address: None,
             created_at: Utc::now(),
             completed_at: None,
         };
@@ -60,6 +62,8 @@ mod tests {
             status: "completed".to_string(),
             reason: Some("Duplicate payment".to_string()),
             transaction_hash: Some("0xrefund123".to_string()),
+            crypto_type: "USDT_BEP20".to_string(),
+            target_address: Some("0xsender".to_string()),
             created_at: Utc::now(),
             completed_at: Some(Utc::now()),
         };
@@ -79,6 +83,8 @@ mod tests {
             status: "pending".to_string(),
             reason: Some("Test refund".to_string()),
             transaction_hash: None,
+            crypto_type: "SOL".to_string(),
+            target_address: None,
             created_at: Utc::now(),
             completed_at: None,
         };
@@ -105,6 +111,8 @@ mod tests {
             status: "pending".to_string(),
             reason: None,
             transaction_hash: None,
+            crypto_type: "SOL".to_string(),
+            target_address: None,
             created_at: Utc::now(),
             completed_at: None,
         };
@@ -125,6 +133,8 @@ mod tests {
                 status: status.to_string(),
                 reason: None,
                 transaction_hash: None,
+                crypto_type: "SOL".to_string(),
+                target_address: None,
                 created_at: Utc::now(),
                 completed_at: None,
             };
@@ -147,6 +157,8 @@ mod tests {
             status: "completed".to_string(),
             reason: Some("Partial refund requested".to_string()),
             transaction_hash: Some("0xpartial".to_string()),
+            crypto_type: "USDT_SPL".to_string(),
+            target_address: None,
             created_at: Utc::now(),
             completed_at: Some(Utc::now()),
         };
@@ -168,6 +180,8 @@ mod tests {
             status: "completed".to_string(),
             reason: Some("Full refund".to_string()),
             transaction_hash: Some("0xfull".to_string()),
+            crypto_type: "SOL".to_string(),
+            target_address: None,
             created_at: Utc::now(),
             completed_at: Some(Utc::now()),
         };
@@ -185,6 +199,8 @@ mod tests {
             status: "failed".to_string(),
             reason: Some("Insufficient funds".to_string()),
             transaction_hash: None,
+            crypto_type: "SOL".to_string(),
+            target_address: None,
             created_at: Utc::now(),
             completed_at: None,
         };
@@ -212,6 +228,8 @@ mod tests {
                 status: "pending".to_string(),
                 reason: None,
                 transaction_hash: None,
+                crypto_type: "SOL".to_string(),
+                target_address: None,
                 created_at: Utc::now(),
                 completed_at: None,
             };
