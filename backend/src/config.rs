@@ -649,8 +649,6 @@ impl Default for Config {
             smtp_port: None,
             smtp_username: None,
             smtp_password: None,
-            multi_user_enabled: false,
-            analytics_enabled: true,
         }
     }
 }
