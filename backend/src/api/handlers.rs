@@ -640,7 +640,7 @@ pub async fn get_merchant_settings(
     
     // 1. Get core merchant settings
     let merchant = match sqlx::query!(
-        "SELECT settlement_mode, customer_pays_fee, sandbox_mode FROM merchants WHERE id = $1",
+        "SELECT settlement_mode, customer_pays_fee, sandbox_mode, redirect_url FROM merchants WHERE id = $1",
         merchant_id
     )
     .fetch_one(&state.db_pool)
@@ -672,6 +672,7 @@ pub async fn get_merchant_settings(
         "settlement_mode": merchant.settlement_mode,
         "customer_pays_fee": merchant.customer_pays_fee,
         "sandbox_mode": merchant.sandbox_mode,
+        "redirect_url": merchant.redirect_url,
         "ip_whitelist": ip_whitelist
     }))).into_response()
 }
@@ -1597,7 +1598,7 @@ pub async fn get_fee_setting(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     let merchant = sqlx::query_as::<_, crate::models::merchant::Merchant>(
-        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role FROM merchants WHERE id = $1"
+        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
     )
     .bind(context.merchant_id)
     .fetch_optional(&state.db_pool)
@@ -1629,7 +1630,7 @@ pub async fn update_fee_setting(
 ) -> impl IntoResponse {
     // Fetch current merchant first to handle partial updates
     let merchant_result = sqlx::query_as::<_, crate::models::merchant::Merchant>(
-        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role FROM merchants WHERE id = $1"
+        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
     )
     .bind(context.merchant_id)
     .fetch_optional(&state.db_pool)

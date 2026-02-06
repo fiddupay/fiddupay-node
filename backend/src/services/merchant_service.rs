@@ -604,7 +604,9 @@ mod tests {
         };
         
         let api_key = service.generate_api_key(false);
-        assert_eq!(api_key.len(), 32);
+        // Prefix "sk_" (3) + 32 random chars = 35 total
+        assert_eq!(api_key.len(), 35);
+        assert!(api_key.starts_with("sk_"));
     }
 
     #[tokio::test]
@@ -630,8 +632,9 @@ mod tests {
         
         let api_key = service.generate_api_key(false);
         
-        // All characters should be alphanumeric
-        assert!(api_key.chars().all(|c| c.is_alphanumeric()));
+        // Should contain alphanumeric characters and underscores
+        assert!(api_key.chars().all(|c| c.is_alphanumeric() || c == '_'));
+        assert!(api_key.contains('_'));
     }
 
     #[tokio::test]
