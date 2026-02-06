@@ -35,6 +35,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           set({ loading: true, error: null })
           const response = await authAPI.login({ ...credentials, remember_me: rememberMe })
 
+          // Clear both storages before setting the new token to avoid conflicts
+          localStorage.removeItem('fiddupay_token')
+          sessionStorage.removeItem('fiddupay_token')
+
           const storage = rememberMe ? localStorage : sessionStorage
           storage.setItem('fiddupay_token', response.data.api_key)
 
@@ -95,7 +99,12 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       loadUser: async (silent: boolean = false) => {
         const token = localStorage.getItem('fiddupay_token') || sessionStorage.getItem('fiddupay_token')
         if (!token) {
-          set({ loading: false })
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+            loading: false
+          })
           return
         }
 
@@ -124,14 +133,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         } catch (error: any) {
           // Only log out if it's an authentication error (401)
           if (error.response && error.response.status === 401) {
-            localStorage.removeItem('fiddupay_token')
-            sessionStorage.removeItem('fiddupay_token')
-            set({
-              user: null,
-              token: null,
-              isAuthenticated: false,
-              loading: false,
-            })
+            _get().logout()
           } else {
             // For other errors (like 500), keep the session but stop loading
             set({ loading: false })

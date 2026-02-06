@@ -28,10 +28,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear auth data and redirect to login
+      // Clear auth tokens
       localStorage.removeItem('fiddupay_token')
       sessionStorage.removeItem('fiddupay_token')
-      localStorage.removeItem('user')
+
+      // Clear the Zustand auth state to fully reset the app state
+      localStorage.removeItem('fiddupay-auth')
+
+      // Redirect to login
       window.location.href = '/login'
     }
     return Promise.reject(error)
