@@ -1093,7 +1093,10 @@ fn generate_qr_code(data: &str) -> Result<String, Box<dyn std::error::Error>> {
     for x in 0..size {
         for y in 0..size {
             // Draw a module (square) of scale x scale pixels
-            let color = if code[(x as usize, y as usize)] { Luma([0u8]) } else { Luma([255u8]) };
+            let color = match code[(x as usize, y as usize)] {
+                qrcode::Color::Dark => Luma([0u8]),
+                qrcode::Color::Light => Luma([255u8]),
+            };
             for ix in 0..scale {
                 for iy in 0..scale {
                     image.put_pixel(x * scale + ix, y * scale + iy, color);
