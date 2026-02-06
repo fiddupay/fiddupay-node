@@ -20,7 +20,6 @@ interface AuthActions {
   loadUser: (silent?: boolean) => Promise<void>
 }
 
-
 // Custom storage to handle "Remember Me" logic
 // This ensures that the Zustand state (user, isAuthenticated) is stored 
 // in the same place as the token.

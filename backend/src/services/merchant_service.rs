@@ -238,43 +238,60 @@ impl MerchantService {
                          FROM merchants 
                          WHERE id = $1 AND is_active = true AND (role = 'ADMIN' OR role = 'SUPER_ADMIN')"
                     )
-                    .bind(admin_id)
-                    .fetch_optional(&self.db_pool)
-                    .await {
-                        Ok(Some(merchant)) => Ok(merchant),
-                        Ok(None) => Err(ServiceError::InvalidApiKey),
-                        Err(e) => Err(ServiceError::Database(e))
-                    };
-                }
-            }
+        // Authenticate with admin prefix if applicable
+        if token.starts_with("sk_admin_") {
+            return self.authenticate_admin(token).await;
         }
-        
-        // Handle merchant API keys from login
-        if token.starts_with("sk_merchant_") {
+
+        // Searchable token logic (sk_s_{id}_{random} or sk_live_s_{id}_{random})
+        if token.starts_with("sk_s_") || token.starts_with("sk_live_s_") || token.starts_with("sk_merchant_") {
             let parts: Vec<&str> = token.split('_').collect();
-            if parts.len() >= 3 {
-                if let Ok(merchant_id) = parts[2].parse::<i64>() {
-                    return match sqlx::query_as::<_, Merchant>(
+            if parts.len() >= 4 || (token.starts_with("sk_merchant_") && parts.len() >= 3) {
+                // For sk_s_ and sk_live_s_, ID is at index 2 (sk, s, ID, random) or 3 (sk, live, s, ID, random)
+                let id_str = if token.starts_with("sk_live_s_") { parts[3] } 
+                             else if token.starts_with("sk_s_") { parts[2] }
+                             else { parts[2] }; // sk_merchant_{id}_{token}
+
+                if let Ok(merchant_id) = id_str.parse::<i64>() {
+                    let merchant = sqlx::query_as::<_, Merchant>(
                         "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
                          FROM merchants 
-                         WHERE id = $1 AND is_active = true AND role = 'MERCHANT'"
+                         WHERE id = $1 AND is_active = true"
                     )
                     .bind(merchant_id)
                     .fetch_optional(&self.db_pool)
-                    .await {
-                        Ok(Some(merchant)) => Ok(merchant),
-                        Ok(None) => Err(ServiceError::InvalidApiKey),
-                        Err(e) => Err(ServiceError::Database(e))
-                    };
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("Failed to fetch merchant {} for auth: {:?}", merchant_id, e);
+                        ServiceError::Database(e)
+                    })?;
+
+                    if let Some(merchant) = merchant {
+                        use argon2::{Argon2, PasswordHash, PasswordVerifier};
+                        use chrono::Utc;
+                        if let Ok(parsed_hash) = PasswordHash::new(&merchant.api_key_hash) {
+                            if Argon2::default().verify_password(token.as_bytes(), &parsed_hash).is_ok() {
+                                if let Some(expires_at) = merchant.api_key_expires_at {
+                                    if Utc::now() > expires_at {
+                                        tracing::warn!("Session token for merchant {} expired", merchant.id);
+                                        return Err(ServiceError::InvalidApiKey);
+                                    }
+                                }
+                                tracing::info!("Successfully authenticated merchant {} via searchable session key", merchant.id);
+                                return Ok(merchant);
+                            }
+                        }
+                    }
                 }
             }
         }
-        
-        // Validate regular API key format (for merchants only)
+
+        // Fallback for static API keys (sk_ or live_) - still slow but necessary for backward compatibility
         if !token.starts_with("sk_") && !token.starts_with("live_") {
             return Err(ServiceError::InvalidApiKey);
         }
-        
+
+        // Query database for all active merchants
         let merchants = sqlx::query_as::<_, Merchant>(
             "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role 
              FROM merchants 
@@ -287,23 +304,19 @@ impl MerchantService {
             ServiceError::Database(e)
         })?;
         
-        tracing::debug!("Comparing token against {} active merchants", merchants.len());
-        
         let token_owned = token.to_string();
         
-        // Verify the token against each merchant's stored hash in a blocking task
-        // to avoid blocking the Tokio executor
+        // Use a blocking task for password hashing to avoid blocking the async executor
         let authenticated_merchant = tokio::task::spawn_blocking(move || {
             use argon2::{Argon2, PasswordHash, PasswordVerifier};
             use chrono::Utc;
-            
             for merchant in merchants {
                 if let Ok(parsed_hash) = PasswordHash::new(&merchant.api_key_hash) {
                     if Argon2::default().verify_password(token_owned.as_bytes(), &parsed_hash).is_ok() {
                         // Check for token expiration
                         if let Some(expires_at) = merchant.api_key_expires_at {
                             if Utc::now() > expires_at {
-                                return None; // Token expired (effectively invalid)
+                                continue; // Token expired
                             }
                         }
                         return Some(merchant);
@@ -315,7 +328,7 @@ impl MerchantService {
 
         match authenticated_merchant {
             Some(m) => {
-                tracing::info!("Successfully authenticated merchant {} via API key", m.id);
+                tracing::info!("Successfully authenticated merchant {} via static API key", m.id);
                 Ok(m)
             },
             None => {
@@ -323,6 +336,37 @@ impl MerchantService {
                 Err(ServiceError::InvalidApiKey)
             },
         }
+    }
+
+    /// Store an API key for a merchant with optional expiration
+    pub async fn store_api_key_with_expiry(
+        &self,
+        merchant_id: i64,
+        api_key: &str,
+        expires_at: Option<chrono::DateTime<Utc>>,
+    ) -> Result<(), ServiceError> {
+        // Hash the API key using Argon2
+        use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+        use rand::rngs::OsRng;
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        let api_key_hash = argon2.hash_password(api_key.as_bytes(), &salt)
+            .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
+            .to_string();
+        
+        // Update merchant with new API key hash and expiration
+        sqlx::query!(
+            "UPDATE merchants SET api_key_hash = $1, api_key_expires_at = $2, updated_at = $3 WHERE id = $4",
+            api_key_hash,
+            expires_at,
+            Utc::now(),
+            merchant_id
+        )
+        .execute(&self.db_pool)
+        .await
+        .map_err(ServiceError::Database)?;
+        
+        Ok(())
     }
 
     /// Generate and store API key for merchant with optional expiration

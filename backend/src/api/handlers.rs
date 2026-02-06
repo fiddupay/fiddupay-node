@@ -191,9 +191,10 @@ pub async fn login_merchant(
                     merchant.daily_limit_usd
                 ).await.unwrap_or(Decimal::new(1000, 0));
 
-                // Generate and store a new API key (uses sandbox mode by default)
-                match merchant_service.generate_and_store_api_key_with_expiry(merchant.id, !merchant.sandbox_mode, expires_at).await {
-                    Ok(new_api_key) => {
+                // Generate and store a new session key (searchable by ID)
+                let new_api_key = crate::utils::api_keys::ApiKeyGenerator::generate_session_key(merchant.id, !merchant.sandbox_mode);
+                match merchant_service.store_api_key_with_expiry(merchant.id, &new_api_key, expires_at).await {
+                    Ok(_) => {
                         AuthResponse {
                             user: MerchantProfile {
                                 id: merchant.id,
