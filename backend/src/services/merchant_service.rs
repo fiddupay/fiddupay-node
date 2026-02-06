@@ -186,8 +186,8 @@ impl MerchantService {
             return Err(ServiceError::InvalidApiKey);
         }
         
-        // Generate a new API key for the merchant based on current mode
-        let new_api_key = self.generate_api_key(!merchant.sandbox_mode);
+        // Generate a new searchable API key for the merchant based on current mode
+        let new_api_key = ApiKeyGenerator::generate_session_key(merchant_id, !merchant.sandbox_mode);
         
         // Hash the new API key using Argon2
         let salt = SaltString::generate(&mut OsRng);
