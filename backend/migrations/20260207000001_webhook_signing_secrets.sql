@@ -1,9 +1,11 @@
+-- Enable pgcrypto for random generation
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Add signing_secret column to webhook_configs
 ALTER TABLE webhook_configs
 ADD COLUMN IF NOT EXISTS signing_secret TEXT;
 
 -- Generate random secrets for existing configurations
--- We'll use a simple random string for initial population
 UPDATE webhook_configs
 SET
     signing_secret = encode (gen_random_bytes (32), 'hex')
