@@ -376,7 +376,7 @@ impl PaymentProcessor {
                 info!("Payment {} cancelled by merchant {}", payment_id, merchant_id);
                 Ok(())
             }
-            _ => Err(ServiceError::BadRequest(format!("Cannot cancel payment in {:?} state", current_status))),
+            _ => Err(ServiceError::ValidationError(format!("Cannot cancel payment in {:?} state", current_status))),
         }
     }
 
