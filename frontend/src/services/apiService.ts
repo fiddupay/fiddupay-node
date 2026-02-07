@@ -50,7 +50,9 @@ export const merchantAPI = {
     customer_pays_fee?: boolean;
     ip_whitelist?: string[];
     sandbox_mode?: boolean;
+    rotate_webhook_secret?: boolean;
   }) => api.patch('/api/v1/merchants/settings', data),
+  sendTestWebhook: () => api.post('/api/v1/merchants/webhook/test'),
   getReadinessStatus: () => api.get('/api/v1/merchants/status'),
 }
 
@@ -73,8 +75,9 @@ export const paymentAPI = {
   },
   get: (paymentId: string) => api.get(`/api/v1/merchants/payments/${paymentId}`),
   verify: (paymentId: string, data: any) => api.post(`/api/v1/merchants/payments/${paymentId}/verify`, data),
-  finalizeSelection: (paymentId: string, cryptoType: string) =>
-    api.post(`/api/v1/merchants/payments/${paymentId}/select`, { crypto_type: cryptoType }),
+  finalizeSelection: (payment_id: string, cryptoType: string) =>
+    api.post(`/api/v1/merchants/payments/${payment_id}/select`, { crypto_type: cryptoType }),
+  cancel: (payment_id: string) => api.post(`/api/v1/merchants/payments/${payment_id}/cancel`),
 
   // Unified Transactions
   getUnifiedTransactions: (params?: any) => {

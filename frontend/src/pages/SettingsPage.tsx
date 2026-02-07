@@ -37,6 +37,8 @@ const SettingsPage: React.FC = () => {
     const [apiKey, setApiKey] = useState('')
     const [showRotateConfirm, setShowRotateConfirm] = useState(false)
     const [showSecret, setShowSecret] = useState(false)
+    const [signingSecret, setSigningSecret] = useState('••••••••••••••••••••••••••••••••')
+    const [showRotateSecretConfirm, setShowRotateSecretConfirm] = useState(false)
 
     useEffect(() => {
         if (user) {
@@ -54,6 +56,7 @@ const SettingsPage: React.FC = () => {
             setWebhookUrl(profileRes.data.user.webhook_url || '')
             setRedirectUrl(profileRes.data.user.redirect_url || '')
             setWebhookFormat(profileRes.data.user.webhook_format || 'standard')
+            setSigningSecret(profileRes.data.user.webhook_signing_secret || '••••••••••••••••••••••••••••••••')
             setCustomerPaysFee(feeRes.data.customer_pays_fee)
         } catch (error) {
             console.error('Failed to fetch settings', error)
@@ -160,6 +163,39 @@ const SettingsPage: React.FC = () => {
             showToast('API key rotated successfully', 'success')
         } catch (error: any) {
             showToast('Failed to rotate API key', 'error')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleRotateSecret = async () => {
+        if (!showRotateSecretConfirm) {
+            setShowRotateSecretConfirm(true)
+            showToast('Click rotate again to confirm. This will invalidate your current secret.', 'info')
+            setTimeout(() => setShowRotateSecretConfirm(false), 5000)
+            return
+        }
+
+        try {
+            setLoading(true)
+            await merchantAPI.updateSettings({ rotate_webhook_secret: true })
+            await fetchSettings()
+            setShowRotateSecretConfirm(false)
+            showToast('Webhook signing secret rotated successfully', 'success')
+        } catch (error: any) {
+            showToast('Failed to rotate signing secret', 'error')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleSendTestWebhook = async () => {
+        try {
+            setLoading(true)
+            await merchantAPI.sendTestWebhook()
+            showToast('Test webhook queued for delivery', 'success')
+        } catch (error: any) {
+            showToast('Failed to send test webhook', 'error')
         } finally {
             setLoading(false)
         }
@@ -374,6 +410,12 @@ const SettingsPage: React.FC = () => {
                                             >
                                                 Discord Webhook
                                             </button>
+                                            <button
+                                                className={`${styles.formatBtn} ${webhookFormat === 'slack' ? styles.activeFormat : ''}`}
+                                                onClick={() => setWebhookFormat('slack')}
+                                            >
+                                                Slack Webhook
+                                            </button>
                                         </div>
 
                                         <div className={styles.inputWrapper}>
@@ -381,7 +423,7 @@ const SettingsPage: React.FC = () => {
                                                 type="url"
                                                 value={webhookUrl}
                                                 onChange={(e) => setWebhookUrl(e.target.value)}
-                                                placeholder={webhookFormat === 'discord' ? "https://discord.com/api/webhooks/..." : "https://your-domain.com/webhooks/fiddupay"}
+                                                placeholder={webhookFormat === 'discord' ? "https://discord.com/api/webhooks/..." : (webhookFormat === 'slack' ? "https://hooks.slack.com/services/..." : "https://your-domain.com/webhooks/fiddupay")}
                                                 className={styles.urlInput}
                                             />
                                             <button
@@ -391,17 +433,25 @@ const SettingsPage: React.FC = () => {
                                             >
                                                 {loading ? 'Saving...' : 'Update Settings'}
                                             </button>
+                                            <button
+                                                className={styles.copyBtn}
+                                                onClick={handleSendTestWebhook}
+                                                disabled={loading || !webhookUrl}
+                                                title="Send a sample notification to your URL"
+                                            >
+                                                <MdFlashOn /> Test Webhook
+                                            </button>
                                         </div>
                                     </div>
 
                                     <div className={styles.secretSection}>
                                         <div className={styles.secretHeader}>
                                             <h4>Webhook Signing Secret</h4>
-                                            <span className={styles.badge}>Global Key</span>
+                                            <span className={styles.badge}>Per-Merchant Key</span>
                                         </div>
                                         <div className={styles.secretWrapper}>
                                             <div className={styles.secretDisplay}>
-                                                {showSecret ? 'whsec_8b2f9c4d1e0a7b6c5d4e3f2a1b0c9d8e' : '••••••••••••••••••••••••••••••••'}
+                                                {showSecret ? signingSecret : '••••••••••••••••••••••••••••••••'}
                                             </div>
                                             <button
                                                 className={styles.viewBtn}
@@ -409,6 +459,14 @@ const SettingsPage: React.FC = () => {
                                             >
                                                 {showSecret ? <MdVisibilityOff /> : <MdVisibility />}
                                                 {showSecret ? 'Hide' : 'View'}
+                                            </button>
+                                            <button
+                                                className={`${styles.rotateBtn} ${showRotateSecretConfirm ? 'bg-red-50 border-red-500' : ''}`}
+                                                onClick={handleRotateSecret}
+                                                disabled={loading}
+                                            >
+                                                <MdRefresh className={loading ? 'animate-spin' : ''} />
+                                                {showRotateSecretConfirm ? 'Confirm' : 'Rotate'}
                                             </button>
                                         </div>
                                         <p className={styles.keyNote} style={{ marginTop: '12px', marginBottom: 0 }}>
@@ -435,7 +493,9 @@ const SettingsPage: React.FC = () => {
                                                     <p>
                                                         {webhookFormat === 'discord'
                                                             ? "FidduPay sends a Discord-formatted message directly to your channel."
-                                                            : "FidduPay sends a structured JSON payload to your server."
+                                                            : (webhookFormat === 'slack'
+                                                                ? "FidduPay sends a Slack-formatted message directly to your channel."
+                                                                : "FidduPay sends a structured JSON payload to your server.")
                                                         }
                                                     </p>
                                                 </div>
@@ -454,8 +514,8 @@ const SettingsPage: React.FC = () => {
 
                             <div className={styles.verificationBox}>
                                 <div className={styles.boxHeader}>
-                                    <span><MdLock /> {webhookFormat === 'discord' ? 'Discord Formatting' : 'Signature Verification'}</span>
-                                    <span>{webhookFormat === 'discord' ? 'No Verification' : 'Standard Headers'}</span>
+                                    <span><MdLock /> {(webhookFormat === 'discord' || webhookFormat === 'slack') ? 'Payload Formatting' : 'Signature Verification'}</span>
+                                    <span>{(webhookFormat === 'discord' || webhookFormat === 'slack') ? 'No Verification' : 'Standard Headers'}</span>
                                 </div>
                                 {webhookFormat === 'standard' ? (
                                     <>
@@ -484,13 +544,24 @@ const SettingsPage: React.FC = () => {
                                 ) : (
                                     <>
                                         <p style={{ fontSize: '13px', color: '#888', marginBottom: '16px' }}>
-                                            Discord webhooks do not support HMAC signatures.
-                                            FidduPay will send a simplified message format compatible with Discord.
+                                            {webhookFormat === 'discord' ? 'Discord' : 'Slack'} webhooks do not support HMAC signatures.
+                                            FidduPay will send a simplified message format compatible with {webhookFormat === 'discord' ? 'Discord' : 'Slack'}.
                                         </p>
-                                        <span className={styles.payloadLabel}>Example Discord Payload:</span>
+                                        <span className={styles.payloadLabel}>Example {webhookFormat === 'discord' ? 'Discord' : 'Slack'} Payload:</span>
                                         <pre className={styles.payloadPre}>
-                                            {`{
+                                            {webhookFormat === 'discord' ? `{
   "content": "✅ **Payment Confirmed**\\nID: \`pay_5f9a2c3b4\`\\nAmount: \`150.00 SOL\`"
+}` : `{
+  "text": "✅ *Payment Confirmed*",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Payment Confirmed*\\nID: \`pay_5f9a2c3b4\`\\nAmount: \`150.00 SOL\`"
+      }
+    }
+  ]
 }`}
                                         </pre>
                                     </>

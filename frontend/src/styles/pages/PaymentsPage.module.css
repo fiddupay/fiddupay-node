@@ -327,6 +327,20 @@
   border: 1px solid #e5e7eb;
 }
 
+.statusCancelled {
+  background: #fdf2f8;
+  color: #9d174d;
+  border: 1px solid #fce7f3;
+}
+
+.statusCancelled::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #db2777;
+}
+
 @keyframes pulse {
   0% {
     opacity: 1;
@@ -355,6 +369,11 @@
   background: var(--white);
   color: var(--fiddu-brand-primary);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.cancelActionBtn:hover {
+  color: #ef4444 !important;
+  background: #fef2f2 !important;
 }
 
 .emptyState {
@@ -405,6 +424,9 @@
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   animation: slideUp 0.3s ease-out;
   overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes slideUp {
@@ -453,6 +475,7 @@
 
 .form {
   padding: 24px;
+  overflow-y: auto;
 }
 
 .inputGroup {
@@ -468,7 +491,8 @@
 }
 
 .inputGroup input,
-.inputGroup select {
+.inputGroup select,
+.inputGroup textarea {
   width: 100%;
   padding: 12px 16px;
   border: 1px solid var(--fiddu-border);
@@ -479,8 +503,14 @@
   background: var(--white);
 }
 
+.inputGroup textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
 .inputGroup input:focus,
-.inputGroup select:focus {
+.inputGroup select:focus,
+.inputGroup textarea:focus {
   outline: none;
   border-color: var(--fiddu-brand-primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -544,74 +574,214 @@
   transform: translateY(-1px);
 }
 
-/* Fee Setting Modal Options */
-.feeSettingOptions {
+/* Invoicing Styles */
+.invoicingSection {
+  margin: 24px -24px;
   padding: 24px;
-  display: grid;
-  gap: 16px;
+  background: #f8fafc;
+  border-top: 1px solid var(--fiddu-border);
+  border-bottom: 1px solid var(--fiddu-border);
 }
 
-.feeSettingOptions p {
-  margin-bottom: 8px;
-  font-weight: 500;
+.toggleGroup {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.toggleLabel label {
+  display: block;
+  font-weight: 700;
+  color: var(--fiddu-text-primary);
+  margin-bottom: 2px;
+}
+
+.toggleLabel small {
   color: var(--fiddu-text-secondary);
 }
 
-.feeOptionBtn {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  background: var(--white);
-  border: 2px solid var(--fiddu-border);
-  padding: 16px;
-  border-radius: 12px;
+/* Switch Styles */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
   cursor: pointer;
-  width: 100%;
-  text-align: left;
-  transition: all 0.2s ease;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: .4s;
+  border-radius: 34px;
 }
 
-.feeOptionBtn:hover {
-  border-color: #93c5fd;
-  transform: translateY(-2px);
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
 }
 
-.feeOptionBtn.active {
-  border-color: var(--fiddu-brand-primary);
+.switch input:checked + .slider {
+  background-color: var(--fiddu-brand-primary);
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+.invoiceFields {
+  display: grid;
+  gap: 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.itemsSection {
+  background: var(--white);
+  border: 1px solid var(--fiddu-border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.itemsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.itemsHeader label {
+  margin-bottom: 0;
+}
+
+.addBtn {
+  background: var(--white);
+  color: var(--fiddu-brand-primary);
+  border: 1px solid var(--fiddu-brand-primary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.addBtn:hover {
   background: var(--fiddu-bg-primary);
 }
 
-.feeOptionIcon {
-  background: var(--gray-light);
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+.itemRow {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.itemDesc { flex: 4; }
+.itemQty { flex: 1; }
+.itemPrice { flex: 2; }
+
+.removeBtn {
+  background: transparent;
   color: var(--fiddu-text-muted);
-  font-size: 18px;
-  flex-shrink: 0;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
 }
 
-.feeOptionBtn.active .feeOptionIcon {
-  background: var(--fiddu-brand-primary);
-  color: var(--white);
+.removeBtn:hover {
+  color: #ef4444;
 }
 
-.feeOptionContent h3 {
-  font-size: 16px;
+/* Success Modal Styles */
+.successBody {
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.successBody p {
+  margin-bottom: 24px;
+  color: var(--fiddu-text-secondary);
+}
+
+.linkCard {
+  background: #f8fafc;
+  border: 1px solid var(--fiddu-border);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: left;
+}
+
+.linkCard label {
+  display: block;
+  font-size: 13px;
   font-weight: 700;
   color: var(--fiddu-text-primary);
-  margin-bottom: 4px;
+  margin-bottom: 12px;
 }
 
-.feeOptionContent p {
-  font-size: 13px;
-  color: var(--fiddu-text-secondary);
-  line-height: 1.4;
-  margin: 0;
+.linkWrapper {
+  display: flex;
+  gap: 8px;
 }
+
+.linkInput {
+  flex: 1;
+  background: var(--white) !important;
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.copyBtn, .openBtn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.copyBtn {
+  background: var(--white);
+  color: var(--fiddu-text-primary);
+  border: 1px solid var(--fiddu-border);
+}
+
+.openBtn {
+  background: var(--fiddu-brand-primary);
+  color: white;
+  border: none;
+}
+
+.copyBtn:hover { background: var(--gray-light); }
+.openBtn:hover { background: var(--fiddu-brand-hover); }
 
 .loadingState {
   display: flex;

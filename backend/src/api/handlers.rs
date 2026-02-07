@@ -748,6 +748,17 @@ pub async fn get_payment(
     }
 }
 
+pub async fn cancel_payment(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(payment_id): Path<String>,
+) -> impl IntoResponse {
+    match state.payment_service.cancel_payment(context.merchant_id, &payment_id).await {
+        Ok(_) => (StatusCode::OK, Json(json!({"status": "success", "message": "Payment cancelled"}))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
 #[derive(Deserialize)]
 pub struct VerifyPaymentRequest {
     pub transaction_hash: String,

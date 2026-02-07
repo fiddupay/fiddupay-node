@@ -349,6 +349,37 @@ impl PaymentProcessor {
         })
     }
 
+    /// Cancel a pending payment
+    pub async fn cancel_payment(&self, merchant_id: i64, payment_id: &str) -> Result<(), ServiceError> {
+        let payment = sqlx::query!(
+            "SELECT status FROM payment_transactions WHERE payment_id = $1 AND merchant_id = $2",
+            payment_id,
+            merchant_id
+        )
+        .fetch_optional(&self.db_pool)
+        .await?
+        .ok_or_else(|| ServiceError::NotFound("Payment not found".to_string()))?;
+
+        let current_status = PaymentStatus::from_string(&payment.status);
+
+        // Only allow cancellation of pending/confirming/selection_required payments
+        match current_status {
+            PaymentStatus::Pending | PaymentStatus::Confirming | PaymentStatus::SelectionRequired => {
+                sqlx::query!(
+                    "UPDATE payment_transactions SET status = 'CANCELLED' WHERE payment_id = $1 AND merchant_id = $2",
+                    payment_id,
+                    merchant_id
+                )
+                .execute(&self.db_pool)
+                .await?;
+
+                info!("Payment {} cancelled by merchant {}", payment_id, merchant_id);
+                Ok(())
+            }
+            _ => Err(ServiceError::BadRequest(format!("Cannot cancel payment in {:?} state", current_status))),
+        }
+    }
+
     /// Generate a unique payment ID
     fn generate_payment_id(&self) -> String {
         use crate::utils::api_keys::ApiKeyGenerator;

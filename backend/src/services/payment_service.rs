@@ -76,6 +76,15 @@ impl PaymentService {
         Ok(self.processor.create_payment(merchant_id, request).await?)
     }
 
+    /// Cancel a pending payment
+    pub async fn cancel_payment(
+        &self,
+        merchant_id: i64,
+        payment_id: &str,
+    ) -> Result<(), PaymentServiceError> {
+        Ok(self.processor.cancel_payment(merchant_id, payment_id).await?)
+    }
+
     /// Verify a payment with transaction hash
     /// 
     /// # Arguments

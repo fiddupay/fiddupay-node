@@ -25,6 +25,7 @@ pub use crate::api::handlers::{
     create_payment,
     list_payments,
     get_payment,
+    cancel_payment,
     verify_payment,
     finalize_payment_selection,
     

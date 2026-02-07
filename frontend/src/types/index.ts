@@ -31,7 +31,7 @@ export interface RegisterData {
 // Payment Types
 export interface Payment {
   payment_id: string
-  status: 'PENDING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'SELECTION_REQUIRED'
+  status: 'PENDING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'SELECTION_REQUIRED' | 'CANCELLED'
   amount?: string
   amount_usd: string
   crypto_type?: string
@@ -59,7 +59,7 @@ export interface AddressOnlyPayment {
   customer_instructions: string
   supported_currencies: string[]
   expires_at?: string
-  status?: 'PENDING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'SELECTION_REQUIRED'
+  status?: 'PENDING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'SELECTION_REQUIRED' | 'CANCELLED'
   transaction_hash?: string
   confirmations?: number
   created_at?: string

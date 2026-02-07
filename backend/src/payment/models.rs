@@ -16,6 +16,7 @@ pub enum PaymentStatus {
     Confirming,
     Refunded,
     SelectionRequired,
+    Cancelled,
 }
 
 impl PaymentStatus {
@@ -28,6 +29,7 @@ impl PaymentStatus {
             "CONFIRMING" => PaymentStatus::Confirming,
             "REFUNDED" => PaymentStatus::Refunded,
             "SELECTION_REQUIRED" => PaymentStatus::SelectionRequired,
+            "CANCELLED" => PaymentStatus::Cancelled,
             _ => PaymentStatus::Pending, // Default fallback
         }
     }

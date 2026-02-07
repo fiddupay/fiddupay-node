@@ -24,8 +24,17 @@ const PaymentsPage: React.FC = () => {
     amount_usd: '',
     crypto_type: 'USDT_ETH',
     description: '',
-    merchant_address: ''
+    merchant_address: '',
+    // Invoicing fields
+    is_invoice: false,
+    customer_name: '',
+    customer_email: '',
+    notes: '',
+    tax_percentage: '0',
+    items: [{ description: '', quantity: 1, unit_price: '' }]
   })
+  const [createdPayment, setCreatedPayment] = useState<Payment | null>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   const { showToast } = useToast()
   const { user } = useAuthStore()
@@ -51,7 +60,6 @@ const PaymentsPage: React.FC = () => {
       console.error('Failed to load supported currencies', error)
     }
   }
-
 
   const loadPayments = async () => {
     setLoading(true)
@@ -114,19 +122,6 @@ const PaymentsPage: React.FC = () => {
       return
     }
 
-    if (paymentType === 'address-only' && newPayment.merchant_address) {
-      // Basic address validation
-      const address = newPayment.merchant_address.trim()
-      if (newPayment.crypto_type === 'SOL' && (address.length < 32 || address.length > 44)) {
-        showToast('Invalid Solana address format', 'error')
-        return
-      }
-      if (newPayment.crypto_type.includes('ETH') && (!address.startsWith('0x') || address.length !== 42)) {
-        showToast('Invalid Ethereum address format', 'error')
-        return
-      }
-    }
-
     if (newPayment.description && newPayment.description.length > 500) {
       showToast('Description must be less than 500 characters', 'error')
       return
@@ -135,30 +130,47 @@ const PaymentsPage: React.FC = () => {
     setLoading(true)
     try {
       if (paymentType === 'address-only') {
-        if (!newPayment.merchant_address) {
-          showToast('Merchant address is required for address-only payments', 'error')
-          return
-        }
-        const payment = await paymentAPI.create({
+        await paymentAPI.create({
           requested_amount: newPayment.amount_usd,
           crypto_type: newPayment.crypto_type,
           merchant_address: newPayment.merchant_address,
           description: newPayment.description || undefined
         })
-        console.log('Address-only payment created:', payment.data.payment_id)
         showToast('Address-only payment created successfully!', 'success')
       } else {
         const payment = await paymentAPI.create({
           amount_usd: newPayment.amount_usd,
           crypto_type: newPayment.crypto_type,
-          description: newPayment.description || undefined
+          description: newPayment.description || undefined,
+          is_invoice: newPayment.is_invoice,
+          customer_name: newPayment.is_invoice ? newPayment.customer_name : undefined,
+          customer_email: newPayment.is_invoice ? newPayment.customer_email : undefined,
+          notes: newPayment.is_invoice ? newPayment.notes : undefined,
+          tax_percentage: newPayment.is_invoice ? parseFloat(newPayment.tax_percentage) : undefined,
+          items: newPayment.is_invoice ? newPayment.items.map(item => ({
+            ...item,
+            unit_price: parseFloat(item.unit_price as any)
+          })) : undefined
         })
         setPayments(prev => [payment.data, ...prev])
+        setCreatedPayment(payment.data)
+        setShowSuccessModal(true)
         showToast('Payment created successfully!', 'success')
       }
 
       setShowCreateModal(false)
-      setNewPayment({ amount_usd: '', crypto_type: 'USDT_ETH', description: '', merchant_address: '' })
+      setNewPayment({
+        amount_usd: '',
+        crypto_type: 'USDT_ETH',
+        description: '',
+        merchant_address: '',
+        is_invoice: false,
+        customer_name: '',
+        customer_email: '',
+        notes: '',
+        tax_percentage: '0',
+        items: [{ description: '', quantity: 1, unit_price: '' }]
+      })
       loadPayments()
     } catch (error) {
       showToast('Failed to create payment', 'error')
@@ -167,6 +179,63 @@ const PaymentsPage: React.FC = () => {
     }
   }
 
+  const handleCancelPayment = async (paymentId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this payment link? This cannot be undone.')) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      await paymentAPI.cancel(paymentId)
+      showToast('Payment cancelled successfully', 'success')
+      loadPayments()
+    } catch (error) {
+      showToast('Failed to cancel payment', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddItem = () => {
+    setNewPayment(prev => ({
+      ...prev,
+      items: [...prev.items, { description: '', quantity: 1, unit_price: '' }]
+    }))
+  }
+
+  const handleRemoveItem = (index: number) => {
+    setNewPayment(prev => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index)
+    }))
+  }
+
+  const handleItemChange = (index: number, field: string, value: any) => {
+    setNewPayment(prev => {
+      const newItems = [...prev.items]
+      newItems[index] = { ...newItems[index], [field]: value }
+
+      // Auto-update total amount if items exist
+      if (prev.is_invoice) {
+        let total = 0
+        newItems.forEach(item => {
+          const price = parseFloat(item.unit_price as any) || 0
+          total += price * item.quantity
+        })
+        // Add tax
+        const taxVal = parseFloat(prev.tax_percentage) || 0
+        total = total * (1 + taxVal / 100)
+
+        return {
+          ...prev,
+          items: newItems,
+          amount_usd: total.toFixed(2)
+        }
+      }
+
+      return { ...prev, items: newItems }
+    })
+  }
 
   const getStatusBadge = (status: string) => {
     const statusClasses = {
@@ -174,7 +243,8 @@ const PaymentsPage: React.FC = () => {
       CONFIRMING: styles.statusConfirming,
       CONFIRMED: styles.statusConfirmed,
       FAILED: styles.statusFailed,
-      EXPIRED: styles.statusExpired
+      EXPIRED: styles.statusExpired,
+      CANCELLED: styles.statusCancelled
     }
     return statusClasses[status as keyof typeof statusClasses] || styles.statusPending
   }
@@ -252,6 +322,7 @@ const PaymentsPage: React.FC = () => {
               <option value="CONFIRMED">Confirmed</option>
               <option value="FAILED">Failed</option>
               <option value="EXPIRED">Expired</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
         </div>
@@ -304,6 +375,16 @@ const PaymentsPage: React.FC = () => {
                   <button className={styles.actionBtn} title="View Details">
                     <i className="fas fa-eye"></i>
                   </button>
+                  {(payment.status === 'PENDING' || payment.status === 'SELECTION_REQUIRED') && (
+                    <button
+                      className={`${styles.actionBtn} ${styles.cancelActionBtn}`}
+                      title="Cancel Payment"
+                      onClick={() => handleCancelPayment(payment.payment_id)}
+                      disabled={loading}
+                    >
+                      <i className="fas fa-times-circle"></i>
+                    </button>
+                  )}
                   {payment.status === 'CONFIRMED' && (
                     <button className={styles.actionBtn} title="Create Refund">
                       <i className="fas fa-undo"></i>
@@ -405,24 +486,203 @@ const PaymentsPage: React.FC = () => {
                   id="description"
                   value={newPayment.description}
                   onChange={(e) => setNewPayment(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Order #12345"
+                  placeholder="Product name, order #, etc."
                 />
               </div>
+
+              {paymentType === 'standard' && (
+                <div className={styles.invoicingSection}>
+                  <div className={styles.toggleGroup}>
+                    <div className={styles.toggleLabel}>
+                      <label>Create as Invoice</label>
+                      <small>Include professional itemized breakdown and customer details</small>
+                    </div>
+                    <label className={styles.switch}>
+                      <input
+                        type="checkbox"
+                        checked={newPayment.is_invoice}
+                        onChange={(e) => setNewPayment(prev => ({ ...prev, is_invoice: e.target.checked }))}
+                      />
+                      <span className={styles.slider}></span>
+                    </label>
+                  </div>
+
+                  {newPayment.is_invoice && (
+                    <div className={styles.invoiceFields}>
+                      <div className={styles.row}>
+                        <div className={styles.inputGroup}>
+                          <label>Customer Name</label>
+                          <input
+                            type="text"
+                            value={newPayment.customer_name}
+                            onChange={(e) => setNewPayment(prev => ({ ...prev, customer_name: e.target.value }))}
+                            placeholder="John Doe"
+                            required={newPayment.is_invoice}
+                          />
+                        </div>
+                        <div className={styles.inputGroup}>
+                          <label>Customer Email</label>
+                          <input
+                            type="email"
+                            value={newPayment.customer_email}
+                            onChange={(e) => setNewPayment(prev => ({ ...prev, customer_email: e.target.value }))}
+                            placeholder="john@example.com"
+                            required={newPayment.is_invoice}
+                          />
+                        </div>
+                      </div>
+
+                      <div className={styles.itemsSection}>
+                        <div className={styles.itemsHeader}>
+                          <label>Line Items</label>
+                          <button type="button" onClick={handleAddItem} className={styles.addBtn}>
+                            <i className="fas fa-plus"></i> Add Item
+                          </button>
+                        </div>
+                        {newPayment.items.map((item, index) => (
+                          <div key={index} className={styles.itemRow}>
+                            <input
+                              type="text"
+                              placeholder="Description"
+                              value={item.description}
+                              onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                              className={styles.itemDesc}
+                              required={newPayment.is_invoice}
+                            />
+                            <input
+                              type="number"
+                              placeholder="Qty"
+                              value={item.quantity}
+                              onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value))}
+                              className={styles.itemQty}
+                              min="1"
+                              required={newPayment.is_invoice}
+                            />
+                            <input
+                              type="number"
+                              placeholder="Price"
+                              value={item.unit_price}
+                              onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
+                              className={styles.itemPrice}
+                              step="0.01"
+                              min="0"
+                              required={newPayment.is_invoice}
+                            />
+                            {newPayment.items.length > 1 && (
+                              <button type="button" onClick={() => handleRemoveItem(index)} className={styles.removeBtn}>
+                                <i className="fas fa-trash"></i>
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className={styles.inputGroup}>
+                        <label>Tax Percentage (%)</label>
+                        <input
+                          type="number"
+                          value={newPayment.tax_percentage}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setNewPayment(prev => ({ ...prev, tax_percentage: val }))
+                          }}
+                          placeholder="0"
+                        />
+                      </div>
+
+                      <div className={styles.inputGroup}>
+                        <label>Notes</label>
+                        <textarea
+                          value={newPayment.notes}
+                          onChange={(e) => setNewPayment(prev => ({ ...prev, notes: e.target.value }))}
+                          placeholder="Thank you for your business!"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className={styles.modalActions}>
                 <button
                   type="button"
                   className={styles.cancelBtn}
                   onClick={() => setShowCreateModal(false)}
+                  disabled={loading}
                 >
                   Cancel
                 </button>
-                <button type="submit" className={styles.submitBtn}>
-                  <i className="fas fa-plus"></i>
-                  Create Payment
+                <button
+                  type="submit"
+                  className={styles.submitBtn}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <><i className="fas fa-spinner fa-spin"></i> Creating...</>
+                  ) : (
+                    <><i className="fas fa-check"></i> Create Payment</>
+                  )}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && createdPayment && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h2><i className="fas fa-check-circle" style={{ color: 'var(--fiddu-success)' }}></i> Payment Created</h2>
+              <button
+                className={styles.closeBtn}
+                onClick={() => setShowSuccessModal(false)}
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className={styles.successBody}>
+              <p>Payment <strong>{createdPayment.payment_id}</strong> has been created successfully.</p>
+
+              <div className={styles.linkCard}>
+                <label>Shareable Payment Link</label>
+                <div className={styles.linkWrapper}>
+                  <input
+                    type="text"
+                    readOnly
+                    value={createdPayment.payment_link}
+                    className={styles.linkInput}
+                  />
+                  <button
+                    className={styles.copyBtn}
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdPayment.payment_link)
+                      showToast('Link copied to clipboard!', 'success')
+                    }}
+                  >
+                    <i className="fas fa-copy"></i> Copy
+                  </button>
+                  <a
+                    href={createdPayment.payment_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.openBtn}
+                  >
+                    <i className="fas fa-external-link-alt"></i> Open
+                  </a>
+                </div>
+              </div>
+
+              <div className={styles.modalActions} style={{ marginTop: '24px' }}>
+                <button
+                  className={styles.submitBtn}
+                  onClick={() => setShowSuccessModal(false)}
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
