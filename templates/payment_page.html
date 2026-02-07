@@ -3,7 +3,490 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment - FidduPay</title>
+    <title>Secure Payment - FidduPay</title>
+    <meta name="robots" content="noindex, nofollow">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--card-bg);
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Header */
+        .header {
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .brand svg {
+            width: 24px;
+            height: 24px;
+            color: var(--accent-blue);
+        }
+
+        .brand h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .payment-id {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-family: monospace;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        /* Main Content */
+        .content {
+            padding: 2rem 1.5rem;
+        }
+
+        .amount-section {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .amount-crypto {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .amount-fiat {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* QR Code */
+        .qr-container {
+            background: white;
+            padding: 1rem;
+            border-radius: 1rem;
+            width: fit-content;
+            margin: 0 auto 2rem;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+            position: relative;
+        }
+
+        .qr-container img {
+            display: block;
+            width: 200px;
+            height: 200px;
+        }
+
+        .network-badge {
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-blue);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Address Input */
+        .address-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .address-label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .address-input {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .address-input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .copy-btn {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            padding: 0 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        /* Timer */
+        .timer-section {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .timer-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .timer-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .timer-bar {
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+
+        .timer-progress {
+            height: 100%;
+            background: var(--accent-blue);
+            width: 100%;
+            transition: width 1s linear;
+        }
+
+        /* Status States */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .status-pending { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+        .status-confirmed { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .status-expired { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            background: rgba(15, 23, 42, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 400px) {
+            .amount-crypto { font-size: 1.75rem; }
+            .qr-container img { width: 160px; height: 160px; }
+        }
+
+        /* Success State */
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            color: var(--success);
+            margin: 0 auto 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="brand">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5 10 5 10-5-5-2.5-5 2.5z"/>
+                </svg>
+                <h1>FidduPay</h1>
+            </div>
+            <div class="payment-id">ID: {{payment_id}}</div>
+        </div>
+
+        <div class="content">
+            <!-- PENDING STATE -->
+            {{#if (eq status "PENDING")}}
+                <div class="amount-section">
+                    <div class="status-badge status-pending">
+                        <div class="pulse-dot"></div>
+                        Awaiting Payment
+                    </div>
+                    <div class="amount-crypto">{{amount}} {{crypto_type}}</div>
+                    <div class="amount-fiat">≈ ${{amount_usd}} USD</div>
+                    {{#if fee_amount_usd}}
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem">
+                        (Includes ${{fee_amount_usd}} fee)
+                    </div>
+                    {{/if}}
+                </div>
+
+                <div class="qr-container">
+                    <img src="data:image/png;base64,{{qr_code}}" alt="Payment QR">
+                    <div class="network-badge">{{network}} Network</div>
+                </div>
+
+                <div class="address-group">
+                    <label class="address-label">Send payments to</label>
+                    <div class="input-wrapper">
+                        <input type="text" class="address-input" value="{{deposit_address}}" readonly id="address-input">
+                        <button class="copy-btn" onclick="copyAddress()" title="Copy Address">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--warning); margin-top: 0.5rem; text-align: center;">
+                        ⚠️ Send only {{crypto_type}} on the {{network}} network
+                    </div>
+                </div>
+
+                <div class="timer-section">
+                    <div class="timer-label">Expires In</div>
+                    <div class="timer-value" id="timer">Loading...</div>
+                    <div class="timer-bar">
+                        <div class="timer-progress" id="progress-bar"></div>
+                    </div>
+                </div>
+            {{/if}}
+
+            <!-- CONFIRMED STATE -->
+            {{#if (eq status "CONFIRMED")}}
+                <div style="text-align: center; padding: 2rem 0;">
+                    <svg class="success-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Payment Confirmed!</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                        Your payment has been successfully processed.
+                    </p>
+                    <div style="background: rgba(16, 185, 129, 0.1); padding: 1rem; border-radius: 0.5rem; word-break: break-all;">
+                        <div style="font-size: 0.75rem; color: var(--success); margin-bottom: 0.25rem;">Transaction Hash</div>
+                        <div style="font-family: monospace; font-size: 0.875rem;">{{transaction_hash}}</div>
+                    </div>
+                    {{#if redirect_url}}
+                    <div style="margin-top: 2rem;">
+                        <a href="{{redirect_url}}" style="display: inline-block; background: var(--accent-blue); color: white; text-decoration: none; padding: 0.75rem 2rem; border-radius: 0.5rem; font-weight: 500;">
+                            Return to Merchant
+                        </a>
+                    </div>
+                    {{/if}}
+                </div>
+            {{/if}}
+
+            <!-- EXPIRED STATE -->
+            {{#if (eq status "EXPIRED")}}
+                <div style="text-align: center; padding: 2rem 0;">
+                    <div style="width: 64px; height: 64px; margin: 0 auto 1.5rem; color: var(--danger);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                    </div>
+                    <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Payment Expired</h2>
+                    <p style="color: var(--text-secondary);">
+                        This payment session has expired. Please request a new payment link.
+                    </p>
+                </div>
+            {{/if}}
+
+            <!-- SELECTION REQUIRED -->
+            {{#if (eq status "SELECTION_REQUIRED")}}
+                <div style="text-align: center; padding: 2rem 0;">
+                    <p style="color: var(--text-secondary);">Please select a payment method from the merchant's checkout page.</p>
+                </div>
+            {{/if}}
+        </div>
+
+        <div class="footer">
+            Powered by <strong>FidduPay</strong> • Secure & Encrypted
+            {{#if sandbox}}
+            <div style="color: var(--warning); margin-top: 0.5rem; font-weight: 600;">SANDBOX MODE</div>
+            {{/if}}
+        </div>
+    </div>
+
+    <script>
+        // Timer Logic
+        const expiresAt = new Date('{{expires_at}}').getTime();
+        const createdNow = new Date().getTime(); // Assuming roughly now for progress calc
+        const totalDuration = 15 * 60 * 1000; // 15 mins default
+
+        function updateTimer() {
+            const now = new Date().getTime();
+            const distance = expiresAt - now;
+            
+            const timerElement = document.getElementById('timer');
+            const progressElement = document.getElementById('progress-bar');
+            
+            if (!timerElement) return;
+
+            if (distance < 0) {
+                timerElement.textContent = "00:00";
+                if (progressElement) progressElement.style.width = "0%";
+                window.location.reload(); // Reload to show expired state
+                return;
+            }
+
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Progress Bar
+            if (progressElement) {
+                const remainingPercent = (distance / totalDuration) * 100;
+                progressElement.style.width = `${Math.min(remainingPercent, 100)}%`;
+                
+                if (distance < 300000) { // < 5 mins
+                    progressElement.style.backgroundColor = 'var(--warning)';
+                }
+                if (distance < 60000) { // < 1 min
+                    progressElement.style.backgroundColor = 'var(--danger)';
+                    timerElement.style.color = 'var(--danger)';
+                }
+            }
+        }
+
+        // Copy Address
+        function copyAddress() {
+            const input = document.getElementById('address-input');
+            input.select();
+            document.execCommand('copy');
+            
+            const btn = document.querySelector('.copy-btn');
+            const originalContent = btn.innerHTML;
+            
+            btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            btn.style.backgroundColor = 'var(--success)';
+            
+            setTimeout(() => {
+                btn.innerHTML = originalContent;
+                btn.style.backgroundColor = '';
+            }, 2000);
+        }
+
+        // Auto-refresh status
+        if ('{{status}}' === 'PENDING' || '{{status}}' === 'CONFIRMING') {
+            setInterval(updateTimer, 1000);
+            updateTimer();
+            
+            setInterval(() => {
+                fetch(window.location.href + '/status')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status !== '{{status}}') window.location.reload();
+                    })
+                    .catch(console.error);
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
     <meta name="description" content="Secure cryptocurrency payment powered by FidduPay">
     <meta name="robots" content="noindex, nofollow">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">

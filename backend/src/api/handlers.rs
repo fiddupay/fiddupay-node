@@ -1219,6 +1219,7 @@ fn render_payment_page(data: PaymentPageData) -> String {
         .replace("{{amount_usd}}", &encode_text(&data.amount_usd))
         .replace("{{crypto_type}}", &encode_text(&data.crypto_type))
         .replace("{{network}}", &encode_text(&data.network))
+        // Use data.deposit_address which comes from payment.to_address
         .replace("{{deposit_address}}", &encode_text(&data.deposit_address))
         .replace("{{fee_amount_usd}}", &encode_text(&data.fee_amount_usd))
         .replace("{{qr_code}}", &encode_text(&data.qr_code))
@@ -1227,42 +1228,88 @@ fn render_payment_page(data: PaymentPageData) -> String {
         .replace("{{transaction_hash}}", &encode_text(&data.transaction_hash.unwrap_or_default()))
         .replace("{{status_display}}", status_html)
         .replace("{{redirect_url}}", &encode_text(&data.redirect_url.unwrap_or_default()))
+        .replace("{{status}}", &encode_text(if data.is_confirmed { "CONFIRMED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" }))
         .replace("{{is_confirmed_bool}}", if data.is_confirmed { "true" } else { "false" })
         .replace("{{is_expired_bool}}", if data.is_expired { "true" } else { "false" })
         .replace("{{is_selection_required_bool}}", if data.is_selection_required { "true" } else { "false" });
 
-    // Handle the two main view blocks manually
-    if data.is_selection_required {
-        html = html.replace("{{#if is_selection_required}}", "");
-        html = html.replace("{{else_is_selection_required}}", "<!--");
-        html = html.replace("{{/if_is_selection_required}}", "-->");
-    } else {
-        html = html.replace("{{#if is_selection_required}}", "<!--");
-        html = html.replace("{{else_is_selection_required}}", "-->");
-        html = html.replace("{{/if_is_selection_required}}", "");
-    }
-
-    // Handle sandbox badge and warning
-    if data.sandbox {
-        html = html.replace("{{#if sandbox}}", "");
-        html = html.replace("{{else_is_sandbox}}", "<!--");
-        html = html.replace("{{/if_sandbox}}", "-->");
-    } else {
-        html = html.replace("{{#if sandbox}}", "<!--");
-        html = html.replace("{{else_is_sandbox}}", "-->");
-        html = html.replace("{{/if_sandbox}}", "");
-    }
-
-    // Handle optional QR code
-    if !data.qr_code.is_empty() {
-        html = html.replace("{{#if qr_code}}", "");
-        html = html.replace("{{/if_qr_code}}", "");
-    } else {
-        html = html.replace("{{#if qr_code}}", "<!--");
-        html = html.replace("{{/if_qr_code}}", "-->");
-    }
+    // Handle the two main view blocks manually for old template compatibility
+    // (New template uses {{#if}} blocks handled by a proper template engine or improved manual replacement)
+    // For now, we will stick to the manual replacement strategy but adapted for the new simple strings
+    
+    // We need to implement a simple conditional replacement for Handlebars-like syntax
+    // Since we are using basic string replacement, we need to be careful.
+    // The new template uses {{#if (eq status "PENDING")}} syntax which is complex for simple replace.
+    // To make it work without a heavy template engine, we will simplify the HTML template to use
+    // specific section blocks that we can toggle on/off.
+    
+    // HOWEVER, the previous replace_file_content injected a template with Handlebars syntax (eq status ...)
+    // which our current Rust code CANNOT parse. We need to update the Rust code to support 
+    // basic block replacement or simpler template logic.
+    
+    // Let's implement a poor man's conditional renderer for the new template structure.
+    let status = if data.is_confirmed { "CONFIRMED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" };
+    
+    html = toggle_block(&html, "PENDING", status == "PENDING");
+    html = toggle_block(&html, "CONFIRMED", status == "CONFIRMED");
+    html = toggle_block(&html, "EXPIRED", status == "EXPIRED");
+    html = toggle_block(&html, "SELECTION_REQUIRED", status == "SELECTION_REQUIRED");
+    
+    // Handle generic if blocks
+    html = toggle_generic_block(&html, "sandbox", data.sandbox);
+    html = toggle_generic_block(&html, "fee_amount_usd", !data.fee_amount_usd.is_empty() && data.fee_amount_usd != "0.00");
+    html = toggle_generic_block(&html, "redirect_url", data.redirect_url.is_some());
 
     html
+}
+
+fn toggle_block(html: &str, status: &str, show: bool) -> String {
+    let start_tag = format!("{{{{#if (eq status \"{}\")}}}}", status);
+    let end_tag = "{{/if}}"; // This is ambiguous if nested, but our template is flat
+    
+    // Simple way: if show is true, remove tags. If false, remove content between tags.
+    // NOTE: This basic string manipulation is fragile for nested blocks but works for our flat template.
+    
+    if show {
+        html.replace(&start_tag, "").replace(end_tag, "")
+    } else {
+        // We need to remove the block. Regex would be better but we don't want to add dependencies.
+        // We'll assumes blocks don't overlap in a way that breaks this simple split.
+        let parts: Vec<&str> = html.split(&start_tag).collect();
+        let mut result = String::new();
+        result.push_str(parts[0]);
+        
+        for part in parts.iter().skip(1) {
+             if let Some(end_index) = part.find(end_tag) {
+                 result.push_str(&part[end_index + end_tag.len()..]);
+             } else {
+                 result.push_str(part);
+             }
+        }
+        result
+    }
+}
+
+fn toggle_generic_block(html: &str, var_name: &str, show: bool) -> String {
+    let start_tag = format!("{{{{#if {}}}}}", var_name);
+    let end_tag = "{{/if}}";
+    
+    if show {
+        html.replace(&start_tag, "").replace(end_tag, "")
+    } else {
+        let parts: Vec<&str> = html.split(&start_tag).collect();
+        let mut result = String::new();
+        result.push_str(parts[0]);
+        
+        for part in parts.iter().skip(1) {
+             if let Some(end_index) = part.find(end_tag) {
+                 result.push_str(&part[end_index + end_tag.len()..]);
+             } else {
+                 result.push_str(part);
+             }
+        }
+        result
+    }
 }
 
 // ============================================================================
