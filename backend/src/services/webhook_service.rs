@@ -487,7 +487,7 @@ mod tests {
         let payload = r#"{"event_type":"payment.confirmed","payment_id":"pay_123"}"#;
         let timestamp = 1234567890;
 
-        let signature = service.generate_signature(payload, timestamp);
+        let signature = service.generate_signature(payload, timestamp, "test_secret");
 
         // Signature should be a hex string
         assert_eq!(signature.len(), 64); // SHA256 produces 32 bytes = 64 hex chars
@@ -502,8 +502,8 @@ mod tests {
         let payload = r#"{"event_type":"payment.confirmed"}"#;
         let timestamp = 1234567890;
 
-        let sig1 = service.generate_signature(payload, timestamp);
-        let sig2 = service.generate_signature(payload, timestamp);
+        let sig1 = service.generate_signature(payload, timestamp, "test_secret");
+        let sig2 = service.generate_signature(payload, timestamp, "test_secret");
 
         // Same input should produce same signature
         assert_eq!(sig1, sig2);
@@ -518,8 +518,8 @@ mod tests {
         let payload2 = r#"{"event_type":"payment.expired"}"#;
         let timestamp = 1234567890;
 
-        let sig1 = service.generate_signature(payload1, timestamp);
-        let sig2 = service.generate_signature(payload2, timestamp);
+        let sig1 = service.generate_signature(payload1, timestamp, "test_secret");
+        let sig2 = service.generate_signature(payload2, timestamp, "test_secret");
 
         // Different payloads should produce different signatures
         assert_ne!(sig1, sig2);
@@ -532,8 +532,8 @@ mod tests {
 
         let payload = r#"{"event_type":"payment.confirmed"}"#;
 
-        let sig1 = service.generate_signature(payload, 1234567890);
-        let sig2 = service.generate_signature(payload, 1234567891);
+        let sig1 = service.generate_signature(payload, 1234567890, "test_secret");
+        let sig2 = service.generate_signature(payload, 1234567891, "test_secret");
 
         // Different timestamps should produce different signatures
         assert_ne!(sig1, sig2);
