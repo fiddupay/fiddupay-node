@@ -923,18 +923,18 @@ pub async fn payment_page(
     use axum::response::Html;
     
     // 1. Try to look up by link_id in payment_links (vanity/shareable links)
-    let payment_id = match sqlx::query!(
+    let (internal_id, public_id) = match sqlx::query!(
         "SELECT payment_id FROM payment_links WHERE link_id = $1",
         &link_id
     )
     .fetch_optional(&state.db_pool)
     .await
     {
-        Ok(Some(link)) => link.payment_id,
+        Ok(Some(link)) => (Some(link.payment_id), None),
         Ok(None) => {
-            // 2. Fallback: Check if link_id is actually a payment_id
+            // 2. Fallback: Check if link_id is actually a public payment_id string
             if link_id.starts_with("pay_") {
-                link_id.clone()
+                (None, Some(link_id.clone()))
             } else {
                 return (StatusCode::NOT_FOUND, Html("Payment link not found".to_string())).into_response();
             }
@@ -943,19 +943,35 @@ pub async fn payment_page(
     };
 
     // 3. Get payment details
-    let payment = match sqlx::query!(
-        r#"
-        SELECT payment_id, status, amount, amount_usd, crypto_type, network, 
-               to_address, fee_amount_usd, expires_at, created_at, confirmed_at, 
-               transaction_hash, partial_payments_enabled, total_paid, remaining_balance
-        FROM payment_transactions 
-        WHERE id = $1 OR payment_id = $1
-        "#,
-        payment_id
-    )
-    .fetch_optional(&state.db_pool)
-    .await
-    {
+    let payment_res = if let Some(id) = internal_id {
+        sqlx::query!(
+            r#"
+            SELECT merchant_id, payment_id, status, amount, amount_usd, crypto_type, network, 
+                   to_address, fee_amount_usd, expires_at, created_at, confirmed_at, 
+                   transaction_hash, partial_payments_enabled, total_paid, remaining_balance
+            FROM payment_transactions 
+            WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_optional(&state.db_pool)
+        .await
+    } else {
+        sqlx::query!(
+            r#"
+            SELECT merchant_id, payment_id, status, amount, amount_usd, crypto_type, network, 
+                   to_address, fee_amount_usd, expires_at, created_at, confirmed_at, 
+                   transaction_hash, partial_payments_enabled, total_paid, remaining_balance
+            FROM payment_transactions 
+            WHERE payment_id = $1
+            "#,
+            public_id.unwrap()
+        )
+        .fetch_optional(&state.db_pool)
+        .await
+    };
+
+    let payment = match payment_res {
         Ok(Some(p)) => p,
         Ok(None) => return (StatusCode::NOT_FOUND, Html("Payment not found".to_string())).into_response(),
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("Error: {}", e))).into_response(),
@@ -989,8 +1005,8 @@ pub async fn payment_page(
 
     // Check if sandbox and get redirect_url
     let merchant_info = sqlx::query!(
-        "SELECT sandbox_mode, redirect_url FROM merchants WHERE id = (SELECT merchant_id FROM payment_transactions WHERE id = $1)", 
-        payment_link.payment_id
+        "SELECT sandbox_mode, redirect_url FROM merchants WHERE id = $1", 
+        payment.merchant_id
     )
     .fetch_one(&state.db_pool)
     .await
