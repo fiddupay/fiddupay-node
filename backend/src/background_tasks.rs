@@ -200,7 +200,7 @@ impl BackgroundTasks {
             FROM webhook_deliveries
             WHERE status = 'pending'
               AND next_retry_at <= $1
-              AND attempts < 5
+              AND attempts < 12
             ORDER BY next_retry_at ASC
             LIMIT 100
             "#,
@@ -219,12 +219,23 @@ impl BackgroundTasks {
             let attempt_number = webhook.attempts + 1;
 
             info!(
-                "Retrying webhook delivery {} (attempt {}/5) for merchant {} - event: {}",
+                "Retrying webhook delivery {} (attempt {}/12) for merchant {} - event: {}",
                 webhook.id, attempt_number, webhook.merchant_id, webhook.event_type
             );
 
+            // Fetch merchant-specific signing secret
+            let secret = match sqlx::query_scalar!(
+                "SELECT signing_secret FROM webhook_configs WHERE merchant_id = $1",
+                webhook.merchant_id
+            )
+            .fetch_one(&self.db_pool)
+            .await {
+                Ok(s) => s,
+                Err(_) => self.webhook_service.get_signing_key().to_string(), // Fallback to global
+            };
+
             // Attempt delivery
-            let delivery_result = self.webhook_service.send_webhook(&webhook.url, &webhook.payload).await;
+            let delivery_result = self.webhook_service.send_webhook(&webhook.url, &webhook.payload, &secret).await;
 
             match delivery_result {
                 Ok((status_code, response_body)) => {
@@ -255,13 +266,18 @@ impl BackgroundTasks {
                 }
                 Err(e) => {
                     // Failed - update attempt count and schedule next retry
-                    let (status, next_retry) = if attempt_number >= 5 {
+                    let (status, next_retry) = if attempt_number >= 12 {
                         // Max attempts reached - mark as failed
                         ("failed", None)
                     } else {
                         // Schedule next retry with exponential backoff
-                        // Backoff: 1s, 2s, 4s, 8s, 16s
-                        let backoff_seconds = 2_i64.pow(attempt_number as u32 - 1);
+                        // Backoff: 1s, 2s, 4s, 8s, 16s, 32s, 64s, 128s, 256s, 512s, 1024s, 2048s...
+                        // We'll cap the backoff at 2 hours for later attempts
+                        let backoff_seconds = if attempt_number <= 10 {
+                            2_i64.pow(attempt_number as u32 - 1)
+                        } else {
+                            7200 // 2 hours cap
+                        };
                         let next_retry_at = Utc::now() + chrono::Duration::seconds(backoff_seconds);
                         ("pending", Some(next_retry_at))
                     };

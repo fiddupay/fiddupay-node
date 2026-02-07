@@ -32,6 +32,7 @@ pub use crate::api::handlers::{
     create_refund,
     get_refund,
     complete_refund,
+    send_test_webhook,
     
     // Analytics
     get_analytics,

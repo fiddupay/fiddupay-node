@@ -216,6 +216,30 @@ pub struct CreatePaymentRequest {
     pub expiration_minutes: Option<i32>,
     #[serde(default)]
     pub partial_payments_enabled: Option<bool>,
+    
+    // Invoice-specific fields
+    #[serde(default)]
+    pub is_invoice: bool,
+    #[serde(default)]
+    pub customer_name: Option<String>,
+    #[serde(default)]
+    pub customer_email: Option<String>,
+    #[serde(default)]
+    pub items: Option<Vec<InvoiceItem>>,
+    #[serde(default)]
+    pub tax: Option<Decimal>,
+    #[serde(default)]
+    pub due_date: Option<chrono::NaiveDate>,
+    #[serde(default)]
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InvoiceItem {
+    pub description: String,
+    pub quantity: i32,
+    pub unit_price: Decimal,
+    pub amount: Decimal,
 }
 
 impl CreatePaymentRequest {

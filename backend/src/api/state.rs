@@ -55,11 +55,12 @@ impl AppState {
         let price_service = Arc::new(PriceService::new(config.clone()));
         price_service.start_background_polling();
         
+        let invoice_service = Arc::new(InvoiceService::new(db_pool.clone()));
         let balance_service = Arc::new(BalanceService::new(db_pool.clone(), price_service.clone()));
 
         Self {
             merchant_service: Arc::new(MerchantService::new(db_pool.clone(), config.clone())),
-            payment_service: Arc::new(PaymentService::new(db_pool.clone(), &config.payment_page_base_url, price_service.clone(), &config.webhook_signing_key, config.clone())),
+            payment_service: Arc::new(PaymentService::new(db_pool.clone(), &config.payment_page_base_url, price_service.clone(), invoice_service.clone(), &config.webhook_signing_key, config.clone())),
             refund_service: Arc::new(RefundService::new(db_pool.clone(), webhook_service.clone())),
             analytics_service: Arc::new(AnalyticsService::new(db_pool.clone())),
             sandbox_service: Arc::new(SandboxService::new(db_pool.clone(), config.clone())),
@@ -73,7 +74,7 @@ impl AppState {
             currency_service: Arc::new(CurrencyService::new(db_pool.clone())),
             price_service,
             volume_tracking_service: Arc::new(VolumeTrackingService::new(db_pool.clone())),
-            invoice_service: Arc::new(InvoiceService::new(db_pool.clone())),
+            invoice_service,
             config,
             db_pool,
         }

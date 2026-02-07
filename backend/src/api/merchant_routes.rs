@@ -22,6 +22,7 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/merchants/settlement-mode", put(merchant_handlers::update_settlement_mode)) // DEPRECATED: Use PATCH /api/v1/merchants/settings
         .route("/api/v1/merchants/settings", get(merchant_handlers::get_merchant_settings))
         .route("/api/v1/merchants/settings", axum::routing::patch(merchant_handlers::update_merchant_settings))
+        .route("/api/v1/merchants/webhook/test", post(merchant_handlers::send_test_webhook))
         
         // Payment management
         .route("/api/v1/merchants/payments", post(merchant_handlers::create_payment))

@@ -567,6 +567,7 @@ pub struct UnifiedSettingsRequest {
     pub customer_pays_fee: Option<bool>,
     pub ip_whitelist: Option<Vec<String>>,
     pub sandbox_mode: Option<bool>,
+    pub rotate_webhook_secret: Option<bool>,
 }
 
 fn validate_optional_webhook_url(url: &String) -> Result<(), validator::ValidationError> {
@@ -606,6 +607,20 @@ pub async fn update_merchant_settings(
     if let Some(ips) = req.ip_whitelist {
         if let Err(e) = state.ip_whitelist_service.set_whitelist(context.merchant_id, ips).await {
             return (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response();
+        }
+    }
+
+    // 4. Rotate Webhook Secret if requested
+    if req.rotate_webhook_secret.unwrap_or(false) {
+        let new_secret = hex::encode(rand::random::<[u8; 32]>());
+        if let Err(e) = sqlx::query!(
+            "UPDATE webhook_configs SET signing_secret = $1, updated_at = NOW() WHERE merchant_id = $2",
+            new_secret,
+            context.merchant_id
+        )
+        .execute(&state.db_pool)
+        .await {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
         }
     }
 
@@ -649,9 +664,9 @@ pub async fn get_merchant_settings(
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     };
 
-    // 2. Get webhook URL
-    let webhook_url = sqlx::query_scalar!(
-        "SELECT url FROM webhook_configs WHERE merchant_id = $1 AND is_active = true",
+    // 2. Get webhook config
+    let webhook_config = sqlx::query!(
+        "SELECT url, payload_format, signing_secret FROM webhook_configs WHERE merchant_id = $1 AND is_active = true",
         merchant_id
     )
     .fetch_optional(&state.db_pool)
@@ -668,12 +683,41 @@ pub async fn get_merchant_settings(
     .unwrap_or_default();
 
     (StatusCode::OK, Json(json!({
-        "webhook_url": webhook_url,
+        "webhook_url": webhook_config.as_ref().map(|c| &c.url),
+        "webhook_format": webhook_config.as_ref().map(|c| &c.payload_format),
+        "webhook_signing_secret": webhook_config.as_ref().map(|c| &c.signing_secret),
         "settlement_mode": merchant.settlement_mode,
         "customer_pays_fee": merchant.customer_pays_fee,
         "sandbox_mode": merchant.sandbox_mode,
         "redirect_url": merchant.redirect_url,
         "ip_whitelist": ip_whitelist
+    }))).into_response()
+}
+
+pub async fn send_test_webhook(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    let merchant_id = context.merchant_id;
+    
+    let payload = crate::models::webhook::WebhookPayload {
+        event_type: "webhook.test".to_string(),
+        payment_id: "test_payment_123".to_string(),
+        merchant_id,
+        status: crate::payment::models::PaymentStatus::Confirmed,
+        amount: rust_decimal::Decimal::new(100, 2), // 1.00
+        crypto_type: "SOL".to_string(),
+        transaction_hash: Some("test_hash_abc123".to_string()),
+        timestamp: Utc::now().timestamp(),
+    };
+
+    if let Err(e) = state.webhook_service.queue_webhook(merchant_id, 0, payload).await {
+         return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
+    }
+
+    (StatusCode::OK, Json(json!({
+        "status": "success",
+        "message": "Test webhook queued for delivery"
     }))).into_response()
 }
 

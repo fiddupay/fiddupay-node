@@ -8,9 +8,9 @@ use sqlx::PgPool;
 use tracing::info;
 
 use crate::error::ServiceError;
-use crate::services::{merchant_service::MerchantService, price_service::PriceService};
+use crate::services::{merchant_service::MerchantService, price_service::PriceService, invoice_service::InvoiceService};
 use std::sync::Arc;
-use super::models::{CreatePaymentRequest, PaymentResponse, PaymentStatus, CryptoType};
+use super::models::{CreatePaymentRequest, PaymentResponse, PaymentStatus, CryptoType, InvoiceItem};
 
 use super::fee_calculator::FeeCalculator;
 
@@ -18,15 +18,17 @@ pub struct PaymentProcessor {
     db_pool: PgPool,
     price_service: Arc<PriceService>,
     merchant_service: MerchantService,
+    invoice_service: Arc<InvoiceService>,
     config: crate::config::Config,
 }
 
 impl PaymentProcessor {
-    pub fn new(db_pool: PgPool, _payment_page_base_url: String, price_service: Arc<PriceService>, config: crate::config::Config) -> Self {
+    pub fn new(db_pool: PgPool, _payment_page_base_url: String, price_service: Arc<PriceService>, invoice_service: Arc<InvoiceService>, config: crate::config::Config) -> Self {
         Self {
             db_pool: db_pool.clone(),
             price_service,
             merchant_service: MerchantService::new(db_pool, config.clone()),
+            invoice_service,
             config,
         }
     }
@@ -281,6 +283,41 @@ impl PaymentProcessor {
             None
         };
         
+        // If it's an invoice, create the invoice record
+        if request.is_invoice {
+            if let Some(items) = request.items {
+                // Map local InvoiceItem to service's InvoiceItem
+                let service_items: Vec<crate::services::invoice_service::InvoiceItem> = items.into_iter().map(|i| {
+                    crate::services::invoice_service::InvoiceItem {
+                        description: i.description,
+                        quantity: i.quantity,
+                        unit_price: i.unit_price,
+                        amount: i.amount,
+                    }
+                }).collect();
+
+                let invoice_req = crate::services::invoice_service::CreateInvoiceRequest {
+                    customer_email: request.customer_email,
+                    customer_name: request.customer_name,
+                    items: service_items,
+                    tax: request.tax,
+                    due_date: request.due_date,
+                    notes: request.notes,
+                };
+
+                if let Ok(invoice) = self.invoice_service.create_invoice(merchant_id, invoice_req).await {
+                    // Link invoice to payment
+                    let _ = sqlx::query!(
+                        "UPDATE invoices SET payment_id = $1 WHERE invoice_id = $2",
+                        payment_id,
+                        invoice.invoice_id
+                    )
+                    .execute(&self.db_pool)
+                    .await;
+                }
+            }
+        }
+
         info!(
             "Created payment {} for merchant {} - Status: {:?} - Amount USD: ${}",
             payment_id, merchant_id, status, amount_usd
@@ -306,8 +343,8 @@ impl PaymentProcessor {
             from_address: None,
             confirmations: 0,
             required_confirmations: 1,
-            description: None,
-            metadata: None,
+            description: request.description,
+            metadata: request.metadata,
             partial_payments: None,
         })
     }

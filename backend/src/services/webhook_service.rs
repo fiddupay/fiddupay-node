@@ -36,6 +36,10 @@ impl WebhookService {
         }
     }
 
+    pub fn get_signing_key(&self) -> &str {
+        &self.signing_key
+    }
+
     /// Configure webhook URL and format for a merchant
     pub async fn set_webhook_url(
         &self,
@@ -59,14 +63,15 @@ impl WebhookService {
 
             sqlx::query!(
                 r#"
-                INSERT INTO webhook_configs (merchant_id, url, payload_format, is_active)
-                VALUES ($1, $2, $3, true)
+                INSERT INTO webhook_configs (merchant_id, url, payload_format, is_active, signing_secret)
+                VALUES ($1, $2, $3, true, $4)
                 ON CONFLICT (merchant_id) 
                 DO UPDATE SET url = $2, payload_format = $3, is_active = true, updated_at = NOW()
                 "#,
                 merchant_id,
                 url_str,
-                format
+                format,
+                hex::encode(rand::random::<[u8; 32]>())
             )
             .execute(&self.db_pool)
             .await
@@ -90,10 +95,10 @@ impl WebhookService {
     }
 
     /// Generate HMAC-SHA256 signature for webhook payload
-    fn generate_signature(&self, payload: &str, timestamp: i64) -> String {
+    fn generate_signature(&self, payload: &str, timestamp: i64, secret: &str) -> String {
         let message = format!("{}.{}", timestamp, payload);
         
-        let mut mac = HmacSha256::new_from_slice(self.signing_key.as_bytes())
+        let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
             .expect("HMAC can take key of any size");
         mac.update(message.as_bytes());
         
@@ -106,14 +111,15 @@ impl WebhookService {
         &self,
         url: &str,
         payload_value: &serde_json::Value,
+        secret: &str,
     ) -> Result<(u16, String), ServiceError> {
         let timestamp = Utc::now().timestamp();
         
         // Serialize payload
         let payload_json = payload_value.to_string();
         
-        // Generate signature
-        let signature = self.generate_signature(&payload_json, timestamp);
+        // Generate signature using merchant-specific secret
+        let signature = self.generate_signature(&payload_json, timestamp, secret);
         
         // Send HTTP POST request with signature headers
         let response = self.http_client
@@ -150,7 +156,7 @@ impl WebhookService {
     ) -> Result<(), ServiceError> {
         // Get merchant's webhook configuration
         let config = sqlx::query!(
-            "SELECT url, payload_format FROM webhook_configs WHERE merchant_id = $1 AND is_active = true",
+            "SELECT url, payload_format, signing_secret FROM webhook_configs WHERE merchant_id = $1 AND is_active = true",
             merchant_id
         )
         .fetch_optional(&self.db_pool)
@@ -166,6 +172,14 @@ impl WebhookService {
                     _ => format!("🔔 **Webhook Alert**: `{}` for payment `{}`", payload.event_type, payload.payment_id),
                 };
                 serde_json::json!({ "content": content })
+            } else if config.payload_format == "slack" {
+                let text = match payload.event_type.as_str() {
+                    "payment.confirmed" => format!("✅ *Payment Confirmed*\nID: `{}`\nAmount: `{} {}`", 
+                        payload.payment_id, payload.amount, payload.crypto_type),
+                    "payment.expired" => format!("❌ *Payment Expired*\nID: `{}`", payload.payment_id),
+                    _ => format!("🔔 *Webhook Alert*: `{}` for payment `{}`", payload.event_type, payload.payment_id),
+                };
+                serde_json::json!({ "text": text })
             } else {
                 serde_json::to_value(&payload)
                     .map_err(|e| ServiceError::Internal(format!("Failed to serialize payload: {}", e)))?

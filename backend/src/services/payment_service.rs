@@ -8,6 +8,7 @@ use crate::payment::models::{
     CreatePaymentRequest, PaymentFilters, PaymentList, PaymentResponse, PaymentStatus,
     PaymentTransaction, PartialPaymentInfo, PartialPaymentRecord, CryptoType,
 };
+use crate::services::invoice_service::InvoiceService;
 use crate::payment::processor::PaymentProcessor;
 use crate::payment::verifier::PaymentVerifier;
 use std::sync::Arc;
@@ -37,17 +38,19 @@ pub struct PaymentService {
     db_pool: PgPool,
     processor: PaymentProcessor,
     verifier: PaymentVerifier,
+    invoice_service: Arc<InvoiceService>,
     config: crate::config::Config,
 }
 
 impl PaymentService {
-    pub fn new(db_pool: PgPool, payment_page_base_url: &str, price_service: Arc<PriceService>, webhook_signing_key: &str, config: crate::config::Config) -> Self {
+    pub fn new(db_pool: PgPool, payment_page_base_url: &str, price_service: Arc<PriceService>, invoice_service: Arc<InvoiceService>, webhook_signing_key: &str, config: crate::config::Config) -> Self {
         let webhook_service = WebhookService::new(db_pool.clone(), webhook_signing_key.to_string());
         
         Self {
-            processor: PaymentProcessor::new(db_pool.clone(), payment_page_base_url.to_string(), price_service, config.clone()),
+            processor: PaymentProcessor::new(db_pool.clone(), payment_page_base_url.to_string(), price_service, invoice_service.clone(), config.clone()),
             verifier: PaymentVerifier::new(db_pool.clone(), webhook_service, config.clone()),
             db_pool,
+            invoice_service,
             config,
         }
     }
