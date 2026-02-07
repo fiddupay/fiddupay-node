@@ -943,33 +943,19 @@ pub async fn payment_page(
     };
 
     // 3. Get payment details
-    let payment_res = if let Some(id) = internal_id {
-        sqlx::query!(
-            r#"
-            SELECT merchant_id, payment_id, status, amount, amount_usd, crypto_type, network, 
-                   to_address, fee_amount_usd, expires_at, created_at, confirmed_at, 
-                   transaction_hash, partial_payments_enabled, total_paid, remaining_balance
-            FROM payment_transactions 
-            WHERE id = $1
-            "#,
-            id
-        )
-        .fetch_optional(&state.db_pool)
-        .await
-    } else {
-        sqlx::query!(
-            r#"
-            SELECT merchant_id, payment_id, status, amount, amount_usd, crypto_type, network, 
-                   to_address, fee_amount_usd, expires_at, created_at, confirmed_at, 
-                   transaction_hash, partial_payments_enabled, total_paid, remaining_balance
-            FROM payment_transactions 
-            WHERE payment_id = $1
-            "#,
-            public_id.unwrap()
-        )
-        .fetch_optional(&state.db_pool)
-        .await
-    };
+    let payment_res = sqlx::query!(
+        r#"
+        SELECT merchant_id, payment_id, status, amount, amount_usd, crypto_type, network, 
+               to_address, fee_amount_usd, expires_at, created_at, confirmed_at, 
+               transaction_hash, partial_payments_enabled, total_paid, remaining_balance
+        FROM payment_transactions 
+        WHERE id = $1 OR payment_id = $2
+        "#,
+        internal_id,
+        public_id
+    )
+    .fetch_optional(&state.db_pool)
+    .await;
 
     let payment = match payment_res {
         Ok(Some(p)) => p,
