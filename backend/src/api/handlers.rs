@@ -1227,7 +1227,7 @@ fn render_payment_page(data: PaymentPageData) -> String {
         .replace("{{expires_at}}", &encode_text(&data.expires_at))
         .replace("{{transaction_hash}}", &encode_text(&data.transaction_hash.unwrap_or_default()))
         .replace("{{status_display}}", status_html)
-        .replace("{{redirect_url}}", &encode_text(&data.redirect_url.unwrap_or_default()))
+        .replace("{{redirect_url}}", &encode_text(&data.redirect_url.clone().unwrap_or_default()))
         .replace("{{status}}", &encode_text(if data.is_confirmed { "CONFIRMED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" }))
         .replace("{{is_confirmed_bool}}", if data.is_confirmed { "true" } else { "false" })
         .replace("{{is_expired_bool}}", if data.is_expired { "true" } else { "false" })
