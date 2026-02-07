@@ -330,6 +330,7 @@ const PaymentsPage: React.FC = () => {
         <div className={styles.table}>
           <div className={`${styles.tableHeader} ${styles.tableRow}`}>
             <div className={styles.tableCell}><strong>Payment ID</strong></div>
+            <div className={styles.tableCell}><strong>Link</strong></div>
             <div className={styles.tableCell}><strong>Amount</strong></div>
             <div className={styles.tableCell}><strong>Currency</strong></div>
             <div className={styles.tableCell}><strong>Status</strong></div>
@@ -353,6 +354,25 @@ const PaymentsPage: React.FC = () => {
               <div key={payment.payment_id} className={styles.tableRow}>
                 <div className={styles.tableCell}>
                   <code>{payment.payment_id}</code>
+                </div>
+                <div className={styles.tableCell}>
+                  {payment.payment_link ? (
+                    <div className={styles.linkCell}>
+                      <a href={payment.payment_link} target="_blank" rel="noopener noreferrer" title={payment.payment_link}>
+                        {payment.payment_link.replace(/^https?:\/\//, '')}
+                      </a>
+                      <i
+                        className={`fas fa-copy ${styles.copyIcon}`}
+                        onClick={() => {
+                          navigator.clipboard.writeText(payment.payment_link!)
+                          showToast('Link copied!', 'success')
+                        }}
+                        title="Copy Link"
+                      ></i>
+                    </div>
+                  ) : (
+                    <span className={styles.tableCellMuted}>No link</span>
+                  )}
                 </div>
                 <div className={styles.tableCell}>
                   <div className={styles.amount}>
@@ -539,64 +559,74 @@ const PaymentsPage: React.FC = () => {
                             <i className="fas fa-plus"></i> Add Item
                           </button>
                         </div>
-                        {newPayment.items.map((item, index) => (
-                          <div key={index} className={styles.itemRow}>
-                            <input
-                              type="text"
-                              placeholder="Description"
-                              value={item.description}
-                              onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                              className={styles.itemDesc}
-                              required={newPayment.is_invoice}
-                            />
-                            <input
-                              type="number"
-                              placeholder="Qty"
-                              value={item.quantity}
-                              onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value))}
-                              className={styles.itemQty}
-                              min="1"
-                              required={newPayment.is_invoice}
-                            />
-                            <input
-                              type="number"
-                              placeholder="Price"
-                              value={item.unit_price}
-                              onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
-                              className={styles.itemPrice}
-                              step="0.01"
-                              min="0"
-                              required={newPayment.is_invoice}
-                            />
-                            {newPayment.items.length > 1 && (
-                              <button type="button" onClick={() => handleRemoveItem(index)} className={styles.removeBtn}>
-                                <i className="fas fa-trash"></i>
-                              </button>
-                            )}
+                        <div className={styles.itemsTable}>
+                          <div className={styles.itemTableHeader}>
+                            <span>Description</span>
+                            <span>Qty</span>
+                            <span>Price</span>
+                            <span></span>
                           </div>
-                        ))}
+                          {newPayment.items.map((item, index) => (
+                            <div key={index} className={styles.itemRow}>
+                              <input
+                                type="text"
+                                placeholder="Service or product description"
+                                value={item.description}
+                                onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                                className={styles.itemDesc}
+                                required={newPayment.is_invoice}
+                              />
+                              <input
+                                type="number"
+                                placeholder="1"
+                                value={item.quantity}
+                                onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value))}
+                                className={styles.itemQty}
+                                min="1"
+                                required={newPayment.is_invoice}
+                              />
+                              <input
+                                type="number"
+                                placeholder="0.00"
+                                value={item.unit_price}
+                                onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
+                                className={styles.itemPrice}
+                                step="0.01"
+                                min="0"
+                                required={newPayment.is_invoice}
+                              />
+                              {newPayment.items.length > 1 && (
+                                <button type="button" onClick={() => handleRemoveItem(index)} className={styles.removeBtn} title="Remove Item">
+                                  <i className="fas fa-trash"></i>
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
 
-                      <div className={styles.inputGroup}>
-                        <label>Tax Percentage (%)</label>
-                        <input
-                          type="number"
-                          value={newPayment.tax_percentage}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            setNewPayment(prev => ({ ...prev, tax_percentage: val }))
-                          }}
-                          placeholder="0"
-                        />
-                      </div>
+                      <div className={styles.invoiceFooter}>
+                        <div className={styles.inputGroup}>
+                          <label>Tax Percentage (%)</label>
+                          <input
+                            type="number"
+                            value={newPayment.tax_percentage}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setNewPayment(prev => ({ ...prev, tax_percentage: val }))
+                            }}
+                            placeholder="0"
+                          />
+                        </div>
 
-                      <div className={styles.inputGroup}>
-                        <label>Notes</label>
-                        <textarea
-                          value={newPayment.notes}
-                          onChange={(e) => setNewPayment(prev => ({ ...prev, notes: e.target.value }))}
-                          placeholder="Thank you for your business!"
-                        />
+                        <div className={styles.inputGroup}>
+                          <label>Notes</label>
+                          <textarea
+                            value={newPayment.notes}
+                            onChange={(e) => setNewPayment(prev => ({ ...prev, notes: e.target.value }))}
+                            placeholder="Thank you for your business!"
+                          />
+                        </div>
                       </div>
                     </div>
                   )}

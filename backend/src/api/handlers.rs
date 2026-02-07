@@ -922,29 +922,36 @@ pub async fn payment_page(
 ) -> impl IntoResponse {
     use axum::response::Html;
     
-    // Look up payment by link_id
-    let payment_link = match sqlx::query!(
+    // 1. Try to look up by link_id in payment_links (vanity/shareable links)
+    let payment_id = match sqlx::query!(
         "SELECT payment_id FROM payment_links WHERE link_id = $1",
         &link_id
     )
     .fetch_optional(&state.db_pool)
     .await
     {
-        Ok(Some(link)) => link,
-        Ok(None) => return (StatusCode::NOT_FOUND, Html("Payment link not found".to_string())).into_response(),
+        Ok(Some(link)) => link.payment_id,
+        Ok(None) => {
+            // 2. Fallback: Check if link_id is actually a payment_id
+            if link_id.starts_with("pay_") {
+                link_id.clone()
+            } else {
+                return (StatusCode::NOT_FOUND, Html("Payment link not found".to_string())).into_response();
+            }
+        },
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("Error: {}", e))).into_response(),
     };
 
-    // Get payment details
+    // 3. Get payment details
     let payment = match sqlx::query!(
         r#"
         SELECT payment_id, status, amount, amount_usd, crypto_type, network, 
                to_address, fee_amount_usd, expires_at, created_at, confirmed_at, 
                transaction_hash, partial_payments_enabled, total_paid, remaining_balance
         FROM payment_transactions 
-        WHERE id = $1
+        WHERE id = $1 OR payment_id = $1
         "#,
-        payment_link.payment_id
+        payment_id
     )
     .fetch_optional(&state.db_pool)
     .await
