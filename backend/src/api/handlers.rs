@@ -1001,6 +1001,22 @@ pub async fn payment_page(
     let sandbox = merchant_info.as_ref().map(|m| m.sandbox_mode).unwrap_or(false);
     let redirect_url = merchant_info.and_then(|m| m.redirect_url);
 
+    // Fetch supported currencies if needed
+    let supported_currencies = if is_selection_required {
+        sqlx::query!(
+             "SELECT crypto_type, network FROM merchant_wallets WHERE merchant_id = $1 AND is_active = true",
+             payment.merchant_id
+        )
+        .fetch_all(&state.db_pool)
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .map(|r| (r.crypto_type, r.network))
+        .collect()
+    } else {
+        vec![]
+    };
+
     // Render logic
     let html = render_payment_page(PaymentPageData {
         payment_id: payment.payment_id,
@@ -1019,7 +1035,9 @@ pub async fn payment_page(
         is_expired,
         is_selection_required,
         sandbox,
+        sandbox,
         redirect_url,
+        supported_currencies,
     });
 
     (StatusCode::OK, Html(html)).into_response()
@@ -1196,6 +1214,7 @@ struct PaymentPageData {
     is_selection_required: bool,
     sandbox: bool,
     redirect_url: Option<String>,
+    supported_currencies: Vec<(String, String)>,
 }
 
 fn render_payment_page(data: PaymentPageData) -> String {
@@ -1211,6 +1230,11 @@ fn render_payment_page(data: PaymentPageData) -> String {
     } else {
         "⏳ Pending"
     };
+
+    let currencies_json = data.supported_currencies.iter()
+        .map(|(s, n)| json!({"symbol": s, "network": n}))
+        .collect::<Vec<_>>();
+    let supported_currencies_json = serde_json::to_string(&currencies_json).unwrap_or_else(|_| "[]".to_string());
 
     // Replace basic tags
     let mut html = template
@@ -1231,7 +1255,8 @@ fn render_payment_page(data: PaymentPageData) -> String {
         .replace("{{status}}", &encode_text(if data.is_confirmed { "CONFIRMED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" }))
         .replace("{{is_confirmed_bool}}", if data.is_confirmed { "true" } else { "false" })
         .replace("{{is_expired_bool}}", if data.is_expired { "true" } else { "false" })
-        .replace("{{is_selection_required_bool}}", if data.is_selection_required { "true" } else { "false" });
+        .replace("{{is_selection_required_bool}}", if data.is_selection_required { "true" } else { "false" })
+        .replace("{{supported_currencies_json}}", &supported_currencies_json);
 
     // Handle the two main view blocks manually for old template compatibility
     // (New template uses {{#if}} blocks handled by a proper template engine or improved manual replacement)

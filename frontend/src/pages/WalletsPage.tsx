@@ -186,10 +186,14 @@ const WalletsPage: React.FC = () => {
         mode: 'generate',
         is_active: true
       })
-      const { wallet: walletData, private_key } = response.data
+      const { wallet } = response.data
+
+      // Backend returns: { wallet: { config: WalletConfig, private_key: string }, message: string }
+      // So 'wallet' here is the GeneratedWalletResponse object containing config and private_key
+
       setGeneratedKey({
-        address: walletData.address,
-        privateKey: private_key,
+        address: wallet.config.address,
+        privateKey: wallet.private_key,
         network: confirmModal.networkName || ''
       })
       await loadWallets()

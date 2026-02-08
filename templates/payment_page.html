@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,16 +8,29 @@
     <meta name="robots" content="noindex, nofollow">
     <style>
         :root {
-            --bg-dark: #0f172a;
-            --card-bg: #1e293b;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
+            --bg-body: #f7f9fc;
+            --bg-card: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
             --accent-blue: #3b82f6;
             --accent-hover: #2563eb;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --border: #334155;
+            --success-bg: #dcfce7;
+            --success-text: #166534;
+            --warning-bg: #fef3c7;
+            --warning-text: #92400e;
+            --danger-bg: #fee2e2;
+            --danger-text: #991b1b;
+            --border: #e2e8f0;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-body: #0f172a;
+                --bg-card: #1e293b;
+                --text-primary: #f8fafc;
+                --text-secondary: #94a3b8;
+                --border: #334155;
+            }
         }
 
         * {
@@ -27,37 +41,30 @@
         }
 
         body {
-            background-color: var(--bg-dark);
+            background-color: var(--bg-body);
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 1rem;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .container {
             width: 100%;
-            max-width: 480px;
-            background: var(--card-bg);
-            border-radius: 1.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--border);
+            max-width: 440px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             overflow: hidden;
-            animation: slideUp 0.5s ease-out;
+            border: 1px solid var(--border);
         }
 
-        @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        /* Header */
-        .header {
+        header {
             padding: 1.5rem;
             text-align: center;
             border-bottom: 1px solid var(--border);
-            background: rgba(15, 23, 42, 0.5);
         }
 
         .brand {
@@ -65,7 +72,7 @@
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
         }
 
         .brand svg {
@@ -77,38 +84,33 @@
         .brand h1 {
             font-size: 1.25rem;
             font-weight: 700;
-            letter-spacing: -0.025em;
+            color: var(--text-primary);
         }
 
         .payment-id {
             font-size: 0.75rem;
             color: var(--text-secondary);
             font-family: monospace;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 0.25rem 0.5rem;
+            background: var(--bg-body);
+            padding: 2px 6px;
             border-radius: 4px;
             display: inline-block;
+            margin-top: 0.5rem;
         }
 
-        /* Main Content */
         .content {
             padding: 2rem 1.5rem;
         }
 
-        .amount-section {
+        .amount-display {
             text-align: center;
             margin-bottom: 2rem;
         }
 
         .amount-crypto {
-            font-size: 2rem;
-            font-weight: 800;
-            line-height: 1.2;
+            font-size: 1.75rem;
+            font-weight: 700;
             margin-bottom: 0.25rem;
-            background: linear-gradient(to right, #fff, #94a3b8);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
         }
 
         .amount-fiat {
@@ -116,666 +118,415 @@
             font-size: 1rem;
         }
 
-        /* QR Code */
-        .qr-container {
+        .fee-note {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .qr-wrapper {
             background: white;
             padding: 1rem;
-            border-radius: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 12px;
             width: fit-content;
-            margin: 0 auto 2rem;
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
-            position: relative;
+            margin: 0 auto 1.5rem;
         }
 
-        .qr-container img {
+        .qr-wrapper img {
+            width: 180px;
+            height: 180px;
             display: block;
-            width: 200px;
-            height: 200px;
         }
 
-        .network-badge {
-            position: absolute;
-            bottom: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--accent-blue);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 100px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            white-space: nowrap;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Address Input */
-        .address-group {
-            position: relative;
+        .address-box {
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             margin-bottom: 1.5rem;
         }
 
-        .address-label {
-            display: block;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-        }
-
-        .input-wrapper {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .address-input {
+        .address-text {
             flex: 1;
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-            padding: 0.75rem 1rem;
-            border-radius: 0.75rem;
             font-family: monospace;
-            font-size: 0.875rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .address-input:focus {
-            border-color: var(--accent-blue);
+            font-size: 0.85rem;
+            word-break: break-all;
+            color: var(--text-primary);
         }
 
         .copy-btn {
-            background: var(--accent-blue);
-            color: white;
+            background: none;
             border: none;
-            border-radius: 0.75rem;
-            padding: 0 1rem;
+            color: var(--accent-blue);
             cursor: pointer;
-            transition: background 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 4px;
         }
 
         .copy-btn:hover {
-            background: var(--accent-hover);
+            color: var(--accent-hover);
         }
 
-        /* Timer */
-        .timer-section {
-            text-align: center;
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--border);
-        }
-
-        .timer-label {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
-        }
-
-        .timer-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .timer-bar {
-            height: 4px;
-            background: var(--border);
-            border-radius: 2px;
-            margin-top: 1rem;
-            overflow: hidden;
-        }
-
-        .timer-progress {
-            height: 100%;
-            background: var(--accent-blue);
-            width: 100%;
-            transition: width 1s linear;
-        }
-
-        /* Status States */
         .status-badge {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             padding: 0.5rem 1rem;
-            border-radius: 100px;
+            border-radius: 50px;
             font-size: 0.875rem;
-            font-weight: 500;
-            margin-bottom: 1rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
         }
 
-        .status-pending { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
-        .status-confirmed { background: rgba(16, 185, 129, 0.1); color: var(--success); }
-        .status-expired { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
-
-        .pulse-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: currentColor;
-            animation: pulse 2s infinite;
+        .status-badge.pending {
+            background: var(--warning-bg);
+            color: var(--warning-text);
         }
 
-        @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.2); }
-            100% { opacity: 1; transform: scale(1); }
+        .status-badge.confirmed {
+            background: var(--success-bg);
+            color: var(--success-text);
         }
 
-        /* Footer */
-        .footer {
-            text-align: center;
+        .status-badge.expired {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+        }
+
+        .selection-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .currency-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-body);
+            border: 1px solid var(--border);
             padding: 1rem;
-            border-top: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            width: 100%;
+        }
+
+        .currency-btn:hover {
+            border-color: var(--accent-blue);
+            background: white;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .currency-btn:hover {
+                background: #2d3e56;
+            }
+        }
+
+        .currency-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .currency-symbol {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .currency-network {
             font-size: 0.75rem;
             color: var(--text-secondary);
-            background: rgba(15, 23, 42, 0.3);
+            text-transform: uppercase;
         }
 
-        /* Responsive */
-        @media (max-width: 400px) {
-            .amount-crypto { font-size: 1.75rem; }
-            .qr-container img { width: 160px; height: 160px; }
+        .timer-section {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
         }
 
-        /* Success State */
-        .success-icon {
-            width: 64px;
-            height: 64px;
-            color: var(--success);
-            margin: 0 auto 1.5rem;
+        .timer-val {
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            font-size: 1.125rem;
+        }
+
+        .timer-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        footer {
+            padding: 1rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border);
+            background: var(--bg-body);
+        }
+
+        .sandbox-badge {
+            margin-top: 0.5rem;
+            color: var(--warning-text);
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            background: var(--warning-bg);
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .spinner {
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-left-color: var(--accent-blue);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
+        <header>
             <div class="brand">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5 10 5 10-5-5-2.5-5 2.5z"/>
+                    <path
+                        d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5 10 5 10-5-5-2.5-5 2.5z" />
                 </svg>
                 <h1>FidduPay</h1>
             </div>
             <div class="payment-id">ID: {{payment_id}}</div>
-        </div>
+        </header>
 
         <div class="content">
+            <!-- SELECTION REQUIRED -->
+            {{#if (eq status "SELECTION_REQUIRED")}}
+            <div id="selection-view">
+                <div class="amount-display">
+                    <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">Total Amount</p>
+                    <div class="amount-crypto">${{amount_usd}} USD</div>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem;">Select payment method</p>
+                </div>
+
+                <div class="selection-grid" id="currency-list">
+                    <!-- JS will populate this -->
+                    <div style="text-align: center; color: var(--text-secondary); padding: 1rem;">
+                        <div class="spinner"></div> Loading options...
+                    </div>
+                </div>
+            </div>
+            {{/if}}
+
             <!-- PENDING STATE -->
             {{#if (eq status "PENDING")}}
-                <div class="amount-section">
-                    <div class="status-badge status-pending">
-                        <div class="pulse-dot"></div>
-                        Awaiting Payment
-                    </div>
+            <div id="payment-view">
+                <div style="text-align: center;">
+                    <div class="status-badge pending">Awaiting Payment</div>
                     <div class="amount-crypto">{{amount}} {{crypto_type}}</div>
                     <div class="amount-fiat">≈ ${{amount_usd}} USD</div>
-                    {{#if fee_amount_usd}}
-                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem">
-                        (Includes ${{fee_amount_usd}} fee)
-                    </div>
-                    {{/if}}
+                    {{#if fee_amount_usd}}<div class="fee-note">(Includes ${{fee_amount_usd}} fee)</div>{{/if}}
                 </div>
 
-                <div class="qr-container">
-                    <img src="data:image/png;base64,{{qr_code}}" alt="Payment QR">
-                    <div class="network-badge">{{network}} Network</div>
+                <div class="qr-wrapper">
+                    <img src="data:image/png;base64,{{qr_code}}" alt="QR Code">
                 </div>
 
-                <div class="address-group">
-                    <label class="address-label">Send payments to</label>
-                    <div class="input-wrapper">
-                        <input type="text" class="address-input" value="{{deposit_address}}" readonly id="address-input">
-                        <button class="copy-btn" onclick="copyAddress()" title="Copy Address">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                        </button>
-                    </div>
-                    <div style="font-size: 0.75rem; color: var(--warning); margin-top: 0.5rem; text-align: center;">
-                        ⚠️ Send only {{crypto_type}} on the {{network}} network
-                    </div>
+                <div class="address-box">
+                    <div class="address-text" id="address-text">{{deposit_address}}</div>
+                    <button class="copy-btn" onclick="copyAddress()" title="Copy Address">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div style="text-align: center; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                    Send only <strong>{{crypto_type}}</strong> on <strong>{{network}}</strong> network.<br>
+                    Sending other tokens may result in permanent loss.
                 </div>
 
                 <div class="timer-section">
-                    <div class="timer-label">Expires In</div>
-                    <div class="timer-value" id="timer">Loading...</div>
-                    <div class="timer-bar">
-                        <div class="timer-progress" id="progress-bar"></div>
-                    </div>
+                    <div class="timer-label">EXPIRES IN</div>
+                    <div class="timer-val" id="timer">--:--</div>
                 </div>
+            </div>
             {{/if}}
 
             <!-- CONFIRMED STATE -->
             {{#if (eq status "CONFIRMED")}}
-                <div style="text-align: center; padding: 2rem 0;">
-                    <svg class="success-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            <div style="text-align: center; padding: 1rem 0;">
+                <div
+                    style="width: 64px; height: 64px; background: var(--success-bg); color: var(--success-text); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
-                    <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Payment Confirmed!</h2>
-                    <p style="color: var(--text-secondary); margin-bottom: 2rem;">
-                        Your payment has been successfully processed.
-                    </p>
-                    <div style="background: rgba(16, 185, 129, 0.1); padding: 1rem; border-radius: 0.5rem; word-break: break-all;">
-                        <div style="font-size: 0.75rem; color: var(--success); margin-bottom: 0.25rem;">Transaction Hash</div>
-                        <div style="font-family: monospace; font-size: 0.875rem;">{{transaction_hash}}</div>
-                    </div>
-                    {{#if redirect_url}}
-                    <div style="margin-top: 2rem;">
-                        <a href="{{redirect_url}}" style="display: inline-block; background: var(--accent-blue); color: white; text-decoration: none; padding: 0.75rem 2rem; border-radius: 0.5rem; font-weight: 500;">
-                            Return to Merchant
-                        </a>
-                    </div>
-                    {{/if}}
                 </div>
+                <h2 style="margin-bottom: 0.5rem; color: var(--success-text);">Payment Successful</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 2rem;">Your payment has been confirmed.</p>
+
+                {{#if redirect_url}}
+                <a href="{{redirect_url}}"
+                    style="display: inline-block; background: var(--accent-blue); color: white; text-decoration: none; padding: 0.75rem 2rem; border-radius: 8px; font-weight: 500;">
+                    Return to Merchant
+                </a>
+                {{/if}}
+            </div>
             {{/if}}
 
             <!-- EXPIRED STATE -->
             {{#if (eq status "EXPIRED")}}
-                <div style="text-align: center; padding: 2rem 0;">
-                    <div style="width: 64px; height: 64px; margin: 0 auto 1.5rem; color: var(--danger);">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="15" y1="9" x2="9" y2="15"></line>
-                            <line x1="9" y1="9" x2="15" y2="15"></line>
-                        </svg>
-                    </div>
-                    <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Payment Expired</h2>
-                    <p style="color: var(--text-secondary);">
-                        This payment session has expired. Please request a new payment link.
-                    </p>
+            <div style="text-align: center; padding: 2rem 0;">
+                <div
+                    style="width: 64px; height: 64px; background: var(--danger-bg); color: var(--danger-text); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
                 </div>
-            {{/if}}
-
-            <!-- SELECTION REQUIRED -->
-            {{#if (eq status "SELECTION_REQUIRED")}}
-                <div style="text-align: center; padding: 2rem 0;">
-                    <p style="color: var(--text-secondary);">Please select a payment method from the merchant's checkout page.</p>
-                </div>
+                <h2 style="margin-bottom: 0.5rem; color: var(--danger-text);">Payment Expired</h2>
+                <p style="color: var(--text-secondary);">This session has expired. Please request a new payment link.
+                </p>
+            </div>
             {{/if}}
         </div>
 
-        <div class="footer">
-            Powered by <strong>FidduPay</strong> • Secure & Encrypted
+        <footer>
+            Available via FidduPay • Secure Checkout
             {{#if sandbox}}
-            <div style="color: var(--warning); margin-top: 0.5rem; font-weight: 600;">SANDBOX MODE</div>
+            <br>
+            <div class="sandbox-badge">SANDBOX MODE</div>
             {{/if}}
-        </div>
+        </footer>
     </div>
 
     <script>
-        // Timer Logic
-        const expiresAt = new Date('{{expires_at}}').getTime();
-        const createdNow = new Date().getTime(); // Assuming roughly now for progress calc
-        const totalDuration = 15 * 60 * 1000; // 15 mins default
+        // Injected by backend
+        // Injected by backend - wrapped in quotes for valid JS syntax pre-injection
+        try {
+            window.supportedCurrencies = JSON.parse('{{supported_currencies_json}}');
+        } catch (e) {
+            console.error('Failed to parse supported currencies', e);
+            window.supportedCurrencies = [];
+        }
 
-        function updateTimer() {
-            const now = new Date().getTime();
-            const distance = expiresAt - now;
-            
-            const timerElement = document.getElementById('timer');
-            const progressElement = document.getElementById('progress-bar');
-            
-            if (!timerElement) return;
-
-            if (distance < 0) {
-                timerElement.textContent = "00:00";
-                if (progressElement) progressElement.style.width = "0%";
-                window.location.reload(); // Reload to show expired state
-                return;
-            }
-
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-            timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            
-            // Progress Bar
-            if (progressElement) {
-                const remainingPercent = (distance / totalDuration) * 100;
-                progressElement.style.width = `${Math.min(remainingPercent, 100)}%`;
-                
-                if (distance < 300000) { // < 5 mins
-                    progressElement.style.backgroundColor = 'var(--warning)';
-                }
-                if (distance < 60000) { // < 1 min
-                    progressElement.style.backgroundColor = 'var(--danger)';
-                    timerElement.style.color = 'var(--danger)';
-                }
+        // --- Selection Logic ---
+        if (document.getElementById('selection-view')) {
+            const list = document.getElementById('currency-list');
+            if (window.supportedCurrencies && window.supportedCurrencies.length > 0) {
+                list.innerHTML = '';
+                window.supportedCurrencies.forEach(curr => {
+                    const btn = document.createElement('button');
+                    btn.className = 'currency-btn';
+                    btn.innerHTML = `
+                        <div class="currency-info">
+                            <span class="currency-symbol">${curr.symbol.split('_')[0]}</span>
+                            <span class="currency-network">${curr.network}</span>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    `;
+                    btn.onclick = () => selectCurrency(curr.symbol);
+                    list.appendChild(btn);
+                });
+            } else {
+                list.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--danger-text);">No payment methods available for this merchant.</div>';
             }
         }
 
-        // Copy Address
-        function copyAddress() {
-            const input = document.getElementById('address-input');
-            input.select();
-            document.execCommand('copy');
-            
-            const btn = document.querySelector('.copy-btn');
-            const originalContent = btn.innerHTML;
-            
-            btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-            btn.style.backgroundColor = 'var(--success)';
-            
-            setTimeout(() => {
-                btn.innerHTML = originalContent;
-                btn.style.backgroundColor = '';
-            }, 2000);
+        function selectCurrency(cryptoType) {
+            // Optimistic UI update or loading state
+            const list = document.getElementById('currency-list');
+            if (list) list.style.opacity = '0.5';
+
+            fetch(window.location.href + '/select', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ crypto_type: cryptoType })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) alert(data.error);
+                    else window.location.reload();
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Selection failed');
+                    if (list) list.style.opacity = '1';
+                });
         }
 
-        // Auto-refresh status
-        if ('{{status}}' === 'PENDING' || '{{status}}' === 'CONFIRMING') {
+        // --- Timer Logic for Pending ---
+        if (document.getElementById('timer')) {
+            const expiresAt = new Date('{{expires_at}}').getTime();
+
+            function updateTimer() {
+                const now = new Date().getTime();
+                const distance = expiresAt - now;
+
+                if (distance < 0) {
+                    document.getElementById('timer').textContent = "Expired";
+                    window.location.reload();
+                    return;
+                }
+
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                document.getElementById('timer').textContent =
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+
             setInterval(updateTimer, 1000);
             updateTimer();
-            
+
+            // Poll status
             setInterval(() => {
                 fetch(window.location.href + '/status')
                     .then(res => res.json())
                     .then(data => {
-                        if (data.status !== '{{status}}') window.location.reload();
-                    })
-                    .catch(console.error);
-            }, 5000);
-        }
-    </script>
-</body>
-</html>
-    <meta name="description" content="Secure cryptocurrency payment powered by FidduPay">
-    <meta name="robots" content="noindex, nofollow">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .fade-in { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    </style>
-</head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-md w-full bg-white rounded-xl shadow-2xl overflow-hidden fade-in">
-        <!-- Header -->
-        <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 text-center">
-            <div class="flex items-center justify-center mb-2">
-                <svg class="w-8 h-8 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"/>
-                </svg>
-                <h1 class="text-xl font-bold">FidduPay</h1>
-            </div>
-            <p class="text-sm opacity-90">Secure Crypto Payment</p>
-            <p class="text-xs opacity-75 mt-1">ID: {{payment_id}}</p>
-        </div>
-
-        <!-- Status Badge -->
-        <div class="p-6 text-center border-b border-gray-100">
-            {{#if (eq status "PENDING")}}
-            <div class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 pulse">
-                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
-                </svg>
-                Awaiting Payment
-            </div>
-            {{/if}}
-            {{#if (eq status "CONFIRMING")}}
-            <div class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 pulse">
-                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
-                </svg>
-                Confirming Payment
-            </div>
-            {{/if}}
-            {{#if (eq status "CONFIRMED")}}
-            <div class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                Payment Confirmed
-            </div>
-            {{/if}}
-            {{#if (eq status "EXPIRED")}}
-            <div class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                </svg>
-                Payment Expired
-            </div>
-            {{/if}}
-            {{#if (eq status "FAILED")}}
-            <div class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                </svg>
-                Payment Failed
-            </div>
-            {{/if}}
-        </div>
-
-        <!-- Amount Display -->
-        <div class="p-6">
-            <div class="bg-gray-50 rounded-xl p-6 text-center mb-6">
-                <p class="text-sm text-gray-600 mb-2">Amount to Pay</p>
-                <p class="text-3xl font-bold text-gray-900 mb-1">{{amount}} {{crypto_type}}</p>
-                <p class="text-lg text-gray-500">${{amount_usd}} USD</p>
-                {{#if fee_amount_usd}}
-                <p class="text-xs text-gray-400 mt-2">Includes ${{fee_amount_usd}} processing fee</p>
-                {{/if}}
-            </div>
-
-            {{#if (eq status "PENDING")}}
-            <!-- QR Code -->
-            <div class="mb-6 flex justify-center">
-                <div class="bg-white p-4 rounded-xl border-2 border-gray-200 shadow-sm">
-                    <img src="data:image/png;base64,{{qr_code}}" alt="Payment QR Code" class="w-48 h-48">
-                </div>
-            </div>
-
-            <!-- Payment Address -->
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Send to Address</label>
-                <div class="flex items-center space-x-2">
-                    <input type="text" readonly value="{{to_address}}" 
-                        class="flex-1 px-3 py-3 border border-gray-300 rounded-lg text-sm font-mono bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        id="address-input">
-                    <button onclick="copyAddress()" 
-                        class="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
-                            <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Network Info -->
-            <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div class="flex items-start space-x-3">
-                    <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                    </svg>
-                    <div class="text-sm text-blue-800">
-                        <p class="font-medium">Network: {{network}}</p>
-                        <p class="mt-1">Send only {{crypto_type}} on {{network}} network. Other tokens will be lost.</p>
-                        {{#if confirmations}}
-                        <p class="mt-1">Confirmations: {{confirmations}}/{{required_confirmations}}</p>
-                        {{/if}}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Timer -->
-            <div class="text-center">
-                <p class="text-sm text-gray-600 mb-1">Time Remaining</p>
-                <p class="text-2xl font-bold text-gray-900" id="timer">Loading...</p>
-            </div>
-            {{/if}}
-
-            {{#if (eq status "CONFIRMED")}}
-            <!-- Success Message -->
-            <div class="p-4 bg-green-50 rounded-lg border border-green-200 text-center">
-                <svg class="w-12 h-12 text-green-600 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                <p class="text-green-800 font-medium text-lg">Payment Confirmed!</p>
-                <p class="text-sm text-green-600 mt-2">Your payment has been successfully processed.</p>
-                {{#if transaction_hash}}
-                <p class="text-xs text-green-600 mt-2 font-mono break-all">TX: {{transaction_hash}}</p>
-                {{/if}}
-                {{#if confirmed_at}}
-                <p class="text-xs text-green-600 mt-1">Confirmed: {{confirmed_at}}</p>
-                {{/if}}
-            </div>
-            {{/if}}
-
-            {{#if (eq status "EXPIRED")}}
-            <!-- Expired Message -->
-            <div class="p-4 bg-red-50 rounded-lg border border-red-200 text-center">
-                <svg class="w-12 h-12 text-red-600 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                </svg>
-                <p class="text-red-800 font-medium text-lg">Payment Expired</p>
-                <p class="text-sm text-red-600 mt-2">This payment request has expired. Please contact the merchant for a new payment link.</p>
-            </div>
-            {{/if}}
-
-            {{#if (eq status "FAILED")}}
-            <!-- Failed Message -->
-            <div class="p-4 bg-red-50 rounded-lg border border-red-200 text-center">
-                <svg class="w-12 h-12 text-red-600 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                </svg>
-                <p class="text-red-800 font-medium text-lg">Payment Failed</p>
-                <p class="text-sm text-red-600 mt-2">This payment could not be processed. Please try again or contact support.</p>
-            </div>
-            {{/if}}
-        </div>
-
-        <!-- Footer -->
-        <div class="bg-gray-50 px-6 py-4 text-center border-t border-gray-100">
-            <p class="text-xs text-gray-500">Powered by FidduPay</p>
-            {{#if sandbox}}
-            <p class="text-xs text-yellow-600 font-medium mt-1"> SANDBOX MODE - Test Payment</p>
-            {{/if}}
-        </div>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-lg p-6 text-center">
-            <div class="spinner w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p class="text-gray-700">Checking payment status...</p>
-        </div>
-    </div>
-
-    <script>
-        var copyTimeout;
-        var timerInterval;
-        var statusInterval;
-        
-        function copyAddress() {
-            var input = document.getElementById('address-input');
-            if (!input) return;
-            
-            var button = input.nextElementSibling;
-            
-            input.select();
-            input.setSelectionRange(0, 99999);
-            
-            try {
-                document.execCommand('copy');
-                button.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
-                button.classList.add('bg-green-600');
-                button.classList.remove('bg-blue-600');
-                
-                clearTimeout(copyTimeout);
-                copyTimeout = setTimeout(function() {
-                    button.innerHTML = '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/></svg>';
-                    button.classList.remove('bg-green-600');
-                    button.classList.add('bg-blue-600');
-                }, 2000);
-            } catch (err) {
-                console.error('Failed to copy address:', err);
-            }
-        }
-
-        function updateTimer() {
-            var expiresAt = new Date('{{expires_at}}').getTime();
-            var now = new Date().getTime();
-            var distance = expiresAt - now;
-            var timerElement = document.getElementById('timer');
-            
-            if (!timerElement) return;
-            
-            if (distance < 0) {
-                timerElement.textContent = 'Expired';
-                timerElement.classList.add('text-red-600');
-                return;
-            }
-            
-            var hours = Math.floor(distance / (1000 * 60 * 60));
-            var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            var seconds = Math.floor((distance % (1000 * 60)) / 1000);
-            
-            var timeString = '';
-            if (hours > 0) timeString += hours + 'h ';
-            timeString += minutes + 'm ' + seconds + 's';
-            
-            timerElement.textContent = timeString;
-            
-            if (distance < 300000) {
-                timerElement.classList.add('text-red-600');
-            } else if (distance < 900000) {
-                timerElement.classList.add('text-yellow-600');
-            }
-        }
-        
-        function checkPaymentStatus() {
-            var overlay = document.getElementById('loading-overlay');
-            
-            try {
-                overlay.classList.remove('hidden');
-                
-                fetch(window.location.href + '/status')
-                    .then(function(response) { return response.json(); })
-                    .then(function(data) {
-                        if (data.status !== 'PENDING') {
-                            clearInterval(timerInterval);
-                            clearInterval(statusInterval);
+                        if (data.status !== 'PENDING' && data.status !== 'CONFIRMING') {
                             window.location.reload();
                         }
-                    })
-                    .catch(function(e) {
-                        console.error('Failed to check payment status:', e);
-                    })
-                    .finally(function() {
-                        overlay.classList.add('hidden');
                     });
-            } catch (e) {
-                console.error('Status check error:', e);
-                overlay.classList.add('hidden');
-            }
+            }, 5000);
         }
 
-        // Initialize for pending payments only
-        var paymentStatus = '{{status}}';
-        if (paymentStatus === 'PENDING') {
-            updateTimer();
-            timerInterval = setInterval(updateTimer, 1000);
-            statusInterval = setInterval(checkPaymentStatus, 5000);
+        // --- Copy Address ---
+        function copyAddress() {
+            const text = document.getElementById('address-text').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const original = btn.innerHTML;
+                btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--success-text)"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                setTimeout(() => btn.innerHTML = original, 2000);
+            });
         }
-
-        // Security measures
-        document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-        document.addEventListener('selectstart', function(e) {
-            if (e.target.id !== 'address-input') e.preventDefault();
-        });
     </script>
 </body>
+
 </html>
