@@ -408,6 +408,14 @@
             color: var(--slate-900);
         }
 
+        footer {
+            padding: 24px;
+            text-align: center;
+            background: var(--slate-50);
+            border-top: 1px solid var(--slate-100);
+            width: 100%;
+        }
+
         .sandbox-badge {
             display: inline-block;
             background: #fef3c7;
@@ -449,7 +457,7 @@
 
         <div class="content">
             <!-- SELECTION REQUIRED -->
-            {{#if (eq status "SELECTION_REQUIRED")}}
+            {{#if_status_SELECTION_REQUIRED}}
             <div id="selection-view">
                 <h2 class="selection-title">Select Payment Method</h2>
                 <p class="selection-subtitle">Choose your preferred currency for the ${{amount_usd}} payment.</p>
@@ -460,10 +468,10 @@
                     </div>
                 </div>
             </div>
-            {{/if}}
+            {{/if_status_SELECTION_REQUIRED}}
 
             <!-- PENDING STATE -->
-            {{#if (eq status "PENDING")}}
+            {{#if_status_PENDING}}
             <div id="payment-view" style="text-align: center;">
                 <div class="status-badge pending">
                     <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -507,10 +515,10 @@
                     <span class="timer-val" id="timer">--:--</span>
                 </div>
             </div>
-            {{/if}}
+            {{/if_status_PENDING}}
 
             <!-- CONFIRMED STATE -->
-            {{#if (eq status "CONFIRMED")}}
+            {{#if_status_CONFIRMED}}
             <div class="result-view">
                 <div class="result-icon success">
                     <svg style="width: 40px; height: 40px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -521,14 +529,14 @@
                 <p class="result-text">Your payment has been received and confirmed. You can now close this page or
                     return to the merchant.</p>
 
-                {{#if redirect_url}}
+                {{#if_redirect_url}}
                 <a href="{{redirect_url}}" class="btn-primary">Return to Merchant</a>
-                {{/if}}
+                {{/if_redirect_url}}
             </div>
-            {{/if}}
+            {{/if_status_CONFIRMED}}
 
             <!-- EXPIRED STATE -->
-            {{#if (eq status "EXPIRED")}}
+            {{#if_status_EXPIRED}}
             <div class="result-view">
                 <div class="result-icon failure">
                     <svg style="width: 40px; height: 40px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -541,16 +549,16 @@
                     the merchant.</p>
                 <a href="javascript:window.location.reload()" class="btn-primary">Check Again</a>
             </div>
-            {{/if}}
+            {{/if_status_EXPIRED}}
         </div>
 
         <footer>
             <div class="powered-by">
                 Powered by <strong>FidduPay</strong>
             </div>
-            {{#if sandbox}}
+            {{#if_sandbox}}
             <div class="sandbox-badge">SANDBOX TEST MODE</div>
-            {{/if}}
+            {{/if_sandbox}}
         </footer>
     </div>
 

@@ -1271,36 +1271,36 @@ fn render_payment_page(data: PaymentPageData) -> String {
     // which our current Rust code CANNOT parse. We need to update the Rust code to support 
     // basic block replacement or simpler template logic.
     
-    // Let's implement a poor man's conditional renderer for the new template structure.
+    // Let's implement a robust conditional renderer using unique tag pairs.
     let status = if data.is_confirmed { "CONFIRMED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" };
     
-    html = toggle_block(&html, "PENDING", status == "PENDING");
-    html = toggle_block(&html, "CONFIRMED", status == "CONFIRMED");
-    html = toggle_block(&html, "EXPIRED", status == "EXPIRED");
-    html = toggle_block(&html, "SELECTION_REQUIRED", status == "SELECTION_REQUIRED");
+    html = toggle_status_block(&html, "PENDING", status == "PENDING");
+    html = toggle_status_block(&html, "CONFIRMED", status == "CONFIRMED");
+    html = toggle_status_block(&html, "EXPIRED", status == "EXPIRED");
+    html = toggle_status_block(&html, "SELECTION_REQUIRED", status == "SELECTION_REQUIRED");
     
-    // Handle generic if blocks
-    html = toggle_generic_block(&html, "sandbox", data.sandbox);
-    html = toggle_generic_block(&html, "fee_amount_usd", !data.fee_amount_usd.is_empty() && data.fee_amount_usd != "0.00");
-    html = toggle_generic_block(&html, "redirect_url", data.redirect_url.is_some());
+    // Handle generic if blocks with unique IDs
+    html = toggle_feature_block(&html, "sandbox", data.sandbox);
+    html = toggle_feature_block(&html, "fee_amount_usd", !data.fee_amount_usd.is_empty() && data.fee_amount_usd != "0.00");
+    html = toggle_feature_block(&html, "redirect_url", data.redirect_url.is_some());
 
     html
 }
 
-fn toggle_block(html: &str, status: &str, show: bool) -> String {
-    let start_tag = format!("{{{{#if (eq status \"{}\")}}}}", status);
-    toggle_conditional(html, &start_tag, show)
+fn toggle_status_block(html: &str, status: &str, show: bool) -> String {
+    let tag_id = format!("status_{}", status);
+    toggle_named_conditional(html, &tag_id, show)
 }
 
-fn toggle_generic_block(html: &str, var_name: &str, show: bool) -> String {
-    let start_tag = format!("{{{{#if {}}}}}", var_name);
-    toggle_conditional(html, &start_tag, show)
+fn toggle_feature_block(html: &str, feature: &str, show: bool) -> String {
+    toggle_named_conditional(html, feature, show)
 }
 
-fn toggle_conditional(html: &str, start_tag: &str, show: bool) -> String {
-    let end_tag = "{{/if}}";
+fn toggle_named_conditional(html: &str, name: &str, show: bool) -> String {
+    let start_tag = format!("{{{{#if_{}}}}}", name);
+    let end_tag = format!("{{{{/if_{}}}}}", name);
     
-    let parts: Vec<&str> = html.split(start_tag).collect();
+    let parts: Vec<&str> = html.split(&start_tag).collect();
     if parts.len() < 2 {
         return html.to_string();
     }
@@ -1309,7 +1309,7 @@ fn toggle_conditional(html: &str, start_tag: &str, show: bool) -> String {
     result.push_str(parts[0]);
     
     for part in parts.iter().skip(1) {
-        if let Some(end_index) = part.find(end_tag) {
+        if let Some(end_index) = part.find(&end_tag) {
             if show {
                 // Keep the content between start and end tags
                 result.push_str(&part[..end_index]);
@@ -1321,7 +1321,7 @@ fn toggle_conditional(html: &str, start_tag: &str, show: bool) -> String {
             }
         } else {
             // Fallback: if no end tag found, restore the start tag to avoid breaking the layout
-            result.push_str(start_tag);
+            result.push_str(&start_tag);
             result.push_str(part);
         }
     }
