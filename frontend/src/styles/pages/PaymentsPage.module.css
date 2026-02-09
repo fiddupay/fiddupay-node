@@ -150,7 +150,7 @@
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--fiddu-border);
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .tableHeader {
@@ -197,9 +197,9 @@
 
 .tableRow {
   display: grid;
-  grid-template-columns: 140px minmax(180px, 1fr) 140px 100px 120px 180px 100px;
+  grid-template-columns: 220px 140px 100px 120px 180px 100px;
   align-items: center;
-  padding: 16px 24px;
+  padding: 20px 24px;
   border-bottom: 1px solid var(--fiddu-border);
   transition: background 0.1s ease;
 }
@@ -296,8 +296,19 @@
 }
 
 .amount small {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--fiddu-text-muted);
+  margin-top: 2px;
+}
+
+.paymentInfoCell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.paymentInfoCell code {
+  width: fit-content;
 }
 
 .cryptoBadge {

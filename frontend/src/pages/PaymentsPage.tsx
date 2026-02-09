@@ -329,8 +329,7 @@ const PaymentsPage: React.FC = () => {
 
         <div className={styles.table}>
           <div className={`${styles.tableHeader} ${styles.tableRow}`}>
-            <div className={styles.tableCell}><strong>Payment ID</strong></div>
-            <div className={styles.tableCell}><strong>Link</strong></div>
+            <div className={styles.tableCell}><strong>Payment / Link</strong></div>
             <div className={styles.tableCell}><strong>Amount</strong></div>
             <div className={styles.tableCell}><strong>Currency</strong></div>
             <div className={styles.tableCell}><strong>Status</strong></div>
@@ -353,29 +352,28 @@ const PaymentsPage: React.FC = () => {
             payments.map((payment) => (
               <div key={payment.payment_id} className={styles.tableRow}>
                 <div className={styles.tableCell}>
-                  <code>{payment.payment_id}</code>
-                </div>
-                <div className={styles.tableCell}>
-                  {payment.payment_link ? (
-                    <div className={styles.linkCell}>
-                      <a href={payment.payment_link} target="_blank" rel="noopener noreferrer">
-                        {payment.payment_link.split('/').pop()}
-                        <i className={`fas fa-external-link-alt ${styles.externalIcon}`}></i>
-                      </a>
-                      <button
-                        className={styles.copyButton}
-                        onClick={() => {
-                          navigator.clipboard.writeText(payment.payment_link!)
-                          showToast('Link copied!', 'success')
-                        }}
-                        title="Copy Link"
-                      >
-                        <i className="fas fa-copy"></i>
-                      </button>
-                    </div>
-                  ) : (
-                    <span className={styles.tableCellMuted}>No link</span>
-                  )}
+                  <div className={styles.paymentInfoCell}>
+                    <code>{payment.payment_id.slice(0, 12)}...</code>
+                    {payment.payment_link ? (
+                      <div className={styles.linkCell}>
+                        <a href={payment.payment_link} target="_blank" rel="noopener noreferrer" title="Open Payment Page">
+                          <i className="fas fa-external-link-alt"></i>
+                        </a>
+                        <button
+                          className={styles.copyButton}
+                          onClick={() => {
+                            navigator.clipboard.writeText(payment.payment_link!)
+                            showToast('Link copied!', 'success')
+                          }}
+                          title="Copy Link"
+                        >
+                          <i className="fas fa-copy"></i>
+                        </button>
+                      </div>
+                    ) : (
+                      <span className={styles.tableCellMuted}>No link</span>
+                    )}
+                  </div>
                 </div>
                 <div className={styles.tableCell}>
                   <div className={styles.amount}>
