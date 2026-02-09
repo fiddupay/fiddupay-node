@@ -1289,51 +1289,43 @@ fn render_payment_page(data: PaymentPageData) -> String {
 
 fn toggle_block(html: &str, status: &str, show: bool) -> String {
     let start_tag = format!("{{{{#if (eq status \"{}\")}}}}", status);
-    let end_tag = "{{/if}}"; // This is ambiguous if nested, but our template is flat
-    
-    // Simple way: if show is true, remove tags. If false, remove content between tags.
-    // NOTE: This basic string manipulation is fragile for nested blocks but works for our flat template.
-    
-    if show {
-        html.replace(&start_tag, "").replace(end_tag, "")
-    } else {
-        // We need to remove the block. Regex would be better but we don't want to add dependencies.
-        // We'll assumes blocks don't overlap in a way that breaks this simple split.
-        let parts: Vec<&str> = html.split(&start_tag).collect();
-        let mut result = String::new();
-        result.push_str(parts[0]);
-        
-        for part in parts.iter().skip(1) {
-             if let Some(end_index) = part.find(end_tag) {
-                 result.push_str(&part[end_index + end_tag.len()..]);
-             } else {
-                 result.push_str(part);
-             }
-        }
-        result
-    }
+    toggle_conditional(html, &start_tag, show)
 }
 
 fn toggle_generic_block(html: &str, var_name: &str, show: bool) -> String {
     let start_tag = format!("{{{{#if {}}}}}", var_name);
+    toggle_conditional(html, &start_tag, show)
+}
+
+fn toggle_conditional(html: &str, start_tag: &str, show: bool) -> String {
     let end_tag = "{{/if}}";
     
-    if show {
-        html.replace(&start_tag, "").replace(end_tag, "")
-    } else {
-        let parts: Vec<&str> = html.split(&start_tag).collect();
-        let mut result = String::new();
-        result.push_str(parts[0]);
-        
-        for part in parts.iter().skip(1) {
-             if let Some(end_index) = part.find(end_tag) {
-                 result.push_str(&part[end_index + end_tag.len()..]);
-             } else {
-                 result.push_str(part);
-             }
-        }
-        result
+    let parts: Vec<&str> = html.split(start_tag).collect();
+    if parts.len() < 2 {
+        return html.to_string();
     }
+    
+    let mut result = String::new();
+    result.push_str(parts[0]);
+    
+    for part in parts.iter().skip(1) {
+        if let Some(end_index) = part.find(end_tag) {
+            if show {
+                // Keep the content between start and end tags
+                result.push_str(&part[..end_index]);
+                // Keep the rest of the string after the end tag
+                result.push_str(&part[end_index + end_tag.len()..]);
+            } else {
+                // Discard content between start and end tags, keep the rest
+                result.push_str(&part[end_index + end_tag.len()..]);
+            }
+        } else {
+            // Fallback: if no end tag found, restore the start tag to avoid breaking the layout
+            result.push_str(start_tag);
+            result.push_str(part);
+        }
+    }
+    result
 }
 
 // ============================================================================

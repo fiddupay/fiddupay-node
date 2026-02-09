@@ -4,339 +4,459 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Payment - FidduPay</title>
-    <meta name="robots" content="noindex, nofollow">
+    <title>Secure Checkout - FidduPay</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-body: #f7f9fc;
-            --bg-card: #ffffff;
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --accent-blue: #3b82f6;
-            --accent-hover: #2563eb;
-            --success-bg: #dcfce7;
-            --success-text: #166534;
-            --warning-bg: #fef3c7;
-            --warning-text: #92400e;
-            --danger-bg: #fee2e2;
-            --danger-text: #991b1b;
-            --border: #e2e8f0;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-body: #0f172a;
-                --bg-card: #1e293b;
-                --text-primary: #f8fafc;
-                --text-secondary: #94a3b8;
-                --border: #334155;
-            }
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1;
+            --slate-600: #475569;
+            --slate-700: #334155;
+            --slate-900: #0f172a;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            background-color: var(--bg-body);
-            color: var(--text-primary);
-            min-height: 100vh;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            color: var(--slate-900);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1rem;
-            transition: background-color 0.3s, color 0.3s;
+            min-height: 100vh;
+            padding: 20px;
         }
 
-        .container {
+        .checkout-container {
+            background: white;
             width: 100%;
             max-width: 440px;
-            background: var(--bg-card);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-radius: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             overflow: hidden;
-            border: 1px solid var(--border);
+            border: 1px solid var(--slate-200);
         }
 
         header {
-            padding: 1.5rem;
+            padding: 24px;
             text-align: center;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--slate-100);
+            background: #fff;
         }
 
         .brand {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            margin-bottom: 0.25rem;
+            gap: 8px;
+            margin-bottom: 4px;
         }
 
         .brand svg {
-            width: 24px;
-            height: 24px;
-            color: var(--accent-blue);
+            width: 28px;
+            height: 28px;
+            color: var(--primary);
         }
 
         .brand h1 {
-            font-size: 1.25rem;
+            font-size: 20px;
             font-weight: 700;
-            color: var(--text-primary);
+            letter-spacing: -0.025em;
         }
 
-        .payment-id {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            font-family: monospace;
-            background: var(--bg-body);
-            padding: 2px 6px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-top: 0.5rem;
+        .secure-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--slate-600);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .content {
-            padding: 2rem 1.5rem;
+            padding: 32px 24px;
         }
 
-        .amount-display {
+        /* --- Selection View --- */
+        .selection-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
             text-align: center;
-            margin-bottom: 2rem;
         }
 
-        .amount-crypto {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
+        .selection-subtitle {
+            font-size: 14px;
+            color: var(--slate-600);
+            margin-bottom: 24px;
+            text-align: center;
         }
 
-        .amount-fiat {
-            color: var(--text-secondary);
-            font-size: 1rem;
+        .currency-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
-        .fee-note {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-top: 0.25rem;
-        }
-
-        .qr-wrapper {
-            background: white;
-            padding: 1rem;
-            border: 1px solid var(--border);
+        .currency-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            border: 1px solid var(--slate-200);
             border-radius: 12px;
-            width: fit-content;
-            margin: 0 auto 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #fff;
+            width: 100%;
         }
 
-        .qr-wrapper img {
-            width: 180px;
-            height: 180px;
+        .currency-item:hover {
+            border-color: var(--primary);
+            background: var(--slate-50);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .currency-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-align: left;
+        }
+
+        .currency-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--slate-100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .currency-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .currency-details span {
             display: block;
         }
 
-        .address-box {
-            background: var(--bg-body);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
+        .currency-name {
+            font-weight: 600;
+            font-size: 15px;
         }
 
-        .address-text {
-            flex: 1;
-            font-family: monospace;
-            font-size: 0.85rem;
-            word-break: break-all;
-            color: var(--text-primary);
+        .currency-network {
+            font-size: 12px;
+            color: var(--slate-600);
+            text-transform: uppercase;
         }
 
-        .copy-btn {
-            background: none;
-            border: none;
-            color: var(--accent-blue);
-            cursor: pointer;
-            padding: 4px;
-        }
-
-        .copy-btn:hover {
-            color: var(--accent-hover);
+        /* --- Payment View --- */
+        .status-container {
+            text-align: center;
+            margin-bottom: 32px;
         }
 
         .status-badge {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            font-size: 0.875rem;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: 13px;
             font-weight: 600;
-            margin-bottom: 1.5rem;
+            margin-bottom: 16px;
         }
 
         .status-badge.pending {
-            background: var(--warning-bg);
-            color: var(--warning-text);
+            background: #eff6ff;
+            color: #2563eb;
+            animation: pulse 2s infinite;
         }
 
-        .status-badge.confirmed {
-            background: var(--success-bg);
-            color: var(--success-text);
-        }
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
 
-        .status-badge.expired {
-            background: var(--danger-bg);
-            color: var(--danger-text);
-        }
+            50% {
+                opacity: 0.7;
+            }
 
-        .selection-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 0.75rem;
-        }
-
-        .currency-btn {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--bg-body);
-            border: 1px solid var(--border);
-            padding: 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: left;
-            width: 100%;
-        }
-
-        .currency-btn:hover {
-            border-color: var(--accent-blue);
-            background: white;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            .currency-btn:hover {
-                background: #2d3e56;
+            100% {
+                opacity: 1;
             }
         }
 
-        .currency-info {
-            display: flex;
-            flex-direction: column;
+        .amount-container {
+            text-align: center;
+            margin-bottom: 24px;
         }
 
-        .currency-symbol {
+        .amount-crypto {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--slate-900);
+            letter-spacing: -0.025em;
+        }
+
+        .amount-fiat {
+            font-size: 16px;
+            color: var(--slate-600);
+            margin-top: 4px;
+        }
+
+        .qr-card {
+            background: #fff;
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid var(--slate-200);
+            display: inline-block;
+            margin: 0 auto 24px;
+        }
+
+        .qr-card img {
+            display: block;
+            width: 180px;
+            height: 180px;
+        }
+
+        .address-section {
+            text-align: left;
+            margin-bottom: 24px;
+        }
+
+        .address-section label {
+            display: block;
+            font-size: 12px;
             font-weight: 600;
-            font-size: 1rem;
+            color: var(--slate-600);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
-        .currency-network {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
+        .address-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            padding: 12px 14px;
+            border-radius: 10px;
+        }
+
+        .address-text {
+            flex: 1;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 13px;
+            word-break: break-all;
+            color: var(--slate-900);
+        }
+
+        .copy-btn {
+            background: #fff;
+            border: 1px solid var(--slate-200);
+            color: var(--slate-600);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .payment-info-box {
+            background: var(--slate-50);
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            color: var(--slate-600);
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .payment-info-box strong {
+            color: var(--slate-900);
         }
 
         .timer-section {
-            text-align: center;
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
-        }
-
-        .timer-val {
-            font-variant-numeric: tabular-nums;
-            font-weight: 600;
-            font-size: 1.125rem;
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding-top: 20px;
+            border-top: 1px solid var(--slate-100);
         }
 
         .timer-label {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.25rem;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--slate-600);
+            text-transform: uppercase;
+        }
+
+        .timer-val {
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--slate-900);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* --- Success / Failure Views --- */
+        .result-view {
+            text-align: center;
+            padding: 16px 0;
+        }
+
+        .result-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+
+        .result-icon.success {
+            background: #ecfdf5;
+            color: #10b981;
+        }
+
+        .result-icon.failure {
+            background: #fef2f2;
+            color: #ef4444;
+        }
+
+        .result-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .result-text {
+            color: var(--slate-600);
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
         }
 
         footer {
-            padding: 1rem;
+            padding: 20px;
             text-align: center;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            border-top: 1px solid var(--border);
-            background: var(--bg-body);
+            background: var(--slate-50);
+            border-top: 1px solid var(--slate-100);
+        }
+
+        .powered-by {
+            font-size: 12px;
+            color: var(--slate-600);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .powered-by strong {
+            color: var(--slate-900);
         }
 
         .sandbox-badge {
-            margin-top: 0.5rem;
-            color: var(--warning-text);
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            font-size: 0.7rem;
-            background: var(--warning-bg);
-            padding: 2px 8px;
-            border-radius: 4px;
             display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 99px;
+            margin-top: 10px;
+            border: 1px solid #fde68a;
         }
 
         .hidden {
             display: none;
         }
-
-        .spinner {
-            border: 2px solid rgba(0, 0, 0, 0.1);
-            border-left-color: var(--accent-blue);
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
     </style>
 </head>
 
 <body>
-    <div class="container">
+    <div class="checkout-container">
         <header>
             <div class="brand">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5 10 5 10-5-5-2.5-5 2.5z" />
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                        clip-rule="evenodd"></path>
                 </svg>
                 <h1>FidduPay</h1>
             </div>
-            <div class="payment-id">ID: {{payment_id}}</div>
+            <div class="secure-badge">
+                <svg style="width: 12px; height: 12px;" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                        clip-rule="evenodd"></path>
+                </svg>
+                Secure Checkout
+            </div>
         </header>
 
         <div class="content">
             <!-- SELECTION REQUIRED -->
             {{#if (eq status "SELECTION_REQUIRED")}}
             <div id="selection-view">
-                <div class="amount-display">
-                    <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">Total Amount</p>
-                    <div class="amount-crypto">${{amount_usd}} USD</div>
-                    <p style="color: var(--text-secondary); font-size: 0.875rem;">Select payment method</p>
-                </div>
-
-                <div class="selection-grid" id="currency-list">
-                    <!-- JS will populate this -->
-                    <div style="text-align: center; color: var(--text-secondary); padding: 1rem;">
-                        <div class="spinner"></div> Loading options...
+                <h2 class="selection-title">Select Payment Method</h2>
+                <p class="selection-subtitle">Choose your preferred currency for the ${{amount_usd}} payment.</p>
+                <div class="currency-list" id="currency-list">
+                    <!-- Populated via JS -->
+                    <div style="text-align: center; padding: 20px;">
+                        Loading payment methods...
                     </div>
                 </div>
             </div>
@@ -344,97 +464,107 @@
 
             <!-- PENDING STATE -->
             {{#if (eq status "PENDING")}}
-            <div id="payment-view">
-                <div style="text-align: center;">
-                    <div class="status-badge pending">Awaiting Payment</div>
+            <div id="payment-view" style="text-align: center;">
+                <div class="status-badge pending">
+                    <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Awaiting Payment
+                </div>
+
+                <div class="amount-container">
                     <div class="amount-crypto">{{amount}} {{crypto_type}}</div>
                     <div class="amount-fiat">≈ ${{amount_usd}} USD</div>
-                    {{#if fee_amount_usd}}<div class="fee-note">(Includes ${{fee_amount_usd}} fee)</div>{{/if}}
                 </div>
 
-                <div class="qr-wrapper">
-                    <img src="data:image/png;base64,{{qr_code}}" alt="QR Code">
+                <div class="qr-card">
+                    <img src="data:image/png;base64,{{qr_code}}" alt="Payment QR Code">
                 </div>
 
-                <div class="address-box">
-                    <div class="address-text" id="address-text">{{deposit_address}}</div>
-                    <button class="copy-btn" onclick="copyAddress()" title="Copy Address">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                    </button>
+                <div class="address-section">
+                    <label>Send to Address</label>
+                    <div class="address-control">
+                        <div class="address-text" id="address-text">{{deposit_address}}</div>
+                        <button class="copy-btn" onclick="copyAddress()" title="Copy Address">
+                            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
-                <div style="text-align: center; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                    Send only <strong>{{crypto_type}}</strong> on <strong>{{network}}</strong> network.<br>
-                    Sending other tokens may result in permanent loss.
+                <div class="payment-info-box">
+                    Only send <strong>{{crypto_type}}</strong> on the <strong>{{network}}</strong> network to this
+                    address.
                 </div>
 
                 <div class="timer-section">
-                    <div class="timer-label">EXPIRES IN</div>
-                    <div class="timer-val" id="timer">--:--</div>
+                    <span class="timer-label">Expires in</span>
+                    <span class="timer-val" id="timer">--:--</span>
                 </div>
             </div>
             {{/if}}
 
             <!-- CONFIRMED STATE -->
             {{#if (eq status "CONFIRMED")}}
-            <div style="text-align: center; padding: 1rem 0;">
-                <div
-                    style="width: 64px; height: 64px; background: var(--success-bg); color: var(--success-text); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                        <polyline points="20 6 9 17 4 12"></polyline>
+            <div class="result-view">
+                <div class="result-icon success">
+                    <svg style="width: 40px; height: 40px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                     </svg>
                 </div>
-                <h2 style="margin-bottom: 0.5rem; color: var(--success-text);">Payment Successful</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 2rem;">Your payment has been confirmed.</p>
+                <h2 class="result-title">Payment Successful</h2>
+                <p class="result-text">Your payment has been received and confirmed. You can now close this page or
+                    return to the merchant.</p>
 
                 {{#if redirect_url}}
-                <a href="{{redirect_url}}"
-                    style="display: inline-block; background: var(--accent-blue); color: white; text-decoration: none; padding: 0.75rem 2rem; border-radius: 8px; font-weight: 500;">
-                    Return to Merchant
-                </a>
+                <a href="{{redirect_url}}" class="btn-primary">Return to Merchant</a>
                 {{/if}}
             </div>
             {{/if}}
 
             <!-- EXPIRED STATE -->
             {{#if (eq status "EXPIRED")}}
-            <div style="text-align: center; padding: 2rem 0;">
-                <div
-                    style="width: 64px; height: 64px; background: var(--danger-bg); color: var(--danger-text); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
+            <div class="result-view">
+                <div class="result-icon failure">
+                    <svg style="width: 40px; height: 40px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
                     </svg>
                 </div>
-                <h2 style="margin-bottom: 0.5rem; color: var(--danger-text);">Payment Expired</h2>
-                <p style="color: var(--text-secondary);">This session has expired. Please request a new payment link.
-                </p>
+                <h2 class="result-title">Payment Expired</h2>
+                <p class="result-text">This payment session has expired. If you've already sent funds, please contact
+                    the merchant.</p>
+                <a href="javascript:window.location.reload()" class="btn-primary">Check Again</a>
             </div>
             {{/if}}
         </div>
 
         <footer>
-            Available via FidduPay • Secure Checkout
+            <div class="powered-by">
+                Powered by <strong>FidduPay</strong>
+            </div>
             {{#if sandbox}}
-            <br>
-            <div class="sandbox-badge">SANDBOX MODE</div>
+            <div class="sandbox-badge">SANDBOX TEST MODE</div>
             {{/if}}
         </footer>
     </div>
 
     <script>
-        // Injected by backend
-        // Injected by backend - wrapped in quotes for valid JS syntax pre-injection
+        // Data injected by backend
         try {
             window.supportedCurrencies = JSON.parse('{{supported_currencies_json}}');
         } catch (e) {
             console.error('Failed to parse supported currencies', e);
             window.supportedCurrencies = [];
         }
+
+        const LINK_ID = window.location.pathname.split('/').pop();
+        const REDIRECT_URL = '{{redirect_url}}';
 
         // --- Selection Logic ---
         if (document.getElementById('selection-view')) {
@@ -443,86 +573,99 @@
                 list.innerHTML = '';
                 window.supportedCurrencies.forEach(curr => {
                     const btn = document.createElement('button');
-                    btn.className = 'currency-btn';
+                    btn.className = 'currency-item';
+
+                    // Basic logo logic (placeholders for now)
+                    let logo = '';
+                    if (curr.symbol.includes('SOL')) logo = 'https://cryptologos.cc/logos/solana-sol-logo.png?v=029';
+                    else if (curr.symbol.includes('ETH')) logo = 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029';
+                    else if (curr.symbol.includes('USDT')) logo = 'https://cryptologos.cc/logos/tether-usdt-logo.png?v=029';
+                    else if (curr.symbol.includes('USDC')) logo = 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png?v=029';
+
                     btn.innerHTML = `
                         <div class="currency-info">
-                            <span class="currency-symbol">${curr.symbol.split('_')[0]}</span>
-                            <span class="currency-network">${curr.network}</span>
+                            <div class="currency-icon">
+                                ${logo ? `<img src="${logo}" alt="${curr.symbol}">` : `<div style="font-weight:700">${curr.symbol[0]}</div>`}
+                            </div>
+                            <div class="currency-details">
+                                <span class="currency-name">${curr.symbol.split('_')[0]}</span>
+                                <span class="currency-network">${curr.network}</span>
+                            </div>
                         </div>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        <svg style="width: 20px; height: 20px; color: var(--slate-300)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
                     `;
                     btn.onclick = () => selectCurrency(curr.symbol);
                     list.appendChild(btn);
                 });
             } else {
-                list.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--danger-text);">No payment methods available for this merchant.</div>';
+                list.innerHTML = '<div style="text-align: center; color: var(--danger); font-size:14px">No supported currencies configured.</div>';
             }
         }
 
-        function selectCurrency(cryptoType) {
-            // Optimistic UI update or loading state
+        async function selectCurrency(symbol) {
             const list = document.getElementById('currency-list');
-            if (list) list.style.opacity = '0.5';
+            list.style.opacity = '0.5';
+            list.style.pointerEvents = 'none';
 
-            fetch(window.location.href + '/select', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ crypto_type: cryptoType })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.error) alert(data.error);
-                    else window.location.reload();
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert('Selection failed');
-                    if (list) list.style.opacity = '1';
+            try {
+                const response = await fetch(`/pay/${LINK_ID}/select`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ crypto_type: symbol })
                 });
+                if (response.ok) window.location.reload();
+                else alert('Failed to select currency');
+            } catch (e) {
+                alert('Network error—please try again.');
+            } finally {
+                list.style.opacity = '1';
+                list.style.pointerEvents = 'auto';
+            }
         }
 
-        // --- Timer Logic for Pending ---
+        // --- Timer Logic ---
         if (document.getElementById('timer')) {
-            const expiresAt = new Date('{{expires_at}}').getTime();
+            const expiryStr = '{{expires_at}}';
+            if (expiryStr) {
+                const expiresAt = new Date(expiryStr).getTime();
 
-            function updateTimer() {
-                const now = new Date().getTime();
-                const distance = expiresAt - now;
-
-                if (distance < 0) {
-                    document.getElementById('timer').textContent = "Expired";
-                    window.location.reload();
-                    return;
+                function updateTimer() {
+                    const distance = expiresAt - new Date().getTime();
+                    if (distance <= 0) {
+                        document.getElementById('timer').innerText = "Expired";
+                        window.location.reload();
+                        return;
+                    }
+                    const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const s = Math.floor((distance % (1000 * 60)) / 1000);
+                    document.getElementById('timer').innerText = `${m}:${s.toString().padStart(2, '0')}`;
                 }
 
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-                document.getElementById('timer').textContent =
-                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                setInterval(updateTimer, 1000);
+                updateTimer();
             }
 
-            setInterval(updateTimer, 1000);
-            updateTimer();
-
-            // Poll status
-            setInterval(() => {
-                fetch(window.location.href + '/status')
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status !== 'PENDING' && data.status !== 'CONFIRMING') {
-                            window.location.reload();
-                        }
-                    });
+            // Polling
+            setInterval(async () => {
+                try {
+                    const res = await fetch(`/pay/${LINK_ID}/status`);
+                    const data = await res.json();
+                    if (data.status !== 'PENDING' && data.status !== 'CONFIRMING') {
+                        window.location.reload();
+                    }
+                } catch (e) { }
             }, 5000);
         }
 
-        // --- Copy Address ---
+        // --- Utils ---
         function copyAddress() {
-            const text = document.getElementById('address-text').textContent;
-            navigator.clipboard.writeText(text).then(() => {
+            const addr = document.getElementById('address-text').innerText;
+            navigator.clipboard.writeText(addr).then(() => {
                 const btn = document.querySelector('.copy-btn');
                 const original = btn.innerHTML;
-                btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--success-text)"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                btn.innerHTML = '<svg style="width: 16px; height: 16px; color: var(--success)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>';
                 setTimeout(() => btn.innerHTML = original, 2000);
             });
         }

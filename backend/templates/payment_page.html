@@ -4,285 +4,677 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FidduPay - Payment Page</title>
+    <title>Secure Checkout - FidduPay</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1;
+            --slate-600: #475569;
+            --slate-700: #334155;
+            --slate-900: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            color: var(--slate-900);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
             padding: 20px;
         }
 
-        .sandbox-badge {
-            background: #ff9800;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
+        .checkout-container {
+            background: white;
+            width: 100%;
+            max-width: 440px;
+            border-radius: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            border: 1px solid var(--slate-200);
+        }
+
+        header {
+            padding: 24px;
+            text-align: center;
+            border-bottom: 1px solid var(--slate-100);
+            background: #fff;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .brand svg {
+            width: 28px;
+            height: 28px;
+            color: var(--primary);
+        }
+
+        .brand h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .secure-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--slate-600);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .content {
+            padding: 32px 24px;
+        }
+
+        /* --- Selection View --- */
+        .selection-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .selection-subtitle {
+            font-size: 14px;
+            color: var(--slate-600);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .currency-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .currency-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #fff;
+            width: 100%;
+        }
+
+        .currency-item:hover {
+            border-color: var(--primary);
+            background: var(--slate-50);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .currency-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-align: left;
+        }
+
+        .currency-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--slate-100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .currency-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .currency-details span {
+            display: block;
+        }
+
+        .currency-name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .currency-network {
             font-size: 12px;
+            color: var(--slate-600);
+            text-transform: uppercase;
         }
 
-        .network-info {
-            background: #f5f5f5;
-            padding: 10px;
-            border-radius: 4px;
-            margin: 10px 0;
+        /* --- Payment View --- */
+        .status-container {
+            text-align: center;
+            margin-bottom: 32px;
         }
 
-        .amount {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2196F3;
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 16px;
         }
 
-        .address {
-            font-family: monospace;
-            background: #f0f0f0;
-            padding: 8px;
-            border-radius: 4px;
+        .status-badge.pending {
+            background: #eff6ff;
+            color: #2563eb;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .amount-container {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .amount-crypto {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--slate-900);
+            letter-spacing: -0.025em;
+        }
+
+        .amount-fiat {
+            font-size: 16px;
+            color: var(--slate-600);
+            margin-top: 4px;
+        }
+
+        .qr-card {
+            background: #fff;
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid var(--slate-200);
+            display: inline-block;
+            margin: 0 auto 24px;
+        }
+
+        .qr-card img {
+            display: block;
+            width: 180px;
+            height: 180px;
+        }
+
+        .address-section {
+            text-align: left;
+            margin-bottom: 24px;
+        }
+
+        .address-section label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--slate-600);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .address-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            padding: 12px 14px;
+            border-radius: 10px;
+        }
+
+        .address-text {
+            flex: 1;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 13px;
             word-break: break-all;
+            color: var(--slate-900);
+        }
+
+        .copy-btn {
+            background: #fff;
+            border: 1px solid var(--slate-200);
+            color: var(--slate-600);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .payment-info-box {
+            background: var(--slate-50);
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            color: var(--slate-600);
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .payment-info-box strong {
+            color: var(--slate-900);
+        }
+
+        .timer-section {
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding-top: 20px;
+            border-top: 1px solid var(--slate-100);
+        }
+
+        .timer-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--slate-600);
+            text-transform: uppercase;
+        }
+
+        .timer-val {
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--slate-900);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* --- Success / Failure Views --- */
+        .result-view {
+            text-align: center;
+            padding: 16px 0;
+        }
+
+        .result-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+
+        .result-icon.success {
+            background: #ecfdf5;
+            color: #10b981;
+        }
+
+        .result-icon.failure {
+            background: #fef2f2;
+            color: #ef4444;
+        }
+
+        .result-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .result-text {
+            color: var(--slate-600);
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        footer {
+            padding: 20px;
+            text-align: center;
+            background: var(--slate-50);
+            border-top: 1px solid var(--slate-100);
+        }
+
+        .powered-by {
+            font-size: 12px;
+            color: var(--slate-600);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .powered-by strong {
+            color: var(--slate-900);
+        }
+
+        .sandbox-badge {
+            display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 99px;
+            margin-top: 10px;
+            border: 1px solid #fde68a;
+        }
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>FidduPay Checkout
-            {{#if sandbox}}<span class="sandbox-badge">SANDBOX</span>{{/if_sandbox}}
-        </h1>
+    <div class="checkout-container">
+        <header>
+            <div class="brand">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                        clip-rule="evenodd"></path>
+                </svg>
+                <h1>FidduPay</h1>
+            </div>
+            <div class="secure-badge">
+                <svg style="width: 12px; height: 12px;" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                        clip-rule="evenodd"></path>
+                </svg>
+                Secure Checkout
+            </div>
+        </header>
 
-        {{#if is_selection_required}}
-        <div class="selection-container">
-            <h3>Select Payment Method</h3>
-            <p>Please choose the blockchain and currency you'd like to use for this payment of
-                <strong>${{amount_usd}}</strong>.
-            </p>
-
-            <div class="network-grid">
-                <div class="network-option" onclick="selectCurrency('Sol')">
-                    <img src="https://cryptologos.cc/logos/solana-sol-logo.png?v=029" width="32" alt="Solana">
-                    <span>Solana (SOL)</span>
-                </div>
-                <div class="network-option" onclick="selectCurrency('UsdtSpl')">
-                    <img src="https://cryptologos.cc/logos/tether-usdt-logo.png?v=029" width="32" alt="USDT">
-                    <span>Solana (USDT)</span>
-                </div>
-                <div class="network-option" onclick="selectCurrency('Eth')">
-                    <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029" width="32" alt="Ethereum">
-                    <span>Ethereum (ETH)</span>
-                </div>
-                <div class="network-option" onclick="selectCurrency('UsdtEth')">
-                    <img src="https://cryptologos.cc/logos/tether-usdt-logo.png?v=029" width="32" alt="USDT">
-                    <span>Ethereum (USDT)</span>
+        <div class="content">
+            <!-- SELECTION REQUIRED -->
+            {{#if (eq status "SELECTION_REQUIRED")}}
+            <div id="selection-view">
+                <h2 class="selection-title">Select Payment Method</h2>
+                <p class="selection-subtitle">Choose your preferred currency for the ${{amount_usd}} payment.</p>
+                <div class="currency-list" id="currency-list">
+                    <!-- Populated via JS -->
+                    <div style="text-align: center; padding: 20px;">
+                        Loading payment methods...
+                    </div>
                 </div>
             </div>
+            {{/if}}
+
+            <!-- PENDING STATE -->
+            {{#if (eq status "PENDING")}}
+            <div id="payment-view" style="text-align: center;">
+                <div class="status-badge pending">
+                    <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Awaiting Payment
+                </div>
+
+                <div class="amount-container">
+                    <div class="amount-crypto">{{amount}} {{crypto_type}}</div>
+                    <div class="amount-fiat">≈ ${{amount_usd}} USD</div>
+                </div>
+
+                <div class="qr-card">
+                    <img src="data:image/png;base64,{{qr_code}}" alt="Payment QR Code">
+                </div>
+
+                <div class="address-section">
+                    <label>Send to Address</label>
+                    <div class="address-control">
+                        <div class="address-text" id="address-text">{{deposit_address}}</div>
+                        <button class="copy-btn" onclick="copyAddress()" title="Copy Address">
+                            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="payment-info-box">
+                    Only send <strong>{{crypto_type}}</strong> on the <strong>{{network}}</strong> network to this
+                    address.
+                </div>
+
+                <div class="timer-section">
+                    <span class="timer-label">Expires in</span>
+                    <span class="timer-val" id="timer">--:--</span>
+                </div>
+            </div>
+            {{/if}}
+
+            <!-- CONFIRMED STATE -->
+            {{#if (eq status "CONFIRMED")}}
+            <div class="result-view">
+                <div class="result-icon success">
+                    <svg style="width: 40px; height: 40px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h2 class="result-title">Payment Successful</h2>
+                <p class="result-text">Your payment has been received and confirmed. You can now close this page or
+                    return to the merchant.</p>
+
+                {{#if redirect_url}}
+                <a href="{{redirect_url}}" class="btn-primary">Return to Merchant</a>
+                {{/if}}
+            </div>
+            {{/if}}
+
+            <!-- EXPIRED STATE -->
+            {{#if (eq status "EXPIRED")}}
+            <div class="result-view">
+                <div class="result-icon failure">
+                    <svg style="width: 40px; height: 40px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </div>
+                <h2 class="result-title">Payment Expired</h2>
+                <p class="result-text">This payment session has expired. If you've already sent funds, please contact
+                    the merchant.</p>
+                <a href="javascript:window.location.reload()" class="btn-primary">Check Again</a>
+            </div>
+            {{/if}}
         </div>
-        <script>
-            async function selectCurrency(cryptoType) {
-                const LINK_ID = window.location.pathname.split('/').pop();
-                try {
-                    const response = await fetch(`/pay/${LINK_ID}/select`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ crypto_type: cryptoType })
-                    });
-                    if (response.ok) {
-                        window.location.reload();
-                    } else {
-                        const err = await response.json();
-                        alert("Error: " + (err.error || "Failed to select network"));
-                    }
-                } catch (e) {
-                    alert("Network error: " + e.message);
-                }
-            }
-        </script>
-        {{else_is_selection_required}}
-        <div class="network-info">
-            <strong>Network:</strong> {{network}}
-            {{#if sandbox}}(Testnet/Devnet){{else_is_sandbox}}(Mainnet){{/if_sandbox}}
-        </div>
 
-        <p><strong>Payment ID:</strong> {{payment_id}}</p>
-        <p class="amount">{{amount}} {{crypto_type}} (≈ ${{amount_usd}})</p>
-
-        <h3>Send Payment To:</h3>
-        <div class="address">{{deposit_address}}</div>
-
-        {{#if qr_code}}
-        <h3>QR Code:</h3>
-        <div class="qr-container">
-            <img src="data:image/png;base64,{{qr_code}}" alt="Payment QR Code" />
-        </div>
-        {{/if_qr_code}}
-
-        <p class="status"><strong>Status:</strong> {{status_display}}</p>
-
-        <p class="timer">Expires in: <strong>{{time_remaining}}</strong></p>
-        {{/if_is_selection_required}}
-
-        {{#if sandbox}}
-        <div class="sandbox-warning">
-            <strong> Sandbox Mode:</strong> This is a test payment. No real funds will be transferred.
-        </div>
-        {{/if_sandbox}}
+        <footer>
+            <div class="powered-by">
+                Powered by <strong>FidduPay</strong>
+            </div>
+            {{#if sandbox}}
+            <div class="sandbox-badge">SANDBOX TEST MODE</div>
+            {{/if}}
+        </footer>
     </div>
 
-    <style>
-        body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: #f9fafb;
-            color: #111827;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-
-        .container {
-            background: white;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-            max-width: 480px;
-            width: 100%;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 24px;
-            margin-bottom: 24px;
-        }
-
-        .sandbox-badge {
-            background: #f59e0b;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 99px;
-            font-size: 11px;
-            vertical-align: middle;
-            margin-left: 8px;
-        }
-
-        .selection-container {
-            text-align: left;
-        }
-
-        .network-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .network-option {
-            border: 1px solid #e5e7eb;
-            padding: 16px;
-            border-radius: 12px;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            transition: all 0.2s;
-        }
-
-        .network-option:hover {
-            border-color: #3b82f6;
-            background: #eff6ff;
-            transform: translateY(-2px);
-        }
-
-        .network-option span {
-            margin-top: 8px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .amount {
-            font-size: 32px;
-            font-weight: 800;
-            color: #2563eb;
-            margin: 20px 0;
-        }
-
-        .address {
-            font-family: monospace;
-            background: #f3f4f6;
-            padding: 12px;
-            border-radius: 8px;
-            word-break: break-all;
-            font-size: 13px;
-            color: #374151;
-        }
-
-        .qr-container {
-            margin: 24px 0;
-            background: white;
-            padding: 16px;
-            display: inline-block;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-        }
-
-        .status {
-            margin-top: 24px;
-            font-size: 18px;
-        }
-
-        .timer {
-            font-size: 14px;
-            color: #6b7280;
-        }
-
-        .sandbox-warning {
-            background: #fef3c7;
-            border: 1px solid #fcd34d;
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 32px;
-            font-size: 13px;
-            text-align: left;
-        }
-    </style>
     <script>
-        const REDIRECT_URL = '{{redirect_url}}';
+        // Data injected by backend
+        try {
+            window.supportedCurrencies = JSON.parse('{{supported_currencies_json}}');
+        } catch (e) {
+            console.error('Failed to parse supported currencies', e);
+            window.supportedCurrencies = [];
+        }
+
         const LINK_ID = window.location.pathname.split('/').pop();
+        const REDIRECT_URL = '{{redirect_url}}';
 
-        const isConfirmedInitial = '{{is_confirmed_bool}}' === 'true';
-        const isExpiredInitial = '{{is_expired_bool}}' === 'true';
-        const isSelectionRequiredInitial = '{{is_selection_required_bool}}' === 'true';
-
-        if (!isConfirmedInitial && !isExpiredInitial && !isSelectionRequiredInitial) {
-            const pollInterval = setInterval(async () => {
-                try {
-                    const response = await fetch(`/pay/${LINK_ID}/status`);
-                    const data = await response.json();
-
-                    if (data.status === 'CONFIRMED') {
-                        clearInterval(pollInterval);
-                        if (REDIRECT_URL) {
-                            // Smoothly show status then redirect
-                            const statusEl = document.querySelector('.status');
-                            if (statusEl) statusEl.innerHTML = '<strong>Status:</strong> ✅ Confirmed. Redirecting...';
-                            setTimeout(() => {
-                                window.location.href = REDIRECT_URL;
-                            }, 2500);
-                        } else {
-                            window.location.reload();
-                        }
-                    } else if (data.status === 'FAILED' || data.status === 'EXPIRED') {
-                        clearInterval(pollInterval);
-                        window.location.reload();
-                    }
-                } catch (e) {
-                    console.error("Polling error:", e);
-                }
-            }, 3000);
-        } else if (isConfirmedInitial && REDIRECT_URL) {
-            // If already confirmed when page loaded, redirect after 3s
+        // Auto-redirect if already confirmed
+        if (document.querySelector('.result-icon.success') && REDIRECT_URL) {
             setTimeout(() => {
                 window.location.href = REDIRECT_URL;
             }, 3000);
+        }
+
+        // --- Selection Logic ---
+        if (document.getElementById('selection-view')) {
+            const list = document.getElementById('currency-list');
+            if (window.supportedCurrencies && window.supportedCurrencies.length > 0) {
+                list.innerHTML = '';
+                window.supportedCurrencies.forEach(curr => {
+                    const btn = document.createElement('button');
+                    btn.className = 'currency-item';
+
+                    // Basic logo logic (placeholders for now)
+                    let logo = '';
+                    if (curr.symbol.includes('SOL')) logo = 'https://cryptologos.cc/logos/solana-sol-logo.png?v=029';
+                    else if (curr.symbol.includes('ETH')) logo = 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029';
+                    else if (curr.symbol.includes('USDT')) logo = 'https://cryptologos.cc/logos/tether-usdt-logo.png?v=029';
+                    else if (curr.symbol.includes('USDC')) logo = 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png?v=029';
+
+                    btn.innerHTML = `
+                        <div class="currency-info">
+                            <div class="currency-icon">
+                                ${logo ? `<img src="${logo}" alt="${curr.symbol}">` : `<div style="font-weight:700">${curr.symbol[0]}</div>`}
+                            </div>
+                            <div class="currency-details">
+                                <span class="currency-name">${curr.symbol.split('_')[0]}</span>
+                                <span class="currency-network">${curr.network}</span>
+                            </div>
+                        </div>
+                        <svg style="width: 20px; height: 20px; color: var(--slate-300)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    `;
+                    btn.onclick = () => selectCurrency(curr.symbol);
+                    list.appendChild(btn);
+                });
+            } else {
+                list.innerHTML = '<div style="text-align: center; color: var(--danger); font-size:14px">No supported currencies configured.</div>';
+            }
+        }
+
+        async function selectCurrency(symbol) {
+            const list = document.getElementById('currency-list');
+            list.style.opacity = '0.5';
+            list.style.pointerEvents = 'none';
+
+            try {
+                const response = await fetch(`/pay/${LINK_ID}/select`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ crypto_type: symbol })
+                });
+                if (response.ok) window.location.reload();
+                else alert('Failed to select currency');
+            } catch (e) {
+                alert('Network error—please try again.');
+            } finally {
+                list.style.opacity = '1';
+                list.style.pointerEvents = 'auto';
+            }
+        }
+
+        // --- Timer Logic ---
+        if (document.getElementById('timer')) {
+            const expiryStr = '{{expires_at}}';
+            if (expiryStr) {
+                const expiresAt = new Date(expiryStr).getTime();
+
+                function updateTimer() {
+                    const distance = expiresAt - new Date().getTime();
+                    if (distance <= 0) {
+                        document.getElementById('timer').innerText = "Expired";
+                        window.location.reload();
+                        return;
+                    }
+                    const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const s = Math.floor((distance % (1000 * 60)) / 1000);
+                    document.getElementById('timer').innerText = `${m}:${s.toString().padStart(2, '0')}`;
+                }
+
+                setInterval(updateTimer, 1000);
+                updateTimer();
+            }
+
+            // Polling
+            setInterval(async () => {
+                try {
+                    const res = await fetch(`/pay/${LINK_ID}/status`);
+                    const data = await res.json();
+                    if (data.status !== 'PENDING' && data.status !== 'CONFIRMING') {
+                        window.location.reload();
+                    }
+                } catch (e) { }
+            }, 5000);
+        }
+
+        // --- Utils ---
+        function copyAddress() {
+            const addr = document.getElementById('address-text').innerText;
+            navigator.clipboard.writeText(addr).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const original = btn.innerHTML;
+                btn.innerHTML = '<svg style="width: 16px; height: 16px; color: var(--success)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>';
+                setTimeout(() => btn.innerHTML = original, 2000);
+            });
         }
     </script>
 </body>
