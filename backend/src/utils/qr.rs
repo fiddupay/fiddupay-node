@@ -25,7 +25,7 @@ pub fn generate_qr_code(data: &str) -> Result<String, String> {
             // Fill the scaled block
             for iy in 0..scale {
                 for ix in 0..scale {
-                    img.put_pixel((x * scale) as u32 + ix, (y * scale) as u32 + iy, color);
+                    img.put_pixel((x * scale) as u32 + ix as u32, (y * scale) as u32 + iy as u32, color);
                 }
             }
         }
