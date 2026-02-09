@@ -9,9 +9,9 @@ fiddupay.com, www.fiddupay.com {
 	encode gzip
 	file_server
 
-	# Proxy payment links to the backend
+	# REDIRECT payment links to the new subdomain (Fixes old URL issue)
 	handle /pay/* {
-		reverse_proxy localhost:8080
+		redir https://pay.fiddupay.com{uri}
 	}
 
 	# SPA Routing: If file doesn't exist, serve index.html
