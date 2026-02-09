@@ -354,9 +354,15 @@ const PaymentsPage: React.FC = () => {
                 <div className={styles.tableCell}>
                   <div className={styles.paymentInfoCell}>
                     <code>{payment.payment_id.slice(0, 12)}...</code>
-                    {payment.payment_link ? (
-                      <div className={styles.linkCell}>
-                        <a href={payment.payment_link} target="_blank" rel="noopener noreferrer" title="Open Payment Page">
+                    {payment.payment_link && (
+                      <>
+                        <a
+                          href={payment.payment_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Open Payment Page"
+                          className={styles.externalLinkBtn}
+                        >
                           <i className="fas fa-external-link-alt"></i>
                         </a>
                         <button
@@ -369,9 +375,7 @@ const PaymentsPage: React.FC = () => {
                         >
                           <i className="fas fa-copy"></i>
                         </button>
-                      </div>
-                    ) : (
-                      <span className={styles.tableCellMuted}>No link</span>
+                      </>
                     )}
                   </div>
                 </div>
