@@ -964,8 +964,16 @@ pub async fn payment_page(
     };
 
     // Generate QR code for payment (only if selection is finished)
-    let qr_code = if let (Some(ct), Some(addr)) = (&payment.crypto_type, &payment.to_address) {
-        let qr_data = format!("{}:{}", ct, addr);
+    let qr_code = if let (Some(ct_str), Some(addr)) = (&payment.crypto_type, &payment.to_address) {
+        let ct = crate::payment::models::CryptoType::from_string(ct_str);
+        let prefix = ct.uri_scheme();
+        
+        let qr_data = if let Some(amt) = payment.amount {
+            format!("{}:{}?amount={}", prefix, addr, amt)
+        } else {
+            format!("{}:{}", prefix, addr)
+        };
+        
         match crate::utils::qr::generate_qr_code(&qr_data) {
             Ok(qr) => qr,
             Err(_) => "QR_ERROR".to_string(),

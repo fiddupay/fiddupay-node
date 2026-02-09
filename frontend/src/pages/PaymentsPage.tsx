@@ -22,7 +22,7 @@ const PaymentsPage: React.FC = () => {
   const [paymentType, setPaymentType] = useState<'standard' | 'address-only'>('standard')
   const [newPayment, setNewPayment] = useState({
     amount_usd: '',
-    crypto_type: 'USDT_ETH',
+    crypto_type: '',
     description: '',
     merchant_address: '',
     // Invoicing fields
@@ -53,8 +53,8 @@ const PaymentsPage: React.FC = () => {
       const flattenedCurrencies = Object.values(groups).flat() as any[]
       setSupportedCryptos(flattenedCurrencies)
 
-      // Set default if empty and not set
-      if (flattenedCurrencies.length > 0 && !newPayment.crypto_type) {
+      // Auto-select first available currency
+      if (flattenedCurrencies.length > 0) {
         setNewPayment(prev => ({ ...prev, crypto_type: flattenedCurrencies[0].crypto_type }))
       }
     } catch (error) {

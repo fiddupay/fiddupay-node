@@ -272,10 +272,11 @@ impl PaymentProcessor {
             payment_id
         );
         
-        let qr_code_data = if let (Some(net), Some(wallet), Some(amt)) = (network.as_ref(), merchant_wallet.as_ref(), crypto_amount) {
+        let qr_code_data = if let (Some(wallet), Some(amt)) = (merchant_wallet.as_ref(), crypto_amount) {
+            let prefix = crypto_type.map(|ct| ct.uri_scheme()).unwrap_or("ethereum");
             Some(format!(
                 "{}:{}?amount={}",
-                net.to_lowercase(),
+                prefix,
                 wallet,
                 amt
             ))

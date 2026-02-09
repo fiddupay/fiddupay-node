@@ -145,6 +145,13 @@ impl CryptoType {
         }
     }
 
+    pub fn uri_scheme(&self) -> &'static str {
+        match self {
+            CryptoType::Sol | CryptoType::UsdtSpl => "solana",
+            _ => "ethereum", // All EVM chains use ethereum: prefix for EIP-681
+        }
+    }
+
     pub fn required_confirmations(&self) -> u32 {
         // These should be configurable via environment variables
         // For now, using reasonable defaults that match the config
