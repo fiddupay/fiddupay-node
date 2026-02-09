@@ -536,7 +536,7 @@ REDIS_URL=redis://redis:6379
 # Server
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8080
-PAYMENT_PAGE_BASE_URL=http://localhost:8080
+PAYMENT_PAGE_BASE_URL=https://pay.fiddupay.com
 
 # Security
 WEBHOOK_SIGNING_KEY=your-secret-key-here

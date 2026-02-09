@@ -11,7 +11,7 @@ services:
       - RUST_LOG=info
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8080
-      - PAYMENT_PAGE_BASE_URL=http://localhost:8080
+      - PAYMENT_PAGE_BASE_URL=https://pay.fiddupay.com
       - WEBHOOK_SIGNING_KEY=${WEBHOOK_SIGNING_KEY:-change-me-in-production}
       - SOLANA_RPC_URL=https://api.devnet.solana.com
       - BSC_RPC_URL=https://data-seed-prebsc-1-s1.binance.org:8545

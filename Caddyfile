@@ -32,6 +32,23 @@ fiddupay.com, www.fiddupay.com {
 	}
 }
 
+# Dedicated Payment Page Subdomain
+pay.fiddupay.com {
+	reverse_proxy localhost:8080
+
+	header {
+		Strict-Transport-Security "max-age=31536000;"
+		X-XSS-Protection "1; mode=block"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+
+	log {
+		output file /var/log/caddy/fiddupay.pay.log
+	}
+}
+
 # Backend API
 api.fiddupay.com {
 	reverse_proxy localhost:8080 {

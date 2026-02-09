@@ -615,7 +615,7 @@ impl Default for Config {
             rate_limit_per_api_key: true,
             default_payment_expiration_minutes: 15,
             payment_cleanup_interval_hours: 24,
-            payment_page_base_url: "http://localhost:3000".to_string(),
+            payment_page_base_url: "https://pay.fiddupay.com".to_string(),
             default_fee_percentage: rust_decimal::Decimal::new(75, 4), // 0.0075 = 0.75%
             daily_volume_limit_non_kyc_usd: rust_decimal::Decimal::new(100000, 2), // 1000.00
             merchant_registration_enabled: true,
