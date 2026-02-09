@@ -273,7 +273,7 @@ impl PaymentProcessor {
         );
         
         let qr_code_data = if let (Some(wallet), Some(amt)) = (merchant_wallet.as_ref(), crypto_amount) {
-            let prefix = crypto_type.map(|ct| ct.uri_scheme()).unwrap_or("ethereum");
+            let prefix = crypto_type.as_ref().map(|ct: &crate::payment::models::CryptoType| ct.uri_scheme()).unwrap_or("ethereum");
             Some(format!(
                 "{}:{}?amount={}",
                 prefix,
