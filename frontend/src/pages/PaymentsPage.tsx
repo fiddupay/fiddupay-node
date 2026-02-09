@@ -35,6 +35,7 @@ const PaymentsPage: React.FC = () => {
   })
   const [createdPayment, setCreatedPayment] = useState<Payment | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [selectedPaymentForDetails, setSelectedPaymentForDetails] = useState<Payment | null>(null)
 
   const { showToast } = useToast()
   const { user } = useAuthStore()
@@ -397,7 +398,11 @@ const PaymentsPage: React.FC = () => {
                   {formatDate(payment.created_at)}
                 </div>
                 <div className={styles.tableCell}>
-                  <button className={styles.actionBtn} title="View Details">
+                  <button
+                    className={styles.actionBtn}
+                    title="View Details"
+                    onClick={() => setSelectedPaymentForDetails(payment)}
+                  >
                     <i className="fas fa-eye"></i>
                   </button>
                   {(payment.status === 'PENDING' || payment.status === 'SELECTION_REQUIRED') && (
@@ -422,307 +427,430 @@ const PaymentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Create Payment Modal */}
-      {showCreateModal && (
-        <div className={styles.modal}>
-          <div className={styles.modalContent}>
+      {/* Payment Details Modal */}
+      {selectedPaymentForDetails && (
+        <div className={styles.modal} onClick={() => setSelectedPaymentForDetails(null)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2><i className="fas fa-plus"></i> Create New Payment</h2>
+              <h2><i className="fas fa-receipt"></i> Payment Details</h2>
               <button
                 className={styles.closeBtn}
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => setSelectedPaymentForDetails(null)}
               >
                 <i className="fas fa-times"></i>
               </button>
             </div>
 
-            <form onSubmit={handleCreatePayment} className={styles.form}>
-              <div className={styles.inputGroup}>
-                <label>Payment Type</label>
-                <div className={styles.radioGroup}>
-                  <label>
-                    <input
-                      type="radio"
-                      value="standard"
-                      checked={paymentType === 'standard'}
-                      onChange={(e) => setPaymentType(e.target.value as 'standard' | 'address-only')}
-                    />
-                    Standard Payment
-                  </label>
-                  <label>
-                    <input
-                      type="radio"
-                      value="address-only"
-                      checked={paymentType === 'address-only'}
-                      onChange={(e) => setPaymentType(e.target.value as 'standard' | 'address-only')}
-                    />
-                    Address-Only Payment
-                  </label>
+            <div className={styles.detailsContent}>
+              <div className={styles.detailsGrid}>
+                <div className={styles.detailItem}>
+                  <label>Status</label>
+                  <span className={`${styles.statusBadge} ${getStatusBadge(selectedPaymentForDetails.status)}`}>
+                    {selectedPaymentForDetails.status}
+                  </span>
+                </div>
+                <div className={styles.detailItem}>
+                  <label>Payment ID</label>
+                  <code>{selectedPaymentForDetails.payment_id}</code>
+                </div>
+                <div className={styles.detailItem}>
+                  <label>Created At</label>
+                  <span>{formatDate(selectedPaymentForDetails.created_at)}</span>
+                </div>
+                {selectedPaymentForDetails.confirmed_at && (
+                  <div className={styles.detailItem}>
+                    <label>Confirmed At</label>
+                    <span>{formatDate(selectedPaymentForDetails.confirmed_at)}</span>
+                  </div>
+                )}
+                <div className={styles.detailItem}>
+                  <label>Network</label>
+                  <span className={styles.cryptoBadge}>{selectedPaymentForDetails.network}</span>
+                </div>
+                <div className={styles.detailItem}>
+                  <label>Currency</label>
+                  <span className={styles.cryptoBadge}>{selectedPaymentForDetails.crypto_type || 'USDC'}</span>
                 </div>
               </div>
 
-              <div className={styles.inputGroup}>
-                <label htmlFor="amount">Amount (USD)</label>
-                <input
-                  type="number"
-                  id="amount"
-                  step="0.01"
-                  min="0.01"
-                  value={newPayment.amount_usd}
-                  onChange={(e) => setNewPayment(prev => ({ ...prev, amount_usd: e.target.value }))}
-                  placeholder="100.00"
-                  required
-                />
+              <div className={styles.detailsSection}>
+                <h3>Amount Breakdown</h3>
+                <div className={styles.amountBreakdown}>
+                  <div className={styles.amountRow}>
+                    <span>Requested Amount:</span>
+                    <strong>${selectedPaymentForDetails.amount_usd}</strong>
+                  </div>
+                  <div className={styles.amountRow}>
+                    <span>Crypto Amount:</span>
+                    <span>{selectedPaymentForDetails.amount} {selectedPaymentForDetails.crypto_type}</span>
+                  </div>
+                  <div className={styles.amountRow}>
+                    <span>Processing Fee:</span>
+                    <span>${selectedPaymentForDetails.fee_amount_usd} ({selectedPaymentForDetails.fee_amount} {selectedPaymentForDetails.crypto_type})</span>
+                  </div>
+                </div>
               </div>
 
-              <div className={styles.inputGroup}>
-                <label htmlFor="crypto_type">Cryptocurrency</label>
-                <select
-                  id="crypto_type"
-                  value={newPayment.crypto_type}
-                  onChange={(e) => setNewPayment(prev => ({ ...prev, crypto_type: e.target.value }))}
-                >
-                  {supportedCryptos.map((crypto: any) => (
-                    <option key={crypto.crypto_type} value={crypto.crypto_type}>
-                      {crypto.crypto_type.split('_')[0]} ({crypto.network})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {paymentType === 'address-only' && (
-                <div className={styles.inputGroup}>
-                  <label htmlFor="merchant_address">Merchant Address *</label>
-                  <input
-                    type="text"
-                    id="merchant_address"
-                    value={newPayment.merchant_address}
-                    onChange={(e) => setNewPayment(prev => ({ ...prev, merchant_address: e.target.value }))}
-                    placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
-                    required={paymentType === 'address-only'}
-                  />
+              {selectedPaymentForDetails.description && (
+                <div className={styles.detailsSection}>
+                  <h3>Description</h3>
+                  <p className={styles.descriptionText}>{selectedPaymentForDetails.description}</p>
                 </div>
               )}
 
-              <div className={styles.inputGroup}>
-                <label htmlFor="description">Description (Optional)</label>
-                <input
-                  type="text"
-                  id="description"
-                  value={newPayment.description}
-                  onChange={(e) => setNewPayment(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Product name, order #, etc."
-                />
+              {selectedPaymentForDetails.deposit_address && (
+                <div className={styles.detailsSection}>
+                  <h3>Deposit Address</h3>
+                  <div className={styles.addressBox}>
+                    <code>{selectedPaymentForDetails.deposit_address}</code>
+                    <button
+                      className={styles.copyButton}
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedPaymentForDetails.deposit_address)
+                        showToast('Address copied!', 'success')
+                      }}
+                    >
+                      <i className="fas fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {selectedPaymentForDetails.transaction_hash && (
+                <div className={styles.detailsSection}>
+                  <h3>Transaction</h3>
+                  <div className={styles.addressBox}>
+                    <code className={styles.truncatedCode}>{selectedPaymentForDetails.transaction_hash}</code>
+                    <a
+                      href={`https://solscan.io/tx/${selectedPaymentForDetails.transaction_hash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.externalLinkBtn}
+                    >
+                      <i className="fas fa-external-link-alt"></i>
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setSelectedPaymentForDetails(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Payment Modal */}
+      {
+        showCreateModal && (
+          <div className={styles.modal}>
+            <div className={styles.modalContent}>
+              <div className={styles.modalHeader}>
+                <h2><i className="fas fa-plus"></i> Create New Payment</h2>
+                <button
+                  className={styles.closeBtn}
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  <i className="fas fa-times"></i>
+                </button>
               </div>
 
-              {paymentType === 'standard' && (
-                <div className={styles.invoicingSection}>
-                  <div className={styles.toggleGroup}>
-                    <div className={styles.toggleLabel}>
-                      <label>Create as Invoice</label>
-                      <small>Include professional itemized breakdown and customer details</small>
-                    </div>
-                    <label className={styles.switch}>
+              <form onSubmit={handleCreatePayment} className={styles.form}>
+                <div className={styles.inputGroup}>
+                  <label>Payment Type</label>
+                  <div className={styles.radioGroup}>
+                    <label>
                       <input
-                        type="checkbox"
-                        checked={newPayment.is_invoice}
-                        onChange={(e) => setNewPayment(prev => ({ ...prev, is_invoice: e.target.checked }))}
+                        type="radio"
+                        value="standard"
+                        checked={paymentType === 'standard'}
+                        onChange={(e) => setPaymentType(e.target.value as 'standard' | 'address-only')}
                       />
-                      <span className={styles.slider}></span>
+                      Standard Payment
+                    </label>
+                    <label>
+                      <input
+                        type="radio"
+                        value="address-only"
+                        checked={paymentType === 'address-only'}
+                        onChange={(e) => setPaymentType(e.target.value as 'standard' | 'address-only')}
+                      />
+                      Address-Only Payment
                     </label>
                   </div>
-
-                  {newPayment.is_invoice && (
-                    <div className={styles.invoiceFields}>
-                      <div className={styles.row}>
-                        <div className={styles.inputGroup}>
-                          <label>Customer Name</label>
-                          <input
-                            type="text"
-                            value={newPayment.customer_name}
-                            onChange={(e) => setNewPayment(prev => ({ ...prev, customer_name: e.target.value }))}
-                            placeholder="John Doe"
-                            required={newPayment.is_invoice}
-                          />
-                        </div>
-                        <div className={styles.inputGroup}>
-                          <label>Customer Email</label>
-                          <input
-                            type="email"
-                            value={newPayment.customer_email}
-                            onChange={(e) => setNewPayment(prev => ({ ...prev, customer_email: e.target.value }))}
-                            placeholder="john@example.com"
-                            required={newPayment.is_invoice}
-                          />
-                        </div>
-                      </div>
-
-                      <div className={styles.itemsSection}>
-                        <div className={styles.itemsHeader}>
-                          <label>Line Items</label>
-                          <button type="button" onClick={handleAddItem} className={styles.addBtn}>
-                            <i className="fas fa-plus"></i> Add Item
-                          </button>
-                        </div>
-                        <div className={styles.itemsTable}>
-                          <div className={styles.itemTableHeader}>
-                            <span>Description</span>
-                            <span>Qty</span>
-                            <span>Price</span>
-                            <span></span>
-                          </div>
-                          {newPayment.items.map((item, index) => (
-                            <div key={index} className={styles.itemRow}>
-                              <input
-                                type="text"
-                                placeholder="Service or product description"
-                                value={item.description}
-                                onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                                className={styles.itemDesc}
-                                required={newPayment.is_invoice}
-                              />
-                              <input
-                                type="number"
-                                placeholder="1"
-                                value={item.quantity}
-                                onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value))}
-                                className={styles.itemQty}
-                                min="1"
-                                required={newPayment.is_invoice}
-                              />
-                              <input
-                                type="number"
-                                placeholder="0.00"
-                                value={item.unit_price}
-                                onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
-                                className={styles.itemPrice}
-                                step="0.01"
-                                min="0"
-                                required={newPayment.is_invoice}
-                              />
-                              {newPayment.items.length > 1 && (
-                                <button type="button" onClick={() => handleRemoveItem(index)} className={styles.removeBtn} title="Remove Item">
-                                  <i className="fas fa-trash"></i>
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className={styles.invoiceFooter}>
-                        <div className={styles.inputGroup}>
-                          <label>Tax Percentage (%)</label>
-                          <input
-                            type="number"
-                            value={newPayment.tax_percentage}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setNewPayment(prev => ({ ...prev, tax_percentage: val }))
-                            }}
-                            placeholder="0"
-                          />
-                        </div>
-
-                        <div className={styles.inputGroup}>
-                          <label>Notes</label>
-                          <textarea
-                            value={newPayment.notes}
-                            onChange={(e) => setNewPayment(prev => ({ ...prev, notes: e.target.value }))}
-                            placeholder="Thank you for your business!"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
-              )}
 
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  className={styles.cancelBtn}
-                  onClick={() => setShowCreateModal(false)}
-                  disabled={loading}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={styles.submitBtn}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <><i className="fas fa-spinner fa-spin"></i> Creating...</>
-                  ) : (
-                    <><i className="fas fa-check"></i> Create Payment</>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                <div className={styles.inputGroup}>
+                  <label htmlFor="amount">Amount (USD)</label>
+                  <input
+                    type="number"
+                    id="amount"
+                    step="0.01"
+                    min="0.01"
+                    value={newPayment.amount_usd}
+                    onChange={(e) => setNewPayment(prev => ({ ...prev, amount_usd: e.target.value }))}
+                    placeholder="100.00"
+                    required
+                  />
+                </div>
 
-      {/* Success Modal */}
-      {showSuccessModal && createdPayment && (
-        <div className={styles.modal}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h2><i className="fas fa-check-circle" style={{ color: 'var(--fiddu-success)' }}></i> Payment Created</h2>
-              <button
-                className={styles.closeBtn}
-                onClick={() => setShowSuccessModal(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className={styles.successBody}>
-              <p>Payment <strong>{createdPayment.payment_id}</strong> has been created successfully.</p>
+                <div className={styles.inputGroup}>
+                  <label htmlFor="crypto_type">Cryptocurrency</label>
+                  <select
+                    id="crypto_type"
+                    value={newPayment.crypto_type}
+                    onChange={(e) => setNewPayment(prev => ({ ...prev, crypto_type: e.target.value }))}
+                  >
+                    {supportedCryptos.map((crypto: any) => (
+                      <option key={crypto.crypto_type} value={crypto.crypto_type}>
+                        {crypto.crypto_type.split('_')[0]} ({crypto.network})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className={styles.linkCard}>
-                <label>Shareable Payment Link</label>
-                <div className={styles.linkWrapper}>
+                {paymentType === 'address-only' && (
+                  <div className={styles.inputGroup}>
+                    <label htmlFor="merchant_address">Merchant Address *</label>
+                    <input
+                      type="text"
+                      id="merchant_address"
+                      value={newPayment.merchant_address}
+                      onChange={(e) => setNewPayment(prev => ({ ...prev, merchant_address: e.target.value }))}
+                      placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+                      required={paymentType === 'address-only'}
+                    />
+                  </div>
+                )}
+
+                <div className={styles.inputGroup}>
+                  <label htmlFor="description">Description (Optional)</label>
                   <input
                     type="text"
-                    readOnly
-                    value={createdPayment.payment_link}
-                    className={styles.linkInput}
+                    id="description"
+                    value={newPayment.description}
+                    onChange={(e) => setNewPayment(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Product name, order #, etc."
                   />
-                  <button
-                    className={styles.copyBtn}
-                    onClick={() => {
-                      navigator.clipboard.writeText(createdPayment.payment_link)
-                      showToast('Link copied to clipboard!', 'success')
-                    }}
-                  >
-                    <i className="fas fa-copy"></i> Copy
-                  </button>
-                  <a
-                    href={createdPayment.payment_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.openBtn}
-                  >
-                    <i className="fas fa-external-link-alt"></i> Open
-                  </a>
                 </div>
-              </div>
 
-              <div className={styles.modalActions} style={{ marginTop: '24px' }}>
+                {paymentType === 'standard' && (
+                  <div className={styles.invoicingSection}>
+                    <div className={styles.toggleGroup}>
+                      <div className={styles.toggleLabel}>
+                        <label>Create as Invoice</label>
+                        <small>Include professional itemized breakdown and customer details</small>
+                      </div>
+                      <label className={styles.switch}>
+                        <input
+                          type="checkbox"
+                          checked={newPayment.is_invoice}
+                          onChange={(e) => setNewPayment(prev => ({ ...prev, is_invoice: e.target.checked }))}
+                        />
+                        <span className={styles.slider}></span>
+                      </label>
+                    </div>
+
+                    {newPayment.is_invoice && (
+                      <div className={styles.invoiceFields}>
+                        <div className={styles.row}>
+                          <div className={styles.inputGroup}>
+                            <label>Customer Name</label>
+                            <input
+                              type="text"
+                              value={newPayment.customer_name}
+                              onChange={(e) => setNewPayment(prev => ({ ...prev, customer_name: e.target.value }))}
+                              placeholder="John Doe"
+                              required={newPayment.is_invoice}
+                            />
+                          </div>
+                          <div className={styles.inputGroup}>
+                            <label>Customer Email</label>
+                            <input
+                              type="email"
+                              value={newPayment.customer_email}
+                              onChange={(e) => setNewPayment(prev => ({ ...prev, customer_email: e.target.value }))}
+                              placeholder="john@example.com"
+                              required={newPayment.is_invoice}
+                            />
+                          </div>
+                        </div>
+
+                        <div className={styles.itemsSection}>
+                          <div className={styles.itemsHeader}>
+                            <label>Line Items</label>
+                            <button type="button" onClick={handleAddItem} className={styles.addBtn}>
+                              <i className="fas fa-plus"></i> Add Item
+                            </button>
+                          </div>
+                          <div className={styles.itemsTable}>
+                            <div className={styles.itemTableHeader}>
+                              <span>Description</span>
+                              <span>Qty</span>
+                              <span>Price</span>
+                              <span></span>
+                            </div>
+                            {newPayment.items.map((item, index) => (
+                              <div key={index} className={styles.itemRow}>
+                                <input
+                                  type="text"
+                                  placeholder="Service or product description"
+                                  value={item.description}
+                                  onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                                  className={styles.itemDesc}
+                                  required={newPayment.is_invoice}
+                                />
+                                <input
+                                  type="number"
+                                  placeholder="1"
+                                  value={item.quantity}
+                                  onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value))}
+                                  className={styles.itemQty}
+                                  min="1"
+                                  required={newPayment.is_invoice}
+                                />
+                                <input
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={item.unit_price}
+                                  onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
+                                  className={styles.itemPrice}
+                                  step="0.01"
+                                  min="0"
+                                  required={newPayment.is_invoice}
+                                />
+                                {newPayment.items.length > 1 && (
+                                  <button type="button" onClick={() => handleRemoveItem(index)} className={styles.removeBtn} title="Remove Item">
+                                    <i className="fas fa-trash"></i>
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className={styles.invoiceFooter}>
+                          <div className={styles.inputGroup}>
+                            <label>Tax Percentage (%)</label>
+                            <input
+                              type="number"
+                              value={newPayment.tax_percentage}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setNewPayment(prev => ({ ...prev, tax_percentage: val }))
+                              }}
+                              placeholder="0"
+                            />
+                          </div>
+
+                          <div className={styles.inputGroup}>
+                            <label>Notes</label>
+                            <textarea
+                              value={newPayment.notes}
+                              onChange={(e) => setNewPayment(prev => ({ ...prev, notes: e.target.value }))}
+                              placeholder="Thank you for your business!"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={styles.cancelBtn}
+                    onClick={() => setShowCreateModal(false)}
+                    disabled={loading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className={styles.submitBtn}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <><i className="fas fa-spinner fa-spin"></i> Creating...</>
+                    ) : (
+                      <><i className="fas fa-check"></i> Create Payment</>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Success Modal */}
+      {
+        showSuccessModal && createdPayment && (
+          <div className={styles.modal}>
+            <div className={styles.modalContent}>
+              <div className={styles.modalHeader}>
+                <h2><i className="fas fa-check-circle" style={{ color: 'var(--fiddu-success)' }}></i> Payment Created</h2>
                 <button
-                  className={styles.submitBtn}
+                  className={styles.closeBtn}
                   onClick={() => setShowSuccessModal(false)}
                 >
-                  Got it
+                  <i className="fas fa-times"></i>
                 </button>
+              </div>
+              <div className={styles.successBody}>
+                <p>Payment <strong>{createdPayment.payment_id}</strong> has been created successfully.</p>
+
+                <div className={styles.linkCard}>
+                  <label>Shareable Payment Link</label>
+                  <div className={styles.linkWrapper}>
+                    <input
+                      type="text"
+                      readOnly
+                      value={createdPayment.payment_link}
+                      className={styles.linkInput}
+                    />
+                    <button
+                      className={styles.copyBtn}
+                      onClick={() => {
+                        navigator.clipboard.writeText(createdPayment.payment_link)
+                        showToast('Link copied to clipboard!', 'success')
+                      }}
+                    >
+                      <i className="fas fa-copy"></i> Copy
+                    </button>
+                    <a
+                      href={createdPayment.payment_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.openBtn}
+                    >
+                      <i className="fas fa-external-link-alt"></i> Open
+                    </a>
+                  </div>
+                </div>
+
+                <div className={styles.modalActions} style={{ marginTop: '24px' }}>
+                  <button
+                    className={styles.submitBtn}
+                    onClick={() => setShowSuccessModal(false)}
+                  >
+                    Got it
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-    </div>
+    </div >
   )
 }
 
