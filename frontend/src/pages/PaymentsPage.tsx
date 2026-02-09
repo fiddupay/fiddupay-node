@@ -358,17 +358,20 @@ const PaymentsPage: React.FC = () => {
                 <div className={styles.tableCell}>
                   {payment.payment_link ? (
                     <div className={styles.linkCell}>
-                      <a href={payment.payment_link} target="_blank" rel="noopener noreferrer" title={payment.payment_link}>
-                        {payment.payment_link.replace(/^https?:\/\//, '')}
+                      <a href={payment.payment_link} target="_blank" rel="noopener noreferrer">
+                        {payment.payment_link.split('/').pop()}
+                        <i className={`fas fa-external-link-alt ${styles.externalIcon}`}></i>
                       </a>
-                      <i
-                        className={`fas fa-copy ${styles.copyIcon}`}
+                      <button
+                        className={styles.copyButton}
                         onClick={() => {
                           navigator.clipboard.writeText(payment.payment_link!)
                           showToast('Link copied!', 'success')
                         }}
                         title="Copy Link"
-                      ></i>
+                      >
+                        <i className="fas fa-copy"></i>
+                      </button>
                     </div>
                   ) : (
                     <span className={styles.tableCellMuted}>No link</span>
