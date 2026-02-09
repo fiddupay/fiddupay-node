@@ -1035,7 +1035,6 @@ pub async fn payment_page(
         is_expired,
         is_selection_required,
         sandbox,
-        sandbox,
         redirect_url,
         supported_currencies,
     });
