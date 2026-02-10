@@ -223,19 +223,20 @@ impl BackgroundTasks {
                 webhook.id, attempt_number, webhook.merchant_id, webhook.event_type
             );
 
-            // Fetch merchant-specific signing secret
-            let secret = match sqlx::query_scalar!(
-                "SELECT signing_secret FROM webhook_configs WHERE merchant_id = $1",
+            // Fetch merchant-specific signing secret and format
+            let (secret, payload_format) = match sqlx::query!(
+                "SELECT signing_secret, payload_format FROM webhook_configs WHERE merchant_id = $1",
                 webhook.merchant_id
             )
             .fetch_one(&self.db_pool)
             .await {
-                Ok(s) => s,
-                Err(_) => self.webhook_service.get_signing_key().to_string(), // Fallback to global
+                Ok(row) => (row.signing_secret, row.payload_format),
+                Err(_) => (self.webhook_service.get_signing_key().to_string(), "standard".to_string()),
             };
 
-            // Attempt delivery
-            let delivery_result = self.webhook_service.send_webhook(&webhook.url, &webhook.payload, &secret).await;
+            // Attempt delivery — skip signature for Discord/Slack
+            let skip_signature = payload_format == "discord" || payload_format == "slack";
+            let delivery_result = self.webhook_service.send_webhook(&webhook.url, &webhook.payload, &secret, skip_signature).await;
 
             match delivery_result {
                 Ok((status_code, response_body)) => {

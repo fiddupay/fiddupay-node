@@ -106,27 +106,30 @@ impl WebhookService {
         hex::encode(result.into_bytes())
     }
 
-    /// Send webhook notification with signature
+    /// Send webhook notification with optional signature
     pub async fn send_webhook(
         &self,
         url: &str,
         payload_value: &serde_json::Value,
         secret: &str,
+        skip_signature: bool,
     ) -> Result<(u16, String), ServiceError> {
-        let timestamp = Utc::now().timestamp();
-        
-        // Serialize payload
         let payload_json = payload_value.to_string();
         
-        // Generate signature using merchant-specific secret
-        let signature = self.generate_signature(&payload_json, timestamp, secret);
-        
-        // Send HTTP POST request with signature headers
-        let response = self.http_client
+        // Build request — add HMAC signature headers only for standard format
+        let mut request = self.http_client
             .post(url)
-            .header("Content-Type", "application/json")
-            .header("X-Signature", signature)
-            .header("X-Timestamp", timestamp.to_string())
+            .header("Content-Type", "application/json");
+
+        if !skip_signature {
+            let timestamp = Utc::now().timestamp();
+            let signature = self.generate_signature(&payload_json, timestamp, secret);
+            request = request
+                .header("X-Signature", signature)
+                .header("X-Timestamp", timestamp.to_string());
+        }
+
+        let response = request
             .body(payload_json)
             .send()
             .await
