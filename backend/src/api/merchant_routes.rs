@@ -58,6 +58,7 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/merchants/withdrawals/:withdrawal_id/process", post(wallet_management::process_withdrawal))
         
         // Wallet management
+        .route("/api/v1/merchants/wallets/balances", get(wallet_management::get_wallet_balances))
         .route("/api/v1/merchants/wallets", get(wallet_management::get_wallet_configs))
         .route("/api/v1/merchants/wallets", post(wallet_management::setup_wallet))
         .route("/api/v1/merchants/wallets", put(merchant_handlers::set_wallet)) // DEPRECATED: Use POST /api/v1/merchants/wallets (Unified)

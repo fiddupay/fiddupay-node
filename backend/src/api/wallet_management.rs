@@ -18,6 +18,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use rust_decimal::Decimal;
+use sqlx::PgPool;
 
 // ============================================================================
 // Wallet Configuration Endpoints
@@ -315,12 +316,35 @@ pub async fn setup_wallet(
             let generate_request = GenerateWalletRequest {
                 crypto_type: req.crypto_type,
             };
-            match wallet_service.generate_wallet(context.merchant_id, generate_request).await {
-                Ok(response) => (StatusCode::CREATED, Json(json!({
-                    "wallet": response,
-                    "mode": "generate",
-                    "message": "Wallet generated successfully."
-                }))).into_response(),
+            // Check if merchant is in managed mode — if so, hide private key
+            let is_managed = sqlx::query_scalar!("SELECT settlement_mode FROM merchants WHERE id = $1", context.merchant_id)
+                .fetch_optional(&state.db_pool)
+                .await
+                .ok()
+                .flatten()
+                .map(|m| m == "managed")
+                .unwrap_or(false);
+
+            let result = if is_managed {
+                wallet_service.generate_wallet_managed(context.merchant_id, generate_request).await
+            } else {
+                wallet_service.generate_wallet(context.merchant_id, generate_request).await
+            };
+
+            match result {
+                Ok(response) => {
+                    let msg = if is_managed {
+                        "Wallet generated successfully. Keys are managed by the platform."
+                    } else {
+                        "Wallet generated successfully."
+                    };
+                    (StatusCode::CREATED, Json(json!({
+                        "wallet": response,
+                        "mode": "generate",
+                        "managed": is_managed,
+                        "message": msg
+                    }))).into_response()
+                }
                 Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
             }
         },
@@ -345,4 +369,85 @@ pub async fn setup_wallet(
         },
         _ => (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid mode. Use 'address', 'generate', or 'import'."}))).into_response(),
     }
+}
+
+// ============================================================================
+// Wallet Balance & Volume Endpoint
+// ============================================================================
+
+pub async fn get_wallet_balances(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    // Get wallet configs with their balances and transaction volume
+    let result = sqlx::query_as::<_, WalletBalanceRow>(
+        r#"
+        SELECT
+            mw.crypto_type,
+            mw.network,
+            mw.address,
+            mw.is_active,
+            COALESCE(mb.available_balance, 0) as available_balance,
+            COALESCE(mb.reserved_balance, 0) as reserved_balance,
+            COALESCE(mb.total_balance, 0) as total_balance,
+            COALESCE(tx_stats.tx_count, 0) as transaction_count,
+            COALESCE(tx_stats.total_volume, 0) as total_volume_crypto
+        FROM merchant_wallets mw
+        LEFT JOIN merchant_balances mb
+            ON mb.merchant_id = mw.merchant_id AND mb.crypto_type = mw.crypto_type
+        LEFT JOIN LATERAL (
+            SELECT
+                COUNT(*)::bigint as tx_count,
+                COALESCE(SUM(amount_crypto), 0) as total_volume
+            FROM payment_transactions
+            WHERE merchant_id = mw.merchant_id
+              AND crypto_type = mw.crypto_type
+              AND status = 'CONFIRMED'
+        ) tx_stats ON true
+        WHERE mw.merchant_id = $1
+        ORDER BY mw.crypto_type
+        "#
+    )
+    .bind(context.merchant_id)
+    .fetch_all(&state.db_pool)
+    .await;
+
+    match result {
+        Ok(wallets) => {
+            let wallet_data: Vec<serde_json::Value> = wallets.iter().map(|w| json!({
+                "crypto_type": w.crypto_type,
+                "network": w.network,
+                "address": w.address,
+                "is_active": w.is_active,
+                "available_balance": w.available_balance.to_string(),
+                "reserved_balance": w.reserved_balance.to_string(),
+                "total_balance": w.total_balance.to_string(),
+                "transaction_count": w.transaction_count,
+                "total_volume_crypto": w.total_volume_crypto.to_string()
+            })).collect();
+
+            (StatusCode::OK, Json(json!({
+                "wallets": wallet_data
+            }))).into_response()
+        }
+        Err(e) => {
+            tracing::error!("Failed to get wallet balances: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+                "error": format!("Failed to get wallet balances: {}", e)
+            }))).into_response()
+        }
+    }
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct WalletBalanceRow {
+    pub crypto_type: String,
+    pub network: String,
+    pub address: String,
+    pub is_active: bool,
+    pub available_balance: Decimal,
+    pub reserved_balance: Decimal,
+    pub total_balance: Decimal,
+    pub transaction_count: i64,
+    pub total_volume_crypto: Decimal,
 }

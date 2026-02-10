@@ -170,8 +170,16 @@ impl WalletConfigService {
         
         Ok(GeneratedWalletResponse {
             config,
-            private_key: wallet.private_key,
+            private_key: Some(wallet.private_key),
         })
+    }
+
+    /// Generate wallet in managed mode — private key is stored but never returned to the merchant
+    pub async fn generate_wallet_managed(&self, merchant_id: i64, request: GenerateWalletRequest) -> Result<GeneratedWalletResponse, ServiceError> {
+        let mut response = self.generate_wallet(merchant_id, request).await?;
+        // Strip private key — platform manages it, merchant never sees it
+        response.private_key = None;
+        Ok(response)
     }
 
     pub async fn import_wallet(&self, merchant_id: i64, request: ImportWalletRequest) -> Result<WalletConfig, ServiceError> {
@@ -291,7 +299,8 @@ pub struct ExportKeyRequest {
 #[derive(Debug, Serialize)]
 pub struct GeneratedWalletResponse {
     pub config: WalletConfig,
-    pub private_key: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub private_key: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

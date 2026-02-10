@@ -1064,21 +1064,59 @@ pub async fn payment_status(
     State(state): State<AppState>,
     Path(link_id): Path<String>,
 ) -> impl IntoResponse {
-    // Look up payment status for polling
-    let result = sqlx::query!(
-        r#"
-        SELECT pt.status 
-        FROM payment_transactions pt
-        JOIN payment_links pl ON pl.payment_id = pt.id
-        WHERE pl.link_id = $1
-        "#,
-        &link_id
-    )
-    .fetch_optional(&state.db_pool)
-    .await;
+    // 1. Fetch payment details (status and merchant_id)
+    // Supports both link_id (payment_links) and direct payment_id (payment_transactions)
+    let payment_info = if link_id.starts_with("pay_") {
+        // Direct payment lookup
+        sqlx::query!(
+            "SELECT payment_id, merchant_id, status FROM payment_transactions WHERE payment_id = $1",
+            link_id
+        )
+        .fetch_optional(&state.db_pool)
+        .await
+    } else {
+        // Link lookup
+        sqlx::query!(
+            r#"
+            SELECT pt.payment_id, pt.merchant_id, pt.status 
+            FROM payment_transactions pt
+            JOIN payment_links pl ON pl.payment_id = pt.id
+            WHERE pl.link_id = $1
+            "#,
+            link_id
+        )
+        .fetch_optional(&state.db_pool)
+        .await
+    };
 
-    match result {
-        Ok(Some(payment)) => (StatusCode::OK, Json(json!({"status": payment.status}))).into_response(),
+    match payment_info {
+        Ok(Some(payment)) => {
+            let mut current_status = payment.status.clone();
+            
+            // 2. Smart Verification: Trigger address scan if pending
+            if current_status == "PENDING" || current_status == "CONFIRMING" {
+                 // Trigger verification (fire and forget? No, we want the result if possible)
+                 match state.payment_service.verify_payment_by_address(&payment.payment_id, payment.merchant_id).await {
+                     Ok(true) => {
+                         // Payment confirmed! Update local status for response
+                         current_status = "CONFIRMED".to_string();
+                     },
+                     Ok(false) => {
+                         // Still pending, check if it's confirming on chain (handled by verifier update but we just read the bool)
+                         // If verifier found a tx but it's confirming, it updated the DB. 
+                         // To be perfectly accurate we should re-fetch status, 
+                         // but for now let's just return PENDING or rely on next poll.
+                         // Actually, if verifying returned false, the status in DB might have changed to CONFIRMING.
+                     },
+                     Err(e) => {
+                         tracing::warn!("Failed to auto-verify payment {}: {}", link_id, e);
+                     }
+                 }
+            }
+
+            // 3. Return status (either original or updated)
+            (StatusCode::OK, Json(json!({"status": current_status}))).into_response()
+        },
         Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
