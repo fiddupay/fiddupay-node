@@ -444,35 +444,37 @@ const SettingsPage: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className={styles.secretSection}>
-                                        <div className={styles.secretHeader}>
-                                            <h4>Webhook Signing Secret</h4>
-                                            <span className={styles.badge}>Per-Merchant Key</span>
-                                        </div>
-                                        <div className={styles.secretWrapper}>
-                                            <div className={styles.secretDisplay}>
-                                                {showSecret ? signingSecret : '••••••••••••••••••••••••••••••••'}
+                                    {webhookFormat === 'standard' && (
+                                        <div className={styles.secretSection}>
+                                            <div className={styles.secretHeader}>
+                                                <h4>Webhook Signing Secret</h4>
+                                                <span className={styles.badge}>Per-Merchant Key</span>
                                             </div>
-                                            <button
-                                                className={styles.viewBtn}
-                                                onClick={() => setShowSecret(!showSecret)}
-                                            >
-                                                {showSecret ? <MdVisibilityOff /> : <MdVisibility />}
-                                                {showSecret ? 'Hide' : 'View'}
-                                            </button>
-                                            <button
-                                                className={`${styles.rotateBtn} ${showRotateSecretConfirm ? 'bg-red-50 border-red-500' : ''}`}
-                                                onClick={handleRotateSecret}
-                                                disabled={loading}
-                                            >
-                                                <MdRefresh className={loading ? 'animate-spin' : ''} />
-                                                {showRotateSecretConfirm ? 'Confirm' : 'Rotate'}
-                                            </button>
+                                            <div className={styles.secretWrapper}>
+                                                <div className={styles.secretDisplay}>
+                                                    {showSecret ? signingSecret : '••••••••••••••••••••••••••••••••'}
+                                                </div>
+                                                <button
+                                                    className={styles.viewBtn}
+                                                    onClick={() => setShowSecret(!showSecret)}
+                                                >
+                                                    {showSecret ? <MdVisibilityOff /> : <MdVisibility />}
+                                                    {showSecret ? 'Hide' : 'View'}
+                                                </button>
+                                                <button
+                                                    className={`${styles.rotateBtn} ${showRotateSecretConfirm ? 'bg-red-50 border-red-500' : ''}`}
+                                                    onClick={handleRotateSecret}
+                                                    disabled={loading}
+                                                >
+                                                    <MdRefresh className={loading ? 'animate-spin' : ''} />
+                                                    {showRotateSecretConfirm ? 'Confirm' : 'Rotate'}
+                                                </button>
+                                            </div>
+                                            <p className={styles.keyNote} style={{ marginTop: '12px', marginBottom: 0 }}>
+                                                <MdInfo /> Use this secret to verify that webhook requests are genuinely from FidduPay.
+                                            </p>
                                         </div>
-                                        <p className={styles.keyNote} style={{ marginTop: '12px', marginBottom: 0 }}>
-                                            <MdInfo /> Use this secret to verify that webhook requests are genuinely from FidduPay.
-                                        </p>
-                                    </div>
+                                    )}
                                 </div>
 
                                 <div className={styles.docSide}>

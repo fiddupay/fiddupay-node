@@ -188,8 +188,8 @@ impl WebhookService {
             // Queue notification for background delivery
             sqlx::query!(
                 r#"
-                INSERT INTO webhook_deliveries (merchant_id, payment_id, event_type, url, payload, status, created_at)
-                VALUES ($1, $2, $3, $4, $5, 'pending', NOW())
+                INSERT INTO webhook_deliveries (merchant_id, payment_id, event_type, url, payload, status, created_at, next_retry_at)
+                VALUES ($1, $2, $3, $4, $5, 'pending', NOW(), NOW())
                 "#,
                 merchant_id,
                 payment_id,
