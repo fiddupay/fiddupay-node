@@ -12,7 +12,7 @@ pub struct WithdrawalRequest {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Withdrawal {
     pub id: i32,
     pub withdrawal_id: String,

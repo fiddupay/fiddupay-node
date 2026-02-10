@@ -245,12 +245,12 @@ impl PaymentProcessor {
                      total_paid, remaining_balance, is_non_custodial
             "#
         )
-        .bind(payment_id)
+        .bind(&payment_id)
         .bind(merchant_id)
         .bind(request.crypto_type.map(|ct| ct.to_string()))
         .bind(crypto_amount)
         .bind(amount_usd)
-        .bind(merchant_wallet)
+        .bind(&merchant_wallet)
         .bind(match status {
             PaymentStatus::Pending => "PENDING",
             PaymentStatus::SelectionRequired => "SELECTION_REQUIRED",
@@ -260,10 +260,10 @@ impl PaymentProcessor {
         .bind(fee_percentage)
         .bind(fee_amount_crypto)
         .bind(fee_amount_usd)
-        .bind(network)
+        .bind(&network)
         .bind(1) // required_confirmations
-        .bind(request.webhook_url)
-        .bind(request.description)
+        .bind(&request.webhook_url)
+        .bind(&request.description)
         .bind(is_sandbox)
         .fetch_one(&self.db_pool)
         .await?;
