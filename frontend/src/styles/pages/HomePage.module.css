@@ -381,7 +381,7 @@
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
-  
+
   .featureCard {
     padding: 2rem;
   }
@@ -480,13 +480,29 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 @keyframes sparkle {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.2); }
+
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 
 .faqLeft h2 {
@@ -559,12 +575,12 @@
     grid-template-columns: 1fr;
     gap: 2rem;
   }
-  
+
   .faqLeft {
     position: static;
     text-align: center;
   }
-  
+
   .faqIconWrapper {
     width: 150px;
     height: 150px;
@@ -605,4 +621,106 @@
 .ctaBtn:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+
+  /* Hero Section */
+  .hero {
+    padding: 3rem 0;
+  }
+
+  .heroContent {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    text-align: center;
+  }
+
+  .heroTitle {
+    font-size: 2.5rem;
+  }
+
+  .heroDescription {
+    font-size: 1.125rem;
+  }
+
+  .heroActions {
+    justify-content: center;
+  }
+
+  .heroVisual {
+    justify-content: center;
+    overflow: hidden;
+    /* Prevent horizontal scroll if card is too wide */
+  }
+
+  .card {
+    width: 100%;
+    max-width: 340px;
+    /* Limit card width on mobile */
+  }
+
+  /* Crypto Section */
+  .sectionTitle {
+    font-size: 2rem;
+  }
+
+  .sectionSubtitle {
+    font-size: 1.125rem;
+  }
+
+  .cryptoShowcase {
+    grid-template-columns: repeat(2, 1fr);
+    /* 2 columns for phones */
+    gap: 1rem;
+  }
+
+  /* Features Section */
+  .featuresGrid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .featureCard {
+    padding: 2rem;
+  }
+
+  /* FAQ Section */
+  .faqContent {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  .faqLeft {
+    position: static;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .faqIconWrapper {
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: 2rem;
+  }
+
+  .cryptoShowcase {
+    grid-template-columns: 1fr;
+    /* 1 column for very small screens */
+  }
+
+  .heroActions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .primaryBtn,
+  .secondaryBtn {
+    width: 100%;
+    text-align: center;
+  }
 }
