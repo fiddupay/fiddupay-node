@@ -735,10 +735,12 @@
                 // However, the timer is usually for the *current* selection, and if that changes, refreshContent re-runs everything.
 
                 // Extraction helper for values that might be in the refreshed HTML
-                const expiryStr = document.querySelector('[data-expires-at]')?.dataset.expiresAt || '{{expires_at}}';
+                // We don't use the fallback || '{{expires_at}}' validation trick because the replacer replaces it too, making the check fail.
+                const expiryStr = document.querySelector('[data-expires-at]')?.dataset.expiresAt;
 
-                if (expiryStr && expiryStr !== '{{expires_at}}') {
+                if (expiryStr && !expiryStr.startsWith('{{')) {
                     const expiresAt = new Date(expiryStr).getTime();
+                    if (isNaN(expiresAt)) return;
                     function updateTimer() {
                         const distance = expiresAt - new Date().getTime();
                         if (distance <= 0) {
