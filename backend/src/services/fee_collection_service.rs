@@ -57,7 +57,7 @@ impl FeeCollectionService {
         .fetch_one(&self.db_pool)
         .await?;
 
-        let settlement_mode = merchant.settlement_mode.as_deref().unwrap_or("forwarding");
+        let settlement_mode = merchant.settlement_mode.as_str();
         match settlement_mode {
             "managed" | "imported" => {
                 // Platform holds the private key — proceed with on-chain sweep
