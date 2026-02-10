@@ -263,6 +263,8 @@ impl MerchantService {
         // Searchable token logic (sk_s_{id}_{random} or sk_live_s_{id}_{random} or sk_merchant_{id}_{token})
         if token.starts_with("sk_s_") || token.starts_with("sk_live_s_") || token.starts_with("sk_merchant_") {
             let parts: Vec<&str> = token.split('_').collect();
+            tracing::debug!("Auth: token parts count={}, prefix match ok", parts.len());
+            
             if parts.len() >= 4 || (token.starts_with("sk_merchant_") && parts.len() >= 3) {
                 // Determine ID position based on prefix
                 let id_str = if token.starts_with("sk_live_s_") { 
@@ -273,6 +275,8 @@ impl MerchantService {
 
                 if let Some(id_str) = id_str {
                     if let Ok(merchant_id) = id_str.parse::<i64>() {
+                        tracing::debug!("Auth: parsed merchant_id={}", merchant_id);
+                        
                         let merchant = sqlx::query_as::<_, Merchant>(
                             "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url 
                              FROM merchants 
@@ -297,6 +301,8 @@ impl MerchantService {
                             } else {
                                 merchant.test_api_key_hash.as_ref()
                             };
+                            
+                            tracing::debug!("Auth: is_live={}, has_hash={}", is_live_token, hash_to_check.is_some());
 
                             if let Some(hash_str) = hash_to_check {
                                 if let Ok(parsed_hash) = PasswordHash::new(hash_str) {
@@ -309,12 +315,26 @@ impl MerchantService {
                                         }
                                         tracing::info!("Successfully authenticated merchant {} via searchable session key", merchant.id);
                                         return Ok(merchant);
+                                    } else {
+                                        tracing::warn!("Auth: hash verification FAILED for merchant {} (is_live={})", merchant_id, is_live_token);
                                     }
+                                } else {
+                                    tracing::warn!("Auth: failed to parse hash for merchant {} (is_live={})", merchant_id, is_live_token);
                                 }
+                            } else {
+                                tracing::warn!("Auth: no {} hash found for merchant {}", if is_live_token { "live" } else { "test" }, merchant_id);
                             }
+                        } else {
+                            tracing::warn!("Auth: no active merchant found with id={}", merchant_id);
                         }
+                    } else {
+                        tracing::warn!("Auth: failed to parse merchant id from '{}'", id_str);
                     }
+                } else {
+                    tracing::warn!("Auth: id_str position returned None");
                 }
+            } else {
+                tracing::warn!("Auth: insufficient parts count={}", parts.len());
             }
         }
 
