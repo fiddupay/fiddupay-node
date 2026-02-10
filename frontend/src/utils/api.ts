@@ -1,5 +1,11 @@
 import axios from 'axios'
 
+// Flag to temporarily suppress the 401 interceptor during environment switches
+export let suppressAuthRedirect = false
+export function setSuppressAuthRedirect(value: boolean) {
+  suppressAuthRedirect = value
+}
+
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://api.fiddupay.com',
@@ -30,7 +36,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register';
 
-      if (!isAuthPage) {
+      if (!isAuthPage && !suppressAuthRedirect) {
         // Clear auth tokens from both storages
         localStorage.removeItem('fiddupay_token')
         sessionStorage.removeItem('fiddupay_token')

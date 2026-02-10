@@ -2,6 +2,7 @@ import React from 'react'
 import { MdNotifications, MdMenu, MdFlashOn, MdScience } from 'react-icons/md'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI } from '@/services/apiService'
+import { setSuppressAuthRedirect } from '@/utils/api'
 import { useToast } from '@/contexts/ToastContext'
 import styles from '@/styles/components/layout/Header.module.css'
 
@@ -14,16 +15,25 @@ const Header: React.FC = () => {
       const toLive = user?.sandbox_mode || false
       const response = await merchantAPI.switchEnvironment(toLive)
 
-      // Update the token in both storage locations to ensure all future requests use the correct one
+      // Suppress the 401 interceptor during the token transition
+      // to prevent stale in-flight requests from triggering logout
+      setSuppressAuthRedirect(true)
+
+      // Update the token in both storage locations
       localStorage.setItem('fiddupay_token', response.data.api_key)
       if (sessionStorage.getItem('fiddupay_token')) {
         sessionStorage.setItem('fiddupay_token', response.data.api_key)
       }
 
+      // Reload user profile with the new token
       await loadUser()
+
       showToast(`Switched to ${toLive ? 'Live' : 'Sandbox'} mode`, 'success')
     } catch (error: any) {
       showToast('Failed to switch environment', 'error')
+    } finally {
+      // Re-enable the 401 interceptor
+      setSuppressAuthRedirect(false)
     }
   }
 
