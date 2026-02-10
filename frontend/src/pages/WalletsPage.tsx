@@ -6,8 +6,21 @@ import { useToast } from '@/contexts/ToastContext'
 import { useAuthStore } from '@/stores/authStore'
 import { Link } from 'react-router-dom'
 
+interface WalletBalance {
+  crypto_type: string
+  network: string
+  address: string
+  is_active: boolean
+  available_balance: string
+  reserved_balance: string
+  total_balance: string
+  transaction_count: number
+  total_volume_crypto: string
+}
+
 const WalletsPage: React.FC = () => {
   const [wallets, setWallets] = useState<Wallet[]>([])
+  const [walletBalances, setWalletBalances] = useState<WalletBalance[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [showConfigModal, setShowConfigModal] = useState(false)
@@ -64,8 +77,12 @@ const WalletsPage: React.FC = () => {
 
   const loadWallets = async () => {
     try {
-      const walletsData = await walletAPI.getAll()
+      const [walletsData, balancesData] = await Promise.all([
+        walletAPI.getAll(),
+        walletAPI.getBalances().catch(() => ({ data: { wallets: [] } }))
+      ])
       setWallets(Array.isArray(walletsData.data.wallets) ? walletsData.data.wallets : [])
+      setWalletBalances(Array.isArray(balancesData.data.wallets) ? balancesData.data.wallets : [])
     } catch (error) {
       console.error('Failed to load wallets:', error)
     }
@@ -186,11 +203,17 @@ const WalletsPage: React.FC = () => {
         mode: 'generate',
         is_active: true
       })
-      const { wallet } = response.data
+      const { wallet, managed } = response.data
 
-      // Backend returns: { wallet: { config: WalletConfig, private_key: string }, message: string }
-      // So 'wallet' here is the GeneratedWalletResponse object containing config and private_key
+      // In managed mode, the backend does NOT return private_key — show only a success toast
+      if (managed || settlementMode === 'managed' || !wallet.private_key) {
+        await loadWallets()
+        showToast(`${confirmModal.networkName} wallet generated successfully! Keys are securely managed by FidduPay.`, 'success')
+        setConfirmModal({ show: false, type: null, networkName: null, action: null })
+        return
+      }
 
+      // Non-managed mode: show private key reveal modal
       setGeneratedKey({
         address: wallet.config.address,
         privateKey: wallet.private_key,
@@ -322,17 +345,48 @@ const WalletsPage: React.FC = () => {
 
               <div className={styles.walletContent}>
                 {wallet ? (
-                  <div className={styles.addressContainer}>
-                    <label className={styles.addressLabel}>
-                      {settlementMode === 'forwarding' ? 'Forwarding Payout Address' : 'Network Deposit Address'}
-                    </label>
-                    <div className={styles.addressRow}>
-                      <span className={styles.addressText}>{wallet.address}</span>
-                      <button className={styles.copyBtn} onClick={() => copyToClipboard(wallet.address)} title="Copy Address">
-                        <i className="fas fa-copy"></i>
-                      </button>
+                  <>
+                    <div className={styles.addressContainer}>
+                      <label className={styles.addressLabel}>
+                        {settlementMode === 'forwarding' ? 'Forwarding Payout Address' : 'Network Deposit Address'}
+                      </label>
+                      <div className={styles.addressRow}>
+                        <span className={styles.addressText}>{wallet.address}</span>
+                        <button className={styles.copyBtn} onClick={() => copyToClipboard(wallet.address)} title="Copy Address">
+                          <i className="fas fa-copy"></i>
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                    {/* Balance & Volume Stats */}
+                    {(() => {
+                      const balInfo = walletBalances.find(b => b.crypto_type === wallet.crypto_type)
+                      if (!balInfo) return null
+                      return (
+                        <div className={styles.addressContainer} style={{ marginTop: '0.5rem', background: '#f0fdf4', borderColor: '#bbf7d0' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                            <div>
+                              <span style={{ color: '#6b7280', fontWeight: 500 }}>Balance</span>
+                              <div style={{ color: '#059669', fontWeight: 700, fontSize: '0.95rem' }}>
+                                {parseFloat(balInfo.available_balance || '0').toFixed(6)}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <span style={{ color: '#6b7280', fontWeight: 500 }}>Transactions</span>
+                              <div style={{ color: '#1f2937', fontWeight: 700, fontSize: '0.95rem' }}>
+                                {balInfo.transaction_count || 0}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <span style={{ color: '#6b7280', fontWeight: 500 }}>Volume</span>
+                              <div style={{ color: '#1f2937', fontWeight: 700, fontSize: '0.95rem' }}>
+                                {parseFloat(balInfo.total_volume_crypto || '0').toFixed(6)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </>
                 ) : (
                   <div className={styles.emptyState}>
                     <i className="fas fa-shield-alt text-gray-300 text-3xl mb-2 mx-auto block"></i>

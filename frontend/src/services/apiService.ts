@@ -105,6 +105,7 @@ export const walletAPI = {
   generate: (cryptoType: string) => api.post('/api/v1/merchants/wallets/generate', { crypto_type: cryptoType }), // DEPRECATED: Use setup
   import: (data: any) => api.post('/api/v1/merchants/wallets/import', data), // DEPRECATED: Use setup
   getAll: () => api.get('/api/v1/merchants/wallets'),
+  getBalances: () => api.get('/api/v1/merchants/wallets/balances'),
   revoke: (cryptoType: string) => api.delete(`/api/v1/merchants/wallets/${cryptoType}`),
 }
 
