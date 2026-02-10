@@ -1059,6 +1059,13 @@ pub async fn payment_page(
 
     (StatusCode::OK, Html(html)).into_response()
 }
+ 
+#[derive(sqlx::FromRow)]
+struct PaymentStatusInfo {
+    payment_id: String,
+    merchant_id: i64,
+    status: String,
+}
 
 pub async fn payment_status(
     State(state): State<AppState>,
@@ -1068,7 +1075,8 @@ pub async fn payment_status(
     // Supports both link_id (payment_links) and direct payment_id (payment_transactions)
     let payment_info = if link_id.starts_with("pay_") {
         // Direct payment lookup
-        sqlx::query!(
+        sqlx::query_as!(
+            PaymentStatusInfo,
             "SELECT payment_id, merchant_id, status FROM payment_transactions WHERE payment_id = $1",
             link_id
         )
@@ -1076,7 +1084,8 @@ pub async fn payment_status(
         .await
     } else {
         // Link lookup
-        sqlx::query!(
+        sqlx::query_as!(
+            PaymentStatusInfo,
             r#"
             SELECT pt.payment_id, pt.merchant_id, pt.status 
             FROM payment_transactions pt
@@ -1118,7 +1127,10 @@ pub async fn payment_status(
             (StatusCode::OK, Json(json!({"status": current_status}))).into_response()
         },
         Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => {
+            let error_msg = e.to_string();
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": error_msg}))).into_response()
+        },
     }
 }
 

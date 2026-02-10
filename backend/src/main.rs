@@ -59,6 +59,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tracing::info!(" Dynamic settings loaded");
     }
 
+    // Sync platform fee wallets from environment
+    tracing::info!(" Syncing platform fee wallets from configuration...");
+    if let Err(e) = config.sync_fee_wallets(&db_pool).await {
+        tracing::error!("Failed to sync platform fee wallets: {}", e);
+    } else {
+        tracing::info!(" Platform fee wallets synced");
+    }
+
     // Initialize application state
     let app_state = AppState::new(
         db_pool.clone(),

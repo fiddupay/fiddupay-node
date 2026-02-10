@@ -153,6 +153,13 @@ pub struct Config {
     pub smtp_username: Option<String>,
     pub smtp_password: Option<String>,
 
+    // Platform Fee Wallets
+    pub fee_wallet_sol: String,
+    pub fee_wallet_eth: String,
+    pub fee_wallet_bsc: String,
+    pub fee_wallet_polygon: String,
+    pub fee_wallet_arbitrum: String,
+
     // Additional Feature Flags
 }
 
@@ -424,6 +431,13 @@ impl Config {
             analytics_enabled: env::var("ANALYTICS_ENABLED")
                 .unwrap_or_else(|_| "true".to_string())
                 .parse()?,
+
+            // Platform Fee Wallets
+            fee_wallet_sol: env::var("PLATFORM_FEE_WALLET_SOL").unwrap_or_default(),
+            fee_wallet_eth: env::var("PLATFORM_FEE_WALLET_ETH").unwrap_or_default(),
+            fee_wallet_bsc: env::var("PLATFORM_FEE_WALLET_BSC").unwrap_or_default(),
+            fee_wallet_polygon: env::var("PLATFORM_FEE_WALLET_POLYGON").unwrap_or_default(),
+            fee_wallet_arbitrum: env::var("PLATFORM_FEE_WALLET_ARBITRUM").unwrap_or_default(),
         })
     }
 
@@ -552,6 +566,36 @@ impl Config {
         
         Ok(())
     }
+
+    pub async fn sync_fee_wallets(&self, pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
+        let wallets = [
+            ("SOLANA", &self.fee_wallet_sol),
+            ("ETHEREUM", &self.fee_wallet_eth),
+            ("BSC", &self.fee_wallet_bsc),
+            ("POLYGON", &self.fee_wallet_polygon),
+            ("ARBITRUM", &self.fee_wallet_arbitrum),
+        ];
+
+        for (network, address) in wallets {
+            if !address.is_empty() {
+                sqlx::query!(
+                    r#"
+                    INSERT INTO platform_fee_wallets (network, address, updated_at)
+                    VALUES ($1, $2, NOW())
+                    ON CONFLICT (network) DO UPDATE SET 
+                        address = EXCLUDED.address,
+                        updated_at = NOW()
+                    "#,
+                    network,
+                    address
+                )
+                .execute(pool)
+                .await?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -649,6 +693,11 @@ impl Default for Config {
             smtp_port: None,
             smtp_username: None,
             smtp_password: None,
+            fee_wallet_sol: "".to_string(),
+            fee_wallet_eth: "".to_string(),
+            fee_wallet_bsc: "".to_string(),
+            fee_wallet_polygon: "".to_string(),
+            fee_wallet_arbitrum: "".to_string(),
         }
     }
 }
