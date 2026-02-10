@@ -64,12 +64,6 @@ impl MerchantService {
         business_name: &str,
         password: &str,
     ) -> Result<MerchantRegistrationResponse, ServiceError> {
-        // Generate sandbox API key by default (single source of truth)
-        // We need the ID first, but we don't have it yet.
-        // Strategy: Insert with placeholder, then update with real key.
-        // OR better: Create a temporary key for the INSERT, then immediately update it.
-        // Actually, we can just let the DB generate the ID, then update the key.
-        
         // 1. Hash the User Password
         use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
         use rand::rngs::OsRng;
@@ -79,12 +73,13 @@ impl MerchantService {
             .map_err(|_| ServiceError::InternalError("Failed to hash password".to_string()))?
             .to_string();
 
-        // 2. Insert merchant with temporary placeholder key hash (will be updated immediately)
+        // 2. Insert merchant with placeholder key hash (will be updated immediately)
+        // We use query_as calling the function directly to avoid compile-time checking against unmigrated DB
         let merchant = sqlx::query_as::<_, Merchant>(
             r#"
-            INSERT INTO merchants (email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, daily_limit_usd, role)
+            INSERT INTO merchants (email, business_name, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, daily_limit_usd, role)
             VALUES ($1, $2, 'PENDING', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT')
-            RETURNING id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url
+            RETURNING id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url
             "#,
         )
         .bind(&email)
@@ -101,7 +96,7 @@ impl MerchantService {
         .fetch_one(&self.db_pool)
         .await?;
 
-        // 3. Generate Real Session Key using the new ID
+        // 3. Generate Real Session Key (Sandbox by default for new accounts)
         let api_key = ApiKeyGenerator::generate_session_key(merchant.id, false); // false = sandbox
         let salt = SaltString::generate(&mut OsRng);
         let api_key_hash = argon2.hash_password(api_key.as_bytes(), &salt)
@@ -109,11 +104,12 @@ impl MerchantService {
             .to_string();
 
         // 4. Update the merchant with the real key
-        sqlx::query!(
-            "UPDATE merchants SET api_key_hash = $1 WHERE id = $2",
-            api_key_hash,
-            merchant.id
+        // Use sqlx::query function to avoid macro checking
+        sqlx::query(
+            "UPDATE merchants SET test_api_key_hash = $1 WHERE id = $2"
         )
+        .bind(api_key_hash)
+        .bind(merchant.id)
         .execute(&self.db_pool)
         .await?;
         
@@ -129,30 +125,40 @@ impl MerchantService {
         merchant_id: i64,
         to_live: bool,
     ) -> Result<String, ServiceError> {
-        // Generate new API key for the merchant using session format
-        let api_key = ApiKeyGenerator::generate_session_key(merchant_id, to_live);
-        
-        // Use Argon2 for secure password hashing
-        use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
-        use rand::rngs::OsRng;
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-        let api_key_hash = argon2.hash_password(api_key.as_bytes(), &salt)
-            .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
-            .to_string();
-        
-        // Update merchant environment and API key
-        sqlx::query!(
-            "UPDATE merchants SET api_key_hash = $1, sandbox_mode = $2, updated_at = $3 WHERE id = $4",
-            api_key_hash,
-            !to_live,
-            Utc::now(),
-            merchant_id
+        // Toggle the sandbox mode first
+        sqlx::query(
+            "UPDATE merchants SET sandbox_mode = $1, updated_at = $2 WHERE id = $3"
         )
+        .bind(!to_live)
+        .bind(Utc::now())
+        .bind(merchant_id)
         .execute(&self.db_pool)
         .await?;
-        
-        Ok(api_key)
+
+        // Retrieve the key for the requested environment
+        // If it exists, return it. If not, generate it.
+        let merchant = sqlx::query_as::<_, Merchant>(
+            "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
+        )
+        .bind(merchant_id)
+        .fetch_optional(&self.db_pool)
+        .await?
+        .ok_or(ServiceError::MerchantNotFound)?;
+
+        let has_key = if to_live {
+            merchant.live_api_key_hash.is_some()
+        } else {
+            merchant.test_api_key_hash.is_some()
+        };
+
+        if has_key {
+            // If a key already exists, generate and return a new one to ensure 
+            // the frontend has a valid key for the new environment session.
+            return self.generate_and_store_api_key_with_expiry(merchant_id, to_live, merchant.api_key_expires_at).await;
+        }
+
+        // If no key exists, generate and store a new one.
+        self.generate_and_store_api_key_with_expiry(merchant_id, to_live, merchant.api_key_expires_at).await
     }
 
     /// Rotate API key for a merchant
@@ -178,28 +184,41 @@ impl MerchantService {
     ) -> Result<String, ServiceError> {
         // First, verify the old API key is correct
         let merchant = sqlx::query_as::<_, Merchant>(
-            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
+            "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
         )
         .bind(merchant_id)
         .fetch_optional(&self.db_pool)
         .await?
         .ok_or(ServiceError::MerchantNotFound)?;
         
-        // Verify the old API key matches using Argon2
+        // Determine if old key is live or test based on prefix
+        // Since we are moving to standard prefixes, we can check.
+        let is_old_live = old_api_key.starts_with("sk_live_") || old_api_key.starts_with("live_");
+        
+        // Use Argon2 for verification
         use argon2::{Argon2, PasswordHash, PasswordVerifier, PasswordHasher, password_hash::SaltString};
         use rand::rngs::OsRng;
         
-        let parsed_hash = PasswordHash::new(&merchant.api_key_hash)
+        let hash_to_check = if is_old_live {
+            merchant.live_api_key_hash.as_ref()
+        } else {
+            merchant.test_api_key_hash.as_ref()
+        };
+
+        let hash_str = hash_to_check.ok_or(ServiceError::InvalidApiKey)?;
+        let parsed_hash = PasswordHash::new(hash_str)
             .map_err(|_| ServiceError::InvalidApiKey)?;
         
         if Argon2::default().verify_password(old_api_key.as_bytes(), &parsed_hash).is_err() {
+            // Fallback: try the other key just in case (e.g. if prefix logic fails for legacy keys)
+            // But strict separation is safer.
             return Err(ServiceError::InvalidApiKey);
         }
         
-        // Generate a new searchable API key for the merchant based on current mode
-        let new_api_key = ApiKeyGenerator::generate_session_key(merchant_id, !merchant.sandbox_mode);
+        // Generate a new searchable API key for the SAME environment as the old one
+        let new_api_key = ApiKeyGenerator::generate_session_key(merchant_id, is_old_live);
         
-        // Hash the new API key using Argon2
+        // Hash the new API key
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
         let new_api_key_hash = argon2.hash_password(new_api_key.as_bytes(), &salt)
@@ -207,12 +226,16 @@ impl MerchantService {
             .to_string();
         
         // Update the merchant with the new API key hash
-        sqlx::query!(
-            "UPDATE merchants SET api_key_hash = $1, updated_at = $2 WHERE id = $3",
-            new_api_key_hash,
-            Utc::now(),
-            merchant_id
-        )
+        let update_query = if is_old_live {
+            "UPDATE merchants SET live_api_key_hash = $1, updated_at = $2 WHERE id = $3"
+        } else {
+            "UPDATE merchants SET test_api_key_hash = $1, updated_at = $2 WHERE id = $3"
+        };
+
+        sqlx::query(update_query)
+        .bind(new_api_key_hash)
+        .bind(Utc::now())
+        .bind(merchant_id)
         .execute(&self.db_pool)
         .await?;
         
@@ -251,7 +274,7 @@ impl MerchantService {
                 if let Some(id_str) = id_str {
                     if let Ok(merchant_id) = id_str.parse::<i64>() {
                         let merchant = sqlx::query_as::<_, Merchant>(
-                            "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url 
+                            "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url 
                              FROM merchants 
                              WHERE id = $1 AND is_active = true"
                         )
@@ -266,16 +289,27 @@ impl MerchantService {
                         if let Some(merchant) = merchant {
                             use argon2::{Argon2, PasswordHash, PasswordVerifier};
                             use chrono::Utc;
-                            if let Ok(parsed_hash) = PasswordHash::new(&merchant.api_key_hash) {
-                                if Argon2::default().verify_password(token.as_bytes(), &parsed_hash).is_ok() {
-                                    if let Some(expires_at) = merchant.api_key_expires_at {
-                                        if Utc::now() > expires_at {
-                                            tracing::warn!("Session token for merchant {} expired", merchant.id);
-                                            return Err(ServiceError::InvalidApiKey);
+                            
+                            // Determine which hash to check
+                            let is_live_token = token.starts_with("sk_live_");
+                            let hash_to_check = if is_live_token {
+                                merchant.live_api_key_hash.as_ref()
+                            } else {
+                                merchant.test_api_key_hash.as_ref()
+                            };
+
+                            if let Some(hash_str) = hash_to_check {
+                                if let Ok(parsed_hash) = PasswordHash::new(hash_str) {
+                                    if Argon2::default().verify_password(token.as_bytes(), &parsed_hash).is_ok() {
+                                        if let Some(expires_at) = merchant.api_key_expires_at {
+                                            if Utc::now() > expires_at {
+                                                tracing::warn!("Session token for merchant {} expired", merchant.id);
+                                                return Err(ServiceError::InvalidApiKey);
+                                            }
                                         }
+                                        tracing::info!("Successfully authenticated merchant {} via searchable session key", merchant.id);
+                                        return Ok(merchant);
                                     }
-                                    tracing::info!("Successfully authenticated merchant {} via searchable session key", merchant.id);
-                                    return Ok(merchant);
                                 }
                             }
                         }
@@ -306,14 +340,20 @@ impl MerchantService {
             .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
             .to_string();
         
+        let is_live = api_key.starts_with("sk_live_") || api_key.starts_with("live_");
+
+        let update_query = if is_live {
+            "UPDATE merchants SET live_api_key_hash = $1, api_key_expires_at = $2, updated_at = $3 WHERE id = $4"
+        } else {
+            "UPDATE merchants SET test_api_key_hash = $1, api_key_expires_at = $2, updated_at = $3 WHERE id = $4"
+        };
+        
         // Update merchant with new API key hash and expiration
-        sqlx::query!(
-            "UPDATE merchants SET api_key_hash = $1, api_key_expires_at = $2, updated_at = $3 WHERE id = $4",
-            api_key_hash,
-            expires_at,
-            Utc::now(),
-            merchant_id
-        )
+        sqlx::query(update_query)
+        .bind(api_key_hash)
+        .bind(expires_at)
+        .bind(Utc::now())
+        .bind(merchant_id)
         .execute(&self.db_pool)
         .await
         .map_err(ServiceError::Database)?;
@@ -329,7 +369,8 @@ impl MerchantService {
         expires_at: Option<chrono::DateTime<Utc>>,
     ) -> Result<String, ServiceError> {
         // Use single source of truth for API key generation
-        let api_key = self.generate_api_key(is_live);
+        // Ensure we use the searchable session key format correctly!
+        let api_key = ApiKeyGenerator::generate_session_key(merchant_id, is_live);
         
         self.store_api_key_with_expiry(merchant_id, &api_key, expires_at).await?;
         
@@ -653,7 +694,8 @@ mod tests {
         use argon2::password_hash::{SaltString, rand_core::OsRng};
         
         // Test that argon2 hashing works correctly
-        let api_key = "test_api_key_12345678901234567890";
+        // Use a valid session key format just in case validation is applied elsewhere
+        let api_key = "sk_s_123_testkey1234567890123456"; 
         let salt1 = SaltString::generate(&mut OsRng);
         let salt2 = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();

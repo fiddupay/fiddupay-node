@@ -11,8 +11,9 @@ pub struct Merchant {
     pub id: i64,
     pub email: String,
     pub business_name: String,
-    pub api_key_hash: String,
-    pub password_hash: String,
+    pub live_api_key_hash: Option<String>,
+    pub test_api_key_hash: Option<String>,
+    pub password_hash: Option<String>,
     pub fee_percentage: Decimal,
     pub customer_pays_fee: bool, // true = customer pays, false = merchant pays
     pub is_active: bool,
@@ -61,8 +62,9 @@ mod tests {
             id: 1i64,
             email: "test@example.com".to_string(),
             business_name: "Test Business".to_string(),
-            api_key_hash: "hashed_key".to_string(),
-            password_hash: "hashed_password".to_string(),
+            live_api_key_hash: Some("hashed_key".to_string()),
+            test_api_key_hash: Some("hashed_key".to_string()),
+            password_hash: Some("hashed_password".to_string()),
             fee_percentage: Decimal::new(150, 2), // 1.50%
             customer_pays_fee: true,
             is_active: true,
@@ -111,8 +113,9 @@ mod tests {
             id: 1i64,
             email: "test@example.com".to_string(),
             business_name: "Test Business".to_string(),
-            api_key_hash: "hashed_key".to_string(),
-            password_hash: "hashed_password".to_string(),
+            live_api_key_hash: Some("hashed_key".to_string()),
+            test_api_key_hash: Some("hashed_key".to_string()),
+            password_hash: Some("hashed_password".to_string()),
             fee_percentage: Decimal::new(150, 2),
             customer_pays_fee: true,
             is_active: true,
@@ -196,13 +199,13 @@ mod tests {
 
     #[test]
     fn test_merchant_with_different_fee_percentages() {
-        // Test minimum fee (0.1%)
         let merchant_min = Merchant {
             id: 1i64,
             email: "min@example.com".to_string(),
             business_name: "Min Fee".to_string(),
-            api_key_hash: "hash".to_string(),
-            password_hash: "hash".to_string(),
+            live_api_key_hash: Some("hash".to_string()),
+            test_api_key_hash: Some("hash".to_string()),
+            password_hash: Some("hash".to_string()),
             fee_percentage: Decimal::new(10, 2), // 0.10%
             customer_pays_fee: true,
             is_active: true,
@@ -223,8 +226,9 @@ mod tests {
             id: 2,
             email: "max@example.com".to_string(),
             business_name: "Max Fee".to_string(),
-            api_key_hash: "hash".to_string(),
-            password_hash: "hash".to_string(),
+            live_api_key_hash: Some("hash".to_string()),
+            test_api_key_hash: Some("hash".to_string()),
+            password_hash: Some("hash".to_string()),
             fee_percentage: Decimal::new(500, 2), // 5.00%
             customer_pays_fee: true,
             is_active: true,

@@ -42,7 +42,7 @@ impl SandboxService {
         
 
         sqlx::query!(
-            "UPDATE merchants SET sandbox_mode = true, api_key_hash = $1, updated_at = $2 WHERE id = $3",
+            "UPDATE merchants SET sandbox_mode = true, test_api_key_hash = $1, updated_at = $2 WHERE id = $3",
             api_key_hash,
             Utc::now(),
             merchant_id

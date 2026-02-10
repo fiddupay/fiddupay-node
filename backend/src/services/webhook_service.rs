@@ -221,7 +221,7 @@ mod tests {
     async fn create_test_merchant(pool: &PgPool) -> i64 {
         let result = sqlx::query!(
             r#"
-            INSERT INTO merchants (email, business_name, api_key_hash, fee_percentage, is_active, sandbox_mode)
+            INSERT INTO merchants (email, business_name, test_api_key_hash, fee_percentage, is_active, sandbox_mode)
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING id
             "#,
@@ -230,7 +230,7 @@ mod tests {
             format!("test_hash_{}", Uuid::new_v4().simple()),
             rust_decimal::Decimal::new(150, 2), // 1.50%
             true,
-            false
+            true // Important: sandbox_mode for tests
         )
         .fetch_one(pool)
         .await

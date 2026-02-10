@@ -135,7 +135,7 @@ pub async fn login_merchant(
 ) -> impl IntoResponse {
     // Query the database for the user
     match sqlx::query!(
-        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role::text as role, api_key_hash, password_hash, daily_limit_usd FROM merchants WHERE email = $1 AND is_active = true",
+        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role::text as role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd FROM merchants WHERE email = $1 AND is_active = true",
         req.email
     )
     .fetch_optional(&state.db_pool)
@@ -1734,7 +1734,7 @@ pub async fn get_fee_setting(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     let merchant = sqlx::query_as::<_, crate::models::merchant::Merchant>(
-        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
+        "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
     )
     .bind(context.merchant_id)
     .fetch_optional(&state.db_pool)
@@ -1766,7 +1766,7 @@ pub async fn update_fee_setting(
 ) -> impl IntoResponse {
     // Fetch current merchant first to handle partial updates
     let merchant_result = sqlx::query_as::<_, crate::models::merchant::Merchant>(
-        "SELECT id, email, business_name, api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
+        "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
     )
     .bind(context.merchant_id)
     .fetch_optional(&state.db_pool)
