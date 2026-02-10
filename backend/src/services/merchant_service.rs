@@ -120,12 +120,16 @@ impl MerchantService {
     }
 
     /// Switch merchant environment (sandbox <-> live)
+    /// 
+    /// Only toggles sandbox_mode. Returns a new API key ONLY if the target
+    /// environment has no key hash stored yet (first-time switch).
+    /// Existing tokens remain valid — no re-authentication needed.
     pub async fn switch_environment(
         &self,
         merchant_id: i64,
         to_live: bool,
-    ) -> Result<String, ServiceError> {
-        // Toggle the sandbox mode first
+    ) -> Result<Option<String>, ServiceError> {
+        // Toggle the sandbox mode
         sqlx::query(
             "UPDATE merchants SET sandbox_mode = $1, updated_at = $2 WHERE id = $3"
         )
@@ -135,8 +139,7 @@ impl MerchantService {
         .execute(&self.db_pool)
         .await?;
 
-        // Retrieve the key for the requested environment
-        // If it exists, return it. If not, generate it.
+        // Check if the target environment already has a key
         let merchant = sqlx::query_as::<_, Merchant>(
             "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
         )
@@ -152,13 +155,16 @@ impl MerchantService {
         };
 
         if has_key {
-            // If a key already exists, generate and return a new one to ensure 
-            // the frontend has a valid key for the new environment session.
-            return self.generate_and_store_api_key_with_expiry(merchant_id, to_live, merchant.api_key_expires_at).await;
+            // Key exists — no regeneration needed. The existing session token
+            // continues to work because auth checks by token prefix, not sandbox_mode.
+            tracing::info!("Environment switch for merchant {}: to_live={}, existing key found — no regeneration", merchant_id, to_live);
+            Ok(None)
+        } else {
+            // First time in this environment — generate a key
+            tracing::info!("Environment switch for merchant {}: to_live={}, generating first-time key", merchant_id, to_live);
+            let key = self.generate_and_store_api_key_with_expiry(merchant_id, to_live, merchant.api_key_expires_at).await?;
+            Ok(Some(key))
         }
-
-        // If no key exists, generate and store a new one.
-        self.generate_and_store_api_key_with_expiry(merchant_id, to_live, merchant.api_key_expires_at).await
     }
 
     /// Rotate API key for a merchant
@@ -316,14 +322,40 @@ impl MerchantService {
                                         tracing::info!("Successfully authenticated merchant {} via searchable session key", merchant.id);
                                         return Ok(merchant);
                                     } else {
-                                        tracing::warn!("Auth: hash verification FAILED for merchant {} (is_live={})", merchant_id, is_live_token);
+                                        tracing::debug!("Auth: primary hash check failed for merchant {} (is_live={}), trying fallback", merchant_id, is_live_token);
                                     }
                                 } else {
-                                    tracing::warn!("Auth: failed to parse hash for merchant {} (is_live={})", merchant_id, is_live_token);
+                                    tracing::debug!("Auth: failed to parse primary hash for merchant {} (is_live={}), trying fallback", merchant_id, is_live_token);
                                 }
                             } else {
-                                tracing::warn!("Auth: no {} hash found for merchant {}", if is_live_token { "live" } else { "test" }, merchant_id);
+                                tracing::debug!("Auth: no {} hash for merchant {}, trying fallback", if is_live_token { "live" } else { "test" }, merchant_id);
                             }
+
+                            // Fallback: try the OTHER environment's hash.
+                            // This handles edge cases during environment switching where the
+                            // token prefix doesn't match the current environment.
+                            let fallback_hash = if is_live_token {
+                                merchant.test_api_key_hash.as_ref()
+                            } else {
+                                merchant.live_api_key_hash.as_ref()
+                            };
+
+                            if let Some(hash_str) = fallback_hash {
+                                if let Ok(parsed_hash) = PasswordHash::new(hash_str) {
+                                    if Argon2::default().verify_password(token.as_bytes(), &parsed_hash).is_ok() {
+                                        if let Some(expires_at) = merchant.api_key_expires_at {
+                                            if Utc::now() > expires_at {
+                                                tracing::warn!("Session token for merchant {} expired (fallback)", merchant.id);
+                                                return Err(ServiceError::InvalidApiKey);
+                                            }
+                                        }
+                                        tracing::info!("Successfully authenticated merchant {} via cross-env fallback", merchant.id);
+                                        return Ok(merchant);
+                                    }
+                                }
+                            }
+
+                            tracing::warn!("Auth: both primary and fallback checks failed for merchant {}", merchant_id);
                         } else {
                             tracing::warn!("Auth: no active merchant found with id={}", merchant_id);
                         }

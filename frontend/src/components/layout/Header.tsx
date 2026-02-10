@@ -11,22 +11,28 @@ const Header: React.FC = () => {
   const { showToast } = useToast()
 
   const handleSwitchEnvironment = async () => {
+    // Suppress 401 interceptor BEFORE the API call to prevent
+    // concurrent requests from triggering logout during the switch.
+    setSuppressAuthRedirect(true)
+
     try {
       const toLive = user?.sandbox_mode || false
       const response = await merchantAPI.switchEnvironment(toLive)
 
-      // Suppress the 401 interceptor during the token transition
-      // to prevent stale in-flight requests from triggering logout
-      setSuppressAuthRedirect(true)
+      // If the backend generated a first-time key for the new environment, save it
+      if (response.data.api_key) {
+        const envKey = toLive ? 'fiddupay_token_live' : 'fiddupay_token_sandbox'
+        localStorage.setItem(envKey, response.data.api_key)
 
-      // Update the token in both storage locations
-      localStorage.setItem('fiddupay_token', response.data.api_key)
-      if (sessionStorage.getItem('fiddupay_token')) {
-        sessionStorage.setItem('fiddupay_token', response.data.api_key)
+        // Also update the active token
+        localStorage.setItem('fiddupay_token', response.data.api_key)
+        if (sessionStorage.getItem('fiddupay_token')) {
+          sessionStorage.setItem('fiddupay_token', response.data.api_key)
+        }
       }
 
-      // Reload user profile with the new token
-      await loadUser()
+      // Reload user profile to pick up the new sandbox_mode
+      await loadUser(true)
 
       showToast(`Switched to ${toLive ? 'Live' : 'Sandbox'} mode`, 'success')
     } catch (error: any) {

@@ -74,6 +74,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           const storage = rememberMe ? localStorage : sessionStorage
           storage.setItem('fiddupay_token', response.data.api_key)
 
+          // Persist per-environment token for seamless switching
+          const envKey = response.data.user?.sandbox_mode ? 'fiddupay_token_sandbox' : 'fiddupay_token_live'
+          localStorage.setItem(envKey, response.data.api_key)
+
           set({
             user: response.data.user,
             token: response.data.api_key,
@@ -98,6 +102,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           // Registration always defaults to persistent for convenience, 
           // but we follow current pattern of using localStorage.
           localStorage.setItem('fiddupay_token', response.data.api_key)
+          // New accounts start in sandbox mode
+          localStorage.setItem('fiddupay_token_sandbox', response.data.api_key)
 
           set({
             user: response.data.user,
@@ -118,6 +124,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       logout: () => {
         localStorage.removeItem('fiddupay_token')
         sessionStorage.removeItem('fiddupay_token')
+        localStorage.removeItem('fiddupay_token_live')
+        localStorage.removeItem('fiddupay_token_sandbox')
         set({
           user: null,
           token: null,

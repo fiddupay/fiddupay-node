@@ -486,7 +486,16 @@ pub async fn switch_environment(
     Json(req): Json<SwitchEnvironmentRequest>,
 ) -> impl IntoResponse {
     match state.merchant_service.switch_environment(context.merchant_id, req.to_live).await {
-        Ok(api_key) => (StatusCode::OK, Json(json!({"api_key": api_key, "environment": if req.to_live { "live" } else { "sandbox" }}))).into_response(),
+        Ok(maybe_key) => {
+            let mut response = json!({
+                "environment": if req.to_live { "live" } else { "sandbox" },
+                "sandbox_mode": !req.to_live
+            });
+            if let Some(api_key) = maybe_key {
+                response["api_key"] = json!(api_key);
+            }
+            (StatusCode::OK, Json(response)).into_response()
+        },
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
