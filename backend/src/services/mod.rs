@@ -33,3 +33,4 @@ pub mod balance_monitoring_service;
 pub mod invoice_service;
 pub mod websocket_client;
 pub mod balance_monitor;
+pub mod fee_collection_service;

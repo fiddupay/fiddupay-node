@@ -313,17 +313,26 @@ pub async fn setup_wallet(
             }
         },
         "generate" => {
-            let generate_request = GenerateWalletRequest {
-                crypto_type: req.crypto_type,
-            };
-            // Check if merchant is in managed mode — if so, hide private key
-            let is_managed = sqlx::query_scalar!("SELECT settlement_mode FROM merchants WHERE id = $1", context.merchant_id)
+            // Look up settlement mode to control behavior
+            let settlement_mode = sqlx::query_scalar!("SELECT settlement_mode FROM merchants WHERE id = $1", context.merchant_id)
                 .fetch_optional(&state.db_pool)
                 .await
                 .ok()
                 .flatten()
-                .map(|m| m == "managed")
-                .unwrap_or(false);
+                .unwrap_or_else(|| "managed".to_string());
+
+            // Imported mode: merchants must use 'import' — they cannot generate wallets
+            if settlement_mode == "imported" {
+                return (StatusCode::BAD_REQUEST, Json(json!({
+                    "error": "Wallet generation is not available in imported mode. Please use 'import' to provide your private key."
+                }))).into_response();
+            }
+
+            let generate_request = GenerateWalletRequest {
+                crypto_type: req.crypto_type,
+            };
+
+            let is_managed = settlement_mode == "managed";
 
             let result = if is_managed {
                 wallet_service.generate_wallet_managed(context.merchant_id, generate_request).await

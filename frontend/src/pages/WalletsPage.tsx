@@ -251,10 +251,12 @@ const WalletsPage: React.FC = () => {
           <h1>Wallet Management</h1>
           <p>Network-specific configuration for your deposit addresses</p>
         </div>
-        <button className={styles.configureBtn} onClick={() => setShowConfigModal(true)}>
-          <i className="fas fa-plus mr-2"></i>
-          Configure Networks
-        </button>
+        {settlementMode !== 'managed' && (
+          <button className={styles.configureBtn} onClick={() => setShowConfigModal(true)}>
+            <i className={`fas ${settlementMode === 'imported' ? 'fa-key' : 'fa-plus'} mr-2`}></i>
+            {settlementMode === 'imported' ? 'Import Wallet' : 'Configure Networks'}
+          </button>
+        )}
       </header>
 
       {/* Smart Mode Awareness Header */}
@@ -307,7 +309,7 @@ const WalletsPage: React.FC = () => {
                       type="checkbox"
                       checked={wallet?.is_active ?? false}
                       onChange={(e) => handleToggleNetwork(network.name, e.target.checked)}
-                      disabled={!wallet && settlementMode === 'managed'}
+                      disabled={!wallet}
                     />
                     <span className={styles.slider}></span>
                   </label>
@@ -426,7 +428,8 @@ const WalletsPage: React.FC = () => {
                         setNewWallet({ crypto_type: baseCryptoType, address: '' })
                         setShowConfigModal(true)
                       }}>
-                        <i className="fas fa-edit"></i> Configure {network.name}
+                        <i className={`fas ${settlementMode === 'imported' ? 'fa-key' : 'fa-edit'}`}></i>
+                        {settlementMode === 'imported' ? `Import ${network.name}` : `Configure ${network.name}`}
                       </button>
                     )}
                   </div>
@@ -442,7 +445,7 @@ const WalletsPage: React.FC = () => {
         <div className={styles.modalOverlay} onClick={() => setShowConfigModal(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2>Configure Wallet</h2>
+              <h2>{settlementMode === 'imported' ? 'Import Wallet' : 'Configure Wallet'}</h2>
               <button className={styles.closeButton} onClick={() => setShowConfigModal(false)}>
                 <i className="fas fa-times text-xl"></i>
               </button>
@@ -487,7 +490,7 @@ const WalletsPage: React.FC = () => {
             <div className={styles.modalActions}>
               <button className={styles.cancelBtn} onClick={() => setShowConfigModal(false)}>Cancel</button>
               <button className={styles.confirmBtn} onClick={handleConfigureWallet} disabled={refreshing}>
-                {refreshing ? 'Processing...' : 'Save Configuration'}
+                {refreshing ? 'Processing...' : (settlementMode === 'imported' ? 'Import & Encrypt Key' : 'Save Configuration')}
               </button>
             </div>
           </div>
