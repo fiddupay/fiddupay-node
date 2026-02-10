@@ -761,7 +761,7 @@
             if (document.getElementById('payment-view')) {
                 addInterval(async () => {
                     try {
-                        const res = await fetch(`/pay/${LINK_ID}/status`);
+                        const res = await fetch(`/${LINK_ID}/status`);
                         const data = await res.json();
                         if (data.status !== 'PENDING' && data.status !== 'CONFIRMING') {
                             refreshContent();
@@ -779,7 +779,7 @@
             }
 
             try {
-                const response = await fetch(`/pay/${LINK_ID}/select`, {
+                const response = await fetch(`/${LINK_ID}/select`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ crypto_type: symbol })

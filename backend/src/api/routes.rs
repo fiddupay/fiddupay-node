@@ -26,9 +26,9 @@ pub fn create_router(state: AppState) -> Router {
         .route("/", get(handlers::root_handler))
         .route("/health", get(handlers::health_check))
         // .route("/test-auth/:api_key", get(handlers::debug_auth)) // DEBUG ENDPOINT - REMOVED FOR SECURITY
-        .route("/pay/:link_id", get(handlers::payment_page))
-        .route("/pay/:link_id/status", get(handlers::payment_status))
-        .route("/pay/:link_id/select", post(handlers::finalize_payment_selection))
+        .route("/:link_id", get(handlers::payment_page))
+        .route("/:link_id/status", get(handlers::payment_status))
+        .route("/:link_id/select", post(handlers::finalize_payment_selection))
         .route("/api/v1/merchants/register", post(handlers::register_merchant))
         .route("/api/v1/merchants/login", post(handlers::login_merchant))
         .route("/api/v1/currencies/supported", get(handlers::get_supported_currencies));

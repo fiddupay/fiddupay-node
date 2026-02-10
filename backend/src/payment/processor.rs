@@ -269,7 +269,7 @@ impl PaymentProcessor {
         .await?;
 
         // Generate payment link and QR code
-        let payment_link = format!("{}/pay/{}", 
+        let payment_link = format!("{}/{}", 
             self.config.payment_page_base_url,
             payment_id
         );
