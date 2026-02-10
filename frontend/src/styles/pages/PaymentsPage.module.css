@@ -1064,3 +1064,103 @@
   /* Smaller text as requested */
   font-weight: 500;
 }
+
+/* Pagination Styles */
+.pagination {
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--fiddu-border);
+  background: #fcfcfc;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.paginationInfo {
+  font-size: 14px;
+  color: var(--fiddu-text-secondary);
+}
+
+.paginationInfo strong {
+  color: var(--fiddu-text-primary);
+  font-weight: 600;
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pageBtn {
+  background: var(--white);
+  border: 1px solid var(--fiddu-border);
+  color: var(--fiddu-text-secondary);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: var(--gray-light);
+  border-color: var(--fiddu-text-secondary);
+}
+
+.pageBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pageNumbers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pageNumber {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--fiddu-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pageNumber:hover:not(:disabled) {
+  background: var(--gray-light);
+  color: var(--fiddu-brand-primary);
+}
+
+.activePage {
+  background: var(--fiddu-brand-primary) !important;
+  color: var(--white) !important;
+  border-color: var(--fiddu-brand-primary);
+}
+
+.paginationEllipsis {
+  color: var(--fiddu-text-muted);
+  font-size: 14px;
+  padding: 0 4px;
+}
+
+@media (max-width: 768px) {
+  .pagination {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+}

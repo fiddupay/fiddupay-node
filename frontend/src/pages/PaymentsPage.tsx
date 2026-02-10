@@ -14,6 +14,12 @@ const PaymentsPage: React.FC = () => {
     totalVolume: '$0.00',
     successRate: '0%'
   })
+  const [pagination, setPagination] = useState({
+    page: 1,
+    page_size: 20,
+    total_pages: 1,
+    total_count: 0
+  })
   const [filters, setFilters] = useState<PaymentFilters>({
     page: 1,
     page_size: 20
@@ -67,6 +73,9 @@ const PaymentsPage: React.FC = () => {
     try {
       const response = await paymentAPI.getHistory(filters)
       setPayments(response.data.data || [])
+      if (response.data.pagination) {
+        setPagination(response.data.pagination)
+      }
     } catch (error) {
       showToast('Failed to load payments', 'error')
     } finally {
@@ -160,6 +169,7 @@ const PaymentsPage: React.FC = () => {
       }
 
       setShowCreateModal(false)
+      setFilters(prev => ({ ...prev, page: 1 }))
       setNewPayment({
         amount_usd: '',
         crypto_type: 'USDT_ETH',
@@ -314,7 +324,7 @@ const PaymentsPage: React.FC = () => {
           <div className={styles.filters}>
             <select
               value={filters.status || ''}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value || undefined }))}
+              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value || undefined, page: 1 }))}
               className={styles.filterSelect}
             >
               <option value="">All Statuses</option>
@@ -425,6 +435,60 @@ const PaymentsPage: React.FC = () => {
             ))
           )}
         </div>
+
+        {pagination.total_pages > 1 && (
+          <div className={styles.pagination}>
+            <div className={styles.paginationInfo}>
+              Showing <strong>{((pagination.page - 1) * pagination.page_size) + 1}</strong> to <strong>{Math.min(pagination.page * pagination.page_size, pagination.total_count)}</strong> of <strong>{pagination.total_count}</strong> payments
+            </div>
+            <div className={styles.paginationControls}>
+              <button
+                className={styles.pageBtn}
+                disabled={pagination.page <= 1 || loading}
+                onClick={() => setFilters(prev => ({ ...prev, page: pagination.page - 1 }))}
+              >
+                <i className="fas fa-chevron-left"></i> Previous
+              </button>
+
+              <div className={styles.pageNumbers}>
+                {[...Array(pagination.total_pages)].map((_, i) => {
+                  const p = i + 1;
+                  // Only show current page, 1, last page, and neighbors
+                  if (
+                    p === 1 ||
+                    p === pagination.total_pages ||
+                    Math.abs(p - pagination.page) <= 1
+                  ) {
+                    return (
+                      <button
+                        key={p}
+                        className={`${styles.pageNumber} ${pagination.page === p ? styles.activePage : ''}`}
+                        onClick={() => setFilters(prev => ({ ...prev, page: p }))}
+                        disabled={loading}
+                      >
+                        {p}
+                      </button>
+                    )
+                  } else if (
+                    (p === 2 && pagination.page > 3) ||
+                    (p === pagination.total_pages - 1 && pagination.page < pagination.total_pages - 2)
+                  ) {
+                    return <span key={p} className={styles.paginationEllipsis}>...</span>
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button
+                className={styles.pageBtn}
+                disabled={pagination.page >= pagination.total_pages || loading}
+                onClick={() => setFilters(prev => ({ ...prev, page: pagination.page + 1 }))}
+              >
+                Next <i className="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Payment Details Modal */}

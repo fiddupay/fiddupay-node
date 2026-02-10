@@ -300,9 +300,9 @@ input:checked+.slider:before {
 
 /* Wallet Card Actions */
 .walletActions {
-  position: absolute;
-  top: 1.25rem;
-  right: 1.25rem;
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .actionMenuToggle {

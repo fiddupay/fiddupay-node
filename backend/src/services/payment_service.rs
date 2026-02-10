@@ -342,7 +342,7 @@ impl PaymentService {
         let status = self.parse_status(&payment.status);
 
         // Fetch payment link from database
-        let payment_link = format!("{}/pay/{}", 
+        let payment_link = format!("{}/{}", 
             self.config.payment_page_base_url,
             payment.payment_id
         );

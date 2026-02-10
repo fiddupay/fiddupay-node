@@ -303,7 +303,7 @@ const WalletsPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-5">
                   <label className={styles.networkToggle} title={`${wallet?.is_active ? 'Disable' : 'Enable'} Network`}>
                     <input
                       type="checkbox"
