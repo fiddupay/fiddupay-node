@@ -151,7 +151,7 @@ impl WebhookService {
     pub async fn queue_webhook(
         &self,
         merchant_id: i64,
-        payment_id: i64,
+        payment_id: Option<i64>,
         payload: WebhookPayload,
     ) -> Result<(), ServiceError> {
         // Get merchant's webhook configuration

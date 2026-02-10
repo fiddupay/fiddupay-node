@@ -252,7 +252,7 @@ impl RefundService {
         // Queue webhook for delivery (don't fail if webhook fails)
         if let Err(e) = self
             .webhook_service
-            .queue_webhook(refund.merchant_id, refund.payment_id, webhook_payload)
+            .queue_webhook(refund.merchant_id, Some(refund.payment_id), webhook_payload)
             .await
         {
             error!("Failed to queue webhook for refund {}: {}", refund_id, e);

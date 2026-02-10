@@ -112,6 +112,25 @@ impl PaymentService {
             .map_err(|e| PaymentServiceError::VerificationError(e.to_string()))
     }
 
+    /// Verify payment by scanning address
+    /// 
+    /// # Arguments
+    /// * `payment_id` - Public payment ID
+    /// * `merchant_id` - Merchant ID
+    /// 
+    /// # Returns
+    /// * `true` if payment confirmed
+    pub async fn verify_payment_by_address(
+        &self,
+        payment_id: &str,
+        merchant_id: i64,
+    ) -> Result<bool, PaymentServiceError> {
+        self.verifier
+            .verify_payment_by_address(payment_id, merchant_id)
+            .await
+            .map_err(|e| PaymentServiceError::VerificationError(e.to_string()))
+    }
+
     /// Get a single payment by payment ID
     /// 
     /// # Arguments

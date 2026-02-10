@@ -381,6 +381,10 @@
             font-weight: 600;
             transition: all 0.2s;
             width: 100%;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: inherit;
         }
 
         .btn-primary:hover {
@@ -430,6 +434,35 @@
 
         .hidden {
             display: none;
+        }
+
+        .amount-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .copy-small-btn {
+            background: none;
+            border: none;
+            color: var(--slate-600);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+        }
+
+        .copy-small-btn:hover {
+            background: var(--slate-100);
+            color: var(--primary);
+        }
+
+        .fee-info {
+            font-size: 12px;
+            color: var(--slate-600);
+            margin-top: 4px;
         }
     </style>
 </head>
@@ -482,8 +515,25 @@
                 </div>
 
                 <div class="amount-container">
-                    <div class="amount-crypto">{{amount}} {{crypto_type}}</div>
+                    <div class="amount-row">
+                        <div class="amount-crypto" id="amount-text">{{amount}}</div>
+                        <div class="amount-ticker">{{crypto_type}}</div>
+                        <button class="copy-small-btn" onclick="copyAmount()" title="Copy Amount">
+                            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
                     <div class="amount-fiat">≈ ${{amount_usd}} USD</div>
+
+                    <!-- feature_fee_amount_usd_start -->
+                    <div class="fee-info">
+                        Includes ${{fee_amount_usd}} fee
+                    </div>
+                    <!-- feature_fee_amount_usd_end -->
                 </div>
 
                 <div class="qr-card">
@@ -512,8 +562,12 @@
 
                 <div class="timer-section">
                     <span class="timer-label">Expires in</span>
-                    <span class="timer-val" id="timer">--:--</span>
+                    <span class="timer-val" id="timer" data-expires-at="{{expires_at}}">--:--</span>
                 </div>
+
+                <button onclick="refreshContent()" class="btn-primary" style="margin-top: 20px;">
+                    I have paid
+                </button>
             </div>
             {{/if_status_PENDING}}
 
@@ -547,7 +601,7 @@
                 <h2 class="result-title">Payment Expired</h2>
                 <p class="result-text">This payment session has expired. If you've already sent funds, please contact
                     the merchant.</p>
-                <a href="javascript:window.location.reload()" class="btn-primary">Check Again</a>
+                <button onclick="refreshContent()" class="btn-primary">Check Again</button>
             </div>
             {{/if_status_EXPIRED}}
         </div>
@@ -563,66 +617,164 @@
     </div>
 
     <script>
-        // Data injected by backend
-        try {
-            window.supportedCurrencies = JSON.parse('{{supported_currencies_json}}');
-        } catch (e) {
-            console.error('Failed to parse supported currencies', e);
-            window.supportedCurrencies = [];
+        // Track intervals to clear them on refresh
+        let pageIntervals = [];
+        function addInterval(fn, ms) {
+            const id = setInterval(fn, ms);
+            pageIntervals.push(id);
+            return id;
         }
+        function clearIntervals() {
+            pageIntervals.forEach(clearInterval);
+            pageIntervals = [];
+        }
+
+        // Data injected by backend (initially)
+        function updateBackendData() {
+            try {
+                window.supportedCurrencies = JSON.parse('{{supported_currencies_json}}');
+            } catch (e) {
+                console.error('Failed to parse supported currencies', e);
+                window.supportedCurrencies = window.supportedCurrencies || [];
+            }
+        }
+        updateBackendData();
 
         const LINK_ID = window.location.pathname.split('/').pop();
         const REDIRECT_URL = '{{redirect_url}}';
 
-        // Auto-redirect if already confirmed
-        if (document.querySelector('.result-icon.success') && REDIRECT_URL) {
-            setTimeout(() => {
-                window.location.href = REDIRECT_URL;
-            }, 3000);
+        async function refreshContent() {
+            const content = document.querySelector('.content');
+            if (!content) return;
+
+            // Subtle transition
+            content.style.opacity = '0.6';
+
+            try {
+                const res = await fetch(window.location.href);
+                const html = await res.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newContent = doc.querySelector('.content');
+
+                if (newContent) {
+                    content.innerHTML = newContent.innerHTML;
+
+                    // Try to update any newly injected script variables if necessary
+                    const newScript = doc.querySelector('script:not([src])');
+                    if (newScript) {
+                        const jsonMatch = newScript.textContent.match(/JSON\.parse\('(.*?)'\)/);
+                        if (jsonMatch) {
+                            try { window.supportedCurrencies = JSON.parse(jsonMatch[1]); } catch (e) { }
+                        }
+                    }
+
+                    initPage();
+                }
+            } catch (e) {
+                console.error('Refresh failed', e);
+            } finally {
+                content.style.opacity = '1';
+            }
         }
 
-        // --- Selection Logic ---
-        if (document.getElementById('selection-view')) {
-            const list = document.getElementById('currency-list');
-            if (window.supportedCurrencies && window.supportedCurrencies.length > 0) {
-                list.innerHTML = '';
-                window.supportedCurrencies.forEach(curr => {
-                    const btn = document.createElement('button');
-                    btn.className = 'currency-item';
+        function initPage() {
+            clearIntervals();
 
-                    // Basic logo logic (placeholders for now)
-                    let logo = '';
-                    if (curr.symbol.includes('SOL')) logo = 'https://cryptologos.cc/logos/solana-sol-logo.png?v=029';
-                    else if (curr.symbol.includes('ETH')) logo = 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029';
-                    else if (curr.symbol.includes('USDT')) logo = 'https://cryptologos.cc/logos/tether-usdt-logo.png?v=029';
-                    else if (curr.symbol.includes('USDC')) logo = 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png?v=029';
+            // Auto-redirect if already confirmed
+            if (document.querySelector('.result-icon.success') && REDIRECT_URL) {
+                setTimeout(() => {
+                    window.location.href = REDIRECT_URL;
+                }, 3000);
+            }
 
-                    btn.innerHTML = `
-                        <div class="currency-info">
-                            <div class="currency-icon">
-                                ${logo ? `<img src="${logo}" alt="${curr.symbol}">` : `<div style="font-weight:700">${curr.symbol[0]}</div>`}
+            // --- Selection Logic ---
+            const selectionView = document.getElementById('selection-view');
+            if (selectionView) {
+                const list = document.getElementById('currency-list');
+                if (window.supportedCurrencies && window.supportedCurrencies.length > 0) {
+                    list.innerHTML = '';
+                    window.supportedCurrencies.forEach(curr => {
+                        const btn = document.createElement('button');
+                        btn.className = 'currency-item';
+
+                        let logo = '';
+                        if (curr.symbol.includes('SOL')) logo = 'https://cryptologos.cc/logos/solana-sol-logo.png?v=029';
+                        else if (curr.symbol.includes('ETH')) logo = 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029';
+                        else if (curr.symbol.includes('USDT')) logo = 'https://cryptologos.cc/logos/tether-usdt-logo.png?v=029';
+                        else if (curr.symbol.includes('USDC')) logo = 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png?v=029';
+
+                        btn.innerHTML = `
+                            <div class="currency-info">
+                                <div class="currency-icon">
+                                    ${logo ? `<img src="${logo}" alt="${curr.symbol}">` : `<div style="font-weight:700">${curr.symbol[0]}</div>`}
+                                </div>
+                                <div class="currency-details">
+                                    <span class="currency-name">${curr.symbol.split('_')[0]}</span>
+                                    <span class="currency-network">${curr.network}</span>
+                                </div>
                             </div>
-                            <div class="currency-details">
-                                <span class="currency-name">${curr.symbol.split('_')[0]}</span>
-                                <span class="currency-network">${curr.network}</span>
-                            </div>
-                        </div>
-                        <svg style="width: 20px; height: 20px; color: var(--slate-300)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    `;
-                    btn.onclick = () => selectCurrency(curr.symbol);
-                    list.appendChild(btn);
-                });
-            } else {
-                list.innerHTML = '<div style="text-align: center; color: var(--danger); font-size:14px">No supported currencies configured.</div>';
+                            <svg style="width: 20px; height: 20px; color: var(--slate-300)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        `;
+                        btn.onclick = () => selectCurrency(curr.symbol);
+                        list.appendChild(btn);
+                    });
+                } else if (list) {
+                    list.innerHTML = '<div style="text-align: center; color: var(--danger); font-size:14px">No supported currencies configured.</div>';
+                }
+            }
+
+            // --- Timer Logic ---
+            const timerEl = document.getElementById('timer');
+            if (timerEl) {
+                // We need to re-find the expiry date from the DOM or use the one injected
+                // For simplicity, let's assume we can get it from a data attribute or similar if needed, 
+                // but since it's injected into the script, it's harder to "refresh" without re-evaluating the script.
+                // However, the timer is usually for the *current* selection, and if that changes, refreshContent re-runs everything.
+
+                // Extraction helper for values that might be in the refreshed HTML
+                const expiryStr = document.querySelector('[data-expires-at]')?.dataset.expiresAt || '{{expires_at}}';
+
+                if (expiryStr && expiryStr !== '{{expires_at}}') {
+                    const expiresAt = new Date(expiryStr).getTime();
+                    function updateTimer() {
+                        const distance = expiresAt - new Date().getTime();
+                        if (distance <= 0) {
+                            timerEl.innerText = "Expired";
+                            refreshContent();
+                            return;
+                        }
+                        const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                        const s = Math.floor((distance % (1000 * 60)) / 1000);
+                        timerEl.innerText = `${m}:${s.toString().padStart(2, '0')}`;
+                    }
+                    addInterval(updateTimer, 1000);
+                    updateTimer();
+                }
+            }
+
+            // Polling for status changes
+            if (document.getElementById('payment-view')) {
+                addInterval(async () => {
+                    try {
+                        const res = await fetch(`/pay/${LINK_ID}/status`);
+                        const data = await res.json();
+                        if (data.status !== 'PENDING' && data.status !== 'CONFIRMING') {
+                            refreshContent();
+                        }
+                    } catch (e) { }
+                }, 5000);
             }
         }
 
         async function selectCurrency(symbol) {
             const list = document.getElementById('currency-list');
-            list.style.opacity = '0.5';
-            list.style.pointerEvents = 'none';
+            if (list) {
+                list.style.opacity = '0.5';
+                list.style.pointerEvents = 'none';
+            }
 
             try {
                 const response = await fetch(`/pay/${LINK_ID}/select`, {
@@ -630,51 +782,18 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ crypto_type: symbol })
                 });
-                if (response.ok) window.location.reload();
+                if (response.ok) refreshContent();
                 else alert('Failed to select currency');
             } catch (e) {
                 alert('Network error—please try again.');
             } finally {
-                list.style.opacity = '1';
-                list.style.pointerEvents = 'auto';
-            }
-        }
-
-        // --- Timer Logic ---
-        if (document.getElementById('timer')) {
-            const expiryStr = '{{expires_at}}';
-            if (expiryStr) {
-                const expiresAt = new Date(expiryStr).getTime();
-
-                function updateTimer() {
-                    const distance = expiresAt - new Date().getTime();
-                    if (distance <= 0) {
-                        document.getElementById('timer').innerText = "Expired";
-                        window.location.reload();
-                        return;
-                    }
-                    const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                    const s = Math.floor((distance % (1000 * 60)) / 1000);
-                    document.getElementById('timer').innerText = `${m}:${s.toString().padStart(2, '0')}`;
+                if (list) {
+                    list.style.opacity = '1';
+                    list.style.pointerEvents = 'auto';
                 }
-
-                setInterval(updateTimer, 1000);
-                updateTimer();
             }
-
-            // Polling
-            setInterval(async () => {
-                try {
-                    const res = await fetch(`/pay/${LINK_ID}/status`);
-                    const data = await res.json();
-                    if (data.status !== 'PENDING' && data.status !== 'CONFIRMING') {
-                        window.location.reload();
-                    }
-                } catch (e) { }
-            }, 5000);
         }
 
-        // --- Utils ---
         function copyAddress() {
             const addr = document.getElementById('address-text').innerText;
             navigator.clipboard.writeText(addr).then(() => {
@@ -684,6 +803,19 @@
                 setTimeout(() => btn.innerHTML = original, 2000);
             });
         }
+
+        function copyAmount() {
+            const amt = document.getElementById('amount-text').innerText;
+            navigator.clipboard.writeText(amt).then(() => {
+                const btn = document.querySelector('.copy-small-btn');
+                const original = btn.innerHTML;
+                btn.innerHTML = '<svg style="width: 16px; height: 16px; color: var(--success)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>';
+                setTimeout(() => btn.innerHTML = original, 2000);
+            });
+        }
+
+        // Initialize on load
+        initPage();
     </script>
 </body>
 

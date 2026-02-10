@@ -144,12 +144,21 @@ impl PaymentVerifier {
         }
 
         // 6. Fetch blockchain transaction using the provided hash
-        // Parse crypto type from string (Requirement 3.1)
         let crypto_type_str = payment.crypto_type.as_ref().ok_or("Currency selection required before verification")?;
         let crypto_type = CryptoType::from_string(crypto_type_str);
 
+        // Get merchant sandbox status
+        let merchant_sandbox = sqlx::query!(
+            "SELECT sandbox_mode FROM merchants WHERE id = $1", 
+            merchant_id
+        )
+        .fetch_one(&self.db_pool)
+        .await
+        .map(|r| r.sandbox_mode)
+        .unwrap_or(false);
+
         // Get appropriate blockchain monitor for this crypto type
-        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone());
+        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), merchant_sandbox);
 
         // Fetch transaction from blockchain (Requirement 3.1)
         let blockchain_tx = monitor
@@ -200,6 +209,84 @@ impl PaymentVerifier {
             );
             return Ok(false);
         }
+    }
+
+    /// Verify payment by scanning address for new transactions
+    /// Used for automated detection on the payment page without background monitoring
+    pub async fn verify_payment_by_address(
+        &self,
+        payment_id: &str,
+        merchant_id: i64,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        // Look up payment
+        let payment = sqlx::query_as::<_, PaymentTransaction>(
+            r#"
+            SELECT * FROM payment_transactions
+            WHERE payment_id = $1
+            "#
+        )
+        .bind(payment_id)
+        .fetch_optional(&self.db_pool)
+        .await?
+        .ok_or("Payment not found")?;
+
+        if payment.merchant_id != merchant_id {
+            return Err("Access denied".into());
+        }
+
+        if payment.status == "CONFIRMED" || payment.status == "FAILED" {
+            return Ok(true);
+        }
+
+        if payment.to_address.is_none() || payment.amount.is_none() || payment.crypto_type.is_none() {
+             return Ok(false); // Not ready for verification
+        }
+
+        // Get merchant sandbox status
+        let merchant_sandbox = sqlx::query!(
+            "SELECT sandbox_mode FROM merchants WHERE id = $1", 
+            merchant_id
+        )
+        .fetch_one(&self.db_pool)
+        .await
+        .map(|r| r.sandbox_mode)
+        .unwrap_or(false);
+
+        let crypto_type_str = payment.crypto_type.as_ref().unwrap();
+        let crypto_type = CryptoType::from_string(crypto_type_str);
+        
+        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), merchant_sandbox);
+        let address = payment.to_address.as_ref().unwrap();
+
+        // Get recent transactions for the address
+        // Check last 20 transactions to find a match
+        let transactions = monitor.get_transactions_to_address(address, 20).await?;
+
+        for tx in transactions {
+            // Check if this transaction is already linked to another payment
+            // (Unless it's this payment, which shouldn't happen if status is pending)
+             let existing_payment = sqlx::query_scalar::<_, i64>(
+                "SELECT id FROM payment_transactions WHERE transaction_hash = $1 AND id != $2"
+            )
+            .bind(&tx.hash)
+            .bind(payment.id)
+            .fetch_optional(&self.db_pool)
+            .await?;
+
+            if existing_payment.is_some() {
+                continue;
+            }
+
+            // Validate against payment details
+            if self.validate_transaction(&payment, &tx)? {
+                 // Found a match! Process it.
+                 // We can reuse the verify_payment_by_hash logic or duplicate the update logic here.
+                 // passing payment.id (which is i64) as required by verify_payment_by_hash
+                 return self.verify_payment_by_hash(payment.id, &tx.hash, merchant_id).await;
+            }
+        }
+
+        Ok(false)
     }
 
     /// Validate blockchain transaction matches payment request
@@ -308,7 +395,7 @@ impl PaymentVerifier {
         
         if let Err(e) = self.webhook_service.queue_webhook(
             merchant_id,
-            payment_id,
+            Some(payment_id),
             webhook_payload
         ).await {
             warn!("Failed to queue webhook for payment {}: {}", payment_id, e);

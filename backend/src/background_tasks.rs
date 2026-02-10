@@ -133,7 +133,7 @@ impl BackgroundTasks {
 
                     if let Err(e) = self.webhook_service.queue_webhook(
                         payment.merchant_id,
-                        payment.id,
+                        Some(payment.id),
                         webhook_payload,
                     ).await {
                         error!(

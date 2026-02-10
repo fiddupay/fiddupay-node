@@ -309,14 +309,28 @@ impl EvmMonitor {
 }
 
 /// Factory function to create appropriate blockchain monitor
-/// Factory function to create appropriate blockchain monitor
-pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::Config) -> Box<dyn BlockchainMonitor> {
+pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::Config, is_sandbox: bool) -> Box<dyn BlockchainMonitor> {
     match crypto_type.network() {
-        "Solana" => Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, None)),
+        "Solana" => {
+            let rpc_url = if is_sandbox {
+                Some(config.solana_devnet_rpc_url.clone())
+            } else {
+                None // Uses default from config (mainnet)
+            };
+            Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, rpc_url))
+        },
         "Ethereum" => Box::new(EvmMonitor::new_ethereum(&config)),
         "BSC" => Box::new(EvmMonitor::new_bsc(&config)),
         "Polygon" => Box::new(EvmMonitor::new_polygon(&config)),
         "Arbitrum" => Box::new(EvmMonitor::new_arbitrum(&config)),
-        _ => Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, None)),
+        _ => {
+             // Default to Solana for unknown types (fallback)
+            let rpc_url = if is_sandbox {
+                Some(config.solana_devnet_rpc_url.clone())
+            } else {
+                None
+            };
+            Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, rpc_url))
+        },
     }
 }

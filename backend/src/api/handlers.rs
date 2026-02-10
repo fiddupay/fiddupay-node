@@ -712,7 +712,7 @@ pub async fn send_test_webhook(
         timestamp: Utc::now().timestamp(),
     };
 
-    if let Err(e) = state.webhook_service.queue_webhook(merchant_id, 0, payload).await {
+    if let Err(e) = state.webhook_service.queue_webhook(merchant_id, None, payload).await {
          return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
     }
 
@@ -999,7 +999,7 @@ pub async fn payment_page(
 
     // Check if sandbox and get redirect_url
     let merchant_info = sqlx::query!(
-        "SELECT sandbox_mode, redirect_url FROM merchants WHERE id = $1", 
+        "SELECT sandbox_mode, redirect_url, customer_pays_fee FROM merchants WHERE id = $1", 
         payment.merchant_id
     )
     .fetch_one(&state.db_pool)
@@ -1007,7 +1007,16 @@ pub async fn payment_page(
     .ok();
     
     let sandbox = merchant_info.as_ref().map(|m| m.sandbox_mode).unwrap_or(false);
-    let redirect_url = merchant_info.and_then(|m| m.redirect_url);
+    let redirect_url = merchant_info.as_ref().and_then(|m| m.redirect_url.clone());
+    let customer_pays_fee = merchant_info.as_ref().map(|m| m.customer_pays_fee).unwrap_or(true);
+
+    // Smart Verification: Trigger address scan if pending
+    if is_pending {
+        // We use .ok() to ignore errors as this is an opportunistic check
+        // The background monitor (if active) or manual check are main safeguards
+        tracing::info!("Triggering smart verification for payment {}", link_id);
+        let _ = state.payment_service.verify_payment_by_address(&payment.payment_id, payment.merchant_id).await;
+    }
 
     // Fetch supported currencies if needed
     let supported_currencies = if is_selection_required {
@@ -1045,6 +1054,7 @@ pub async fn payment_page(
         sandbox,
         redirect_url,
         supported_currencies,
+        customer_pays_fee,
     });
 
     (StatusCode::OK, Html(html)).into_response()
@@ -1222,6 +1232,7 @@ struct PaymentPageData {
     sandbox: bool,
     redirect_url: Option<String>,
     supported_currencies: Vec<(String, String)>,
+    customer_pays_fee: bool,
 }
 
 fn render_payment_page(data: PaymentPageData) -> String {
@@ -1289,7 +1300,7 @@ fn render_payment_page(data: PaymentPageData) -> String {
     
     // Handle generic if blocks with unique IDs
     html = toggle_feature_block(&html, "sandbox", data.sandbox);
-    html = toggle_feature_block(&html, "fee_amount_usd", !data.fee_amount_usd.is_empty() && data.fee_amount_usd != "0.00");
+    html = toggle_feature_block(&html, "fee_amount_usd", data.customer_pays_fee && !data.fee_amount_usd.is_empty() && data.fee_amount_usd != "0.00");
     html = toggle_feature_block(&html, "redirect_url", data.redirect_url.is_some());
 
     html
