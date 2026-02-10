@@ -227,42 +227,44 @@ impl PaymentProcessor {
         let expires_at = Utc::now() + Duration::minutes(expiration_minutes as i64);
 
         // Store payment in database
-        let payment = sqlx::query_as!(
-            crate::models::payment::Payment,
+        // Store payment in database
+        // used query_as function instead of macro to allow compilation before migration
+        let payment = sqlx::query_as::<_, crate::models::payment::Payment>(
             r#"
             INSERT INTO payment_transactions (
                 payment_id, merchant_id, crypto_type, amount, amount_usd, to_address,
                 status, expires_at, fee_percentage, fee_amount, fee_amount_usd, network,
-                required_confirmations, webhook_url, description
+                required_confirmations, webhook_url, description, sandbox_mode
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING id, payment_id, merchant_id, crypto_type, amount, amount_usd, to_address,
                      status, expires_at, created_at, confirmed_at, description, metadata,
                      confirmations, required_confirmations, transaction_hash, from_address, webhook_url,
                      fee_percentage, fee_amount, fee_amount_usd, network,
                      user_id, subscription_id, block_number, partial_payments_enabled,
                      total_paid, remaining_balance, is_non_custodial
-            "#,
-            payment_id,
-            merchant_id,
-            request.crypto_type.map(|ct| ct.to_string()),
-            crypto_amount,
-            amount_usd,
-            merchant_wallet,
-            match status {
-                PaymentStatus::Pending => "PENDING",
-                PaymentStatus::SelectionRequired => "SELECTION_REQUIRED",
-                _ => "PENDING"
-            },
-            expires_at,
-            fee_percentage,
-            fee_amount_crypto,
-            fee_amount_usd,
-            network,
-            1, // required_confirmations
-            request.webhook_url,
-            request.description
+            "#
         )
+        .bind(payment_id)
+        .bind(merchant_id)
+        .bind(request.crypto_type.map(|ct| ct.to_string()))
+        .bind(crypto_amount)
+        .bind(amount_usd)
+        .bind(merchant_wallet)
+        .bind(match status {
+            PaymentStatus::Pending => "PENDING",
+            PaymentStatus::SelectionRequired => "SELECTION_REQUIRED",
+            _ => "PENDING"
+        })
+        .bind(expires_at)
+        .bind(fee_percentage)
+        .bind(fee_amount_crypto)
+        .bind(fee_amount_usd)
+        .bind(network)
+        .bind(1) // required_confirmations
+        .bind(request.webhook_url)
+        .bind(request.description)
+        .bind(is_sandbox)
         .fetch_one(&self.db_pool)
         .await?;
 

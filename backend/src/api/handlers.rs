@@ -390,13 +390,22 @@ pub async fn get_merchant_readiness(
     (StatusCode::OK, Json(response)).into_response()
 }
 
+#[derive(Deserialize)]
+pub struct UnifiedTransactionQuery {
+    pub limit: Option<i64>,
+}
+
 pub async fn list_unified_transactions(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
+    Query(params): Query<UnifiedTransactionQuery>,
 ) -> impl IntoResponse {
     let merchant_id = context.merchant_id;
+    let is_sandbox = context.sandbox_mode;
+    let limit = params.limit.unwrap_or(50).min(100).max(1);
 
     // A unified query to get payments, refunds, and withdrawals in one feed
+    // Filtered by sandbox_mode to isolate environments
     let query = r#"
         (SELECT 
             'payment' as txn_type,
@@ -408,7 +417,7 @@ pub async fn list_unified_transactions(
             transaction_hash,
             created_at
         FROM payment_transactions
-        WHERE merchant_id = $1)
+        WHERE merchant_id = $1 AND sandbox_mode = $2)
         
         UNION ALL
         
@@ -423,7 +432,7 @@ pub async fn list_unified_transactions(
             r.created_at
         FROM refunds r
         JOIN payment_transactions p ON r.payment_id = p.id
-        WHERE r.merchant_id = $1)
+        WHERE r.merchant_id = $1 AND r.sandbox_mode = $2)
         
         UNION ALL
         
@@ -431,20 +440,22 @@ pub async fn list_unified_transactions(
             'withdrawal' as txn_type,
             withdrawal_id as id,
             amount::text as crypto_amount,
-            amount::text as usd_amount, -- Fallback to crypto amount if USD not stored
+            amount::text as usd_amount,
             crypto_type,
             status,
             transaction_hash,
             created_at
         FROM withdrawals
-        WHERE merchant_id = $1)
+        WHERE merchant_id = $1 AND sandbox_mode = $2)
         
         ORDER BY created_at DESC
-        LIMIT 50
+        LIMIT $3
     "#;
 
     match sqlx::query(query)
         .bind(merchant_id)
+        .bind(is_sandbox)
+        .bind(limit)
         .fetch_all(&state.db_pool)
         .await
     {
@@ -853,7 +864,7 @@ pub async fn get_analytics(
     let from = query.from_date.unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
     let to = query.to_date.unwrap_or_else(|| chrono::Utc::now());
     
-    match state.analytics_service.get_analytics(context.merchant_id, from, to, None, None).await {
+    match state.analytics_service.get_analytics(context.merchant_id, from, to, None, None, Some(context.sandbox_mode)).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -867,7 +878,7 @@ pub async fn export_analytics(
     let from = query.from_date.unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
     let to = query.to_date.unwrap_or_else(|| chrono::Utc::now());
     
-    match state.analytics_service.export_csv(context.merchant_id, from, to, None, None).await {
+    match state.analytics_service.export_csv(context.merchant_id, from, to, None, None, Some(context.sandbox_mode)).await {
         Ok(csv) => (StatusCode::OK, csv).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -1474,7 +1485,7 @@ pub async fn get_balance(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     // Get all balances instead of single balance
-    match state.balance_service.get_all_balances(context.merchant_id).await {
+    match state.balance_service.get_all_balances(context.merchant_id, context.sandbox_mode).await {
         Ok(balance) => (StatusCode::OK, Json(balance)).into_response(),
         Err(e) => {
             tracing::error!("Failed to get balances: {:?}", e);
@@ -1508,7 +1519,7 @@ pub async fn create_withdrawal(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<crate::services::withdrawal_service::WithdrawalRequest>,
 ) -> impl IntoResponse {
-    match state.withdrawal_service.create_withdrawal(context.merchant_id, req).await {
+    match state.withdrawal_service.create_withdrawal(context.merchant_id, req, context.sandbox_mode).await {
         Ok(withdrawal) => (StatusCode::CREATED, Json(withdrawal)).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -1569,7 +1580,7 @@ pub async fn list_withdrawals(
 ) -> impl IntoResponse {
     let limit = params.limit.unwrap_or(100).min(1000);
     
-    match state.withdrawal_service.list_withdrawals(context.merchant_id).await {
+    match state.withdrawal_service.list_withdrawals(context.merchant_id, context.sandbox_mode).await {
         Ok(withdrawals) => (StatusCode::OK, Json(withdrawals)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }

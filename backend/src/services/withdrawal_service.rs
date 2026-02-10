@@ -46,30 +46,32 @@ impl WithdrawalService {
         &self,
         merchant_id: i64,
         request: WithdrawalRequest,
+        sandbox_mode: bool,
     ) -> Result<Withdrawal, ServiceError> {
         let withdrawal_id = format!("wd_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
         
-        let withdrawal = sqlx::query_as!(
-            Withdrawal,
+        // used query_as function instead of macro for compilation before migration
+        let withdrawal = sqlx::query_as::<_, Withdrawal>(
             r#"
             INSERT INTO withdrawals (
                 withdrawal_id, merchant_id, crypto_type, amount, destination_address,
-                status, fee, net_amount, created_at, updated_at
+                status, fee, net_amount, created_at, updated_at, sandbox_mode
             )
-            VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7, NOW(), NOW())
+            VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7, NOW(), NOW(), $8)
             RETURNING id, withdrawal_id, merchant_id, crypto_type, 
                      amount, destination_address, status, fee, net_amount, transaction_hash,
                      rejection_reason, requires_approval, approved_by, approved_at, 
                      completed_at, created_at, updated_at
-            "#,
-            withdrawal_id,
-            merchant_id,
-            request.crypto_type,
-            request.amount,
-            request.destination_address,
-            Decimal::ZERO, // fee
-            request.amount, // net_amount
+            "#
         )
+        .bind(withdrawal_id)
+        .bind(merchant_id)
+        .bind(request.crypto_type)
+        .bind(request.amount)
+        .bind(request.destination_address)
+        .bind(Decimal::ZERO) // fee
+        .bind(request.amount) // net_amount
+        .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await?;
 
@@ -103,20 +105,22 @@ impl WithdrawalService {
     pub async fn list_withdrawals(
         &self,
         merchant_id: i64,
+        sandbox_mode: bool,
     ) -> Result<Vec<Withdrawal>, ServiceError> {
-        let withdrawals = sqlx::query_as!(
-            Withdrawal,
+        // used query_as function instead of macro for compilation before migration
+        let withdrawals = sqlx::query_as::<_, Withdrawal>(
             r#"
             SELECT id, withdrawal_id, merchant_id, crypto_type, 
                    amount, destination_address, status, fee, net_amount, transaction_hash,
                    rejection_reason, requires_approval, approved_by, approved_at, 
                    completed_at, created_at, updated_at
             FROM withdrawals 
-            WHERE merchant_id = $1
+            WHERE merchant_id = $1 AND sandbox_mode = $2
             ORDER BY created_at DESC
-            "#,
-            merchant_id
+            "#
         )
+        .bind(merchant_id)
+        .bind(sandbox_mode)
         .fetch_all(&self.db_pool)
         .await?;
 

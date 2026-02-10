@@ -27,6 +27,7 @@ impl AnalyticsService {
         end_date: DateTime<Utc>,
         blockchain: Option<String>,
         status: Option<String>,
+        sandbox_mode: Option<bool>,
     ) -> Result<AnalyticsReport, ServiceError> {
         // Build the base query with optional filters
         let mut query = String::from(
@@ -45,6 +46,10 @@ impl AnalyticsService {
 
         // Add optional filters
         let mut param_count = 3;
+        if sandbox_mode.is_some() {
+            param_count += 1;
+            query.push_str(&format!(" AND sandbox_mode = ${}", param_count));
+        }
         if blockchain.is_some() {
             param_count += 1;
             query.push_str(&format!(" AND network = ${}", param_count));
@@ -60,6 +65,9 @@ impl AnalyticsService {
             .bind(start_date)
             .bind(end_date);
 
+        if let Some(sb) = sandbox_mode {
+            query_builder = query_builder.bind(sb);
+        }
         if let Some(ref bc) = blockchain {
             query_builder = query_builder.bind(bc);
         }
@@ -79,7 +87,7 @@ impl AnalyticsService {
 
         // Get blockchain-specific stats
         let by_blockchain = self
-            .get_blockchain_stats(merchant_id, start_date, end_date, status.clone())
+            .get_blockchain_stats(merchant_id, start_date, end_date, status.clone(), sandbox_mode)
             .await?;
 
         Ok(AnalyticsReport {
@@ -99,6 +107,7 @@ impl AnalyticsService {
         start_date: DateTime<Utc>,
         end_date: DateTime<Utc>,
         status: Option<String>,
+        sandbox_mode: Option<bool>,
     ) -> Result<HashMap<String, BlockchainStats>, ServiceError> {
         let mut query = String::from(
             r#"
@@ -113,8 +122,14 @@ impl AnalyticsService {
             "#,
         );
 
+        let mut param_count = 3;
+        if sandbox_mode.is_some() {
+            param_count += 1;
+            query.push_str(&format!(" AND sandbox_mode = ${}", param_count));
+        }
         if status.is_some() {
-            query.push_str(" AND status = $4");
+            param_count += 1;
+            query.push_str(&format!(" AND status = ${}", param_count));
         }
 
         query.push_str(" GROUP BY network");
@@ -124,6 +139,9 @@ impl AnalyticsService {
             .bind(start_date)
             .bind(end_date);
 
+        if let Some(sb) = sandbox_mode {
+            query_builder = query_builder.bind(sb);
+        }
         if let Some(st) = status {
             query_builder = query_builder.bind(st);
         }
@@ -160,6 +178,7 @@ impl AnalyticsService {
         end_date: DateTime<Utc>,
         blockchain: Option<String>,
         status: Option<String>,
+        sandbox_mode: Option<bool>,
     ) -> Result<String, ServiceError> {
         // Build query to fetch payment details
         let mut query = String::from(
@@ -190,6 +209,10 @@ impl AnalyticsService {
 
         // Add optional filters
         let mut param_count = 3;
+        if sandbox_mode.is_some() {
+            param_count += 1;
+            query.push_str(&format!(" AND sandbox_mode = ${}", param_count));
+        }
         if blockchain.is_some() {
             param_count += 1;
             query.push_str(&format!(" AND network = ${}", param_count));
@@ -206,6 +229,9 @@ impl AnalyticsService {
             .bind(start_date)
             .bind(end_date);
 
+        if let Some(sb) = sandbox_mode {
+            query_builder = query_builder.bind(sb);
+        }
         if let Some(ref bc) = blockchain {
             query_builder = query_builder.bind(bc);
         }
