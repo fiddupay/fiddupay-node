@@ -23,6 +23,7 @@ import StatusPage from '@/pages/StatusPage'
 import SecurityPage from '@/pages/SecurityPage'
 import CompliancePage from '@/pages/CompliancePage'
 import CookiesPage from '@/pages/CookiesPage'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import '@/styles/globals.css'
 
 // Lazy load pages for better performance
@@ -95,7 +96,7 @@ const App: React.FC = () => {
               <Route
                 path="dashboard"
                 element={
-                  <React.Suspense fallback={<div>Loading...</div>}>
+                  <React.Suspense fallback={<LoadingSpinner />}>
                     <DashboardPage />
                   </React.Suspense>
                 }
@@ -103,7 +104,7 @@ const App: React.FC = () => {
               <Route
                 path="payments"
                 element={
-                  <React.Suspense fallback={<div>Loading...</div>}>
+                  <React.Suspense fallback={<LoadingSpinner />}>
                     <PaymentsPage />
                   </React.Suspense>
                 }
@@ -111,7 +112,7 @@ const App: React.FC = () => {
               <Route
                 path="wallets"
                 element={
-                  <React.Suspense fallback={<div>Loading...</div>}>
+                  <React.Suspense fallback={<LoadingSpinner />}>
                     <WalletsPage />
                   </React.Suspense>
                 }
@@ -119,7 +120,7 @@ const App: React.FC = () => {
               <Route
                 path="balance"
                 element={
-                  <React.Suspense fallback={<div>Loading...</div>}>
+                  <React.Suspense fallback={<LoadingSpinner />}>
                     <BalancePage />
                   </React.Suspense>
                 }
@@ -127,7 +128,7 @@ const App: React.FC = () => {
               <Route
                 path="withdrawals"
                 element={
-                  <React.Suspense fallback={<div>Loading...</div>}>
+                  <React.Suspense fallback={<LoadingSpinner />}>
                     <WithdrawalsPage />
                   </React.Suspense>
                 }
@@ -135,7 +136,7 @@ const App: React.FC = () => {
               <Route
                 path="analytics"
                 element={
-                  <React.Suspense fallback={<div>Loading...</div>}>
+                  <React.Suspense fallback={<LoadingSpinner />}>
                     <AnalyticsPage />
                   </React.Suspense>
                 }
@@ -143,7 +144,7 @@ const App: React.FC = () => {
               <Route
                 path="reports"
                 element={
-                  <React.Suspense fallback={<div>Loading...</div>}>
+                  <React.Suspense fallback={<LoadingSpinner />}>
                     <ReportsPage />
                   </React.Suspense>
                 }
@@ -151,7 +152,7 @@ const App: React.FC = () => {
               <Route
                 path="settings"
                 element={
-                  <React.Suspense fallback={<div>Loading...</div>}>
+                  <React.Suspense fallback={<LoadingSpinner />}>
                     <SettingsPage />
                   </React.Suspense>
                 }

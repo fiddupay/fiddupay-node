@@ -243,11 +243,10 @@ export default function WithdrawalInterface() {
           >
             {processing ? (
               <>
-                <i className="fas fa-spinner fa-spin mr-2"></i>
-                Processing Withdrawal...
+                <i className="fas fa-spinner fa-spin"></i>
               </>
             ) : loading ? (
-              'Creating Withdrawal...'
+              <i className="fas fa-spinner fa-spin"></i>
             ) : (
               'Withdraw Funds'
             )}

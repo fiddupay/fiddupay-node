@@ -351,7 +351,6 @@ const PaymentsPage: React.FC = () => {
           {loading ? (
             <div className={styles.loadingState}>
               <i className="fas fa-spinner fa-spin"></i>
-              <p>Loading payments...</p>
             </div>
           ) : payments.length === 0 ? (
             <div className={styles.emptyState}>
@@ -842,7 +841,7 @@ const PaymentsPage: React.FC = () => {
                     disabled={loading}
                   >
                     {loading ? (
-                      <><i className="fas fa-spinner fa-spin"></i> Creating...</>
+                      <i className="fas fa-spinner fa-spin"></i>
                     ) : (
                       <><i className="fas fa-check"></i> Create Payment</>
                     )}

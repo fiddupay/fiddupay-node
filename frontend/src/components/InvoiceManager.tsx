@@ -118,7 +118,7 @@ export const InvoiceManager: React.FC = () => {
                 disabled={loading}
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
               >
-                {loading ? 'Creating...' : 'Create Invoice'}
+                {loading ? <i className="fas fa-spinner fa-spin"></i> : 'Create Invoice'}
               </button>
               <button
                 type="button"
@@ -138,7 +138,9 @@ export const InvoiceManager: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="p-8 text-center">Loading invoices...</div>
+          <div className="p-8 text-center">
+            <i className="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+          </div>
         ) : invoices.length === 0 ? (
           <div className="p-8 text-center text-gray-500">No invoices found</div>
         ) : (

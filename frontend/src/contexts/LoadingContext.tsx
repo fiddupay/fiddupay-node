@@ -34,7 +34,6 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({ children }) =>
         <div className={styles.loadingOverlay}>
           <div className={styles.loadingSpinner}>
             <div className={styles.spinner}></div>
-            <p>Loading...</p>
           </div>
         </div>
       )}

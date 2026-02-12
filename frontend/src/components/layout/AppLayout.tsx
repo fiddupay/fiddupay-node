@@ -3,6 +3,7 @@ import { Outlet, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import LoadingSpinner from '../ui/LoadingSpinner'
 import styles from '@/styles/components/layout/AppLayout.module.css'
 
 const AppLayout: React.FC = () => {
@@ -11,7 +12,7 @@ const AppLayout: React.FC = () => {
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.spinner}></div>
+        <LoadingSpinner />
       </div>
     )
   }

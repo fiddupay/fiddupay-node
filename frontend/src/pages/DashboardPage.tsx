@@ -208,7 +208,9 @@ const DashboardPage: React.FC = () => {
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Recent Activity</h2>
           {loading ? (
-            <div className={styles.loading}>Loading activity...</div>
+            <div className={styles.loading}>
+              <i className="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+            </div>
           ) : (
             <RecentActivityList />
           )}
@@ -273,7 +275,11 @@ const RecentActivityList: React.FC = () => {
   }
 
   if (loading) {
-    return <div className={styles.loading}>Loading recent activity...</div>
+    return (
+      <div className={styles.loading}>
+        <i className="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+      </div>
+    )
   }
 
   if (activities.length === 0) {

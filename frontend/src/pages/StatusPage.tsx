@@ -117,7 +117,6 @@ const StatusPage: React.FC = () => {
         <div className={styles.container}>
           <div className={styles.loading}>
             <div className={styles.spinner}></div>
-            <p>Loading system status...</p>
           </div>
         </div>
       </div>

@@ -110,8 +110,7 @@ export default function SecurityDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <i className="fas fa-spinner fa-spin h-6 w-6 mr-2"></i>
-        Loading security data...
+        <i className="fas fa-spinner fa-spin h-6 w-6"></i>
       </div>
     );
   }
