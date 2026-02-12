@@ -199,7 +199,7 @@ impl MerchantService {
         
         // Determine if old key is live or test based on prefix
         // Since we are moving to standard prefixes, we can check.
-        let is_old_live = old_api_key.starts_with("sk_live_") || old_api_key.starts_with("live_");
+        let is_old_live = old_api_key.starts_with("sk_live_");
         
         // Use Argon2 for verification
         use argon2::{Argon2, PasswordHash, PasswordVerifier, PasswordHasher, password_hash::SaltString};
@@ -266,23 +266,15 @@ impl MerchantService {
         &self,
         token: &str,
     ) -> Result<Merchant, ServiceError> {
-        // Searchable token logic (sk_s_{id}_{random} or sk_live_s_{id}_{random} or sk_merchant_{id}_{token})
-        if token.starts_with("sk_s_") || token.starts_with("sk_live_s_") || token.starts_with("sk_merchant_") {
+        // Searchable token logic (Strictly sk_sandbox_ or sk_live_)
+        if token.starts_with("sk_sandbox_") || token.starts_with("sk_live_") {
             let parts: Vec<&str> = token.split('_').collect();
-            tracing::debug!("Auth: token parts count={}, prefix match ok", parts.len());
             
-            if parts.len() >= 4 || (token.starts_with("sk_merchant_") && parts.len() >= 3) {
-                // Determine ID position based on prefix
-                let id_str = if token.starts_with("sk_live_s_") { 
-                    parts.get(3).copied() 
-                } else { 
-                    parts.get(2).copied() 
-                };
-
-                if let Some(id_str) = id_str {
+            // Expected format: prefix_type_id_random (e.g., sk_sandbox_123_...)
+            if parts.len() >= 3 {
+                // For all our searchable prefixes, the ID is at index 2
+                if let Some(id_str) = parts.get(2) {
                     if let Ok(merchant_id) = id_str.parse::<i64>() {
-                        tracing::debug!("Auth: parsed merchant_id={}", merchant_id);
-                        
                         let merchant = sqlx::query_as::<_, Merchant>(
                             "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url 
                              FROM merchants 
@@ -291,88 +283,42 @@ impl MerchantService {
                         .bind(merchant_id)
                         .fetch_optional(&self.db_pool)
                         .await
-                        .map_err(|e| {
-                            tracing::error!("Failed to fetch merchant {} for auth: {:?}", merchant_id, e);
-                            ServiceError::Database(e)
-                        })?;
+                        .map_err(ServiceError::Database)?;
 
                         if let Some(merchant) = merchant {
                             use argon2::{Argon2, PasswordHash, PasswordVerifier};
                             use chrono::Utc;
                             
-                            // Determine which hash to check
-                            let is_live_token = token.starts_with("sk_live_");
-                            let hash_to_check = if is_live_token {
+                            // Determine which hash to check based on prefix
+                            let is_live_prefix = token.starts_with("sk_live_");
+                            let hash_to_check = if is_live_prefix {
                                 merchant.live_api_key_hash.as_ref()
                             } else {
                                 merchant.test_api_key_hash.as_ref()
                             };
-                            
-                            tracing::debug!("Auth: is_live={}, has_hash={}", is_live_token, hash_to_check.is_some());
 
                             if let Some(hash_str) = hash_to_check {
                                 if let Ok(parsed_hash) = PasswordHash::new(hash_str) {
                                     if Argon2::default().verify_password(token.as_bytes(), &parsed_hash).is_ok() {
                                         if let Some(expires_at) = merchant.api_key_expires_at {
                                             if Utc::now() > expires_at {
-                                                tracing::warn!("Session token for merchant {} expired", merchant.id);
+                                                tracing::warn!("API key for merchant {} expired", merchant.id);
                                                 return Err(ServiceError::InvalidApiKey);
                                             }
                                         }
-                                        tracing::info!("Successfully authenticated merchant {} via searchable session key", merchant.id);
-                                        return Ok(merchant);
-                                    } else {
-                                        tracing::debug!("Auth: primary hash check failed for merchant {} (is_live={}), trying fallback", merchant_id, is_live_token);
-                                    }
-                                } else {
-                                    tracing::debug!("Auth: failed to parse primary hash for merchant {} (is_live={}), trying fallback", merchant_id, is_live_token);
-                                }
-                            } else {
-                                tracing::debug!("Auth: no {} hash for merchant {}, trying fallback", if is_live_token { "live" } else { "test" }, merchant_id);
-                            }
-
-                            // Fallback: try the OTHER environment's hash.
-                            // This handles edge cases during environment switching where the
-                            // token prefix doesn't match the current environment.
-                            let fallback_hash = if is_live_token {
-                                merchant.test_api_key_hash.as_ref()
-                            } else {
-                                merchant.live_api_key_hash.as_ref()
-                            };
-
-                            if let Some(hash_str) = fallback_hash {
-                                if let Ok(parsed_hash) = PasswordHash::new(hash_str) {
-                                    if Argon2::default().verify_password(token.as_bytes(), &parsed_hash).is_ok() {
-                                        if let Some(expires_at) = merchant.api_key_expires_at {
-                                            if Utc::now() > expires_at {
-                                                tracing::warn!("Session token for merchant {} expired (fallback)", merchant.id);
-                                                return Err(ServiceError::InvalidApiKey);
-                                            }
-                                        }
-                                        tracing::info!("Successfully authenticated merchant {} via cross-env fallback", merchant.id);
+                                        tracing::info!("Authenticated merchant {} via {}", merchant.id, if is_live_prefix { "Live" } else { "Sandbox" });
                                         return Ok(merchant);
                                     }
                                 }
                             }
-
-                            tracing::warn!("Auth: both primary and fallback checks failed for merchant {}", merchant_id);
-                        } else {
-                            tracing::warn!("Auth: no active merchant found with id={}", merchant_id);
+                            tracing::warn!("Authentication failed for merchant {} (prefix mismatch or invalid key)", merchant_id);
                         }
-                    } else {
-                        tracing::warn!("Auth: failed to parse merchant id from '{}'", id_str);
                     }
-                } else {
-                    tracing::warn!("Auth: id_str position returned None");
                 }
-            } else {
-                tracing::warn!("Auth: insufficient parts count={}", parts.len());
             }
         }
 
-        // All other key formats (sk_, live_, etc.) without ID prefixes are no longer supported
-        // for better security and performance (O(1) lookup only).
-        tracing::warn!("Rejecting legacy or malformed API key format");
+        tracing::warn!("Rejecting malformed or unsupported API key format");
         Err(ServiceError::InvalidApiKey)
     }
 
@@ -392,7 +338,7 @@ impl MerchantService {
             .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
             .to_string();
         
-        let is_live = api_key.starts_with("sk_live_") || api_key.starts_with("live_");
+        let is_live = api_key.starts_with("sk_live_");
 
         let update_query = if is_live {
             "UPDATE merchants SET live_api_key_hash = $1, api_key_expires_at = $2, updated_at = $3 WHERE id = $4"

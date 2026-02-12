@@ -75,7 +75,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           storage.setItem('fiddupay_token', response.data.api_key)
 
           // Persist per-environment token for seamless switching
-          const envKey = response.data.user?.sandbox_mode ? 'fiddupay_token_sandbox' : 'fiddupay_token_live'
+          const isLivePrefix = response.data.api_key.startsWith('sk_live_')
+          const envKey = isLivePrefix ? 'fiddupay_token_live' : 'fiddupay_token_sandbox'
           localStorage.setItem(envKey, response.data.api_key)
 
           set({
@@ -165,6 +166,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             if (sessionStorage.getItem('fiddupay_token')) {
               sessionStorage.setItem('fiddupay_token', profileUser.api_key)
             }
+
+            // Categorize the new token
+            const isLiveToken = profileUser.api_key.startsWith('sk_live_')
+            localStorage.setItem(isLiveToken ? 'fiddupay_token_live' : 'fiddupay_token_sandbox', profileUser.api_key)
           }
 
           set({

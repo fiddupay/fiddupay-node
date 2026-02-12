@@ -77,11 +77,14 @@ pub async fn auth_middleware(
     // Authenticate with merchant service
     match state.merchant_service.authenticate(&api_key).await {
         Ok(merchant) => {
+            // Strictly derive sandbox_mode from token prefix
+            let is_live_prefix = api_key.starts_with("sk_live_");
+            
             // Create merchant context
             let context = MerchantContext {
                 merchant_id: merchant.id,
                 api_key: api_key.clone(),
-                sandbox_mode: merchant.sandbox_mode,
+                sandbox_mode: !is_live_prefix,
             };
 
             // Attach context to request extensions

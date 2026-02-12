@@ -1,5 +1,15 @@
 # FidduPay Backend Changelog
 
+## [2.4.4] - 2026-02-13
+
+### Added
+- **Strict API Key Naming Convention**: Enforced use of `sk_sandbox_` and `sk_live_` prefixes for all API keys to provide clear environment identification.
+- **Dynamic Environment Derivation**: Backend now automatically determines the request environment (Sandbox vs Live) based solely on the API key prefix.
+- **Enhanced Authentication Security**: Strictly verifies API key prefixes and robustly parses merchant IDs for O(1) database lookups.
+
+### Changed
+- **Consolidated API Key Logic**: Removed all legacy and alternative API key prefixes (`sk_s_`, `sk_live_s_`, `live_`, etc.) to enforce a single naming standard.
+
 ## [2.4.3] - 2026-02-05
 
 ### Added

@@ -49,9 +49,9 @@ impl ApiKeyGenerator {
         format!("ref_{}", nanoid!(16))
     }
 
-    /// Generate session API key (sk_s_{id}_{random} prefix)
+    /// Generate session API key (sk_sandbox_ or sk_live_ prefix)
     pub fn generate_session_key(merchant_id: i64, is_live: bool) -> String {
-        let prefix = if is_live { "sk_live_s" } else { "sk_s" };
+        let prefix = if is_live { "sk_live" } else { "sk_sandbox" };
         format!("{}_{}_{}", prefix, merchant_id, nanoid!(24, &Self::ALPHABET))
     }
 }
