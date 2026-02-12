@@ -92,7 +92,7 @@ yarn add fiddupay-node
 import FidduPay from 'fiddupay-node';
 
 const fiddupay = new FidduPay({
-  apiKey: 'sk_test_...',
+  apiKey: 'sk_sandbox_...',
   environment: 'sandbox' // or 'production'
 });
 ```

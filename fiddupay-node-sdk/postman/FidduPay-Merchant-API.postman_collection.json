@@ -2,7 +2,7 @@
   "info": {
     "name": "FidduPay Merchant API SDK",
     "description": "Official Merchant API documentation for FidduPay Node.js SDK users.",
-    "version": "2.4.3",
+    "version": "2.4.4",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -26,7 +26,7 @@
     },
     {
       "key": "apiKey",
-      "value": "sandbox_test_key_12345",
+      "value": "sk_sandbox_key_12345",
       "type": "string",
       "description": "Merchant API key"
     }

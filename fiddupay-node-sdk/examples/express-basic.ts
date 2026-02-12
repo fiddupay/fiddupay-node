@@ -3,7 +3,7 @@ import { FidduPayClient } from '@fiddupay/fiddupay-node';
 
 const app = express();
 const client = new FidduPayClient({
-  apiKey: process.env.FIDDUPAY_API_KEY || 'sk_test_...',
+  apiKey: process.env.FIDDUPAY_API_KEY || 'sk_sandbox_...',
   environment: 'sandbox'
 });
 
@@ -13,7 +13,7 @@ app.use(express.json());
 app.post('/create-payment', async (req, res) => {
   try {
     const { amount_usd, amount, crypto_type, description } = req.body;
-    
+
     const payment = await client.payments.create({
       amount_usd,
       amount,
@@ -24,7 +24,7 @@ app.post('/create-payment', async (req, res) => {
         timestamp: new Date().toISOString()
       }
     });
-    
+
     res.json({
       success: true,
       payment: {
@@ -50,14 +50,14 @@ app.post('/create-payment', async (req, res) => {
 app.post('/create-address-only-payment', async (req, res) => {
   try {
     const { crypto_type, merchant_address, requested_amount, customer_pays_fee } = req.body;
-    
+
     const payment = await client.payments.createAddressOnly({
       crypto_type,
       merchant_address,
       requested_amount,
       customer_pays_fee: customer_pays_fee !== false // default true
     });
-    
+
     res.json({
       success: true,
       payment: {
@@ -82,11 +82,11 @@ app.post('/create-address-only-payment', async (req, res) => {
 app.post('/wallets/generate', async (req, res) => {
   try {
     const { crypto_type } = req.body;
-    
+
     const wallet = await client.wallets.generate({
       crypto_type
     });
-    
+
     res.json({
       success: true,
       wallet: {
@@ -103,12 +103,12 @@ app.post('/wallets/generate', async (req, res) => {
 app.post('/wallets/import', async (req, res) => {
   try {
     const { crypto_type, private_key } = req.body;
-    
+
     const wallet = await client.wallets.import({
       crypto_type,
       private_key
     });
-    
+
     res.json({
       success: true,
       wallet: {
@@ -126,7 +126,7 @@ app.post('/wallets/import', async (req, res) => {
 app.get('/payment/:id', async (req, res) => {
   try {
     const payment = await client.payments.retrieve(req.params.id);
-    
+
     res.json({
       success: true,
       payment: {
@@ -151,40 +151,40 @@ app.get('/payment/:id', async (req, res) => {
 });
 
 // Webhook endpoint - handles payment events
-app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, res) => {
+app.post('/webhooks/fiddupay', express.raw({ type: 'application/json' }), (req, res) => {
   const sig = req.headers['fiddupay-signature'] as string;
   const webhookSecret = process.env.FIDDUPAY_WEBHOOK_SECRET || 'whsec_test123';
-  
+
   try {
     const event = client.webhooks.constructEvent(req.body, sig, webhookSecret);
-    
+
     console.log('Received webhook event:', event.type, event.id);
-    
+
     switch (event.type) {
       case 'payment.confirmed':
         console.log(' Payment confirmed:', event.data.payment_id);
         break;
-        
+
       case 'payment.failed':
         console.log(' Payment failed:', event.data.payment_id);
         break;
-        
+
       case 'payment.expired':
         console.log('⏰ Payment expired:', event.data.payment_id);
         break;
-        
+
       case 'refund.completed':
         console.log(' Refund completed:', event.data.refund_id);
         break;
-        
+
       case 'refund.failed':
         console.log(' Refund failed:', event.data.refund_id);
         break;
-        
+
       default:
         console.log(' Unknown event type:', event.type);
     }
-    
+
     res.json({ received: true });
   } catch (error) {
     console.error('Webhook signature verification failed:', error.message);
@@ -196,13 +196,13 @@ app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, re
 app.get('/payments', async (req, res) => {
   try {
     const { limit, status, crypto_type } = req.query;
-    
+
     const payments = await client.payments.list({
       limit: limit ? parseInt(limit as string) : 20,
       status: status as any,
       crypto_type: crypto_type as any
     });
-    
+
     res.json({
       success: true,
       payments: payments.payments.map(p => ({
@@ -229,7 +229,7 @@ app.get('/payments', async (req, res) => {
 app.get('/balance', async (req, res) => {
   try {
     const balance = await client.merchants.getBalance();
-    
+
     res.json({
       success: true,
       balance

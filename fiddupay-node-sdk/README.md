@@ -48,7 +48,7 @@ npm install @fiddupay/fiddupay-node
 import { FidduPayClient } from '@fiddupay/fiddupay-node';
 
 const client = new FidduPayClient({
-  apiKey: 'sk_test_your_api_key',
+  apiKey: 'sk_sandbox_your_api_key',
   environment: 'sandbox' // or 'production'
 });
 
@@ -84,7 +84,7 @@ await client.sandbox.simulatePayment(payment.id, {
 
 ```typescript
 const client = new FidduPayClient({
-  apiKey: 'sk_test_your_api_key',
+  apiKey: 'sk_sandbox_your_api_key',
   environment: 'sandbox', // 'sandbox' or 'production'
   timeout: 30000, // Request timeout in milliseconds
   retries: 3, // Number of retry attempts

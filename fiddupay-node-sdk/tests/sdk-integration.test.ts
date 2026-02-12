@@ -6,7 +6,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
 
   beforeAll(() => {
     client = new FidduPay({
-      apiKey: 'sk_test_integration_key',
+      apiKey: 'sk_sandbox_integration_key',
       environment: 'sandbox',
       timeout: 30000
     });
@@ -34,7 +34,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
 
     it('should accept valid API key formats', () => {
       expect(() => {
-        new FidduPay({ apiKey: 'sk_test_valid_key' });
+        new FidduPay({ apiKey: 'sk_sandbox_valid_key' });
       }).not.toThrow();
 
       expect(() => {
@@ -104,7 +104,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
   describe('Configuration Validation', () => {
     it('should handle different environment settings', () => {
       const sandboxClient = new FidduPay({
-        apiKey: 'sk_test_sandbox',
+        apiKey: 'sk_sandbox_sandbox',
         environment: 'sandbox'
       });
       expect(sandboxClient).toBeInstanceOf(FidduPay);
@@ -118,7 +118,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
 
     it('should handle custom timeout settings', () => {
       const customClient = new FidduPay({
-        apiKey: 'sk_test_custom',
+        apiKey: 'sk_sandbox_custom',
         timeout: 60000
       });
       expect(customClient).toBeInstanceOf(FidduPay);
@@ -126,7 +126,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
 
     it('should handle custom base URL', () => {
       const customClient = new FidduPay({
-        apiKey: 'sk_test_custom',
+        apiKey: 'sk_sandbox_custom',
         baseURL: 'https://custom.api.fiddupay.com'
       });
       expect(customClient).toBeInstanceOf(FidduPay);
@@ -156,7 +156,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
   describe('Type Safety', () => {
     it('should enforce correct crypto types', () => {
       const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
-      
+
       validCryptoTypes.forEach(cryptoType => {
         expect(() => {
           const paymentData = {
@@ -172,7 +172,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
 
     it('should enforce correct payment status types', () => {
       const validStatuses = ['PENDING', 'CONFIRMING', 'CONFIRMED', 'FAILED', 'EXPIRED'];
-      
+
       validStatuses.forEach(status => {
         expect(validStatuses).toContain(status);
       });
@@ -183,7 +183,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
     it('should cover all major resource categories', () => {
       const expectedResources = [
         'payments',
-        'merchants', 
+        'merchants',
         'refunds',
         'wallets',
         'analytics',
@@ -201,7 +201,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
 
     it('should provide comprehensive payment operations', () => {
       const paymentMethods = ['create', 'retrieve', 'list', 'createAddressOnly'];
-      
+
       paymentMethods.forEach(method => {
         expect(client.payments).toHaveProperty(method);
         expect(typeof client.payments[method as keyof typeof client.payments]).toBe('function');
@@ -210,7 +210,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
 
     it('should provide comprehensive merchant operations', () => {
       const merchantMethods = ['register', 'rotateApiKey', 'switchEnvironment', 'getBalance', 'setWallet'];
-      
+
       merchantMethods.forEach(method => {
         expect(client.merchants).toHaveProperty(method);
         expect(typeof client.merchants[method as keyof typeof client.merchants]).toBe('function');
@@ -219,7 +219,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
 
     it('should provide webhook utilities', () => {
       const webhookMethods = ['verifySignature', 'constructEvent', 'generateSignature'];
-      
+
       webhookMethods.forEach(method => {
         expect(client.webhooks).toHaveProperty(method);
         expect(typeof client.webhooks[method as keyof typeof client.webhooks]).toBe('function');
@@ -250,7 +250,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
     it('should handle error responses appropriately', () => {
       // Test error handling structure
       const mockError = new FidduPayAPIError('Test error', 400, 'VALIDATION_ERROR');
-      
+
       expect(mockError).toBeInstanceOf(FidduPayAPIError);
       expect(mockError.message).toBe('Test error');
       expect(mockError.statusCode).toBe(400);

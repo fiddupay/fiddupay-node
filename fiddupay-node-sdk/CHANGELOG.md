@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.4.4] - 2026-02-13
+
+### 🚀 Developer Experience (DX) Simplification
+- **Strict API Key Prefixes**: Simplified API key naming convention to strictly use `sk_sandbox_` for Sandbox and `sk_live_` for Live environments. Legacy prefixes like `sk_test_` have been removed.
+- **Auto-Environment Detection**: Client now strictly determines the operating environment based on the API key prefix.
+- **Enhanced Validation**: Added strict validation to ensure API keys match the explicitly configured environment.
+
+### Changed
+- **Documentation Update**: All examples in `README.md`, `NODE_SDK.md`, and `openapi.yaml` now use the new prefix convention.
+- **Test Suite Migration**: Updated all unit and integration tests to use the new prefix naming.
+- **Postman Collection**: Updated all collection variables and environment templates to match the new strict prefixing.
+
 ## [2.4.3] - 2026-02-05
 
 ### 🚀 Developer Experience (DX) Simplification

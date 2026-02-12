@@ -81,7 +81,7 @@ export const API_DATA: DocSection[] = [
                     node: 'await fiddupay.merchants.switchEnvironment(false);'
                 },
                 response: JSON.stringify({
-                    api_key: "sk_test_sandbox_key_...",
+                    api_key: "sk_sandbox_sandbox_key_...",
                     environment: "sandbox"
                 }, null, 2)
             },
@@ -386,7 +386,7 @@ export const API_DATA: DocSection[] = [
                     node: 'await fiddupay.sandbox.enable();'
                 },
                 response: JSON.stringify({
-                    sandbox_api_key: "sk_test_sandbox_...",
+                    sandbox_api_key: "sk_sandbox_sandbox_...",
                     message: "Sandbox environment enabled"
                 }, null, 2)
             },
@@ -400,7 +400,7 @@ export const API_DATA: DocSection[] = [
                     { name: 'success', type: 'boolean', required: true, description: 'True to simulate success, false for failure' }
                 ],
                 request: {
-                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/sandbox/payments/pay_123/simulate \\\n  -H "Authorization: Bearer sk_test_..." \\\n  -d \'{"success": true}\'',
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/sandbox/payments/pay_123/simulate \\\n  -H "Authorization: Bearer sk_sandbox_..." \\\n  -d \'{"success": true}\'',
                     node: 'await fiddupay.sandbox.simulate("pay_123", true);'
                 },
                 response: JSON.stringify({

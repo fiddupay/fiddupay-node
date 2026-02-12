@@ -27,7 +27,7 @@ info:
     
     ## Sandbox Environment
     - **Sandbox URL**: https://api-sandbox.fiddupay.com
-    - **Test API Key**: sandbox_test_key_12345
+    - **Test API Key**: sk_sandbox_key_12345
     
     ## Security Features
     - 10/10 security score with XSS/CSRF protection
@@ -1065,7 +1065,7 @@ paths:
                 properties:
                   api_key:
                     type: string
-                    example: "sk_test_new_key"
+                    example: "sk_sandbox_new_key"
         '401':
           description: Unauthorized
           content:
@@ -2027,7 +2027,7 @@ paths:
                 properties:
                   sandbox_api_key:
                     type: string
-                    example: "sk_test_sandbox_key"
+                    example: "sk_sandbox_sandbox_key"
                   message:
                     type: string
                     example: "Sandbox environment enabled"

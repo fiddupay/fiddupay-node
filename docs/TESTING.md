@@ -18,7 +18,7 @@ This scenario tests the system's ability to detect an underpayment and trigger t
    Use the `Create Payment` API to generate a new payment for 100 USDT (ERC20).
    ```bash
    curl -X POST http://localhost:8080/v1/payments \
-     -H "Authorization: Bearer sk_test_..." \
+     -H "Authorization: Bearer sk_sandbox_..." \
      -H "Content-Type: application/json" \
      -d '{
        "amount": "100.00",

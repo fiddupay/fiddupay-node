@@ -7,7 +7,7 @@ describe('FidduPay SDK - Core Functionality', () => {
 
   beforeEach(() => {
     client = new FidduPay({
-      apiKey: 'sk_test_1234567890',
+      apiKey: 'sk_sandbox_1234567890',
       environment: 'sandbox'
     });
   });
@@ -15,7 +15,7 @@ describe('FidduPay SDK - Core Functionality', () => {
   describe('Constructor', () => {
     it('should create instance with valid config', () => {
       const fiddupay = new FidduPay({
-        apiKey: 'sk_test_1234567890'
+        apiKey: 'sk_sandbox_1234567890'
       });
 
       expect(fiddupay).toBeInstanceOf(FidduPay);
@@ -34,7 +34,7 @@ describe('FidduPay SDK - Core Functionality', () => {
 
     it('should support all crypto types', () => {
       const fiddupay = new FidduPay({
-        apiKey: 'sk_test_1234567890abcdef',
+        apiKey: 'sk_sandbox_1234567890abcdef',
         environment: 'sandbox'
       });
 
@@ -76,13 +76,13 @@ describe('FidduPay SDK - Core Functionality', () => {
     it('should throw error for invalid environment', () => {
       expect(() => {
         new FidduPay({
-          apiKey: 'sk_test_1234567890',
+          apiKey: 'sk_sandbox_1234567890',
           environment: 'invalid' as any
         });
       }).toThrow(FidduPayValidationError);
       expect(() => {
         new FidduPay({
-          apiKey: 'sk_test_1234567890',
+          apiKey: 'sk_sandbox_1234567890',
           environment: 'invalid' as any
         });
       }).toThrow('Environment must be either "sandbox" or "production"');
@@ -90,7 +90,7 @@ describe('FidduPay SDK - Core Functionality', () => {
 
     it('should create instance with all configuration options', () => {
       const fiddupay = new FidduPay({
-        apiKey: 'sk_test_full_config',
+        apiKey: 'sk_sandbox_full_config',
         environment: 'sandbox',
         timeout: 15000,
         maxRetries: 5,
@@ -388,7 +388,7 @@ describe('FidduPay SDK - Core Functionality', () => {
 
     it('should have different instances for different clients', () => {
       const client2 = new FidduPay({
-        apiKey: 'sk_test_different_client',
+        apiKey: 'sk_sandbox_different_client',
         environment: 'sandbox'
       });
 
