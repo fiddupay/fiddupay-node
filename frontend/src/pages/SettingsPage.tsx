@@ -44,11 +44,24 @@ const SettingsPage: React.FC = () => {
     useEffect(() => {
         if (user) {
             setSelectedMode(user.settlement_mode || 'managed')
-            fetchSettings()
-            setApiKey(user.api_key || '')
+
+            // Only update local apiKey if:
+            // 1. It's currently empty
+            // 2. The incoming key is valid AND we don't have a plaintext key currently shown
+            //    (This prevents overwriting a newly generated key with the masked version from profile fetch)
+            const incomingKey = user.api_key || ''
+            const isIncomingMasked = incomingKey.includes('********')
+            const isCurrentMasked = apiKey.includes('********') || !apiKey
+
+            // If we have a plaintext key displayed (newly generated), and the incoming is masked, 
+            // DON'T replace it. Otherwise (first load, or switching environments), update it.
+            if ((!apiKey && incomingKey) || (isCurrentMasked && incomingKey) || (!isIncomingMasked && incomingKey !== apiKey)) {
+                setApiKey(incomingKey)
+            }
+
             setRedirectUrl(user.redirect_url || '')
         }
-    }, [user, user?.sandbox_mode])
+    }, [user]) // Removed user?.sandbox_mode from deps to rely on the full user object check
 
     const fetchSettings = async () => {
         try {
@@ -313,20 +326,31 @@ const SettingsPage: React.FC = () => {
 
                                 <div className={styles.keyInputGroup}>
                                     <div className={styles.keyDisplay}>
-                                        {apiKey ? (showApiKey ? apiKey : `${apiKey.substring(0, 12)}**************************`) : 'No API key generated'}
+                                        {apiKey ? (
+                                            showApiKey ? apiKey : (
+                                                apiKey.includes('*') ? apiKey : `${apiKey.substring(0, 12)}...`
+                                            )
+                                        ) : 'No API key generated'}
                                     </div>
                                     <button
-                                        className={styles.copyBtn}
-                                        onClick={() => setShowApiKey(!showApiKey)}
+                                        className={`${styles.copyBtn} ${apiKey.includes('*') ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        onClick={() => {
+                                            if (apiKey.includes('*')) {
+                                                showToast('For security, existing keys cannot be viewed. Rotate to generate a new one.', 'info')
+                                                return
+                                            }
+                                            setShowApiKey(!showApiKey)
+                                        }}
                                         disabled={!apiKey}
-                                        title={showApiKey ? 'Hide Key' : 'Show Key'}
+                                        title={apiKey.includes('*') ? 'Cannot view existing key (Hidden for security)' : (showApiKey ? 'Hide Key' : 'Show Key')}
                                     >
                                         {showApiKey ? <MdVisibilityOff /> : <MdVisibility />}
                                     </button>
                                     <button
                                         className={styles.copyBtn}
                                         onClick={() => copyToClipboard(apiKey, 'API Key')}
-                                        disabled={!apiKey}
+                                        disabled={!apiKey || apiKey.includes('*')}
+                                        title={apiKey.includes('*') ? 'Rotate key to get a valid copy' : 'Copy Key'}
                                     >
                                         <MdContentCopy /> Copy
                                     </button>

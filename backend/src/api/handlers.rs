@@ -88,6 +88,7 @@ pub struct MerchantProfile {
     pub id: i64,
     pub business_name: String,
     pub email: String,
+    pub api_key: String, // Added field
     pub created_at: String,
     pub two_factor_enabled: bool,
     pub daily_limit_usd: Option<String>,
@@ -130,6 +131,7 @@ pub async fn register_merchant(
                     id: response.merchant_id,
                     business_name: req.business_name,
                     email: req.email,
+                    api_key: response.api_key, // Return the REAL key once on registration
                     created_at: chrono::Utc::now().to_rfc3339(),
                     two_factor_enabled: false,
                     daily_limit_usd: None,
@@ -201,6 +203,17 @@ pub async fn login_merchant(
                     merchant.daily_limit_usd
                 ).await.unwrap_or(Decimal::new(1000, 0));
 
+                // Auto-generate API key if missing (e.g. legacy user or DB reset)
+                let has_test_key = merchant.test_api_key_hash.is_some() && merchant.test_api_key_hash.as_ref().unwrap() != "PENDING";
+                
+                if !has_test_key {
+                    tracing::info!("Auto-generating missing API key for merchant {}", merchant.id);
+                    // We ignore the result (the key string) here because we can't show it securely 
+                    // without a dedicated "New Key" modal. We just ensure it exists.
+                    // The user will see a masked key and can rotate if they need the raw value.
+                    let _ = merchant_service.generate_and_store_api_key_with_expiry(merchant.id, false, None).await;
+                }
+
                 // Generate Dashboard JWT (No API key rotation)
                 use jsonwebtoken::{encode, Header, EncodingKey};
                 use crate::middleware::auth::DashboardClaims;
@@ -224,11 +237,29 @@ pub async fn login_merchant(
                 let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(secret.as_bytes()))
                     .unwrap_or_default();
 
+                // Format masked key for display
+                let display_key = if merchant.sandbox_mode {
+                    // We just ensured test key exists or was generated
+                    "sk_test_********".to_string()
+                } else {
+                    // Check live key
+                    if let Some(h) = &merchant.live_api_key_hash {
+                         if h != "PENDING" && !h.is_empty() {
+                             "sk_live_********".to_string()
+                         } else {
+                             "Not generated".to_string()
+                         }
+                    } else {
+                         "Not generated".to_string()
+                    }
+                };
+
                 AuthResponse {
                     user: MerchantProfile {
                         id: merchant.id,
                         business_name: merchant.business_name,
                         email: merchant.email,
+                        api_key: display_key,
                         created_at: merchant.created_at.to_rfc3339(),
                         two_factor_enabled: false,
                         daily_limit_usd: merchant.daily_limit_usd.map(|d| d.to_string()),

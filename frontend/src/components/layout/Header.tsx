@@ -10,7 +10,9 @@ const Header: React.FC = () => {
   const { user, loadUser } = useAuthStore()
   const { showToast } = useToast()
 
-  const handleSwitchEnvironment = async () => {
+  const handleSwitchEnvironment = async (e: React.MouseEvent) => {
+    e.preventDefault()
+
     // Suppress 401 interceptor BEFORE the API call to prevent
     // concurrent requests from triggering logout during the switch.
     setSuppressAuthRedirect(true)
