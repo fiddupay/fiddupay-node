@@ -17,35 +17,11 @@ const Header: React.FC = () => {
 
     try {
       const toLive = user?.sandbox_mode || false
-      const response = await merchantAPI.switchEnvironment(toLive)
+      await merchantAPI.switchEnvironment(toLive)
 
-      // If the backend generated a first-time key for the new environment, save it
-      if (response.data.api_key) {
-        const envKey = toLive ? 'fiddupay_token_live' : 'fiddupay_token_sandbox'
-        localStorage.setItem(envKey, response.data.api_key)
+      // If the backend returned a specific key for this environment, it's for display only now.
+      // We don't need to store it as a session token since we use JWT.
 
-        // Also update the active token
-        localStorage.setItem('fiddupay_token', response.data.api_key)
-        if (sessionStorage.getItem('fiddupay_token')) {
-          sessionStorage.setItem('fiddupay_token', response.data.api_key)
-        }
-      } else {
-        // Backend didn't return a key (already exists in DB), so we swap to our stored one
-        const envKey = toLive ? 'fiddupay_token_live' : 'fiddupay_token_sandbox'
-        const storedKey = localStorage.getItem(envKey)
-
-        if (storedKey) {
-          localStorage.setItem('fiddupay_token', storedKey)
-          if (sessionStorage.getItem('fiddupay_token')) {
-            sessionStorage.setItem('fiddupay_token', storedKey)
-          }
-        } else {
-          // Safety: If somehow we don't have it locally but backend says it exists,
-          // clear active token so user is forced to see "No Key" in settings or rotate.
-          localStorage.removeItem('fiddupay_token')
-          sessionStorage.removeItem('fiddupay_token')
-        }
-      }
 
       // Reload user profile to pick up the new sandbox_mode
       await loadUser(true)

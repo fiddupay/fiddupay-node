@@ -80,7 +80,7 @@ pub struct LoginMerchantRequest {
 #[derive(Serialize)]
 pub struct AuthResponse {
     pub user: MerchantProfile,
-    pub api_key: String,
+    pub dashboard_token: String,
 }
 
 #[derive(Serialize)]
@@ -108,6 +108,23 @@ pub async fn register_merchant(
 
     match state.merchant_service.register_merchant(&req.email, &req.business_name, &req.password).await {
         Ok(response) => {
+            // Generate JWT for new registration
+            let now = chrono::Utc::now();
+            let exp = (now + chrono::Duration::hours(24)).timestamp() as usize;
+            
+            use jsonwebtoken::{encode, Header, EncodingKey};
+            use crate::middleware::auth::DashboardClaims;
+            
+            let claims = DashboardClaims {
+                sub: response.merchant_id.to_string(),
+                exp,
+                iat: now.timestamp() as usize,
+            };
+            
+            let secret = &state.config.jwt_secret;
+            let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(secret.as_bytes()))
+                .unwrap_or_default();
+                
             let auth_response = AuthResponse {
                 user: MerchantProfile {
                     id: response.merchant_id,
@@ -116,13 +133,14 @@ pub async fn register_merchant(
                     created_at: chrono::Utc::now().to_rfc3339(),
                     two_factor_enabled: false,
                     daily_limit_usd: None,
-                    daily_volume_remaining: state.config.daily_volume_limit_non_kyc_usd.to_string(), // Use configured limit for new accounts
+                    daily_volume_remaining: state.config.daily_volume_limit_non_kyc_usd.to_string(),
                     kyc_verified: false,
                     sandbox_mode: true,
                     settlement_mode: "managed".to_string(),
                 },
-                api_key: response.api_key,
+                dashboard_token: token,
             };
+            
             (StatusCode::CREATED, Json(auth_response)).into_response()
         },
         Err(e) => e.into_response(),
@@ -172,19 +190,10 @@ pub async fn login_merchant(
             }
 
             let auth_response = {
-                // For regular merchants, generate a new API key and store it
-                // This ensures fresh, unpredictable keys on each login
                 let merchant_service = crate::services::merchant_service::MerchantService::new(
                     state.db_pool.clone(),
                     state.config.clone(),
                 );
-                
-                // Calculate expiration based on remember_me
-                let expires_at = if req.remember_me.unwrap_or(false) {
-                    Some(chrono::Utc::now() + chrono::Duration::days(30))
-                } else {
-                    Some(chrono::Utc::now() + chrono::Duration::hours(24)) // Default 24h session
-                };
 
                 let remaining_volume: Decimal = merchant_service.get_daily_volume_remaining(
                     merchant.id,
@@ -192,32 +201,43 @@ pub async fn login_merchant(
                     merchant.daily_limit_usd
                 ).await.unwrap_or(Decimal::new(1000, 0));
 
-                // Generate and store a new session key (searchable by ID)
-                let new_api_key = crate::utils::api_keys::ApiKeyGenerator::generate_session_key(merchant.id, !merchant.sandbox_mode);
-                match merchant_service.store_api_key_with_expiry(merchant.id, &new_api_key, expires_at).await {
-                    Ok(_) => {
-                        AuthResponse {
-                            user: MerchantProfile {
-                                id: merchant.id,
-                                business_name: merchant.business_name,
-                                email: merchant.email,
-                                created_at: merchant.created_at.to_rfc3339(),
-                                two_factor_enabled: false,
-                                daily_limit_usd: merchant.daily_limit_usd.map(|d| d.to_string()),
-                                daily_volume_remaining: remaining_volume.to_string(),
-                                kyc_verified: merchant.kyc_verified,
-                                sandbox_mode: merchant.sandbox_mode,
-                                settlement_mode: merchant.settlement_mode,
-                            },
-                            api_key: new_api_key,
-                        }
-                    }
-                    Err(e) => {
-                        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
-                            "error": "Failed to generate API key",
-                            "message": e.to_string()
-                        }))).into_response();
-                    }
+                // Generate Dashboard JWT (No API key rotation)
+                use jsonwebtoken::{encode, Header, EncodingKey};
+                use crate::middleware::auth::DashboardClaims;
+                
+                let now = chrono::Utc::now();
+                let duration = if req.remember_me.unwrap_or(false) {
+                    chrono::Duration::days(30)
+                } else {
+                    chrono::Duration::hours(24)
+                };
+                
+                let exp = (now + duration).timestamp() as usize;
+                
+                let claims = DashboardClaims {
+                    sub: merchant.id.to_string(),
+                    exp,
+                    iat: now.timestamp() as usize,
+                };
+                
+                let secret = &state.config.jwt_secret;
+                let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(secret.as_bytes()))
+                    .unwrap_or_default();
+
+                AuthResponse {
+                    user: MerchantProfile {
+                        id: merchant.id,
+                        business_name: merchant.business_name,
+                        email: merchant.email,
+                        created_at: merchant.created_at.to_rfc3339(),
+                        two_factor_enabled: false,
+                        daily_limit_usd: merchant.daily_limit_usd.map(|d| d.to_string()),
+                        daily_volume_remaining: remaining_volume.to_string(),
+                        kyc_verified: merchant.kyc_verified,
+                        sandbox_mode: merchant.sandbox_mode,
+                        settlement_mode: merchant.settlement_mode,
+                    },
+                    dashboard_token: token,
                 }
             };
             (StatusCode::OK, Json(auth_response)).into_response()
@@ -247,7 +267,8 @@ pub async fn get_merchant_profile(
     let merchant = match sqlx::query!(
         r#"
         SELECT id, business_name, email, sandbox_mode, settlement_mode, 
-               kyc_verified, daily_limit_usd, created_at, redirect_url
+               kyc_verified, daily_limit_usd, created_at, redirect_url,
+               test_api_key_hash, live_api_key_hash
         FROM merchants
         WHERE id = $1
         "#,
@@ -278,12 +299,25 @@ pub async fn get_merchant_profile(
         }
     };
 
-    // 3. Construct profile
+    // 3. Construct profile with masked API key if it's a dashboard session
+    let display_key = if context.api_key == "DASHBOARD_SESSION" {
+        // Show masked version of the current environment's key hash
+        let hash = if merchant.sandbox_mode { &merchant.test_api_key_hash } else { &merchant.live_api_key_hash };
+        if hash == "PENDING" || hash.is_empty() {
+            "Not generated".to_string()
+        } else {
+            // Masked format
+            format!("sk_{}_********", if merchant.sandbox_mode { "test" } else { "live" })
+        }
+    } else {
+        context.api_key.clone()
+    };
+
     let mut profile = json!({
         "id": merchant.id,
         "business_name": merchant.business_name,
         "email": merchant.email,
-        "api_key": context.api_key,
+        "api_key": display_key,
         "redirect_url": merchant.redirect_url,
         "webhook_url": webhook_url,
         "webhook_format": webhook_format,

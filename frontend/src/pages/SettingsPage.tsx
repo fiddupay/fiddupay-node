@@ -35,6 +35,7 @@ const SettingsPage: React.FC = () => {
     const [redirectUrl, setRedirectUrl] = useState('')
     const [webhookFormat, setWebhookFormat] = useState('standard')
     const [apiKey, setApiKey] = useState('')
+    const [showApiKey, setShowApiKey] = useState(false)
     const [showRotateConfirm, setShowRotateConfirm] = useState(false)
     const [showSecret, setShowSecret] = useState(false)
     const [signingSecret, setSigningSecret] = useState('••••••••••••••••••••••••••••••••')
@@ -123,10 +124,7 @@ const SettingsPage: React.FC = () => {
                 const response = await merchantAPI.generateApiKey(!user.sandbox_mode)
                 const newKey = response.data.api_key
 
-                localStorage.setItem('fiddupay_token', newKey)
-                if (sessionStorage.getItem('fiddupay_token')) {
-                    sessionStorage.setItem('fiddupay_token', newKey)
-                }
+
 
                 setApiKey(newKey)
                 await loadUser(true)
@@ -152,10 +150,7 @@ const SettingsPage: React.FC = () => {
             const response = await merchantAPI.rotateApiKey()
             const newKey = response.data.api_key
 
-            localStorage.setItem('fiddupay_token', newKey)
-            if (sessionStorage.getItem('fiddupay_token')) {
-                sessionStorage.setItem('fiddupay_token', newKey)
-            }
+
 
             setApiKey(newKey)
             await loadUser(true)
@@ -318,8 +313,16 @@ const SettingsPage: React.FC = () => {
 
                                 <div className={styles.keyInputGroup}>
                                     <div className={styles.keyDisplay}>
-                                        {apiKey ? `${apiKey.substring(0, 12)}**************************` : 'No API key generated'}
+                                        {apiKey ? (showApiKey ? apiKey : `${apiKey.substring(0, 12)}**************************`) : 'No API key generated'}
                                     </div>
+                                    <button
+                                        className={styles.copyBtn}
+                                        onClick={() => setShowApiKey(!showApiKey)}
+                                        disabled={!apiKey}
+                                        title={showApiKey ? 'Hide Key' : 'Show Key'}
+                                    >
+                                        {showApiKey ? <MdVisibilityOff /> : <MdVisibility />}
+                                    </button>
                                     <button
                                         className={styles.copyBtn}
                                         onClick={() => copyToClipboard(apiKey, 'API Key')}

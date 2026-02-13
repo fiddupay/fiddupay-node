@@ -148,15 +148,10 @@ impl MerchantService {
         .await?
         .ok_or(ServiceError::MerchantNotFound)?;
 
-        let has_key = if to_live {
-            merchant.live_api_key_hash.is_some()
-        } else {
-            merchant.test_api_key_hash.is_some()
-        };
-
         if has_key {
-            // Key exists — no regeneration needed. The existing session token
-            // continues to work because auth checks by token prefix, not sandbox_mode.
+            // Key exists — no regeneration needed.
+            // Dashboard authentication will now rely on the persistent session token,
+            // not on possessing this specific API key.
             tracing::info!("Environment switch for merchant {}: to_live={}, existing key found — no regeneration", merchant_id, to_live);
             Ok(None)
         } else {

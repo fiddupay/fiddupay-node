@@ -57,6 +57,7 @@ hmac = "0.12"
 # UUID/ID generation
 uuid = { version = "1.6", features = ["v4", "serde"] }
 nanoid = "0.4"
+jsonwebtoken = "9.2"
 
 # URL parsing and validation
 url = "2.5"

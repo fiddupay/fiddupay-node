@@ -18,16 +18,21 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('fiddupay_token') || sessionStorage.getItem('fiddupay_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    // 1. Prioritize Dashboard Session Token (JWT)
+    // The dashboard application should authenticate with its own session token.
+    const dashboardToken = localStorage.getItem('fiddupay_dashboard_token') || sessionStorage.getItem('fiddupay_dashboard_token');
+
+    if (dashboardToken) {
+      config.headers.Authorization = `Bearer ${dashboardToken}`;
+      return config;
     }
-    return config
+
+    return config;
   },
   (error) => {
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
-)
+);
 
 // Response interceptor for error handling
 api.interceptors.response.use(
@@ -38,10 +43,11 @@ api.interceptors.response.use(
 
       if (!isAuthPage && !suppressAuthRedirect) {
         // Clear auth tokens from both storages
-        localStorage.removeItem('fiddupay_token')
-        sessionStorage.removeItem('fiddupay_token')
 
-        // Clear the Zustand auth state from both storages
+        localStorage.removeItem('fiddupay_dashboard_token')
+        sessionStorage.removeItem('fiddupay_dashboard_token')
+
+        // Clear the Zustand auth state
         localStorage.removeItem('fiddupay-auth')
         sessionStorage.removeItem('fiddupay-auth')
 

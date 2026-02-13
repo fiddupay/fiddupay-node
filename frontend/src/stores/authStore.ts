@@ -6,6 +6,7 @@ import { authAPI, merchantAPI } from '@/services/apiService'
 interface AuthState {
   user: User | null
   token: string | null
+  dashboard_token: string | null // NEW: Persistent session token
   isAuthenticated: boolean
   loading: boolean
   error: string | null
@@ -21,8 +22,6 @@ interface AuthActions {
 }
 
 // Custom storage to handle "Remember Me" logic
-// This ensures that the Zustand state (user, isAuthenticated) is stored 
-// in the same place as the token.
 const customStateStorage: StateStorage = {
   getItem: (name: string): string | null => {
     return localStorage.getItem(name) || sessionStorage.getItem(name)
@@ -55,6 +54,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       // State
       user: null,
       token: null,
+      dashboard_token: null,
       isAuthenticated: false,
       loading: false,
       error: null,
@@ -67,21 +67,15 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           set({ loading: true, error: null })
           const response = await authAPI.login(credentials)
 
-          // Clear both storages before setting the new token to avoid conflicts
-          localStorage.removeItem('fiddupay_token')
-          sessionStorage.removeItem('fiddupay_token')
-
           const storage = rememberMe ? localStorage : sessionStorage
-          storage.setItem('fiddupay_token', response.data.api_key)
 
-          // Persist per-environment token for seamless switching
-          const isLivePrefix = response.data.api_key.startsWith('sk_live_')
-          const envKey = isLivePrefix ? 'fiddupay_token_live' : 'fiddupay_token_sandbox'
-          localStorage.setItem(envKey, response.data.api_key)
+          // Store dashboard token
+          storage.setItem('fiddupay_dashboard_token', response.data.dashboard_token)
 
           set({
             user: response.data.user,
-            token: response.data.api_key,
+            token: response.data.dashboard_token, // JWT is our primary session token
+            dashboard_token: response.data.dashboard_token,
             isAuthenticated: true,
             loading: false,
             rememberMe: rememberMe
@@ -100,15 +94,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           set({ loading: true, error: null })
           const response = await authAPI.register(data)
 
-          // Registration always defaults to persistent for convenience, 
-          // but we follow current pattern of using localStorage.
-          localStorage.setItem('fiddupay_token', response.data.api_key)
-          // New accounts start in sandbox mode
-          localStorage.setItem('fiddupay_token_sandbox', response.data.api_key)
+          // Store dashboard token
+          localStorage.setItem('fiddupay_dashboard_token', response.data.dashboard_token)
 
           set({
             user: response.data.user,
-            token: response.data.api_key,
+            token: response.data.dashboard_token, // JWT is our primary session token
+            dashboard_token: response.data.dashboard_token,
             isAuthenticated: true,
             loading: false,
             rememberMe: true // Default to true for registration
@@ -123,13 +115,15 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
 
       logout: () => {
-        localStorage.removeItem('fiddupay_token')
-        sessionStorage.removeItem('fiddupay_token')
-        localStorage.removeItem('fiddupay_token_live')
-        localStorage.removeItem('fiddupay_token_sandbox')
+
+        // Clear dashboard token
+        localStorage.removeItem('fiddupay_dashboard_token')
+        sessionStorage.removeItem('fiddupay_dashboard_token')
+
         set({
           user: null,
           token: null,
+          dashboard_token: null,
           isAuthenticated: false,
           error: null,
           rememberMe: false
@@ -141,11 +135,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
 
       loadUser: async (silent: boolean = false) => {
-        const token = localStorage.getItem('fiddupay_token') || sessionStorage.getItem('fiddupay_token')
-        if (!token) {
+        const dashboardToken = localStorage.getItem('fiddupay_dashboard_token') || sessionStorage.getItem('fiddupay_dashboard_token')
+
+        if (!dashboardToken) {
           set({
             user: null,
             token: null,
+            dashboard_token: null,
             isAuthenticated: false,
             loading: false
           })
@@ -156,25 +152,11 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           if (!silent) set({ loading: true })
           const response = await merchantAPI.getProfile()
           const profileUser = response.data.user
-          const newApiToken = profileUser.api_key || token
-
-          // Update storage with the latest token from profile if it changed
-          if (profileUser.api_key && profileUser.api_key !== token) {
-            if (localStorage.getItem('fiddupay_token')) {
-              localStorage.setItem('fiddupay_token', profileUser.api_key)
-            }
-            if (sessionStorage.getItem('fiddupay_token')) {
-              sessionStorage.setItem('fiddupay_token', profileUser.api_key)
-            }
-
-            // Categorize the new token
-            const isLiveToken = profileUser.api_key.startsWith('sk_live_')
-            localStorage.setItem(isLiveToken ? 'fiddupay_token_live' : 'fiddupay_token_sandbox', profileUser.api_key)
-          }
 
           set({
             user: profileUser,
-            token: newApiToken,
+            token: dashboardToken,
+            dashboard_token: dashboardToken,
             isAuthenticated: true,
             loading: false,
           })
@@ -195,6 +177,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       storage: createJSONStorage(() => customStateStorage),
       partialize: (state) => ({
         user: state.user,
+        dashboard_token: state.dashboard_token, // Persist dashboard token
         isAuthenticated: state.isAuthenticated,
         rememberMe: state.rememberMe
       } as any),
