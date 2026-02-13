@@ -148,6 +148,9 @@ impl MerchantService {
         .await?
         .ok_or(ServiceError::MerchantNotFound)?;
 
+        let target_hash = if to_live { &merchant.live_api_key_hash } else { &merchant.test_api_key_hash };
+        let has_key = target_hash.as_ref().map(|h| h != "PENDING" && !h.is_empty()).unwrap_or(false);
+
         if has_key {
             // Key exists — no regeneration needed.
             // Dashboard authentication will now rely on the persistent session token,

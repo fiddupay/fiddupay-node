@@ -302,8 +302,10 @@ pub async fn get_merchant_profile(
     // 3. Construct profile with masked API key if it's a dashboard session
     let display_key = if context.api_key == "DASHBOARD_SESSION" {
         // Show masked version of the current environment's key hash
-        let hash = if merchant.sandbox_mode { &merchant.test_api_key_hash } else { &merchant.live_api_key_hash };
-        if hash == "PENDING" || hash.is_empty() {
+        let hash_opt = if merchant.sandbox_mode { &merchant.test_api_key_hash } else { &merchant.live_api_key_hash };
+        let is_valid = hash_opt.as_ref().map(|h| h != "PENDING" && !h.is_empty()).unwrap_or(false);
+        
+        if !is_valid {
             "Not generated".to_string()
         } else {
             // Masked format
