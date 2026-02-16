@@ -31,7 +31,11 @@ const SettingsPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabType>('settlement')
     const [selectedMode, setSelectedMode] = useState<'forwarding' | 'managed' | 'imported'>('managed')
     const [customerPaysFee, setCustomerPaysFee] = useState(false)
-    const [webhookUrl, setWebhookUrl] = useState('')
+    const [webhookUrls, setWebhookUrls] = useState({
+        standard: '',
+        discord: '',
+        slack: ''
+    })
     const [redirectUrl, setRedirectUrl] = useState('')
     const [webhookFormat, setWebhookFormat] = useState('standard')
     const [apiKey, setApiKey] = useState('')
@@ -64,8 +68,16 @@ const SettingsPage: React.FC = () => {
             }
 
             setRedirectUrl(user.redirect_url || '')
-            setWebhookUrl(user.webhook_url || '')
-            setWebhookFormat(user.webhook_format || 'standard')
+
+            // Populate the correct webhook URL based on the format
+            // Other formats start empty (avoids bleeding)
+            const format = user.webhook_format || 'standard'
+            setWebhookUrls(prev => ({
+                ...prev,
+                [format]: user.webhook_url || ''
+            }))
+
+            setWebhookFormat(format)
         }
     }, [user]) // Removed user?.sandbox_mode from deps to rely on the full user object check
 
@@ -128,8 +140,12 @@ const SettingsPage: React.FC = () => {
     }
 
     const handleUpdateWebhook = async () => {
+        // Get the URL for the currently selected format
+        // @ts-ignore - dynamic key access
+        const urlToSave = webhookUrls[webhookFormat] || ''
+
         await handleUpdateSettings({
-            webhook_url: webhookUrl,
+            webhook_url: urlToSave,
             webhook_format: webhookFormat
         })
     }
@@ -466,22 +482,26 @@ const SettingsPage: React.FC = () => {
                                         <div className={styles.inputWrapper}>
                                             <input
                                                 type="url"
-                                                value={webhookUrl}
-                                                onChange={(e) => setWebhookUrl(e.target.value)}
+                                                // @ts-ignore
+                                                value={webhookUrls[webhookFormat]}
+                                                onChange={(e) => setWebhookUrls(prev => ({
+                                                    ...prev,
+                                                    [webhookFormat]: e.target.value
+                                                }))}
                                                 placeholder={webhookFormat === 'discord' ? "https://discord.com/api/webhooks/..." : (webhookFormat === 'slack' ? "https://hooks.slack.com/services/..." : "https://your-domain.com/webhooks/fiddupay")}
                                                 className={styles.urlInput}
                                             />
                                             <button
                                                 className={styles.saveBtn}
                                                 onClick={handleUpdateWebhook}
-                                                disabled={loading || !webhookUrl}
+                                                disabled={loading || !webhookUrls[webhookFormat as keyof typeof webhookUrls]}
                                             >
                                                 {loading ? 'Saving...' : 'Update Settings'}
                                             </button>
                                             <button
                                                 className={styles.copyBtn}
                                                 onClick={handleSendTestWebhook}
-                                                disabled={loading || !webhookUrl}
+                                                disabled={loading || !webhookUrls[webhookFormat as keyof typeof webhookUrls]}
                                                 title="Send a sample notification to your URL"
                                             >
                                                 <MdFlashOn /> Test Webhook
