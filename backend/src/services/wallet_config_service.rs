@@ -271,6 +271,77 @@ impl WalletConfigService {
 
         Ok(())
     }
+
+    // =========================================================================
+    // Forwarding-mode wallet methods (separate table: merchant_forwarding_wallets)
+    // =========================================================================
+
+    /// Set a forwarding destination address for a specific crypto type.
+    /// This writes to `merchant_forwarding_wallets`, NOT `merchant_wallets`.
+    pub async fn set_forwarding_address(
+        &self,
+        merchant_id: i64,
+        crypto_type: CryptoType,
+        address: String,
+        is_active: bool,
+    ) -> Result<WalletConfig, ServiceError> {
+        let network = crypto_type.network().to_string();
+
+        let config = sqlx::query_as!(
+            WalletConfig,
+            r#"
+            INSERT INTO merchant_forwarding_wallets (merchant_id, crypto_type, network, address, is_active)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (merchant_id, crypto_type)
+            DO UPDATE SET address = $4, is_active = $5, updated_at = NOW()
+            RETURNING id, merchant_id, crypto_type, network, address, is_active,
+                      NULL::text as encrypted_private_key, created_at, updated_at
+            "#,
+            merchant_id,
+            crypto_type.to_string(),
+            network,
+            address,
+            is_active
+        )
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        Ok(config)
+    }
+
+    /// Get all forwarding wallet configs for a merchant.
+    pub async fn get_forwarding_configs(&self, merchant_id: i64) -> Result<Vec<WalletConfig>, ServiceError> {
+        let configs = sqlx::query_as!(
+            WalletConfig,
+            r#"
+            SELECT id, merchant_id, crypto_type, network, address, is_active,
+                   NULL::text as encrypted_private_key, created_at, updated_at
+            FROM merchant_forwarding_wallets
+            WHERE merchant_id = $1
+            "#,
+            merchant_id
+        )
+        .fetch_all(&self.db_pool)
+        .await?;
+
+        Ok(configs)
+    }
+
+    /// Delete (soft-delete) a forwarding wallet config.
+    pub async fn delete_forwarding_config(&self, merchant_id: i64, crypto_type_str: String) -> Result<(), ServiceError> {
+        let crypto_type = CryptoType::from_string(&crypto_type_str);
+
+        sqlx::query!(
+            "UPDATE merchant_forwarding_wallets SET address = '', is_active = false, updated_at = NOW()
+             WHERE merchant_id = $1 AND crypto_type = $2",
+            merchant_id,
+            crypto_type.to_string()
+        )
+        .execute(&self.db_pool)
+        .await?;
+
+        Ok(())
+    }
 }
 #[derive(Debug, Deserialize)]
 pub struct ConfigureWalletRequest {

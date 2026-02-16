@@ -29,8 +29,22 @@ pub async fn get_wallet_configs(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
-    
-    match wallet_service.get_wallet_configs(context.merchant_id).await {
+
+    // Check settlement mode to decide which table to read from
+    let settlement_mode = sqlx::query_scalar!("SELECT settlement_mode FROM merchants WHERE id = $1", context.merchant_id)
+        .fetch_optional(&state.db_pool)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "managed".to_string());
+
+    let result = if settlement_mode == "forwarding" {
+        wallet_service.get_forwarding_configs(context.merchant_id).await
+    } else {
+        wallet_service.get_wallet_configs(context.merchant_id).await
+    };
+
+    match result {
         Ok(configs) => (StatusCode::OK, Json(json!({
             "wallets": configs,
             "supported_networks": ["ethereum", "bsc", "polygon", "arbitrum", "solana"]
@@ -125,8 +139,22 @@ pub async fn delete_wallet(
     Path(crypto_type): Path<String>,
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
-    
-    match wallet_service.delete_wallet_config(context.merchant_id, crypto_type).await {
+
+    // Route to correct table based on settlement mode
+    let settlement_mode = sqlx::query_scalar!("SELECT settlement_mode FROM merchants WHERE id = $1", context.merchant_id)
+        .fetch_optional(&state.db_pool)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "managed".to_string());
+
+    let result = if settlement_mode == "forwarding" {
+        wallet_service.delete_forwarding_config(context.merchant_id, crypto_type).await
+    } else {
+        wallet_service.delete_wallet_config(context.merchant_id, crypto_type).await
+    };
+
+    match result {
         Ok(_) => (StatusCode::OK, Json(json!({
             "message": "Wallet configuration removed successfully"
         }))).into_response(),
@@ -295,18 +323,45 @@ pub async fn setup_wallet(
     match req.mode.as_str() {
         "address" => {
             if let Some(address) = req.address {
-                let configure_request = ConfigureWalletRequest {
-                    crypto_type: req.crypto_type,
-                    address,
-                    is_active: req.is_active,
-                };
-                match wallet_service.configure_address_only(context.merchant_id, configure_request).await {
-                    Ok(config) => (StatusCode::OK, Json(json!({
-                        "wallet": config,
-                        "mode": "address",
-                        "message": "Address-only wallet configured successfully."
-                    }))).into_response(),
-                    Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+                // Check settlement mode to decide which table to write to
+                let settlement_mode = sqlx::query_scalar!("SELECT settlement_mode FROM merchants WHERE id = $1", context.merchant_id)
+                    .fetch_optional(&state.db_pool)
+                    .await
+                    .ok()
+                    .flatten()
+                    .unwrap_or_else(|| "managed".to_string());
+
+                if settlement_mode == "forwarding" {
+                    // Write to merchant_forwarding_wallets
+                    let crypto_type = CryptoType::from_string(&req.crypto_type);
+                    match wallet_service.set_forwarding_address(
+                        context.merchant_id,
+                        crypto_type,
+                        address,
+                        req.is_active.unwrap_or(true),
+                    ).await {
+                        Ok(config) => (StatusCode::OK, Json(json!({
+                            "wallet": config,
+                            "mode": "address",
+                            "message": "Forwarding address configured successfully."
+                        }))).into_response(),
+                        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+                    }
+                } else {
+                    // Write to merchant_wallets (managed / imported)
+                    let configure_request = ConfigureWalletRequest {
+                        crypto_type: req.crypto_type,
+                        address,
+                        is_active: req.is_active,
+                    };
+                    match wallet_service.configure_address_only(context.merchant_id, configure_request).await {
+                        Ok(config) => (StatusCode::OK, Json(json!({
+                            "wallet": config,
+                            "mode": "address",
+                            "message": "Address-only wallet configured successfully."
+                        }))).into_response(),
+                        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+                    }
                 }
             } else {
                 (StatusCode::BAD_REQUEST, Json(json!({"error": "Address is required for mode 'address'"}))).into_response()

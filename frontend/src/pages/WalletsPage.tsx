@@ -34,7 +34,14 @@ const WalletsPage: React.FC = () => {
     address: ''
   })
 
+  const [applyToAllEvm, setApplyToAllEvm] = useState(false)
+
   const [supportedCryptos, setSupportedCryptos] = useState<any[]>([])
+
+  // Helper: check if a network is EVM (not Solana)
+  const isEvmNetwork = (networkName: string) => {
+    return !networkName.toLowerCase().includes('solana')
+  }
 
   useEffect(() => {
     fetchInitialData()
@@ -100,25 +107,65 @@ const WalletsPage: React.FC = () => {
 
       const mode = settlementMode === 'imported' ? 'import' : 'address';
 
-      // Find the network object for the selected crypto_type to get all related cryptos
-      const network = supportedCryptos.find(n => n.cryptos.some((c: any) => c.crypto_type === newWallet.crypto_type));
-      const cryptosToUpdate = network ? network.cryptos.map((c: any) => c.crypto_type) : [newWallet.crypto_type];
+      if (settlementMode === 'forwarding') {
+        // Forwarding mode: apply per-network or all-EVM based on checkbox
+        const selectedNetwork = supportedCryptos.find(n => n.cryptos.some((c: any) => c.crypto_type === newWallet.crypto_type));
+        const selectedIsEvm = selectedNetwork ? isEvmNetwork(selectedNetwork.name) : false;
 
-      // Update all crypto types on this network
-      await Promise.all(cryptosToUpdate.map((ct: string) =>
-        walletAPI.setup({
-          crypto_type: ct,
-          mode: mode,
-          address: settlementMode === 'imported' ? undefined : address,
-          private_key: settlementMode === 'imported' ? address : undefined,
-          is_active: true
-        })
-      ));
+        let cryptosToUpdate: string[];
 
-      await loadWallets()
-      setShowConfigModal(false)
-      setNewWallet({ crypto_type: 'SOL', address: '' })
-      showToast('Wallet configured successfully for all assets on this network!', 'success')
+        if (applyToAllEvm && selectedIsEvm) {
+          // Apply to ALL EVM networks (but never Solana)
+          const evmCryptos = supportedCryptos
+            .filter(n => isEvmNetwork(n.name))
+            .flatMap(n => n.cryptos.map((c: any) => c.crypto_type));
+          cryptosToUpdate = evmCryptos;
+        } else {
+          // Apply only to the selected network's tokens
+          cryptosToUpdate = selectedNetwork
+            ? selectedNetwork.cryptos.map((c: any) => c.crypto_type)
+            : [newWallet.crypto_type];
+        }
+
+        await Promise.all(cryptosToUpdate.map((ct: string) =>
+          walletAPI.setup({
+            crypto_type: ct,
+            mode: 'address',
+            address: address,
+            is_active: true
+          })
+        ));
+
+        await loadWallets()
+        setShowConfigModal(false)
+        setNewWallet({ crypto_type: 'SOL', address: '' })
+        setApplyToAllEvm(false)
+        showToast(
+          applyToAllEvm && selectedIsEvm
+            ? 'Forwarding address applied to all EVM networks!'
+            : `Forwarding address configured for ${selectedNetwork?.name || 'network'}!`,
+          'success'
+        )
+      } else {
+        // Managed / Imported mode: existing behavior (apply to whole network)
+        const network = supportedCryptos.find(n => n.cryptos.some((c: any) => c.crypto_type === newWallet.crypto_type));
+        const cryptosToUpdate = network ? network.cryptos.map((c: any) => c.crypto_type) : [newWallet.crypto_type];
+
+        await Promise.all(cryptosToUpdate.map((ct: string) =>
+          walletAPI.setup({
+            crypto_type: ct,
+            mode: mode,
+            address: settlementMode === 'imported' ? undefined : address,
+            private_key: settlementMode === 'imported' ? address : undefined,
+            is_active: true
+          })
+        ));
+
+        await loadWallets()
+        setShowConfigModal(false)
+        setNewWallet({ crypto_type: 'SOL', address: '' })
+        showToast('Wallet configured successfully for all assets on this network!', 'success')
+      }
     } catch (error: any) {
       showToast(error.response?.data?.error?.message || error.response?.data?.error || 'Failed to configure wallet', 'error')
     } finally {
@@ -471,22 +518,45 @@ const WalletsPage: React.FC = () => {
               </div>
             ) : (
               <div className={styles.formGroup}>
-                <label>{settlementMode === 'imported' ? 'Private Key' : 'Wallet Address'}</label>
+                <label>{settlementMode === 'imported' ? 'Private Key' : (settlementMode === 'forwarding' ? 'Forwarding Destination Address' : 'Wallet Address')}</label>
                 <input
                   type={settlementMode === 'imported' ? 'password' : 'text'}
                   value={newWallet.address}
                   onChange={(e) => setNewWallet({ ...newWallet, address: e.target.value })}
-                  placeholder={settlementMode === 'imported' ? 'Enter private key' : 'Enter 0x... or specific address'}
+                  placeholder={settlementMode === 'imported' ? 'Enter private key' : (settlementMode === 'forwarding' ? 'Enter your payout address' : 'Enter 0x... or specific address')}
                   className={settlementMode === 'imported' ? styles.privateKeyInput : ''}
                   autoFocus
                 />
                 <p className={styles.inputHelper}>
                   {settlementMode === 'imported'
                     ? "Your private key will be encrypted and used to derive your wallet address."
-                    : "Payments sent to this address will be detected automatically."}
+                    : settlementMode === 'forwarding'
+                      ? "Payments received will be automatically forwarded to this address."
+                      : "Payments sent to this address will be detected automatically."}
                 </p>
               </div>
             )}
+            {/* Apply to All EVM checkbox — only in forwarding mode for EVM networks */}
+            {settlementMode === 'forwarding' && (() => {
+              const selectedNetwork = supportedCryptos.find(n => n.cryptos.some((c: any) => c.crypto_type === newWallet.crypto_type));
+              if (selectedNetwork && isEvmNetwork(selectedNetwork.name)) {
+                return (
+                  <div className={styles.formGroup} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input
+                      type="checkbox"
+                      id="applyAllEvm"
+                      checked={applyToAllEvm}
+                      onChange={(e) => setApplyToAllEvm(e.target.checked)}
+                      style={{ width: '18px', height: '18px' }}
+                    />
+                    <label htmlFor="applyAllEvm" style={{ cursor: 'pointer', fontWeight: 500, fontSize: '0.85rem' }}>
+                      Apply this address to all EVM chains (Ethereum, BSC, Polygon, Arbitrum)
+                    </label>
+                  </div>
+                )
+              }
+              return null;
+            })()}
             <div className={styles.modalActions}>
               <button className={styles.cancelBtn} onClick={() => setShowConfigModal(false)}>Cancel</button>
               <button className={styles.confirmBtn} onClick={handleConfigureWallet} disabled={refreshing}>
