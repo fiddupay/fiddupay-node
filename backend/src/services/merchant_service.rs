@@ -246,6 +246,45 @@ impl MerchantService {
         Ok(new_api_key)
     }
 
+    /// Rotate API key for a specific environment (trusted caller)
+    /// 
+    /// Generates a new API key for the specified environment without requiring
+    /// the old key for verification. Should only be used by authenticated
+    /// dashboard sessions.
+    pub async fn rotate_api_key_by_env(
+        &self,
+        merchant_id: i64,
+        is_live: bool,
+    ) -> Result<String, ServiceError> {
+        // Generate a new searchable API key
+        let new_api_key = ApiKeyGenerator::generate_session_key(merchant_id, is_live);
+        
+        // Hash the new API key
+        use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+        use rand::rngs::OsRng;
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        let new_api_key_hash = argon2.hash_password(new_api_key.as_bytes(), &salt)
+            .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
+            .to_string();
+        
+        // Update the merchant with the new API key hash
+        let update_query = if is_live {
+            "UPDATE merchants SET live_api_key_hash = $1, updated_at = $2 WHERE id = $3"
+        } else {
+            "UPDATE merchants SET test_api_key_hash = $1, updated_at = $2 WHERE id = $3"
+        };
+
+        sqlx::query(update_query)
+        .bind(new_api_key_hash)
+        .bind(Utc::now())
+        .bind(merchant_id)
+        .execute(&self.db_pool)
+        .await?;
+        
+        Ok(new_api_key)
+    }
+
     /// Authenticate a merchant using their API key
     /// 
     /// Validates the provided API key against stored Argon2 hash and

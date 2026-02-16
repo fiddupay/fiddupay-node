@@ -178,7 +178,7 @@ const SettingsPage: React.FC = () => {
 
         try {
             setLoading(true)
-            const response = await merchantAPI.rotateApiKey()
+            const response = await merchantAPI.rotateApiKey(!user.sandbox_mode)
             const newKey = response.data.api_key
 
 

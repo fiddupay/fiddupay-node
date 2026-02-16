@@ -588,11 +588,33 @@ pub struct GenerateApiKeyRequest {
     pub is_live: bool,
 }
 
+#[derive(Deserialize)]
+pub struct RotateApiKeyRequest {
+    pub is_live: bool,
+}
+
 pub async fn rotate_api_key(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
+    req: Option<Json<RotateApiKeyRequest>>,
 ) -> impl IntoResponse {
-    match state.merchant_service.rotate_api_key(context.merchant_id, &context.api_key).await {
+    let result = if context.api_key == "DASHBOARD_SESSION" {
+        // Dashboard session: requires explicit environment in body
+        match req {
+            Some(Json(payload)) => {
+                state.merchant_service.rotate_api_key_by_env(context.merchant_id, payload.is_live).await
+            },
+            None => return (StatusCode::BAD_REQUEST, Json(json!({
+                "error": "Missing parameters",
+                "message": "Dashboard rotation requires 'is_live' parameter"
+            }))).into_response()
+        }
+    } else {
+        // API Key session: uses the key itself for verification/env detection
+        state.merchant_service.rotate_api_key(context.merchant_id, &context.api_key).await
+    };
+
+    match result {
         Ok(new_api_key) => (StatusCode::OK, Json(json!({"api_key": new_api_key}))).into_response(),
         Err(e) => e.into_response(),
     }
