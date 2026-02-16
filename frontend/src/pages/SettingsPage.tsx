@@ -42,6 +42,10 @@ const SettingsPage: React.FC = () => {
     const [showRotateSecretConfirm, setShowRotateSecretConfirm] = useState(false)
 
     useEffect(() => {
+        fetchSettings()
+    }, [])
+
+    useEffect(() => {
         if (user) {
             setSelectedMode(user.settlement_mode || 'managed')
 
@@ -60,18 +64,32 @@ const SettingsPage: React.FC = () => {
             }
 
             setRedirectUrl(user.redirect_url || '')
+            setWebhookUrl(user.webhook_url || '')
+            setWebhookFormat(user.webhook_format || 'standard')
         }
     }, [user]) // Removed user?.sandbox_mode from deps to rely on the full user object check
 
     const fetchSettings = async () => {
         try {
-            const profileRes = await merchantAPI.getProfile()
+            // We don't need to call getProfile here because loadUser() in authStore does it
+            // But we do need specific settings that might not be on the user object yet or require separate calls?
+            // Actually, getProfile returns the user with webhook_url. 
+            // However, let's refresh the user to be sure.
+            await loadUser(true)
+
+            // Also fetch fee settings which are separate
             const feeRes = await merchantAPI.getFeeSetting()
-            setWebhookUrl(profileRes.data.user.webhook_url || '')
-            setRedirectUrl(profileRes.data.user.redirect_url || '')
-            setWebhookFormat(profileRes.data.user.webhook_format || 'standard')
-            setSigningSecret(profileRes.data.user.webhook_signing_secret || '••••••••••••••••••••••••••••••••')
             setCustomerPaysFee(feeRes.data.customer_pays_fee)
+
+            // Get webhook signing secret (it returns inside getProfile too but let's check)
+            // The getProfile endpoint returns everything we need in 'user' object except maybe the secret?
+            // Use the specific getMerchantSettings endpoint if available, but getProfile seems to have most.
+            // Let's check getMerchantSettings implementation in backend...
+            // It returns webhook_signing_secret. 
+            // Let's use getMerchantSettings to get the secret.
+            const settingsRes = await merchantAPI.getMerchantSettings()
+            setSigningSecret(settingsRes.data.webhook_signing_secret || '••••••••••••••••••••••••••••••••')
+
         } catch (error) {
             console.error('Failed to fetch settings', error)
         }

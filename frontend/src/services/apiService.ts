@@ -44,6 +44,7 @@ export const merchantAPI = {
   setWebhook: (data: any) => api.put('/api/v1/merchants/webhook', data), // DEPRECATED: Use updateSettings
 
   // Unified Settings & Status
+  getMerchantSettings: () => api.get('/api/v1/merchants/settings'),
   updateSettings: (data: {
     webhook_url?: string;
     settlement_mode?: string;
