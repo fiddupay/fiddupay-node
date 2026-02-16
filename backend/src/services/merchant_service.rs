@@ -633,21 +633,7 @@ impl MerchantService {
         Ok(())
     }
 
-    /// Validate wallet address format for specific blockchain
-    /// 
-    /// Performs blockchain-specific validation on wallet addresses to ensure
-    /// they are properly formatted before storage.
-    /// 
-    /// # Arguments
-    /// * `address` - Wallet address to validate
-    /// * `crypto_type` - Type of cryptocurrency/blockchain
-    /// 
-    /// # Returns
-    /// * `Ok(())` if address is valid
-    /// * `Err(ServiceError::InvalidWalletAddress)` if validation fails
-    /// 
-    /// # Requirements
-    /// * 1.6: Validate addresses before saving
+
 
 }
 
