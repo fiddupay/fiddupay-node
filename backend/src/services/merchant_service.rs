@@ -438,7 +438,7 @@ impl MerchantService {
         address: String,
     ) -> Result<(), ServiceError> {
         // Validate the address format for the specific blockchain
-        self.validate_wallet_address(&address, crypto_type)?;
+        crate::utils::validation::validate_wallet_address(&address, crypto_type)?;
         
         // Get the network name for this crypto type
         let network = crypto_type.network();
@@ -514,6 +514,34 @@ impl MerchantService {
             CryptoType::Matic => "MATIC",
             CryptoType::Bnb => "BNB",
         };
+
+        // First, check settlement mode
+        let merchant = sqlx::query!(
+            "SELECT settlement_mode FROM merchants WHERE id = $1",
+            merchant_id
+        )
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        if merchant.settlement_mode == "forwarding" {
+            // FORWARDING MODE: Look in merchant_forwarding_wallets
+            let wallet_opt = sqlx::query!(
+                "SELECT address FROM merchant_forwarding_wallets 
+                 WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true",
+                merchant_id,
+                lookup_crypto_type
+            )
+            .fetch_optional(&self.db_pool)
+            .await?;
+
+            if let Some(wallet) = wallet_opt {
+                return Ok(wallet.address);
+            } else {
+                return Err(ServiceError::WalletNotFound);
+            }
+        } 
+        
+        // MANAGED / IMPORTED MODE: Look in merchant_wallets
         
         let wallet_opt = sqlx::query_as::<_, MerchantWallet>(
             "SELECT id, merchant_id, crypto_type, network, address, is_active, created_at, updated_at 
@@ -529,14 +557,7 @@ impl MerchantService {
             return Ok(wallet.address);
         }
 
-        // If not found, check if we should auto-generate (Managed Mode)
-        let merchant = sqlx::query!(
-            "SELECT settlement_mode FROM merchants WHERE id = $1",
-            merchant_id
-        )
-        .fetch_one(&self.db_pool)
-        .await?;
-
+        // If not found in merchant_wallets, auto-generate ONLY if managed mode
         if merchant.settlement_mode == "managed" {
             tracing::info!("Auto-generating wallet for merchant {} for network {}", merchant_id, lookup_crypto_type);
             
@@ -627,54 +648,7 @@ impl MerchantService {
     /// 
     /// # Requirements
     /// * 1.6: Validate addresses before saving
-    fn validate_wallet_address(
-        &self,
-        address: &str,
-        crypto_type: CryptoType,
-    ) -> Result<(), ServiceError> {
-        match crypto_type {
-            CryptoType::Sol | CryptoType::UsdtSpl => {
-                // Solana addresses are base58 encoded, typically 32-44 characters
-                if address.len() < 32 || address.len() > 44 {
-                    return Err(ServiceError::InvalidWalletAddress(
-                        "Solana address must be 32-44 characters".to_string()
-                    ));
-                }
-                
-                // Check if all characters are valid base58
-                const BASE58_ALPHABET: &str = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-                if !address.chars().all(|c| BASE58_ALPHABET.contains(c)) {
-                    return Err(ServiceError::InvalidWalletAddress(
-                        "Solana address contains invalid base58 characters".to_string()
-                    ));
-                }
-            }
-            CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon | CryptoType::UsdtEth | CryptoType::Eth | CryptoType::Arb | CryptoType::Matic | CryptoType::Bnb => {
-                // EVM addresses start with 0x and have 40 hex characters
-                if !address.starts_with("0x") {
-                    return Err(ServiceError::InvalidWalletAddress(
-                        "EVM address must start with 0x".to_string()
-                    ));
-                }
-                
-                if address.len() != 42 {
-                    return Err(ServiceError::InvalidWalletAddress(
-                        "EVM address must be 42 characters (0x + 40 hex chars)".to_string()
-                    ));
-                }
-                
-                // Check if all characters after 0x are valid hex
-                let hex_part = &address[2..];
-                if !hex_part.chars().all(|c| c.is_ascii_hexdigit()) {
-                    return Err(ServiceError::InvalidWalletAddress(
-                        "EVM address contains invalid hexadecimal characters".to_string()
-                    ));
-                }
-            }
-        }
-        
-        Ok(())
-    }
+
 }
 
 #[cfg(test)]

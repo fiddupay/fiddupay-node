@@ -285,6 +285,9 @@ impl WalletConfigService {
         address: String,
         is_active: bool,
     ) -> Result<WalletConfig, ServiceError> {
+        // Validate the address format for the specific blockchain
+        crate::utils::validation::validate_wallet_address(&address, crypto_type)?;
+
         let network = crypto_type.network().to_string();
 
         let config = sqlx::query_as!(

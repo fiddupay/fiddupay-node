@@ -5,3 +5,4 @@ pub mod qr;
 pub mod keygen;
 pub mod api_keys;
 pub mod network_config;
+pub mod validation;
