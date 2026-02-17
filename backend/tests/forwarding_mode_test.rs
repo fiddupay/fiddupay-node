@@ -198,7 +198,7 @@ mod tests {
         let sol_result = merchant_service.get_wallet_address(merchant_id, CryptoType::Sol).await;
         assert!(sol_result.is_err());
         match sol_result {
-            Err(ServiceError::WalletNotFound(_)) => (), // Expected
+            Err(ServiceError::WalletNotFound) => (), // Expected
             _ => panic!("Expected WalletNotFound error for missing SOL address"),
         }
         
