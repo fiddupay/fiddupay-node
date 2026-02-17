@@ -2,7 +2,10 @@
 mod tests {
     use fiddupay::api::handlers::public_cancel_payment;
     use fiddupay::api::state::AppState;
-    use sqlx::PgPool;
+    use fiddupay::config::Config;
+    use fiddupay::services::merchant_service::MerchantService;
+    use sqlx::postgres::PgPoolOptions;
+    use std::env;
     use axum::{
         extract::{Path, State},
         http::StatusCode,
@@ -10,10 +13,22 @@ mod tests {
     };
     use serde_json::Value;
 
-    #[sqlx::test]
-    async fn test_cancel_payment(pool: PgPool) {
+    async fn get_test_pool() -> sqlx::PgPool {
+        dotenvy::from_path(std::path::Path::new("/root/crypto-payment-gateway/backend/.env")).ok();
+        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        PgPoolOptions::new()
+            .max_connections(1)
+            .connect(&database_url)
+            .await
+            .expect("Failed to connect to DB")
+    }
+
+    #[tokio::test]
+    async fn test_cancel_payment() {
+        let pool = get_test_pool().await;
+        
         // Setup
-        let config = fiddupay::config::Config {
+        let config = Config {
             database_url: "postgres://localhost/test".to_string(),
             database_max_connections: 10,
             database_timeout_seconds: 30,
@@ -114,17 +129,21 @@ mod tests {
 
         let state = AppState::new(pool.clone(), config.clone());
         
-        // Let's Insert a dummy payment
-        let merchant_id = 1001;
-        let _ = sqlx::query!("INSERT INTO merchants (id, email, business_name, settlement_mode, is_active, fee_percentage, customer_pays_fee, daily_limit_usd, role, password_hash, test_api_key_hash, live_api_key_hash, redirect_url) VALUES ($1, 'cancel_test@example.com', 'Cancel Test', 'managed', true, 0.0, false, 1000.0, 'MERCHANT', 'hash', 'hash', 'hash', 'https://merchant.com/callback')", merchant_id).execute(&pool).await;
+        // Let's Insert a dummy payment with unique identifiers to avoid conflicts
+        let merchant_email = format!("cancel_test_{}@example.com", nanoid::nanoid!());
+        let payment_id = format!("pay_test_{}", nanoid::nanoid!());
+        
+        let _ = sqlx::query!("INSERT INTO merchants (email, business_name, settlement_mode, is_active, fee_percentage, customer_pays_fee, daily_limit_usd, role, password_hash, test_api_key_hash, live_api_key_hash, redirect_url) VALUES ($1, 'Cancel Test', 'managed', true, 0.0, false, 1000.0, 'MERCHANT', 'hash', 'hash', 'hash', 'https://merchant.com/callback')", merchant_email).execute(&pool).await.unwrap();
 
-        let payment_id = "pay_cancel_test_123";
-        let _ = sqlx::query!("INSERT INTO payment_transactions (id, payment_id, merchant_id, amount, amount_usd, crypto_type, status, created_at, expires_at) VALUES (1, $1, $2, 10.0, 10.0, 'USDT_BEP20', 'PENDING', NOW(), NOW() + INTERVAL '1 hour')", payment_id, merchant_id).execute(&pool).await;
+        let merchant = sqlx::query!("SELECT id FROM merchants WHERE email = $1", merchant_email).fetch_one(&pool).await.unwrap();
+        let merchant_id = merchant.id;
+
+        let _ = sqlx::query!("INSERT INTO payment_transactions (merchant_id, payment_id, amount, amount_usd, crypto_type, status, created_at, expires_at) VALUES ($1, $2, 10.0, 10.0, 'USDT_BEP20', 'PENDING', NOW(), NOW() + INTERVAL '1 hour')", merchant_id, payment_id).execute(&pool).await.unwrap();
 
         // Execute Handler
         let response = public_cancel_payment(
             State(state.clone()),
-            Path(payment_id.to_string())
+            Path(payment_id.clone())
         ).await.into_response();
 
         // Verify Status Code
@@ -147,5 +166,8 @@ mod tests {
             .unwrap();
             
         assert_eq!(status, "CANCELLED");
+
+        // CLEANUP
+        sqlx::query!("DELETE FROM merchants WHERE id = $1", merchant_id).execute(&pool).await.unwrap();
     }
 }
