@@ -31,7 +31,8 @@ pub fn create_router(state: AppState) -> Router {
         .route("/:link_id/select", post(handlers::finalize_payment_selection))
         .route("/api/v1/merchants/register", post(handlers::register_merchant))
         .route("/api/v1/merchants/login", post(handlers::login_merchant))
-        .route("/api/v1/currencies/supported", get(handlers::get_supported_currencies));
+        .route("/api/v1/currencies/supported", get(handlers::get_supported_currencies))
+        .route("/:payment_id/cancel", post(handlers::cancel_payment));
 
     // Additional public routes
     let additional_public_routes = Router::new()

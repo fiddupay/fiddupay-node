@@ -1978,3 +1978,65 @@ pub async fn update_fee_setting(
         }
     }
 }
+
+#[derive(Deserialize)]
+pub struct CancelPaymentRequest {
+    // No body needed for now, but kept for extensibility
+}
+
+pub async fn cancel_payment(
+    State(state): State<AppState>,
+    Path(payment_id): Path<String>,
+) -> impl IntoResponse {
+    // 1. Fetch payment
+    let payment = match sqlx::query!(
+        "SELECT id, merchant_id, status::text as status FROM payment_transactions WHERE payment_id = $1",
+        payment_id
+    )
+    .fetch_optional(&state.db_pool)
+    .await {
+        Ok(Some(p)) => p,
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    };
+
+    // 2. Check status
+    if payment.status != "PENDING" && payment.status != "SELECTION_REQUIRED" {
+         return (StatusCode::BAD_REQUEST, Json(json!({
+             "error": "Cannot cancel payment in current status",
+             "current_status": payment.status
+         }))).into_response();
+    }
+
+    // 3. Update status to CANCELLED
+    if let Err(e) = sqlx::query!(
+        "UPDATE payment_transactions SET status = 'CANCELLED' WHERE id = $1",
+        payment.id
+    )
+    .execute(&state.db_pool)
+    .await {
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
+    }
+
+    // 4. Get redirect URL
+    let merchant_settings = sqlx::query!(
+        "SELECT redirect_url FROM merchants WHERE id = $1",
+        payment.merchant_id
+    )
+    .fetch_one(&state.db_pool)
+    .await;
+
+    let redirect_url = merchant_settings.ok().and_then(|m| m.redirect_url);
+
+    // 5. Return success with redirect info
+    (StatusCode::OK, Json(json!({
+        "status": "CANCELLED",
+        "redirect_url": redirect_url.map(|url| {
+            if url.contains('?') {
+                format!("{}&status=cancelled&payment_id={}", url, payment_id)
+            } else {
+                format!("{}?status=cancelled&payment_id={}", url, payment_id)
+            }
+        })
+    }))).into_response()
+}

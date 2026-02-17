@@ -568,6 +568,11 @@
                 <button onclick="refreshContent()" class="btn-primary" style="margin-top: 20px;">
                     I have paid
                 </button>
+
+                <button onclick="cancelPayment()" class="btn-secondary"
+                    style="margin-top: 12px; width: 100%; padding: 12px; background: transparent; border: 1px solid var(--slate-300); border-radius: 10px; color: var(--slate-600); font-weight: 600; cursor: pointer;">
+                    Cancel Payment
+                </button>
             </div>
             {{/if_status_PENDING}}
 
@@ -588,6 +593,24 @@
                 {{/if_redirect_url}}
             </div>
             {{/if_status_CONFIRMED}}
+
+            <!-- CANCELLED STATE -->
+            {{#if_status_CANCELLED}}
+            <div class="result-view">
+                <div class="result-icon failure" style="background: #f1f5f9; color: #64748b;">
+                    <svg style="width: 40px; height: 40px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </div>
+                <h2 class="result-title">Payment Cancelled</h2>
+                <p class="result-text">This payment was cancelled by you.</p>
+
+                {{#if_redirect_url}}
+                <a href="{{redirect_url}}" class="btn-primary">Return to Merchant</a>
+                {{/if_redirect_url}}
+            </div>
+            {{/if_status_CANCELLED}}
 
             <!-- EXPIRED STATE -->
             {{#if_status_EXPIRED}}
@@ -616,7 +639,110 @@
         </footer>
     </div>
 
+    <!-- Custom Toast Container -->
+    <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;"></div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirmation-modal" class="hidden"
+        style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 999; backdrop-filter: blur(2px);">
+        <div
+            style="background: white; padding: 24px; border-radius: 16px; width: 90%; max-width: 320px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); text-align: center;">
+            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Cancel Payment?</h3>
+            <p style="color: var(--slate-600); font-size: 14px; margin-bottom: 24px;">Are you sure you want to cancel
+                this transaction?</p>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="closeModal()"
+                    style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--slate-200); background: white; font-weight: 600; cursor: pointer;">No,
+                    Keep It</button>
+                <button id="confirm-cancel-btn"
+                    style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: var(--danger); color: white; font-weight: 600; cursor: pointer;">Yes,
+                    Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .toast {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            border-left: 4px solid var(--primary);
+            animation: slideIn 0.3s ease-out;
+            min-width: 250px;
+        }
+
+        .toast.error {
+            border-left-color: var(--danger);
+        }
+
+        .toast.success {
+            border-left-color: var(--success);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Utility to toggle modal display */
+        #confirmation-modal.hidden {
+            display: none !important;
+        }
+    </style>
+
     <script>
+        // --- TOAST SYSTEM ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                toast.style.transition = 'all 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- MODAL SYSTEM ---
+        function showModal(onConfirm) {
+            const modal = document.getElementById('confirmation-modal');
+            modal.classList.remove('hidden');
+
+            const confirmBtn = document.getElementById('confirm-cancel-btn');
+            // Remove old listeners to avoid stacking
+            const newBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+
+            newBtn.onclick = () => {
+                closeModal();
+                onConfirm();
+            };
+        }
+
+        function closeModal() {
+            document.getElementById('confirmation-modal').classList.add('hidden');
+        }
+
         // Track intervals to clear them on refresh
         let pageIntervals = [];
         function addInterval(fn, ms) {
@@ -771,6 +897,31 @@
             }
         }
 
+        async function cancelPayment() {
+            showModal(async () => {
+                try {
+                    const response = await fetch(`/${LINK_ID}/cancel`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.redirect_url) {
+                            window.location.href = data.redirect_url;
+                        } else {
+                            refreshContent();
+                            showToast('Payment cancelled', 'info');
+                        }
+                    } else {
+                        showToast('Failed to cancel payment', 'error');
+                    }
+                } catch (e) {
+                    showToast('Network error—please try again', 'error');
+                }
+            });
+        }
+
         async function selectCurrency(symbol) {
             const list = document.getElementById('currency-list');
             if (list) {
@@ -785,9 +936,9 @@
                     body: JSON.stringify({ crypto_type: symbol })
                 });
                 if (response.ok) refreshContent();
-                else alert('Failed to select currency');
+                else showToast('Failed to select currency', 'error');
             } catch (e) {
-                alert('Network error—please try again.');
+                showToast('Network error—please try again', 'error');
             } finally {
                 if (list) {
                     list.style.opacity = '1';

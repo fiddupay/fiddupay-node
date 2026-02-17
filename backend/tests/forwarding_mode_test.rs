@@ -1,9 +1,10 @@
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::payment::models::CryptoType;
-    use crate::services::merchant_service::MerchantService;
-    use crate::services::wallet_config_service::WalletConfigService;
+    use fiddupay::payment::models::CryptoType;
+    use fiddupay::services::merchant_service::MerchantService;
+    use fiddupay::services::wallet_config_service::WalletConfigService;
+    use fiddupay::error::ServiceError;
     use sqlx::PgPool;
 
     // Helper to reset DB state for a merchant
@@ -18,7 +19,7 @@ mod tests {
 
     #[sqlx::test]
     async fn test_forwarding_mode_isolation(pool: PgPool) {
-        let config = crate::config::Config::default();
+        let config = fiddupay::config::Config::default();
         let merchant_service = MerchantService::new(pool.clone(), config);
         let wallet_service = WalletConfigService::new(pool.clone());
         
@@ -47,7 +48,7 @@ mod tests {
         
         // 6. Verify Missing Wallet in Forwarding Mode
         // We haven't set a SOL forwarding address
-        let result = merchant_service.get_wallet_address(999, CryptoType::Sol).await;
+        let result: Result<String, ServiceError> = merchant_service.get_wallet_address(999, CryptoType::Sol).await;
         assert!(result.is_err(), "Should return error for missing forwarding wallet");
     }
 
@@ -57,15 +58,15 @@ mod tests {
         let _ = sqlx::query!("INSERT INTO merchants (id, email, business_name, settlement_mode, is_active, fee_percentage, customer_pays_fee, daily_limit_usd, role, password_hash, test_api_key_hash, live_api_key_hash) VALUES (998, 'test2@example.com', 'Test Merchant 2', 'forwarding', true, 0.0, false, 1000.0, 'MERCHANT', 'hash', 'hash', 'hash') ON CONFLICT DO NOTHING").execute(&pool).await;
 
         // 1. Try setting EVM address for SOL -> Should Fail
-        let result = wallet_service.set_forwarding_address(998, CryptoType::Sol, "0x1111111111111111111111111111111111111111".to_string(), true).await;
+        let result: Result<_, ServiceError> = wallet_service.set_forwarding_address(998, CryptoType::Sol, "0x1111111111111111111111111111111111111111".to_string(), true).await;
         assert!(result.is_err(), "Should detect invalid SOL address");
 
         // 2. Try setting SOL address for EVM -> Should Fail
-        let result = wallet_service.set_forwarding_address(998, CryptoType::UsdtBep20, "So11111111111111111111111111111111111111112".to_string(), true).await;
+        let result: Result<_, ServiceError> = wallet_service.set_forwarding_address(998, CryptoType::UsdtBep20, "So11111111111111111111111111111111111111112".to_string(), true).await;
         assert!(result.is_err(), "Should detect invalid EVM address");
         
         // 3. Valid SOL address
-        let result = wallet_service.set_forwarding_address(998, CryptoType::Sol, "So11111111111111111111111111111111111111112".to_string(), true).await;
+        let result: Result<_, ServiceError> = wallet_service.set_forwarding_address(998, CryptoType::Sol, "So11111111111111111111111111111111111111112".to_string(), true).await;
         assert!(result.is_ok(), "Should accept valid SOL address");
     }
 }
