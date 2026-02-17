@@ -22,7 +22,7 @@ mod tests {
     use std::env;
 
     async fn get_test_pool() -> PgPool {
-        dotenvy::from_path(std::path::Path::new("/root/crypto-payment-gateway/backend/.env")).ok();
+        dotenvy::dotenv().ok();
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
         PgPoolOptions::new()
             .max_connections(1)
