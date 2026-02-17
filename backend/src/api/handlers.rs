@@ -1984,7 +1984,7 @@ pub struct CancelPaymentRequest {
     // No body needed for now, but kept for extensibility
 }
 
-pub async fn cancel_payment(
+pub async fn public_cancel_payment(
     State(state): State<AppState>,
     Path(payment_id): Path<String>,
 ) -> impl IntoResponse {
@@ -2001,10 +2001,14 @@ pub async fn cancel_payment(
     };
 
     // 2. Check status
-    if payment.status != "PENDING" && payment.status != "SELECTION_REQUIRED" {
+    // status is Option<String> because of the cast status::text (though it usually yields a string or null)
+    // We treat None as invalid for cancellation or just handle unwrap_or_default
+    let status = payment.status.unwrap_or_default();
+    
+    if status != "PENDING" && status != "SELECTION_REQUIRED" {
          return (StatusCode::BAD_REQUEST, Json(json!({
              "error": "Cannot cancel payment in current status",
-             "current_status": payment.status
+             "current_status": status
          }))).into_response();
     }
 

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fiddupay::api::handlers::cancel_payment;
+    use fiddupay::api::handlers::public_cancel_payment;
     use fiddupay::api::state::AppState;
     use fiddupay::config::Config;
     use fiddupay::services::merchant_service::MerchantService;
@@ -38,7 +38,7 @@ mod tests {
         let _ = sqlx::query!("INSERT INTO payment_transactions (id, payment_id, merchant_id, amount, amount_usd, crypto_type, status, created_at, updated_at, expires_at) VALUES (1, $1, $2, 10.0, 10.0, 'USDT_BEP20', 'PENDING', NOW(), NOW(), NOW() + INTERVAL '1 hour')", payment_id, merchant_id).execute(&pool).await;
 
         // Execute Handler
-        let response = cancel_payment(
+        let response = public_cancel_payment(
             State(state.clone()),
             Path(payment_id.to_string())
         ).await.into_response();

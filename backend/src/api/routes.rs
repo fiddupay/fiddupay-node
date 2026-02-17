@@ -32,7 +32,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/merchants/register", post(handlers::register_merchant))
         .route("/api/v1/merchants/login", post(handlers::login_merchant))
         .route("/api/v1/currencies/supported", get(handlers::get_supported_currencies))
-        .route("/:payment_id/cancel", post(handlers::cancel_payment));
+        .route("/:payment_id/cancel", post(handlers::public_cancel_payment));
 
     // Additional public routes
     let additional_public_routes = Router::new()
