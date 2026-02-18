@@ -192,7 +192,7 @@ mod tests {
         // 4. Test Isolation: Get Wallet Address
         // Case A: Get USDT_BEP20 -> Should succeed and return evm_address
         let wallet = merchant_service.get_wallet_address(merchant_id, CryptoType::UsdtBep20).await;
-        assert!(wallet.is_ok());
+        assert!(wallet.is_ok(), "Expected wallet to be Ok, got Err: {:?}", wallet.err());
         assert_eq!(wallet.unwrap(), evm_address);
 
         // Case B: Get SOL -> Should FAIL because it's not set
