@@ -309,6 +309,36 @@ impl WalletConfigService {
         .fetch_one(&self.db_pool)
         .await?;
 
+        // Add sister crypto logic for forwarding wallets (e.g., USDT -> Base coin)
+        let sister_crypto = match crypto_type {
+            CryptoType::Sol => Some("USDT_SOL"),
+            CryptoType::UsdtSpl => Some("SOL"),
+            CryptoType::Eth => Some("USDT_ETH"),
+            CryptoType::UsdtEth => Some("ETH"),
+            CryptoType::Bnb => Some("USDT_BSC"),
+            CryptoType::UsdtBep20 => Some("BNB"),
+            CryptoType::Matic => Some("USDT_POLYGON"),
+            CryptoType::UsdtPolygon => Some("MATIC"),
+            CryptoType::Arb => Some("USDT_ARBITRUM"),
+            CryptoType::UsdtArbitrum => Some("ARB"),
+        };
+
+        if let Some(sister) = sister_crypto {
+             sqlx::query!(
+                "INSERT INTO merchant_forwarding_wallets (merchant_id, crypto_type, network, address, is_active)
+                 VALUES ($1, $2, $3, $4, $5)
+                 ON CONFLICT (merchant_id, crypto_type) 
+                 DO UPDATE SET address = $4, is_active = $5, updated_at = NOW()",
+                merchant_id,
+                sister,
+                network,
+                address,
+                is_active
+            )
+            .execute(&self.db_pool)
+            .await?;
+        }
+
         Ok(config)
     }
 
