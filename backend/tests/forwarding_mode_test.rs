@@ -35,7 +35,8 @@ mod tests {
     async fn test_forwarding_mode_isolation() {
         let pool = get_test_pool().await;
         // Start transaction
-        let mut tx = pool.begin().await.expect("Failed to verify transaction");
+        // Transaction removed to avoid deadlock
+
 
         // Create a minimal config for testing
         let config = Config {
@@ -205,7 +206,8 @@ mod tests {
         // CLEANUP
         sqlx::query!("DELETE FROM merchant_forwarding_wallets WHERE merchant_id = $1", merchant_id).execute(&pool).await.unwrap();
         sqlx::query!("DELETE FROM merchants WHERE id = $1", merchant_id).execute(&pool).await.unwrap();
-        tx.rollback().await.unwrap_or(()); // Rollback empty tx just to close it if we used it, but here we used pool directly.
+        // Transaction rollback removed
+
     }
 
     #[tokio::test]

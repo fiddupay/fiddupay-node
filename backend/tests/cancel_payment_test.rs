@@ -138,7 +138,14 @@ mod tests {
         let merchant = sqlx::query!("SELECT id FROM merchants WHERE email = $1", merchant_email).fetch_one(&pool).await.unwrap();
         let merchant_id = merchant.id;
 
-        let _ = sqlx::query!("INSERT INTO payment_transactions (merchant_id, payment_id, amount, amount_usd, crypto_type, status, created_at, expires_at) VALUES ($1, $2, 10.0, 10.0, 'USDT_BEP20', 'PENDING', NOW(), NOW() + INTERVAL '1 hour')", merchant_id, payment_id).execute(&pool).await.unwrap();
+        let _ = sqlx::query!(
+            "INSERT INTO payment_transactions 
+            (merchant_id, payment_id, amount, amount_usd, crypto_type, status, created_at, expires_at, 
+             fee_percentage, fee_amount, fee_amount_usd, network, to_address, required_confirmations) 
+            VALUES ($1, $2, 10.0, 10.0, 'USDT_BEP20', 'PENDING', NOW(), NOW() + INTERVAL '1 hour',
+                    0.5, 0.05, 0.05, 'BSC', '0xMerchantWalletAddress', 1)",
+            merchant_id, payment_id
+        ).execute(&pool).await.unwrap();
 
         // Execute Handler
         let response = public_cancel_payment(
