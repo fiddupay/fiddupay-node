@@ -108,7 +108,7 @@ impl CryptoType {
             "ARB" => CryptoType::Arb,
             "USDT_SOL" | "USDT_SPL" => CryptoType::UsdtSpl,
             "USDT_ETH" | "USDT_ERC20" => CryptoType::UsdtEth,
-            "USDT_BNB" | "USDT_BEP20" => CryptoType::UsdtBep20,
+            "USDT_BNB" | "USDT_BEP20" | "USDT_BSC" => CryptoType::UsdtBep20,
             "USDT_MATIC" | "USDT_POLYGON" => CryptoType::UsdtPolygon,
             "USDT_ARB" | "USDT_ARBITRUM" => CryptoType::UsdtArbitrum,
             _ => CryptoType::Sol, // Default fallback

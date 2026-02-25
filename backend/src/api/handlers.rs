@@ -1104,7 +1104,8 @@ pub async fn payment_page(
     let is_selection_required = payment.status == "SELECTION_REQUIRED";
     let is_pending = payment.status == "PENDING" || payment.status == "CONFIRMING";
     let is_confirmed = payment.status == "CONFIRMED";
-    let is_expired = (payment.status == "FAILED" || (payment.expires_at < now)) && !is_confirmed;
+    let is_cancelled = payment.status == "CANCELLED";
+    let is_expired = (payment.status == "FAILED" || (payment.expires_at < now)) && !is_confirmed && !is_cancelled;
 
     // Check if sandbox and get redirect_url
     let merchant_info = sqlx::query!(
@@ -1159,6 +1160,7 @@ pub async fn payment_page(
         is_pending,
         is_confirmed,
         is_expired,
+        is_cancelled,
         is_selection_required,
         sandbox,
         redirect_url,
@@ -1387,6 +1389,7 @@ struct PaymentPageData {
     is_pending: bool,
     is_confirmed: bool,
     is_expired: bool,
+    is_cancelled: bool,
     is_selection_required: bool,
     sandbox: bool,
     redirect_url: Option<String>,
@@ -1429,7 +1432,7 @@ fn render_payment_page(data: PaymentPageData) -> String {
         .replace("{{transaction_hash}}", &encode_text(&data.transaction_hash.unwrap_or_default()))
         .replace("{{status_display}}", status_html)
         .replace("{{redirect_url}}", &encode_text(&data.redirect_url.clone().unwrap_or_default()))
-        .replace("{{status}}", &encode_text(if data.is_confirmed { "CONFIRMED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" }))
+        .replace("{{status}}", &encode_text(if data.is_confirmed { "CONFIRMED" } else if data.is_cancelled { "CANCELLED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" }))
         .replace("{{is_confirmed_bool}}", if data.is_confirmed { "true" } else { "false" })
         .replace("{{is_expired_bool}}", if data.is_expired { "true" } else { "false" })
         .replace("{{is_selection_required_bool}}", if data.is_selection_required { "true" } else { "false" })
@@ -1450,11 +1453,12 @@ fn render_payment_page(data: PaymentPageData) -> String {
     // basic block replacement or simpler template logic.
     
     // Let's implement a robust conditional renderer using unique tag pairs.
-    let status = if data.is_confirmed { "CONFIRMED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" };
+    let status = if data.is_confirmed { "CONFIRMED" } else if data.is_cancelled { "CANCELLED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" };
     
     html = toggle_status_block(&html, "PENDING", status == "PENDING");
     html = toggle_status_block(&html, "CONFIRMED", status == "CONFIRMED");
     html = toggle_status_block(&html, "EXPIRED", status == "EXPIRED");
+    html = toggle_status_block(&html, "CANCELLED", status == "CANCELLED");
     html = toggle_status_block(&html, "SELECTION_REQUIRED", status == "SELECTION_REQUIRED");
     
     // Handle generic if blocks with unique IDs
