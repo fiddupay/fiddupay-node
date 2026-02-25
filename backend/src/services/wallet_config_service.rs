@@ -361,14 +361,18 @@ impl WalletConfigService {
     }
 
     /// Delete (soft-delete) a forwarding wallet config.
+    /// Also cleans up entries with legacy naming conventions.
     pub async fn delete_forwarding_config(&self, merchant_id: i64, crypto_type_str: String) -> Result<(), ServiceError> {
         let crypto_type = CryptoType::from_string(&crypto_type_str)?;
+        let network = crypto_type.network();
 
+        // Delete by both the canonical name AND by network to catch legacy-named entries
         sqlx::query!(
             "UPDATE merchant_forwarding_wallets SET address = '', is_active = false, updated_at = NOW()
-             WHERE merchant_id = $1 AND crypto_type = $2",
+             WHERE merchant_id = $1 AND (crypto_type = $2 OR network = $3)",
             merchant_id,
-            crypto_type.to_string()
+            crypto_type.to_string(),
+            network
         )
         .execute(&self.db_pool)
         .await?;

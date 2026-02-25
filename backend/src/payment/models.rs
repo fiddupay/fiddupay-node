@@ -67,13 +67,13 @@ impl std::fmt::Display for CryptoType {
             CryptoType::Sol => write!(f, "SOL"),
             CryptoType::UsdtSpl => write!(f, "USDT_SPL"),
             CryptoType::Eth => write!(f, "ETH"),
-            CryptoType::UsdtEth => write!(f, "USDT-ERC20"),
+            CryptoType::UsdtEth => write!(f, "USDT_ETH"),
             CryptoType::Bnb => write!(f, "BNB"),
-            CryptoType::UsdtBep20 => write!(f, "USDT-BEP20"),
+            CryptoType::UsdtBep20 => write!(f, "USDT_BEP20"),
             CryptoType::Matic => write!(f, "MATIC"),
-            CryptoType::UsdtPolygon => write!(f, "USDT-Polygon"),
+            CryptoType::UsdtPolygon => write!(f, "USDT_POLYGON"),
             CryptoType::Arb => write!(f, "ARB"),
-            CryptoType::UsdtArbitrum => write!(f, "USDT-Arbitrum"),
+            CryptoType::UsdtArbitrum => write!(f, "USDT_ARBITRUM"),
         }
     }
 }
