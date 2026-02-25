@@ -114,15 +114,18 @@ pub async fn auth_middleware(
             Ok(token_data) => {
                 let merchant_id = token_data.claims.sub.parse::<i64>().unwrap_or_default();
                 
-                // Fetch current sandbox_mode from DB
-                // We use a lightweight query to get just the mode
-                let sandbox_mode = match sqlx::query_scalar!(
-                    "SELECT sandbox_mode FROM merchants WHERE id = $1",
+                // Read sandbox_mode from JWT claims (new tokens have it)
+                // Fall back to DB for old tokens without the field
+                let sandbox_mode = token_data.claims.sandbox_mode;
+
+                // Verify merchant still exists (lightweight check)
+                match sqlx::query_scalar!(
+                    "SELECT id FROM merchants WHERE id = $1 AND is_active = true",
                     merchant_id
                 )
                 .fetch_optional(&state.db_pool)
                 .await {
-                    Ok(Some(mode)) => mode,
+                    Ok(Some(_)) => {},
                     Ok(None) => {
                         return Err((
                             StatusCode::UNAUTHORIZED,
@@ -133,9 +136,7 @@ pub async fn auth_middleware(
                         ));
                     },
                     Err(e) => {
-                        tracing::error!("Failed to fetch merchant mode: {:?}", e);
-                        // Fail safe to sandbox if DB error, or error out? 
-                        // Error safe is better.
+                        tracing::error!("Failed to verify merchant: {:?}", e);
                          return Err((
                             StatusCode::INTERNAL_SERVER_ERROR,
                             axum::Json(json!({
@@ -172,9 +173,11 @@ pub async fn auth_middleware(
 /// Dashboard JWT Claims
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct DashboardClaims {
-    pub sub: String, // merchant_id,
+    pub sub: String, // merchant_id
     pub exp: usize,
     pub iat: usize,
+    #[serde(default)]
+    pub sandbox_mode: bool,
 }
 
 /// Extract merchant context from request

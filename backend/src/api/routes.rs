@@ -1,7 +1,7 @@
 // API Routes
 // HTTP route definitions
 
-use crate::api::{handlers, admin_handlers, wallet_management, security_monitoring, status, blog, careers};
+use crate::api::{public_handlers, merchant_auth_handlers, payment_handlers, wallet_management, security_monitoring, status, blog, careers};
 use crate::api::state::AppState;
 use crate::api::middleware::{create_rate_limit_layer, rate_limit_middleware};
 use crate::api::{merchant_routes, admin_routes};
@@ -23,24 +23,23 @@ pub fn create_router(state: AppState) -> Router {
 
     // Public routes (no auth required)
     let public_routes = Router::new()
-        .route("/", get(handlers::root_handler))
-        .route("/health", get(handlers::health_check))
-        // .route("/test-auth/:api_key", get(handlers::debug_auth)) // DEBUG ENDPOINT - REMOVED FOR SECURITY
-        .route("/:link_id", get(handlers::payment_page))
-        .route("/:link_id/status", get(handlers::payment_status))
-        .route("/:link_id/select", post(handlers::finalize_payment_selection))
-        .route("/api/v1/merchants/register", post(handlers::register_merchant))
-        .route("/api/v1/merchants/login", post(handlers::login_merchant))
-        .route("/api/v1/currencies/supported", get(handlers::get_supported_currencies))
-        .route("/:payment_id/cancel", post(handlers::public_cancel_payment));
+        .route("/", get(public_handlers::root_handler))
+        .route("/health", get(public_handlers::health_check))
+        .route("/:link_id", get(payment_handlers::payment_page))
+        .route("/:link_id/status", get(payment_handlers::payment_status))
+        .route("/:link_id/select", post(payment_handlers::finalize_payment_selection))
+        .route("/api/v1/merchants/register", post(merchant_auth_handlers::register_merchant))
+        .route("/api/v1/merchants/login", post(merchant_auth_handlers::login_merchant))
+        .route("/api/v1/currencies/supported", get(public_handlers::get_supported_currencies))
+        .route("/:payment_id/cancel", post(public_handlers::public_cancel_payment));
 
     // Additional public routes
     let additional_public_routes = Router::new()
         .route("/api/v1/status", get(status::get_system_status))
         .route("/api/v1/blog", get(blog::get_blog_posts))
         .route("/api/v1/careers", get(careers::get_careers))
-        .route("/api/v1/contact", post(handlers::submit_contact_form))
-        .route("/api/v1/pricing", get(handlers::get_pricing_info));
+        .route("/api/v1/contact", post(public_handlers::submit_contact_form))
+        .route("/api/v1/pricing", get(public_handlers::get_pricing_info));
 
     // Create modular routers
     let merchant_router = merchant_routes::create_merchant_router(state.clone());

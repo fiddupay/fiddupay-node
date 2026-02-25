@@ -1,80 +1,64 @@
 // Merchant Handlers
-// All merchant-specific request handlers
+// Re-exports for merchant-specific request handlers used by merchant_routes.rs
 
-use crate::api::state::AppState;
-use crate::middleware::auth::MerchantContext;
-use axum::{
-    extract::{Path, Query, State, Extension},
-    http::StatusCode,
-    response::{IntoResponse, Json},
+// Auth handlers
+pub use crate::api::merchant_auth_handlers::{
+    register_merchant,
+    login_merchant,
+    debug_auth,
 };
-use serde::{Deserialize, Serialize};
-use serde_json::json;
 
-// Re-export merchant-specific handlers from main handlers
-pub use crate::api::handlers::{
-    // Profile management
+// Settings handlers
+pub use crate::api::settings_handlers::{
     get_merchant_profile,
+    get_merchant_readiness,
     switch_environment,
     generate_api_key,
     rotate_api_key,
     set_webhook,
     update_settlement_mode,
-    
-    // Payment management
-    create_payment,
-    list_payments,
-    get_payment,
-    cancel_payment,
-    verify_payment,
-    finalize_payment_selection,
-    
-    // Refund management
-    create_refund,
-    get_refund,
-    complete_refund,
-    send_test_webhook,
-    
-    // Analytics
-    get_analytics,
-    export_analytics,
-    get_audit_logs,
-    
-    // Balance
-    get_balance,
-    get_balance_history,
-    
-    // Withdrawals
-    create_withdrawal,
-    list_withdrawals,
-    get_withdrawal,
-    cancel_withdrawal,
-    
-    // Wallet management
     set_wallet,
-    
-    // Security
+    update_merchant_settings,
+    get_merchant_settings,
+    send_test_webhook,
     set_ip_whitelist,
     get_ip_whitelist,
-    
-    // Invoices
+    get_fee_setting,
+    update_fee_setting,
     create_invoice,
     list_invoices,
     get_invoice,
-    
-    // Sandbox
+};
+
+// Payment handlers
+pub use crate::api::payment_handlers::{
+    create_payment,
+    get_payment,
+    cancel_payment,
+    verify_payment,
+    list_payments,
+    finalize_payment_selection,
+    create_refund,
+    get_refund,
+    complete_refund,
     enable_sandbox,
     simulate_payment,
-    
-    // Auth
-    register_merchant,
-    login_merchant,
-    
-    // Fee Settings
-    get_fee_setting,
-    update_fee_setting,
-    get_merchant_settings,
-    update_merchant_settings,
-    get_merchant_readiness,
+};
+
+// Analytics handlers
+pub use crate::api::analytics_handlers::{
+    get_analytics,
+    export_analytics,
+    get_audit_logs,
+    get_balance,
+    get_balance_history,
     list_unified_transactions,
+};
+
+// Withdrawal handlers
+pub use crate::api::withdrawal_handlers::{
+    create_withdrawal,
+    get_withdrawal,
+    list_withdrawals,
+    cancel_withdrawal,
 };

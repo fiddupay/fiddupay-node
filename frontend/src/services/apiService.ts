@@ -102,9 +102,6 @@ export const walletAPI = {
     private_key?: string;
     is_active?: boolean;
   }) => api.post('/api/v1/merchants/wallets', data),
-  configure: (data: { crypto_type: string; address: string; is_active?: boolean }) => api.post('/api/v1/merchants/wallets/configure-address', data), // DEPRECATED: Use setup
-  generate: (cryptoType: string) => api.post('/api/v1/merchants/wallets/generate', { crypto_type: cryptoType }), // DEPRECATED: Use setup
-  import: (data: { crypto_type: string; private_key: string; is_active?: boolean }) => api.post('/api/v1/merchants/wallets/import', data), // DEPRECATED: Use setup
   getAll: () => api.get('/api/v1/merchants/wallets'),
   getBalances: () => api.get('/api/v1/merchants/wallets/balances'),
   revoke: (cryptoType: string) => api.delete(`/api/v1/merchants/wallets/${cryptoType}`),

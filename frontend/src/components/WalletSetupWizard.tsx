@@ -20,16 +20,17 @@ interface WalletConfig {
 interface NetworkConfig {
   name: string;
   id: string;
+  crypto_type: string; // Backend crypto_type identifier
   native_currency: string;
   description: string;
 }
 
 const NETWORKS: NetworkConfig[] = [
-  { name: 'Ethereum', id: 'ethereum', native_currency: 'ETH', description: 'Ethereum mainnet' },
-  { name: 'BSC', id: 'bsc', native_currency: 'BNB', description: 'Binance Smart Chain' },
-  { name: 'Polygon', id: 'polygon', native_currency: 'MATIC', description: 'Polygon network' },
-  { name: 'Arbitrum', id: 'arbitrum', native_currency: 'ARB', description: 'Arbitrum One' },
-  { name: 'Solana', id: 'solana', native_currency: 'SOL', description: 'Solana mainnet' },
+  { name: 'Ethereum', id: 'ethereum', crypto_type: 'ETH', native_currency: 'ETH', description: 'Ethereum mainnet' },
+  { name: 'BSC', id: 'bsc', crypto_type: 'BNB', native_currency: 'BNB', description: 'Binance Smart Chain' },
+  { name: 'Polygon', id: 'polygon', crypto_type: 'MATIC', native_currency: 'MATIC', description: 'Polygon network' },
+  { name: 'Arbitrum', id: 'arbitrum', crypto_type: 'ARB', native_currency: 'ARB', description: 'Arbitrum One' },
+  { name: 'Solana', id: 'solana', crypto_type: 'SOL', native_currency: 'SOL', description: 'Solana mainnet' },
 ];
 
 export default function WalletSetupWizard() {
@@ -59,6 +60,11 @@ export default function WalletSetupWizard() {
     }
   };
 
+  const getSelectedCryptoType = () => {
+    const network = NETWORKS.find(n => n.id === selectedNetwork);
+    return network?.crypto_type || selectedNetwork.toUpperCase();
+  };
+
   const handleAddressOnlySetup = async () => {
     if (!address) {
       setError('Please enter a wallet address');
@@ -69,8 +75,9 @@ export default function WalletSetupWizard() {
     setError('');
 
     try {
-      await walletAPI.configure({
-        network: selectedNetwork,
+      await walletAPI.setup({
+        crypto_type: getSelectedCryptoType(),
+        mode: 'address',
         address: address
       })
 
@@ -94,9 +101,12 @@ export default function WalletSetupWizard() {
     setError('');
 
     try {
-      const data = await walletAPI.generate(selectedNetwork)
+      const data = await walletAPI.setup({
+        crypto_type: getSelectedCryptoType(),
+        mode: 'generate'
+      })
 
-      setSuccess(`Wallet generated for ${selectedNetwork}. Private key: ${data.data.wallet.private_key}`)
+      setSuccess(`Wallet generated for ${selectedNetwork}. Address: ${data.data?.wallet?.address || 'created'}`)
       setPassword('')
       setConfirmPassword('')
       loadWalletConfigs()
@@ -117,10 +127,10 @@ export default function WalletSetupWizard() {
     setError('');
 
     try {
-      await walletAPI.import({
-        network: selectedNetwork,
-        private_key: privateKey,
-        encryption_password: password
+      await walletAPI.setup({
+        crypto_type: getSelectedCryptoType(),
+        mode: 'import',
+        private_key: privateKey
       })
 
       setSuccess(`Private key imported for ${selectedNetwork}`)
@@ -160,8 +170,8 @@ export default function WalletSetupWizard() {
                     <div
                       key={network.id}
                       className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedNetwork === network.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
                         }`}
                       onClick={() => setSelectedNetwork(network.id)}
                     >

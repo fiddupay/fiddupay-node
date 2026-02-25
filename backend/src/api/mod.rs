@@ -2,7 +2,12 @@
 // HTTP API endpoints and handlers
 
 pub mod routes;
-pub mod handlers;
+pub mod public_handlers;
+pub mod merchant_auth_handlers;
+pub mod payment_handlers;
+pub mod settings_handlers;
+pub mod analytics_handlers;
+pub mod withdrawal_handlers;
 pub mod admin_handlers;
 pub mod merchant_handlers;
 pub mod admin_routes;
