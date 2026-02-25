@@ -189,10 +189,18 @@ const WalletsPage: React.FC = () => {
   }
 
   const handleRevokeWallet = async () => {
-    if (!confirmModal.type) return
+    if (!confirmModal.type || !confirmModal.networkName) return
     try {
       setRefreshing(true)
-      await walletAPI.revoke(confirmModal.type)
+
+      // Find all crypto types on this network and revoke them all
+      const network = supportedCryptos.find(n => n.name === confirmModal.networkName)
+      const cryptoTypesToRevoke = network
+        ? network.cryptos.map((c: any) => c.crypto_type)
+        : [confirmModal.type]
+
+      await Promise.all(cryptoTypesToRevoke.map((ct: string) => walletAPI.revoke(ct).catch(() => { })))
+
       await loadWallets()
       showToast(`${confirmModal.networkName} wallet revoked successfully`, 'success')
       setConfirmModal({ show: false, type: null, networkName: null, action: null })
@@ -245,12 +253,36 @@ const WalletsPage: React.FC = () => {
     if (!confirmModal.type) return
     try {
       setRefreshing(true)
+      // Generate wallet for the base crypto type
       const response = await walletAPI.setup({
         crypto_type: confirmModal.type,
         mode: 'generate',
         is_active: true
       })
       const { wallet, managed } = response.data
+
+      // Replicate the generated address to all sibling tokens on this network
+      // (e.g., generating ETH also configures USDT_ETH with the same address)
+      const generatedAddress = wallet?.config?.address || wallet?.address
+      if (generatedAddress && confirmModal.networkName) {
+        const network = supportedCryptos.find((n: any) => n.name === confirmModal.networkName)
+        if (network) {
+          const siblingCryptos = network.cryptos
+            .map((c: any) => c.crypto_type)
+            .filter((ct: string) => ct !== confirmModal.type)
+
+          if (siblingCryptos.length > 0) {
+            await Promise.all(siblingCryptos.map((ct: string) =>
+              walletAPI.setup({
+                crypto_type: ct,
+                mode: 'address',
+                address: generatedAddress,
+                is_active: true
+              }).catch(() => { }) // Don't fail if a sibling fails
+            ))
+          }
+        }
+      }
 
       // In managed mode, the backend does NOT return private_key — show only a success toast
       if (managed || settlementMode === 'managed' || !wallet.private_key) {
