@@ -402,19 +402,7 @@ impl PaymentService {
 
     /// Parse crypto type from string
     fn parse_crypto_type(&self, crypto_type_str: &str) -> CryptoType {
-        match crypto_type_str {
-            "USDT_BEP20" => CryptoType::UsdtBep20,
-            "USDT_ARBITRUM" => CryptoType::UsdtArbitrum,
-            "USDT_SPL" => CryptoType::UsdtSpl,
-            "USDT_POLYGON" => CryptoType::UsdtPolygon,
-            "USDT_ETH" => CryptoType::UsdtEth,
-            "SOL" => CryptoType::Sol,
-            "ETH" => CryptoType::Eth,
-            "ARB" => CryptoType::Arb,
-            "MATIC" => CryptoType::Matic,
-            "BNB" => CryptoType::Bnb,
-            _ => CryptoType::Sol, // Default fallback
-        }
+        CryptoType::from_string(crypto_type_str).unwrap_or(CryptoType::Sol)
     }
 
     /// Parse payment status from string

@@ -87,7 +87,7 @@ impl FeeCollectionService {
         let crypto_type_str = payment.crypto_type
             .as_deref()
             .ok_or("Payment has no crypto_type")?;
-        let crypto_type = CryptoType::from_string(crypto_type_str);
+        let crypto_type = CryptoType::from_string(crypto_type_str)?;
 
         let fee_amount = payment.fee_amount
             .ok_or("Payment has no fee_amount")?;

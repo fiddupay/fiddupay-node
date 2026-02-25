@@ -99,19 +99,26 @@ impl FromStr for CryptoType {
 }
 
 impl CryptoType {
-    pub fn from_string(s: &str) -> Self {
+    /// Parse a crypto type string into a CryptoType enum.
+    /// Returns an error for unrecognized strings instead of silently defaulting.
+    pub fn from_string(s: &str) -> Result<Self, crate::error::ServiceError> {
         match s.to_uppercase().as_str() {
-            "SOL" => CryptoType::Sol,
-            "ETH" => CryptoType::Eth,
-            "BNB" => CryptoType::Bnb,
-            "MATIC" => CryptoType::Matic,
-            "ARB" => CryptoType::Arb,
-            "USDT_SOL" | "USDT_SPL" => CryptoType::UsdtSpl,
-            "USDT_ETH" | "USDT_ERC20" => CryptoType::UsdtEth,
-            "USDT_BNB" | "USDT_BEP20" | "USDT_BSC" => CryptoType::UsdtBep20,
-            "USDT_MATIC" | "USDT_POLYGON" => CryptoType::UsdtPolygon,
-            "USDT_ARB" | "USDT_ARBITRUM" => CryptoType::UsdtArbitrum,
-            _ => CryptoType::Sol, // Default fallback
+            "SOL" => Ok(CryptoType::Sol),
+            "ETH" => Ok(CryptoType::Eth),
+            "BNB" => Ok(CryptoType::Bnb),
+            "MATIC" => Ok(CryptoType::Matic),
+            "ARB" => Ok(CryptoType::Arb),
+            "USDT_SOL" | "USDT_SPL" => Ok(CryptoType::UsdtSpl),
+            "USDT_ETH" | "USDT_ERC20" => Ok(CryptoType::UsdtEth),
+            "USDT_BNB" | "USDT_BEP20" | "USDT_BSC" => Ok(CryptoType::UsdtBep20),
+            "USDT_MATIC" | "USDT_POLYGON" => Ok(CryptoType::UsdtPolygon),
+            "USDT_ARB" | "USDT_ARBITRUM" => Ok(CryptoType::UsdtArbitrum),
+            unknown => {
+                tracing::warn!("Unknown crypto type string: '{}', rejecting", unknown);
+                Err(crate::error::ServiceError::ValidationError(
+                    format!("Unknown crypto type: '{}'", s)
+                ))
+            }
         }
     }
 

@@ -145,7 +145,7 @@ impl PaymentVerifier {
 
         // 6. Fetch blockchain transaction using the provided hash
         let crypto_type_str = payment.crypto_type.as_ref().ok_or("Currency selection required before verification")?;
-        let crypto_type = CryptoType::from_string(crypto_type_str);
+        let crypto_type = CryptoType::from_string(crypto_type_str)?;
 
         // Get merchant sandbox status
         let merchant_sandbox = sqlx::query!(
@@ -253,7 +253,7 @@ impl PaymentVerifier {
         .unwrap_or(false);
 
         let crypto_type_str = payment.crypto_type.as_ref().unwrap();
-        let crypto_type = CryptoType::from_string(crypto_type_str);
+        let crypto_type = CryptoType::from_string(crypto_type_str)?;
         
         let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), merchant_sandbox);
         let address = payment.to_address.as_ref().unwrap();

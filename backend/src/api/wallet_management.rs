@@ -333,7 +333,12 @@ pub async fn setup_wallet(
 
                 if settlement_mode == "forwarding" {
                     // Write to merchant_forwarding_wallets
-                    let crypto_type = CryptoType::from_string(&req.crypto_type);
+                    let crypto_type = match CryptoType::from_string(&req.crypto_type) {
+                        Ok(ct) => ct,
+                        Err(e) => return (StatusCode::BAD_REQUEST, Json(json!({
+                            "error": format!("{}", e)
+                        }))).into_response(),
+                    };
                     match wallet_service.set_forwarding_address(
                         context.merchant_id,
                         crypto_type,

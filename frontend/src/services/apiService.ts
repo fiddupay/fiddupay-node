@@ -33,15 +33,15 @@ export const merchantAPI = {
 
   getInvoice: (invoiceId: string) => api.get(`/api/v1/merchants/invoices/${invoiceId}`),
   getFeeSetting: () => api.get('/api/v1/merchants/fee-setting'),
-  updateFeeSetting: (data: any) => api.put('/api/v1/merchants/fee-setting', data),
+  updateFeeSetting: (data: { customer_pays_fee?: boolean; fee_percentage?: number }) => api.put('/api/v1/merchants/fee-setting', data),
   switchEnvironment: (toLive: boolean) =>
     api.post('/api/v1/merchants/environment/switch', { to_live: toLive }),
   updateSettlementMode: (mode: string) =>
     api.put('/api/v1/merchants/settlement-mode', { mode }), // DEPRECATED: Use updateSettings
   generateApiKey: (isLive: boolean) => api.post('/api/v1/merchants/api-keys/generate', { is_live: isLive }),
   rotateApiKey: (isLive: boolean) => api.post('/api/v1/merchants/api-keys/rotate', { is_live: isLive }),
-  setWallet: (data: any) => api.put('/api/v1/merchants/wallets', data), // DEPRECATED: Use walletAPI.setup
-  setWebhook: (data: any) => api.put('/api/v1/merchants/webhook', data), // DEPRECATED: Use updateSettings
+  setWallet: (data: { crypto_type: string; address: string }) => api.put('/api/v1/merchants/wallets', data), // DEPRECATED: Use walletAPI.setup
+  setWebhook: (data: { url: string }) => api.put('/api/v1/merchants/webhook', data), // DEPRECATED: Use updateSettings
 
   // Unified Settings & Status
   getMerchantSettings: () => api.get('/api/v1/merchants/settings'),
@@ -58,7 +58,7 @@ export const merchantAPI = {
 }
 
 export const paymentAPI = {
-  create: (data: any) => api.post('/api/v1/merchants/payments', data),
+  create: (data: { amount_usd: string; crypto_type?: string; description?: string; metadata?: Record<string, string> }) => api.post('/api/v1/merchants/payments', data),
   getStatus: (paymentId: string) => api.get(`/api/v1/merchants/payments/${paymentId}/status`),
   getHistory: (params?: {
     status?: string;
@@ -75,7 +75,7 @@ export const paymentAPI = {
     return api.get(`/api/v1/merchants/payments${query}`);
   },
   get: (paymentId: string) => api.get(`/api/v1/merchants/payments/${paymentId}`),
-  verify: (paymentId: string, data: any) => api.post(`/api/v1/merchants/payments/${paymentId}/verify`, data),
+  verify: (paymentId: string, data: { transaction_hash: string }) => api.post(`/api/v1/merchants/payments/${paymentId}/verify`, data),
   finalizeSelection: (payment_id: string, cryptoType: string) =>
     api.post(`/api/v1/merchants/payments/${payment_id}/select`, { crypto_type: cryptoType }),
   cancel: (payment_id: string) => api.post(`/api/v1/merchants/payments/${payment_id}/cancel`),
@@ -88,7 +88,7 @@ export const paymentAPI = {
 }
 
 export const withdrawalAPI = {
-  create: (data: any) => api.post('/api/v1/merchants/withdrawals', data),
+  create: (data: { crypto_type: string; amount: number; to_address: string }) => api.post('/api/v1/merchants/withdrawals', data),
   process: (id: string, password: string) => api.post(`/api/v1/merchants/withdrawals/${id}/process`, { encryption_password: password }),
   getHistory: (params?: any) => api.get('/api/v1/merchants/withdrawals', { params }),
   validateGas: (cryptoType: string, amount: number) => api.get(`/api/v1/merchants/wallets/gas-check?crypto_type=${cryptoType}&amount=${amount}`),
@@ -102,9 +102,9 @@ export const walletAPI = {
     private_key?: string;
     is_active?: boolean;
   }) => api.post('/api/v1/merchants/wallets', data),
-  configure: (data: any) => api.post('/api/v1/merchants/wallets/configure-address', data), // DEPRECATED: Use setup
+  configure: (data: { crypto_type: string; address: string; is_active?: boolean }) => api.post('/api/v1/merchants/wallets/configure-address', data), // DEPRECATED: Use setup
   generate: (cryptoType: string) => api.post('/api/v1/merchants/wallets/generate', { crypto_type: cryptoType }), // DEPRECATED: Use setup
-  import: (data: any) => api.post('/api/v1/merchants/wallets/import', data), // DEPRECATED: Use setup
+  import: (data: { crypto_type: string; private_key: string; is_active?: boolean }) => api.post('/api/v1/merchants/wallets/import', data), // DEPRECATED: Use setup
   getAll: () => api.get('/api/v1/merchants/wallets'),
   getBalances: () => api.get('/api/v1/merchants/wallets/balances'),
   revoke: (cryptoType: string) => api.delete(`/api/v1/merchants/wallets/${cryptoType}`),
@@ -122,7 +122,7 @@ export const securityAPI = {
 }
 
 export const publicAPI = {
-  contact: (data: any) => api.post('/api/v1/contact', data),
+  contact: (data: { name: string; email: string; message: string }) => api.post('/api/v1/contact', data),
   getSupportedCurrencies: (merchantId?: number) => {
     const query = merchantId ? `?merchant_id=${merchantId}` : '';
     return api.get(`/api/v1/currencies/supported${query}`);

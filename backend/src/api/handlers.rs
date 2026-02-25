@@ -647,18 +647,9 @@ pub async fn set_wallet(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<SetWalletRequest>,
 ) -> impl IntoResponse {
-    let crypto_type = match req.crypto_type.as_str() {
-        "SOL" => CryptoType::Sol,
-        "USDT_SPL" | "USDT_SOL" => CryptoType::UsdtSpl,
-        "USDT_BEP20" | "USDT_BSC" => CryptoType::UsdtBep20,
-        "USDT_ARBITRUM" => CryptoType::UsdtArbitrum,
-        "USDT_POLYGON" => CryptoType::UsdtPolygon,
-        "USDT_ETH" => CryptoType::UsdtEth,
-        "ETH" => CryptoType::Eth,
-        "ARB" => CryptoType::Arb,
-        "MATIC" => CryptoType::Matic,
-        "BNB" => CryptoType::Bnb,
-        _ => return (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid crypto_type"}))).into_response(),
+    let crypto_type = match CryptoType::from_string(&req.crypto_type) {
+        Ok(ct) => ct,
+        Err(_) => return (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid crypto_type"}))).into_response(),
     };
     
     match state.merchant_service.set_wallet_address(context.merchant_id, crypto_type, req.address).await {
@@ -1074,7 +1065,7 @@ pub async fn payment_page(
 
     // Generate QR code for payment (only if selection is finished)
     let qr_code = if let (Some(ct_str), Some(addr)) = (&payment.crypto_type, &payment.to_address) {
-        let ct = crate::payment::models::CryptoType::from_string(ct_str);
+        let ct = crate::payment::models::CryptoType::from_string(ct_str).unwrap_or(crate::payment::models::CryptoType::Sol);
         let prefix = ct.uri_scheme();
         
         let qr_data = if let Some(amt) = payment.amount {

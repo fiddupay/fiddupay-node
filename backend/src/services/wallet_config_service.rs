@@ -68,7 +68,7 @@ impl WalletConfigService {
             CryptoType::UsdtSpl => Some("SOL"),
             CryptoType::Eth => Some("USDT_ETH"),
             CryptoType::UsdtEth => Some("ETH"),
-            CryptoType::Bnb => Some("USDT_BSC"),
+            CryptoType::Bnb => Some("USDT_BEP20"),
             CryptoType::UsdtBep20 => Some("BNB"),
             CryptoType::Matic => Some("USDT_POLYGON"),
             CryptoType::UsdtPolygon => Some("MATIC"),
@@ -141,12 +141,12 @@ impl WalletConfigService {
     }
 
     pub async fn configure_address_only(&self, merchant_id: i64, request: ConfigureWalletRequest) -> Result<WalletConfig, ServiceError> {
-        let crypto_type = CryptoType::from_string(&request.crypto_type);
+        let crypto_type = CryptoType::from_string(&request.crypto_type)?;
         self.set_wallet_address(merchant_id, crypto_type, request.address, request.is_active.unwrap_or(true), None).await
     }
 
     pub async fn generate_wallet(&self, merchant_id: i64, request: GenerateWalletRequest) -> Result<GeneratedWalletResponse, ServiceError> {
-        let crypto_type = CryptoType::from_string(&request.crypto_type);
+        let crypto_type = CryptoType::from_string(&request.crypto_type)?;
         
         // Generate real wallet based on network
         let wallet = match crypto_type {
@@ -183,7 +183,7 @@ impl WalletConfigService {
     }
 
     pub async fn import_wallet(&self, merchant_id: i64, request: ImportWalletRequest) -> Result<WalletConfig, ServiceError> {
-        let crypto_type = CryptoType::from_string(&request.crypto_type);
+        let crypto_type = CryptoType::from_string(&request.crypto_type)?;
         
         // Validate and get address from private key
         let address = match crypto_type {
@@ -233,7 +233,7 @@ impl WalletConfigService {
     }
 
     pub async fn delete_wallet_config(&self, merchant_id: i64, crypto_type_str: String) -> Result<(), ServiceError> {
-        let crypto_type = CryptoType::from_string(&crypto_type_str);
+        let crypto_type = CryptoType::from_string(&crypto_type_str)?;
         
         sqlx::query!(
             "UPDATE merchant_wallets SET address = '', is_active = false, updated_at = NOW() 
@@ -250,7 +250,7 @@ impl WalletConfigService {
             CryptoType::UsdtSpl => Some("SOL"),
             CryptoType::Eth => Some("USDT_ETH"),
             CryptoType::UsdtEth => Some("ETH"),
-            CryptoType::Bnb => Some("USDT_BSC"),
+            CryptoType::Bnb => Some("USDT_BEP20"),
             CryptoType::UsdtBep20 => Some("BNB"),
             CryptoType::Matic => Some("USDT_POLYGON"),
             CryptoType::UsdtPolygon => Some("MATIC"),
@@ -315,7 +315,7 @@ impl WalletConfigService {
             CryptoType::UsdtSpl => Some("SOL"),
             CryptoType::Eth => Some("USDT_ETH"),
             CryptoType::UsdtEth => Some("ETH"),
-            CryptoType::Bnb => Some("USDT_BSC"),
+            CryptoType::Bnb => Some("USDT_BEP20"),
             CryptoType::UsdtBep20 => Some("BNB"),
             CryptoType::Matic => Some("USDT_POLYGON"),
             CryptoType::UsdtPolygon => Some("MATIC"),
@@ -362,7 +362,7 @@ impl WalletConfigService {
 
     /// Delete (soft-delete) a forwarding wallet config.
     pub async fn delete_forwarding_config(&self, merchant_id: i64, crypto_type_str: String) -> Result<(), ServiceError> {
-        let crypto_type = CryptoType::from_string(&crypto_type_str);
+        let crypto_type = CryptoType::from_string(&crypto_type_str)?;
 
         sqlx::query!(
             "UPDATE merchant_forwarding_wallets SET address = '', is_active = false, updated_at = NOW()

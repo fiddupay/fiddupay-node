@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .acquire_timeout(std::time::Duration::from_secs(config.database_timeout_seconds as u64))
         .idle_timeout(std::time::Duration::from_secs(600))
         .max_lifetime(std::time::Duration::from_secs(3600))
-        .test_before_acquire(false)  // Disable for performance
+        .test_before_acquire(true)  // Validate connections before use to avoid stale connection errors
         .connect(&config.database_url)
         .await?;
     tracing::info!(" Database pool connected");
@@ -86,7 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create router
     let app = routes::create_router(app_state);
 
-    // Start HTTP server
+    // Start HTTP server with graceful shutdown
     let addr = SocketAddr::from(([0, 0, 0, 0], config.server_port));
     tracing::info!(" Starting HTTP server on {}", addr);
     
@@ -99,7 +99,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
+    .with_graceful_shutdown(shutdown_signal())
     .await?;
 
+    tracing::info!("Server shut down gracefully");
     Ok(())
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("Failed to install SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => { tracing::info!("Received Ctrl+C, starting graceful shutdown..."); },
+        _ = terminate => { tracing::info!("Received SIGTERM, starting graceful shutdown..."); },
+    }
 }
