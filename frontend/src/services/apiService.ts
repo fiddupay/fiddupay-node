@@ -58,7 +58,7 @@ export const merchantAPI = {
 }
 
 export const paymentAPI = {
-  create: (data: { amount_usd: string; crypto_type?: string; description?: string; metadata?: Record<string, string> }) => api.post('/api/v1/merchants/payments', data),
+  create: (data: { amount_usd?: string; requested_amount?: string; crypto_type?: string; description?: string; metadata?: Record<string, string>; is_invoice?: boolean;[key: string]: unknown }) => api.post('/api/v1/merchants/payments', data),
   getStatus: (paymentId: string) => api.get(`/api/v1/merchants/payments/${paymentId}/status`),
   getHistory: (params?: {
     status?: string;
@@ -88,7 +88,7 @@ export const paymentAPI = {
 }
 
 export const withdrawalAPI = {
-  create: (data: { crypto_type: string; amount: number; to_address: string }) => api.post('/api/v1/merchants/withdrawals', data),
+  create: (data: { crypto_type: string; amount: string | number; to_address: string; description?: string }) => api.post('/api/v1/merchants/withdrawals', data),
   process: (id: string, password: string) => api.post(`/api/v1/merchants/withdrawals/${id}/process`, { encryption_password: password }),
   getHistory: (params?: any) => api.get('/api/v1/merchants/withdrawals', { params }),
   validateGas: (cryptoType: string, amount: number) => api.get(`/api/v1/merchants/wallets/gas-check?crypto_type=${cryptoType}&amount=${amount}`),
@@ -119,7 +119,7 @@ export const securityAPI = {
 }
 
 export const publicAPI = {
-  contact: (data: { name: string; email: string; message: string }) => api.post('/api/v1/contact', data),
+  contact: (data: { name: string; email: string; subject: string; message: string }) => api.post('/api/v1/contact', data),
   getSupportedCurrencies: (merchantId?: number) => {
     const query = merchantId ? `?merchant_id=${merchantId}` : '';
     return api.get(`/api/v1/currencies/supported${query}`);
