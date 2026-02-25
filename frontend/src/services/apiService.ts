@@ -58,7 +58,7 @@ export const merchantAPI = {
 }
 
 export const paymentAPI = {
-  create: (data: Record<string, unknown>) => api.post('/api/v1/merchants/payments', data),
+  create: (data: any) => api.post('/api/v1/merchants/payments', data),
   getStatus: (paymentId: string) => api.get(`/api/v1/merchants/payments/${paymentId}/status`),
   getHistory: (params?: {
     status?: string;
