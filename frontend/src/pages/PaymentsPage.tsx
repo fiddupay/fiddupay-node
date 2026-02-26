@@ -254,7 +254,8 @@ const PaymentsPage: React.FC = () => {
   }
 
   const getStatusBadge = (status: string) => {
-    const statusClasses = {
+    const upperStatus = status?.toUpperCase() || '';
+    const statusClasses: Record<string, string> = {
       PENDING: styles.statusPending,
       CONFIRMING: styles.statusConfirming,
       CONFIRMED: styles.statusConfirmed,
@@ -262,7 +263,7 @@ const PaymentsPage: React.FC = () => {
       EXPIRED: styles.statusExpired,
       CANCELLED: styles.statusCancelled
     }
-    return statusClasses[status as keyof typeof statusClasses] || styles.statusPending
+    return statusClasses[upperStatus] || styles.statusPending
   }
 
   const formatDate = (dateString: string) => {
