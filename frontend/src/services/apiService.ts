@@ -100,6 +100,7 @@ export const walletAPI = {
     enable_all_evm?: boolean;
   }) => api.post('/api/v1/merchants/wallets', data),
   getAll: () => api.get('/api/v1/merchants/wallets'),
+  getBalances: () => api.get('/api/v1/merchants/wallets/balances'),
   revoke: (cryptoType: string) => api.delete(`/api/v1/merchants/wallets/${cryptoType}`),
 }
 

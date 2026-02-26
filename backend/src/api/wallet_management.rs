@@ -451,38 +451,83 @@ pub async fn get_wallet_balances(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    // Get wallet configs with their balances and transaction volume
-    let result = sqlx::query_as::<_, WalletBalanceRow>(
-        r#"
-        SELECT
-            mw.crypto_type,
-            mw.network,
-            mw.address,
-            mw.is_active,
-            COALESCE(mb.available_balance, 0) as available_balance,
-            COALESCE(mb.reserved_balance, 0) as reserved_balance,
-            COALESCE(mb.total_balance, 0) as total_balance,
-            COALESCE(tx_stats.tx_count, 0) as transaction_count,
-            COALESCE(tx_stats.total_volume, 0) as total_volume_crypto
-        FROM merchant_wallets mw
-        LEFT JOIN merchant_balances mb
-            ON mb.merchant_id = mw.merchant_id AND mb.crypto_type = mw.crypto_type
-        LEFT JOIN LATERAL (
-            SELECT
-                COUNT(*)::bigint as tx_count,
-                COALESCE(SUM(amount_crypto), 0) as total_volume
-            FROM payment_transactions
-            WHERE merchant_id = mw.merchant_id
-              AND crypto_type = mw.crypto_type
-              AND status = 'CONFIRMED'
-        ) tx_stats ON true
-        WHERE mw.merchant_id = $1
-        ORDER BY mw.crypto_type
-        "#
+    // Lookup merchant sandbox_mode and settlement_mode
+    let merchant_info = sqlx::query!(
+        "SELECT sandbox_mode, settlement_mode FROM merchants WHERE id = $1",
+        context.merchant_id
     )
-    .bind(context.merchant_id)
-    .fetch_all(&state.db_pool)
-    .await;
+    .fetch_optional(&state.db_pool)
+    .await
+    .ok()
+    .flatten();
+
+    let sandbox_mode = merchant_info.as_ref().map(|m| m.sandbox_mode).unwrap_or(false);
+    let settlement_mode = merchant_info.as_ref().map(|m| m.settlement_mode.clone()).unwrap_or_else(|| "managed".to_string());
+
+    // Get wallet configs with their balances and transaction volume, isolated by sandbox mode
+    // We only show balances for "managed" or "imported" mode, because "forwarding" mode wallets don't hold a balance on our platform.
+    // However, if we are in forwarding mode, we still query merchant_forwarding_wallets to show the user their wallets, but with 0 balance.
+    let is_forwarding = settlement_mode == "forwarding";
+    
+    let result = if is_forwarding {
+        // Forwarding wallets don't have managed balances tracking, so return 0s
+        sqlx::query_as::<_, WalletBalanceRow>(
+            r#"
+            SELECT
+                crypto_type,
+                network,
+                forwarding_address as address,
+                is_active,
+                0 as available_balance,
+                0 as reserved_balance,
+                0 as total_balance,
+                0::bigint as transaction_count,
+                0 as total_volume_crypto
+            FROM merchant_forwarding_wallets
+            WHERE merchant_id = $1
+            ORDER BY crypto_type
+            "#
+        )
+        .bind(context.merchant_id)
+        .fetch_all(&state.db_pool)
+        .await
+    } else {
+        sqlx::query_as::<_, WalletBalanceRow>(
+            r#"
+            SELECT
+                mw.crypto_type,
+                mw.network,
+                mw.address,
+                mw.is_active,
+                COALESCE(mb.available_balance, 0) as available_balance,
+                COALESCE(mb.reserved_balance, 0) as reserved_balance,
+                COALESCE(mb.total_balance, 0) as total_balance,
+                COALESCE(tx_stats.tx_count, 0) as transaction_count,
+                COALESCE(tx_stats.total_volume, 0) as total_volume_crypto
+            FROM merchant_wallets mw
+            LEFT JOIN merchant_balances mb
+                ON mb.merchant_id = mw.merchant_id 
+               AND mb.crypto_type = mw.crypto_type 
+               AND mb.sandbox_mode = $2
+            LEFT JOIN LATERAL (
+                SELECT
+                    COUNT(*)::bigint as tx_count,
+                    COALESCE(SUM(amount_crypto), 0) as total_volume
+                FROM payment_transactions
+                WHERE merchant_id = mw.merchant_id
+                  AND crypto_type = mw.crypto_type
+                  AND status = 'CONFIRMED'
+                  AND sandbox_mode = $2
+            ) tx_stats ON true
+            WHERE mw.merchant_id = $1
+            ORDER BY mw.crypto_type
+            "#
+        )
+        .bind(context.merchant_id)
+        .bind(sandbox_mode)
+        .fetch_all(&state.db_pool)
+        .await
+    };
 
     match result {
         Ok(wallets) => {
