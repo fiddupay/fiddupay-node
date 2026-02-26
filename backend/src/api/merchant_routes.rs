@@ -75,6 +75,13 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         // IP whitelist management (GET only — updates via PATCH /settings)
         .route("/api/v1/merchants/ip-whitelist", get(merchant_handlers::get_ip_whitelist))
         
+        // Customer management (Sub-Account Designated Wallets)
+        .route("/api/v1/merchants/customers", get(crate::api::customer_handlers::list_customers).post(crate::api::customer_handlers::register_customer))
+        .route("/api/v1/merchants/customers/wallets", post(crate::api::customer_handlers::provision_customer_wallets))
+        .route("/api/v1/merchants/customers/:external_id/balances", get(crate::api::customer_handlers::get_customer_balances))
+        .route("/api/v1/merchants/customers/:external_id/withdraw", post(crate::api::customer_handlers::withdraw_from_customer))
+        .route("/api/v1/merchants/customers/:external_id/sweep", post(crate::api::customer_handlers::sweep_customer_wallet))
+        
         // Invoice management
         .route("/api/v1/merchants/invoices", post(merchant_handlers::create_invoice))
         .route("/api/v1/merchants/invoices", get(merchant_handlers::list_invoices))

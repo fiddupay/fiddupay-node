@@ -14,6 +14,7 @@ pub mod audit_service;
 pub mod price_cache_service;
 pub mod balance_service;
 pub mod withdrawal_service;
+pub mod merchant_customer_service;
 pub mod email_service;
 pub mod currency_service;
 pub mod price_service;

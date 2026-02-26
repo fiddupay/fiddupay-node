@@ -467,3 +467,57 @@ export interface PaginatedResponse<T> {
   offset: number;
   has_more: boolean;
 }
+
+// Merchant Customer Types (Sub-Accounts)
+export interface ListCustomersParams {
+  limit?: number;
+  offset?: number;
+}
+
+export interface CustomerWithdrawalRequest {
+  crypto_type: CryptoType;
+  amount: string;
+  destination_address: string;
+}
+
+export interface CustomerSweepRequest {
+  crypto_type: CryptoType;
+  amount?: string;
+}
+
+export interface MerchantCustomer {
+  id: number;
+  merchant_id: number;
+  external_id: string;
+  email?: string;
+  metadata?: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCustomerRequest {
+  external_id: string;
+  email?: string;
+  metadata?: any;
+}
+
+export interface ProvisionWalletRequest {
+  external_id: string;
+  networks: ('evm' | 'solana')[];
+}
+
+export interface CustomerBalance {
+  id: number;
+  customer_id: number;
+  merchant_id: number;
+  crypto_type: string;
+  available_balance: string;
+  locked_balance: string;
+  total_balance: string;
+  last_updated_at: string;
+}
+
+export interface CustomerBalanceResponse {
+  external_id: string;
+  balances: CustomerBalance[];
+}

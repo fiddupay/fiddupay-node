@@ -17,3 +17,4 @@ pub mod merchant_extra;
 pub mod payment_extra;
 pub mod contact;
 pub mod system_settings;
+pub mod merchant_customer;

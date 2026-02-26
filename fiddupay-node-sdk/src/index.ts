@@ -11,6 +11,7 @@ import { Wallets } from './resources/wallets';
 import { Withdrawals } from './resources/withdrawals';
 import { Security } from './resources/security';
 import { Balances, AuditLogs } from './resources/balances';
+import { Customers } from './resources/customers';
 import { Sandbox } from './resources/sandbox';
 import { Contact } from './resources/contact';
 import { Transactions } from './resources/transactions';
@@ -27,6 +28,7 @@ export class FidduPayClient {
   public readonly wallets: Wallets;
   public readonly withdrawals: Withdrawals;
   public readonly security: Security;
+  public readonly customers: Customers;
   public readonly balances: Balances;
   public readonly auditLogs: AuditLogs;
   public readonly sandbox: Sandbox;
@@ -47,6 +49,7 @@ export class FidduPayClient {
     this.wallets = new Wallets(this.client);
     this.withdrawals = new Withdrawals(this.client);
     this.security = new Security(this.client);
+    this.customers = new Customers(this.client);
     this.balances = new Balances(this.client);
     this.auditLogs = new AuditLogs(this.client);
     this.sandbox = new Sandbox(this.client);
