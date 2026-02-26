@@ -107,11 +107,11 @@ const WalletsPage: React.FC = () => {
 
       const mode = settlementMode === 'imported' ? 'import' : 'address';
 
+      const selectedNetwork = supportedCryptos.find(n => n.cryptos.some((c: any) => c.crypto_type === newWallet.crypto_type));
+      const selectedIsEvm = selectedNetwork ? isEvmNetwork(selectedNetwork.name) : false;
+
       if (settlementMode === 'forwarding') {
         // Forwarding mode: apply per-network or all-EVM based on checkbox
-        const selectedNetwork = supportedCryptos.find(n => n.cryptos.some((c: any) => c.crypto_type === newWallet.crypto_type));
-        const selectedIsEvm = selectedNetwork ? isEvmNetwork(selectedNetwork.name) : false;
-
         let cryptosToUpdate: string[];
 
         if (applyToAllEvm && selectedIsEvm) {
@@ -148,22 +148,33 @@ const WalletsPage: React.FC = () => {
         )
       } else {
         // Managed / Imported mode: existing behavior (apply to whole network)
-        const network = supportedCryptos.find(n => n.cryptos.some((c: any) => c.crypto_type === newWallet.crypto_type));
-        const cryptosToUpdate = network ? network.cryptos.map((c: any) => c.crypto_type) : [newWallet.crypto_type];
+        if (settlementMode === 'imported' && applyToAllEvm && selectedIsEvm) {
+          await walletAPI.setup({
+            crypto_type: newWallet.crypto_type,
+            mode: 'import',
+            private_key: address,
+            is_active: true,
+            enable_all_evm: true
+          });
+        } else {
+          // Manual looping for other modes/scenarios where we don't have a single cross-network backend handler yet
+          const cryptosToUpdate = selectedNetwork ? selectedNetwork.cryptos.map((c: any) => c.crypto_type) : [newWallet.crypto_type];
 
-        await Promise.all(cryptosToUpdate.map((ct: string) =>
-          walletAPI.setup({
-            crypto_type: ct,
-            mode: mode,
-            address: settlementMode === 'imported' ? undefined : address,
-            private_key: settlementMode === 'imported' ? address : undefined,
-            is_active: true
-          })
-        ));
+          await Promise.all(cryptosToUpdate.map((ct: string) =>
+            walletAPI.setup({
+              crypto_type: ct,
+              mode: mode,
+              address: settlementMode === 'imported' ? undefined : address,
+              private_key: settlementMode === 'imported' ? address : undefined,
+              is_active: true
+            })
+          ));
+        }
 
         await loadWallets()
         setShowConfigModal(false)
         setNewWallet({ crypto_type: 'SOL', address: '' })
+        setApplyToAllEvm(false)
         showToast('Wallet configured successfully for all assets on this network!', 'success')
       }
     } catch (error: any) {
@@ -257,14 +268,15 @@ const WalletsPage: React.FC = () => {
       const response = await walletAPI.setup({
         crypto_type: confirmModal.type,
         mode: 'generate',
-        is_active: true
+        is_active: true,
+        enable_all_evm: applyToAllEvm,
       })
       const { wallet, managed } = response.data
 
-      // Replicate the generated address to all sibling tokens on this network
-      // (e.g., generating ETH also configures USDT_ETH with the same address)
+      // Replicate the generated address to all sibling tokens on this SINGLE network manually
+      // (The backend also handles the cross-network `enable_all_evm` if the flag is passed)
       const generatedAddress = wallet?.config?.address || wallet?.address
-      if (generatedAddress && confirmModal.networkName) {
+      if (generatedAddress && confirmModal.networkName && !applyToAllEvm) {
         const network = supportedCryptos.find((n: any) => n.name === confirmModal.networkName)
         if (network) {
           const siblingCryptos = network.cryptos
@@ -568,8 +580,8 @@ const WalletsPage: React.FC = () => {
                 </p>
               </div>
             )}
-            {/* Apply to All EVM checkbox — only in forwarding mode for EVM networks */}
-            {settlementMode === 'forwarding' && (() => {
+            {/* Apply to All EVM checkbox */}
+            {(() => {
               const selectedNetwork = supportedCryptos.find(n => n.cryptos.some((c: any) => c.crypto_type === newWallet.crypto_type));
               if (selectedNetwork && isEvmNetwork(selectedNetwork.name)) {
                 return (
@@ -582,7 +594,7 @@ const WalletsPage: React.FC = () => {
                       style={{ width: '18px', height: '18px' }}
                     />
                     <label htmlFor="applyAllEvm" style={{ cursor: 'pointer', fontWeight: 500, fontSize: '0.85rem' }}>
-                      Apply this address to all EVM chains (Ethereum, BSC, Polygon, Arbitrum)
+                      Apply to all EVM networks (Ethereum, BSC, Polygon, Arbitrum)
                     </label>
                   </div>
                 )
@@ -615,6 +627,22 @@ const WalletsPage: React.FC = () => {
                   ? `Are you sure you want to revoke the ${confirmModal.networkName} wallet configuration? You will need to re-configure it to receive payments.`
                   : `Are you sure you want to generate a new ${confirmModal.networkName} wallet address? This will replace your current one.`}
               </p>
+
+              {confirmModal.action === 'generate' && confirmModal.networkName && isEvmNetwork(confirmModal.networkName) && (
+                <div className={styles.formGroup} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <input
+                    type="checkbox"
+                    id="applyAllEvmGenerate"
+                    checked={applyToAllEvm}
+                    onChange={(e) => setApplyToAllEvm(e.target.checked)}
+                    style={{ width: '18px', height: '18px' }}
+                  />
+                  <label htmlFor="applyAllEvmGenerate" style={{ cursor: 'pointer', fontWeight: 500, fontSize: '0.85rem' }}>
+                    Generate identical key for all EVM networks
+                  </label>
+                </div>
+              )}
+
               <div className={`bg-${confirmModal.action === 'revoke' ? 'red' : 'yellow'}-50 border border-${confirmModal.action === 'revoke' ? 'red' : 'yellow'}-200 rounded-lg p-3 flex gap-3 text-sm text-${confirmModal.action === 'revoke' ? 'red' : 'yellow'}-800`}>
                 <i className="fas fa-exclamation-triangle mt-1"></i>
                 <p>This action cannot be undone. Make sure you don't have pending funds.</p>

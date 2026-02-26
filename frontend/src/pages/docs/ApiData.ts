@@ -252,7 +252,8 @@ export const API_DATA: DocSection[] = [
                     { name: 'mode', type: 'string', required: true, description: 'address, generate, or import' },
                     { name: 'address', type: 'string', required: false, description: 'Required for mode "address"' },
                     { name: 'private_key', type: 'string', required: false, description: 'Required for mode "import"' },
-                    { name: 'is_active', type: 'boolean', required: false, description: 'Set as primary wallet' }
+                    { name: 'is_active', type: 'boolean', required: false, description: 'Set as primary wallet' },
+                    { name: 'enable_all_evm', type: 'boolean', required: false, description: 'Apply EVM key to all supported EVM networks' }
                 ],
                 request: {
                     curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/wallets \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "crypto_type": "SOL",\n    "mode": "generate"\n  }\'',

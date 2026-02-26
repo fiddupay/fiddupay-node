@@ -604,7 +604,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"address\": \"Optional address for imported mode\"\n}"
+              "raw": "{\n  \"crypto_type\": \"ETH\",\n  \"mode\": \"generate\",\n  \"enable_all_evm\": true\n}"
             }
           }
         },

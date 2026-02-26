@@ -97,6 +97,7 @@ export const walletAPI = {
     address?: string;
     private_key?: string;
     is_active?: boolean;
+    enable_all_evm?: boolean;
   }) => api.post('/api/v1/merchants/wallets', data),
   getAll: () => api.get('/api/v1/merchants/wallets'),
   revoke: (cryptoType: string) => api.delete(`/api/v1/merchants/wallets/${cryptoType}`),
