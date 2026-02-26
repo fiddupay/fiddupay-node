@@ -1,13 +1,34 @@
 # Changelog
 
-## [2.4.4] - 2026-02-13
+All notable changes to this project will be documented in this file.
+
+## [2.4.4] - 2026-02-26
 
 ### 🚀 Developer Experience (DX) Simplification
 - **Strict API Key Prefixes**: Simplified API key naming convention to strictly use `sk_sandbox_` for Sandbox and `sk_live_` for Live environments. Legacy prefixes like `sk_test_` have been removed.
 - **Auto-Environment Detection**: Client now strictly determines the operating environment based on the API key prefix.
 - **Enhanced Validation**: Added strict validation to ensure API keys match the explicitly configured environment.
 
+### Added
+- **Security Resource**: Added `getEvents()`, `getAlerts()`, `getSettings()`, `updateSettings()`, `checkGasBalances()`, `getBalanceAlerts()`, `acknowledgeAlert()`, and `resolveBalanceAlert()`.
+- **Wallet Enhancements**: Added `exportKey()`, `getGasEstimates()`, `checkWithdrawalCapability()`, `gasCheck()`, and `revoke()`.
+- **Merchant Tools**: Added `getSettings()` and `sendTestWebhook()` to the `Merchants` resource.
+- **Invoices**: Added `create()`, `list()`, and `retrieve()` methods to the `Invoices` resource.
+- **New Webhook Types**: Added `payment.detected` and `payment.partially_paid` to `WebhookEventType`.
+- **EVM Auto-Generation**: Support for `enable_all_evm` flag in `wallets.setup()` for both managed and imported modes.
+- **Unified Types**: Added `UnifiedSettingsRequest` (with `redirect_url`, `fee_percentage`, etc.) and `AnalyticsQuery`.
+
+### Fixed
+- **Breaking**: Corrected `Invoices` endpoint path from `/api/v1/merchant/invoices` to `/api/v1/merchants/invoices`.
+- **Breaking**: Updated `Invoice` interface to match backend (`invoice_id`, `items`, `tax`, `total`, `paid_at`, etc.).
+- **Breaking**: Updated `Analytics.export()` to use `GET` method with query parameters instead of `POST`.
+- **Breaking**: Updated `AnalyticsQuery` parameters from `start_date`/`end_date` to `from_date`/`to_date`.
+- **Breaking**: Updated `SimulatePaymentRequest` to use `success: boolean` instead of `status: string`.
+- Improved type safety for `ConfigureAddressRequest` and `CreateInvoiceRequest`.
+
 ### Changed
+- Refactored `Merchants.updateSettings` to use the unified `UnifiedSettingsRequest` type.
+- Updated documentation links in `ApiData.ts` to match SDK 2.4.4 reality.
 - **Documentation Update**: All examples in `README.md`, `NODE_SDK.md`, and `openapi.yaml` now use the new prefix convention.
 - **Test Suite Migration**: Updated all unit and integration tests to use the new prefix naming.
 - **Postman Collection**: Updated all collection variables and environment templates to match the new strict prefixing.
@@ -75,9 +96,9 @@
 
 ## [2.3.7] - 2026-01-28
 
-### 🔧 **Backend Compatibility Updates**
+### 🛠 **Backend Compatibility Updates**
 
-#### 🔧 **Crypto Type Alignment**
+#### 🛠 **Crypto Type Alignment**
 - **USDT_BSC → USDT_BEP20**: Updated SDK to use correct crypto type identifier matching backend
 - **Consistent Validation**: Both client and server now use identical crypto type constants
 - **Backward Compatibility**: Existing integrations continue to work with proper validation
@@ -107,7 +128,7 @@
 - **Crypto Types**: Both client and server validate supported crypto types
 - **Comprehensive Coverage**: Full validation pipeline from client to database
 
-#### 🧪 **Testing Verified**
+#### 🔬 **Testing Verified**
 - **All 24 Backend Tests**: Passing with 100% success rate
 - **Error Handling Tests**: Verified proper HTTP status codes (400/422)
 - **SDK Compatibility**: All existing SDK functionality verified working
@@ -123,7 +144,7 @@
 - **Organized Structure**: Admin endpoints under `/api/v1/admin/`, sandbox under `/api/v1/merchant/sandbox/`
 - **Improved Developer Experience**: Better endpoint organization and clearer documentation
 
-#### 🔧 **SDK Improvements**
+#### 🛠 **SDK Improvements**
 - **Automatic Path Updates**: All internal endpoint paths updated automatically - zero code changes required
 - **Enhanced TypeScript**: Improved type definitions for all 45+ merchant endpoints
 - **Better Error Handling**: More descriptive error messages and improved error recovery
@@ -151,7 +172,7 @@
 - **Error Handling**: Same error codes and message formats maintained
 - **Configuration**: No configuration changes required
 
-#### 🧪 **Verified Features**
+#### 🔬 **Verified Features**
 - **Payment Operations**: Create, retrieve, list, cancel, and verify payments
 - **Merchant Management**: Profile, balance, KYC status, and daily volume tracking
 - **Wallet Operations**: Generate, import, configure, and monitor wallets

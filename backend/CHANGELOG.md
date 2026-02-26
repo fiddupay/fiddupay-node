@@ -1,6 +1,6 @@
 # FidduPay Backend Changelog
 
-## [2.4.4] - 2026-02-13
+## [2.4.4] - 2026-02-26
 
 ### Added
 - **Strict API Key Naming Convention**: Enforced use of `sk_sandbox_` and `sk_live_` prefixes for all API keys to provide clear environment identification.

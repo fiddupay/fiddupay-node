@@ -8,14 +8,14 @@ export class AnalyticsResource {
    * Get analytics data
    */
   async retrieve(params?: {
-    start_date?: string;
-    end_date?: string;
+    from_date?: string;
+    to_date?: string;
     granularity?: 'day' | 'week' | 'month';
   }, options?: RequestOptions): Promise<Analytics> {
     const queryParams = new URLSearchParams();
 
-    if (params?.start_date) queryParams.append('start_date', params.start_date);
-    if (params?.end_date) queryParams.append('end_date', params.end_date);
+    if (params?.from_date) queryParams.append('from_date', params.from_date);
+    if (params?.to_date) queryParams.append('to_date', params.to_date);
     if (params?.granularity) queryParams.append('granularity', params.granularity);
 
     const query = queryParams.toString();
@@ -28,17 +28,15 @@ export class AnalyticsResource {
    * Export analytics data
    */
   async export(params: {
-    format: 'csv' | 'json' | 'xlsx';
-    start_date: string;
-    end_date: string;
-  }, options?: RequestOptions): Promise<{
-    export_id: string;
-    status: string;
-    format: string;
-    download_url: string | null;
-    expires_at: string;
-    created_at: string;
-  }> {
-    return this.client.request('POST', '/api/v1/merchants/analytics/export', params);
+    format?: 'csv' | 'json' | 'xlsx';
+    from_date: string;
+    to_date: string;
+  }, options?: RequestOptions): Promise<string> {
+    const queryParams = new URLSearchParams();
+    if (params.format) queryParams.append('format', params.format);
+    queryParams.append('from_date', params.from_date);
+    queryParams.append('to_date', params.to_date);
+
+    return this.client.request('GET', `/api/v1/merchants/analytics/export?${queryParams.toString()}`);
   }
 }

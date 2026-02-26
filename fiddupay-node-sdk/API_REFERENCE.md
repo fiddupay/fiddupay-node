@@ -1,4 +1,4 @@
-# FidduPay API Reference v2.4.3
+# FidduPay API Reference v2.4.4
 
 ## Base URL
 - **Sandbox**: `http://localhost:8080`
@@ -133,10 +133,14 @@ Content-Type: application/json
 
 {
   "webhook_url": "https://your-site.com/webhook",
+  "redirect_url": "https://your-site.com/success",
+  "webhook_format": "json", // or "form"
   "settlement_mode": "forwarding",
   "customer_pays_fee": true,
+  "fee_percentage": 1.5,
   "ip_whitelist": ["1.2.3.4"],
-  "sandbox_mode": false
+  "sandbox_mode": false,
+  "rotate_webhook_secret": false
 }
 ```
 **Recommended**: Use this single endpoint to update all merchant-level configurations atomically.
@@ -274,7 +278,7 @@ Authorization: Bearer {api_key}
 
 ### Export Analytics
 ```http
-GET /api/v1/merchants/analytics/export
+GET /api/v1/merchants/analytics/export?from_date=2024-01-01&to_date=2024-01-31&format=csv
 Authorization: Bearer {api_key}
 ```
 
@@ -287,10 +291,18 @@ Authorization: Bearer {api_key}
 Content-Type: application/json
 
 {
-  "amount_usd": "150.00",
   "customer_email": "customer@example.com",
-  "description": "Consulting services",
-  "expires_in": 86400
+  "customer_name": "John Doe",
+  "items": [
+    {
+      "description": "Consulting services",
+      "quantity": 1,
+      "unit_price": "150.00",
+      "amount": "150.00"
+    }
+  ],
+  "tax": "0.00",
+  "notes": "Payment due within 30 days"
 }
 ```
 
@@ -321,7 +333,7 @@ Authorization: Bearer {api_key}
 Content-Type: application/json
 
 {
-  "status": "completed", // or "failed"
+  "success": true,
   "transaction_hash": "0xabc...",
   "from_address": "0xsender..."
 }
@@ -436,7 +448,8 @@ Content-Type: application/json
   "mode": "generate", // or "import" or "address"
   "address": "external_address_if_mode_is_address",
   "private_key": "private_key_if_mode_is_import",
-  "is_active": true
+  "is_active": true,
+  "enable_all_evm": true
 }
 ```
 **Recommended**: Use this single endpoint for all wallet onboarding methods.

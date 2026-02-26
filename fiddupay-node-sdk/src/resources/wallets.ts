@@ -20,6 +20,7 @@ export class Wallets {
     address?: string;
     private_key?: string;
     is_active?: boolean;
+    enable_all_evm?: boolean;
   }, options?: RequestOptions): Promise<any> {
     return this.client.request('POST', '/api/v1/merchants/wallets', data);
   }
@@ -69,7 +70,7 @@ export class Wallets {
   }
 
   /**
-   * Check gas requirements
+   * Check gas requirements (alias for gasCheck with parameters)
    */
   async checkGasRequirements(params?: {
     crypto_type?: string;
@@ -81,6 +82,13 @@ export class Wallets {
 
     const url = `/api/v1/merchants/wallets/gas-check${queryParams.toString() ? `?${queryParams.toString()}` : '?crypto_type=ETH&amount=1.0'}`;
     return this.client.request('GET', url);
+  }
+
+  /**
+   * Check wallet gas status
+   */
+  async gasCheck(options?: RequestOptions): Promise<any> {
+    return this.client.request('GET', '/api/v1/merchants/wallets/gas-check');
   }
 
   /**

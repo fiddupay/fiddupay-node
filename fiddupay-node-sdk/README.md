@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.4.3
+# FidduPay Node.js SDK v2.4.4
 
-[![version](https://img.shields.io/badge/version-v2.4.3-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.4.4-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -61,9 +61,9 @@ const payment = await client.payments.create({
 
 console.log('Payment created:', payment.id);
 
-// NEW: Sandbox Simulation (in sandbox environment)
+// Sandbox Simulation (in sandbox environment)
 await client.sandbox.simulatePayment(payment.id, {
-  status: 'completed',
+  success: true,
   transaction_hash: '0xabc...',
   from_address: '0xsender...'
 });
@@ -177,10 +177,12 @@ console.log('Daily Volume Remaining:', profile.daily_volume_remaining);
 // Get account balance
 const balance = await client.merchants.getBalance();
 
-// Configure wallet
-await client.merchants.setWallet({
+// Configure wallet (Unified Setup)
+await client.wallets.setup({
   crypto_type: 'ETH',
-  address: '0x742d35Cc6634C0532925a3b8D4C9db96590c6C87'
+  mode: 'address',
+  address: '0x742d35Cc6634C0532925a3b8D4C9db96590c6C87',
+  is_active: true
 });
 
 ```
@@ -205,17 +207,17 @@ const refunds = await client.refunds.list({
 
 ```typescript
 // Get analytics data
-const analytics = await client.analytics.getData({
-  startDate: '2026-01-01',
-  endDate: '2026-01-31',
-  metrics: ['revenue', 'transaction_count']
+const analytics = await client.analytics.retrieve({
+  from_date: '2026-01-01',
+  to_date: '2026-01-31',
+  granularity: 'day'
 });
 
 // Export data
-const exportData = await client.analytics.exportData({
+const exportData = await client.analytics.export({
   format: 'csv',
-  startDate: '2026-01-01',
-  endDate: '2026-01-31'
+  from_date: '2026-01-01',
+  to_date: '2026-01-31'
 });
 ```
 

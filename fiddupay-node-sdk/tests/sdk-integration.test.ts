@@ -56,7 +56,8 @@ describe('FidduPay SDK - Integration Test Suite', () => {
       expect(typeof client.merchants.rotateApiKey).toBe('function');
       expect(typeof client.merchants.switchEnvironment).toBe('function');
       expect(typeof client.merchants.getBalance).toBe('function');
-      expect(typeof client.merchants.setWallet).toBe('function');
+      expect(typeof client.merchants.updateSettings).toBe('function');
+      expect(typeof client.merchants.getSettings).toBe('function');
     });
 
     it('should have all refund methods available', () => {
@@ -66,9 +67,11 @@ describe('FidduPay SDK - Integration Test Suite', () => {
     });
 
     it('should have all wallet methods available', () => {
-      expect(typeof client.wallets.generate).toBe('function');
-      expect(typeof client.wallets.import).toBe('function');
+      expect(typeof client.wallets.setup).toBe('function');
+      expect(typeof client.wallets.exportKey).toBe('function');
       expect(typeof client.wallets.checkGasRequirements).toBe('function');
+      expect(typeof client.wallets.gasCheck).toBe('function');
+      expect(typeof client.wallets.revoke).toBe('function');
     });
 
     it('should have all analytics methods available', () => {
@@ -209,7 +212,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
     });
 
     it('should provide comprehensive merchant operations', () => {
-      const merchantMethods = ['register', 'rotateApiKey', 'switchEnvironment', 'getBalance', 'setWallet'];
+      const merchantMethods = ['register', 'rotateApiKey', 'switchEnvironment', 'getBalance', 'updateSettings'];
 
       merchantMethods.forEach(method => {
         expect(client.merchants).toHaveProperty(method);

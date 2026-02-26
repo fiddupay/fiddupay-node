@@ -1,4 +1,4 @@
-# FidduPay Frontend Documentation v2.4.3
+# FidduPay Frontend Documentation v2.4.4
 
 React-based frontend for the FidduPay cryptocurrency payment gateway with comprehensive API integration and modern UI components.
 

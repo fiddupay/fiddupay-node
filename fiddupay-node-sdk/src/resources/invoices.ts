@@ -1,7 +1,7 @@
 import { HttpClient } from '../client';
 
 export class InvoicesResource {
-  constructor(private client: HttpClient) {}
+  constructor(private client: HttpClient) { }
 
   async create(data: {
     amount_usd: string;
@@ -9,14 +9,14 @@ export class InvoicesResource {
     due_date?: string;
     customer_email?: string;
   }) {
-    return this.client.request('POST', '/api/v1/merchant/invoices', data);
+    return this.client.request('POST', '/api/v1/merchants/invoices', data);
   }
 
   async list() {
-    return this.client.request('GET', '/api/v1/merchant/invoices');
+    return this.client.request('GET', '/api/v1/merchants/invoices');
   }
 
   async retrieve(invoiceId: string) {
-    return this.client.request('GET', `/api/v1/merchant/invoices/${invoiceId}`);
+    return this.client.request('GET', `/api/v1/merchants/invoices/${invoiceId}`);
   }
 }

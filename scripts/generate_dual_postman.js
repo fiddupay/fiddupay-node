@@ -5,7 +5,7 @@ const path = require('path');
 const completePath = path.join(__dirname, '../docs/postman/FidduPay-Complete-API.postman_collection.json');
 const merchantPath = path.join(__dirname, '../fiddupay-node-sdk/postman/FidduPay-Merchant-API.postman_collection.json');
 
-const VERSION = "2.4.3";
+const VERSION = "2.4.4";
 
 // 1. Define the base structure (based on the original 773-line version)
 const baseCollection = {

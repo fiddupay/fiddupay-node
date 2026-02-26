@@ -10,7 +10,7 @@ Complete guide for merchants to integrate FidduPay cryptocurrency payment gatewa
 - **KYC Verified Merchants**: No daily volume limits
 - **Reset**: Daily limits reset at midnight UTC
 - **Tracking**: Real-time volume tracking across all transaction types
-- **v2.4.3 Update**: Introduced On-Demand Managed Wallets, Multi-Currency Checkout, and Unified Settings.
+- **v2.4.4 Update**: Introduced On-Demand Managed Wallets, Multi-Currency Checkout, Unified Settings, and Full SDK Parity.
 
 
 ### Check Your Daily Volume Status

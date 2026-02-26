@@ -10,8 +10,12 @@ export type WebhookEventType =
   | 'payment.partially_paid'
   | 'payment.expired'
   | 'payment.failed'
+  | 'payment.captured'
+  | 'refund.created'
   | 'refund.completed'
   | 'refund.failed'
+  | 'withdrawal.created'
+  | 'withdrawal.processed'
   | 'wallet.low_balance';
 
 export interface FidduPayConfig {
@@ -140,8 +144,24 @@ export interface Refund {
   transaction_hash?: string;
   created_at: string;
   completed_at?: string;
-  // Fields present in some contexts but not always response
-  redundant_field?: never; // Placeholder to clear lines
+}
+
+export interface AnalyticsQuery {
+  from_date?: string;
+  to_date?: string;
+  granularity?: 'day' | 'week' | 'month';
+}
+
+export interface UnifiedSettingsRequest {
+  webhook_url?: string;
+  redirect_url?: string;
+  webhook_format?: 'json' | 'form';
+  settlement_mode?: 'forwarding' | 'managed' | 'imported';
+  customer_pays_fee?: boolean;
+  fee_percentage?: number;
+  ip_whitelist?: string[];
+  sandbox_mode?: boolean;
+  rotate_webhook_secret?: boolean;
 }
 
 export interface Merchant {
@@ -400,9 +420,43 @@ export interface SandboxPaymentSimulation {
 }
 
 export interface SimulatePaymentRequest {
-  status: 'completed' | 'failed';
+  success: boolean;
   transaction_hash?: string;
   from_address?: string;
+}
+
+// Invoice Types
+export interface InvoiceItem {
+  description: string;
+  quantity: number;
+  unit_price: string;
+  amount: string;
+}
+
+export interface CreateInvoiceRequest {
+  customer_email?: string;
+  customer_name?: string;
+  items: InvoiceItem[];
+  tax?: string;
+  due_date?: string;
+  notes?: string;
+}
+
+export interface Invoice {
+  invoice_id: string;
+  merchant_id: number;
+  customer_email?: string;
+  customer_name?: string;
+  status: 'PENDING' | 'PAID' | 'CANCELLED';
+  items: InvoiceItem[];
+  subtotal: string;
+  tax: string;
+  total: string;
+  payment_id?: string;
+  due_date?: string;
+  notes?: string;
+  created_at: string;
+  paid_at?: string;
 }
 
 // Generic Types

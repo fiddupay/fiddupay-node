@@ -1,5 +1,5 @@
 import { HttpClient } from '../client';
-import { Merchant, MerchantProfile, RequestOptions } from '../types';
+import { Merchant, MerchantProfile, RequestOptions, UnifiedSettingsRequest } from '../types';
 
 export class Merchants {
   constructor(private client: HttpClient) { }
@@ -124,13 +124,21 @@ export class Merchants {
   /**
    * Update global merchant settings (Unified)
    */
-  async updateSettings(data: {
-    webhook_url?: string;
-    settlement_mode?: 'forwarding' | 'managed' | 'imported';
-    customer_pays_fee?: boolean;
-    ip_whitelist?: string[];
-    sandbox_mode?: boolean;
-  }, options?: RequestOptions): Promise<{ status: string; message: string }> {
+  async updateSettings(data: UnifiedSettingsRequest, options?: RequestOptions): Promise<{ status: string; message: string }> {
     return this.client.request('PATCH', '/api/v1/merchants/settings', data);
+  }
+
+  /**
+   * Get global merchant settings
+   */
+  async getSettings(options?: RequestOptions): Promise<UnifiedSettingsRequest> {
+    return this.client.request<UnifiedSettingsRequest>('GET', '/api/v1/merchants/settings');
+  }
+
+  /**
+   * Send a test webhook
+   */
+  async sendTestWebhook(options?: RequestOptions): Promise<{ status: string; message: string }> {
+    return this.client.request('POST', '/api/v1/merchants/webhook/test');
   }
 }

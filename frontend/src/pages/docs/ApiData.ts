@@ -605,7 +605,7 @@ export const API_DATA: DocSection[] = [
                 description: 'Get a detailed chronological log of all administrative actions and system events for your account.',
                 request: {
                     curl: 'curl https://api.fiddupay.com/api/v1/merchants/audit-logs \\\n  -H "Authorization: Bearer sk_live_..."',
-                    node: 'const logs = await fiddupay.audits.list();'
+                    node: 'const logs = await fiddupay.auditLogs.list();'
                 },
                 response: JSON.stringify([
                     { timestamp: "2026-02-04T12:00:00Z", action: "API_KEY_ROTATED", actor: "merchant_user_1" }

@@ -135,9 +135,9 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(client.merchants.switchEnvironment).toBeDefined();
       expect(client.merchants.generateApiKey).toBeDefined();
       expect(client.merchants.rotateApiKey).toBeDefined();
-      expect(client.merchants.setWebhook).toBeDefined();
-      expect(client.merchants.setIpWhitelist).toBeDefined();
-      expect(client.merchants.getIpWhitelist).toBeDefined();
+      expect(client.merchants.updateSettings).toBeDefined();
+      expect(client.merchants.getSettings).toBeDefined();
+      expect(client.merchants.sendTestWebhook).toBeDefined();
     });
 
     it('should have refund methods', () => {
@@ -158,14 +158,13 @@ describe('FidduPay SDK - Core Functionality', () => {
     });
 
     it('should have wallet methods', () => {
+      expect(client.wallets.setup).toBeDefined();
       expect(client.wallets.getConfigurations).toBeDefined();
-      expect(client.wallets.configureAddress).toBeDefined();
-      expect(client.wallets.generate).toBeDefined();
-      expect(client.wallets.import).toBeDefined();
       expect(client.wallets.exportKey).toBeDefined();
       expect(client.wallets.checkGasRequirements).toBeDefined();
       expect(client.wallets.getGasEstimates).toBeDefined();
       expect(client.wallets.checkWithdrawalCapability).toBeDefined();
+      expect(client.wallets.revoke).toBeDefined();
     });
 
     it('should have withdrawal methods', () => {
@@ -205,7 +204,7 @@ describe('FidduPay SDK - Core Functionality', () => {
   it('should validate sandbox simulation request', () => {
     expect(() => {
       const request = {
-        status: 'completed' as const,
+        success: true,
         transaction_hash: '0x123...',
         from_address: '0xsender...'
       };
@@ -254,13 +253,23 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(merchantPaysRequest.customer_pays_fee).toBe(false);
     });
 
-    it('should support fee setting operations', () => {
-      expect(client.payments.updateFeeSetting).toBeDefined();
-      expect(client.payments.getFeeSetting).toBeDefined();
+    it('should support fee setting operations via updateSettings', () => {
+      expect(client.merchants.updateSettings).toBeDefined();
 
       expect(() => {
-        client.payments.updateFeeSetting({ customer_pays_fee: true });
-        client.payments.updateFeeSetting({ customer_pays_fee: false });
+        client.merchants.updateSettings({ customer_pays_fee: true });
+        client.merchants.updateSettings({ customer_pays_fee: false });
+      }).not.toThrow();
+    });
+
+    it('should support evm auto-generation flag', () => {
+      expect(() => {
+        const request = {
+          crypto_type: 'ETH',
+          mode: 'generate' as const,
+          enable_all_evm: true
+        };
+        expect(request.enable_all_evm).toBe(true);
       }).not.toThrow();
     });
   });
