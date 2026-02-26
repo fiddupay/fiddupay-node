@@ -130,7 +130,7 @@ pub async fn list_customers(
             "total": total,
             "limit": limit,
             "offset": offset,
-            "has_more": offset + customers.len() as i64 < total
+            "has_more": (offset + customers.len() as i64) < total
         }))).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
             "error": e.to_string()
