@@ -264,26 +264,6 @@ pub async fn rotate_api_key(
 }
 
 // ============================================================================
-// Settlement Mode
-// ============================================================================
-
-#[derive(Deserialize)]
-pub struct UpdateSettlementModeRequest {
-    pub mode: String,
-}
-
-pub async fn update_settlement_mode(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
-    Json(req): Json<UpdateSettlementModeRequest>,
-) -> impl IntoResponse {
-    match state.merchant_service.update_settlement_mode(context.merchant_id, &req.mode).await {
-        Ok(_) => (StatusCode::OK, Json(json!({"status": "success", "mode": req.mode}))).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
-    }
-}
-
-// ============================================================================
 // Wallet (deprecated set_wallet)
 // ============================================================================
 
@@ -321,6 +301,7 @@ pub struct UnifiedSettingsRequest {
     pub webhook_format: Option<String>,
     pub settlement_mode: Option<String>,
     pub customer_pays_fee: Option<bool>,
+    pub fee_percentage: Option<Decimal>,
     pub ip_whitelist: Option<Vec<String>>,
     pub sandbox_mode: Option<bool>,
     pub rotate_webhook_secret: Option<bool>,
@@ -348,7 +329,21 @@ pub async fn update_merchant_settings(
         }
     }
 
-    // 2. Update Webhook if provided
+    // 2. Update Fee Settings if provided
+    if req.fee_percentage.is_some() || req.customer_pays_fee.is_some() {
+        if let Err(e) = sqlx::query(
+            "UPDATE merchants SET fee_percentage = COALESCE($1, fee_percentage), customer_pays_fee = COALESCE($2, customer_pays_fee), updated_at = NOW() WHERE id = $3"
+        )
+        .bind(req.fee_percentage)
+        .bind(req.customer_pays_fee)
+        .bind(context.merchant_id)
+        .execute(&state.db_pool)
+        .await {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
+        }
+    }
+
+    // 3. Update Webhook if provided
     if req.webhook_url.is_some() || req.webhook_format.is_some() {
         if let Err(e) = state.webhook_service.set_webhook_url(
             context.merchant_id, 
@@ -359,14 +354,14 @@ pub async fn update_merchant_settings(
         }
     }
 
-    // 3. Update IP Whitelist if provided
+    // 4. Update IP Whitelist if provided
     if let Some(ips) = req.ip_whitelist {
         if let Err(e) = state.ip_whitelist_service.set_whitelist(context.merchant_id, ips).await {
             return (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response();
         }
     }
 
-    // 4. Rotate Webhook Secret if requested
+    // 5. Rotate Webhook Secret if requested
     if req.rotate_webhook_secret.unwrap_or(false) {
         let new_secret = hex::encode(rand::random::<[u8; 32]>());
         if let Err(e) = sqlx::query!(
@@ -386,26 +381,7 @@ pub async fn update_merchant_settings(
     }))).into_response()
 }
 
-// ============================================================================
-// Webhook
-// ============================================================================
 
-#[derive(Deserialize, Validate)]
-pub struct SetWebhookRequest {
-    #[validate(url, custom(function = "validate_webhook_url"))]
-    pub url: String,
-}
-
-pub async fn set_webhook(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
-    Json(req): Json<SetWebhookRequest>,
-) -> impl IntoResponse {
-    match state.webhook_service.set_webhook_url(context.merchant_id, Some(req.url), None).await {
-        Ok(_) => (StatusCode::OK, Json(json!({"success": true}))).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
-    }
-}
 
 pub async fn get_merchant_settings(
     State(state): State<AppState>,
@@ -482,24 +458,8 @@ pub async fn send_test_webhook(
 }
 
 // ============================================================================
-// IP Whitelist
+// IP Whitelist (GET only — updates now via PATCH /settings)
 // ============================================================================
-
-#[derive(Deserialize)]
-pub struct SetIpWhitelistRequest {
-    pub ip_addresses: Vec<String>,
-}
-
-pub async fn set_ip_whitelist(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
-    Json(req): Json<SetIpWhitelistRequest>,
-) -> impl IntoResponse {
-    match state.ip_whitelist_service.set_whitelist(context.merchant_id, req.ip_addresses).await {
-        Ok(_) => (StatusCode::OK, Json(json!({"message": "IP whitelist updated"}))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
-    }
-}
 
 pub async fn get_ip_whitelist(
     State(state): State<AppState>,
@@ -512,7 +472,7 @@ pub async fn get_ip_whitelist(
 }
 
 // ============================================================================
-// Fee Settings
+// Fee Settings (GET only — updates now via PATCH /settings)
 // ============================================================================
 
 #[derive(Serialize)]
@@ -540,61 +500,6 @@ pub async fn get_fee_setting(
         Ok(None) => (StatusCode::NOT_FOUND, "Merchant not found").into_response(),
         Err(e) => {
             tracing::error!("Failed to fetch merchant fees: {:?}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response()
-        }
-    }
-}
-
-#[derive(Deserialize)]
-pub struct UpdateFeeSettingRequest {
-    pub fee_percentage: Option<Decimal>,
-    pub customer_pays_fee: Option<bool>,
-}
-
-pub async fn update_fee_setting(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
-    Json(req): Json<UpdateFeeSettingRequest>,
-) -> impl IntoResponse {
-    let merchant_result = sqlx::query_as::<_, crate::models::merchant::Merchant>(
-        "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
-    )
-    .bind(context.merchant_id)
-    .fetch_optional(&state.db_pool)
-    .await;
-
-    let current_merchant = match merchant_result {
-        Ok(Some(m)) => m,
-        Ok(None) => return (StatusCode::NOT_FOUND, "Merchant not found").into_response(),
-        Err(e) => {
-            tracing::error!("Failed to fetch merchant for update: {:?}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response();
-        }
-    };
-
-    let new_fee = req.fee_percentage.unwrap_or(current_merchant.fee_percentage);
-    let new_payer_setting = req.customer_pays_fee.unwrap_or(current_merchant.customer_pays_fee);
-
-    let result = sqlx::query(
-        "UPDATE merchants SET fee_percentage = $1, customer_pays_fee = $2, updated_at = NOW() WHERE id = $3"
-    )
-    .bind(new_fee)
-    .bind(new_payer_setting)
-    .bind(context.merchant_id)
-    .execute(&state.db_pool)
-    .await;
-
-    match result {
-        Ok(_) => Json(json!({
-            "status": "success",
-            "message": "Fee settings updated",
-            "data": {
-                "fee_percentage": new_fee,
-                "customer_pays_fee": new_payer_setting
-            }
-        })).into_response(),
-        Err(e) => {
-            tracing::error!("Failed to update fee settings: {:?}", e);
             (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response()
         }
     }

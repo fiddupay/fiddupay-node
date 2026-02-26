@@ -31,15 +31,11 @@ pub fn create_admin_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/admin/security/alerts", get(admin_handlers::get_security_alerts))
         .route("/api/v1/admin/security/alerts/:alert_id/acknowledge", post(admin_handlers::acknowledge_alert))
         .route("/api/v1/admin/security/settings", get(admin_handlers::get_security_settings))
-        .route("/api/v1/admin/security/settings", put(admin_handlers::update_security_settings))
         
-        // Admin System Configuration
-        .route("/api/v1/admin/config/environment", get(admin_handlers::get_environment_config))
-        .route("/api/v1/admin/config/environment", put(admin_handlers::update_environment_config))
+        // Unified Admin Configuration (single PATCH for all config updates)
+        .route("/api/v1/admin/config", axum::routing::patch(admin_handlers::update_admin_config))
         .route("/api/v1/admin/config/fees", get(admin_handlers::get_fee_config))
-        .route("/api/v1/admin/config/fees", put(admin_handlers::update_fee_config))
         .route("/api/v1/admin/config/limits", get(admin_handlers::get_system_limits))
-        .route("/api/v1/admin/config/limits", put(admin_handlers::update_system_limits))
         
         // Admin Payment Management
         .route("/api/v1/admin/payments", get(admin_handlers::get_all_payments))
@@ -58,10 +54,8 @@ pub fn create_admin_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/admin/reports/transactions", get(admin_handlers::get_transaction_reports))
         .route("/api/v1/admin/reports/merchants", get(admin_handlers::get_merchant_reports))
         
-        // Admin Wallet Management
-        .route("/api/v1/admin/wallets/hot", get(admin_handlers::get_hot_wallets))
-        .route("/api/v1/admin/wallets/cold", get(admin_handlers::get_cold_wallets))
-        .route("/api/v1/admin/wallets/balances", get(admin_handlers::get_wallet_balances))
+        // Admin Wallet Management (unified view with query params)
+        .route("/api/v1/admin/wallets", get(admin_handlers::get_all_wallets))
         .route("/api/v1/admin/wallets/transfer", post(admin_handlers::transfer_funds))
         
         // Admin User Management

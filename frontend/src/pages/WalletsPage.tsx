@@ -86,7 +86,7 @@ const WalletsPage: React.FC = () => {
     try {
       const [walletsData, balancesData] = await Promise.all([
         walletAPI.getAll(),
-        walletAPI.getBalances().catch(() => ({ data: { wallets: [] } }))
+        walletAPI.getAll().catch(() => ({ data: { wallets: [] } }))
       ])
       setWallets(Array.isArray(walletsData.data.wallets) ? walletsData.data.wallets : [])
       setWalletBalances(Array.isArray(balancesData.data.wallets) ? balancesData.data.wallets : [])

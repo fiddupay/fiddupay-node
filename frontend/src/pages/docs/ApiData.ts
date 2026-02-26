@@ -86,25 +86,6 @@ export const API_DATA: DocSection[] = [
                 }, null, 2)
             },
             {
-                id: 'settlement-mode',
-                method: 'PUT',
-                path: '/api/v1/merchants/settlement-mode',
-                title: 'Update Settlement Mode',
-                description: 'Toggle your global account-wide settlement strategy between Forwarding, Managed, and Imported modes.',
-                deprecated: true,
-                body: [
-                    { name: 'mode', type: 'string', required: true, description: 'One of: forwarding, managed, imported' }
-                ],
-                request: {
-                    curl: 'curl -X PUT https://api.fiddupay.com/api/v1/merchants/settlement-mode \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"mode": "forwarding"}\'',
-                    node: 'await fiddupay.merchants.updateSettlementMode("forwarding");'
-                },
-                response: JSON.stringify({
-                    status: "success",
-                    mode: "forwarding"
-                }, null, 2)
-            },
-            {
                 id: 'update-settings',
                 method: 'PATCH',
                 path: '/api/v1/merchants/settings',
@@ -114,6 +95,7 @@ export const API_DATA: DocSection[] = [
                     { name: 'webhook_url', type: 'string', required: false, description: 'New webhook destination' },
                     { name: 'settlement_mode', type: 'string', required: false, description: 'forwarding, managed, or imported' },
                     { name: 'customer_pays_fee', type: 'boolean', required: false, description: 'Toggle who pays network fees' },
+                    { name: 'fee_percentage', type: 'number', required: false, description: 'Custom fee percentage override' },
                     { name: 'ip_whitelist', type: 'string[]', required: false, description: 'Array of allowed IP addresses' },
                     { name: 'sandbox_mode', type: 'boolean', required: false, description: 'Toggle sandbox environment' }
                 ],
@@ -555,22 +537,6 @@ export const API_DATA: DocSection[] = [
                     node: 'await fiddupay.security.acknowledgeAlert("alt_123");'
                 },
                 response: JSON.stringify({ message: "Alert acknowledged" }, null, 2)
-            },
-            {
-                id: 'set-global-webhook',
-                method: 'PUT',
-                path: '/api/v1/merchants/webhook',
-                title: 'Configure Global Webhook',
-                description: 'Set a default destination for all system events and payment notifications.',
-                deprecated: true,
-                body: [
-                    { name: 'webhook_url', type: 'string', required: true, description: 'The absolute URL to receive POST events' }
-                ],
-                request: {
-                    curl: 'curl -X PUT https://api.fiddupay.com/api/v1/merchants/webhook \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"webhook_url": "https://callback.com/fiddupay"}\'',
-                    node: 'await fiddupay.merchants.setWebhook("https://callback.com/fiddupay");'
-                },
-                response: JSON.stringify({ message: "Webhook URL updated successfully" }, null, 2)
             }
         ]
     }

@@ -129,7 +129,7 @@ const SettingsPage: React.FC = () => {
         const newValue = !customerPaysFee
         try {
             setLoading(true)
-            await merchantAPI.updateFeeSetting({ customer_pays_fee: newValue })
+            await merchantAPI.updateSettings({ customer_pays_fee: newValue })
             setCustomerPaysFee(newValue)
             showToast(`Fees will now be paid by ${newValue ? 'customers' : 'you'}`, 'success')
         } catch (error: any) {

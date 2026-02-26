@@ -228,6 +228,10 @@
             "method": "PATCH",
             "header": [
               {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
                 "key": "Authorization",
                 "value": "Bearer {{apiKey}}"
               }
@@ -243,6 +247,10 @@
                 "merchants",
                 "settings"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"webhook_url\": \"https://example.com/webhook\",\n  \"settlement_mode\": \"forwarding\",\n  \"customer_pays_fee\": true,\n  \"fee_percentage\": 1.5,\n  \"sandbox_mode\": true\n}"
             }
           }
         },
@@ -620,64 +628,6 @@
                 "v1",
                 "merchants",
                 "wallets"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Generate Wallet (Legacy)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/wallets/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "wallets",
-                "generate"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Import Wallet (Legacy)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/wallets/import",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "wallets",
-                "import"
               ]
             }
           }

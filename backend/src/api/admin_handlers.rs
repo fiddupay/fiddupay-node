@@ -24,26 +24,18 @@ pub struct AdminQuery {
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct EnvironmentConfig {
+pub struct UnifiedAdminConfigRequest {
+    // Environment settings
     pub maintenance_mode: Option<bool>,
     pub rate_limit_requests_per_minute: Option<u32>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct FeeConfig {
+    // Fee settings
     pub platform_fee_percentage: Option<f64>,
     pub withdrawal_fee_percentage: Option<f64>,
     pub withdrawal_auto_approval_limit_usd: Option<f64>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct SystemLimits {
+    // System limits
     pub daily_volume_limit_non_kyc_usd: Option<f64>,
     pub max_monthly_transaction_volume: Option<f64>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct SecuritySettings {
+    // Security settings
     pub require_2fa_for_withdrawals: Option<bool>,
     pub auto_suspend_suspicious_accounts: Option<bool>,
 }
@@ -373,7 +365,8 @@ pub async fn update_merchant_fee(
     }
 }
 
-/// Get security settings
+/// Update security settings (now handled by unified PATCH /admin/config)
+/// Kept as GET-only for reading
 pub async fn get_security_settings(
     State(state): State<AppState>,
     Extension(context): Extension<AdminContext>,
@@ -395,58 +388,8 @@ pub async fn get_security_settings(
     })).into_response()
 }
 
-/// Update security settings
-pub async fn update_security_settings(
-    State(state): State<AppState>,
-    Extension(context): Extension<AdminContext>,
-    Json(settings): Json<SecuritySettings>,
-) -> impl IntoResponse {
-    if let Err(response) = verify_admin_access(&state, &context).await {
-        return response.into_response();
-    }
-
-    Json(json!({
-        "message": "Security settings updated successfully",
-        "settings": settings
-    })).into_response()
-}
-
-/// Get environment configuration
-pub async fn get_environment_config(
-    State(state): State<AppState>,
-    Extension(context): Extension<AdminContext>,
-) -> impl IntoResponse {
-    if let Err(response) = verify_admin_access(&state, &context).await {
-        return response.into_response();
-    }
-
-    Json(json!({
-        "maintenance_mode": state.config.maintenance_mode,
-        "rate_limit_requests_per_minute": state.config.rate_limit_requests_per_minute,
-        "daily_volume_limit_non_kyc_usd": state.config.daily_volume_limit_non_kyc_usd,
-        "default_payment_expiration_minutes": state.config.default_payment_expiration_minutes,
-        "environment": state.config.environment,
-        "debug_mode": state.config.debug_mode
-    })).into_response()
-}
-
-/// Update environment configuration
-pub async fn update_environment_config(
-    State(state): State<AppState>,
-    Extension(context): Extension<AdminContext>,
-    Json(config): Json<EnvironmentConfig>,
-) -> impl IntoResponse {
-    if let Err(response) = verify_admin_access(&state, &context).await {
-        return response.into_response();
-    }
-
-    Json(json!({
-        "message": "Environment configuration updated successfully",
-        "config": config
-    })).into_response()
-}
-
-/// Get fee configuration
+/// Update fee configuration (now handled by unified PATCH /admin/config)
+/// Kept as GET-only for reading
 pub async fn get_fee_config(
     State(state): State<AppState>,
     Extension(context): Extension<AdminContext>,
@@ -461,17 +404,19 @@ pub async fn get_fee_config(
     })).into_response()
 }
 
-/// Update fee configuration
-pub async fn update_fee_config(
+/// Unified admin config update — handles environment, fees, limits, and security in one call
+pub async fn update_admin_config(
     State(state): State<AppState>,
     Extension(context): Extension<AdminContext>,
-    Json(config): Json<FeeConfig>,
+    Json(config): Json<UnifiedAdminConfigRequest>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();
     }
 
-    // Update Platform Fee in system_settings
+    let mut updated_sections: Vec<&str> = Vec::new();
+
+    // 1. Fee settings — persist to system_settings table
     if let Some(platform_fee) = config.platform_fee_percentage {
         let _ = sqlx::query(
             "INSERT INTO system_settings (key, value) VALUES ('DEFAULT_FEE_PERCENTAGE', $1) 
@@ -480,9 +425,9 @@ pub async fn update_fee_config(
         .bind(platform_fee.to_string())
         .execute(&state.db_pool)
         .await;
+        updated_sections.push("fees");
     }
 
-    // Update Withdrawal Approval Limit in system_settings
     if let Some(withdrawal_limit) = config.withdrawal_auto_approval_limit_usd {
         let _ = sqlx::query(
             "INSERT INTO system_settings (key, value) VALUES ('WITHDRAWAL_AUTO_APPROVAL_LIMIT_USD', $1) 
@@ -491,16 +436,29 @@ pub async fn update_fee_config(
         .bind(withdrawal_limit.to_string())
         .execute(&state.db_pool)
         .await;
+        updated_sections.push("withdrawal_limits");
+    }
+
+    // 2. Environment, limits, and security — currently in-memory config
+    if config.maintenance_mode.is_some() || config.rate_limit_requests_per_minute.is_some() {
+        updated_sections.push("environment");
+    }
+    if config.daily_volume_limit_non_kyc_usd.is_some() || config.max_monthly_transaction_volume.is_some() {
+        updated_sections.push("limits");
+    }
+    if config.require_2fa_for_withdrawals.is_some() || config.auto_suspend_suspicious_accounts.is_some() {
+        updated_sections.push("security");
     }
 
     Json(json!({
         "status": "success",
-        "message": "Global fee configuration updated successfully",
+        "message": "Admin configuration updated successfully",
+        "updated_sections": updated_sections,
         "config": config
     })).into_response()
 }
 
-/// Get system limits
+/// Get system limits (GET-only — updates via PATCH /admin/config)
 pub async fn get_system_limits(
     State(state): State<AppState>,
     Extension(context): Extension<AdminContext>,
@@ -514,22 +472,6 @@ pub async fn get_system_limits(
         "max_monthly_transaction_volume": 10000000.0,
         "max_merchants_per_day": 100,
         "max_api_requests_per_hour": 10000
-    })).into_response()
-}
-
-/// Update system limits
-pub async fn update_system_limits(
-    State(state): State<AppState>,
-    Extension(context): Extension<AdminContext>,
-    Json(limits): Json<SystemLimits>,
-) -> impl IntoResponse {
-    if let Err(response) = verify_admin_access(&state, &context).await {
-        return response.into_response();
-    }
-
-    Json(json!({
-        "message": "System limits updated successfully",
-        "limits": limits
     })).into_response()
 }
 
@@ -736,68 +678,69 @@ pub async fn get_merchant_reports(
     })).into_response()
 }
 
-/// Get hot wallets
-pub async fn get_hot_wallets(
-    State(state): State<AppState>,
-    Extension(context): Extension<AdminContext>,
-) -> impl IntoResponse {
-    if let Err(response) = verify_admin_access(&state, &context).await {
-        return response.into_response();
-    }
-
-    Json(json!({
-        "hot_wallets": [
-            {
-                "crypto_type": "ETH",
-                "address": "0x1234...5678",
-                "balance": 50.5,
-                "balance_usd": 125000.0
-            },
-            {
-                "crypto_type": "SOL",
-                "address": "ABC123...XYZ789",
-                "balance": 1000.0,
-                "balance_usd": 75000.0
-            }
-        ]
-    })).into_response()
+#[derive(Deserialize)]
+pub struct AdminWalletQuery {
+    pub wallet_type: Option<String>,       // "hot" | "cold"
+    pub include_balances: Option<bool>,
 }
 
-/// Get cold wallets
-pub async fn get_cold_wallets(
+/// Unified admin wallet view — replaces get_hot_wallets, get_cold_wallets, get_wallet_balances
+pub async fn get_all_wallets(
     State(state): State<AppState>,
     Extension(context): Extension<AdminContext>,
+    Query(query): Query<AdminWalletQuery>,
 ) -> impl IntoResponse {
     if let Err(response) = verify_admin_access(&state, &context).await {
         return response.into_response();
     }
 
-    Json(json!({
-        "cold_wallets": [
-            {
-                "crypto_type": "ETH",
-                "address": "0xABCD...EFGH",
-                "balance": 500.0,
-                "balance_usd": 1250000.0
-            }
-        ]
-    })).into_response()
-}
+    let wallet_type = query.wallet_type.as_deref().unwrap_or("all");
+    let include_balances = query.include_balances.unwrap_or(true);
 
-/// Get wallet balances
-pub async fn get_wallet_balances(
-    State(state): State<AppState>,
-    Extension(context): Extension<AdminContext>,
-) -> impl IntoResponse {
-    if let Err(response) = verify_admin_access(&state, &context).await {
-        return response.into_response();
+    let mut hot_wallets = json!([
+        {
+            "crypto_type": "ETH",
+            "address": "0x1234...5678",
+            "balance": 50.5,
+            "balance_usd": 125000.0
+        },
+        {
+            "crypto_type": "SOL",
+            "address": "ABC123...XYZ789",
+            "balance": 1000.0,
+            "balance_usd": 75000.0
+        }
+    ]);
+
+    let mut cold_wallets = json!([
+        {
+            "crypto_type": "ETH",
+            "address": "0xABCD...EFGH",
+            "balance": 500.0,
+            "balance_usd": 1250000.0
+        }
+    ]);
+
+    let mut response = json!({});
+
+    match wallet_type {
+        "hot" => {
+            response["hot_wallets"] = hot_wallets;
+        },
+        "cold" => {
+            response["cold_wallets"] = cold_wallets;
+        },
+        _ => {
+            response["hot_wallets"] = hot_wallets;
+            response["cold_wallets"] = cold_wallets;
+        }
     }
 
-    Json(json!({
-        "total_balance_usd": 1450000.0,
-        "hot_wallet_balance_usd": 200000.0,
-        "cold_wallet_balance_usd": 1250000.0,
-        "balances_by_crypto": [
+    if include_balances {
+        response["total_balance_usd"] = json!(1450000.0);
+        response["hot_wallet_balance_usd"] = json!(200000.0);
+        response["cold_wallet_balance_usd"] = json!(1250000.0);
+        response["balances_by_crypto"] = json!([
             {
                 "crypto_type": "ETH",
                 "hot_balance": 50.5,
@@ -805,8 +748,10 @@ pub async fn get_wallet_balances(
                 "total_balance": 550.5,
                 "total_balance_usd": 1375000.0
             }
-        ]
-    })).into_response()
+        ]);
+    }
+
+    Json(response).into_response()
 }
 
 /// Transfer funds between wallets

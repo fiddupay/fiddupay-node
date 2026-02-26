@@ -33,15 +33,10 @@ export const merchantAPI = {
 
   getInvoice: (invoiceId: string) => api.get(`/api/v1/merchants/invoices/${invoiceId}`),
   getFeeSetting: () => api.get('/api/v1/merchants/fee-setting'),
-  updateFeeSetting: (data: { customer_pays_fee?: boolean; fee_percentage?: number }) => api.put('/api/v1/merchants/fee-setting', data),
   switchEnvironment: (toLive: boolean) =>
     api.post('/api/v1/merchants/environment/switch', { to_live: toLive }),
-  updateSettlementMode: (mode: string) =>
-    api.put('/api/v1/merchants/settlement-mode', { mode }), // DEPRECATED: Use updateSettings
   generateApiKey: (isLive: boolean) => api.post('/api/v1/merchants/api-keys/generate', { is_live: isLive }),
   rotateApiKey: (isLive: boolean) => api.post('/api/v1/merchants/api-keys/rotate', { is_live: isLive }),
-  setWallet: (data: { crypto_type: string; address: string }) => api.put('/api/v1/merchants/wallets', data), // DEPRECATED: Use walletAPI.setup
-  setWebhook: (data: { url: string }) => api.put('/api/v1/merchants/webhook', data), // DEPRECATED: Use updateSettings
 
   // Unified Settings & Status
   getMerchantSettings: () => api.get('/api/v1/merchants/settings'),
@@ -49,6 +44,7 @@ export const merchantAPI = {
     webhook_url?: string;
     settlement_mode?: string;
     customer_pays_fee?: boolean;
+    fee_percentage?: number;
     ip_whitelist?: string[];
     sandbox_mode?: boolean;
     rotate_webhook_secret?: boolean;
@@ -103,7 +99,6 @@ export const walletAPI = {
     is_active?: boolean;
   }) => api.post('/api/v1/merchants/wallets', data),
   getAll: () => api.get('/api/v1/merchants/wallets'),
-  getBalances: () => api.get('/api/v1/merchants/wallets/balances'),
   revoke: (cryptoType: string) => api.delete(`/api/v1/merchants/wallets/${cryptoType}`),
 }
 

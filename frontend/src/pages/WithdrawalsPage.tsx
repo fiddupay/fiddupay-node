@@ -50,7 +50,7 @@ const WithdrawalsPage: React.FC = () => {
         try {
             setLoading(true)
             const [balRes, histRes] = await Promise.all([
-                walletAPI.getBalances().catch(() => ({ data: { wallets: [] } })),
+                walletAPI.getAll().catch(() => ({ data: { wallets: [] } })),
                 withdrawalAPI.getHistory().catch(() => ({ data: [] }))
             ])
             const balances = Array.isArray(balRes.data.wallets) ? balRes.data.wallets : []
