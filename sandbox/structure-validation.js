@@ -10,7 +10,7 @@ const client = new FidduPayClient({
 // Valid crypto types from backend
 const VALID_CRYPTO_TYPES = [
   'SOL', 'ETH', 'BNB', 'MATIC', 'ARB',
-  'USDT_ETH', 'USDT_BSC', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'
+  'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'
 ];
 
 // Mock response validation
@@ -198,7 +198,7 @@ function validatePaymentRequestStructure() {
   console.log('\n5. Crypto Type Coverage:');
   try {
     const nativeTokens = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB'];
-    const stablecoins = ['USDT_ETH', 'USDT_BSC', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
+    const stablecoins = ['USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
 
     console.log('   Native Tokens:');
     nativeTokens.forEach(token => {

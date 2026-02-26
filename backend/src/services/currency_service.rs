@@ -24,7 +24,7 @@ impl CurrencyService {
             ("USDT_BEP20", "USDT", "Binance Smart Chain (BEP-20)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
             ("USDT_POLYGON", "USDT", "Polygon (MATIC)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
             ("USDT_ARBITRUM", "USDT", "Arbitrum One", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
-            ("USDT_SOL", "USDT", "Solana (SPL)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
+            ("USDT_SPL", "USDT", "Solana (SPL)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
             ("ETH", "ETH", "Ethereum", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/eth.png"),
             ("ARB", "ARB", "Arbitrum One", "https://cryptologos.cc/logos/arbitrum-arb-logo.png"),
             ("SOL", "SOL", "Solana", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
@@ -35,7 +35,7 @@ impl CurrencyService {
 
     pub fn get_currency_children(&self, currency_group: &str) -> Vec<&'static str> {
         match currency_group {
-            "USDT" => vec!["USDT_ETH", "USDT_BEP20", "USDT_POLYGON", "USDT_ARBITRUM", "USDT_SOL"],
+            "USDT" => vec!["USDT_ETH", "USDT_BEP20", "USDT_POLYGON", "USDT_ARBITRUM", "USDT_SPL"],
             "ETH" => vec!["ETH"],
             "ARB" => vec!["ARB"],
             "SOL" => vec!["SOL"],
@@ -51,7 +51,7 @@ impl CurrencyService {
             "USDT_BEP20" | "USDT_BSC" | "BNB" => "Binance Smart Chain (BEP-20)",
             "USDT_POLYGON" | "MATIC" => "Polygon (MATIC)",
             "USDT_ARBITRUM" | "ARB" => "Arbitrum One",
-            "USDT_SOL" | "SOL" => "Solana (SPL)",
+            "USDT_SPL" | "USDT_SOL" | "SOL" => "Solana (SPL)",
             "BTC" => "Bitcoin",
             _ => "Unknown Network",
         }
