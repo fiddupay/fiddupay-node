@@ -168,13 +168,36 @@ impl WebhookService {
 
         if let Some(config) = config {
             let payload_value = if config.payload_format == "discord" {
-                let content = match payload.event_type.as_str() {
-                    "payment.confirmed" => format!("✅ **Payment Confirmed**\nID: `{}`\nAmount: `{} {}`", 
-                        payload.payment_id, payload.amount, payload.crypto_type),
-                    "payment.expired" => format!("❌ **Payment Expired**\nID: `{}`", payload.payment_id),
-                    _ => format!("🔔 **Webhook Alert**: `{}` for payment `{}`", payload.event_type, payload.payment_id),
+                let payment_link = format!("https://pay.fiddupay.com/{}", payload.payment_id);
+                let (color, title, body_text) = match payload.event_type.as_str() {
+                    "payment.confirmed" => (
+                        5763719, // Green
+                        "✅ Payment Confirmed",
+                        format!("**ID:** `{}`\n**Amount:** `{} {}`\n**Link:** {}", payload.payment_id, payload.amount, payload.crypto_type, payment_link)
+                    ),
+                    "payment.expired" => (
+                        15548997, // Red
+                        "❌ Payment Expired",
+                        format!("**ID:** `{}`\n**Link:** {}", payload.payment_id, payment_link)
+                    ),
+                    _ => (
+                        3447003, // Blue
+                        "🔔 Webhook Alert",
+                        format!("**Event:** `{}`\n**ID:** `{}`\n**Link:** {}", payload.event_type, payload.payment_id, payment_link)
+                    ),
                 };
-                serde_json::json!({ "content": content })
+                
+                serde_json::json!({
+                    "embeds": [{
+                        "title": title,
+                        "description": body_text,
+                        "color": color,
+                        "footer": {
+                            "text": "Powered By FidduPay"
+                        },
+                        "timestamp": chrono::Utc::now().to_rfc3339()
+                    }]
+                })
             } else if config.payload_format == "slack" {
                 let text = match payload.event_type.as_str() {
                     "payment.confirmed" => format!("✅ *Payment Confirmed*\nID: `{}`\nAmount: `{} {}`", 

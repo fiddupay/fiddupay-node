@@ -50,6 +50,14 @@ const PaymentsPage: React.FC = () => {
     loadPayments()
     loadStats()
     loadSupportedCurrencies()
+
+    // Auto-refresh payments list and stats every 5 seconds
+    const intervalId = setInterval(() => {
+      loadPayments()
+      loadStats()
+    }, 5000)
+
+    return () => clearInterval(intervalId)
   }, [filters, user?.sandbox_mode])
 
   const loadSupportedCurrencies = async () => {
