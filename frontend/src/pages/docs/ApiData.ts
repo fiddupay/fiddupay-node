@@ -300,6 +300,38 @@ export const API_DATA: DocSection[] = [
                 }, null, 2)
             },
             {
+                id: 'gas-check',
+                method: 'GET',
+                path: '/api/v1/merchants/wallets/gas-check',
+                title: 'Check Wallet Gas Status',
+                description: 'Verifies if managed wallets have sufficient gas for immediate withdrawals.',
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/wallets/gas-check \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const status = await fiddupay.wallets.gasCheck();'
+                },
+                response: JSON.stringify({
+                    sufficient: true,
+                    wallets: [
+                        { crypto_type: "SOL", status: "OK", balance: "0.1" }
+                    ]
+                }, null, 2)
+            },
+            {
+                id: 'gas-estimates',
+                method: 'GET',
+                path: '/api/v1/merchants/wallets/gas-estimates',
+                title: 'Get Gas Estimates',
+                description: 'Retrieve real-time gas fee estimates for supported networks natively.',
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/wallets/gas-estimates \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const estimates = await fiddupay.wallets.gasEstimates();'
+                },
+                response: JSON.stringify({
+                    "ETH": { "low": 15, "average": 20, "high": 30 },
+                    "SOL": { "average": 0.000005 }
+                }, null, 2)
+            },
+            {
                 id: 'revoke-wallet',
                 method: 'DELETE',
                 path: '/api/v1/merchants/wallets/:crypto_type',
@@ -350,6 +382,79 @@ export const API_DATA: DocSection[] = [
                 response: JSON.stringify([
                     { id: "alt_123", type: "LOW_GAS", severity: "high", message: "ETH balance low on mainnet" }
                 ], null, 2)
+            },
+            {
+                id: 'acknowledge-alert',
+                method: 'POST',
+                path: '/api/v1/merchants/security/alerts/:alert_id/acknowledge',
+                title: 'Acknowledge Security Alert',
+                description: 'Mark a security alert as acknowledged to clear it from the active dashboard view.',
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/security/alerts/alt_123/acknowledge \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'await fiddupay.security.acknowledgeAlert("alt_123");'
+                },
+                response: JSON.stringify({
+                    success: true,
+                    message: "Alert alt_123 acknowledged."
+                }, null, 2)
+            },
+            {
+                id: 'get-security-events',
+                method: 'GET',
+                path: '/api/v1/merchants/security/events',
+                title: 'List Security Events',
+                description: 'Retrieve a log of automated security actions and access events.',
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/security/events \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const events = await fiddupay.security.getEvents();'
+                },
+                response: JSON.stringify([
+                    { id: "evt_345", event_type: "LOGIN_SUCCESS", ip_address: "192.168.1.1", created_at: "2024-01-01T12:00:00Z" }
+                ], null, 2)
+            },
+            {
+                id: 'get-balance-alerts',
+                method: 'GET',
+                path: '/api/v1/merchants/security/balance-alerts',
+                title: 'List Balance Alerts',
+                description: 'Retrieve alerts specifically triggered by unexpectedly high or low treasury balances.',
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/security/balance-alerts \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const balanceAlerts = await fiddupay.security.getBalanceAlerts();'
+                },
+                response: JSON.stringify([
+                    { id: "bal_alt_67", threshold_usd: "50000.00", current_usd: "65000.00", message: "Accumulated volume exceeds threshold" }
+                ], null, 2)
+            },
+            {
+                id: 'resolve-balance-alert',
+                method: 'POST',
+                path: '/api/v1/merchants/security/balance-alerts/:alert_id/resolve',
+                title: 'Resolve Balance Alert',
+                description: 'Mark a liquidity or balance threshold alert as resolved.',
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/security/balance-alerts/bal_alt_67/resolve \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'await fiddupay.security.resolveBalanceAlert("bal_alt_67");'
+                },
+                response: JSON.stringify({
+                    success: true,
+                    message: "Balance alert resolved."
+                }, null, 2)
+            },
+            {
+                id: 'security-gas-check',
+                method: 'GET',
+                path: '/api/v1/merchants/security/gas-check',
+                title: 'Monitor Gas Status',
+                description: 'Perform a centralized security check on the gas levels across all active managed wallets.',
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/security/gas-check \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const check = await fiddupay.security.gasCheck();'
+                },
+                response: JSON.stringify({
+                    status: "healthy",
+                    warnings: []
+                }, null, 2)
             }
         ]
     },
@@ -523,21 +628,55 @@ export const API_DATA: DocSection[] = [
         ]
     },
     {
-        id: 'advanced-security',
-        title: 'Granular Alerts',
-        description: 'Fine-tuned control over system alerts and security responses.',
+        id: 'invoices',
+        title: 'Invoice Management',
+        description: 'Generate and manage crypto payment invoices for your customers.',
         endpoints: [
             {
-                id: 'acknowledge-alert',
+                id: 'create-invoice',
                 method: 'POST',
-                path: '/api/v1/merchants/security/alerts/:alert_id/acknowledge',
-                title: 'Acknowledge Security Alert',
-                description: 'Mark a high-severity security alert as reviewed to clear it from your dashboard.',
+                path: '/api/v1/merchants/invoices',
+                title: 'Create Invoice',
+                description: 'Generate a new invoice linking an external transaction or payment requirement.',
                 request: {
-                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/security/alerts/alt_123/acknowledge \\\n  -H "Authorization: Bearer sk_live_..."',
-                    node: 'await fiddupay.security.acknowledgeAlert("alt_123");'
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/invoices \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"amount": "50.0", "customer_email": "hello@fiddupay.com"}\'',
+                    node: 'const invoice = await fiddupay.invoices.create({ amount: "50.0", customer_email: "hello@fiddupay.com" });'
                 },
-                response: JSON.stringify({ message: "Alert acknowledged" }, null, 2)
+                response: JSON.stringify({
+                    id: "inv_123",
+                    url: "https://pay.fiddupay.com/inv_123",
+                    status: "PENDING"
+                }, null, 2)
+            },
+            {
+                id: 'list-invoices',
+                method: 'GET',
+                path: '/api/v1/merchants/invoices',
+                title: 'List Invoices',
+                description: 'Retrieve your invoice history.',
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/invoices \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const invoices = await fiddupay.invoices.list();'
+                },
+                response: JSON.stringify([
+                    { id: "inv_123", status: "PAID", amount_usd: "50.0" }
+                ], null, 2)
+            },
+            {
+                id: 'get-invoice',
+                method: 'GET',
+                path: '/api/v1/merchants/invoices/:invoice_id',
+                title: 'Get Invoice Details',
+                description: 'Look up specific details for an invoice by its ID.',
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/invoices/inv_123 \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const invoice = await fiddupay.invoices.get("inv_123");'
+                },
+                response: JSON.stringify({
+                    id: "inv_123",
+                    status: "PAID",
+                    created_at: "2024-01-01T12:00:00Z"
+                }, null, 2)
             }
         ]
     }

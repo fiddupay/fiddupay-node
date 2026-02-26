@@ -322,6 +322,98 @@
       ]
     },
     {
+      "name": "Merchant Invoices",
+      "item": [
+        {
+          "name": "Create Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "invoices"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"50.0\",\n  \"customer_email\": \"hello@fiddupay.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Invoices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "invoices"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Invoice Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/invoices/:invoice_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "invoices",
+                ":invoice_id"
+              ],
+              "variable": [
+                {
+                  "key": "invoice_id",
+                  "value": "inv_123"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Admin Security Management",
       "item": [
         {
@@ -1856,6 +1948,121 @@
               ]
             }
           }
+        },
+        {
+          "name": "Export Private Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/export-key",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "export-key"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"SOL\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Check Wallet Gas Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/gas-check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "gas-check"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Gas Estimates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/gas-estimates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "gas-estimates"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Check Withdrawal Capability",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/withdrawal-capability/:crypto_type",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "withdrawal-capability",
+                ":crypto_type"
+              ],
+              "variable": [
+                {
+                  "key": "crypto_type",
+                  "value": "SOL"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -2050,6 +2257,30 @@
               ]
             }
           }
+        },
+        {
+          "name": "Retrieve Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/audit-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "audit-logs"
+              ]
+            }
+          }
         }
       ]
     },
@@ -2182,6 +2413,147 @@
                 "merchants",
                 "security",
                 "settings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Security Events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "events"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Acknowledge Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/alerts/:alert_id/acknowledge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "alerts",
+                ":alert_id",
+                "acknowledge"
+              ],
+              "variable": [
+                {
+                  "key": "alert_id",
+                  "value": "alt_123"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Balance Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/balance-alerts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "balance-alerts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Resolve Balance Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/balance-alerts/:alert_id/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "balance-alerts",
+                ":alert_id",
+                "resolve"
+              ],
+              "variable": [
+                {
+                  "key": "alert_id",
+                  "value": "bal_alt_67"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Monitor Gas Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/gas-check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "gas-check"
               ]
             }
           }
