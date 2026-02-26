@@ -162,11 +162,32 @@ impl WalletConfigService {
 
         let config = self.set_wallet_address(
             merchant_id, 
-            crypto_type, 
+            crypto_type.clone(), 
             wallet.address.clone(), 
             true, 
-            Some(encrypted_key)
+            Some(encrypted_key.clone())
         ).await?;
+
+        // If enable_all_evm is set and base crypto is EVM, propagate to the others
+        if request.enable_all_evm.unwrap_or(false) && is_evm(&crypto_type) {
+            let evm_networks = vec![
+                CryptoType::Eth,
+                CryptoType::Bnb,
+                CryptoType::Matic,
+                CryptoType::Arb,
+            ];
+            for network in evm_networks {
+                if network != crypto_type {
+                    self.set_wallet_address(
+                        merchant_id,
+                        network,
+                        wallet.address.clone(),
+                        true,
+                        Some(encrypted_key.clone())
+                    ).await?;
+                }
+            }
+        }
         
         Ok(GeneratedWalletResponse {
             config,
@@ -196,14 +217,36 @@ impl WalletConfigService {
             .map_err(|e| ServiceError::InternalError(format!("Encryption error: {}", e)))?;
         let encrypted_key = encryption.encrypt(&request.private_key)
             .map_err(|e| ServiceError::InternalError(format!("Encryption error: {}", e)))?;
-            
-        self.set_wallet_address(
+        let config = self.set_wallet_address(
             merchant_id, 
-            crypto_type, 
-            address, 
+            crypto_type.clone(), 
+            address.clone(), 
             request.is_active.unwrap_or(true), 
-            Some(encrypted_key)
-        ).await
+            Some(encrypted_key.clone())
+        ).await?;
+
+        // If enable_all_evm is set and base crypto is EVM, propagate to the others
+        if request.enable_all_evm.unwrap_or(false) && is_evm(&crypto_type) {
+            let evm_networks = vec![
+                CryptoType::Eth,
+                CryptoType::Bnb,
+                CryptoType::Matic,
+                CryptoType::Arb,
+            ];
+            for network in evm_networks {
+                if network != crypto_type {
+                    self.set_wallet_address(
+                        merchant_id,
+                        network,
+                        address.clone(),
+                        request.is_active.unwrap_or(true),
+                        Some(encrypted_key.clone())
+                    ).await?;
+                }
+            }
+        }
+
+        Ok(config)
     }
 
     pub async fn export_private_key(&self, merchant_id: i64, request: ExportKeyRequest) -> Result<String, ServiceError> {
@@ -390,6 +433,7 @@ pub struct ConfigureWalletRequest {
 #[derive(Debug, Deserialize)]
 pub struct GenerateWalletRequest {
     pub crypto_type: String,
+    pub enable_all_evm: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -397,6 +441,18 @@ pub struct ImportWalletRequest {
     pub crypto_type: String,
     pub private_key: String,
     pub is_active: Option<bool>,
+    pub enable_all_evm: Option<bool>,
+}
+
+// Helper to determine if a CryptoType is an EVM network
+fn is_evm(crypto_type: &CryptoType) -> bool {
+    matches!(
+        crypto_type,
+        CryptoType::Eth | CryptoType::UsdtEth |
+        CryptoType::Bnb | CryptoType::UsdtBep20 |
+        CryptoType::Matic | CryptoType::UsdtPolygon |
+        CryptoType::Arb | CryptoType::UsdtArbitrum
+    )
 }
 
 #[derive(Debug, Deserialize)]

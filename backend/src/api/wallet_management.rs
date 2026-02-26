@@ -311,6 +311,7 @@ pub struct UnifiedWalletSetupRequest {
     pub address: Option<String>,
     pub private_key: Option<String>,
     pub is_active: Option<bool>,
+    pub enable_all_evm: Option<bool>,
 }
 
 pub async fn setup_wallet(
@@ -390,6 +391,7 @@ pub async fn setup_wallet(
 
             let generate_request = GenerateWalletRequest {
                 crypto_type: req.crypto_type,
+                enable_all_evm: req.enable_all_evm,
             };
 
             let is_managed = settlement_mode == "managed";
@@ -423,6 +425,7 @@ pub async fn setup_wallet(
                     crypto_type: req.crypto_type,
                     private_key,
                     is_active: req.is_active,
+                    enable_all_evm: req.enable_all_evm,
                 };
                 match wallet_service.import_wallet(context.merchant_id, import_request).await {
                     Ok(config) => (StatusCode::OK, Json(json!({
