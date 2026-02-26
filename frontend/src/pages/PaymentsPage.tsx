@@ -156,10 +156,15 @@ const PaymentsPage: React.FC = () => {
           customer_name: newPayment.is_invoice ? newPayment.customer_name : undefined,
           customer_email: newPayment.is_invoice ? newPayment.customer_email : undefined,
           notes: newPayment.is_invoice ? newPayment.notes : undefined,
-          tax_percentage: newPayment.is_invoice ? parseFloat(newPayment.tax_percentage) : undefined,
+          tax: newPayment.is_invoice ? (
+            newPayment.items.reduce((sum, item) => sum + (parseFloat(item.unit_price as any) || 0) * item.quantity, 0) *
+            (parseFloat(newPayment.tax_percentage) || 0) / 100
+          ) : undefined,
           items: newPayment.is_invoice ? newPayment.items.map(item => ({
-            ...item,
-            unit_price: parseFloat(item.unit_price as any)
+            description: item.description,
+            quantity: item.quantity,
+            unit_price: parseFloat(item.unit_price as any),
+            amount: parseFloat(item.unit_price as any) * item.quantity
           })) : undefined
         })
         setPayments(prev => [payment.data, ...prev])
@@ -756,7 +761,7 @@ const PaymentsPage: React.FC = () => {
                             <div className={styles.itemTableHeader}>
                               <span>Description</span>
                               <span>Qty</span>
-                              <span>Price</span>
+                              <span>Price (USD)</span>
                               <span></span>
                             </div>
                             {newPayment.items.map((item, index) => (
