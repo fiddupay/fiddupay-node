@@ -5,7 +5,7 @@ use crate::api::{merchant_handlers, wallet_management, security_monitoring};
 use crate::middleware::auth;
 use axum::{
     middleware as axum_middleware,
-    routing::{get, post},
+    routing::{get, post, put},
     Router,
 };
 use crate::api::state::AppState;
@@ -64,8 +64,7 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/merchants/wallets/withdrawal-capability/:crypto_type", get(wallet_management::check_withdrawal_capability))
         
         // Security settings (merchant's own security preferences)
-        .route("/api/v1/merchants/security/settings", get(security_monitoring::get_security_settings))
-        .route("/api/v1/merchants/security/settings", put(security_monitoring::update_security_settings))
+        .route("/api/v1/merchants/security/settings", get(security_monitoring::get_security_settings).put(security_monitoring::update_security_settings))
         .route("/api/v1/merchants/security/events", get(security_monitoring::get_security_events))
         .route("/api/v1/merchants/security/alerts", get(security_monitoring::get_security_alerts))
         .route("/api/v1/merchants/security/alerts/:alert_id/acknowledge", post(security_monitoring::acknowledge_security_alert))
