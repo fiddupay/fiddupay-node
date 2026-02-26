@@ -76,6 +76,9 @@ pub enum ServiceError {
 
     #[error("Internal error: {0}")]
     InternalError(String),
+
+    #[error("Insufficient funds: {0}")]
+    InsufficientFunds(String),
 }
 
 #[derive(Debug, Serialize)]
@@ -165,6 +168,11 @@ impl IntoResponse for ServiceError {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "INTERNAL_SERVER_ERROR",
                 "Internal server error",
+            ),
+            ServiceError::InsufficientFunds(ref msg) => (
+                StatusCode::PAYMENT_REQUIRED,
+                "INSUFFICIENT_FUNDS",
+                msg.as_str(),
             ),
             ServiceError::ValidationError(ref msg) => (
                 StatusCode::BAD_REQUEST,

@@ -108,3 +108,64 @@ pub async fn sweep_customer_wallet(
         },
     }
 }
+
+#[derive(serde::Deserialize)]
+pub struct ListCustomersQuery {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+pub async fn list_customers(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    axum::extract::Query(params): axum::extract::Query<ListCustomersQuery>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(state.db_pool.clone());
+    let limit = params.limit.unwrap_or(50);
+    let offset = params.offset.unwrap_or(0);
+    
+    match service.list_customers(context.merchant_id, limit, offset).await {
+        Ok((customers, total)) => (StatusCode::OK, Json(json!({
+            "customers": customers,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + customers.len() as i64 < total
+        }))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
+            "error": e.to_string()
+        }))).into_response(),
+    }
+}
+
+pub async fn withdraw_from_customer(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(external_id): Path<String>,
+    Json(req): Json<crate::models::merchant_customer::CustomerWithdrawalRequest>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(state.db_pool.clone());
+    
+    match service.withdraw_from_customer(
+        context.merchant_id,
+        &external_id,
+        &req.crypto_type,
+        &req.amount,
+        &req.destination_address,
+        context.sandbox_mode
+    ).await {
+        Ok(withdrawal) => (StatusCode::OK, Json(json!({
+            "withdrawal": withdrawal,
+            "message": "Withdrawal requested successfully"
+        }))).into_response(),
+        Err(e) => {
+            let status = match e {
+                crate::error::ServiceError::InsufficientFunds(_) => StatusCode::PAYMENT_REQUIRED,
+                _ => StatusCode::BAD_REQUEST,
+            };
+            (status, Json(json!({
+                "error": e.to_string()
+            }))).into_response()
+        },
+    }
+}

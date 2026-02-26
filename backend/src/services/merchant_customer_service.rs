@@ -230,7 +230,8 @@ impl MerchantCustomerService {
         crypto_type_str: &str,
         amount_str: &str,
         destination_address: &str,
-    ) -> Result<crate::payment::models::Withdrawal, ServiceError> {
+        sandbox_mode: bool,
+    ) -> Result<crate::models::withdrawal::Withdrawal, ServiceError> {
         use rust_decimal::Decimal;
         use std::str::FromStr;
 
@@ -296,20 +297,28 @@ impl MerchantCustomerService {
         // The actual withdrawal processing is handled by the unified wallet system / cron jobs,
         // so we just create a standard withdrawal record linked to the merchant.
         // For sub-accounts, the source address is the customer's wallet address.
-        let withdrawal = sqlx::query_as!(
-            crate::payment::models::Withdrawal,
+        let withdrawal_id = format!("wd_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
+        let withdrawal = sqlx::query_as::<_, crate::models::withdrawal::Withdrawal>(
             r#"
-            INSERT INTO withdrawals (merchant_id, crypto_type, amount, fee, net_amount, destination_address, status, requires_approval)
-            VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', false)
-            RETURNING id, merchant_id, crypto_type, amount, fee, net_amount, destination_address, status, transaction_hash, blockchain_fee, rejection_reason, requires_approval, approved_by, approved_at, processed_at, created_at, updated_at 
-            "#,
-            merchant_id,
-            crypto_type_str,
-            amount,
-            Decimal::new(0, 0), // Assuming no internal fee for this specific action initially
-            amount,
-            destination_address
+            INSERT INTO withdrawals (
+                withdrawal_id, merchant_id, crypto_type, amount, destination_address,
+                status, fee, net_amount, created_at, updated_at, sandbox_mode
+            )
+            VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7, NOW(), NOW(), $8)
+            RETURNING id, withdrawal_id, merchant_id, crypto_type, 
+                     amount, destination_address, status, fee, net_amount, transaction_hash,
+                     rejection_reason, requires_approval, approved_by, approved_at, 
+                     completed_at, created_at, updated_at
+            "#
         )
+        .bind(withdrawal_id)
+        .bind(merchant_id)
+        .bind(crypto_type_str)
+        .bind(amount)
+        .bind(destination_address)
+        .bind(Decimal::ZERO)
+        .bind(amount)
+        .bind(sandbox_mode)
         .fetch_one(&mut *tx)
         .await?;
 
@@ -325,7 +334,7 @@ impl MerchantCustomerService {
         crypto_type_str: &str,
         amount_str: Option<String>,
         sandbox_mode: bool,
-    ) -> Result<Decimal, ServiceError> {
+    ) -> Result<rust_decimal::Decimal, ServiceError> {
         use rust_decimal::Decimal;
         use std::str::FromStr;
 
