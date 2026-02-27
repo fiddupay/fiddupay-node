@@ -478,11 +478,11 @@ pub async fn get_wallet_balances(
                 network,
                 forwarding_address as address,
                 is_active,
-                0 as available_balance,
-                0 as reserved_balance,
-                0 as total_balance,
+                0::numeric as available_balance,
+                0::numeric as reserved_balance,
+                0::numeric as total_balance,
                 0::bigint as transaction_count,
-                0 as total_volume_crypto
+                0::numeric as total_volume_crypto
             FROM merchant_forwarding_wallets
             WHERE merchant_id = $1
             ORDER BY crypto_type
@@ -499,11 +499,11 @@ pub async fn get_wallet_balances(
                 mw.network,
                 mw.address,
                 mw.is_active,
-                COALESCE(mb.available_balance, 0) as available_balance,
-                COALESCE(mb.reserved_balance, 0) as reserved_balance,
-                COALESCE(mb.total_balance, 0) as total_balance,
-                COALESCE(tx_stats.tx_count, 0) as transaction_count,
-                COALESCE(tx_stats.total_volume, 0) as total_volume_crypto
+                COALESCE(mb.available_balance, 0::numeric) as available_balance,
+                COALESCE(mb.reserved_balance, 0::numeric) as reserved_balance,
+                COALESCE(mb.total_balance, 0::numeric) as total_balance,
+                COALESCE(tx_stats.tx_count, 0::bigint) as transaction_count,
+                COALESCE(tx_stats.total_volume, 0::numeric) as total_volume_crypto
             FROM merchant_wallets mw
             LEFT JOIN merchant_balances mb
                 ON mb.merchant_id = mw.merchant_id 
