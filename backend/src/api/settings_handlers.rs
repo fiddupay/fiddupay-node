@@ -115,13 +115,19 @@ pub async fn get_merchant_readiness(
     
     // 1. Fetch data
     let merchant_res = sqlx::query!("SELECT sandbox_mode, settlement_mode, kyc_verified FROM merchants WHERE id = $1", merchant_id).fetch_one(&state.db_pool).await;
-    let wallets_res = wallet_service.get_wallet_configs(merchant_id).await;
-    let currencies_res = currency_service.get_merchant_enabled_currencies(merchant_id).await;
-
+    
     let merchant = match merchant_res {
         Ok(m) => m,
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     };
+
+    let wallets_res = if merchant.settlement_mode == "forwarding" {
+        wallet_service.get_forwarding_configs(merchant_id, merchant.sandbox_mode).await
+    } else {
+        wallet_service.get_wallet_configs(merchant_id, merchant.sandbox_mode).await
+    };
+    
+    let currencies_res = currency_service.get_merchant_enabled_currencies(merchant_id).await;
 
     let wallets = wallets_res.unwrap_or_default();
     let enabled_currencies = currencies_res;

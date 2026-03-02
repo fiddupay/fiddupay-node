@@ -24,24 +24,32 @@ use sqlx::PgPool;
 // Wallet Configuration Endpoints
 // ============================================================================
 
-pub async fn get_wallet_configs(
+pub async fn get_wallets(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
+    
+    // Determine sandbox mode from merchant record
+    let sandbox_mode = match sqlx::query_scalar!("SELECT sandbox_mode FROM merchants WHERE id = $1", context.merchant_id)
+        .fetch_one(&state.db_pool)
+        .await {
+            Ok(s) => s,
+            Err(_) => false,
+        };
 
-    // Check settlement mode to decide which table to read from
-    let settlement_mode = sqlx::query_scalar!("SELECT settlement_mode FROM merchants WHERE id = $1", context.merchant_id)
-        .fetch_optional(&state.db_pool)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or_else(|| "managed".to_string());
+    // Determine settlement mode to decide which configs to fetch
+    let settlement_mode = match sqlx::query_scalar!("SELECT settlement_mode FROM merchants WHERE id = $1", context.merchant_id)
+        .fetch_one(&state.db_pool)
+        .await {
+            Ok(s) => s,
+            Err(_) => "managed".to_string(),
+        };
 
     let result = if settlement_mode == "forwarding" {
-        wallet_service.get_forwarding_configs(context.merchant_id).await
+        wallet_service.get_forwarding_configs(context.merchant_id, sandbox_mode).await
     } else {
-        wallet_service.get_wallet_configs(context.merchant_id).await
+        wallet_service.get_wallet_configs(context.merchant_id, sandbox_mode).await
     };
 
     match result {
@@ -68,7 +76,15 @@ pub async fn configure_address_only_wallet(
         is_active: req.is_active,
     };
     
-    match wallet_service.configure_address_only(context.merchant_id, configure_request).await {
+    // Determine sandbox mode from merchant record
+    let sandbox_mode = match sqlx::query_scalar!("SELECT sandbox_mode FROM merchants WHERE id = $1", context.merchant_id)
+        .fetch_one(&state.db_pool)
+        .await {
+            Ok(s) => s,
+            Err(_) => false,
+        };
+
+    match wallet_service.configure_address_only(context.merchant_id, sandbox_mode, configure_request).await {
         Ok(config) => (StatusCode::OK, Json(json!({
             "wallet": config,
             "message": "Address-only wallet configured successfully. No withdrawal capability."
@@ -86,7 +102,15 @@ pub async fn generate_wallet(
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
     
-    match wallet_service.generate_wallet(context.merchant_id, req).await {
+    // Determine sandbox mode from merchant record
+    let sandbox_mode = match sqlx::query_scalar!("SELECT sandbox_mode FROM merchants WHERE id = $1", context.merchant_id)
+        .fetch_one(&state.db_pool)
+        .await {
+            Ok(s) => s,
+            Err(_) => false,
+        };
+
+    match wallet_service.generate_wallet(context.merchant_id, sandbox_mode, req).await {
         Ok(response) => (StatusCode::CREATED, Json(json!({
             "wallet": response,
             "message": "Wallet generated successfully. Save the private key securely - it won't be shown again."
@@ -104,7 +128,15 @@ pub async fn import_wallet(
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
     
-    match wallet_service.import_wallet(context.merchant_id, req).await {
+    // Determine sandbox mode from merchant record
+    let sandbox_mode = match sqlx::query_scalar!("SELECT sandbox_mode FROM merchants WHERE id = $1", context.merchant_id)
+        .fetch_one(&state.db_pool)
+        .await {
+            Ok(s) => s,
+            Err(_) => false,
+        };
+
+    match wallet_service.import_wallet(context.merchant_id, sandbox_mode, req).await {
         Ok(config) => (StatusCode::OK, Json(json!({
             "wallet": config,
             "message": "Private key imported successfully. Withdrawal capability enabled."
@@ -122,7 +154,15 @@ pub async fn export_private_key(
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
     
-    match wallet_service.export_private_key(context.merchant_id, req).await {
+    // Determine sandbox mode from merchant record
+    let sandbox_mode = match sqlx::query_scalar!("SELECT sandbox_mode FROM merchants WHERE id = $1", context.merchant_id)
+        .fetch_one(&state.db_pool)
+        .await {
+            Ok(s) => s,
+            Err(_) => false,
+        };
+
+    match wallet_service.export_private_key(context.merchant_id, sandbox_mode, req).await {
         Ok(private_key) => (StatusCode::OK, Json(json!({
             "private_key": private_key,
             "warning": "⚠️ Keep this private key secure. Anyone with access can control your funds."
@@ -140,18 +180,23 @@ pub async fn delete_wallet(
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
 
-    // Route to correct table based on settlement mode
-    let settlement_mode = sqlx::query_scalar!("SELECT settlement_mode FROM merchants WHERE id = $1", context.merchant_id)
-        .fetch_optional(&state.db_pool)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or_else(|| "managed".to_string());
+    // Lookup merchant info
+    let merchant_info = sqlx::query!(
+        "SELECT settlement_mode, sandbox_mode FROM merchants WHERE id = $1",
+        context.merchant_id
+    )
+    .fetch_optional(&state.db_pool)
+    .await
+    .ok()
+    .flatten();
+
+    let settlement_mode = merchant_info.as_ref().map(|m| m.settlement_mode.clone()).unwrap_or_else(|| "managed".to_string());
+    let sandbox_mode = merchant_info.map(|m| m.sandbox_mode).unwrap_or(false);
 
     let result = if settlement_mode == "forwarding" {
-        wallet_service.delete_forwarding_config(context.merchant_id, crypto_type).await
+        wallet_service.delete_forwarding_config(context.merchant_id, sandbox_mode, crypto_type).await
     } else {
-        wallet_service.delete_wallet_config(context.merchant_id, crypto_type).await
+        wallet_service.delete_wallet_config(context.merchant_id, sandbox_mode, crypto_type).await
     };
 
     match result {
@@ -175,8 +220,17 @@ pub async fn check_gas_requirements(
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
     
+    // Determine sandbox mode from merchant record
+    let sandbox_mode = match sqlx::query_scalar!("SELECT sandbox_mode FROM merchants WHERE id = $1", context.merchant_id)
+        .fetch_one(&state.db_pool)
+        .await {
+            Ok(s) => s,
+            Err(_) => false,
+        };
+
     match wallet_service.validate_gas_for_withdrawal(
         context.merchant_id,
+        sandbox_mode,
         params.crypto_type,
         params.amount,
     ).await {
@@ -239,7 +293,15 @@ pub async fn check_withdrawal_capability(
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
     
-    match wallet_service.can_withdraw(context.merchant_id, crypto_type, rust_decimal::Decimal::ZERO).await {
+    // Determine sandbox mode from merchant record
+    let sandbox_mode = match sqlx::query_scalar!("SELECT sandbox_mode FROM merchants WHERE id = $1", context.merchant_id)
+        .fetch_one(&state.db_pool)
+        .await {
+            Ok(s) => s,
+            Err(_) => false,
+        };
+
+    match wallet_service.can_withdraw(context.merchant_id, sandbox_mode, crypto_type, rust_decimal::Decimal::ZERO).await {
         Ok(can_withdraw) => {
             let message = if can_withdraw {
                 "Withdrawal available - wallet has private key access"
@@ -325,12 +387,17 @@ pub async fn setup_wallet(
         "address" => {
             if let Some(address) = req.address {
                 // Check settlement mode to decide which table to write to
-                let settlement_mode = sqlx::query_scalar!("SELECT settlement_mode FROM merchants WHERE id = $1", context.merchant_id)
-                    .fetch_optional(&state.db_pool)
-                    .await
-                    .ok()
-                    .flatten()
-                    .unwrap_or_else(|| "managed".to_string());
+                let merchant_info = sqlx::query!(
+                    "SELECT settlement_mode, sandbox_mode FROM merchants WHERE id = $1",
+                    context.merchant_id
+                )
+                .fetch_optional(&state.db_pool)
+                .await
+                .ok()
+                .flatten();
+            
+                let settlement_mode = merchant_info.as_ref().map(|m| m.settlement_mode.clone()).unwrap_or_else(|| "managed".to_string());
+                let sandbox_mode = merchant_info.map(|m| m.sandbox_mode).unwrap_or(false);
 
                 if settlement_mode == "forwarding" {
                     // Write to merchant_forwarding_wallets
@@ -342,6 +409,7 @@ pub async fn setup_wallet(
                     };
                     match wallet_service.set_forwarding_address(
                         context.merchant_id,
+                        sandbox_mode,
                         crypto_type,
                         address,
                         req.is_active.unwrap_or(true),
@@ -360,7 +428,7 @@ pub async fn setup_wallet(
                         address,
                         is_active: req.is_active,
                     };
-                    match wallet_service.configure_address_only(context.merchant_id, configure_request).await {
+                    match wallet_service.configure_address_only(context.merchant_id, sandbox_mode, configure_request).await {
                         Ok(config) => (StatusCode::OK, Json(json!({
                             "wallet": config,
                             "mode": "address",
@@ -375,12 +443,14 @@ pub async fn setup_wallet(
         },
         "generate" => {
             // Look up settlement mode to control behavior
-            let settlement_mode = sqlx::query_scalar!("SELECT settlement_mode FROM merchants WHERE id = $1", context.merchant_id)
+            let merchant_info = sqlx::query!("SELECT settlement_mode, sandbox_mode FROM merchants WHERE id = $1", context.merchant_id)
                 .fetch_optional(&state.db_pool)
                 .await
                 .ok()
-                .flatten()
-                .unwrap_or_else(|| "managed".to_string());
+                .flatten();
+            
+            let settlement_mode = merchant_info.as_ref().map(|m| m.settlement_mode.clone()).unwrap_or_else(|| "managed".to_string());
+            let sandbox_mode = merchant_info.map(|m| m.sandbox_mode).unwrap_or(false);
 
             // Imported mode: merchants must use 'import' — they cannot generate wallets
             if settlement_mode == "imported" {
@@ -397,9 +467,9 @@ pub async fn setup_wallet(
             let is_managed = settlement_mode == "managed";
 
             let result = if is_managed {
-                wallet_service.generate_wallet_managed(context.merchant_id, generate_request).await
+                wallet_service.generate_wallet_managed(context.merchant_id, sandbox_mode, generate_request).await
             } else {
-                wallet_service.generate_wallet(context.merchant_id, generate_request).await
+                wallet_service.generate_wallet(context.merchant_id, sandbox_mode, generate_request).await
             };
 
             match result {
@@ -420,18 +490,33 @@ pub async fn setup_wallet(
             }
         },
         "import" => {
+            // Look up settlement mode to control behavior
+            let merchant_info = sqlx::query!("SELECT settlement_mode, sandbox_mode FROM merchants WHERE id = $1", context.merchant_id)
+                .fetch_optional(&state.db_pool)
+                .await
+                .ok()
+                .flatten();
+            
+            let settlement_mode = merchant_info.as_ref().map(|m| m.settlement_mode.clone()).unwrap_or_else(|| "managed".to_string());
+            let sandbox_mode = merchant_info.map(|m| m.sandbox_mode).unwrap_or(false);
+
+            if settlement_mode == "managed" {
+                return (StatusCode::BAD_REQUEST, Json(json!({
+                    "error": "Wallet import is not available in managed mode. Please use 'generate' to create a wallet."
+                }))).into_response();
+            }
+
             if let Some(private_key) = req.private_key {
-                let import_request = ImportWalletRequest {
+                match wallet_service.import_wallet(context.merchant_id, sandbox_mode, ImportWalletRequest {
                     crypto_type: req.crypto_type,
                     private_key,
                     is_active: req.is_active,
                     enable_all_evm: req.enable_all_evm,
-                };
-                match wallet_service.import_wallet(context.merchant_id, import_request).await {
+                }).await {
                     Ok(config) => (StatusCode::OK, Json(json!({
                         "wallet": config,
                         "mode": "import",
-                        "message": "Private key imported successfully."
+                        "message": "Wallet imported successfully."
                     }))).into_response(),
                     Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
                 }
@@ -476,7 +561,7 @@ pub async fn get_wallet_balances(
             SELECT
                 crypto_type,
                 network,
-                forwarding_address as address,
+                address,
                 is_active,
                 0::numeric as available_balance,
                 0::numeric as reserved_balance,
@@ -484,11 +569,12 @@ pub async fn get_wallet_balances(
                 0::bigint as transaction_count,
                 0::numeric as total_volume_crypto
             FROM merchant_forwarding_wallets
-            WHERE merchant_id = $1
+            WHERE merchant_id = $1 AND sandbox_mode = $2
             ORDER BY crypto_type
             "#
         )
         .bind(context.merchant_id)
+        .bind(sandbox_mode)
         .fetch_all(&state.db_pool)
         .await
     } else {
@@ -508,7 +594,7 @@ pub async fn get_wallet_balances(
             LEFT JOIN merchant_balances mb
                 ON mb.merchant_id = mw.merchant_id 
                AND mb.crypto_type = mw.crypto_type 
-               AND mb.sandbox_mode = $2
+               AND mb.sandbox_mode = mw.sandbox_mode
             LEFT JOIN LATERAL (
                 SELECT
                     COUNT(*)::bigint as tx_count,
@@ -517,9 +603,9 @@ pub async fn get_wallet_balances(
                 WHERE merchant_id = mw.merchant_id
                   AND crypto_type = mw.crypto_type
                   AND status = 'CONFIRMED'
-                  AND sandbox_mode = $2
+                  AND sandbox_mode = mw.sandbox_mode
             ) tx_stats ON true
-            WHERE mw.merchant_id = $1
+            WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $2
             ORDER BY mw.crypto_type
             "#
         )

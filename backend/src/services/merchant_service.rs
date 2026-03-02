@@ -440,28 +440,23 @@ impl MerchantService {
         // Validate the address format for the specific blockchain
         crate::utils::validation::validate_wallet_address(&address, crypto_type)?;
         
+        // Fetch current sandbox mode for this merchant
+        let sandbox_mode = sqlx::query_scalar!("SELECT sandbox_mode FROM merchants WHERE id = $1", merchant_id)
+            .fetch_one(&self.db_pool)
+            .await
+            .unwrap_or(false);
+
         // Get the network name for this crypto type
         let network = crypto_type.network();
-        let crypto_type_str = match crypto_type {
-            CryptoType::UsdtBep20 => "USDT_BEP20",
-            CryptoType::UsdtArbitrum => "USDT_ARBITRUM", 
-            CryptoType::UsdtSpl => "USDT_SPL",
-            CryptoType::UsdtPolygon => "USDT_POLYGON",
-            CryptoType::UsdtEth => "USDT_ETH",
-            CryptoType::Sol => "SOL",
-            CryptoType::Eth => "ETH",
-            CryptoType::Arb => "ARB",
-            CryptoType::Matic => "MATIC",
-            CryptoType::Bnb => "BNB",
-        };
+        let crypto_type_str = crypto_type.to_string();
         
         // Insert or update the wallet address
-        // Use ON CONFLICT to update if the merchant already has a wallet for this crypto type
+        // Use ON CONFLICT to update if the merchant already has a wallet for this crypto type and mode
         sqlx::query(
             r#"
-            INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (merchant_id, crypto_type)
+            INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
             DO UPDATE SET 
                 address = EXCLUDED.address,
                 network = EXCLUDED.network,
@@ -474,6 +469,7 @@ impl MerchantService {
         .bind(network)
         .bind(&address)
         .bind(true) // is_active
+        .bind(sandbox_mode)
         .bind(Utc::now())
         .bind(Utc::now())
         .execute(&self.db_pool)
@@ -502,22 +498,11 @@ impl MerchantService {
         crypto_type: CryptoType,
     ) -> Result<String, ServiceError> {
         // Map USDT tokens to their base network crypto types
-        let lookup_crypto_type = match crypto_type {
-            CryptoType::UsdtSpl => "SOL",        // USDT on Solana uses SOL wallet
-            CryptoType::UsdtEth => "ETH",        // USDT on Ethereum uses ETH wallet
-            CryptoType::UsdtBep20 => "BNB",      // USDT on BSC uses BNB wallet
-            CryptoType::UsdtPolygon => "MATIC",  // USDT on Polygon uses MATIC wallet
-            CryptoType::UsdtArbitrum => "ARB",   // USDT on Arbitrum uses ARB wallet
-            CryptoType::Sol => "SOL",
-            CryptoType::Eth => "ETH",
-            CryptoType::Arb => "ARB",
-            CryptoType::Matic => "MATIC",
-            CryptoType::Bnb => "BNB",
-        };
+        let lookup_crypto_type = crypto_type.get_native_currency().to_string();
 
-        // First, check settlement mode
+        // First, check settlement mode and sandbox mode
         let merchant = sqlx::query!(
-            "SELECT settlement_mode FROM merchants WHERE id = $1",
+            "SELECT settlement_mode, sandbox_mode FROM merchants WHERE id = $1",
             merchant_id
         )
         .fetch_one(&self.db_pool)
@@ -527,9 +512,10 @@ impl MerchantService {
             // FORWARDING MODE: Look in merchant_forwarding_wallets
             let wallet_opt = sqlx::query!(
                 "SELECT address FROM merchant_forwarding_wallets 
-                 WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true",
+                 WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true AND sandbox_mode = $3",
                 merchant_id,
-                lookup_crypto_type
+                lookup_crypto_type,
+                merchant.sandbox_mode
             )
             .fetch_optional(&self.db_pool)
             .await?;
@@ -543,13 +529,13 @@ impl MerchantService {
         
         // MANAGED / IMPORTED MODE: Look in merchant_wallets
         
-        let wallet_opt = sqlx::query_as::<_, MerchantWallet>(
-            "SELECT id, merchant_id, crypto_type, network, address, is_active, created_at, updated_at 
-             FROM merchant_wallets 
-             WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true"
+        let wallet_opt = sqlx::query!(
+            "SELECT address FROM merchant_wallets 
+             WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true AND sandbox_mode = $3",
+            merchant_id,
+            lookup_crypto_type,
+            merchant.sandbox_mode
         )
-        .bind(merchant_id)
-        .bind(&lookup_crypto_type)
         .fetch_optional(&self.db_pool)
         .await?;
         
@@ -567,7 +553,7 @@ impl MerchantService {
                 enable_all_evm: None,
             };
             
-            let response = wallet_service.generate_wallet(merchant_id, gen_req).await?;
+            let response = wallet_service.generate_wallet(merchant_id, merchant.sandbox_mode, gen_req).await?;
             return Ok(response.config.address);
         }
         
