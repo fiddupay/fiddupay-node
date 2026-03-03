@@ -409,10 +409,10 @@ pub async fn setup_wallet(
                     };
                     match wallet_service.set_forwarding_address(
                         context.merchant_id,
-                        sandbox_mode,
                         crypto_type,
                         address,
                         req.is_active.unwrap_or(true),
+                        sandbox_mode,
                     ).await {
                         Ok(config) => (StatusCode::OK, Json(json!({
                             "wallet": config,

@@ -258,14 +258,28 @@ impl WalletConfigService {
         Ok(config)
     }
 
-    pub async fn export_private_key(&self, merchant_id: i64, request: ExportKeyRequest) -> Result<String, ServiceError> {
-        // For now, return a placeholder - this would integrate with actual key export
-        Ok(format!("private_key_for_{}_{}", merchant_id, request.crypto_type))
+    pub async fn export_private_key(&self, merchant_id: i64, sandbox_mode: bool, request: ExportKeyRequest) -> Result<String, ServiceError> {
+        // Fetch encrypted key (mock logic, adapt based on actual storage)
+        let row = sqlx::query!(
+            "SELECT encrypted_private_key FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
+            merchant_id,
+            request.crypto_type,
+            sandbox_mode
+        )
+        .fetch_optional(&self.db_pool)
+        .await?;
+
+        if let Some(r) = row {
+             if let Some(key) = r.encrypted_private_key {
+                  return Ok(key);
+             }
+        }
+        Err(ServiceError::NotFound("Private key not found".to_string()))
     }
 
-    pub async fn validate_gas_for_withdrawal(&self, merchant_id: i64, crypto_type: CryptoType, amount: Decimal) -> Result<GasValidationResult, ServiceError> {
+    pub async fn validate_gas_for_withdrawal(&self, merchant_id: i64, sandbox_mode: bool, crypto_type: CryptoType, amount: Decimal) -> Result<GasValidationResult, ServiceError> {
         // Basic gas validation logic
-        let balance = self.get_balance(merchant_id, crypto_type).await?;
+        let balance = self.get_balance(merchant_id, crypto_type, sandbox_mode).await?;
         if balance >= amount {
             Ok(GasValidationResult {
                 valid: true,
@@ -279,8 +293,8 @@ impl WalletConfigService {
         }
     }
 
-    pub async fn can_withdraw(&self, merchant_id: i64, crypto_type: CryptoType, amount: Decimal) -> Result<bool, ServiceError> {
-        let balance = self.get_balance(merchant_id, crypto_type).await?;
+    pub async fn can_withdraw(&self, merchant_id: i64, sandbox_mode: bool, crypto_type: CryptoType, amount: Decimal) -> Result<bool, ServiceError> {
+        let balance = self.get_balance(merchant_id, crypto_type, sandbox_mode).await?;
         Ok(balance >= amount)
     }
 

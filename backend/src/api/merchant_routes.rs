@@ -56,7 +56,7 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         
         // Wallet management (unified setup via POST /wallets with mode field)
         .route("/api/v1/merchants/wallets/balances", get(wallet_management::get_wallet_balances))
-        .route("/api/v1/merchants/wallets", get(wallet_management::get_wallet_configs).post(wallet_management::setup_wallet))
+        .route("/api/v1/merchants/wallets", get(wallet_management::get_wallets).post(wallet_management::setup_wallet))
         .route("/api/v1/merchants/wallets/export-key", post(wallet_management::export_private_key))
         .route("/api/v1/merchants/wallets/:crypto_type", axum::routing::delete(wallet_management::delete_wallet))
         .route("/api/v1/merchants/wallets/gas-check", get(wallet_management::check_gas_requirements))
