@@ -120,11 +120,13 @@ impl WalletConfigService {
         &self,
         merchant_id: i64,
         crypto_type: CryptoType,
+        sandbox_mode: bool,
     ) -> Result<Decimal, ServiceError> {
         let balance = sqlx::query!(
-            "SELECT available_balance FROM merchant_balances WHERE merchant_id = $1 AND crypto_type = $2",
+            "SELECT available_balance FROM merchant_balances WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
             merchant_id,
-            crypto_type.to_string()
+            crypto_type.to_string(),
+            sandbox_mode
         )
         .fetch_optional(&self.db_pool)
         .await?;
