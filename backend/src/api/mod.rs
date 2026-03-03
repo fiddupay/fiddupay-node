@@ -22,3 +22,6 @@ pub mod blog;
 pub mod careers;
 pub mod customer_handlers;
 pub mod middleware;
+pub mod p2p_handlers;
+pub mod p2p_routes;
+pub mod p2p_ws;

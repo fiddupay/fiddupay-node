@@ -4,7 +4,7 @@
 use crate::api::{public_handlers, merchant_auth_handlers, payment_handlers, wallet_management, security_monitoring, status, blog, careers};
 use crate::api::state::AppState;
 use crate::api::middleware::{create_rate_limit_layer, rate_limit_middleware};
-use crate::api::{merchant_routes, admin_routes};
+use crate::api::{merchant_routes, admin_routes, p2p_routes};
 use axum::{
     http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
@@ -44,6 +44,7 @@ pub fn create_router(state: AppState) -> Router {
     // Create modular routers
     let merchant_router = merchant_routes::create_merchant_router(state.clone());
     let admin_router = admin_routes::create_admin_router(state.clone());
+    let p2p_router = p2p_routes::create_p2p_router(state.clone());
 
     // Combine routes with CORS
     let cors = CorsLayer::new()
@@ -61,6 +62,7 @@ pub fn create_router(state: AppState) -> Router {
         .merge(additional_public_routes)
         .merge(merchant_router)
         .merge(admin_router)
+        .merge(p2p_router)
         // Apply global rate limiting to all routes
         .layer(axum_middleware::from_fn_with_state(rate_limiter, rate_limit_middleware))
         .layer(cors)

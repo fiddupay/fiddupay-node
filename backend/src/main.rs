@@ -67,10 +67,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tracing::info!(" Platform fee wallets synced");
     }
 
+    // Initialize Redis connection
+    tracing::info!(" Connecting to Redis...");
+    let redis_client = match redis::Client::open(config.redis_url.clone()) {
+        Ok(client) => client,
+        Err(e) => {
+            tracing::error!("Failed to initialize Redis client: {}", e);
+            return Err(e.into());
+        }
+    };
+    tracing::info!(" Redis client initialized");
+
     // Initialize application state
     let app_state = AppState::new(
         db_pool.clone(),
         config.clone(),
+        redis_client,
     );
     tracing::info!(" Application state initialized");
 

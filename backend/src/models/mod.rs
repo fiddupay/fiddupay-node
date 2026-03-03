@@ -18,3 +18,4 @@ pub mod payment_extra;
 pub mod contact;
 pub mod system_settings;
 pub mod merchant_customer;
+pub mod p2p;

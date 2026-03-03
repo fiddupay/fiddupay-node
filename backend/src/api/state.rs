@@ -19,9 +19,11 @@ use crate::services::{
     price_service::PriceService,
     volume_tracking_service::VolumeTrackingService,
     invoice_service::InvoiceService,
+    p2p_service::P2pService,
 };
 use sqlx::PgPool;
 use std::sync::Arc;
+use redis::Client as RedisClient;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -43,12 +45,15 @@ pub struct AppState {
     pub price_service: Arc<PriceService>,
     pub volume_tracking_service: Arc<VolumeTrackingService>,
     pub invoice_service: Arc<InvoiceService>,
+    pub p2p_service: Arc<P2pService>,
+    pub redis_client: RedisClient,
 }
 
 impl AppState {
     pub fn new(
         db_pool: PgPool,
         config: Config,
+        redis_client: RedisClient,
     ) -> Self {
         let webhook_service = Arc::new(WebhookService::new(db_pool.clone(), config.webhook_signing_key.clone()));
         
@@ -75,8 +80,11 @@ impl AppState {
             price_service,
             volume_tracking_service: Arc::new(VolumeTrackingService::new(db_pool.clone())),
             invoice_service,
+            p2p_service: Arc::new(P2pService::new(db_pool.clone())),
             config,
             db_pool,
+            redis_client,
         }
     }
 }
+```
