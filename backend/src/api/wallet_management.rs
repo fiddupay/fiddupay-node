@@ -598,7 +598,7 @@ pub async fn get_wallet_balances(
             LEFT JOIN LATERAL (
                 SELECT
                     COUNT(*)::bigint as tx_count,
-                    COALESCE(SUM(amount_crypto), 0) as total_volume
+                    COALESCE(SUM(amount), 0) as total_volume
                 FROM payment_transactions
                 WHERE merchant_id = mw.merchant_id
                   AND crypto_type = mw.crypto_type
