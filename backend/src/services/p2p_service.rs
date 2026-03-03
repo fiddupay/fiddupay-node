@@ -17,7 +17,7 @@ impl P2pService {
     pub async fn get_profile(&self, user_id: i64) -> Result<P2pProfile, ServiceError> {
         let profile = sqlx::query_as!(
             P2pProfile,
-            "SELECT id, email, nickname, password_hash, kyc_level, is_vendor, is_active, sandbox_mode, total_trades, completion_rate, created_at, updated_at FROM p2p_profiles WHERE id = $1",
+            "SELECT id, email, nickname, password_hash, kyc_level, is_vendor, is_active, sandbox_mode, total_trades, completion_rate, thumbs_up_count, thumbs_down_count, created_at, updated_at FROM p2p_profiles WHERE id = $1",
             user_id
         )
         .fetch_optional(&self.db_pool)
@@ -30,7 +30,7 @@ impl P2pService {
     pub async fn get_balance(&self, user_id: i64, crypto_type: &str, sandbox_mode: bool) -> Result<P2pBalance, ServiceError> {
         let balance = sqlx::query_as!(
             P2pBalance,
-            "SELECT id, user_id, crypto_type, available_balance, locked_balance, total_balance, sandbox_mode, last_updated FROM p2p_balances WHERE user_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
+            r#"SELECT id, user_id, crypto_type, available_balance as "available_balance!", locked_balance as "locked_balance!", total_balance as "total_balance!", sandbox_mode, last_updated FROM p2p_balances WHERE user_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"#,
             user_id,
             crypto_type,
             sandbox_mode
@@ -292,7 +292,7 @@ impl P2pService {
                     return ServiceError::ValidationError("You have already rated this trade".into());
                 }
             }
-            ServiceError::DatabaseError(e)
+            ServiceError::DatabaseError(e.to_string())
         })?;
 
         // 3. Update target profile counts
