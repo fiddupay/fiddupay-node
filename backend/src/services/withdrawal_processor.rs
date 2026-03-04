@@ -66,6 +66,7 @@ impl WithdrawalProcessor {
             &withdrawal.destination_address,
             withdrawal.amount,
             None,
+            withdrawal.sandbox_mode,
         ).await {
             Ok(hash) => hash,
             Err(e) => {

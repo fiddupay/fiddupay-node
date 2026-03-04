@@ -29,24 +29,72 @@ impl BlockchainTransactionSender {
         to_address: &str,
         amount: Decimal,
         gas_price: Option<U256>,
+        sandbox_mode: bool,
     ) -> Result<String, ServiceError> {
         match crypto_type {
-            CryptoType::Sol => self.send_solana_transaction_placeholder(private_key, to_address, amount).await,
-            _ => self.send_evm_transaction(crypto_type, private_key, to_address, amount, gas_price).await,
+            CryptoType::Sol => self.send_solana_transaction(private_key, to_address, amount, sandbox_mode).await,
+            _ => self.send_evm_transaction(crypto_type, private_key, to_address, amount, gas_price, sandbox_mode).await,
         }
     }
 
-    /// Send Solana transaction (placeholder - requires solana-sdk)
-    async fn send_solana_transaction_placeholder(
+    async fn send_solana_transaction(
         &self,
-        _private_key: &str,
-        _to_address: &str,
+        private_key: &str,
+        to_address: &str,
         amount: Decimal,
+        sandbox_mode: bool,
     ) -> Result<String, ServiceError> {
-        // Placeholder implementation - would need solana-sdk
-        let lamports = amount.to_u64().unwrap_or(0);
-        tracing::info!("Placeholder Solana transaction: {} lamports", lamports);
-        Ok(format!("sol_tx_{}", uuid::Uuid::new_v4()))
+        use solana_client::nonblocking::rpc_client::RpcClient;
+        use solana_sdk::{
+            signature::{Keypair, Signer},
+            pubkey::Pubkey,
+            system_transaction,
+        };
+        use std::str::FromStr;
+
+        // Parse sender private key (expected as base58 string)
+        let sender_keypair = Keypair::from_base58_string(private_key);
+
+        // Parse destination address
+        let to_pubkey = Pubkey::from_str(to_address)
+            .map_err(|_| ServiceError::ValidationError("Invalid Solana destination address".to_string()))?;
+
+        // Convert SOL amount to lamports (1 SOL = 1,000,000,000 lamports)
+        let lamports = (amount * Decimal::new(1_000_000_000, 0))
+            .to_u64()
+            .ok_or_else(|| ServiceError::ValidationError("Invalid SOL amount".to_string()))?;
+
+        if lamports == 0 {
+            return Err(ServiceError::ValidationError("Amount must be greater than 0".to_string()));
+        }
+
+        // Initialize non-blocking RPC client based on sandbox mode
+        let rpc_url = if sandbox_mode {
+            self.config.solana_devnet_rpc_url.clone()
+        } else {
+            self.config.solana_rpc_url.clone()
+        };
+        let rpc_client = RpcClient::new(rpc_url);
+
+        // Get latest blockhash for transaction signing
+        let recent_blockhash = rpc_client.get_latest_blockhash()
+            .await
+            .map_err(|e| ServiceError::Internal(format!("Failed to get Solana blockhash: {}", e)))?;
+
+        // Create the native SOL transfer transaction
+        let tx = system_transaction::transfer(
+            &sender_keypair,
+            &to_pubkey,
+            lamports,
+            recent_blockhash,
+        );
+
+        // Send and confirm the transaction on-chain
+        let signature = rpc_client.send_and_confirm_transaction(&tx)
+            .await
+            .map_err(|e| ServiceError::Internal(format!("Failed to send Solana transaction: {}", e)))?;
+
+        Ok(signature.to_string())
     }
 
     /// Send EVM transaction (ETH, BNB, MATIC, ARB)
@@ -57,12 +105,17 @@ impl BlockchainTransactionSender {
         to_address: &str,
         amount: Decimal,
         gas_price: Option<U256>,
+        sandbox_mode: bool,
     ) -> Result<String, ServiceError> {
-        let rpc_url = match crypto_type {
-            CryptoType::Eth => &self.config.ethereum_rpc_url,
-            CryptoType::Bnb => &self.config.bsc_rpc_url,
-            CryptoType::Matic => &self.config.polygon_rpc_url,
-            CryptoType::Arb => &self.config.arbitrum_rpc_url,
+        let (rpc_url, chain_id) = match (crypto_type, sandbox_mode) {
+            (CryptoType::Eth, false) => (&self.config.ethereum_rpc_url, self.config.ethereum_chain_id),
+            (CryptoType::Eth, true) => (&self.config.ethereum_sepolia_rpc_url, self.config.ethereum_sepolia_chain_id),
+            (CryptoType::Bnb, false) => (&self.config.bsc_rpc_url, self.config.bsc_chain_id),
+            (CryptoType::Bnb, true) => (&self.config.bsc_testnet_rpc_url, self.config.bsc_testnet_chain_id),
+            (CryptoType::Matic, false) => (&self.config.polygon_rpc_url, self.config.polygon_chain_id),
+            (CryptoType::Matic, true) => (&self.config.polygon_mumbai_rpc_url, self.config.polygon_mumbai_chain_id),
+            (CryptoType::Arb, false) => (&self.config.arbitrum_rpc_url, self.config.arbitrum_chain_id),
+            (CryptoType::Arb, true) => (&self.config.arbitrum_sepolia_rpc_url, self.config.arbitrum_sepolia_chain_id),
             _ => return Err(ServiceError::ValidationError("Unsupported EVM network".to_string())),
         };
 
@@ -116,6 +169,7 @@ impl BlockchainTransactionSender {
             value: U256::from(wei_amount),
             gas_price: Some(gas_price),
             gas: U256::from(21000), // Standard gas limit for ETH transfer
+            chain_id: Some(chain_id),
             data: web3::types::Bytes::default(),
             ..Default::default()
         };

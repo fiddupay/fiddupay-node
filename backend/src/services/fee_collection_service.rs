@@ -148,8 +148,16 @@ impl FeeCollectionService {
             self.config.clone()
         );
 
+        // Fetch sandbox_mode from the payment table
+        let payment_data = sqlx::query!(
+            "SELECT sandbox_mode FROM payment_transactions WHERE id = $1",
+            payment_id
+        )
+        .fetch_one(&self.db_pool)
+        .await?;
+
         let tx_hash = tx_sender
-            .send_native_transaction(crypto_type, &private_key, &platform_wallet.address, fee_amount, None)
+            .send_native_transaction(crypto_type, &private_key, &platform_wallet.address, fee_amount, None, payment_data.sandbox_mode)
             .await
             .map_err(|e| {
                 error!("Fee collection transaction failed for payment {}: {}", payment_id, e);
