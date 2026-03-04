@@ -148,7 +148,7 @@ impl FeeCollectionService {
         // 5. Send the fee transaction
         info!(
             "Collecting fee {} {} from merchant {} wallet {} -> platform wallet {}",
-            fee_amount, crypto_type_str, merchant_id, merchant_wallet_address, platform_wallet.address
+            fee_amount, crypto_type_str, merchant_id, merchant_wallet_address, platform_wallet_address
         );
 
         let tx_sender = crate::services::blockchain_transaction_sender::BlockchainTransactionSender::new(

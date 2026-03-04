@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use crate::error::ServiceError;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct AuditLog {
     pub id: i64,
     pub merchant_id: Option<i64>,
@@ -38,13 +38,13 @@ impl AuditService {
         ip_address: Option<&str>,
         details: Option<JsonValue>,
     ) -> Result<(), ServiceError> {
-        sqlx::query!(
-            "INSERT INTO audit_logs (merchant_id, action_type, ip_address, details) VALUES ($1, $2, $3, $4)",
-            merchant_id,
-            action_type,
-            ip_address,
-            details
+        sqlx::query(
+            "INSERT INTO audit_logs (merchant_id, action_type, ip_address, details) VALUES ($1, $2, $3, $4)"
         )
+        .bind(merchant_id)
+        .bind(action_type)
+        .bind(ip_address)
+        .bind(&details)
         .execute(&self.pool)
         .await?;
 
@@ -55,8 +55,7 @@ impl AuditService {
         let limit = query.limit.unwrap_or(100).min(1000);
         
         let logs = if let Some(action_type) = query.action_type {
-            sqlx::query_as!(
-                AuditLog,
+            sqlx::query_as::<_, AuditLog>(
                 r#"
                 SELECT id, merchant_id, action_type, ip_address, details, created_at
                 FROM audit_logs
@@ -66,18 +65,17 @@ impl AuditService {
                   AND ($4::timestamptz IS NULL OR created_at <= $4)
                 ORDER BY created_at DESC
                 LIMIT $5
-                "#,
-                merchant_id,
-                action_type,
-                query.from,
-                query.to,
-                limit
+                "#
             )
+            .bind(merchant_id)
+            .bind(&action_type)
+            .bind(query.from)
+            .bind(query.to)
+            .bind(limit)
             .fetch_all(&self.pool)
             .await?
         } else {
-            sqlx::query_as!(
-                AuditLog,
+            sqlx::query_as::<_, AuditLog>(
                 r#"
                 SELECT id, merchant_id, action_type, ip_address, details, created_at
                 FROM audit_logs
@@ -86,12 +84,12 @@ impl AuditService {
                   AND ($3::timestamptz IS NULL OR created_at <= $3)
                 ORDER BY created_at DESC
                 LIMIT $4
-                "#,
-                merchant_id,
-                query.from,
-                query.to,
-                limit
+                "#
             )
+            .bind(merchant_id)
+            .bind(query.from)
+            .bind(query.to)
+            .bind(limit)
             .fetch_all(&self.pool)
             .await?
         };

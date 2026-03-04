@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct AddressOnlyPayment {
     pub id: i64,
     pub payment_id: String,
@@ -68,16 +68,18 @@ impl AddressOnlyService {
         let gateway_deposit_address = self.generate_deposit_address(crypto_type).await?;
         
         // Get merchant fee configuration
-        let merchant = sqlx::query!(
-            "SELECT fee_percentage, COALESCE(customer_pays_fee, true) as customer_pays_fee FROM merchants WHERE id = $1",
-            merchant_id
+        let merchant_row = sqlx::query(
+            "SELECT fee_percentage, COALESCE(customer_pays_fee, true) as customer_pays_fee FROM merchants WHERE id = $1"
         )
+        .bind(merchant_id)
         .fetch_one(&self.db_pool)
         .await?;
 
+        use sqlx::Row;
         // Calculate processing fee based on merchant configuration
-        let processing_fee = requested_amount * (merchant.fee_percentage / Decimal::from(100)); // Convert percentage to decimal
-        let customer_pays_fee = merchant.customer_pays_fee.unwrap_or(true); // Default to customer pays fee
+        let fee_pct: Decimal = merchant_row.get("fee_percentage");
+        let processing_fee = requested_amount * (fee_pct / Decimal::from(100)); // Convert percentage to decimal
+        let customer_pays_fee: bool = merchant_row.get("customer_pays_fee");
         let (customer_amount, forwarding_amount) = if customer_pays_fee {
             // Customer pays fee: customer pays (requested + fee), merchant gets requested amount
             let customer_total = requested_amount + processing_fee;
@@ -88,8 +90,7 @@ impl AddressOnlyService {
             (requested_amount, merchant_receives)
         };
 
-        let payment = sqlx::query_as!(
-            AddressOnlyPayment,
+        let payment = sqlx::query_as::<_, AddressOnlyPayment>(
             r#"
             INSERT INTO address_only_payments (
                 payment_id, merchant_id, crypto_type, gateway_deposit_address,
@@ -101,18 +102,18 @@ impl AddressOnlyService {
                      requested_amount, customer_amount as "customer_amount!",
                      processing_fee, forwarding_amount,
                      status as "status: AddressOnlyStatus", created_at
-            "#,
-            payment_id,
-            merchant_id,
-            crypto_type as CryptoType,
-            gateway_deposit_address,
-            merchant_address,
-            requested_amount,
-            processing_fee,
-            forwarding_amount,
-            AddressOnlyStatus::PendingPayment as i32,
-            customer_amount
+            "#
         )
+        .bind(&payment_id)
+        .bind(merchant_id)
+        .bind(crypto_type as CryptoType)
+        .bind(&gateway_deposit_address)
+        .bind(&merchant_address)
+        .bind(requested_amount)
+        .bind(processing_fee)
+        .bind(forwarding_amount)
+        .bind(AddressOnlyStatus::PendingPayment as i32)
+        .bind(customer_amount)
         .fetch_one(&self.db_pool)
         .await?;
 
@@ -204,18 +205,18 @@ impl AddressOnlyService {
         ).await?;
         
         // Record forwarding transaction
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO address_only_forwarding_txs (
                 payment_id, destination_address, amount, gas_fee, tx_hash, status
             ) VALUES ($1, $2, $3, $4, $5, 'completed')
-            "#,
-            payment.payment_id,
-            payment.merchant_destination_address,
-            net_forwarding_amount,
-            gas_estimate.standard_fee,
-            forwarding_tx_hash
+            "#
         )
+        .bind(&payment.payment_id)
+        .bind(&payment.merchant_destination_address)
+        .bind(net_forwarding_amount)
+        .bind(gas_estimate.standard_fee)
+        .bind(&forwarding_tx_hash)
         .execute(&self.db_pool)
         .await?;
 
@@ -280,12 +281,12 @@ impl AddressOnlyService {
         let encrypted_key = encrypt_data(private_key)
             .map_err(|e| ServiceError::Internal(format!("Key encryption failed: {}", e)))?;
 
-        sqlx::query!(
-            "INSERT INTO deposit_keypairs (payment_id, address, encrypted_private_key) VALUES ($1, $2, $3)",
-            payment_id,
-            address,
-            encrypted_key
+        sqlx::query(
+            "INSERT INTO deposit_keypairs (payment_id, address, encrypted_private_key) VALUES ($1, $2, $3)"
         )
+        .bind(payment_id)
+        .bind(address)
+        .bind(&encrypted_key)
         .execute(&self.db_pool)
         .await?;
 
@@ -356,10 +357,10 @@ impl AddressOnlyService {
 
     /// Get private key for deposit address
     async fn get_deposit_private_key(&self, address: &str) -> Result<String, ServiceError> {
-        let record_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
-            "SELECT encrypted_private_key FROM deposit_keypairs WHERE address = $1",
-            address
+        let record_res = sqlx::query(
+            "SELECT encrypted_private_key FROM deposit_keypairs WHERE address = $1"
         )
+        .bind(address)
         .fetch_optional(&self.db_pool)
         .await;
 
@@ -372,7 +373,7 @@ impl AddressOnlyService {
 
     /// Get merchant statistics for address-only payments
     pub async fn get_merchant_stats(&self, merchant_id: i64) -> Result<crate::api::address_only::AddressOnlyStats, ServiceError> {
-        let stats = sqlx::query!(
+        let stats_row = sqlx::query(
             r#"
             SELECT 
                 COUNT(*) as total_payments,
@@ -382,24 +383,24 @@ impl AddressOnlyService {
                 COALESCE(SUM(processing_fee), 0) as total_fees_collected
             FROM address_only_payments 
             WHERE merchant_id = $1
-            "#,
-            merchant_id
+            "#
         )
+        .bind(merchant_id)
         .fetch_one(&self.db_pool)
         .await?;
 
+        use sqlx::Row;
         Ok(crate::api::address_only::AddressOnlyStats {
-            total_payments: stats.total_payments.unwrap_or(0),
-            completed_payments: stats.completed_payments.unwrap_or(0),
-            pending_payments: stats.pending_payments.unwrap_or(0),
-            total_volume: stats.total_volume.unwrap_or_else(|| Decimal::ZERO),
-            total_fees_collected: stats.total_fees_collected.unwrap_or_else(|| Decimal::ZERO),
+            total_payments: stats_row.get::<i64, _>("total_payments"),
+            completed_payments: stats_row.get::<i64, _>("completed_payments"),
+            pending_payments: stats_row.get::<i64, _>("pending_payments"),
+            total_volume: stats_row.get::<Decimal, _>("total_volume"),
+            total_fees_collected: stats_row.get::<Decimal, _>("total_fees_collected"),
         })
     }
 
     pub async fn get_payment_by_id(&self, payment_id: &str) -> Result<AddressOnlyPayment, ServiceError> {
-        let payment = sqlx::query_as!(
-            AddressOnlyPayment,
+        let payment = sqlx::query_as::<_, AddressOnlyPayment>(
             r#"
             SELECT id, payment_id, merchant_id, crypto_type as "crypto_type: CryptoType",
                    gateway_deposit_address, merchant_destination_address,
@@ -407,9 +408,9 @@ impl AddressOnlyService {
                    processing_fee, forwarding_amount,
                    status as "status: AddressOnlyStatus", created_at
             FROM address_only_payments WHERE payment_id = $1
-            "#,
-            payment_id
+            "#
         )
+        .bind(payment_id)
         .fetch_one(&self.db_pool)
         .await?;
 
@@ -421,11 +422,11 @@ impl AddressOnlyService {
         payment_id: &str,
         status: AddressOnlyStatus,
     ) -> Result<(), ServiceError> {
-        sqlx::query!(
-            "UPDATE address_only_payments SET status = $1, updated_at = NOW() WHERE payment_id = $2",
-            status as i32,
-            payment_id
+        sqlx::query(
+            "UPDATE address_only_payments SET status = $1, updated_at = NOW() WHERE payment_id = $2"
         )
+        .bind(status as i32)
+        .bind(payment_id)
         .execute(&self.db_pool)
         .await?;
 
@@ -434,11 +435,11 @@ impl AddressOnlyService {
 
     /// Update merchant fee payment setting
     pub async fn update_merchant_fee_setting(&self, merchant_id: i64, customer_pays_fee: bool) -> Result<(), ServiceError> {
-        sqlx::query!(
-            "UPDATE merchants SET customer_pays_fee = $1, updated_at = NOW() WHERE id = $2",
-            customer_pays_fee,
-            merchant_id
+        sqlx::query(
+            "UPDATE merchants SET customer_pays_fee = $1, updated_at = NOW() WHERE id = $2"
         )
+        .bind(customer_pays_fee)
+        .bind(merchant_id)
         .execute(&self.db_pool)
         .await?;
 

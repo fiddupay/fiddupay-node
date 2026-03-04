@@ -567,27 +567,32 @@ impl MerchantService {
         let lookup_crypto_type = crypto_type.get_native_currency().to_string();
 
         // First, check settlement mode and sandbox mode
-        let merchant = sqlx::query!(
-            "SELECT settlement_mode, sandbox_mode FROM merchants WHERE id = $1",
-            merchant_id
+        use sqlx::Row;
+        let merchant = sqlx::query(
+            "SELECT settlement_mode, sandbox_mode FROM merchants WHERE id = $1"
         )
+        .bind(merchant_id)
         .fetch_one(&self.db_pool)
         .await?;
 
-        if merchant.settlement_mode == "forwarding" {
+        let settlement_mode: String = merchant.get("settlement_mode");
+        let sandbox_mode_val: bool = merchant.get("sandbox_mode");
+
+        if settlement_mode == "forwarding" {
             // FORWARDING MODE: Look in merchant_forwarding_wallets
-            let wallet_opt = sqlx::query!(
+            let wallet_opt = sqlx::query(
                 "SELECT address FROM merchant_forwarding_wallets 
-                 WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true AND sandbox_mode = $3",
-                merchant_id,
-                lookup_crypto_type,
-                merchant.sandbox_mode
+                 WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true AND sandbox_mode = $3"
             )
+            .bind(merchant_id)
+            .bind(&lookup_crypto_type)
+            .bind(sandbox_mode_val)
             .fetch_optional(&self.db_pool)
             .await?;
 
             if let Some(wallet) = wallet_opt {
-                return Ok(wallet.address);
+                let addr: String = wallet.get("address");
+                return Ok(addr);
             } else {
                 return Err(ServiceError::WalletNotFound);
             }
@@ -595,22 +600,23 @@ impl MerchantService {
         
         // MANAGED / IMPORTED MODE: Look in merchant_wallets
         
-        let wallet_opt = sqlx::query!(
+        let wallet_opt = sqlx::query(
             "SELECT address FROM merchant_wallets 
-             WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true AND sandbox_mode = $3",
-            merchant_id,
-            lookup_crypto_type,
-            merchant.sandbox_mode
+             WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true AND sandbox_mode = $3"
         )
+        .bind(merchant_id)
+        .bind(&lookup_crypto_type)
+        .bind(sandbox_mode_val)
         .fetch_optional(&self.db_pool)
         .await?;
         
         if let Some(wallet) = wallet_opt {
-            return Ok(wallet.address);
+            let addr: String = wallet.get("address");
+            return Ok(addr);
         }
 
         // If not found in merchant_wallets, auto-generate ONLY if managed mode
-        if merchant.settlement_mode == "managed" {
+        if settlement_mode == "managed" {
             tracing::info!("Auto-generating wallet for merchant {} for network {}", merchant_id, lookup_crypto_type);
             
             let wallet_service = crate::services::wallet_config_service::WalletConfigService::new(self.db_pool.clone());
@@ -619,7 +625,7 @@ impl MerchantService {
                 enable_all_evm: None,
             };
             
-            let response = wallet_service.generate_wallet(merchant_id, merchant.sandbox_mode, gen_req).await?;
+            let response = wallet_service.generate_wallet(merchant_id, sandbox_mode_val, gen_req).await?;
             return Ok(response.config.address);
         }
         
@@ -636,12 +642,12 @@ impl MerchantService {
             return Err(ServiceError::ValidationError("Invalid settlement mode".to_string()));
         }
 
-        sqlx::query!(
-            "UPDATE merchants SET settlement_mode = $1, updated_at = $2 WHERE id = $3",
-            mode,
-            Utc::now(),
-            merchant_id
+        sqlx::query(
+            "UPDATE merchants SET settlement_mode = $1, updated_at = $2 WHERE id = $3"
         )
+        .bind(mode)
+        .bind(Utc::now())
+        .bind(merchant_id)
         .execute(&self.db_pool)
         .await?;
 
@@ -662,7 +668,7 @@ impl MerchantService {
             }
         }
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE merchants 
             SET 
@@ -672,14 +678,14 @@ impl MerchantService {
                 redirect_url = COALESCE($4, redirect_url),
                 updated_at = $5
             WHERE id = $6
-            "#,
-            settlement_mode,
-            customer_pays_fee,
-            sandbox_mode,
-            redirect_url,
-            Utc::now(),
-            merchant_id
+            "#
         )
+        .bind(&settlement_mode)
+        .bind(customer_pays_fee)
+        .bind(sandbox_mode)
+        .bind(&redirect_url)
+        .bind(Utc::now())
+        .bind(merchant_id)
         .execute(&self.db_pool)
         .await?;
 

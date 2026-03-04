@@ -23,17 +23,18 @@ impl IpWhitelistService {
         }
 
         // Delete existing whitelist
-        sqlx::query!("DELETE FROM ip_whitelist WHERE merchant_id = $1", merchant_id)
+        sqlx::query("DELETE FROM ip_whitelist WHERE merchant_id = $1")
+            .bind(merchant_id)
             .execute(&self.pool)
             .await?;
 
         // Insert new whitelist
         for ip in ip_addresses {
-            sqlx::query!(
-                "INSERT INTO ip_whitelist (merchant_id, ip_address) VALUES ($1, $2)",
-                merchant_id,
-                ip
+            sqlx::query(
+                "INSERT INTO ip_whitelist (merchant_id, ip_address) VALUES ($1, $2)"
             )
+            .bind(merchant_id)
+            .bind(&ip)
             .execute(&self.pool)
             .await?;
         }
@@ -42,13 +43,14 @@ impl IpWhitelistService {
     }
 
     pub async fn get_whitelist(&self, merchant_id: i64) -> Result<Vec<String>, ServiceError> {
-        let records_res: Result<Vec<_>, sqlx::Error> = sqlx::query!("SELECT ip_address FROM ip_whitelist WHERE merchant_id = $1", merchant_id)
+        let records = sqlx::query("SELECT ip_address FROM ip_whitelist WHERE merchant_id = $1")
+            .bind(merchant_id)
             .fetch_all(&self.pool)
-            .await;
-        
-        let records = records_res.map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+            .await
+            .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
-        Ok(records.into_iter().map(|r| r.ip_address).collect())
+        use sqlx::Row;
+        Ok(records.into_iter().map(|r| r.get("ip_address")).collect())
     }
 
     pub async fn is_ip_allowed(&self, merchant_id: i64, ip: &str) -> Result<bool, ServiceError> {
@@ -88,13 +90,13 @@ impl IpWhitelistService {
             "endpoint": endpoint,
             "reason": "Non-whitelisted IP"
         });
-        sqlx::query!(
-            "INSERT INTO audit_logs (merchant_id, action_type, ip_address, details) VALUES ($1, $2, $3, $4)",
-            merchant_id,
-            "IP_REJECTED",
-            ip,
-            details
+        sqlx::query(
+            "INSERT INTO audit_logs (merchant_id, action_type, ip_address, details) VALUES ($1, $2, $3, $4)"
         )
+        .bind(merchant_id)
+        .bind("IP_REJECTED")
+        .bind(ip)
+        .bind(&details)
         .execute(&self.pool)
         .await?;
 

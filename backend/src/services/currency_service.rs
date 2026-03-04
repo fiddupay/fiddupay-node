@@ -73,15 +73,16 @@ impl CurrencyService {
         let all_supported = self.get_supported_currencies().await;
         
         // Fetch active wallets for this merchant
-        let rows_res: Result<Vec<_>, sqlx::Error> = sqlx::query!(
-            "SELECT crypto_type FROM merchant_wallets WHERE merchant_id = $1 AND is_active = true",
-            merchant_id
+        let rows_res = sqlx::query(
+            "SELECT crypto_type FROM merchant_wallets WHERE merchant_id = $1 AND is_active = true"
         )
+        .bind(merchant_id)
         .fetch_all(&self.pool)
         .await;
 
+        use sqlx::Row;
         let active_wallets: Vec<String> = match rows_res {
-            Ok(rows) => rows.into_iter().map(|r| r.crypto_type).collect(),
+            Ok(rows) => rows.into_iter().map(|r| r.get("crypto_type")).collect(),
             Err(_) => return vec![], // Return empty if error or no wallets
         };
 
