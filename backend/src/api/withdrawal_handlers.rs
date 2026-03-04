@@ -21,7 +21,33 @@ pub async fn create_withdrawal(
     Json(req): Json<crate::services::withdrawal_service::WithdrawalRequest>,
 ) -> impl IntoResponse {
     match state.withdrawal_service.create_withdrawal(context.merchant_id, req, context.sandbox_mode).await {
-        Ok(withdrawal) => (StatusCode::CREATED, Json(withdrawal)).into_response(),
+        Ok(withdrawal) => {
+            // Check settlement mode to see if we should auto-process
+            if let Ok(Some(merchant)) = sqlx::query!(
+                "SELECT settlement_mode FROM merchants WHERE id = $1",
+                context.merchant_id
+            )
+            .fetch_optional(&state.db_pool)
+            .await {
+                if merchant.settlement_mode.unwrap_or_else(|| "managed".to_string()) == "managed" {
+                    // Spawn background task to process the withdrawal automatically
+                    let processor = crate::services::withdrawal_processor::WithdrawalProcessor::new(
+                        state.db_pool.clone(),
+                        state.config.clone()
+                    );
+                    let withdrawal_id = withdrawal.withdrawal_id.clone();
+                    
+                    tokio::spawn(async move {
+                        tracing::info!("Auto-processing managed withdrawal: {}", withdrawal_id);
+                        if let Err(e) = processor.process_withdrawal(&withdrawal_id).await {
+                            tracing::error!("Failed to auto-process withdrawal {}: {}", withdrawal_id, e);
+                        }
+                    });
+                }
+            }
+
+            (StatusCode::CREATED, Json(withdrawal)).into_response()
+        },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }

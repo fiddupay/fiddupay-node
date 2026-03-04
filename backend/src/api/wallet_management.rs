@@ -331,7 +331,7 @@ pub async fn process_withdrawal(
     Path(withdrawal_id): Path<String>,
     Json(req): Json<ProcessWithdrawalRequest>,
 ) -> impl IntoResponse {
-    let processor = WithdrawalProcessor::new(state.db_pool.clone());
+    let processor = WithdrawalProcessor::new(state.db_pool.clone(), state.config.clone());
     
     match processor.process_withdrawal(&withdrawal_id).await {
         Ok(result) => (StatusCode::OK, Json(json!({
