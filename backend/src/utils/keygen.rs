@@ -44,26 +44,16 @@ impl KeyGenerator {
         })
     }
 
-    /// Generate Solana wallet using ed25519-dalek
+    /// Generate Solana wallet using solana-sdk
     pub fn generate_solana_wallet() -> Result<WalletKeyPair, ServiceError> {
-        use ed25519_dalek::SigningKey;
-        use rand::RngCore;
+        use solana_sdk::signature::{Keypair, Signer};
         
-        // Generate a random 32-byte secret key
-        let mut seed = [0u8; 32];
-        rand::thread_rng().fill_bytes(&mut seed);
-        let signing_key = SigningKey::from_bytes(&seed);
-        let verifying_key = signing_key.verifying_key();
+        // Generate a new keypair
+        let keypair = Keypair::new();
+        let public_key_bytes = keypair.pubkey().to_bytes();
+        let secret_key_bytes = keypair.to_bytes(); // This is the 64-byte [secret; public] array
         
-        let private_key_bytes = signing_key.to_bytes();
-        let public_key_bytes = verifying_key.to_bytes();
-        
-        // Solana private key is typically represented as a Base58-encoded 64-byte array (32-byte secret + 32-byte public key)
-        let mut secret_plus_public = [0u8; 64];
-        secret_plus_public[..32].copy_from_slice(&private_key_bytes);
-        secret_plus_public[32..].copy_from_slice(&public_key_bytes);
-        
-        let private_key_base58 = bs58::encode(secret_plus_public).into_string();
+        let private_key_base58 = bs58::encode(secret_key_bytes).into_string();
         let address = bs58::encode(public_key_bytes).into_string();
         
         Ok(WalletKeyPair {
@@ -139,9 +129,9 @@ impl KeyGenerator {
     }
 
     fn validate_solana_private_key(private_key_base58: &str) -> Result<String, ServiceError> {
-        use ed25519_dalek::{SigningKey, VerifyingKey};
+        use solana_sdk::signature::{Keypair, Signer};
 
-        // Decocde base58 private key
+        // Decode base58 private key
         let key_bytes = bs58::decode(private_key_base58)
             .into_vec()
             .map_err(|_| ServiceError::ValidationError("Invalid Base58 format".to_string()))?;
@@ -150,20 +140,15 @@ impl KeyGenerator {
         let public_key_bytes = match key_bytes.len() {
             32 => {
                 let seed: [u8; 32] = key_bytes.try_into().unwrap();
-                let signing_key = SigningKey::from_bytes(&seed);
-                signing_key.verifying_key().to_bytes()
+                let keypair = Keypair::from_seed(&seed)
+                    .map_err(|_| ServiceError::ValidationError("Invalid Solana seed".to_string()))?;
+                keypair.pubkey().to_bytes()
             }
             64 => {
                 let bytes: [u8; 64] = key_bytes.try_into().unwrap();
-                let seed: [u8; 32] = bytes[..32].try_into().unwrap();
-                let signing_key = SigningKey::from_bytes(&seed);
-                let verifying_key = signing_key.verifying_key();
-                
-                // Verify the stored public key matches the one derived from the seed
-                if verifying_key.to_bytes() != bytes[32..] {
-                    return Err(ServiceError::ValidationError("Invalid Solana key: Seed and public key mismatch".to_string()));
-                }
-                verifying_key.to_bytes()
+                let keypair = Keypair::from_bytes(&bytes)
+                    .map_err(|_| ServiceError::ValidationError("Invalid Solana private key bytes".to_string()))?;
+                keypair.pubkey().to_bytes()
             }
             _ => {
                 return Err(ServiceError::ValidationError(

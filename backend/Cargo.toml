@@ -115,7 +115,6 @@ prometheus = "0.13"
 validator = { version = "0.20.0", features = ["derive"] }
 html-escape = "0.2.13"
 tower_governor = "0.8.0"
-ed25519-dalek = "2.1"
 
 [dev-dependencies]
 proptest = "1.4"
