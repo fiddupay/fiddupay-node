@@ -569,7 +569,7 @@ pub async fn get_wallet_balances(
                 0::bigint as transaction_count,
                 0::numeric as total_volume_crypto
             FROM merchant_forwarding_wallets
-            WHERE merchant_id = $1 AND sandbox_mode = $2
+            WHERE merchant_id = $1 AND sandbox_mode = $2 AND address != '' AND is_active = true
             ORDER BY crypto_type
             "#
         )
@@ -598,14 +598,14 @@ pub async fn get_wallet_balances(
             LEFT JOIN LATERAL (
                 SELECT
                     COUNT(*)::bigint as tx_count,
-                    COALESCE(SUM(amount), 0) as total_volume
+                    COALESCE(SUM(amount), 0::numeric) as total_volume
                 FROM payment_transactions
                 WHERE merchant_id = mw.merchant_id
                   AND crypto_type = mw.crypto_type
                   AND status = 'CONFIRMED'
                   AND sandbox_mode = mw.sandbox_mode
             ) tx_stats ON true
-            WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $2
+            WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $2 AND mw.address != '' AND mw.is_active = true
             ORDER BY mw.crypto_type
             "#
         )
