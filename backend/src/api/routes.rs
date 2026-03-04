@@ -30,6 +30,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/:link_id/select", post(payment_handlers::finalize_payment_selection))
         .route("/api/v1/merchants/register", post(merchant_auth_handlers::register_merchant))
         .route("/api/v1/merchants/login", post(merchant_auth_handlers::login_merchant))
+        .route("/api/v1/p2p/register", post(crate::api::p2p_auth_handlers::register_p2p_user))
         .route("/api/v1/currencies/supported", get(public_handlers::get_supported_currencies))
         .route("/:payment_id/cancel", post(public_handlers::public_cancel_payment));
 

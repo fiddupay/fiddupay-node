@@ -10,7 +10,7 @@
 
 .container {
   width: 100%;
-  max-width: 500px;
+  max-width: 650px;
 }
 
 .registerCard {
@@ -187,6 +187,109 @@
   padding-top: 2rem;
   border-top: 1px solid #e2e8f0;
 }
+
+.roleSelection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.roleCard {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+}
+
+.roleCard:hover {
+  border-color: #1e40af;
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.roleCard.selected {
+  border-color: #1e40af;
+  background: rgba(30, 64, 175, 0.05);
+}
+
+.roleIcon {
+  font-size: 2.5rem;
+}
+
+.roleCard h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1e40af;
+}
+
+.roleCard p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.stepIndicator {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.step {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  transition: all 0.3s;
+}
+
+.step.active {
+  background: #1e40af;
+  transform: scale(1.3);
+}
+
+.formActions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.backButton {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.backButton:hover {
+  background: #e2e8f0;
+}
+
+.mandatoryLabel::after {
+  content: " *";
+  color: #dc2626;
+}
+
+.optionalLabel::after {
+  content: " (Optional)";
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
 
 .footer p {
   color: #6b7280;

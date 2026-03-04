@@ -26,6 +26,16 @@ pub struct Merchant {
     pub daily_limit_usd: Option<Decimal>,
     pub role: String,
     pub redirect_url: Option<String>,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub gender: Option<String>,
+    pub phone_number: Option<String>,
+    pub country: Option<String>,
+    pub applicant_role: Option<String>,
+    pub business_country: Option<String>,
+    pub business_license_number: Option<String>,
+    pub business_certificate_url: Option<String>,
+    pub terms_accepted: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -44,6 +54,19 @@ pub struct MerchantWallet {
 pub struct MerchantRegistrationRequest {
     pub email: String,
     pub business_name: String,
+    pub password: String,
+    // Step 1 KYC
+    pub first_name: String,
+    pub last_name: String,
+    pub gender: String,
+    pub phone_number: String,
+    pub country: String,
+    pub applicant_role: String,
+    pub terms_accepted: bool,
+    // Step 2 Business
+    pub business_country: String,
+    pub business_license_number: Option<String>,
+    pub business_certificate_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

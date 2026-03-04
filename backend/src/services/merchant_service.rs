@@ -60,10 +60,12 @@ impl MerchantService {
 
     pub async fn register_merchant(
         &self,
-        email: &str,
-        business_name: &str,
-        password: &str,
+        req: &crate::models::merchant::MerchantRegistrationRequest,
     ) -> Result<MerchantRegistrationResponse, ServiceError> {
+        let email = &req.email;
+        let business_name = &req.business_name;
+        let password = &req.password;
+
         // 1. Hash the User Password
         use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
         use rand::rngs::OsRng;
@@ -77,9 +79,18 @@ impl MerchantService {
         let merchant_res: Result<Merchant, sqlx::Error> = sqlx::query_as!(
             Merchant,
             r#"
-            INSERT INTO merchants (email, business_name, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, daily_limit_usd, role)
-            VALUES ($1, $2, 'PENDING', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT')
-            RETURNING id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as "role!", redirect_url
+            INSERT INTO merchants (
+                email, business_name, test_api_key_hash, password_hash, 
+                fee_percentage, customer_pays_fee, is_active, sandbox_mode, 
+                settlement_mode, kyc_verified, created_at, updated_at, 
+                daily_limit_usd, role, first_name, last_name, 
+                gender, phone_number, country, applicant_role, 
+                business_country, business_license_number, 
+                business_certificate_url, terms_accepted
+            )
+            VALUES ($1, $2, 'PENDING', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT', $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+            RETURNING id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as "role!", redirect_url,
+                      first_name, last_name, gender, phone_number, country, applicant_role, business_country, business_license_number, business_certificate_url, terms_accepted
             "#,
             &email,
             &business_name,
@@ -92,8 +103,19 @@ impl MerchantService {
             false, // kyc_verified
             Utc::now(),
             Utc::now(),
-            None: Option<Decimal>
+            None: Option<Decimal>,
+            req.first_name,
+            req.last_name,
+            req.gender,
+            req.phone_number,
+            req.country,
+            req.applicant_role,
+            req.business_country,
+            req.business_license_number,
+            req.business_certificate_url,
+            req.terms_accepted
         )
+
         .fetch_one(&self.db_pool)
         .await;
 

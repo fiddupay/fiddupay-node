@@ -29,6 +29,20 @@ pub struct RegisterMerchantRequest {
     
     #[validate(length(min = 8))]
     pub password: String,
+
+    // Step 1 KYC
+    pub first_name: String,
+    pub last_name: String,
+    pub gender: String,
+    pub phone_number: String,
+    pub country: String,
+    pub applicant_role: String,
+    pub terms_accepted: bool,
+
+    // Step 2 Business
+    pub business_country: String,
+    pub business_license_number: Option<String>,
+    pub business_certificate_url: Option<String>,
 }
 
 #[derive(Deserialize, Validate)]
@@ -79,7 +93,23 @@ pub async fn register_merchant(
         return ServiceError::Forbidden("Registration is currently disabled".to_string()).into_response();
     }
 
-    match state.merchant_service.register_merchant(&req.email, &req.business_name, &req.password).await {
+    let registration_req = crate::models::merchant::MerchantRegistrationRequest {
+        email: req.email.clone(),
+        business_name: req.business_name.clone(),
+        password: req.password.clone(),
+        first_name: req.first_name.clone(),
+        last_name: req.last_name.clone(),
+        gender: req.gender.clone(),
+        phone_number: req.phone_number.clone(),
+        country: req.country.clone(),
+        applicant_role: req.applicant_role.clone(),
+        terms_accepted: req.terms_accepted,
+        business_country: req.business_country.clone(),
+        business_license_number: req.business_license_number.clone(),
+        business_certificate_url: req.business_certificate_url.clone(),
+    };
+
+    match state.merchant_service.register_merchant(&registration_req).await {
         Ok(response) => {
             // Generate JWT for new registration
             let now = chrono::Utc::now();

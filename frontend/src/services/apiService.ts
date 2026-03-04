@@ -3,8 +3,11 @@ import api from '@/utils/api'
 import { LoginCredentials } from '@/types'
 
 export const authAPI = {
-  register: (data: { business_name: string; email: string; password: string }) =>
+  register: (data: any) =>
     api.post('/api/v1/merchants/register', data),
+
+  registerP2P: (data: any) =>
+    api.post('/api/v1/p2p/register', data),
 
   login: (data: LoginCredentials) =>
     api.post('/api/v1/merchants/login', data),

@@ -14,6 +14,45 @@ impl P2pService {
         Self { db_pool }
     }
 
+    pub async fn register_profile(&self, req: &CreateProfileRequest) -> Result<P2pProfile, ServiceError> {
+        // 1. Hash the Password
+        use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+        use rand::rngs::OsRng;
+        let argon2 = Argon2::default();
+        let password_salt = SaltString::generate(&mut OsRng);
+        let password_hash = argon2.hash_password(req.password.as_bytes(), &password_salt)
+            .map_err(|_| ServiceError::InternalError("Failed to hash password".to_string()))?
+            .to_string();
+
+        // 2. Insert profile
+        let profile = sqlx::query_as!(
+            P2pProfile,
+            r#"
+            INSERT INTO p2p_profiles (
+                email, nickname, password_hash, first_name, last_name, 
+                gender, phone_number, country, terms_accepted
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id, email, nickname, password_hash, kyc_level, is_vendor, is_active, sandbox_mode, 
+                      total_trades, completion_rate, thumbs_up_count, thumbs_down_count, created_at, updated_at,
+                      first_name, last_name, gender, phone_number, country, terms_accepted
+            "#,
+            &req.email,
+            &req.nickname,
+            &password_hash,
+            &req.first_name,
+            &req.last_name,
+            &req.gender,
+            &req.phone_number,
+            &req.country,
+            req.terms_accepted
+        )
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        Ok(profile)
+    }
+
     pub async fn get_profile(&self, user_id: i64) -> Result<P2pProfile, ServiceError> {
         let profile = sqlx::query_as!(
             P2pProfile,

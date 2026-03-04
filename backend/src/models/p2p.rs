@@ -20,6 +20,12 @@ pub struct P2pProfile {
     pub thumbs_down_count: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub gender: Option<String>,
+    pub phone_number: Option<String>,
+    pub country: Option<String>,
+    pub terms_accepted: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -164,6 +170,12 @@ pub struct CreateProfileRequest {
     pub email: String,
     pub nickname: String,
     pub password: String,
+    pub first_name: String,
+    pub last_name: String,
+    pub gender: String,
+    pub phone_number: String,
+    pub country: String,
+    pub terms_accepted: bool,
 }
 
 #[derive(Debug, Deserialize, Clone)]
