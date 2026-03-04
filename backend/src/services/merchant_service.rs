@@ -33,11 +33,11 @@ impl MerchantService {
 
         let today_start = Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
         
-        let daily_volume: Option<Decimal> = match sqlx::query_scalar!(
-            "SELECT SUM(amount_usd) FROM payment_transactions WHERE merchant_id = $1 AND created_at >= $2 AND status = 'CONFIRMED'",
-            merchant_id,
-            today_start
+        let daily_volume: Option<Decimal> = match sqlx::query_scalar::<_, Option<Decimal>>(
+            "SELECT SUM(amount_usd) FROM payment_transactions WHERE merchant_id = $1 AND created_at >= $2 AND status = 'CONFIRMED'"
         )
+        .bind(merchant_id)
+        .bind(today_start)
         .fetch_one(&self.db_pool)
         .await {
             Ok(v) => v,
@@ -76,8 +76,7 @@ impl MerchantService {
             .to_string();
 
         // 2. Insert merchant with placeholder key hash (will be updated immediately)
-        let merchant_res: Result<Merchant, sqlx::Error> = sqlx::query_as!(
-            Merchant,
+        let merchant_res: Result<Merchant, sqlx::Error> = sqlx::query_as::<_, Merchant>(
             r#"
             INSERT INTO merchants (
                 email, business_name, test_api_key_hash, password_hash, 
@@ -91,30 +90,30 @@ impl MerchantService {
             VALUES ($1, $2, 'PENDING', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT', $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
             RETURNING id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as "role!", redirect_url,
                       first_name, last_name, gender, phone_number, country, applicant_role, business_country, business_license_number, business_certificate_url, terms_accepted
-            "#,
-            &email,
-            &business_name,
-            &password_hash,
-            self.config.default_fee_percentage,
-            false, // customer_pays_fee
-            true, // is_active
-            true, // sandbox_mode
-            "managed", // settlement_mode
-            false, // kyc_verified
-            Utc::now(),
-            Utc::now(),
-            None: Option<Decimal>,
-            req.first_name,
-            req.last_name,
-            req.gender,
-            req.phone_number,
-            req.country,
-            req.applicant_role,
-            req.business_country,
-            req.business_license_number,
-            req.business_certificate_url,
-            req.terms_accepted
+            "#
         )
+        .bind(&email)
+        .bind(&business_name)
+        .bind(&password_hash)
+        .bind(self.config.default_fee_percentage)
+        .bind(false) // customer_pays_fee
+        .bind(true) // is_active
+        .bind(true) // sandbox_mode
+        .bind("managed") // settlement_mode
+        .bind(false) // kyc_verified
+        .bind(Utc::now())
+        .bind(Utc::now())
+        .bind(None::<Decimal>)
+        .bind(&req.first_name)
+        .bind(&req.last_name)
+        .bind(&req.gender)
+        .bind(&req.phone_number)
+        .bind(&req.country)
+        .bind(&req.applicant_role)
+        .bind(&req.business_country)
+        .bind(&req.business_license_number)
+        .bind(&req.business_certificate_url)
+        .bind(req.terms_accepted)
 
         .fetch_one(&self.db_pool)
         .await;
