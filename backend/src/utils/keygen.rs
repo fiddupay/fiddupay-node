@@ -129,7 +129,7 @@ impl KeyGenerator {
     }
 
     fn validate_solana_private_key(private_key_base58: &str) -> Result<String, ServiceError> {
-        use solana_sdk::signature::{Keypair, Signer};
+        use solana_sdk::signature::{Keypair, Signer, SeedDerivable};
 
         // Decode base58 private key
         let key_bytes = bs58::decode(private_key_base58)
