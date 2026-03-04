@@ -1,0 +1,5 @@
+# CRITICAL AI RULES FOR FIDDUPAY
+
+1. **NO TERMINAL COMMANDS:** Do not run ANY terminal commands automatically. You must propose them and ask for explicit permission first.
+2. **NO BACKEND EXECUTION:** The Rust backend does not run locally (it is hosted on Railway). Do not attempt to run `cargo run`, `cargo check`, `cargo build`, or any backend environment scripts.
+3. **NO ENV ACCESS:** Do not attempt to read or access the `.env` file. If you need an environment variable, ask the user.
