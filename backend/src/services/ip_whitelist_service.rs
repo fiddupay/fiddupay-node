@@ -42,9 +42,11 @@ impl IpWhitelistService {
     }
 
     pub async fn get_whitelist(&self, merchant_id: i64) -> Result<Vec<String>, ServiceError> {
-        let records = sqlx::query!("SELECT ip_address FROM ip_whitelist WHERE merchant_id = $1", merchant_id)
+        let records_res: Result<Vec<_>, sqlx::Error> = sqlx::query!("SELECT ip_address FROM ip_whitelist WHERE merchant_id = $1", merchant_id)
             .fetch_all(&self.pool)
-            .await?;
+            .await;
+        
+        let records = records_res.map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
         Ok(records.into_iter().map(|r| r.ip_address).collect())
     }

@@ -127,12 +127,14 @@ pub async fn login_merchant(
     Json(req): Json<LoginMerchantRequest>,
 ) -> impl IntoResponse {
     // Query the database for the user
-    match sqlx::query!(
+    let merchant_query: Result<_, sqlx::Error> = sqlx::query!(
         "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role::text as role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd FROM merchants WHERE email = $1 AND is_active = true",
         req.email
     )
     .fetch_optional(&state.db_pool)
-    .await
+    .await;
+
+    match merchant_query
     {
         Ok(Some(merchant)) => {
             // VERIFY PASSWORD
@@ -231,7 +233,7 @@ pub async fn login_merchant(
                         api_key: display_key,
                         created_at: merchant.created_at.to_rfc3339(),
                         two_factor_enabled: false,
-                        daily_limit_usd: merchant.daily_limit_usd.map(|d| d.to_string()),
+                        daily_limit_usd: merchant.daily_limit_usd.map(|d: Decimal| d.to_string()),
                         daily_volume_remaining: remaining_volume.to_string(),
                         kyc_verified: merchant.kyc_verified,
                         sandbox_mode: merchant.sandbox_mode,

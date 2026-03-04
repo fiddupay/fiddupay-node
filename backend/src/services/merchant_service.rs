@@ -74,27 +74,30 @@ impl MerchantService {
             .to_string();
 
         // 2. Insert merchant with placeholder key hash (will be updated immediately)
-        // We use query_as calling the function directly to avoid compile-time checking against unmigrated DB
-        let merchant = sqlx::query_as::<_, Merchant>(
+        let merchant_res: Result<Merchant, sqlx::Error> = sqlx::query_as!(
+            Merchant,
             r#"
             INSERT INTO merchants (email, business_name, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, daily_limit_usd, role)
             VALUES ($1, $2, 'PENDING', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT')
-            RETURNING id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url
+            RETURNING id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as "role!", redirect_url
             "#,
+            &email,
+            &business_name,
+            &password_hash,
+            self.config.default_fee_percentage,
+            false, // customer_pays_fee
+            true, // is_active
+            true, // sandbox_mode
+            "managed", // settlement_mode
+            false, // kyc_verified
+            Utc::now(),
+            Utc::now(),
+            None: Option<Decimal>
         )
-        .bind(&email)
-        .bind(&business_name)
-        .bind(&password_hash)
-        .bind(self.config.default_fee_percentage)
-        .bind(false) // customer_pays_fee (default: Merchant pays fee)
-        .bind(true) // is_active
-        .bind(true) // sandbox_mode (default)
-        .bind("managed") // settlement_mode (default)
-        .bind(false) // kyc_verified (default)
-        .bind(Utc::now())
-        .bind(Utc::now())
         .fetch_one(&self.db_pool)
-        .await?;
+        .await;
+
+        let merchant = merchant_res?;
 
         // 3. Generate Real Session Key (Sandbox by default for new accounts)
         let api_key = ApiKeyGenerator::generate_session_key(merchant.id, false); // false = sandbox

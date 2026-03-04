@@ -252,13 +252,14 @@ pub async fn payment_page(
     let is_expired = (payment.status == "FAILED" || (payment.expires_at < now)) && !is_confirmed && !is_cancelled;
 
     // Check if sandbox and get redirect_url
-    let merchant_info = sqlx::query!(
+    let merchant_info_res: Result<_, sqlx::Error> = sqlx::query!(
         "SELECT sandbox_mode, redirect_url, customer_pays_fee FROM merchants WHERE id = $1", 
         payment.merchant_id
     )
     .fetch_one(&state.db_pool)
-    .await
-    .ok();
+    .await;
+    
+    let merchant_info = merchant_info_res.ok();
     
     let sandbox = merchant_info.as_ref().map(|m| m.sandbox_mode).unwrap_or(false);
     let redirect_url = merchant_info.as_ref().and_then(|m| m.redirect_url.clone());
@@ -272,13 +273,14 @@ pub async fn payment_page(
 
     // Fetch supported currencies if needed
     let supported_currencies = if is_selection_required {
-        sqlx::query!(
+        let currencies_res: Result<Vec<_>, sqlx::Error> = sqlx::query!(
              "SELECT crypto_type, network FROM merchant_wallets WHERE merchant_id = $1 AND is_active = true",
              payment.merchant_id
         )
         .fetch_all(&state.db_pool)
-        .await
-        .unwrap_or_default()
+        .await;
+
+        currencies_res.unwrap_or_default()
         .into_iter()
         .map(|r| (r.crypto_type, r.network))
         .collect()
@@ -328,7 +330,7 @@ pub async fn payment_status(
     State(state): State<AppState>,
     Path(link_id): Path<String>,
 ) -> impl IntoResponse {
-    let payment_info = if link_id.starts_with("pay_") {
+    let payment_info: Result<Option<PaymentStatusInfo>, sqlx::Error> = if link_id.starts_with("pay_") {
         sqlx::query_as!(
             PaymentStatusInfo,
             "SELECT payment_id, merchant_id, status FROM payment_transactions WHERE payment_id = $1",
@@ -394,20 +396,21 @@ pub async fn finalize_payment_selection(
     let pool = state.db_pool.clone();
     
     // 1. Look up payment by link_id
-    let payment_link = match sqlx::query!(
+    let payment_link_res: Result<_, sqlx::Error> = sqlx::query!(
         "SELECT payment_id FROM payment_links WHERE link_id = $1",
         &link_id
     )
     .fetch_optional(&pool)
-    .await
-    {
+    .await;
+
+    let payment_link = match payment_link_res {
         Ok(Some(link)) => link,
         Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment link not found"}))).into_response(),
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     };
 
     // 2. Get payment details
-    let payment_record = match sqlx::query_as!(
+    let payment_record_res: Result<_, sqlx::Error> = sqlx::query_as!(
         crate::models::payment::Payment,
         r#"
         SELECT id, payment_id, merchant_id, amount, amount_usd, crypto_type, network,
@@ -422,7 +425,9 @@ pub async fn finalize_payment_selection(
         payment_link.payment_id
     )
     .fetch_optional(&pool)
-    .await {
+    .await;
+
+    let payment_record = match payment_record_res {
         Ok(Some(p)) => p,
         Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment record not found"}))).into_response(),
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),

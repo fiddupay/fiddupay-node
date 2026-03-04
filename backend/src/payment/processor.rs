@@ -64,12 +64,14 @@ impl PaymentProcessor {
         let payment_id = self.generate_payment_id();
         
         // Get merchant to retrieve fee percentage, preference and limits
-        let merchant = sqlx::query!(
+        let merchant_res: Result<_, sqlx::Error> = sqlx::query!(
             "SELECT fee_percentage, customer_pays_fee, sandbox_mode, kyc_verified, daily_limit_usd FROM merchants WHERE id = $1",
             merchant_id
         )
         .fetch_one(&self.db_pool)
-        .await?;
+        .await;
+        
+        let merchant = merchant_res?;
         
         let fee_percentage = merchant.fee_percentage;
         let customer_pays_fee = merchant.customer_pays_fee;
@@ -310,13 +312,14 @@ impl PaymentProcessor {
 
                 if let Ok(invoice) = self.invoice_service.create_invoice(merchant_id, invoice_req).await {
                     // Link invoice to payment
-                    let _ = sqlx::query!(
+                    let update_res: Result<_, sqlx::Error> = sqlx::query!(
                         "UPDATE invoices SET payment_id = $1 WHERE invoice_id = $2",
                         payment_id,
                         invoice.invoice_id
                     )
                     .execute(&self.db_pool)
                     .await;
+                    let _ = update_res;
                 }
             }
         }

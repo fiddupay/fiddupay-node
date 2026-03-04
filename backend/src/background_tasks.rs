@@ -79,7 +79,7 @@ impl BackgroundTasks {
     /// * 4.3: Trigger webhook notifications for expired payments
     async fn check_expired_payments(&self) -> Result<(), ServiceError> {
         // Find all expired payments that are still pending or confirming
-        let expired_payments = sqlx::query!(
+        let expired_payments_res: Result<Vec<_>, sqlx::Error> = sqlx::query!(
             r#"
             SELECT id, merchant_id, payment_id, amount, crypto_type
             FROM payment_transactions
@@ -89,7 +89,9 @@ impl BackgroundTasks {
             Utc::now()
         )
         .fetch_all(&self.db_pool)
-        .await?;
+        .await;
+        
+        let expired_payments = expired_payments_res?;
 
         if expired_payments.is_empty() {
             return Ok(());
@@ -194,7 +196,7 @@ impl BackgroundTasks {
     /// * 4.7: Log all webhook delivery attempts and results
     pub async fn retry_failed_webhooks(&self) -> Result<(), ServiceError> {
         // Find all pending webhooks ready for retry
-        let pending_webhooks = sqlx::query!(
+        let pending_webhooks_res: Result<Vec<_>, sqlx::Error> = sqlx::query!(
             r#"
             SELECT id, merchant_id, payment_id, event_type, url, payload, attempts
             FROM webhook_deliveries
@@ -207,7 +209,9 @@ impl BackgroundTasks {
             Utc::now()
         )
         .fetch_all(&self.db_pool)
-        .await?;
+        .await;
+        
+        let pending_webhooks = pending_webhooks_res?;
 
         if pending_webhooks.is_empty() {
             return Ok(());

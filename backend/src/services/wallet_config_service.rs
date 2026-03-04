@@ -40,7 +40,7 @@ impl WalletConfigService {
     ) -> Result<WalletConfig, ServiceError> {
         let network = crypto_type.network().to_string();
         
-        let config = sqlx::query_as!(
+        let config_res: Result<WalletConfig, sqlx::Error> = sqlx::query_as!(
             WalletConfig,
             r#"
             INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key)
@@ -58,7 +58,9 @@ impl WalletConfigService {
             encrypted_private_key
         )
         .fetch_one(&self.db_pool)
-        .await?;
+        .await;
+
+        let config = config_res?;
 
         // Side effect: If this is a base currency or a known network-wide token like USDT,
         // we might want to ensure other tokens on the same network also get updated if they don't have an address.
@@ -303,7 +305,7 @@ impl WalletConfigService {
     pub async fn delete_wallet_config(&self, merchant_id: i64, sandbox_mode: bool, crypto_type_str: String) -> Result<(), ServiceError> {
         let crypto_type = CryptoType::from_string(&crypto_type_str)?;
         
-        sqlx::query!(
+        let delete_res: Result<_, sqlx::Error> = sqlx::query!(
             "UPDATE merchant_wallets SET address = '', is_active = false, updated_at = NOW() 
              WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
             merchant_id,
@@ -311,7 +313,8 @@ impl WalletConfigService {
             sandbox_mode
         )
         .execute(&self.db_pool)
-        .await?;
+        .await;
+        delete_res?;
 
         // Also update sister currency
         let sister_crypto = match crypto_type {

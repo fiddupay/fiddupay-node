@@ -250,15 +250,17 @@ impl P2pService {
         let mut tx = self.db_pool.begin().await?;
 
         // 1. Fetch trade to ensure it's completed and reviewer was part of it
-        let trade = sqlx::query_as!(
+        let trade_res: Result<Option<P2pTrade>, sqlx::Error> = sqlx::query_as!(
              P2pTrade,
              "SELECT id, trade_id, ad_id, maker_id, taker_id, crypto_amount, fiat_amount, price, status, payment_method_id, expires_at, paid_at, completed_at, disputed_at, cancel_reason, sandbox_mode, created_at, updated_at 
               FROM p2p_trades WHERE trade_id = $1",
              trade_id_str
         )
         .fetch_optional(&mut *tx)
-        .await?
-        .ok_or_else(|| ServiceError::NotFound("Trade not found".into()))?;
+        .await;
+        
+        let trade = trade_res?
+            .ok_or_else(|| ServiceError::NotFound("Trade not found".into()))?;
 
         if trade.status != "RELEASED" && trade.status != "COMPLETED" {
             return Err(ServiceError::ValidationError("Trade must be completed to rate".into()));
@@ -273,7 +275,7 @@ impl P2pService {
         };
 
         // 2. Insert Rating (will fail on conflict due to UNIQUE constraint)
-        let rating = sqlx::query_as!(
+        let rating_res: Result<P2pRating, sqlx::Error> = sqlx::query_as!(
             P2pRating,
             "INSERT INTO p2p_ratings (trade_id, reviewer_id, target_id, rating, comment)
              VALUES ($1, $2, $3, $4, $5)
@@ -285,7 +287,9 @@ impl P2pService {
             request.comment
         )
         .fetch_one(&mut *tx)
-        .await
+        .await;
+
+        let rating = rating_res
         .map_err(|e| {
             if let sqlx::Error::Database(db_error) = &e {
                 if db_error.code() == Some(std::borrow::Cow::Borrowed("23505")) {

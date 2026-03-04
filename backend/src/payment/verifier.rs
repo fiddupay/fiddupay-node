@@ -112,16 +112,25 @@ impl PaymentVerifier {
         }
 
         // 2. Get payment from database and verify merchant ownership
-        let payment = sqlx::query_as::<_, PaymentTransaction>(
+        let payment_res: Result<Option<crate::models::payment::Payment>, sqlx::Error> = sqlx::query_as!(
+            crate::models::payment::Payment,
             r#"
-            SELECT * FROM payment_transactions
+            SELECT id, payment_id, merchant_id, amount, amount_usd, crypto_type, 
+                   network, status, to_address, from_address, created_at, expires_at, confirmed_at, 
+                   confirmations, required_confirmations, description, metadata, 
+                   transaction_hash, webhook_url, fee_percentage, fee_amount, 
+                   fee_amount_usd, user_id, subscription_id, block_number, 
+                   partial_payments_enabled, total_paid, remaining_balance, is_non_custodial
+            FROM payment_transactions
             WHERE id = $1
-            "#
+            "#,
+            payment_id
         )
-        .bind(payment_id)
         .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or("Payment not found")?;
+        .await;
+
+        let payment = payment_res?
+            .ok_or("Payment not found")?;
 
         // 3. Verify merchant ownership
         if payment.merchant_id != merchant_id {

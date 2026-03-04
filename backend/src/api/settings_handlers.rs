@@ -66,7 +66,7 @@ pub async fn get_merchant_profile(
     // 3. Construct profile with masked API key if it's a dashboard session
     let display_key = if context.api_key == "DASHBOARD_SESSION" {
         let hash_opt = if merchant.sandbox_mode { &merchant.test_api_key_hash } else { &merchant.live_api_key_hash };
-        let is_valid = hash_opt.as_ref().map(|h| h != "PENDING" && !h.is_empty()).unwrap_or(false);
+        let is_valid = hash_opt.as_ref().map(|h: &String| h != "PENDING" && !h.is_empty()).unwrap_or(false);
         
         if !is_valid {
             "Not generated".to_string()
@@ -88,7 +88,7 @@ pub async fn get_merchant_profile(
         "sandbox_mode": merchant.sandbox_mode,
         "settlement_mode": merchant.settlement_mode,
         "kyc_verified": merchant.kyc_verified,
-        "daily_limit_usd": merchant.daily_limit_usd.map(|d| d.to_string()),
+        "daily_limit_usd": merchant.daily_limit_usd.map(|d: Decimal| d.to_string()),
         "created_at": merchant.created_at.to_rfc3339(),
         "two_factor_enabled": false
     });
@@ -114,7 +114,7 @@ pub async fn get_merchant_readiness(
     let currency_service = crate::services::currency_service::CurrencyService::new(state.db_pool.clone());
     
     // 1. Fetch data
-    let merchant_res = sqlx::query!("SELECT sandbox_mode, settlement_mode, kyc_verified FROM merchants WHERE id = $1", merchant_id).fetch_one(&state.db_pool).await;
+    let merchant_res: Result<_, sqlx::Error> = sqlx::query!("SELECT sandbox_mode, settlement_mode, kyc_verified FROM merchants WHERE id = $1", merchant_id).fetch_one(&state.db_pool).await;
     
     let merchant = match merchant_res {
         Ok(m) => m,
@@ -169,10 +169,11 @@ pub async fn get_merchant_readiness(
     }
 
     // 4. Security status check
-    let security_alerts: i64 = sqlx::query_scalar!("SELECT COUNT(*) as \"count!\" FROM security_alerts WHERE merchant_id = $1 AND acknowledged = FALSE", merchant_id)
+    let security_alerts_res: Result<i64, sqlx::Error> = sqlx::query_scalar!("SELECT COUNT(*) as \"count!\" FROM security_alerts WHERE merchant_id = $1 AND acknowledged = FALSE", merchant_id)
         .fetch_one(&state.db_pool)
-        .await
-        .unwrap_or(0);
+        .await;
+
+    let security_alerts = security_alerts_res.unwrap_or(0);
 
     if security_alerts > 0 {
         issues.push(format!("{} active security alerts require attention", security_alerts));
@@ -491,14 +492,15 @@ pub async fn get_fee_setting(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    let merchant = sqlx::query_as::<_, crate::models::merchant::Merchant>(
-        "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
+    let merchant_res: Result<Option<crate::models::merchant::Merchant>, sqlx::Error> = sqlx::query_as!(
+        crate::models::merchant::Merchant,
+        "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1",
+        context.merchant_id
     )
-    .bind(context.merchant_id)
     .fetch_optional(&state.db_pool)
     .await;
 
-    match merchant {
+    match merchant_res {
         Ok(Some(m)) => Json(GetFeeSettingResponse {
             fee_percentage: m.fee_percentage,
             customer_pays_fee: m.customer_pays_fee,

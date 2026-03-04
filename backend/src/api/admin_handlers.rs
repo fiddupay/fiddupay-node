@@ -73,12 +73,14 @@ pub async fn admin_login(
     Json(login_data): Json<AdminLoginRequest>,
 ) -> impl IntoResponse {
     // Authenticate against admin_users table
-    let admin_user = match sqlx::query!(
+    let admin_user_res: Result<_, sqlx::Error> = sqlx::query!(
         "SELECT id, username, password_hash, role, is_active FROM admin_users WHERE username = $1",
         login_data.username
     )
     .fetch_optional(&state.db_pool)
-    .await {
+    .await;
+
+    let admin_user = match admin_user_res {
         Ok(Some(user)) => user,
         Ok(None) => return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid credentials"}))).into_response(),
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
@@ -697,7 +699,7 @@ pub async fn get_all_wallets(
     let wallet_type = query.wallet_type.as_deref().unwrap_or("all");
     let include_balances = query.include_balances.unwrap_or(true);
 
-    let mut hot_wallets = json!([
+    let hot_wallets = json!([
         {
             "crypto_type": "ETH",
             "address": "0x1234...5678",
@@ -712,7 +714,7 @@ pub async fn get_all_wallets(
         }
     ]);
 
-    let mut cold_wallets = json!([
+    let cold_wallets = json!([
         {
             "crypto_type": "ETH",
             "address": "0xABCD...EFGH",

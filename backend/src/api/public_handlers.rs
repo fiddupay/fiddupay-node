@@ -234,12 +234,14 @@ pub async fn public_cancel_payment(
     Path(payment_id): axum::extract::Path<String>,
 ) -> impl IntoResponse {
     // 1. Fetch payment
-    let payment = match sqlx::query!(
+    let payment_res: Result<_, sqlx::Error> = sqlx::query!(
         "SELECT id, merchant_id, status::text as status FROM payment_transactions WHERE payment_id = $1",
         payment_id
     )
     .fetch_optional(&state.db_pool)
-    .await {
+    .await;
+
+    let payment = match payment_res {
         Ok(Some(p)) => p,
         Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
@@ -256,17 +258,19 @@ pub async fn public_cancel_payment(
     }
 
     // 3. Update status to CANCELLED
-    if let Err(e) = sqlx::query!(
+    let update_res: Result<_, sqlx::Error> = sqlx::query!(
         "UPDATE payment_transactions SET status = 'CANCELLED' WHERE id = $1",
         payment.id
     )
     .execute(&state.db_pool)
-    .await {
+    .await;
+
+    if let Err(e) = update_res {
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
     }
 
     // 4. Get redirect URL
-    let merchant_settings = sqlx::query!(
+    let merchant_settings: Result<_, sqlx::Error> = sqlx::query!(
         "SELECT redirect_url FROM merchants WHERE id = $1",
         payment.merchant_id
     )
@@ -278,7 +282,7 @@ pub async fn public_cancel_payment(
     // 5. Return success with redirect info
     (StatusCode::OK, Json(json!({
         "status": "CANCELLED",
-        "redirect_url": redirect_url.map(|url| {
+        "redirect_url": redirect_url.map(|url: String| {
             if url.contains('?') {
                 format!("{}&status=cancelled&payment_id={}", url, payment_id)
             } else {
