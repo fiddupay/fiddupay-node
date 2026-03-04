@@ -13,6 +13,7 @@ use serde::Deserialize;
 use serde_json::json;
 use html_escape::encode_text;
 use rust_decimal::Decimal;
+use sqlx::Row;
 
 // ============================================================================
 // Payment CRUD
@@ -177,14 +178,14 @@ pub async fn payment_page(
     use axum::response::Html;
     
     // 1. Try to look up by link_id in payment_links (vanity/shareable links)
-    let (internal_id, public_id) = match sqlx::query!(
-        "SELECT payment_id FROM payment_links WHERE link_id = $1",
-        &link_id
+    let (internal_id, public_id) = match sqlx::query(
+        "SELECT payment_id FROM payment_links WHERE link_id = $1"
     )
+    .bind(&link_id)
     .fetch_optional(&state.db_pool)
     .await
     {
-        Ok(Some(link)) => (Some(link.payment_id), None),
+        Ok(Some(link)) => (Some(link.get::<i64, _>("payment_id")), None),
         Ok(None) => {
             if link_id.starts_with("pay_") {
                 (None, Some(link_id.clone()))
@@ -196,17 +197,17 @@ pub async fn payment_page(
     };
 
     // 3. Get payment details
-    let payment_res = sqlx::query!(
+    let payment_res = sqlx::query(
         r#"
         SELECT merchant_id, payment_id, status, amount, amount_usd, crypto_type, network, 
                to_address, fee_amount_usd, expires_at, created_at, confirmed_at, 
                transaction_hash, partial_payments_enabled, total_paid, remaining_balance
         FROM payment_transactions 
         WHERE id = $1 OR payment_id = $2
-        "#,
-        internal_id,
-        public_id
+        "#
     )
+    .bind(internal_id)
+    .bind(&public_id)
     .fetch_optional(&state.db_pool)
     .await;
 
@@ -216,12 +217,24 @@ pub async fn payment_page(
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("Error: {}", e))).into_response(),
     };
 
+    let p_merchant_id: i64 = payment.get("merchant_id");
+    let p_payment_id: String = payment.get("payment_id");
+    let p_status: String = payment.get("status");
+    let p_amount: Option<Decimal> = payment.get("amount");
+    let p_amount_usd: Decimal = payment.get("amount_usd");
+    let p_crypto_type: Option<String> = payment.get("crypto_type");
+    let p_network: Option<String> = payment.get("network");
+    let p_to_address: Option<String> = payment.get("to_address");
+    let p_fee_amount_usd: Decimal = payment.get("fee_amount_usd");
+    let p_expires_at: chrono::DateTime<chrono::Utc> = payment.get("expires_at");
+    let p_transaction_hash: Option<String> = payment.get("transaction_hash");
+
     // Generate QR code for payment (only if selection is finished)
-    let qr_code = if let (Some(ct_str), Some(addr)) = (&payment.crypto_type, &payment.to_address) {
+    let qr_code = if let (Some(ct_str), Some(addr)) = (&p_crypto_type, &p_to_address) {
         let ct = CryptoType::from_string(ct_str).unwrap_or(CryptoType::Sol);
         let prefix = ct.uri_scheme();
         
-        let qr_data = if let Some(amt) = payment.amount {
+        let qr_data = if let Some(amt) = p_amount {
             format!("{}:{}?amount={}", prefix, addr, amt)
         } else {
             format!("{}:{}", prefix, addr)
@@ -237,52 +250,52 @@ pub async fn payment_page(
 
     // Calculate time remaining
     let now = chrono::Utc::now();
-    let time_remaining = if payment.expires_at > now {
-        let duration = payment.expires_at - now;
+    let time_remaining = if p_expires_at > now {
+        let duration = p_expires_at - now;
         format!("{}m {}s", duration.num_minutes(), duration.num_seconds() % 60)
     } else {
         "Expired".to_string()
     };
 
     // Determine status flags
-    let is_selection_required = payment.status == "SELECTION_REQUIRED";
-    let is_pending = payment.status == "PENDING" || payment.status == "CONFIRMING";
-    let is_confirmed = payment.status == "CONFIRMED";
-    let is_cancelled = payment.status == "CANCELLED";
-    let is_expired = (payment.status == "FAILED" || (payment.expires_at < now)) && !is_confirmed && !is_cancelled;
+    let is_selection_required = p_status == "SELECTION_REQUIRED";
+    let is_pending = p_status == "PENDING" || p_status == "CONFIRMING";
+    let is_confirmed = p_status == "CONFIRMED";
+    let is_cancelled = p_status == "CANCELLED";
+    let is_expired = (p_status == "FAILED" || (p_expires_at < now)) && !is_confirmed && !is_cancelled;
 
     // Check if sandbox and get redirect_url
-    let merchant_info_res: Result<_, sqlx::Error> = sqlx::query!(
-        "SELECT sandbox_mode, redirect_url, customer_pays_fee FROM merchants WHERE id = $1", 
-        payment.merchant_id
+    let merchant_info_res = sqlx::query(
+        "SELECT sandbox_mode, redirect_url, customer_pays_fee FROM merchants WHERE id = $1"
     )
-    .fetch_one(&state.db_pool)
+    .bind(p_merchant_id)
+    .fetch_optional(&state.db_pool)
     .await;
     
-    let merchant_info = merchant_info_res.ok();
+    let merchant_info = merchant_info_res.ok().flatten();
     
-    let sandbox = merchant_info.as_ref().map(|m| m.sandbox_mode).unwrap_or(false);
-    let redirect_url = merchant_info.as_ref().and_then(|m| m.redirect_url.clone());
-    let customer_pays_fee = merchant_info.as_ref().map(|m| m.customer_pays_fee).unwrap_or(true);
+    let sandbox = merchant_info.as_ref().map(|m| m.get::<bool, _>("sandbox_mode")).unwrap_or(false);
+    let redirect_url = merchant_info.as_ref().and_then(|m| m.get::<Option<String>, _>("redirect_url"));
+    let customer_pays_fee = merchant_info.as_ref().map(|m| m.get::<bool, _>("customer_pays_fee")).unwrap_or(true);
 
     // Smart Verification: Trigger address scan if pending
     if is_pending {
         tracing::info!("Triggering smart verification for payment {}", link_id);
-        let _ = state.payment_service.verify_payment_by_address(&payment.payment_id, payment.merchant_id).await;
+        let _ = state.payment_service.verify_payment_by_address(&p_payment_id, p_merchant_id).await;
     }
 
     // Fetch supported currencies if needed
-    let supported_currencies = if is_selection_required {
-        let currencies_res: Result<Vec<_>, sqlx::Error> = sqlx::query!(
-             "SELECT crypto_type, network FROM merchant_wallets WHERE merchant_id = $1 AND is_active = true",
-             payment.merchant_id
+    let supported_currencies: Vec<(String, String)> = if is_selection_required {
+        let currencies_res = sqlx::query(
+             "SELECT crypto_type, network FROM merchant_wallets WHERE merchant_id = $1 AND is_active = true"
         )
+        .bind(p_merchant_id)
         .fetch_all(&state.db_pool)
         .await;
 
         currencies_res.unwrap_or_default()
         .into_iter()
-        .map(|r| (r.crypto_type, r.network))
+        .map(|r| (r.get::<String, _>("crypto_type"), r.get::<String, _>("network")))
         .collect()
     } else {
         vec![]
@@ -290,17 +303,17 @@ pub async fn payment_page(
 
     // Render logic
     let html = render_payment_page(PaymentPageData {
-        payment_id: payment.payment_id,
-        amount: payment.amount.unwrap_or_default().to_string(),
-        amount_usd: payment.amount_usd.to_string(),
-        crypto_type: payment.crypto_type.unwrap_or_default(),
-        network: payment.network.unwrap_or_default(),
-        deposit_address: payment.to_address.unwrap_or_default(),
-        fee_amount_usd: payment.fee_amount_usd.to_string(),
+        payment_id: p_payment_id,
+        amount: p_amount.unwrap_or_default().to_string(),
+        amount_usd: p_amount_usd.to_string(),
+        crypto_type: p_crypto_type.unwrap_or_default(),
+        network: p_network.unwrap_or_default(),
+        deposit_address: p_to_address.unwrap_or_default(),
+        fee_amount_usd: p_fee_amount_usd.to_string(),
         qr_code,
         time_remaining,
-        expires_at: payment.expires_at.to_rfc3339(),
-        transaction_hash: payment.transaction_hash,
+        expires_at: p_expires_at.to_rfc3339(),
+        transaction_hash: p_transaction_hash,
         is_pending,
         is_confirmed,
         is_expired,
@@ -331,24 +344,22 @@ pub async fn payment_status(
     Path(link_id): Path<String>,
 ) -> impl IntoResponse {
     let payment_info: Result<Option<PaymentStatusInfo>, sqlx::Error> = if link_id.starts_with("pay_") {
-        sqlx::query_as!(
-            PaymentStatusInfo,
-            "SELECT payment_id, merchant_id, status FROM payment_transactions WHERE payment_id = $1",
-            link_id
+        sqlx::query_as::<_, PaymentStatusInfo>(
+            "SELECT payment_id, merchant_id, status FROM payment_transactions WHERE payment_id = $1"
         )
+        .bind(&link_id)
         .fetch_optional(&state.db_pool)
         .await
     } else {
-        sqlx::query_as!(
-            PaymentStatusInfo,
+        sqlx::query_as::<_, PaymentStatusInfo>(
             r#"
             SELECT pt.payment_id, pt.merchant_id, pt.status 
             FROM payment_transactions pt
             JOIN payment_links pl ON pl.payment_id = pt.id
             WHERE pl.link_id = $1
-            "#,
-            link_id
+            "#
         )
+        .bind(&link_id)
         .fetch_optional(&state.db_pool)
         .await
     };
@@ -396,10 +407,10 @@ pub async fn finalize_payment_selection(
     let pool = state.db_pool.clone();
     
     // 1. Look up payment by link_id
-    let payment_link_res: Result<_, sqlx::Error> = sqlx::query!(
-        "SELECT payment_id FROM payment_links WHERE link_id = $1",
-        &link_id
+    let payment_link_res = sqlx::query(
+        "SELECT payment_id FROM payment_links WHERE link_id = $1"
     )
+    .bind(&link_id)
     .fetch_optional(&pool)
     .await;
 
@@ -409,9 +420,10 @@ pub async fn finalize_payment_selection(
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     };
 
+    let pl_payment_id: i64 = payment_link.get("payment_id");
+
     // 2. Get payment details
-    let payment_record_res: Result<_, sqlx::Error> = sqlx::query_as!(
-        crate::models::payment::Payment,
+    let payment_record_res = sqlx::query_as::<_, crate::models::payment::Payment>(
         r#"
         SELECT id, payment_id, merchant_id, amount, amount_usd, crypto_type, network,
                status, to_address, from_address, created_at, expires_at, confirmed_at,
@@ -421,9 +433,9 @@ pub async fn finalize_payment_selection(
                total_paid, remaining_balance, is_non_custodial
         FROM payment_transactions 
         WHERE id = $1
-        "#,
-        payment_link.payment_id
+        "#
     )
+    .bind(pl_payment_id)
     .fetch_optional(&pool)
     .await;
 
@@ -459,19 +471,19 @@ pub async fn finalize_payment_selection(
     let network = crypto_type.network();
 
     // 4. Update payment record
-    if let Err(e) = sqlx::query!(
+    if let Err(e) = sqlx::query(
         r#"
         UPDATE payment_transactions 
         SET crypto_type = $1, amount = $2, to_address = $3, network = $4, fee_amount = $5, status = 'PENDING'
         WHERE id = $6
-        "#,
-        crypto_type.to_string(),
-        amount_crypto,
-        to_address,
-        network,
-        fee_amount_crypto,
-        payment_record.id
+        "#
     )
+    .bind(crypto_type.to_string())
+    .bind(amount_crypto)
+    .bind(&to_address)
+    .bind(network)
+    .bind(fee_amount_crypto)
+    .bind(payment_record.id)
     .execute(&pool)
     .await {
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();

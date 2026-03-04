@@ -164,21 +164,22 @@ async fn save_contact_message(
     subject: &str,
     message: &str,
 ) -> Result<i64, sqlx::Error> {
-    let result = sqlx::query!(
+    use sqlx::Row;
+    let result = sqlx::query(
         r#"
         INSERT INTO contact_messages (name, email, subject, message, created_at, status)
         VALUES ($1, $2, $3, $4, NOW(), 'new')
         RETURNING id
-        "#,
-        name,
-        email,
-        subject,
-        message
+        "#
     )
+    .bind(name)
+    .bind(email)
+    .bind(subject)
+    .bind(message)
     .fetch_one(pool)
     .await?;
 
-    Ok(result.id)
+    Ok(result.get("id"))
 }
 
 // ============================================================================
@@ -234,10 +235,10 @@ pub async fn public_cancel_payment(
     Path(payment_id): axum::extract::Path<String>,
 ) -> impl IntoResponse {
     // 1. Fetch payment
-    let payment_res: Result<_, sqlx::Error> = sqlx::query!(
-        "SELECT id, merchant_id, status::text as status FROM payment_transactions WHERE payment_id = $1",
-        payment_id
+    let payment_res = sqlx::query(
+        "SELECT id, merchant_id, status::text as status FROM payment_transactions WHERE payment_id = $1"
     )
+    .bind(&payment_id)
     .fetch_optional(&state.db_pool)
     .await;
 
@@ -247,8 +248,13 @@ pub async fn public_cancel_payment(
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     };
 
+    use sqlx::Row;
+    let p_id: i64 = payment.get("id");
+    let p_merchant_id: i64 = payment.get("merchant_id");
+
     // 2. Check status
-    let status = payment.status.unwrap_or_default();
+    let status: Option<String> = payment.try_get("status").ok();
+    let status = status.unwrap_or_default();
     
     if status != "PENDING" && status != "SELECTION_REQUIRED" {
          return (StatusCode::BAD_REQUEST, Json(json!({
@@ -258,10 +264,10 @@ pub async fn public_cancel_payment(
     }
 
     // 3. Update status to CANCELLED
-    let update_res: Result<_, sqlx::Error> = sqlx::query!(
-        "UPDATE payment_transactions SET status = 'CANCELLED' WHERE id = $1",
-        payment.id
+    let update_res = sqlx::query(
+        "UPDATE payment_transactions SET status = 'CANCELLED' WHERE id = $1"
     )
+    .bind(p_id)
     .execute(&state.db_pool)
     .await;
 
@@ -270,14 +276,14 @@ pub async fn public_cancel_payment(
     }
 
     // 4. Get redirect URL
-    let merchant_settings: Result<_, sqlx::Error> = sqlx::query!(
-        "SELECT redirect_url FROM merchants WHERE id = $1",
-        payment.merchant_id
+    let merchant_settings = sqlx::query(
+        "SELECT redirect_url FROM merchants WHERE id = $1"
     )
-    .fetch_one(&state.db_pool)
+    .bind(p_merchant_id)
+    .fetch_optional(&state.db_pool)
     .await;
 
-    let redirect_url = merchant_settings.ok().and_then(|m| m.redirect_url);
+    let redirect_url: Option<String> = merchant_settings.ok().flatten().and_then(|m| m.get("redirect_url"));
 
     // 5. Return success with redirect info
     (StatusCode::OK, Json(json!({

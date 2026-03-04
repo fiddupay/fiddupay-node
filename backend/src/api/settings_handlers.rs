@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use validator::Validate;
 use rust_decimal::Decimal;
+use sqlx::Row;
 
 use crate::middleware::validation::validate_webhook_url;
 use crate::models::merchant::Merchant;
@@ -28,16 +29,16 @@ pub async fn get_merchant_profile(
     let merchant_id = context.merchant_id;
 
     // 1. Fetch BASIC merchant info
-    let merchant = match sqlx::query!(
+    let merchant = match sqlx::query(
         r#"
         SELECT id, business_name, email, sandbox_mode, settlement_mode, 
                kyc_verified, daily_limit_usd, created_at, redirect_url,
                test_api_key_hash, live_api_key_hash
         FROM merchants
         WHERE id = $1
-        "#,
-        merchant_id
+        "#
     )
+    .bind(merchant_id)
     .fetch_optional(&state.db_pool)
     .await {
         Ok(Some(m)) => m,
@@ -49,13 +50,13 @@ pub async fn get_merchant_profile(
     };
 
     // 2. Fetch Webhook config separately
-    let (webhook_url, webhook_format) = match sqlx::query!(
-        r#"SELECT url, payload_format FROM webhook_configs WHERE merchant_id = $1 AND is_active = true"#,
-        merchant_id
+    let (webhook_url, webhook_format) = match sqlx::query(
+        r#"SELECT url, payload_format FROM webhook_configs WHERE merchant_id = $1 AND is_active = true"#
     )
+    .bind(merchant_id)
     .fetch_optional(&state.db_pool)
     .await {
-        Ok(Some(cfg)) => (Some(cfg.url), Some(cfg.payload_format)),
+        Ok(Some(cfg)) => (Some(cfg.get::<String, _>("url")), Some(cfg.get::<String, _>("payload_format"))),
         Ok(None) => (None, None),
         Err(e) => {
             eprintln!("Profile DB Error (Webhook Fetch): {:?}", e);
@@ -64,40 +65,52 @@ pub async fn get_merchant_profile(
     };
 
     // 3. Construct profile with masked API key if it's a dashboard session
+    let m_sandbox_mode: bool = merchant.get("sandbox_mode");
+    let m_test_api_key_hash: Option<String> = merchant.get("test_api_key_hash");
+    let m_live_api_key_hash: Option<String> = merchant.get("live_api_key_hash");
+    let m_id: i64 = merchant.get("id");
+    let m_business_name: String = merchant.get("business_name");
+    let m_email: String = merchant.get("email");
+    let m_settlement_mode: String = merchant.get("settlement_mode");
+    let m_kyc_verified: bool = merchant.get("kyc_verified");
+    let m_daily_limit_usd: Option<Decimal> = merchant.get("daily_limit_usd");
+    let m_created_at: chrono::DateTime<chrono::Utc> = merchant.get("created_at");
+    let m_redirect_url: Option<String> = merchant.get("redirect_url");
+
     let display_key = if context.api_key == "DASHBOARD_SESSION" {
-        let hash_opt = if merchant.sandbox_mode { &merchant.test_api_key_hash } else { &merchant.live_api_key_hash };
+        let hash_opt = if m_sandbox_mode { &m_test_api_key_hash } else { &m_live_api_key_hash };
         let is_valid = hash_opt.as_ref().map(|h: &String| h != "PENDING" && !h.is_empty()).unwrap_or(false);
         
         if !is_valid {
             "Not generated".to_string()
         } else {
-            format!("sk_{}_********", if merchant.sandbox_mode { "test" } else { "live" })
+            format!("sk_{}_********", if m_sandbox_mode { "test" } else { "live" })
         }
     } else {
         context.api_key.clone()
     };
 
     let mut profile = json!({
-        "id": merchant.id,
-        "business_name": merchant.business_name,
-        "email": merchant.email,
+        "id": m_id,
+        "business_name": m_business_name,
+        "email": m_email,
         "api_key": display_key,
-        "redirect_url": merchant.redirect_url,
+        "redirect_url": m_redirect_url,
         "webhook_url": webhook_url,
         "webhook_format": webhook_format,
-        "sandbox_mode": merchant.sandbox_mode,
-        "settlement_mode": merchant.settlement_mode,
-        "kyc_verified": merchant.kyc_verified,
-        "daily_limit_usd": merchant.daily_limit_usd.map(|d: Decimal| d.to_string()),
-        "created_at": merchant.created_at.to_rfc3339(),
+        "sandbox_mode": m_sandbox_mode,
+        "settlement_mode": m_settlement_mode,
+        "kyc_verified": m_kyc_verified,
+        "daily_limit_usd": m_daily_limit_usd.map(|d: Decimal| d.to_string()),
+        "created_at": m_created_at.to_rfc3339(),
         "two_factor_enabled": false
     });
     
     // 4. Calculate daily volume remaining
     let remaining = state.merchant_service.get_daily_volume_remaining(
-        merchant.id,
-        merchant.kyc_verified,
-        merchant.daily_limit_usd
+        m_id,
+        m_kyc_verified,
+        m_daily_limit_usd
     ).await.unwrap_or(Decimal::ZERO);
     
     profile["daily_volume_remaining"] = json!(remaining.to_string());
@@ -114,17 +127,24 @@ pub async fn get_merchant_readiness(
     let currency_service = crate::services::currency_service::CurrencyService::new(state.db_pool.clone());
     
     // 1. Fetch data
-    let merchant_res: Result<_, sqlx::Error> = sqlx::query!("SELECT sandbox_mode, settlement_mode, kyc_verified FROM merchants WHERE id = $1", merchant_id).fetch_one(&state.db_pool).await;
+    let merchant_res = sqlx::query("SELECT sandbox_mode, settlement_mode, kyc_verified FROM merchants WHERE id = $1")
+        .bind(merchant_id)
+        .fetch_one(&state.db_pool)
+        .await;
     
     let merchant = match merchant_res {
         Ok(m) => m,
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     };
 
-    let wallets_res = if merchant.settlement_mode == "forwarding" {
-        wallet_service.get_forwarding_configs(merchant_id, merchant.sandbox_mode).await
+    let m_sandbox_mode: bool = merchant.get("sandbox_mode");
+    let m_settlement_mode: String = merchant.get("settlement_mode");
+    let m_kyc_verified: bool = merchant.get("kyc_verified");
+
+    let wallets_res = if m_settlement_mode == "forwarding" {
+        wallet_service.get_forwarding_configs(merchant_id, m_sandbox_mode).await
     } else {
-        wallet_service.get_wallet_configs(merchant_id, merchant.sandbox_mode).await
+        wallet_service.get_wallet_configs(merchant_id, m_sandbox_mode).await
     };
     
     let currencies_res = currency_service.get_merchant_enabled_currencies(merchant_id).await;
@@ -169,7 +189,8 @@ pub async fn get_merchant_readiness(
     }
 
     // 4. Security status check
-    let security_alerts_res: Result<i64, sqlx::Error> = sqlx::query_scalar!("SELECT COUNT(*) as \"count!\" FROM security_alerts WHERE merchant_id = $1 AND acknowledged = FALSE", merchant_id)
+    let security_alerts_res: Result<i64, sqlx::Error> = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM security_alerts WHERE merchant_id = $1 AND acknowledged = FALSE")
+        .bind(merchant_id)
         .fetch_one(&state.db_pool)
         .await;
 
@@ -182,9 +203,9 @@ pub async fn get_merchant_readiness(
     // 5. Build final response
     let response = json!({
         "is_ready": is_ready && security_alerts == 0,
-        "environment": if merchant.sandbox_mode { "sandbox" } else { "live" },
-        "settlement_mode": merchant.settlement_mode,
-        "kyc_verified": merchant.kyc_verified,
+        "environment": if m_sandbox_mode { "sandbox" } else { "live" },
+        "settlement_mode": m_settlement_mode,
+        "kyc_verified": m_kyc_verified,
         "network_coverage": network_status,
         "security": {
             "active_alerts": security_alerts
@@ -371,11 +392,11 @@ pub async fn update_merchant_settings(
     // 5. Rotate Webhook Secret if requested
     if req.rotate_webhook_secret.unwrap_or(false) {
         let new_secret = hex::encode(rand::random::<[u8; 32]>());
-        if let Err(e) = sqlx::query!(
-            "UPDATE webhook_configs SET signing_secret = $1, updated_at = NOW() WHERE merchant_id = $2",
-            new_secret,
-            context.merchant_id
+        if let Err(e) = sqlx::query(
+            "UPDATE webhook_configs SET signing_secret = $1, updated_at = NOW() WHERE merchant_id = $2"
         )
+        .bind(&new_secret)
+        .bind(context.merchant_id)
         .execute(&state.db_pool)
         .await {
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
@@ -397,10 +418,10 @@ pub async fn get_merchant_settings(
     let merchant_id = context.merchant_id;
     
     // 1. Get core merchant settings
-    let merchant = match sqlx::query!(
-        "SELECT settlement_mode, customer_pays_fee, sandbox_mode, redirect_url FROM merchants WHERE id = $1",
-        merchant_id
+    let merchant = match sqlx::query(
+        "SELECT settlement_mode, customer_pays_fee, sandbox_mode, redirect_url FROM merchants WHERE id = $1"
     )
+    .bind(merchant_id)
     .fetch_one(&state.db_pool)
     .await {
         Ok(m) => m,
@@ -408,31 +429,36 @@ pub async fn get_merchant_settings(
     };
 
     // 2. Get webhook config
-    let webhook_config = sqlx::query!(
-        "SELECT url, payload_format, signing_secret FROM webhook_configs WHERE merchant_id = $1 AND is_active = true",
-        merchant_id
+    let webhook_config = sqlx::query(
+        "SELECT url, payload_format, signing_secret FROM webhook_configs WHERE merchant_id = $1 AND is_active = true"
     )
+    .bind(merchant_id)
     .fetch_optional(&state.db_pool)
     .await
     .unwrap_or(None);
 
     // 3. Get IP whitelist
-    let ip_whitelist = sqlx::query_scalar!(
-        "SELECT ip_address FROM ip_whitelist WHERE merchant_id = $1",
-        merchant_id
+    let ip_whitelist: Vec<String> = sqlx::query_scalar::<_, String>(
+        "SELECT ip_address FROM ip_whitelist WHERE merchant_id = $1"
     )
+    .bind(merchant_id)
     .fetch_all(&state.db_pool)
     .await
     .unwrap_or_default();
 
+    let m_settlement_mode: String = merchant.get("settlement_mode");
+    let m_customer_pays_fee: bool = merchant.get("customer_pays_fee");
+    let m_sandbox_mode: bool = merchant.get("sandbox_mode");
+    let m_redirect_url: Option<String> = merchant.get("redirect_url");
+
     (StatusCode::OK, Json(json!({
-        "webhook_url": webhook_config.as_ref().map(|c| &c.url),
-        "webhook_format": webhook_config.as_ref().map(|c| &c.payload_format),
-        "webhook_signing_secret": webhook_config.as_ref().map(|c| &c.signing_secret),
-        "settlement_mode": merchant.settlement_mode,
-        "customer_pays_fee": merchant.customer_pays_fee,
-        "sandbox_mode": merchant.sandbox_mode,
-        "redirect_url": merchant.redirect_url,
+        "webhook_url": webhook_config.as_ref().map(|c| c.get::<String, _>("url")),
+        "webhook_format": webhook_config.as_ref().map(|c| c.get::<String, _>("payload_format")),
+        "webhook_signing_secret": webhook_config.as_ref().map(|c| c.get::<String, _>("signing_secret")),
+        "settlement_mode": m_settlement_mode,
+        "customer_pays_fee": m_customer_pays_fee,
+        "sandbox_mode": m_sandbox_mode,
+        "redirect_url": m_redirect_url,
         "ip_whitelist": ip_whitelist
     }))).into_response()
 }
@@ -492,11 +518,10 @@ pub async fn get_fee_setting(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    let merchant_res: Result<Option<crate::models::merchant::Merchant>, sqlx::Error> = sqlx::query_as!(
-        crate::models::merchant::Merchant,
-        "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1",
-        context.merchant_id
+    let merchant_res = sqlx::query_as::<_, crate::models::merchant::Merchant>(
+        "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
     )
+    .bind(context.merchant_id)
     .fetch_optional(&state.db_pool)
     .await;
 
