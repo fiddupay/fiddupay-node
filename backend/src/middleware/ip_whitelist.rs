@@ -29,13 +29,14 @@ pub async fn ip_whitelist_middleware(
     
     if let Some(context) = merchant_context {
         // Get IP whitelist for merchant
-        let whitelist = match sqlx::query!(
+        let whitelist_res: Result<Vec<_>, sqlx::Error> = sqlx::query!(
             "SELECT ip_address FROM ip_whitelist WHERE merchant_id = $1 AND is_active = true",
             context.merchant_id
         )
         .fetch_all(&state.db_pool)
-        .await
-        {
+        .await;
+
+        let whitelist = match whitelist_res {
             Ok(ips) => ips,
             Err(e) => {
                 tracing::error!("Failed to fetch IP whitelist: {}", e);

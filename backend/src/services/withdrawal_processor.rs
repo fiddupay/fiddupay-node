@@ -18,7 +18,7 @@ impl WithdrawalProcessor {
 
     pub async fn process_withdrawal(&self, withdrawal_id: &str) -> Result<(), ServiceError> {
         // 1. Fetch the withdrawal details
-        let withdrawal = sqlx::query!(
+        let withdrawal_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
             r#"
             SELECT id, withdrawal_id, merchant_id, crypto_type, amount, destination_address, status, sandbox_mode
             FROM withdrawals 
@@ -27,15 +27,16 @@ impl WithdrawalProcessor {
             withdrawal_id
         )
         .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or_else(|| ServiceError::NotFound("Withdrawal not found".to_string()))?;
+        .await;
+
+        let withdrawal = withdrawal_res?.ok_or_else(|| ServiceError::NotFound("Withdrawal not found".to_string()))?;
 
         if withdrawal.status != "PENDING" {
             return Err(ServiceError::ValidationError("Withdrawal already processed".to_string()));
         }
 
         // 2. Fetch the merchant's managed wallet for this crypto type
-        let wallet = sqlx::query!(
+        let wallet_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
             r#"
             SELECT encrypted_private_key 
             FROM merchant_wallets 
@@ -46,8 +47,9 @@ impl WithdrawalProcessor {
             withdrawal.sandbox_mode
         )
         .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or_else(|| ServiceError::NotFound("Merchant wallet not found or not configured".to_string()))?;
+        .await;
+
+        let wallet = wallet_res?.ok_or_else(|| ServiceError::NotFound("Merchant wallet not found or not configured".to_string()))?;
 
         let encrypted_key = wallet.encrypted_private_key
             .ok_or_else(|| ServiceError::ValidationError("Managed wallet has no private key available".to_string()))?;

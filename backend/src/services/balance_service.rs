@@ -48,7 +48,7 @@ impl BalanceService {
         crypto_type: CryptoType,
         sandbox_mode: bool,
     ) -> Result<Balance, ServiceError> {
-        let balance_record = sqlx::query!(
+        let balance_record_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
             r#"
             SELECT 
                 total_balance,
@@ -63,7 +63,9 @@ impl BalanceService {
             sandbox_mode
         )
         .fetch_optional(&self.db_pool)
-        .await?;
+        .await;
+
+        let balance_record = balance_record_res?;
 
         let total = balance_record.as_ref().and_then(|r| r.total_balance).unwrap_or(Decimal::ZERO);
         let available = balance_record.as_ref().map_or(Decimal::ZERO, |r| r.available_balance);

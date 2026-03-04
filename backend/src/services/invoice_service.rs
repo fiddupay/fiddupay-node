@@ -73,15 +73,16 @@ impl InvoiceService {
     }
 
     pub async fn get_invoice(&self, merchant_id: i64, invoice_id: &str) -> Result<Invoice, ServiceError> {
-        let record = sqlx::query!(
+        let record_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
             r#"SELECT invoice_id, merchant_id, customer_email, customer_name, status, items, 
                       subtotal, tax, total, payment_id, due_date, notes, created_at, paid_at
                FROM invoices WHERE invoice_id = $1 AND merchant_id = $2"#,
             invoice_id, merchant_id
         )
         .fetch_optional(&self.pool)
-        .await?
-        .ok_or_else(|| ServiceError::NotFound("Invoice not found".to_string()))?;
+        .await;
+
+        let record = record_res?.ok_or_else(|| ServiceError::NotFound("Invoice not found".to_string()))?;
 
         let items: Vec<InvoiceItem> = serde_json::from_value(record.items)?;
 
@@ -104,14 +105,16 @@ impl InvoiceService {
     }
 
     pub async fn list_invoices(&self, merchant_id: i64, limit: i64) -> Result<Vec<Invoice>, ServiceError> {
-        let records = sqlx::query!(
+        let records_res: Result<Vec<_>, sqlx::Error> = sqlx::query!(
             r#"SELECT invoice_id, merchant_id, customer_email, customer_name, status, items,
                       subtotal, tax, total, payment_id, due_date, notes, created_at, paid_at
                FROM invoices WHERE merchant_id = $1 ORDER BY created_at DESC LIMIT $2"#,
             merchant_id, limit
         )
         .fetch_all(&self.pool)
-        .await?;
+        .await;
+
+        let records = records_res?;
 
         records.into_iter().map(|r| {
             let items: Vec<InvoiceItem> = serde_json::from_value(r.items)?;

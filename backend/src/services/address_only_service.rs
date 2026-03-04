@@ -356,13 +356,14 @@ impl AddressOnlyService {
 
     /// Get private key for deposit address
     async fn get_deposit_private_key(&self, address: &str) -> Result<String, ServiceError> {
-        let record = sqlx::query!(
+        let record_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
             "SELECT encrypted_private_key FROM deposit_keypairs WHERE address = $1",
             address
         )
         .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or_else(|| ServiceError::NotFound("Deposit keypair not found".to_string()))?;
+        .await;
+
+        let record = record_res?.ok_or_else(|| ServiceError::NotFound("Deposit keypair not found".to_string()))?;
 
         // For now, return a placeholder since we don't have decrypt_data
         // In production, this would decrypt the stored key

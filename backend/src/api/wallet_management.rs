@@ -561,40 +561,42 @@ pub async fn get_wallet_balances(
     
     let result: Result<Vec<WalletBalanceRow>, sqlx::Error> = if is_forwarding {
         // Forwarding wallets don't have managed balances tracking, so return 0s
-        sqlx::query_as::<sqlx::Postgres, WalletBalanceRow>(
+        sqlx::query_as!(
+            WalletBalanceRow,
             r#"
             SELECT
                 crypto_type,
                 network,
                 address,
                 is_active,
-                0::numeric as available_balance,
-                0::numeric as reserved_balance,
-                0::numeric as total_balance,
-                0::bigint as transaction_count,
-                0::numeric as total_volume_crypto
+                0::numeric as "available_balance!",
+                0::numeric as "reserved_balance!",
+                0::numeric as "total_balance!",
+                0::bigint as "transaction_count!",
+                0::numeric as "total_volume_crypto!"
             FROM merchant_forwarding_wallets
             WHERE merchant_id = $1 AND sandbox_mode = $2 AND address != ''
             ORDER BY crypto_type
-            "#
+            "#,
+            context.merchant_id,
+            sandbox_mode
         )
-        .bind(context.merchant_id)
-        .bind(sandbox_mode)
         .fetch_all(&state.db_pool)
         .await
     } else {
-        sqlx::query_as::<sqlx::Postgres, WalletBalanceRow>(
+        sqlx::query_as!(
+            WalletBalanceRow,
             r#"
             SELECT
                 mw.crypto_type,
                 mw.network,
                 mw.address,
                 mw.is_active,
-                COALESCE(tx_stats.net_received, 0::numeric) - COALESCE(wd_stats.total_withdrawn, 0::numeric) as available_balance,
-                0::numeric as reserved_balance,
-                COALESCE(tx_stats.net_received, 0::numeric) - COALESCE(wd_stats.total_withdrawn, 0::numeric) as total_balance,
-                COALESCE(tx_stats.tx_count, 0::bigint) as transaction_count,
-                COALESCE(tx_stats.total_volume, 0::numeric) as total_volume_crypto
+                (COALESCE(tx_stats.net_received, 0::numeric) - COALESCE(wd_stats.total_withdrawn, 0::numeric)) as "available_balance!",
+                0::numeric as "reserved_balance!",
+                (COALESCE(tx_stats.net_received, 0::numeric) - COALESCE(wd_stats.total_withdrawn, 0::numeric)) as "total_balance!",
+                COALESCE(tx_stats.tx_count, 0::bigint) as "transaction_count!",
+                COALESCE(tx_stats.total_volume, 0::numeric) as "total_volume_crypto!"
             FROM merchant_wallets mw
             LEFT JOIN LATERAL (
                 SELECT
@@ -618,10 +620,10 @@ pub async fn get_wallet_balances(
             ) wd_stats ON true
             WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $2 AND mw.address != ''
             ORDER BY mw.crypto_type
-            "#
+            "#,
+            context.merchant_id,
+            sandbox_mode
         )
-        .bind(context.merchant_id)
-        .bind(sandbox_mode)
         .fetch_all(&state.db_pool)
         .await
     };

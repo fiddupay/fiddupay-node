@@ -107,13 +107,15 @@ impl WalletConfigService {
         merchant_id: i64,
         crypto_type: CryptoType,
     ) -> Result<Option<String>, ServiceError> {
-        let wallet = sqlx::query!(
+        let wallet_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
             "SELECT address FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true",
             merchant_id,
             crypto_type.to_string()
         )
         .fetch_optional(&self.db_pool)
-        .await?;
+        .await;
+
+        let wallet = wallet_res?;
 
         Ok(wallet.map(|w| w.address))
     }
@@ -124,14 +126,16 @@ impl WalletConfigService {
         crypto_type: CryptoType,
         sandbox_mode: bool,
     ) -> Result<Decimal, ServiceError> {
-        let balance = sqlx::query!(
+        let balance_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
             "SELECT available_balance FROM merchant_balances WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
             merchant_id,
             crypto_type.to_string(),
             sandbox_mode
         )
         .fetch_optional(&self.db_pool)
-        .await?;
+        .await;
+
+        let balance = balance_res?;
 
         Ok(balance.map(|b| b.available_balance).unwrap_or(Decimal::ZERO))
     }

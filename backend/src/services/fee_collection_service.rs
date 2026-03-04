@@ -102,14 +102,15 @@ impl FeeCollectionService {
             .ok_or("Payment has no to_address (merchant wallet)")?;
 
         // 3. Get the encrypted private key for the merchant's wallet
-        let wallet_record = sqlx::query!(
+        let wallet_record_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
             "SELECT encrypted_private_key FROM merchant_wallets WHERE merchant_id = $1 AND address = $2 AND is_active = true",
             merchant_id,
             merchant_wallet_address
         )
         .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or_else(|| format!(
+        .await;
+
+        let wallet_record = wallet_record_res?.ok_or_else(|| format!(
             "Wallet not found for merchant {} at address {}",
             merchant_id, merchant_wallet_address
         ))?;
@@ -125,13 +126,14 @@ impl FeeCollectionService {
 
         // 4. Get the platform fee wallet for this network
         let network = self.crypto_type_to_network(crypto_type);
-        let platform_wallet = sqlx::query!(
+        let platform_wallet_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
             "SELECT address FROM platform_fee_wallets WHERE network = $1",
             network
         )
         .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or_else(|| format!("No platform fee wallet configured for network: {}", network))?;
+        .await;
+
+        let platform_wallet = platform_wallet_res?.ok_or_else(|| format!("No platform fee wallet configured for network: {}", network))?;
 
         if platform_wallet.address.is_empty() {
             warn!("Platform fee wallet for {} is empty, skipping fee collection", network);

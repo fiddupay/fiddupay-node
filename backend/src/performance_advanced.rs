@@ -109,7 +109,7 @@ impl OptimizedQueries {
         let payment_ids: Vec<String> = updates.iter().map(|(id, _)| id.clone()).collect();
         let statuses: Vec<String> = updates.iter().map(|(_, status)| status.clone()).collect();
 
-        let result = sqlx::query!(
+        let result_res: Result<_, sqlx::Error> = sqlx::query!(
             r#"
             UPDATE payment_transactions 
             SET status = data.status
@@ -123,7 +123,9 @@ impl OptimizedQueries {
             &statuses
         )
         .execute(pool)
-        .await?;
+        .await;
+
+        let result = result_res?;
 
         Ok(result.rows_affected())
     }

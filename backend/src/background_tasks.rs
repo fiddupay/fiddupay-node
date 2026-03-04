@@ -103,7 +103,7 @@ impl BackgroundTasks {
             let payment_id_clone = payment.payment_id.clone();
             
             // Update payment status to FAILED (expired)
-            let result = sqlx::query!(
+            let result_res: Result<_, sqlx::Error> = sqlx::query!(
                 r#"
                 UPDATE payment_transactions
                 SET status = 'FAILED'
@@ -114,7 +114,7 @@ impl BackgroundTasks {
             .execute(&self.db_pool)
             .await;
 
-            match result {
+            match result_res {
                 Ok(result) if result.rows_affected() > 0 => {
                     info!(
                         "Marked payment {} (id: {}) as expired for merchant {}",
@@ -228,12 +228,14 @@ impl BackgroundTasks {
             );
 
             // Fetch merchant-specific signing secret and format
-            let (secret, payload_format) = match sqlx::query!(
+            let config_res: Result<_, sqlx::Error> = sqlx::query!(
                 "SELECT signing_secret, payload_format FROM webhook_configs WHERE merchant_id = $1",
                 webhook.merchant_id
             )
             .fetch_one(&self.db_pool)
-            .await {
+            .await;
+
+            let (secret, payload_format) = match config_res {
                 Ok(row) => (row.signing_secret, row.payload_format),
                 Err(_) => (self.webhook_service.get_signing_key().to_string(), "standard".to_string()),
             };
