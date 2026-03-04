@@ -252,7 +252,7 @@ impl PaymentProcessor {
         .bind(request.crypto_type.map(|ct| ct.to_string()))
         .bind(crypto_amount)
         .bind(amount_usd)
-        .bind(&merchant_wallet)
+        .bind::<Option<&str>>(merchant_wallet.as_deref())
         .bind(match status {
             PaymentStatus::Pending => "PENDING",
             PaymentStatus::SelectionRequired => "SELECTION_REQUIRED",

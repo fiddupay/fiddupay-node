@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct P2pProfile {
     pub id: i64,
     pub email: String,
@@ -28,7 +28,7 @@ pub struct P2pProfile {
     pub terms_accepted: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct P2pWallet {
     pub id: i64,
     pub user_id: i64,
@@ -43,7 +43,7 @@ pub struct P2pWallet {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct P2pBalance {
     pub id: i64,
     pub user_id: i64,
@@ -55,7 +55,7 @@ pub struct P2pBalance {
     pub last_updated: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct P2pPaymentMethod {
     pub id: i64,
     pub user_id: i64,
@@ -70,7 +70,7 @@ pub struct P2pPaymentMethod {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct P2pAd {
     pub id: i64,
     pub user_id: i64,

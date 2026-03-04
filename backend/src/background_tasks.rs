@@ -294,7 +294,8 @@ impl BackgroundTasks {
 
             // Attempt delivery — skip signature for Discord/Slack
             let skip_signature = payload_format == "discord" || payload_format == "slack";
-            let delivery_result = self.webhook_service.send_webhook(&webhook.url, &webhook.payload, &secret, skip_signature).await;
+            let payload_value: serde_json::Value = serde_json::from_str(&webhook.payload).unwrap_or(serde_json::json!({"raw": webhook.payload}));
+            let delivery_result = self.webhook_service.send_webhook(&webhook.url, &payload_value, &secret, skip_signature).await;
 
             match delivery_result {
                 Ok((status_code, response_body)) => {

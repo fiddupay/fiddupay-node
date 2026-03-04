@@ -506,7 +506,8 @@ impl MerchantService {
         crate::utils::validation::validate_wallet_address(&address, crypto_type)?;
         
         // Fetch current sandbox mode for this merchant
-        let sandbox_mode = sqlx::query_scalar!("SELECT sandbox_mode FROM merchants WHERE id = $1", merchant_id)
+        let sandbox_mode = sqlx::query_scalar::<_, bool>("SELECT sandbox_mode FROM merchants WHERE id = $1")
+            .bind(merchant_id)
             .fetch_one(&self.db_pool)
             .await
             .unwrap_or(false);

@@ -93,42 +93,42 @@ impl AdminService {
 
     /// Get admin dashboard statistics
     pub async fn get_dashboard_stats(&self) -> Result<AdminDashboard, ServiceError> {
-        let total_merchants: i64 = sqlx::query_scalar(
+        let total_merchants: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM merchants"
         )
         .fetch_one(&self.db_pool)
         .await?
         .unwrap_or(0);
 
-        let active_merchants: i64 = sqlx::query_scalar(
+        let active_merchants: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM merchants WHERE is_active = true"
         )
         .fetch_one(&self.db_pool)
         .await?
         .unwrap_or(0);
 
-        let total_payments: i64 = sqlx::query_scalar(
+        let total_payments: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM payment_transactions"
         )
         .fetch_one(&self.db_pool)
         .await?
         .unwrap_or(0);
 
-        let total_volume: Decimal = sqlx::query_scalar(
+        let total_volume: Decimal = sqlx::query_scalar::<_, Decimal>(
             "SELECT COALESCE(SUM(amount_usd), 0) FROM payment_transactions WHERE status = 'CONFIRMED'"
         )
         .fetch_one(&self.db_pool)
         .await?
         .unwrap_or(Decimal::ZERO);
 
-        let pending_payments: i64 = sqlx::query_scalar(
+        let pending_payments: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM payment_transactions WHERE status = 'PENDING'"
         )
         .fetch_one(&self.db_pool)
         .await?
         .unwrap_or(0);
 
-        let failed_payments: i64 = sqlx::query_scalar(
+        let failed_payments: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM payment_transactions WHERE status = 'FAILED'"
         )
         .fetch_one(&self.db_pool)
@@ -148,29 +148,29 @@ impl AdminService {
 
     /// Get platform analytics (Real Data)
     pub async fn get_platform_analytics(&self) -> Result<PlatformAnalytics, ServiceError> {
-        let total_merchants: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM merchants")
+        let total_merchants: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM merchants")
             .fetch_one(&self.db_pool)
             .await?
             .unwrap_or(0);
 
-        let active_merchants: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM merchants WHERE is_active = true")
+        let active_merchants: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM merchants WHERE is_active = true")
             .fetch_one(&self.db_pool)
             .await?
             .unwrap_or(0);
 
-        let total_payments: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM payment_transactions")
+        let total_payments: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM payment_transactions")
             .fetch_one(&self.db_pool)
             .await?
             .unwrap_or(0);
 
-        let total_volume: Decimal = sqlx::query_scalar(
+        let total_volume: Decimal = sqlx::query_scalar::<_, Decimal>(
             "SELECT COALESCE(SUM(amount_usd), 0) FROM payment_transactions WHERE status = 'CONFIRMED'"
         )
         .fetch_one(&self.db_pool)
         .await?
         .unwrap_or(Decimal::ZERO);
 
-        let platform_revenue: Decimal = sqlx::query_scalar(
+        let platform_revenue: Decimal = sqlx::query_scalar::<_, Decimal>(
             "SELECT COALESCE(SUM(fee_amount_usd), 0) FROM payment_transactions WHERE status = 'CONFIRMED'"
         )
         .fetch_one(&self.db_pool)
@@ -332,7 +332,7 @@ impl AdminService {
         let today_start = Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
         
         // Check for high failure rate
-        let total_today: i64 = sqlx::query_scalar(
+        let total_today: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM payment_transactions WHERE created_at >= $1"
         )
         .bind(today_start)
@@ -340,7 +340,7 @@ impl AdminService {
         .await?
         .unwrap_or(0);
         
-        let failed_today: i64 = sqlx::query_scalar(
+        let failed_today: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM payment_transactions WHERE created_at >= $1 AND status = 'FAILED'"
         )
         .bind(today_start)
