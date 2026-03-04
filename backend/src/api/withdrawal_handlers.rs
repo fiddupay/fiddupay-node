@@ -23,13 +23,15 @@ pub async fn create_withdrawal(
     match state.withdrawal_service.create_withdrawal(context.merchant_id, req, context.sandbox_mode).await {
         Ok(withdrawal) => {
             // Check settlement mode to see if we should auto-process
-            if let Ok(Some(merchant)) = sqlx::query!(
-                "SELECT settlement_mode FROM merchants WHERE id = $1",
-                context.merchant_id
+            if let Ok(Some(merchant)) = sqlx::query(
+                "SELECT settlement_mode FROM merchants WHERE id = $1"
             )
+            .bind(context.merchant_id)
             .fetch_optional(&state.db_pool)
             .await {
-                if merchant.settlement_mode == "managed" {
+                use sqlx::Row;
+                let sm: String = merchant.get("settlement_mode");
+                if sm == "managed" {
                     // Spawn background task to process the withdrawal automatically
                     let processor = crate::services::withdrawal_processor::WithdrawalProcessor::new(
                         state.db_pool.clone(),

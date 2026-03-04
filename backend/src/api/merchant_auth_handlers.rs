@@ -157,21 +157,35 @@ pub async fn login_merchant(
     Json(req): Json<LoginMerchantRequest>,
 ) -> impl IntoResponse {
     // Query the database for the user
-    let merchant_query: Result<_, sqlx::Error> = sqlx::query!(
-        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role::text as role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd FROM merchants WHERE email = $1 AND is_active = true",
-        req.email
+    let merchant_query = sqlx::query(
+        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role::text as role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd FROM merchants WHERE email = $1 AND is_active = true"
     )
+    .bind(&req.email)
     .fetch_optional(&state.db_pool)
     .await;
 
     match merchant_query
     {
         Ok(Some(merchant)) => {
+            use sqlx::Row;
             // VERIFY PASSWORD
             use argon2::{Argon2, PasswordHash, PasswordVerifier};
             
+            let m_id: i64 = merchant.get("id");
+            let m_business_name: String = merchant.get("business_name");
+            let m_email: String = merchant.get("email");
+            let m_sandbox_mode: bool = merchant.get("sandbox_mode");
+            let m_settlement_mode: String = merchant.get("settlement_mode");
+            let m_kyc_verified: bool = merchant.get("kyc_verified");
+            let m_created_at: chrono::DateTime<chrono::Utc> = merchant.get("created_at");
+            let m_role: Option<String> = merchant.try_get("role").ok();
+            let m_live_api_key_hash: Option<String> = merchant.get("live_api_key_hash");
+            let m_test_api_key_hash: Option<String> = merchant.get("test_api_key_hash");
+            let m_password_hash: Option<String> = merchant.get("password_hash");
+            let m_daily_limit_usd: Option<Decimal> = merchant.get("daily_limit_usd");
+            
             // Check if password_hash exists (it might be NULL for old users or API-only users)
-            let hash_to_check = merchant.password_hash.as_ref().ok_or_else(|| {
+            let hash_to_check = m_password_hash.as_ref().ok_or_else(|| {
                 // If no password hash, user cannot login via password (API key only)
                  ServiceError::Unauthorized("Password login not available for this account".to_string())
             });
@@ -203,17 +217,17 @@ pub async fn login_merchant(
                 );
 
                 let remaining_volume: Decimal = merchant_service.get_daily_volume_remaining(
-                    merchant.id,
-                    merchant.kyc_verified,
-                    merchant.daily_limit_usd
+                    m_id,
+                    m_kyc_verified,
+                    m_daily_limit_usd
                 ).await.unwrap_or(Decimal::new(1000, 0));
 
                 // Auto-generate API key if missing (e.g. legacy user or DB reset)
-                let has_test_key = merchant.test_api_key_hash.is_some() && merchant.test_api_key_hash.as_ref().unwrap() != "PENDING";
+                let has_test_key = m_test_api_key_hash.is_some() && m_test_api_key_hash.as_ref().unwrap() != "PENDING";
                 
                 if !has_test_key {
-                    tracing::info!("Auto-generating missing API key for merchant {}", merchant.id);
-                    let _ = merchant_service.generate_and_store_api_key_with_expiry(merchant.id, false, None).await;
+                    tracing::info!("Auto-generating missing API key for merchant {}", m_id);
+                    let _ = merchant_service.generate_and_store_api_key_with_expiry(m_id, false, None).await;
                 }
 
                 // Generate Dashboard JWT
@@ -230,10 +244,10 @@ pub async fn login_merchant(
                 let exp = (now + duration).timestamp() as usize;
                 
                 let claims = DashboardClaims {
-                    sub: merchant.id.to_string(),
+                    sub: m_id.to_string(),
                     exp,
                     iat: now.timestamp() as usize,
-                    sandbox_mode: merchant.sandbox_mode,
+                    sandbox_mode: m_sandbox_mode,
                 };
                 
                 let secret = &state.config.jwt_secret;
@@ -241,10 +255,10 @@ pub async fn login_merchant(
                     .unwrap_or_default();
 
                 // Format masked key for display
-                let display_key = if merchant.sandbox_mode {
+                let display_key = if m_sandbox_mode {
                     "sk_test_********".to_string()
                 } else {
-                    if let Some(h) = &merchant.live_api_key_hash {
+                    if let Some(h) = &m_live_api_key_hash {
                          if h != "PENDING" && !h.is_empty() {
                              "sk_live_********".to_string()
                          } else {
@@ -257,17 +271,17 @@ pub async fn login_merchant(
 
                 AuthResponse {
                     user: MerchantProfile {
-                        id: merchant.id,
-                        business_name: merchant.business_name,
-                        email: merchant.email,
+                        id: m_id,
+                        business_name: m_business_name,
+                        email: m_email,
                         api_key: display_key,
-                        created_at: merchant.created_at.to_rfc3339(),
+                        created_at: m_created_at.to_rfc3339(),
                         two_factor_enabled: false,
-                        daily_limit_usd: merchant.daily_limit_usd.map(|d: Decimal| d.to_string()),
+                        daily_limit_usd: m_daily_limit_usd.map(|d: Decimal| d.to_string()),
                         daily_volume_remaining: remaining_volume.to_string(),
-                        kyc_verified: merchant.kyc_verified,
-                        sandbox_mode: merchant.sandbox_mode,
-                        settlement_mode: merchant.settlement_mode,
+                        kyc_verified: m_kyc_verified,
+                        sandbox_mode: m_sandbox_mode,
+                        settlement_mode: m_settlement_mode,
                     },
                     dashboard_token: token,
                 }

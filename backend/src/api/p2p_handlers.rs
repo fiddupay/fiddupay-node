@@ -31,7 +31,8 @@ pub async fn get_p2p_balance(
     let service = state.p2p_service.clone();
     
     // Check sandbox mode
-    let sandbox_mode = match sqlx::query_scalar!("SELECT sandbox_mode FROM merchants WHERE id = $1", context.merchant_id)
+    let sandbox_mode = match sqlx::query_scalar::<_, bool>("SELECT sandbox_mode FROM merchants WHERE id = $1")
+        .bind(context.merchant_id)
         .fetch_one(&state.db_pool)
         .await {
             Ok(s) => s,
@@ -52,7 +53,8 @@ pub async fn create_p2p_ad(
 ) -> impl IntoResponse {
     let service = state.p2p_service.clone();
 
-    let sandbox_mode = match sqlx::query_scalar!("SELECT sandbox_mode FROM merchants WHERE id = $1", context.merchant_id)
+    let sandbox_mode = match sqlx::query_scalar::<_, bool>("SELECT sandbox_mode FROM merchants WHERE id = $1")
+        .bind(context.merchant_id)
         .fetch_one(&state.db_pool)
         .await {
             Ok(s) => s,
@@ -85,7 +87,8 @@ pub async fn create_p2p_trade(
 ) -> impl IntoResponse {
     let service = state.p2p_service.clone();
 
-    let sandbox_mode = match sqlx::query_scalar!("SELECT sandbox_mode FROM merchants WHERE id = $1", context.merchant_id)
+    let sandbox_mode = match sqlx::query_scalar::<_, bool>("SELECT sandbox_mode FROM merchants WHERE id = $1")
+        .bind(context.merchant_id)
         .fetch_one(&state.db_pool)
         .await {
             Ok(s) => s,

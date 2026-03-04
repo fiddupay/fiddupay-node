@@ -73,10 +73,10 @@ pub async fn admin_login(
     Json(login_data): Json<AdminLoginRequest>,
 ) -> impl IntoResponse {
     // Authenticate against admin_users table
-    let admin_user_res: Result<_, sqlx::Error> = sqlx::query!(
-        "SELECT id, username, password_hash, role, is_active FROM admin_users WHERE username = $1",
-        login_data.username
+    let admin_user_res = sqlx::query(
+        "SELECT id, username, password_hash, role, is_active FROM admin_users WHERE username = $1"
     )
+    .bind(&login_data.username)
     .fetch_optional(&state.db_pool)
     .await;
 
@@ -86,13 +86,16 @@ pub async fn admin_login(
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     };
 
-    if !admin_user.is_active {
+    use sqlx::Row;
+    let admin_is_active: bool = admin_user.get("is_active");
+    if !admin_is_active {
         return (StatusCode::FORBIDDEN, Json(json!({"error": "Account deactivated"}))).into_response();
     }
 
     // Verify Password
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
-    let parsed_hash = match PasswordHash::new(&admin_user.password_hash) {
+    let admin_password_hash: String = admin_user.get("password_hash");
+    let parsed_hash = match PasswordHash::new(&admin_password_hash) {
         Ok(hash) => hash,
         Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Invalid stored hash"}))).into_response(),
     };
@@ -101,14 +104,17 @@ pub async fn admin_login(
         return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid credentials"}))).into_response();
     }
 
+    let admin_db_id: i32 = admin_user.get("id");
+    let admin_username: String = admin_user.get("username");
+    let admin_role: Option<String> = admin_user.try_get("role").ok();
     // Generate Session Token (Simple version - production should use JWT)
     Json(json!({
         "success": true,
-        "session_token": format!("admin_session_{}", admin_user.id),
+        "session_token": format!("admin_session_{}", admin_db_id),
         "user": {
-            "id": admin_user.id,
-            "username": admin_user.username,
-            "role": admin_user.role,
+            "id": admin_db_id,
+            "username": admin_username,
+            "role": admin_role,
             "permissions": ["all"]
         }
     })).into_response()
