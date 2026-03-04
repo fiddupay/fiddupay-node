@@ -55,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Insert into INDEPENDENT admin_users table
     // This provides complete isolation from merchant data
-    let result = sqlx::query!(
+    let result = sqlx::query(
         r#"
         INSERT INTO admin_users (
             username, email, password_hash, role
@@ -64,15 +64,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ON CONFLICT (username) DO UPDATE 
         SET password_hash = $3, email = $2
         RETURNING id
-        "#,
-        username,
-        email,
-        password_hash
+        "#
     )
+    .bind(username)
+    .bind(&email)
+    .bind(&password_hash)
     .fetch_one(&pool)
     .await?;
 
-    println!("Success! Super Admin created with ID: {}", result.id);
+    use sqlx::Row;
+    let admin_id: i32 = result.get("id");
+    println!("Success! Super Admin created with ID: {}", admin_id);
     println!("Login Username: {}", username);
     println!("Login Email: {}", email);
     println!("Login Password: [HIDDEN]");
