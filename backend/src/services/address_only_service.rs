@@ -97,11 +97,11 @@ impl AddressOnlyService {
                 merchant_destination_address, requested_amount, processing_fee,
                 forwarding_amount, status, customer_amount
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING id, payment_id, merchant_id, crypto_type as "crypto_type: CryptoType",
+            RETURNING id, payment_id, merchant_id, crypto_type,
                      gateway_deposit_address, merchant_destination_address,
-                     requested_amount, customer_amount as "customer_amount!",
+                     requested_amount, customer_amount,
                      processing_fee, forwarding_amount,
-                     status as "status: AddressOnlyStatus", created_at
+                     status, created_at
             "#
         )
         .bind(&payment_id)
@@ -402,11 +402,11 @@ impl AddressOnlyService {
     pub async fn get_payment_by_id(&self, payment_id: &str) -> Result<AddressOnlyPayment, ServiceError> {
         let payment = sqlx::query_as::<_, AddressOnlyPayment>(
             r#"
-            SELECT id, payment_id, merchant_id, crypto_type as "crypto_type: CryptoType",
+            SELECT id, payment_id, merchant_id, crypto_type,
                    gateway_deposit_address, merchant_destination_address,
-                   requested_amount, COALESCE(customer_amount, requested_amount) as "customer_amount!",
+                   requested_amount, COALESCE(customer_amount, requested_amount) as customer_amount,
                    processing_fee, forwarding_amount,
-                   status as "status: AddressOnlyStatus", created_at
+                   status, created_at
             FROM address_only_payments WHERE payment_id = $1
             "#
         )
