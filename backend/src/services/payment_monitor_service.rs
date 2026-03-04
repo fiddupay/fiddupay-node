@@ -4,7 +4,7 @@
 use crate::error::ServiceError;
 use crate::services::address_only_service::{AddressOnlyService, AddressOnlyStatus};
 use rust_decimal::Decimal;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use std::collections::HashMap;
 use tokio::time::{interval, Duration};
 
@@ -29,7 +29,7 @@ impl PaymentMonitorService {
 
     /// Start monitoring all pending payments
     pub async fn start_monitoring(&self) -> Result<(), ServiceError> {
-        let mut interval = interval(Duration::from_secs(30)); // Check every 30 seconds
+        let mut interval = interval(Duration::from_secs(30));
 
         loop {
             interval.tick().await;
@@ -42,7 +42,7 @@ impl PaymentMonitorService {
 
     /// Check all pending payments for incoming funds
     async fn check_pending_payments(&self) -> Result<(), ServiceError> {
-        let pending_payments = sqlx::query!(
+        let pending_payments = sqlx::query(
             r#"
             SELECT payment_id, crypto_type, gateway_deposit_address, requested_amount
             FROM address_only_payments 
@@ -53,8 +53,12 @@ impl PaymentMonitorService {
         .await?;
 
         for payment in pending_payments {
-            if let Err(e) = self.check_payment_received(&payment.payment_id, &payment.crypto_type, &payment.gateway_deposit_address, payment.requested_amount).await {
-                tracing::error!("Error checking payment {}: {}", payment.payment_id, e);
+            let payment_id: String = payment.get("payment_id");
+            let crypto_type: String = payment.get("crypto_type");
+            let gateway_deposit_address: String = payment.get("gateway_deposit_address");
+            let requested_amount: Decimal = payment.get("requested_amount");
+            if let Err(e) = self.check_payment_received(&payment_id, &crypto_type, &gateway_deposit_address, requested_amount).await {
+                tracing::error!("Error checking payment {}: {}", payment_id, e);
             }
         }
 
@@ -74,10 +78,8 @@ impl PaymentMonitorService {
         if balance >= expected_amount {
             tracing::info!("Payment received for {}: {} {}", payment_id, balance, crypto_type);
             
-            // Simulate transaction hash (would be from blockchain query)
             let tx_hash = format!("received_tx_{}", uuid::Uuid::new_v4());
             
-            // Process the received payment
             self.address_service
                 .process_received_payment(payment_id, balance, &tx_hash)
                 .await?;
@@ -106,7 +108,6 @@ impl PaymentMonitorService {
         }
     }
 
-    /// Get Ethereum balance
     async fn get_eth_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
         let rpc_payload = serde_json::json!({
             "jsonrpc": "2.0",
@@ -130,16 +131,13 @@ impl PaymentMonitorService {
             let balance_wei = u128::from_str_radix(&result[2..], 16)
                 .map_err(|_| ServiceError::Internal("Invalid balance hex".to_string()))?;
             
-            // Convert wei to ETH
             Ok(Decimal::new(balance_wei as i64, 18))
         } else {
             Ok(Decimal::ZERO)
         }
     }
 
-    /// Get BNB balance
     async fn get_bnb_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
-        // Similar to ETH but using BSC RPC
         let rpc_payload = serde_json::json!({
             "jsonrpc": "2.0",
             "method": "eth_getBalance",
@@ -168,19 +166,14 @@ impl PaymentMonitorService {
         }
     }
 
-    /// Get MATIC balance
     async fn get_matic_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
-        // Similar implementation for Polygon
-        Ok(Decimal::ZERO) // Simplified for now
+        Ok(Decimal::ZERO)
     }
 
-    /// Get ARB balance
     async fn get_arb_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
-        // Similar implementation for Arbitrum
-        Ok(Decimal::ZERO) // Simplified for now
+        Ok(Decimal::ZERO)
     }
 
-    /// Get SOL balance
     async fn get_sol_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
         let rpc_payload = serde_json::json!({
             "jsonrpc": "2.0",
@@ -201,7 +194,6 @@ impl PaymentMonitorService {
             .map_err(|e| ServiceError::Internal(format!("SOL RPC parse error: {}", e)))?;
 
         if let Some(result) = response.get("result").and_then(|v| v.get("value")).and_then(|v| v.as_u64()) {
-            // Convert lamports to SOL
             Ok(Decimal::new(result as i64, 9))
         } else {
             Ok(Decimal::ZERO)

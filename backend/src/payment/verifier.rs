@@ -4,7 +4,7 @@
 use chrono::Utc;
 use rust_decimal::Decimal;
 use std::str::FromStr;
-use sqlx::{PgPool, Postgres, Transaction};
+use sqlx::{PgPool, Postgres, Transaction, Row};
 use tracing::{info, warn, error};
 use serde_json::json;
 
@@ -48,19 +48,21 @@ impl PaymentVerifier {
         merchant_id: i64,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         // Look up payment by public payment_id
-        let payment = sqlx::query!(
+        let payment_row = sqlx::query(
             r#"
             SELECT id, merchant_id FROM payment_transactions
             WHERE payment_id = $1
-            "#,
-            payment_id
+            "#
         )
+        .bind(payment_id)
         .fetch_optional(&self.db_pool)
         .await?
         .ok_or("Payment not found")?;
 
         // Verify merchant ownership
-        if payment.merchant_id != merchant_id {
+        let payment_db_id: i64 = payment_row.get("id");
+        let payment_merchant_id: i64 = payment_row.get("merchant_id");
+        if payment_merchant_id != merchant_id {
             return Err(format!(
                 "Payment {} does not belong to merchant {}. Access denied.",
                 payment_id, merchant_id
@@ -68,7 +70,7 @@ impl PaymentVerifier {
         }
 
         // Delegate to internal verification method
-        self.verify_payment_by_hash(payment.id, transaction_hash, merchant_id).await
+        self.verify_payment_by_hash(payment_db_id, transaction_hash, merchant_id).await
     }
 
     /// Verify a payment using user-provided transaction hash
@@ -112,8 +114,7 @@ impl PaymentVerifier {
         }
 
         // 2. Get payment from database and verify merchant ownership
-        let payment_res: Result<Option<crate::models::payment::Payment>, sqlx::Error> = sqlx::query_as!(
-            crate::models::payment::Payment,
+        let payment_res: Result<Option<crate::models::payment::Payment>, sqlx::Error> = sqlx::query_as(
             r#"
             SELECT id, payment_id, merchant_id, amount, amount_usd, crypto_type, 
                    network, status, to_address, from_address, created_at, expires_at, confirmed_at, 
@@ -123,9 +124,9 @@ impl PaymentVerifier {
                    partial_payments_enabled, total_paid, remaining_balance, is_non_custodial
             FROM payment_transactions
             WHERE id = $1
-            "#,
-            payment_id
+            "#
         )
+        .bind(payment_id)
         .fetch_optional(&self.db_pool)
         .await;
 
@@ -157,13 +158,13 @@ impl PaymentVerifier {
         let crypto_type = CryptoType::from_string(crypto_type_str)?;
 
         // Get merchant sandbox status
-        let merchant_sandbox = sqlx::query!(
-            "SELECT sandbox_mode FROM merchants WHERE id = $1", 
-            merchant_id
+        let merchant_sandbox: bool = sqlx::query(
+            "SELECT sandbox_mode FROM merchants WHERE id = $1"
         )
+        .bind(merchant_id)
         .fetch_one(&self.db_pool)
         .await
-        .map(|r| r.sandbox_mode)
+        .map(|r: sqlx::postgres::PgRow| r.get("sandbox_mode"))
         .unwrap_or(false);
 
         // Get appropriate blockchain monitor for this crypto type
@@ -252,13 +253,13 @@ impl PaymentVerifier {
         }
 
         // Get merchant sandbox status
-        let merchant_sandbox = sqlx::query!(
-            "SELECT sandbox_mode FROM merchants WHERE id = $1", 
-            merchant_id
+        let merchant_sandbox: bool = sqlx::query(
+            "SELECT sandbox_mode FROM merchants WHERE id = $1"
         )
+        .bind(merchant_id)
         .fetch_one(&self.db_pool)
         .await
-        .map(|r| r.sandbox_mode)
+        .map(|r: sqlx::postgres::PgRow| r.get("sandbox_mode"))
         .unwrap_or(false);
 
         let crypto_type_str = payment.crypto_type.as_ref().unwrap();

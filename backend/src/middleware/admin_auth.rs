@@ -9,6 +9,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde_json::json;
+use sqlx::Row;
 
 /// Admin context extracted from authentication
 #[derive(Clone)]
@@ -80,15 +81,16 @@ pub async fn admin_auth_middleware(
 
     if let Some(id) = admin_id {
         // Verify admin exists in separate admin_users table
-        match sqlx::query!(
-            "SELECT id, username, role, is_active FROM admin_users WHERE id = $1",
-            id as i32 // Assuming admin_users.id is SERIAL (i32)
+        match sqlx::query(
+            "SELECT id, username, role, is_active FROM admin_users WHERE id = $1"
         )
+        .bind(id as i32)
         .fetch_optional(&state.db_pool)
         .await
         {
             Ok(Some(admin)) => {
-                if !admin.is_active {
+                let is_active: bool = admin.get("is_active");
+                if !is_active {
                      return Err((
                         StatusCode::FORBIDDEN,
                         axum::Json(json!({
@@ -98,10 +100,12 @@ pub async fn admin_auth_middleware(
                     ));
                 }
 
+                let admin_db_id: i32 = admin.get("id");
+                let admin_username: String = admin.get("username");
                 let context = AdminContext {
-                    admin_id: admin.id as i64,
-                    username: admin.username,
-                    permissions: vec!["all".to_string()], // Can be expanded based on role
+                    admin_id: admin_db_id as i64,
+                    username: admin_username,
+                    permissions: vec!["all".to_string()],
                 };
 
                 request.extensions_mut().insert(context);

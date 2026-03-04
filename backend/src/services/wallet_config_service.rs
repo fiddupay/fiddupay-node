@@ -4,7 +4,7 @@ use crate::utils::keygen::KeyGenerator;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WalletConfig {
@@ -40,34 +40,27 @@ impl WalletConfigService {
     ) -> Result<WalletConfig, ServiceError> {
         let network = crypto_type.network().to_string();
         
-        let config_res: Result<WalletConfig, sqlx::Error> = sqlx::query_as!(
-            WalletConfig,
+        let config_res: Result<WalletConfig, sqlx::Error> = sqlx::query_as::<_, WalletConfig>(
             r#"
             INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (merchant_id, crypto_type, sandbox_mode) 
             DO UPDATE SET address = $4, is_active = $5, encrypted_private_key = COALESCE($7, merchant_wallets.encrypted_private_key), updated_at = NOW()
             RETURNING id, merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key, created_at, updated_at
-            "#,
-            merchant_id,
-            crypto_type.to_string(),
-            network,
-            address,
-            is_active,
-            sandbox_mode,
-            encrypted_private_key
+            "#
         )
+        .bind(merchant_id)
+        .bind(crypto_type.to_string())
+        .bind(&network)
+        .bind(&address)
+        .bind(is_active)
+        .bind(sandbox_mode)
+        .bind(&encrypted_private_key)
         .fetch_one(&self.db_pool)
         .await;
 
         let config = config_res?;
 
-        // Side effect: If this is a base currency or a known network-wide token like USDT,
-        // we might want to ensure other tokens on the same network also get updated if they don't have an address.
-        // However, the cleanest way for this UI is to just ensure the frontend groups them.
-        // To satisfy the user's request that "USDT for any blockchain uses same wallet address if generated",
-        // we can explicitly update the "sister" currency.
-        
         let sister_crypto = match crypto_type {
             CryptoType::Sol => Some("USDT_SOL"),
             CryptoType::UsdtSpl => Some("SOL"),
@@ -82,19 +75,19 @@ impl WalletConfigService {
         };
 
         if let Some(sister) = sister_crypto {
-             sqlx::query!(
+             sqlx::query(
                 "INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key)
                  VALUES ($1, $2, $3, $4, $5, $6, $7)
                  ON CONFLICT (merchant_id, crypto_type, sandbox_mode) 
-                 DO UPDATE SET address = $4, is_active = $5, encrypted_private_key = COALESCE($7, merchant_wallets.encrypted_private_key), updated_at = NOW()",
-                merchant_id,
-                sister,
-                network,
-                address,
-                is_active,
-                sandbox_mode,
-                encrypted_private_key
+                 DO UPDATE SET address = $4, is_active = $5, encrypted_private_key = COALESCE($7, merchant_wallets.encrypted_private_key), updated_at = NOW()"
             )
+            .bind(merchant_id)
+            .bind(sister)
+            .bind(&network)
+            .bind(&address)
+            .bind(is_active)
+            .bind(sandbox_mode)
+            .bind(&encrypted_private_key)
             .execute(&self.db_pool)
             .await?;
         }
@@ -107,17 +100,15 @@ impl WalletConfigService {
         merchant_id: i64,
         crypto_type: CryptoType,
     ) -> Result<Option<String>, ServiceError> {
-        let wallet_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
-            "SELECT address FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true",
-            merchant_id,
-            crypto_type.to_string()
+        let wallet = sqlx::query(
+            "SELECT address FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true"
         )
+        .bind(merchant_id)
+        .bind(crypto_type.to_string())
         .fetch_optional(&self.db_pool)
-        .await;
+        .await?;
 
-        let wallet = wallet_res?;
-
-        Ok(wallet.map(|w| w.address))
+        Ok(wallet.map(|w| w.get("address")))
     }
 
     pub async fn get_balance(
@@ -126,27 +117,24 @@ impl WalletConfigService {
         crypto_type: CryptoType,
         sandbox_mode: bool,
     ) -> Result<Decimal, ServiceError> {
-        let balance_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
-            "SELECT available_balance FROM merchant_balances WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
-            merchant_id,
-            crypto_type.to_string(),
-            sandbox_mode
+        let balance = sqlx::query(
+            "SELECT available_balance FROM merchant_balances WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
+        .bind(merchant_id)
+        .bind(crypto_type.to_string())
+        .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
-        .await;
+        .await?;
 
-        let balance = balance_res?;
-
-        Ok(balance.map(|b| b.available_balance).unwrap_or(Decimal::ZERO))
+        Ok(balance.map(|b| b.get::<Decimal, _>("available_balance")).unwrap_or(Decimal::ZERO))
     }
 
     pub async fn get_wallet_configs(&self, merchant_id: i64, sandbox_mode: bool) -> Result<Vec<WalletConfig>, ServiceError> {
-        let configs = sqlx::query_as!(
-            WalletConfig,
-            "SELECT id, merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key, created_at, updated_at FROM merchant_wallets WHERE merchant_id = $1 AND sandbox_mode = $2",
-            merchant_id,
-            sandbox_mode
+        let configs = sqlx::query_as::<_, WalletConfig>(
+            "SELECT id, merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key, created_at, updated_at FROM merchant_wallets WHERE merchant_id = $1 AND sandbox_mode = $2"
         )
+        .bind(merchant_id)
+        .bind(sandbox_mode)
         .fetch_all(&self.db_pool)
         .await?;
 
@@ -161,13 +149,11 @@ impl WalletConfigService {
     pub async fn generate_wallet(&self, merchant_id: i64, sandbox_mode: bool, request: GenerateWalletRequest) -> Result<GeneratedWalletResponse, ServiceError> {
         let crypto_type = CryptoType::from_string(&request.crypto_type)?;
         
-        // Generate real wallet based on network
         let wallet = match crypto_type {
             CryptoType::Sol | CryptoType::UsdtSpl => KeyGenerator::generate_solana_wallet()?,
             _ => KeyGenerator::generate_evm_wallet()?,
         };
         
-        // Save the address to merchant_wallets and encrypt private key
         let encryption = crate::utils::encryption::Encryption::new()
             .map_err(|e| ServiceError::InternalError(format!("Encryption error: {}", e)))?;
         let encrypted_key = encryption.encrypt(&wallet.private_key)
@@ -182,7 +168,6 @@ impl WalletConfigService {
             Some(encrypted_key.clone())
         ).await?;
 
-        // If enable_all_evm is set and base crypto is EVM, propagate to the others
         if request.enable_all_evm.unwrap_or(false) && is_evm(&crypto_type) {
             let evm_networks = vec![
                 CryptoType::Eth,
@@ -210,10 +195,8 @@ impl WalletConfigService {
         })
     }
 
-    /// Generate wallet in managed mode — private key is stored but never returned to the merchant
     pub async fn generate_wallet_managed(&self, merchant_id: i64, sandbox_mode: bool, request: GenerateWalletRequest) -> Result<GeneratedWalletResponse, ServiceError> {
         let mut response = self.generate_wallet(merchant_id, sandbox_mode, request).await?;
-        // Strip private key — platform manages it, merchant never sees it
         response.private_key = None;
         Ok(response)
     }
@@ -221,13 +204,11 @@ impl WalletConfigService {
     pub async fn import_wallet(&self, merchant_id: i64, sandbox_mode: bool, request: ImportWalletRequest) -> Result<WalletConfig, ServiceError> {
         let crypto_type = CryptoType::from_string(&request.crypto_type)?;
         
-        // Validate and get address from private key
         let address = match crypto_type {
             CryptoType::Sol | CryptoType::UsdtSpl => KeyGenerator::validate_private_key(&request.private_key, "solana")?,
-            _ => KeyGenerator::validate_private_key(&request.private_key, "ethereum")?, // Works for all EVM
+            _ => KeyGenerator::validate_private_key(&request.private_key, "ethereum")?,
         };
 
-        // Encrypt private key
         let encryption = crate::utils::encryption::Encryption::new()
             .map_err(|e| ServiceError::InternalError(format!("Encryption error: {}", e)))?;
         let encrypted_key = encryption.encrypt(&request.private_key)
@@ -241,7 +222,6 @@ impl WalletConfigService {
             Some(encrypted_key.clone())
         ).await?;
 
-        // If enable_all_evm is set and base crypto is EVM, propagate to the others
         if request.enable_all_evm.unwrap_or(false) && is_evm(&crypto_type) {
             let evm_networks = vec![
                 CryptoType::Eth,
@@ -267,18 +247,17 @@ impl WalletConfigService {
     }
 
     pub async fn export_private_key(&self, merchant_id: i64, sandbox_mode: bool, request: ExportKeyRequest) -> Result<String, ServiceError> {
-        // Fetch encrypted key (mock logic, adapt based on actual storage)
-        let row = sqlx::query!(
-            "SELECT encrypted_private_key FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
-            merchant_id,
-            request.crypto_type,
-            sandbox_mode
+        let row = sqlx::query(
+            "SELECT encrypted_private_key FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
+        .bind(merchant_id)
+        .bind(&request.crypto_type)
+        .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
         .await?;
 
         if let Some(r) = row {
-             if let Some(key) = r.encrypted_private_key {
+             if let Some(key) = r.try_get::<Option<String>, _>("encrypted_private_key").ok().flatten() {
                   return Ok(key);
              }
         }
@@ -286,7 +265,6 @@ impl WalletConfigService {
     }
 
     pub async fn validate_gas_for_withdrawal(&self, merchant_id: i64, sandbox_mode: bool, crypto_type: CryptoType, amount: Decimal) -> Result<GasValidationResult, ServiceError> {
-        // Basic gas validation logic
         let balance = self.get_balance(merchant_id, crypto_type, sandbox_mode).await?;
         if balance >= amount {
             Ok(GasValidationResult {
@@ -309,18 +287,16 @@ impl WalletConfigService {
     pub async fn delete_wallet_config(&self, merchant_id: i64, sandbox_mode: bool, crypto_type_str: String) -> Result<(), ServiceError> {
         let crypto_type = CryptoType::from_string(&crypto_type_str)?;
         
-        let delete_res: Result<_, sqlx::Error> = sqlx::query!(
+        sqlx::query(
             "UPDATE merchant_wallets SET address = '', is_active = false, updated_at = NOW() 
-             WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
-            merchant_id,
-            crypto_type.to_string(),
-            sandbox_mode
+             WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
+        .bind(merchant_id)
+        .bind(crypto_type.to_string())
+        .bind(sandbox_mode)
         .execute(&self.db_pool)
-        .await;
-        delete_res?;
+        .await?;
 
-        // Also update sister currency
         let sister_crypto = match crypto_type {
             CryptoType::Sol => Some("USDT_SOL"),
             CryptoType::UsdtSpl => Some("SOL"),
@@ -335,13 +311,13 @@ impl WalletConfigService {
         };
 
         if let Some(sister) = sister_crypto {
-            sqlx::query!(
+            sqlx::query(
                 "UPDATE merchant_wallets SET address = '', is_active = false, updated_at = NOW() 
-                 WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
-                merchant_id,
-                sister,
-                sandbox_mode
+                 WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
             )
+            .bind(merchant_id)
+            .bind(sister)
+            .bind(sandbox_mode)
             .execute(&self.db_pool)
             .await?;
         }
@@ -353,8 +329,6 @@ impl WalletConfigService {
     // Forwarding-mode wallet methods (separate table: merchant_forwarding_wallets)
     // =========================================================================
 
-    /// Set a forwarding destination address for a specific crypto type.
-    /// This writes to `merchant_forwarding_wallets`, NOT `merchant_wallets`.
     pub async fn set_forwarding_address(
         &self,
         merchant_id: i64,
@@ -363,13 +337,11 @@ impl WalletConfigService {
         is_active: bool,
         sandbox_mode: bool,
     ) -> Result<WalletConfig, ServiceError> {
-        // Validate the address format for the specific blockchain
         crate::utils::validation::validate_wallet_address(&address, crypto_type)?;
 
         let network = crypto_type.network().to_string();
 
-        let config = sqlx::query_as!(
-            WalletConfig,
+        let config = sqlx::query_as::<_, WalletConfig>(
             r#"
             INSERT INTO merchant_forwarding_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode)
             VALUES ($1, $2, $3, $4, $5, $6)
@@ -377,18 +349,17 @@ impl WalletConfigService {
             DO UPDATE SET address = $4, is_active = $5, updated_at = NOW()
             RETURNING id, merchant_id, crypto_type, network, address, is_active, sandbox_mode,
                       NULL::text as encrypted_private_key, created_at, updated_at
-            "#,
-            merchant_id,
-            crypto_type.to_string(),
-            network,
-            address,
-            is_active,
-            sandbox_mode
+            "#
         )
+        .bind(merchant_id)
+        .bind(crypto_type.to_string())
+        .bind(&network)
+        .bind(&address)
+        .bind(is_active)
+        .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await?;
 
-        // Add sister crypto logic for forwarding wallets (e.g., USDT -> Base coin)
         let sister_crypto = match crypto_type {
             CryptoType::Sol => Some("USDT_SOL"),
             CryptoType::UsdtSpl => Some("SOL"),
@@ -403,18 +374,18 @@ impl WalletConfigService {
         };
 
         if let Some(sister) = sister_crypto {
-             sqlx::query!(
+             sqlx::query(
                 "INSERT INTO merchant_forwarding_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode)
                  VALUES ($1, $2, $3, $4, $5, $6)
                  ON CONFLICT (merchant_id, crypto_type, sandbox_mode) 
-                 DO UPDATE SET address = $4, is_active = $5, updated_at = NOW()",
-                merchant_id,
-                sister,
-                network,
-                address,
-                is_active,
-                sandbox_mode
+                 DO UPDATE SET address = $4, is_active = $5, updated_at = NOW()"
             )
+            .bind(merchant_id)
+            .bind(sister)
+            .bind(&network)
+            .bind(&address)
+            .bind(is_active)
+            .bind(sandbox_mode)
             .execute(&self.db_pool)
             .await?;
         }
@@ -422,40 +393,35 @@ impl WalletConfigService {
         Ok(config)
     }
 
-    /// Get all forwarding wallet configs for a merchant.
     pub async fn get_forwarding_configs(&self, merchant_id: i64, sandbox_mode: bool) -> Result<Vec<WalletConfig>, ServiceError> {
-        let configs = sqlx::query_as!(
-            WalletConfig,
+        let configs = sqlx::query_as::<_, WalletConfig>(
             r#"
             SELECT id, merchant_id, crypto_type, network, address, is_active, sandbox_mode,
                    NULL::text as encrypted_private_key, created_at, updated_at
             FROM merchant_forwarding_wallets
             WHERE merchant_id = $1 AND sandbox_mode = $2
-            "#,
-            merchant_id,
-            sandbox_mode
+            "#
         )
+        .bind(merchant_id)
+        .bind(sandbox_mode)
         .fetch_all(&self.db_pool)
         .await?;
 
         Ok(configs)
     }
 
-    /// Delete (soft-delete) a forwarding wallet config.
-    /// Also cleans up entries with legacy naming conventions.
     pub async fn delete_forwarding_config(&self, merchant_id: i64, sandbox_mode: bool, crypto_type_str: String) -> Result<(), ServiceError> {
         let crypto_type = CryptoType::from_string(&crypto_type_str)?;
         let network = crypto_type.network();
 
-        // Delete by both the canonical name AND by network to catch legacy-named entries
-        sqlx::query!(
+        sqlx::query(
             "UPDATE merchant_forwarding_wallets SET address = '', is_active = false, updated_at = NOW()
-             WHERE merchant_id = $1 AND (crypto_type = $2 OR network = $3) AND sandbox_mode = $4",
-            merchant_id,
-            crypto_type.to_string(),
-            network,
-            sandbox_mode
+             WHERE merchant_id = $1 AND (crypto_type = $2 OR network = $3) AND sandbox_mode = $4"
         )
+        .bind(merchant_id)
+        .bind(crypto_type.to_string())
+        .bind(network)
+        .bind(sandbox_mode)
         .execute(&self.db_pool)
         .await?;
 

@@ -1,4 +1,4 @@
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
@@ -71,7 +71,6 @@ impl MultiUserService {
     }
 
     pub async fn create_user(&self, merchant_id: i64, req: CreateUserRequest) -> Result<MerchantUser, ServiceError> {
-        // Hash password
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
         let password_hash = argon2
@@ -103,22 +102,22 @@ impl MultiUserService {
     }
 
     pub async fn list_users(&self, merchant_id: i64) -> Result<Vec<MerchantUser>, ServiceError> {
-        let records = sqlx::query!(
-            "SELECT id, merchant_id, email, role::text as \"role!\", is_active, last_login, created_at
-             FROM merchant_users WHERE merchant_id = $1 ORDER BY created_at DESC",
-            merchant_id
+        let records = sqlx::query(
+            "SELECT id, merchant_id, email, role::text as role, is_active, last_login, created_at
+             FROM merchant_users WHERE merchant_id = $1 ORDER BY created_at DESC"
         )
+        .bind(merchant_id)
         .fetch_all(&self.pool)
         .await?;
 
         Ok(records.into_iter().map(|r| MerchantUser {
-            id: r.id,
-            merchant_id: r.merchant_id,
-            email: r.email,
-            role: r.role,
-            is_active: r.is_active,
-            last_login: r.last_login,
-            created_at: r.created_at,
+            id: r.get("id"),
+            merchant_id: r.get("merchant_id"),
+            email: r.get("email"),
+            role: r.try_get::<Option<String>, _>("role").ok().flatten().unwrap_or("MERCHANT".to_string()),
+            is_active: r.get("is_active"),
+            last_login: r.get("last_login"),
+            created_at: r.get("created_at"),
         }).collect())
     }
 
@@ -137,11 +136,12 @@ impl MultiUserService {
     }
 
     pub async fn deactivate_user(&self, merchant_id: i64, user_id: i32) -> Result<(), ServiceError> {
-        sqlx::query!(
+        sqlx::query(
             "UPDATE merchant_users SET is_active = false, updated_at = NOW()
-             WHERE id = $1 AND merchant_id = $2",
-            user_id, merchant_id
+             WHERE id = $1 AND merchant_id = $2"
         )
+        .bind(user_id)
+        .bind(merchant_id)
         .execute(&self.pool)
         .await?;
 
@@ -149,39 +149,39 @@ impl MultiUserService {
     }
 
     pub async fn authenticate(&self, email: &str, password: &str) -> Result<MerchantUser, ServiceError> {
-        let record = sqlx::query!(
-            "SELECT id, merchant_id, email, password_hash, role::text as \"role!\", is_active, last_login, created_at
-             FROM merchant_users WHERE email = $1 AND is_active = true",
-            email
+        let record = sqlx::query(
+            "SELECT id, merchant_id, email, password_hash, role::text as role, is_active, last_login, created_at
+             FROM merchant_users WHERE email = $1 AND is_active = true"
         )
+        .bind(email)
         .fetch_optional(&self.pool)
         .await?
         .ok_or_else(|| ServiceError::Unauthorized("Invalid credentials".to_string()))?;
 
-        // Verify password
-        let parsed_hash = PasswordHash::new(&record.password_hash)
+        let stored_hash: String = record.get("password_hash");
+        let parsed_hash = PasswordHash::new(&stored_hash)
             .map_err(|e| ServiceError::InternalError(format!("Invalid hash: {}", e)))?;
         
         Argon2::default()
             .verify_password(password.as_bytes(), &parsed_hash)
             .map_err(|_| ServiceError::Unauthorized("Invalid credentials".to_string()))?;
 
-        // Update last login
-        sqlx::query!(
-            "UPDATE merchant_users SET last_login = NOW() WHERE id = $1",
-            record.id
+        let user_id: i32 = record.get("id");
+        sqlx::query(
+            "UPDATE merchant_users SET last_login = NOW() WHERE id = $1"
         )
+        .bind(user_id)
         .execute(&self.pool)
         .await?;
 
         Ok(MerchantUser {
-            id: record.id,
-            merchant_id: record.merchant_id,
-            email: record.email,
-            role: record.role,
-            is_active: record.is_active,
+            id: user_id,
+            merchant_id: record.get("merchant_id"),
+            email: record.get("email"),
+            role: record.try_get::<Option<String>, _>("role").ok().flatten().unwrap_or("MERCHANT".to_string()),
+            is_active: record.get("is_active"),
             last_login: Some(Utc::now()),
-            created_at: record.created_at,
+            created_at: record.get("created_at"),
         })
     }
 }

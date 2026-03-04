@@ -6,7 +6,7 @@ use crate::services::price_service::PriceService;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -48,7 +48,7 @@ impl BalanceService {
         crypto_type: CryptoType,
         sandbox_mode: bool,
     ) -> Result<Balance, ServiceError> {
-        let balance_record_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
+        let balance_record = sqlx::query(
             r#"
             SELECT 
                 total_balance,
@@ -57,19 +57,23 @@ impl BalanceService {
                 last_updated
             FROM merchant_balances 
             WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3
-            "#,
-            merchant_id,
-            crypto_type as CryptoType,
-            sandbox_mode
+            "#
         )
+        .bind(merchant_id)
+        .bind(crypto_type.as_str())
+        .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
-        .await;
+        .await?;
 
-        let balance_record = balance_record_res?;
-
-        let total = balance_record.as_ref().and_then(|r| r.total_balance).unwrap_or(Decimal::ZERO);
-        let available = balance_record.as_ref().map_or(Decimal::ZERO, |r| r.available_balance);
-        let pending = balance_record.as_ref().map_or(Decimal::ZERO, |r| r.reserved_balance);
+        let total = balance_record.as_ref()
+            .and_then(|r| r.try_get::<Option<Decimal>, _>("total_balance").ok().flatten())
+            .unwrap_or(Decimal::ZERO);
+        let available = balance_record.as_ref()
+            .map(|r| r.get::<Decimal, _>("available_balance"))
+            .unwrap_or(Decimal::ZERO);
+        let pending = balance_record.as_ref()
+            .map(|r| r.get::<Decimal, _>("reserved_balance"))
+            .unwrap_or(Decimal::ZERO);
         let last_updated = Utc::now();
 
         // Get current USD value
@@ -78,7 +82,7 @@ impl BalanceService {
         
         let available_usd = available * price_decimal;
         let reserved_usd = pending * price_decimal;
-        let balance_usd = available_usd; // Keeping existing field consistent with previous logic
+        let balance_usd = available_usd;
 
         Ok(Balance {
             crypto_type,
@@ -119,10 +123,6 @@ impl BalanceService {
         let mut total_reserved_usd = Decimal::ZERO;
 
         for result in results {
-            // handle error mostly by ignoring or logging, but for now propagate if strict or just skip
-            // The original code tried one by one and returned error. 
-            // We should arguably still return error if one fails, or maybe just log it.
-            // Let's stick to original behavior: if one fails, we return error.
             if let Ok(balance) = result {
                  total_available_usd += balance.available_usd;
                  total_reserved_usd += balance.reserved_usd;
@@ -149,7 +149,7 @@ impl BalanceService {
         merchant_id: i64,
         crypto_type: CryptoType,
         amount_change: Decimal,
-        balance_type: &str, // "available", "pending", "total"
+        balance_type: &str,
         sandbox_mode: bool,
     ) -> Result<(), ServiceError> {
         // Ensure balance record exists
@@ -157,52 +157,52 @@ impl BalanceService {
 
         match balance_type {
             "available" => {
-                sqlx::query!(
+                sqlx::query(
                     r#"
                     UPDATE merchant_balances 
                     SET available_balance = available_balance + $1,
                         last_updated = $2
                     WHERE merchant_id = $3 AND crypto_type = $4 AND sandbox_mode = $5
-                    "#,
-                    amount_change,
-                    Utc::now(),
-                    merchant_id,
-                    crypto_type as CryptoType,
-                    sandbox_mode
+                    "#
                 )
+                .bind(amount_change)
+                .bind(Utc::now())
+                .bind(merchant_id)
+                .bind(crypto_type.as_str())
+                .bind(sandbox_mode)
                 .execute(&self.db_pool)
                 .await?;
             }
             "pending" => {
-                sqlx::query!(
+                sqlx::query(
                     r#"
                     UPDATE merchant_balances 
                     SET reserved_balance = reserved_balance + $1,
                         
                         last_updated = $2
                     WHERE merchant_id = $3 AND crypto_type = $4 AND sandbox_mode = $5
-                    "#,
-                    amount_change,
-                    Utc::now(),
-                    merchant_id,
-                    crypto_type as CryptoType,
-                    sandbox_mode
+                    "#
                 )
+                .bind(amount_change)
+                .bind(Utc::now())
+                .bind(merchant_id)
+                .bind(crypto_type.as_str())
+                .bind(sandbox_mode)
                 .execute(&self.db_pool)
                 .await?;
             }
             "total" => {
-                sqlx::query!(
+                sqlx::query(
                     r#"
                     UPDATE merchant_balances 
                     SET last_updated = $1
                     WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
-                    "#,
-                    Utc::now(),
-                    merchant_id,
-                    crypto_type as CryptoType,
-                    sandbox_mode
+                    "#
                 )
+                .bind(Utc::now())
+                .bind(merchant_id)
+                .bind(crypto_type.as_str())
+                .bind(sandbox_mode)
                 .execute(&self.db_pool)
                 .await?;
             }
@@ -223,20 +223,20 @@ impl BalanceService {
         amount: Decimal,
         sandbox_mode: bool,
     ) -> Result<(), ServiceError> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE merchant_balances 
             SET reserved_balance = reserved_balance - $1,
                 available_balance = available_balance + $1,
                 last_updated = $2
             WHERE merchant_id = $3 AND crypto_type = $4 AND sandbox_mode = $5
-            "#,
-            amount,
-            Utc::now(),
-            merchant_id,
-            crypto_type as CryptoType,
-            sandbox_mode
+            "#
         )
+        .bind(amount)
+        .bind(Utc::now())
+        .bind(merchant_id)
+        .bind(crypto_type.as_str())
+        .bind(sandbox_mode)
         .execute(&self.db_pool)
         .await?;
 
@@ -249,17 +249,17 @@ impl BalanceService {
         crypto_type: CryptoType,
         sandbox_mode: bool,
     ) -> Result<(), ServiceError> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
             VALUES ($1, $2, 0, 0, $3, $4)
             ON CONFLICT (merchant_id, crypto_type, sandbox_mode) DO NOTHING
-            "#,
-            merchant_id,
-            crypto_type as CryptoType,
-            Utc::now(),
-            sandbox_mode
+            "#
         )
+        .bind(merchant_id)
+        .bind(crypto_type.as_str())
+        .bind(Utc::now())
+        .bind(sandbox_mode)
         .execute(&self.db_pool)
         .await?;
 
@@ -271,9 +271,6 @@ impl BalanceService {
         merchant_id: i64,
         sandbox_mode: bool,
     ) -> Result<(), ServiceError> {
-        // This would integrate with blockchain monitoring to get real balances
-        // For now, we'll recalculate from payment transactions
-        
         let crypto_types = vec![
             CryptoType::Sol,
             CryptoType::UsdtSpl,
@@ -289,44 +286,44 @@ impl BalanceService {
 
         for crypto_type in crypto_types {
             // Calculate balance from confirmed payments
-            let balance_data = sqlx::query!(
+            let balance_data = sqlx::query(
                 r#"
                 SELECT 
                     COALESCE(SUM(CASE WHEN status = 'CONFIRMED' THEN amount ELSE 0 END), 0) as confirmed_total,
                     COALESCE(SUM(CASE WHEN status = 'PENDING' THEN amount ELSE 0 END), 0) as pending_total
                 FROM payment_transactions 
                 WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3
-                "#,
-                merchant_id,
-                crypto_type as CryptoType,
-                sandbox_mode
+                "#
             )
+            .bind(merchant_id)
+            .bind(crypto_type.as_str())
+            .bind(sandbox_mode)
             .fetch_one(&self.db_pool)
             .await?;
 
             // Calculate withdrawals
-            let withdrawal_data = sqlx::query!(
+            let withdrawal_data = sqlx::query(
                 r#"
                 SELECT COALESCE(SUM(amount), 0) as total_withdrawn
                 FROM withdrawals 
                 WHERE merchant_id = $1 AND crypto_type = $2 AND status = 'COMPLETED' AND sandbox_mode = $3
-                "#,
-                merchant_id,
-                crypto_type as CryptoType,
-                sandbox_mode
+                "#
             )
+            .bind(merchant_id)
+            .bind(crypto_type.as_str())
+            .bind(sandbox_mode)
             .fetch_one(&self.db_pool)
             .await?;
 
-            let confirmed_balance = balance_data.confirmed_total.unwrap_or(Decimal::ZERO);
-            let reserved_balance = balance_data.pending_total.unwrap_or(Decimal::ZERO);
-            let withdrawn = withdrawal_data.total_withdrawn.unwrap_or(Decimal::ZERO);
+            let confirmed_balance: Decimal = balance_data.try_get::<Option<Decimal>, _>("confirmed_total").ok().flatten().unwrap_or(Decimal::ZERO);
+            let reserved_balance: Decimal = balance_data.try_get::<Option<Decimal>, _>("pending_total").ok().flatten().unwrap_or(Decimal::ZERO);
+            let withdrawn: Decimal = withdrawal_data.try_get::<Option<Decimal>, _>("total_withdrawn").ok().flatten().unwrap_or(Decimal::ZERO);
 
             let available_balance = confirmed_balance - withdrawn;
-            let total_balance = available_balance + reserved_balance;
+            let _total_balance = available_balance + reserved_balance;
 
             // Update balance record
-            sqlx::query!(
+            sqlx::query(
                 r#"
                 INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
                 VALUES ($1, $2, $3, $4, $5, $6)
@@ -335,14 +332,14 @@ impl BalanceService {
                     available_balance = $3,
                     reserved_balance = $4,
                     last_updated = $5
-                "#,
-                merchant_id,
-                crypto_type as CryptoType,
-                available_balance,
-                reserved_balance,
-                Utc::now(),
-                sandbox_mode
+                "#
             )
+            .bind(merchant_id)
+            .bind(crypto_type.as_str())
+            .bind(available_balance)
+            .bind(reserved_balance)
+            .bind(Utc::now())
+            .bind(sandbox_mode)
             .execute(&self.db_pool)
             .await?;
         }

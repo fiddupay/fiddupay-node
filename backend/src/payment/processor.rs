@@ -4,7 +4,7 @@
 use chrono::{Duration, Utc};
 use nanoid::nanoid;
 use rust_decimal::Decimal;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use tracing::info;
 
 use crate::error::ServiceError;
@@ -312,11 +312,11 @@ impl PaymentProcessor {
 
                 if let Ok(invoice) = self.invoice_service.create_invoice(merchant_id, invoice_req).await {
                     // Link invoice to payment
-                    let update_res: Result<_, sqlx::Error> = sqlx::query!(
-                        "UPDATE invoices SET payment_id = $1 WHERE invoice_id = $2",
-                        payment_id,
-                        invoice.invoice_id
+                    let update_res: Result<_, sqlx::Error> = sqlx::query(
+                        "UPDATE invoices SET payment_id = $1 WHERE invoice_id = $2"
                     )
+                    .bind(&payment_id)
+                    .bind(&invoice.invoice_id)
                     .execute(&self.db_pool)
                     .await;
                     let _ = update_res;
@@ -357,25 +357,26 @@ impl PaymentProcessor {
 
     /// Cancel a pending payment
     pub async fn cancel_payment(&self, merchant_id: i64, payment_id: &str) -> Result<(), ServiceError> {
-        let payment = sqlx::query!(
-            "SELECT status FROM payment_transactions WHERE payment_id = $1 AND merchant_id = $2",
-            payment_id,
-            merchant_id
+        let payment_row = sqlx::query(
+            "SELECT status FROM payment_transactions WHERE payment_id = $1 AND merchant_id = $2"
         )
+        .bind(payment_id)
+        .bind(merchant_id)
         .fetch_optional(&self.db_pool)
         .await?
         .ok_or_else(|| ServiceError::NotFound("Payment not found".to_string()))?;
 
-        let current_status = PaymentStatus::from_string(&payment.status);
+        let status_str: String = payment_row.get("status");
+        let current_status = PaymentStatus::from_string(&status_str);
 
         // Only allow cancellation of pending/confirming/selection_required payments
         match current_status {
             PaymentStatus::Pending | PaymentStatus::Confirming | PaymentStatus::SelectionRequired => {
-                sqlx::query!(
-                    "UPDATE payment_transactions SET status = 'CANCELLED' WHERE payment_id = $1 AND merchant_id = $2",
-                    payment_id,
-                    merchant_id
+                sqlx::query(
+                    "UPDATE payment_transactions SET status = 'CANCELLED' WHERE payment_id = $1 AND merchant_id = $2"
                 )
+                .bind(payment_id)
+                .bind(merchant_id)
                 .execute(&self.db_pool)
                 .await?;
 

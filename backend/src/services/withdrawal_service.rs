@@ -23,8 +23,7 @@ impl WithdrawalService {
     ) -> Result<Withdrawal, ServiceError> {
         let withdrawal_id = format!("wd_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
         
-        let withdrawal_res: Result<Withdrawal, sqlx::Error> = sqlx::query_as!(
-            Withdrawal,
+        let withdrawal_res: Result<Withdrawal, sqlx::Error> = sqlx::query_as::<_, Withdrawal>(
             r#"
             INSERT INTO withdrawals (
                 withdrawal_id, merchant_id, crypto_type, amount, destination_address,
@@ -35,16 +34,16 @@ impl WithdrawalService {
                      amount, destination_address, status, fee, net_amount, transaction_hash,
                      rejection_reason, requires_approval, approved_by, approved_at, 
                      completed_at, created_at, updated_at
-            "#,
-            withdrawal_id,
-            merchant_id,
-            request.crypto_type,
-            request.amount,
-            request.destination_address,
-            Decimal::ZERO, // fee
-            request.amount, // net_amount
-            sandbox_mode
+            "#
         )
+        .bind(&withdrawal_id)
+        .bind(merchant_id)
+        .bind(&request.crypto_type)
+        .bind(request.amount)
+        .bind(&request.destination_address)
+        .bind(Decimal::ZERO) // fee
+        .bind(request.amount) // net_amount
+        .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await;
 
@@ -58,8 +57,7 @@ impl WithdrawalService {
         merchant_id: i64,
         withdrawal_id: &str,
     ) -> Result<Withdrawal, ServiceError> {
-        let withdrawal_res: Result<Option<Withdrawal>, sqlx::Error> = sqlx::query_as!(
-            Withdrawal,
+        let withdrawal_res: Result<Option<Withdrawal>, sqlx::Error> = sqlx::query_as::<_, Withdrawal>(
             r#"
             SELECT id, withdrawal_id, merchant_id, crypto_type, 
                    amount, destination_address, status, fee, net_amount, transaction_hash,
@@ -67,10 +65,10 @@ impl WithdrawalService {
                    completed_at, created_at, updated_at
             FROM withdrawals 
             WHERE withdrawal_id = $1 AND merchant_id = $2
-            "#,
-            withdrawal_id,
-            merchant_id
+            "#
         )
+        .bind(withdrawal_id)
+        .bind(merchant_id)
         .fetch_optional(&self.db_pool)
         .await;
 
@@ -84,8 +82,7 @@ impl WithdrawalService {
         merchant_id: i64,
         sandbox_mode: bool,
     ) -> Result<Vec<Withdrawal>, ServiceError> {
-        let withdrawals_res: Result<Vec<Withdrawal>, sqlx::Error> = sqlx::query_as!(
-            Withdrawal,
+        let withdrawals_res: Result<Vec<Withdrawal>, sqlx::Error> = sqlx::query_as::<_, Withdrawal>(
             r#"
             SELECT id, withdrawal_id, merchant_id, crypto_type, 
                    amount, destination_address, status, fee, net_amount, transaction_hash,
@@ -94,10 +91,10 @@ impl WithdrawalService {
             FROM withdrawals 
             WHERE merchant_id = $1 AND sandbox_mode = $2
             ORDER BY created_at DESC
-            "#,
-            merchant_id,
-            sandbox_mode
+            "#
         )
+        .bind(merchant_id)
+        .bind(sandbox_mode)
         .fetch_all(&self.db_pool)
         .await;
 
@@ -111,8 +108,7 @@ impl WithdrawalService {
         merchant_id: i64,
         withdrawal_id: &str,
     ) -> Result<Withdrawal, ServiceError> {
-        let withdrawal_res: Result<Option<Withdrawal>, sqlx::Error> = sqlx::query_as!(
-            Withdrawal,
+        let withdrawal_res: Result<Option<Withdrawal>, sqlx::Error> = sqlx::query_as::<_, Withdrawal>(
             r#"
             UPDATE withdrawals 
             SET status = 'CANCELLED', updated_at = NOW()
@@ -121,10 +117,10 @@ impl WithdrawalService {
                      amount, destination_address, status, fee, net_amount, transaction_hash,
                      rejection_reason, requires_approval, approved_by, approved_at, 
                      completed_at, created_at, updated_at
-            "#,
-            withdrawal_id,
-            merchant_id
+            "#
         )
+        .bind(withdrawal_id)
+        .bind(merchant_id)
         .fetch_optional(&self.db_pool)
         .await;
 

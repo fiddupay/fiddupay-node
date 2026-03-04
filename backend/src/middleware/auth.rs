@@ -119,10 +119,10 @@ pub async fn auth_middleware(
                 let sandbox_mode = token_data.claims.sandbox_mode;
 
                 // Verify merchant still exists (lightweight check)
-                match sqlx::query_scalar!(
-                    "SELECT id FROM merchants WHERE id = $1 AND is_active = true",
-                    merchant_id
+                match sqlx::query_scalar::<_, i64>(
+                    "SELECT id FROM merchants WHERE id = $1 AND is_active = true"
                 )
+                .bind(merchant_id)
                 .fetch_optional(&state.db_pool)
                 .await {
                     Ok(Some(_)) => {},

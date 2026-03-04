@@ -17,13 +17,13 @@ impl WalletSecurityService {
             "event_type": "wallet_access"
         });
 
-        sqlx::query!(
-            "INSERT INTO audit_logs (merchant_id, action_type, ip_address, details) VALUES ($1, $2, $3, $4)",
-            merchant_id,
-            "WALLET_ACCESS",
-            ip_address,
-            details_json
+        sqlx::query(
+            "INSERT INTO audit_logs (merchant_id, action_type, ip_address, details) VALUES ($1, $2, $3, $4)"
         )
+        .bind(merchant_id)
+        .bind("WALLET_ACCESS")
+        .bind(ip_address)
+        .bind(&details_json)
         .execute(&self.db_pool)
         .await?;
 
@@ -36,12 +36,12 @@ impl WalletSecurityService {
             "message": message
         });
 
-        sqlx::query!(
-            "INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)",
-            merchant_id,
-            "SECURITY_ALERT",
-            details_json
+        sqlx::query(
+            "INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)"
         )
+        .bind(merchant_id)
+        .bind("SECURITY_ALERT")
+        .bind(&details_json)
         .execute(&self.db_pool)
         .await?;
 
@@ -49,7 +49,6 @@ impl WalletSecurityService {
     }
 
     pub async fn check_suspicious_activity(&self, merchant_id: i64, ip_address: &str) -> Result<bool, ServiceError> {
-        // Simplified - no suspicious activity detection for now
         Ok(false)
     }
 }

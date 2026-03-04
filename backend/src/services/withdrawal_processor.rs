@@ -1,6 +1,6 @@
 use crate::error::ServiceError;
 use rust_decimal::Decimal;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 
 use crate::payment::models::CryptoType;
 use crate::services::blockchain_transaction_sender::BlockchainTransactionSender;
@@ -18,43 +18,49 @@ impl WithdrawalProcessor {
 
     pub async fn process_withdrawal(&self, withdrawal_id: &str) -> Result<(), ServiceError> {
         // 1. Fetch the withdrawal details
-        let withdrawal_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
+        let withdrawal = sqlx::query(
             r#"
             SELECT id, withdrawal_id, merchant_id, crypto_type, amount, destination_address, status, sandbox_mode
             FROM withdrawals 
             WHERE withdrawal_id = $1
-            "#,
-            withdrawal_id
+            "#
         )
+        .bind(withdrawal_id)
         .fetch_optional(&self.db_pool)
-        .await;
+        .await?
+        .ok_or_else(|| ServiceError::NotFound("Withdrawal not found".to_string()))?;
 
-        let withdrawal = withdrawal_res?.ok_or_else(|| ServiceError::NotFound("Withdrawal not found".to_string()))?;
+        let wd_status: String = withdrawal.get("status");
+        let wd_merchant_id: i64 = withdrawal.get("merchant_id");
+        let wd_crypto_type: String = withdrawal.get("crypto_type");
+        let wd_amount: Decimal = withdrawal.get("amount");
+        let wd_destination_address: String = withdrawal.get("destination_address");
+        let wd_sandbox_mode: bool = withdrawal.get("sandbox_mode");
 
-        if withdrawal.status != "PENDING" {
+        if wd_status != "PENDING" {
             return Err(ServiceError::ValidationError("Withdrawal already processed".to_string()));
         }
 
         // 2. Fetch the merchant's managed wallet for this crypto type
-        let wallet_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
+        let wallet = sqlx::query(
             r#"
             SELECT encrypted_private_key 
             FROM merchant_wallets 
             WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND address != ''
-            "#,
-            withdrawal.merchant_id,
-            withdrawal.crypto_type,
-            withdrawal.sandbox_mode
+            "#
         )
+        .bind(wd_merchant_id)
+        .bind(&wd_crypto_type)
+        .bind(wd_sandbox_mode)
         .fetch_optional(&self.db_pool)
-        .await;
+        .await?
+        .ok_or_else(|| ServiceError::NotFound("Merchant wallet not found or not configured".to_string()))?;
 
-        let wallet = wallet_res?.ok_or_else(|| ServiceError::NotFound("Merchant wallet not found or not configured".to_string()))?;
-
-        let encrypted_key = wallet.encrypted_private_key
+        let encrypted_key: Option<String> = wallet.get("encrypted_private_key");
+        let encrypted_key = encrypted_key
             .ok_or_else(|| ServiceError::ValidationError("Managed wallet has no private key available".to_string()))?;
 
-        let crypto_type_enum = CryptoType::from_string(&withdrawal.crypto_type)?;
+        let crypto_type_enum = CryptoType::from_string(&wd_crypto_type)?;
 
         // 3. Decrypt the private key
         let encryption = Encryption::new().map_err(|e| ServiceError::Internal(e))?;
@@ -65,10 +71,10 @@ impl WithdrawalProcessor {
         let tx_hash = match sender.send_native_transaction(
             crypto_type_enum,
             &private_key,
-            &withdrawal.destination_address,
-            withdrawal.amount,
+            &wd_destination_address,
+            wd_amount,
             None,
-            withdrawal.sandbox_mode,
+            wd_sandbox_mode,
         ).await {
             Ok(hash) => hash,
             Err(e) => {
@@ -79,15 +85,15 @@ impl WithdrawalProcessor {
         };
 
         // 5. Update the withdrawal as COMPLETED with the transaction hash
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE withdrawals 
             SET status = 'COMPLETED', completed_at = NOW(), transaction_hash = $1, updated_at = NOW()
             WHERE withdrawal_id = $2
-            "#,
-            tx_hash,
-            withdrawal_id
+            "#
         )
+        .bind(&tx_hash)
+        .bind(withdrawal_id)
         .execute(&self.db_pool)
         .await?;
 
@@ -95,11 +101,11 @@ impl WithdrawalProcessor {
     }
 
     pub async fn reject_withdrawal(&self, withdrawal_id: &str, reason: &str) -> Result<(), ServiceError> {
-        sqlx::query!(
-            "UPDATE withdrawals SET status = 'REJECTED', rejection_reason = $1, updated_at = NOW() WHERE withdrawal_id = $2",
-            reason,
-            withdrawal_id
+        sqlx::query(
+            "UPDATE withdrawals SET status = 'REJECTED', rejection_reason = $1, updated_at = NOW() WHERE withdrawal_id = $2"
         )
+        .bind(reason)
+        .bind(withdrawal_id)
         .execute(&self.db_pool)
         .await?;
 

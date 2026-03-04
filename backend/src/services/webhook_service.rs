@@ -61,31 +61,31 @@ impl WebhookService {
                 ));
             }
 
-            sqlx::query!(
+            sqlx::query(
                 r#"
                 INSERT INTO webhook_configs (merchant_id, url, payload_format, is_active, signing_secret)
                 VALUES ($1, $2, $3, true, $4)
                 ON CONFLICT (merchant_id) 
                 DO UPDATE SET url = $2, payload_format = $3, is_active = true, updated_at = NOW()
-                "#,
-                merchant_id,
-                url_str,
-                format,
-                hex::encode(rand::random::<[u8; 32]>())
+                "#
             )
+            .bind(merchant_id)
+            .bind(&url_str)
+            .bind(&format)
+            .bind(hex::encode(rand::random::<[u8; 32]>()))
             .execute(&self.db_pool)
             .await
             .map_err(|e| ServiceError::Internal(format!("Failed to set webhook URL: {}", e)))?;
         } else {
-             sqlx::query!(
+             sqlx::query(
                 r#"
                 UPDATE webhook_configs 
                 SET payload_format = $1, updated_at = NOW()
                 WHERE merchant_id = $2
-                "#,
-                format,
-                merchant_id
+                "#
             )
+            .bind(&format)
+            .bind(merchant_id)
             .execute(&self.db_pool)
             .await
             .map_err(|e| ServiceError::Internal(format!("Failed to update webhook format: {}", e)))?;
@@ -158,16 +158,20 @@ impl WebhookService {
         payload: WebhookPayload,
     ) -> Result<(), ServiceError> {
         // Get merchant's webhook configuration
-        let config = sqlx::query!(
-            "SELECT url, payload_format, signing_secret FROM webhook_configs WHERE merchant_id = $1 AND is_active = true",
-            merchant_id
+        let config = sqlx::query(
+            "SELECT url, payload_format, signing_secret FROM webhook_configs WHERE merchant_id = $1 AND is_active = true"
         )
+        .bind(merchant_id)
         .fetch_optional(&self.db_pool)
         .await
         .map_err(|e| ServiceError::Internal(format!("Failed to fetch webhook config: {}", e)))?;
 
+use sqlx::Row;
+
         if let Some(config) = config {
-            let payload_value = if config.payload_format == "discord" {
+            let config_url: String = config.get("url");
+            let config_payload_format: String = config.get("payload_format");
+            let payload_value = if config_payload_format == "discord" {
                 let payment_link = format!("https://pay.fiddupay.com/{}", payload.payment_id);
                 let tx_hash_display = payload.transaction_hash.as_deref().unwrap_or("Pending/Unknown");
                 
@@ -209,7 +213,7 @@ impl WebhookService {
                         "timestamp": chrono::Utc::now().to_rfc3339()
                     }]
                 })
-            } else if config.payload_format == "slack" {
+            } else if config_payload_format == "slack" {
                 let text = match payload.event_type.as_str() {
                     "payment.confirmed" => format!("✅ *Payment Confirmed*\nID: `{}`\nAmount: `{} {}`", 
                         payload.payment_id, payload.amount, payload.crypto_type),
@@ -223,17 +227,17 @@ impl WebhookService {
             };
 
             // Queue notification for background delivery
-            sqlx::query!(
+            sqlx::query(
                 r#"
                 INSERT INTO webhook_deliveries (merchant_id, payment_id, event_type, url, payload, status, created_at, next_retry_at)
                 VALUES ($1, $2, $3, $4, $5, 'pending', NOW(), NOW())
-                "#,
-                merchant_id,
-                payment_id,
-                payload.event_type,
-                config.url,
-                payload_value
+                "#
             )
+            .bind(merchant_id)
+            .bind(payment_id)
+            .bind(&payload.event_type)
+            .bind(&config_url)
+            .bind(&payload_value)
             .execute(&self.db_pool)
             .await
             .map_err(|e| ServiceError::Internal(format!("Failed to queue webhook: {}", e)))?;

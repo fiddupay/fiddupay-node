@@ -29,10 +29,10 @@ pub async fn ip_whitelist_middleware(
     
     if let Some(context) = merchant_context {
         // Get IP whitelist for merchant
-        let whitelist_res: Result<Vec<_>, sqlx::Error> = sqlx::query!(
-            "SELECT ip_address FROM ip_whitelist WHERE merchant_id = $1 AND is_active = true",
-            context.merchant_id
+        let whitelist_res = sqlx::query(
+            "SELECT ip_address FROM ip_whitelist WHERE merchant_id = $1 AND is_active = true"
         )
+        .bind(context.merchant_id)
         .fetch_all(&state.db_pool)
         .await;
 
@@ -58,8 +58,9 @@ pub async fn ip_whitelist_middleware(
         // Check if request IP is in whitelist
         let request_ip = addr.ip().to_string();
         let is_whitelisted = whitelist.iter().any(|entry| {
-            // Simple IP matching (could be enhanced with CIDR support)
-            entry.ip_address == request_ip
+            use sqlx::Row;
+            let ip: String = entry.get("ip_address");
+            ip == request_ip
         });
 
         if !is_whitelisted {

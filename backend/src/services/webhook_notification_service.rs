@@ -5,7 +5,7 @@ use crate::error::ServiceError;
 use crate::services::address_only_service::{AddressOnlyPayment, AddressOnlyStatus};
 use reqwest::Client;
 use serde_json::json;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 
 pub struct WebhookNotificationService {
     client: Client,
@@ -64,14 +64,14 @@ impl WebhookNotificationService {
 
     /// Get merchant webhook URL
     pub async fn get_merchant_webhook_url(&self, merchant_id: i64) -> Result<Option<String>, ServiceError> {
-        let record: Option<_> = sqlx::query!(
-            "SELECT webhook_url FROM merchants WHERE id = $1 AND webhook_url IS NOT NULL",
-            merchant_id
+        let record = sqlx::query(
+            "SELECT webhook_url FROM merchants WHERE id = $1 AND webhook_url IS NOT NULL"
         )
+        .bind(merchant_id)
         .fetch_optional(&self.db_pool)
         .await?;
 
-        Ok(record.map(|r| r.webhook_url).flatten())
+        Ok(record.and_then(|r| r.try_get::<Option<String>, _>("webhook_url").ok().flatten()))
     }
 
     /// Log webhook attempt for debugging
@@ -81,15 +81,15 @@ impl WebhookNotificationService {
         webhook_url: &str,
         status_code: u16,
     ) -> Result<(), ServiceError> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO webhook_logs (payment_id, webhook_url, status_code, attempted_at)
             VALUES ($1, $2, $3, NOW())
-            "#,
-            payment_id,
-            webhook_url,
-            status_code as i32
+            "#
         )
+        .bind(payment_id)
+        .bind(webhook_url)
+        .bind(status_code as i32)
         .execute(&self.db_pool)
         .await?;
 
