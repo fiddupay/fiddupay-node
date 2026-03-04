@@ -29,7 +29,7 @@ pub async fn create_withdrawal(
             )
             .fetch_optional(&state.db_pool)
             .await {
-                if merchant.settlement_mode.unwrap_or_else(|| "managed".to_string()) == "managed" {
+                if merchant.settlement_mode == "managed" {
                     // Spawn background task to process the withdrawal automatically
                     let processor = crate::services::withdrawal_processor::WithdrawalProcessor::new(
                         state.db_pool.clone(),
