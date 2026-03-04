@@ -130,14 +130,54 @@ impl MerchantService {
         to_live: bool,
     ) -> Result<Option<String>, ServiceError> {
         // Toggle the sandbox mode
+        let target_sandbox = !to_live;
         sqlx::query(
             "UPDATE merchants SET sandbox_mode = $1, updated_at = $2 WHERE id = $3"
         )
-        .bind(!to_live)
+        .bind(target_sandbox)
         .bind(Utc::now())
         .bind(merchant_id)
         .execute(&self.db_pool)
         .await?;
+
+        // Mirror wallet configs from the opposite environment into the target environment.
+        // This ensures merchants always see their wallets regardless of which mode they're in.
+        // ON CONFLICT DO NOTHING ensures we never overwrite wallets that already exist in the target.
+        let source_sandbox = !target_sandbox;
+        
+        // Mirror merchant_wallets (managed / imported)
+        sqlx::query(
+            r#"
+            INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key)
+            SELECT merchant_id, crypto_type, network, address, is_active, $1, encrypted_private_key
+            FROM merchant_wallets
+            WHERE merchant_id = $2 AND sandbox_mode = $3 AND address != ''
+            ON CONFLICT (merchant_id, crypto_type, sandbox_mode) DO NOTHING
+            "#
+        )
+        .bind(target_sandbox)
+        .bind(merchant_id)
+        .bind(source_sandbox)
+        .execute(&self.db_pool)
+        .await?;
+
+        // Mirror merchant_forwarding_wallets
+        sqlx::query(
+            r#"
+            INSERT INTO merchant_forwarding_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode)
+            SELECT merchant_id, crypto_type, network, address, is_active, $1
+            FROM merchant_forwarding_wallets
+            WHERE merchant_id = $2 AND sandbox_mode = $3 AND address != ''
+            ON CONFLICT (merchant_id, crypto_type, sandbox_mode) DO NOTHING
+            "#
+        )
+        .bind(target_sandbox)
+        .bind(merchant_id)
+        .bind(source_sandbox)
+        .execute(&self.db_pool)
+        .await?;
+
+        tracing::info!("Environment switch for merchant {}: mirrored wallet configs from sandbox_mode={} to sandbox_mode={}", merchant_id, source_sandbox, target_sandbox);
 
         // Check if the target environment already has a key
         let merchant = sqlx::query_as::<_, Merchant>(
