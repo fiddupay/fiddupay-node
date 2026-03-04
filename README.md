@@ -93,6 +93,20 @@ This is a unified command that:
 npm run release <version>  # Example: npm run release 2.4.1
 ```
 
+#### Repository Sync Scripts
+To sync specific code changes strictly to their respective GitHub repositories using PowerShell:
+
+```powershell
+# Sync core backend
+.\scripts\push-backend.ps1 -Branch main
+
+# Sync merchant dashboard (frontend)
+.\scripts\push-frontend.ps1 -Branch main
+
+# Sync P2P exchange frontend
+.\scripts\push-p2p.ps1 -Branch main
+```
+
 #### Manual SDK Sync
 To sync code changes to the standalone SDK repository without creating a release tag:
 
