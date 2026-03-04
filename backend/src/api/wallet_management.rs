@@ -549,6 +549,11 @@ pub async fn get_wallet_balances(
     let sandbox_mode = merchant_info.as_ref().map(|m| m.sandbox_mode).unwrap_or(false);
     let settlement_mode = merchant_info.as_ref().map(|m| m.settlement_mode.clone()).unwrap_or_else(|| "managed".to_string());
 
+    tracing::info!(
+        "get_wallet_balances: merchant_id={}, sandbox_mode={}, settlement_mode={}",
+        context.merchant_id, sandbox_mode, settlement_mode
+    );
+
     // Get wallet configs with their balances and transaction volume, isolated by sandbox mode
     // We only show balances for "managed" or "imported" mode, because "forwarding" mode wallets don't hold a balance on our platform.
     // However, if we are in forwarding mode, we still query merchant_forwarding_wallets to show the user their wallets, but with 0 balance.
@@ -617,6 +622,10 @@ pub async fn get_wallet_balances(
 
     match result {
         Ok(wallets) => {
+            tracing::info!(
+                "get_wallet_balances: merchant_id={} returned {} wallets (is_forwarding={})",
+                context.merchant_id, wallets.len(), is_forwarding
+            );
             let wallet_data: Vec<serde_json::Value> = wallets.iter().map(|w| json!({
                 "crypto_type": w.crypto_type,
                 "network": w.network,

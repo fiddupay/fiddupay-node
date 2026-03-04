@@ -41,24 +41,41 @@ const WithdrawalsPage: React.FC = () => {
     const [destinationAddress, setDestinationAddress] = useState('')
     const [amount, setAmount] = useState('')
     const [showConfirm, setShowConfirm] = useState(false)
+    const [balanceError, setBalanceError] = useState<string | null>(null)
 
     useEffect(() => {
         fetchData()
-    }, [])
+    }, [user?.sandbox_mode])
 
     const fetchData = async () => {
         try {
             setLoading(true)
-            const [balRes, histRes] = await Promise.all([
-                walletAPI.getBalances().catch(() => ({ data: { wallets: [] } })),
-                withdrawalAPI.getHistory().catch(() => ({ data: [] }))
-            ])
-            const balances = Array.isArray(balRes.data.wallets) ? balRes.data.wallets : []
+            setBalanceError(null)
+
+            // Fetch balances — do NOT silently swallow errors
+            let balances: WalletBalance[] = []
+            try {
+                const balRes = await walletAPI.getBalances()
+                console.log('[WithdrawalsPage] balances API response:', balRes.data)
+                balances = Array.isArray(balRes.data?.wallets) ? balRes.data.wallets : []
+            } catch (balErr: any) {
+                const errMsg = balErr.response?.data?.error || balErr.message || 'Unknown error'
+                console.error('[WithdrawalsPage] Failed to fetch balances:', balErr.response?.status, errMsg)
+                setBalanceError(`Failed to load wallets: ${errMsg}`)
+            }
+
             setWalletBalances(balances)
             if (balances.length > 0 && !selectedCrypto) {
                 setSelectedCrypto(balances[0].crypto_type)
             }
-            setWithdrawals(Array.isArray(histRes.data) ? histRes.data : [])
+
+            // Fetch withdrawal history
+            try {
+                const histRes = await withdrawalAPI.getHistory()
+                setWithdrawals(Array.isArray(histRes.data) ? histRes.data : [])
+            } catch {
+                setWithdrawals([])
+            }
         } catch (error) {
             console.error('Failed to load data:', error)
         } finally {
@@ -156,6 +173,19 @@ const WithdrawalsPage: React.FC = () => {
                         <p className="text-sm">
                             You are currently in {settlementMode} mode. This withdrawal interface is primarily for funds held in platform-managed wallets.
                         </p>
+                    </div>
+                </div>
+            )}
+
+            {balanceError && (
+                <div style={{ marginBottom: '1.5rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', padding: '1rem', display: 'flex', gap: '0.75rem', color: '#991b1b' }}>
+                    <i className="fas fa-exclamation-triangle" style={{ marginTop: '2px' }}></i>
+                    <div>
+                        <p style={{ fontWeight: 700 }}>Error Loading Wallets</p>
+                        <p style={{ fontSize: '0.875rem' }}>{balanceError}</p>
+                        <button onClick={fetchData} style={{ marginTop: '0.5rem', fontSize: '0.8rem', padding: '4px 12px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                            <i className="fas fa-redo" style={{ marginRight: '4px' }}></i> Retry
+                        </button>
                     </div>
                 </div>
             )}
