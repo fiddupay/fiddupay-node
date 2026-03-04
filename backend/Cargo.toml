@@ -36,9 +36,9 @@ futures-util = "0.3"
 
 # Blockchain transaction libraries (minimal set)
 web3 = "0.19"
-solana-client = "1.18"
-solana-sdk = "1.18"
-solana-program = "1.18"
+solana-client = "2.1.2"
+solana-sdk = "2.1.2"
+solana-program = "2.1.2"
 
 # Redis
 redis = { version = "1.0.2", features = ["tokio-comp", "connection-manager"] }
