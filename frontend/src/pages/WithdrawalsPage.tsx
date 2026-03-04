@@ -362,7 +362,15 @@ const WithdrawalsPage: React.FC = () => {
                             </div>
                             <div className={styles.confirmRow}>
                                 <span>Destination</span>
-                                <span className={styles.addressTruncate}>{destinationAddress}</span>
+                                <span style={{
+                                    wordBreak: 'break-all',
+                                    textAlign: 'right',
+                                    maxWidth: '60%',
+                                    fontSize: '0.9rem',
+                                    fontFamily: 'monospace',
+                                    fontWeight: 500,
+                                    color: '#374151'
+                                }}>{destinationAddress}</span>
                             </div>
                         </div>
                         <div className={styles.confirmWarning}>
