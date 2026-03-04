@@ -44,7 +44,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Run migrations
     tracing::info!(" Running database migrations...");
-    sqlx::migrate!("./migrations")
+    sqlx::migrate::Migrator::new(std::path::Path::new("./migrations"))
+        .await?
         .run(&db_pool)
         .await?;
     tracing::info!(" Migrations complete");
