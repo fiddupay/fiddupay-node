@@ -169,21 +169,32 @@ impl WebhookService {
         if let Some(config) = config {
             let payload_value = if config.payload_format == "discord" {
                 let payment_link = format!("https://pay.fiddupay.com/{}", payload.payment_id);
+                let tx_hash_display = payload.transaction_hash.as_deref().unwrap_or("Pending/Unknown");
+                
                 let (color, title, body_text) = match payload.event_type.as_str() {
                     "payment.confirmed" => (
                         5763719, // Green
                         "✅ Payment Confirmed",
-                        format!("**ID:** `{}`\n**Amount:** `{} {}`\n**Link:** {}", payload.payment_id, payload.amount, payload.crypto_type, payment_link)
+                        format!(
+                            "**Amount:** `{} {}`\n**Payment ID:** `{}`\n**Tx Hash:** `{}`\n\n**[View Payment Page]({})**", 
+                            payload.amount, payload.crypto_type, payload.payment_id, tx_hash_display, payment_link
+                        )
                     ),
                     "payment.expired" => (
                         15548997, // Red
                         "❌ Payment Expired",
-                        format!("**ID:** `{}`\n**Link:** {}", payload.payment_id, payment_link)
+                        format!(
+                            "**Amount:** `{} {}`\n**Payment ID:** `{}`\n\n**[View Payment Page]({})**", 
+                            payload.amount, payload.crypto_type, payload.payment_id, payment_link
+                        )
                     ),
                     _ => (
                         3447003, // Blue
                         "🔔 Webhook Alert",
-                        format!("**Event:** `{}`\n**ID:** `{}`\n**Link:** {}", payload.event_type, payload.payment_id, payment_link)
+                        format!(
+                            "**Event:** `{}`\n**Amount:** `{} {}`\n**Payment ID:** `{}`\n\n**[View Payment Page]({})**", 
+                            payload.event_type, payload.amount, payload.crypto_type, payload.payment_id, payment_link
+                        )
                     ),
                 };
                 

@@ -590,26 +590,32 @@ pub async fn get_wallet_balances(
                 mw.network,
                 mw.address,
                 mw.is_active,
-                COALESCE(mb.available_balance, 0::numeric) as available_balance,
-                COALESCE(mb.reserved_balance, 0::numeric) as reserved_balance,
-                COALESCE(mb.total_balance, 0::numeric) as total_balance,
+                COALESCE(tx_stats.net_received, 0::numeric) - COALESCE(wd_stats.total_withdrawn, 0::numeric) as available_balance,
+                0::numeric as reserved_balance,
+                COALESCE(tx_stats.net_received, 0::numeric) - COALESCE(wd_stats.total_withdrawn, 0::numeric) as total_balance,
                 COALESCE(tx_stats.tx_count, 0::bigint) as transaction_count,
                 COALESCE(tx_stats.total_volume, 0::numeric) as total_volume_crypto
             FROM merchant_wallets mw
-            LEFT JOIN merchant_balances mb
-                ON mb.merchant_id = mw.merchant_id 
-               AND mb.crypto_type = mw.crypto_type 
-               AND mb.sandbox_mode = mw.sandbox_mode
             LEFT JOIN LATERAL (
                 SELECT
                     COUNT(*)::bigint as tx_count,
-                    COALESCE(SUM(amount), 0::numeric) as total_volume
+                    COALESCE(SUM(amount), 0::numeric) as total_volume,
+                    COALESCE(SUM(amount - COALESCE(fee_amount, 0::numeric)), 0::numeric) as net_received
                 FROM payment_transactions
                 WHERE merchant_id = mw.merchant_id
                   AND crypto_type = mw.crypto_type
                   AND status = 'CONFIRMED'
                   AND sandbox_mode = mw.sandbox_mode
             ) tx_stats ON true
+            LEFT JOIN LATERAL (
+                SELECT
+                    COALESCE(SUM(amount), 0::numeric) as total_withdrawn
+                FROM withdrawals
+                WHERE merchant_id = mw.merchant_id
+                  AND crypto_type = mw.crypto_type
+                  AND status = 'COMPLETED'
+                  AND sandbox_mode = mw.sandbox_mode
+            ) wd_stats ON true
             WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $2 AND mw.address != ''
             ORDER BY mw.crypto_type
             "#

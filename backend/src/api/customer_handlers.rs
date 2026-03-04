@@ -34,11 +34,12 @@ pub async fn register_customer(
 pub async fn provision_customer_wallets(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
+    Path(external_id): Path<String>,
     Json(req): Json<ProvisionWalletRequest>,
 ) -> impl IntoResponse {
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
-    match service.provision_wallets(context.merchant_id, &req.external_id, req.networks).await {
+    match service.provision_wallets(context.merchant_id, &external_id, req.networks).await {
         Ok(wallets) => {
             // Filter out sensitive data (private keys are stored encrypted, but we return addresses)
             let response_wallets: Vec<_> = wallets.iter().map(|w| json!({
@@ -49,7 +50,7 @@ pub async fn provision_customer_wallets(
             })).collect();
 
             (StatusCode::OK, Json(json!({
-                "external_id": req.external_id,
+                "external_id": external_id,
                 "wallets": response_wallets,
                 "message": "Customer wallets provisioned successfully across requested networks"
             }))).into_response()

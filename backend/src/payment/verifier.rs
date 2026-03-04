@@ -344,10 +344,10 @@ impl PaymentVerifier {
         payment_id: i64,
         merchant_id: i64,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // Fetch payment to get fee information for logging (Requirement 6.3)
+        // Fetch payment to get fee information and sandbox_mode (Requirement 6.3)
         let payment = sqlx::query!(
             r#"
-            SELECT fee_amount, fee_amount_usd, fee_percentage, amount, amount_usd, crypto_type
+            SELECT payment_id as public_id, fee_amount, fee_amount_usd, fee_percentage, amount, amount_usd, crypto_type, sandbox_mode, transaction_hash
             FROM payment_transactions
             WHERE id = $1
             "#,
@@ -371,6 +371,47 @@ impl PaymentVerifier {
         .execute(&self.db_pool)
         .await?;
 
+        // Credit merchant balance (net amount = payment amount - platform fee)
+        let gross_amount = payment.amount.unwrap_or(Decimal::ZERO);
+        let fee_amount = payment.fee_amount.unwrap_or(Decimal::ZERO);
+        let net_amount = gross_amount - fee_amount;
+        let crypto_type_str = payment.crypto_type.clone().unwrap_or_else(|| "UNKNOWN".to_string());
+        let sandbox_mode = payment.sandbox_mode;
+
+        if net_amount > Decimal::ZERO {
+            match sqlx::query(
+                r#"
+                INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
+                VALUES ($1, $2, $3, 0, NOW(), $4)
+                ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
+                DO UPDATE SET
+                    available_balance = merchant_balances.available_balance + $3,
+                    last_updated = NOW()
+                "#
+            )
+            .bind(merchant_id)
+            .bind(&crypto_type_str)
+            .bind(net_amount)
+            .bind(sandbox_mode)
+            .execute(&self.db_pool)
+            .await {
+                Ok(_) => {
+                    info!(
+                        "💰 Merchant {} balance credited: {} {} (gross: {}, fee: {}, sandbox: {})",
+                        merchant_id, net_amount, crypto_type_str, gross_amount, fee_amount, sandbox_mode
+                    );
+                }
+                Err(e) => {
+                    error!(
+                        "❌ Failed to credit balance for merchant {} payment {}: {}",
+                        merchant_id, payment_id, e
+                    );
+                    // Don't fail the whole confirmation — the payment IS confirmed,
+                    // balance can be reconciled later via refresh_balances_from_blockchain
+                }
+            }
+        }
+
         // Log fee recording for audit trail (Requirement 6.3)
         info!(
             " Payment {} confirmed for merchant {} - Fee recorded: {:?} crypto (${}) at {}% rate",
@@ -384,12 +425,12 @@ impl PaymentVerifier {
         // Trigger webhook notification
         let webhook_payload = crate::models::webhook::WebhookPayload {
             event_type: "payment.confirmed".to_string(),
-            payment_id: payment_id.to_string(),
+            payment_id: payment.public_id.clone(),
             merchant_id,
             status: crate::payment::models::PaymentStatus::Confirmed,
             amount: payment.amount.unwrap_or_default(),
             crypto_type: payment.crypto_type.unwrap_or_else(|| "UNKNOWN".to_string()),
-            transaction_hash: Some("tx_hash".to_string()), // Would need transaction hash parameter
+            transaction_hash: payment.transaction_hash.clone(),
             timestamp: chrono::Utc::now().timestamp(),
         };
         

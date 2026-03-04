@@ -140,6 +140,42 @@ impl SandboxService {
         .execute(&self.db_pool)
         .await?;
 
+        // Credit merchant balance for successful sandbox payments
+        if success {
+            use rust_decimal::Decimal;
+
+            let payment_data = sqlx::query!(
+                "SELECT amount, fee_amount, crypto_type, sandbox_mode FROM payment_transactions WHERE id = $1",
+                payment.id
+            )
+            .fetch_one(&self.db_pool)
+            .await?;
+
+            let gross_amount = payment_data.amount.unwrap_or(Decimal::ZERO);
+            let fee_amount = payment_data.fee_amount.unwrap_or(Decimal::ZERO);
+            let net_amount = gross_amount - fee_amount;
+            let crypto_type_str = payment_data.crypto_type.unwrap_or_else(|| "UNKNOWN".to_string());
+
+            if net_amount > Decimal::ZERO {
+                let _ = sqlx::query!(
+                    r#"
+                    INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
+                    VALUES ($1, $2, $3, 0, NOW(), $4)
+                    ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
+                    DO UPDATE SET
+                        available_balance = merchant_balances.available_balance + $3,
+                        last_updated = NOW()
+                    "#,
+                    merchant_id,
+                    crypto_type_str,
+                    net_amount,
+                    payment_data.sandbox_mode
+                )
+                .execute(&self.db_pool)
+                .await;
+            }
+        }
+
         Ok(())
     }
 

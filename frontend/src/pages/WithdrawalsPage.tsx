@@ -165,15 +165,21 @@ const WithdrawalsPage: React.FC = () => {
                 <p>Withdraw funds from your managed wallets to any external address</p>
             </div>
 
-            {settlementMode !== 'managed' && (
-                <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-4 text-yellow-800">
-                    <i className="fas fa-info-circle mt-1"></i>
-                    <div>
-                        <p className="font-bold">Note on {settlementMode.toUpperCase()} Mode</p>
-                        <p className="text-sm">
-                            You are currently in {settlementMode} mode. This withdrawal interface is primarily for funds held in platform-managed wallets.
-                        </p>
-                    </div>
+            {settlementMode === 'forwarding' && (
+                <div style={{
+                    marginBottom: '1.5rem',
+                    background: 'linear-gradient(135deg, #eff6ff, #f0f9ff)',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '0.75rem',
+                    padding: '2rem',
+                    textAlign: 'center',
+                }}>
+                    <i className="fas fa-exchange-alt" style={{ fontSize: '2rem', color: '#3b82f6', marginBottom: '0.75rem', display: 'block' }}></i>
+                    <h3 style={{ margin: '0 0 0.5rem', color: '#1e40af', fontSize: '1.1rem' }}>Forwarding Mode Active</h3>
+                    <p style={{ margin: 0, color: '#1e40af', fontSize: '0.9rem', maxWidth: '500px', marginInline: 'auto' }}>
+                        Your payments are instantly forwarded to your external wallet (minus platform fees).
+                        There is no balance to withdraw. Switch to <strong>Managed</strong> mode in Settings to hold funds and use withdrawals.
+                    </p>
                 </div>
             )}
 
@@ -191,91 +197,93 @@ const WithdrawalsPage: React.FC = () => {
             )}
 
             <div className={styles.layout}>
-                {/* Withdrawal Form */}
-                <div className={styles.formCard}>
-                    <div className={styles.formCardHeader}>
-                        <i className="fas fa-paper-plane"></i>
-                        <h2>New Withdrawal</h2>
-                    </div>
-
-                    <form onSubmit={handleSubmit}>
-                        {/* Wallet Selector */}
-                        <div className={styles.formGroup}>
-                            <label>Select Wallet</label>
-                            <select
-                                value={selectedCrypto}
-                                onChange={e => setSelectedCrypto(e.target.value)}
-                                className={styles.select}
-                            >
-                                {walletBalances.length === 0 && <option value="">No wallets available</option>}
-                                {walletBalances.map(w => (
-                                    <option key={w.crypto_type} value={w.crypto_type}>
-                                        {w.crypto_type} — Balance: {parseFloat(w.available_balance || '0').toFixed(6)} ({w.network})
-                                    </option>
-                                ))}
-                            </select>
+                {/* Withdrawal Form — only for managed/imported modes */}
+                {settlementMode !== 'forwarding' && (
+                    <div className={styles.formCard}>
+                        <div className={styles.formCardHeader}>
+                            <i className="fas fa-paper-plane"></i>
+                            <h2>New Withdrawal</h2>
                         </div>
 
-                        {/* Selected wallet info */}
-                        {selectedWallet && (
-                            <div className={styles.walletInfo}>
-                                <div className={styles.walletInfoRow}>
-                                    <span>Available Balance</span>
-                                    <strong style={{ color: '#059669' }}>{parseFloat(selectedWallet.available_balance || '0').toFixed(6)} {selectedCrypto.split('_')[0]}</strong>
-                                </div>
-                                <div className={styles.walletInfoRow}>
-                                    <span>Network</span>
-                                    <strong>{selectedWallet.network}</strong>
-                                </div>
+                        <form onSubmit={handleSubmit}>
+                            {/* Wallet Selector */}
+                            <div className={styles.formGroup}>
+                                <label>Select Wallet</label>
+                                <select
+                                    value={selectedCrypto}
+                                    onChange={e => setSelectedCrypto(e.target.value)}
+                                    className={styles.select}
+                                >
+                                    {walletBalances.length === 0 && <option value="">No wallets available</option>}
+                                    {walletBalances.map(w => (
+                                        <option key={w.crypto_type} value={w.crypto_type}>
+                                            {w.crypto_type} — Balance: {parseFloat(w.available_balance || '0').toFixed(6)} ({w.network})
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
-                        )}
 
-                        {/* Destination Address */}
-                        <div className={styles.formGroup}>
-                            <label>Destination Address</label>
-                            <input
-                                type="text"
-                                value={destinationAddress}
-                                onChange={e => setDestinationAddress(e.target.value)}
-                                placeholder="Enter external wallet address"
-                                className={styles.input}
-                            />
-                        </div>
+                            {/* Selected wallet info */}
+                            {selectedWallet && (
+                                <div className={styles.walletInfo}>
+                                    <div className={styles.walletInfoRow}>
+                                        <span>Available Balance</span>
+                                        <strong style={{ color: '#059669' }}>{parseFloat(selectedWallet.available_balance || '0').toFixed(6)} {selectedCrypto.split('_')[0]}</strong>
+                                    </div>
+                                    <div className={styles.walletInfoRow}>
+                                        <span>Network</span>
+                                        <strong>{selectedWallet.network}</strong>
+                                    </div>
+                                </div>
+                            )}
 
-                        {/* Amount */}
-                        <div className={styles.formGroup}>
-                            <label>Amount</label>
-                            <div className={styles.amountRow}>
+                            {/* Destination Address */}
+                            <div className={styles.formGroup}>
+                                <label>Destination Address</label>
                                 <input
-                                    type="number"
-                                    step="any"
-                                    value={amount}
-                                    onChange={e => setAmount(e.target.value)}
-                                    placeholder="0.00"
+                                    type="text"
+                                    value={destinationAddress}
+                                    onChange={e => setDestinationAddress(e.target.value)}
+                                    placeholder="Enter external wallet address"
                                     className={styles.input}
                                 />
-                                <button type="button" className={styles.maxBtn} onClick={handleMaxAmount}>MAX</button>
                             </div>
-                        </div>
 
-                        {/* Fee Display */}
-                        <div className={styles.feeDisplay}>
-                            <div className={styles.feeRow}>
-                                <span>Withdrawal Fee</span>
-                                <span className={styles.freeLabel}><i className="fas fa-check-circle"></i> FREE</span>
+                            {/* Amount */}
+                            <div className={styles.formGroup}>
+                                <label>Amount</label>
+                                <div className={styles.amountRow}>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={amount}
+                                        onChange={e => setAmount(e.target.value)}
+                                        placeholder="0.00"
+                                        className={styles.input}
+                                    />
+                                    <button type="button" className={styles.maxBtn} onClick={handleMaxAmount}>MAX</button>
+                                </div>
                             </div>
-                            <div className={styles.feeRow}>
-                                <span>You Receive</span>
-                                <strong>{amount ? parseFloat(amount).toFixed(6) : '0.000000'} {selectedCrypto.split('_')[0]}</strong>
-                            </div>
-                        </div>
 
-                        <button type="submit" className={styles.submitBtn} disabled={submitting || walletBalances.length === 0}>
-                            <i className="fas fa-paper-plane"></i>
-                            {submitting ? 'Submitting...' : 'Submit Withdrawal'}
-                        </button>
-                    </form>
-                </div>
+                            {/* Fee Display */}
+                            <div className={styles.feeDisplay}>
+                                <div className={styles.feeRow}>
+                                    <span>Withdrawal Fee</span>
+                                    <span className={styles.freeLabel}><i className="fas fa-check-circle"></i> FREE</span>
+                                </div>
+                                <div className={styles.feeRow}>
+                                    <span>You Receive</span>
+                                    <strong>{amount ? parseFloat(amount).toFixed(6) : '0.000000'} {selectedCrypto.split('_')[0]}</strong>
+                                </div>
+                            </div>
+
+                            <button type="submit" className={styles.submitBtn} disabled={submitting || walletBalances.length === 0}>
+                                <i className="fas fa-paper-plane"></i>
+                                {submitting ? 'Submitting...' : 'Submit Withdrawal'}
+                            </button>
+                        </form>
+                    </div>
+                )}
 
                 {/* Withdrawal History */}
                 <div className={styles.historyCard}>
