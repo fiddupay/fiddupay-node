@@ -90,7 +90,7 @@ pub struct P2pAd {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct P2pTrade {
     pub id: i64,
     pub trade_id: String,
@@ -124,7 +124,7 @@ pub struct P2pChatMessage {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct P2pRating {
     pub id: i64,
     pub trade_id: i64,
@@ -145,7 +145,7 @@ pub struct P2pPlatformFee {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct P2pSupportTicket {
     pub id: i64,
     pub user_id: i64,

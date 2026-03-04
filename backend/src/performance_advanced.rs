@@ -52,18 +52,18 @@ impl OptimizedQueries {
         pool: &sqlx::PgPool,
         merchant_id: i64,
     ) -> Result<Option<crate::models::merchant::Merchant>, sqlx::Error> {
-        sqlx::query_as!(
-            crate::models::merchant::Merchant,
+        sqlx::query_as::<_, crate::models::merchant::Merchant>(
             r#"
-            SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash as "password_hash!", fee_percentage, 
-                   COALESCE(customer_pays_fee, true) as "customer_pays_fee!",
-                   is_active, sandbox_mode, settlement_mode, COALESCE(kyc_verified, false) as "kyc_verified!", created_at, updated_at,
-                   api_key_expires_at, daily_limit_usd, COALESCE(role::text, 'MERCHANT') as "role!", redirect_url
+            SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, 
+                   COALESCE(customer_pays_fee, true) as customer_pays_fee,
+                   is_active, sandbox_mode, settlement_mode, COALESCE(kyc_verified, false) as kyc_verified, created_at, updated_at,
+                   api_key_expires_at, daily_limit_usd, COALESCE(role::text, 'MERCHANT') as role, redirect_url,
+                   first_name, last_name, gender, phone_number, country, applicant_role, business_country, business_license_number, business_certificate_url, COALESCE(terms_accepted, false) as terms_accepted
             FROM merchants 
             WHERE id = $1 AND is_active = true
-            "#,
-            merchant_id
+            "#
         )
+        .bind(merchant_id)
         .fetch_optional(pool)
         .await
     }
@@ -75,8 +75,7 @@ impl OptimizedQueries {
         limit: i64,
         offset: i64,
     ) -> Result<Vec<crate::models::payment::Payment>, sqlx::Error> {
-        sqlx::query_as!(
-            crate::models::payment::Payment,
+        sqlx::query_as::<_, crate::models::payment::Payment>(
             r#"
             SELECT id, payment_id, merchant_id, amount, amount_usd, crypto_type, 
                    status, to_address, expires_at, created_at,
@@ -88,11 +87,11 @@ impl OptimizedQueries {
             WHERE merchant_id = $1 
             ORDER BY created_at DESC 
             LIMIT $2 OFFSET $3
-            "#,
-            merchant_id,
-            limit,
-            offset
+            "#
         )
+        .bind(merchant_id)
+        .bind(limit)
+        .bind(offset)
         .fetch_all(pool)
         .await
     }
@@ -109,7 +108,7 @@ impl OptimizedQueries {
         let payment_ids: Vec<String> = updates.iter().map(|(id, _)| id.clone()).collect();
         let statuses: Vec<String> = updates.iter().map(|(_, status)| status.clone()).collect();
 
-        let result_res: Result<_, sqlx::Error> = sqlx::query!(
+        let result_res: Result<sqlx::postgres::PgQueryResult, sqlx::Error> = sqlx::query(
             r#"
             UPDATE payment_transactions 
             SET status = data.status
@@ -118,10 +117,10 @@ impl OptimizedQueries {
                        unnest($2::text[]) as status
             ) as data
             WHERE payment_transactions.payment_id = data.payment_id
-            "#,
-            &payment_ids,
-            &statuses
+            "#
         )
+        .bind(&payment_ids)
+        .bind(&statuses)
         .execute(pool)
         .await;
 

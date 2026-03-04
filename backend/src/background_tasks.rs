@@ -13,6 +13,24 @@ use crate::models::webhook::WebhookPayload;
 use crate::payment::models::PaymentStatus;
 use crate::services::webhook_service::WebhookService;
 
+struct ExpiredPaymentRow {
+    id: i64,
+    merchant_id: i64,
+    payment_id: String,
+    amount: Option<rust_decimal::Decimal>,
+    crypto_type: Option<String>,
+}
+
+struct PendingWebhookRow {
+    id: i64,
+    merchant_id: i64,
+    payment_id: Option<i64>,
+    event_type: String,
+    url: String,
+    payload: String,
+    attempts: i32,
+}
+
 /// Background task manager
 pub struct BackgroundTasks {
     db_pool: PgPool,
@@ -79,19 +97,32 @@ impl BackgroundTasks {
     /// * 4.3: Trigger webhook notifications for expired payments
     async fn check_expired_payments(&self) -> Result<(), ServiceError> {
         // Find all expired payments that are still pending or confirming
-        let expired_payments_res: Result<Vec<_>, sqlx::Error> = sqlx::query!(
+        let expired_payments_res = sqlx::query(
             r#"
             SELECT id, merchant_id, payment_id, amount, crypto_type
             FROM payment_transactions
             WHERE expires_at < $1
               AND status IN ('PENDING', 'CONFIRMING')
-            "#,
-            Utc::now()
+            "#
         )
+        .bind(Utc::now())
         .fetch_all(&self.db_pool)
         .await;
         
-        let expired_payments = expired_payments_res?;
+        let expired_payments = match expired_payments_res {
+            Ok(rows) => {
+                use sqlx::Row;
+                rows.into_iter().map(|r| {
+                    let id: i64 = r.get("id");
+                    let merchant_id: i64 = r.get("merchant_id");
+                    let payment_id: String = r.get("payment_id");
+                    let amount: Option<rust_decimal::Decimal> = r.get("amount");
+                    let crypto_type: Option<String> = r.get("crypto_type");
+                    ExpiredPaymentRow { id, merchant_id, payment_id, amount, crypto_type }
+                }).collect::<Vec<_>>()
+            },
+            Err(e) => return Err(ServiceError::InternalError(e.to_string())),
+        };
 
         if expired_payments.is_empty() {
             return Ok(());
@@ -103,14 +134,14 @@ impl BackgroundTasks {
             let payment_id_clone = payment.payment_id.clone();
             
             // Update payment status to FAILED (expired)
-            let result_res: Result<_, sqlx::Error> = sqlx::query!(
+            let result_res: Result<sqlx::postgres::PgQueryResult, sqlx::Error> = sqlx::query(
                 r#"
                 UPDATE payment_transactions
                 SET status = 'FAILED'
                 WHERE id = $1 AND status IN ('PENDING', 'CONFIRMING')
-                "#,
-                payment.id
+                "#
             )
+            .bind(payment.id)
             .execute(&self.db_pool)
             .await;
 
@@ -196,7 +227,7 @@ impl BackgroundTasks {
     /// * 4.7: Log all webhook delivery attempts and results
     pub async fn retry_failed_webhooks(&self) -> Result<(), ServiceError> {
         // Find all pending webhooks ready for retry
-        let pending_webhooks_res: Result<Vec<_>, sqlx::Error> = sqlx::query!(
+        let pending_webhooks_res = sqlx::query(
             r#"
             SELECT id, merchant_id, payment_id, event_type, url, payload, attempts
             FROM webhook_deliveries
@@ -205,13 +236,29 @@ impl BackgroundTasks {
               AND attempts < 12
             ORDER BY next_retry_at ASC NULLS FIRST
             LIMIT 100
-            "#,
-            Utc::now()
+            "#
         )
+        .bind(Utc::now())
         .fetch_all(&self.db_pool)
         .await;
         
-        let pending_webhooks = pending_webhooks_res?;
+        let pending_webhooks = match pending_webhooks_res {
+            Ok(rows) => {
+                use sqlx::Row;
+                rows.into_iter().map(|r| {
+                    PendingWebhookRow {
+                        id: r.get("id"),
+                        merchant_id: r.get("merchant_id"),
+                        payment_id: r.get("payment_id"),
+                        event_type: r.get("event_type"),
+                        url: r.get("url"),
+                        payload: r.get("payload"),
+                        attempts: r.get("attempts"),
+                    }
+                }).collect::<Vec<_>>()
+            },
+            Err(e) => return Err(ServiceError::InternalError(e.to_string())),
+        };
 
         if pending_webhooks.is_empty() {
             return Ok(());
@@ -228,15 +275,20 @@ impl BackgroundTasks {
             );
 
             // Fetch merchant-specific signing secret and format
-            let config_res: Result<_, sqlx::Error> = sqlx::query!(
-                "SELECT signing_secret, payload_format FROM webhook_configs WHERE merchant_id = $1",
-                webhook.merchant_id
+            let config_res = sqlx::query(
+                "SELECT signing_secret, payload_format FROM webhook_configs WHERE merchant_id = $1"
             )
+            .bind(webhook.merchant_id)
             .fetch_one(&self.db_pool)
             .await;
 
             let (secret, payload_format) = match config_res {
-                Ok(row) => (row.signing_secret, row.payload_format),
+                Ok(row) => {
+                    use sqlx::Row;
+                    let ss: String = row.get("signing_secret");
+                    let pf: String = row.get("payload_format");
+                    (ss, pf)
+                },
                 Err(_) => (self.webhook_service.get_signing_key().to_string(), "standard".to_string()),
             };
 
@@ -247,7 +299,7 @@ impl BackgroundTasks {
             match delivery_result {
                 Ok((status_code, response_body)) => {
                     // Success - mark as delivered
-                    sqlx::query!(
+                    sqlx::query(
                         r#"
                         UPDATE webhook_deliveries
                         SET status = 'delivered',
@@ -256,13 +308,13 @@ impl BackgroundTasks {
                             response_status = $3,
                             response_body = $4
                         WHERE id = $5
-                        "#,
-                        attempt_number,
-                        Utc::now(),
-                        status_code as i32,
-                        response_body,
-                        webhook.id
+                        "#
                     )
+                    .bind(attempt_number)
+                    .bind(Utc::now())
+                    .bind(status_code as i32)
+                    .bind(&response_body)
+                    .bind(webhook.id)
                     .execute(&self.db_pool)
                     .await?;
 
@@ -303,7 +355,7 @@ impl BackgroundTasks {
                         None
                     };
 
-                    sqlx::query!(
+                    sqlx::query(
                         r#"
                         UPDATE webhook_deliveries
                         SET status = $1,
@@ -313,15 +365,15 @@ impl BackgroundTasks {
                             response_status = $5,
                             response_body = $6
                         WHERE id = $7
-                        "#,
-                        status,
-                        attempt_number,
-                        Utc::now(),
-                        next_retry,
-                        response_status,
-                        error_message,
-                        webhook.id
+                        "#
                     )
+                    .bind(status)
+                    .bind(attempt_number)
+                    .bind(Utc::now())
+                    .bind(next_retry)
+                    .bind(response_status)
+                    .bind(&error_message)
+                    .bind(webhook.id)
                     .execute(&self.db_pool)
                     .await?;
 
