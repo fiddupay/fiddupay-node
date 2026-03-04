@@ -47,17 +47,27 @@ const PaymentsPage: React.FC = () => {
   const { user } = useAuthStore()
 
   useEffect(() => {
-    loadPayments()
-    loadStats()
-    loadSupportedCurrencies()
+    // Initial load — show spinner only for this first fetch
+    const initialLoad = async () => {
+      setLoading(true)
+      await Promise.all([
+        loadPayments(false),
+        loadStats(),
+        loadSupportedCurrencies()
+      ])
+      setLoading(false)
+    }
+    initialLoad()
 
-    // Auto-refresh payments list and stats every 5 seconds
-    const intervalId = setInterval(() => {
-      loadPayments()
-      loadStats()
-    }, 5000)
+    // Background refresh: payments every 15s, stats every 60s
+    // These run silently — no loading spinner, no page flash
+    const paymentsInterval = setInterval(() => loadPayments(true), 15000)
+    const statsInterval = setInterval(() => loadStats(), 60000)
 
-    return () => clearInterval(intervalId)
+    return () => {
+      clearInterval(paymentsInterval)
+      clearInterval(statsInterval)
+    }
   }, [filters, user?.sandbox_mode])
 
   const loadSupportedCurrencies = async () => {
@@ -76,8 +86,8 @@ const PaymentsPage: React.FC = () => {
     }
   }
 
-  const loadPayments = async () => {
-    setLoading(true)
+  const loadPayments = async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const response = await paymentAPI.getHistory(filters)
       setPayments(response.data.data || [])
@@ -85,9 +95,10 @@ const PaymentsPage: React.FC = () => {
         setPagination(response.data.pagination)
       }
     } catch (error) {
-      showToast('Failed to load payments', 'error')
+      // Only show toast on user-initiated loads, not background polls
+      if (!silent) showToast('Failed to load payments', 'error')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
@@ -106,7 +117,8 @@ const PaymentsPage: React.FC = () => {
         })
       }
     } catch (error) {
-      console.error('Failed to load stats:', error)
+      // Silently fail on background stat refreshes — no toast, no UI disruption
+      console.warn('Stats refresh skipped:', error instanceof Error ? error.message : error)
     }
   }
 
