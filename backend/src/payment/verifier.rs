@@ -355,19 +355,40 @@ impl PaymentVerifier {
         merchant_id: i64,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // Fetch payment to get fee information and sandbox_mode (Requirement 6.3)
-        let payment = sqlx::query!(
+        let payment_row = sqlx::query(
             r#"
             SELECT payment_id as public_id, fee_amount, fee_amount_usd, fee_percentage, amount, amount_usd, crypto_type, sandbox_mode, transaction_hash
             FROM payment_transactions
             WHERE id = $1
-            "#,
-            payment_id
+            "#
         )
+        .bind(payment_id)
         .fetch_one(&self.db_pool)
         .await?;
         
-        // Update payment status to CONFIRMED (Requirement 3.7)
-        // Fee amounts are already stored from payment creation and remain in the record
+        use sqlx::Row;
+        struct ConfirmPaymentData {
+            public_id: String,
+            fee_amount: Option<Decimal>,
+            fee_amount_usd: Decimal,
+            fee_percentage: Decimal,
+            amount: Option<Decimal>,
+            amount_usd: Decimal,
+            crypto_type: Option<String>,
+            sandbox_mode: bool,
+            transaction_hash: Option<String>,
+        }
+        let payment = ConfirmPaymentData {
+            public_id: payment_row.get("public_id"),
+            fee_amount: payment_row.get("fee_amount"),
+            fee_amount_usd: payment_row.get("fee_amount_usd"),
+            fee_percentage: payment_row.get("fee_percentage"),
+            amount: payment_row.get("amount"),
+            amount_usd: payment_row.get("amount_usd"),
+            crypto_type: payment_row.get("crypto_type"),
+            sandbox_mode: payment_row.get("sandbox_mode"),
+            transaction_hash: payment_row.get("transaction_hash"),
+        };
         sqlx::query(
             r#"
             UPDATE payment_transactions
@@ -513,22 +534,22 @@ impl PaymentVerifier {
         let mut tx = self.db_pool.begin().await?;
 
         // Insert partial payment record
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO partial_payments (payment_id, transaction_hash, amount, amount_usd, confirmations, status, created_at)
             VALUES ($1, $2, $3, $4, 0, 'CONFIRMED', $5)
-            "#,
-            payment_id,
-            transaction_hash,
-            amount,
-            amount_usd,
-            chrono::Utc::now()
+            "#
         )
+        .bind(payment_id)
+        .bind(transaction_hash)
+        .bind(amount)
+        .bind(amount_usd)
+        .bind(chrono::Utc::now())
         .execute(&mut *tx)
         .await?;
 
         // Update payment total_paid and remaining_balance
-        let payment = sqlx::query!(
+        let payment_row = sqlx::query(
             r#"
             UPDATE payment_transactions
             SET total_paid = total_paid + $1,
@@ -536,34 +557,38 @@ impl PaymentVerifier {
                 expires_at = expires_at + INTERVAL '15 minutes'
             WHERE id = $2
             RETURNING amount, total_paid, remaining_balance
-            "#,
-            amount,
-            payment_id
+            "#
         )
+        .bind(amount)
+        .bind(payment_id)
         .fetch_one(&mut *tx)
         .await?;
 
+        use sqlx::Row;
+        let payment_amount: Option<Decimal> = payment_row.get("amount");
+        let total_paid: Option<Decimal> = payment_row.get("total_paid");
+
         // Check if payment is now complete
-        let is_complete = if let Some(amt) = payment.amount {
-            payment.total_paid >= amt
+        let is_complete = if let (Some(amt), Some(paid)) = (payment_amount, total_paid) {
+            paid >= amt
         } else {
             false
         };
         
         if is_complete {
-            sqlx::query!(
-                "UPDATE payment_transactions SET status = 'CONFIRMED', confirmed_at = $1 WHERE id = $2",
-                chrono::Utc::now(),
-                payment_id
+            sqlx::query(
+                "UPDATE payment_transactions SET status = 'CONFIRMED', confirmed_at = $1 WHERE id = $2"
             )
+            .bind(chrono::Utc::now())
+            .bind(payment_id)
             .execute(&mut *tx)
             .await?;
         }
 
         tx.commit().await?;
 
-        info!(" Partial payment recorded for payment {}: {} (total: {}/{:?})", 
-            payment_id, amount, payment.total_paid, payment.amount);
+        info!(" Partial payment recorded for payment {}: {} (total: {:?}/{:?})", 
+            payment_id, amount, total_paid, payment_amount);
 
         Ok(is_complete)
     }

@@ -6,6 +6,13 @@ use sqlx::PgPool;
 
 use crate::models::withdrawal::Withdrawal;
 
+#[derive(Debug, Deserialize)]
+pub struct WithdrawalRequest {
+    pub crypto_type: String,
+    pub amount: Decimal,
+    pub destination_address: String,
+}
+
 pub struct WithdrawalService {
     db_pool: PgPool,
 }

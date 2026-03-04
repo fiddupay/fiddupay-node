@@ -50,14 +50,16 @@ impl FeeCollectionService {
         merchant_id: i64,
     ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
         // 1. Check merchant settlement mode — only managed & imported have platform-held keys
-        let merchant = sqlx::query!(
-            "SELECT settlement_mode FROM merchants WHERE id = $1",
-            merchant_id
+        let merchant = sqlx::query(
+            "SELECT settlement_mode FROM merchants WHERE id = $1"
         )
+        .bind(merchant_id)
         .fetch_one(&self.db_pool)
         .await?;
 
-        let settlement_mode = merchant.settlement_mode.as_str();
+        use sqlx::Row;
+        let settlement_mode: String = merchant.get("settlement_mode");
+        let settlement_mode = settlement_mode.as_str();
         match settlement_mode {
             "managed" | "imported" => {
                 // Platform holds the private key — proceed with on-chain sweep
@@ -73,23 +75,25 @@ impl FeeCollectionService {
         }
 
         // 2. Get payment details (crypto_type, fee_amount, to_address)
-        let payment = sqlx::query!(
+        let payment = sqlx::query(
             r#"
             SELECT crypto_type, fee_amount, to_address, network
             FROM payment_transactions
             WHERE id = $1
-            "#,
-            payment_id
+            "#
         )
+        .bind(payment_id)
         .fetch_one(&self.db_pool)
         .await?;
 
-        let crypto_type_str = payment.crypto_type
+        let crypto_type_str: Option<String> = payment.get("crypto_type");
+        let crypto_type_str = crypto_type_str
             .as_deref()
             .ok_or("Payment has no crypto_type")?;
         let crypto_type = CryptoType::from_string(crypto_type_str)?;
 
-        let fee_amount = payment.fee_amount
+        let fee_amount: Option<Decimal> = payment.get("fee_amount");
+        let fee_amount = fee_amount
             .ok_or("Payment has no fee_amount")?;
 
         if fee_amount <= Decimal::ZERO {
@@ -97,25 +101,26 @@ impl FeeCollectionService {
             return Ok(None);
         }
 
-        let merchant_wallet_address = payment.to_address
+        let merchant_wallet_address: Option<String> = payment.get("to_address");
+        let merchant_wallet_address = merchant_wallet_address
             .as_deref()
             .ok_or("Payment has no to_address (merchant wallet)")?;
 
         // 3. Get the encrypted private key for the merchant's wallet
-        let wallet_record_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
-            "SELECT encrypted_private_key FROM merchant_wallets WHERE merchant_id = $1 AND address = $2 AND is_active = true",
-            merchant_id,
-            merchant_wallet_address
+        let wallet_record = sqlx::query(
+            "SELECT encrypted_private_key FROM merchant_wallets WHERE merchant_id = $1 AND address = $2 AND is_active = true"
         )
+        .bind(merchant_id)
+        .bind(merchant_wallet_address)
         .fetch_optional(&self.db_pool)
-        .await;
-
-        let wallet_record = wallet_record_res?.ok_or_else(|| format!(
+        .await?
+        .ok_or_else(|| format!(
             "Wallet not found for merchant {} at address {}",
             merchant_id, merchant_wallet_address
         ))?;
 
-        let encrypted_key = wallet_record.encrypted_private_key
+        let encrypted_key: Option<String> = wallet_record.get("encrypted_private_key");
+        let encrypted_key = encrypted_key
             .ok_or("Wallet has no encrypted private key")?;
 
         // Decrypt the private key
@@ -126,16 +131,16 @@ impl FeeCollectionService {
 
         // 4. Get the platform fee wallet for this network
         let network = self.crypto_type_to_network(crypto_type);
-        let platform_wallet_res: Result<Option<_>, sqlx::Error> = sqlx::query!(
-            "SELECT address FROM platform_fee_wallets WHERE network = $1",
-            network
+        let platform_wallet = sqlx::query(
+            "SELECT address FROM platform_fee_wallets WHERE network = $1"
         )
+        .bind(&network)
         .fetch_optional(&self.db_pool)
-        .await;
+        .await?
+        .ok_or_else(|| format!("No platform fee wallet configured for network: {}", network))?;
 
-        let platform_wallet = platform_wallet_res?.ok_or_else(|| format!("No platform fee wallet configured for network: {}", network))?;
-
-        if platform_wallet.address.is_empty() {
+        let platform_wallet_address: String = platform_wallet.get("address");
+        if platform_wallet_address.is_empty() {
             warn!("Platform fee wallet for {} is empty, skipping fee collection", network);
             return Ok(None);
         }
@@ -151,15 +156,17 @@ impl FeeCollectionService {
         );
 
         // Fetch sandbox_mode from the payment table
-        let payment_data = sqlx::query!(
-            "SELECT sandbox_mode FROM payment_transactions WHERE id = $1",
-            payment_id
+        let payment_data = sqlx::query(
+            "SELECT sandbox_mode FROM payment_transactions WHERE id = $1"
         )
+        .bind(payment_id)
         .fetch_one(&self.db_pool)
         .await?;
 
+        let sandbox_mode_val: bool = payment_data.get("sandbox_mode");
+
         let tx_hash = tx_sender
-            .send_native_transaction(crypto_type, &private_key, &platform_wallet.address, fee_amount, None, payment_data.sandbox_mode)
+            .send_native_transaction(crypto_type, &private_key, &platform_wallet_address, fee_amount, None, sandbox_mode_val)
             .await
             .map_err(|e| {
                 error!("Fee collection transaction failed for payment {}: {}", payment_id, e);
@@ -167,7 +174,7 @@ impl FeeCollectionService {
             })?;
 
         // 6. Record the fee collection
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO fee_collections (
                 payment_id, merchant_id, network, fee_amount,
@@ -175,15 +182,15 @@ impl FeeCollectionService {
                 created_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, 'COMPLETED', NOW())
-            "#,
-            payment_id,
-            merchant_id,
-            network,
-            fee_amount,
-            merchant_wallet_address,
-            &platform_wallet.address,
-            &tx_hash
+            "#
         )
+        .bind(payment_id)
+        .bind(merchant_id)
+        .bind(&network)
+        .bind(fee_amount)
+        .bind(merchant_wallet_address)
+        .bind(&platform_wallet_address)
+        .bind(&tx_hash)
         .execute(&self.db_pool)
         .await?;
 

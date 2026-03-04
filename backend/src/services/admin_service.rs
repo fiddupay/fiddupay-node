@@ -97,43 +97,37 @@ impl AdminService {
             "SELECT COUNT(*) FROM merchants"
         )
         .fetch_one(&self.db_pool)
-        .await?
-        .unwrap_or(0);
+        .await?;
 
         let active_merchants: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM merchants WHERE is_active = true"
         )
         .fetch_one(&self.db_pool)
-        .await?
-        .unwrap_or(0);
+        .await?;
 
         let total_payments: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM payment_transactions"
         )
         .fetch_one(&self.db_pool)
-        .await?
-        .unwrap_or(0);
+        .await?;
 
         let total_volume: Decimal = sqlx::query_scalar::<_, Decimal>(
             "SELECT COALESCE(SUM(amount_usd), 0) FROM payment_transactions WHERE status = 'CONFIRMED'"
         )
         .fetch_one(&self.db_pool)
-        .await?
-        .unwrap_or(Decimal::ZERO);
+        .await?;
 
         let pending_payments: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM payment_transactions WHERE status = 'PENDING'"
         )
         .fetch_one(&self.db_pool)
-        .await?
-        .unwrap_or(0);
+        .await?;
 
         let failed_payments: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM payment_transactions WHERE status = 'FAILED'"
         )
         .fetch_one(&self.db_pool)
-        .await?
-        .unwrap_or(0);
+        .await?;
 
         Ok(AdminDashboard {
             total_merchants,
@@ -150,32 +144,27 @@ impl AdminService {
     pub async fn get_platform_analytics(&self) -> Result<PlatformAnalytics, ServiceError> {
         let total_merchants: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM merchants")
             .fetch_one(&self.db_pool)
-            .await?
-            .unwrap_or(0);
+            .await?;
 
         let active_merchants: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM merchants WHERE is_active = true")
             .fetch_one(&self.db_pool)
-            .await?
-            .unwrap_or(0);
+            .await?;
 
         let total_payments: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM payment_transactions")
             .fetch_one(&self.db_pool)
-            .await?
-            .unwrap_or(0);
+            .await?;
 
         let total_volume: Decimal = sqlx::query_scalar::<_, Decimal>(
             "SELECT COALESCE(SUM(amount_usd), 0) FROM payment_transactions WHERE status = 'CONFIRMED'"
         )
         .fetch_one(&self.db_pool)
-        .await?
-        .unwrap_or(Decimal::ZERO);
+        .await?;
 
         let platform_revenue: Decimal = sqlx::query_scalar::<_, Decimal>(
             "SELECT COALESCE(SUM(fee_amount_usd), 0) FROM payment_transactions WHERE status = 'CONFIRMED'"
         )
         .fetch_one(&self.db_pool)
-        .await?
-        .unwrap_or(Decimal::ZERO);
+        .await?;
 
         Ok(PlatformAnalytics {
             total_merchants,
@@ -337,16 +326,14 @@ impl AdminService {
         )
         .bind(today_start)
         .fetch_one(&self.db_pool)
-        .await?
-        .unwrap_or(0);
+        .await?;
         
         let failed_today: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM payment_transactions WHERE created_at >= $1 AND status = 'FAILED'"
         )
         .bind(today_start)
         .fetch_one(&self.db_pool)
-        .await?
-        .unwrap_or(0);
+        .await?;
         
         if total_today > 10 && (failed_today as f64 / total_today as f64) > 0.3 {
             let alert_id = format!("alert_failure_{}", Utc::now().format("%Y%m%d"));

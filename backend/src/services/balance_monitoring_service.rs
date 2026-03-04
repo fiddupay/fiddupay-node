@@ -42,12 +42,12 @@ impl BalanceMonitoringService {
             "threshold": alert.threshold
         });
 
-        sqlx::query!(
-            "INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)",
-            alert.merchant_id,
-            "BALANCE_ALERT",
-            details
+        sqlx::query(
+            "INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)"
         )
+        .bind(alert.merchant_id)
+        .bind("BALANCE_ALERT")
+        .bind(&details)
         .execute(&self.db_pool)
         .await?;
 

@@ -106,7 +106,7 @@ impl AddressOnlyManager {
 
     async fn check_database_health(&self) -> Result<bool, ServiceError> {
         // Simple query to check database connectivity using a test connection
-        let result_res: Result<_, sqlx::Error> = sqlx::query!("SELECT 1 as health_check")
+        let result_res = sqlx::query("SELECT 1 as health_check")
             .fetch_one(&self.db_pool)
             .await;
 

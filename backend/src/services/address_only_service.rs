@@ -447,13 +447,14 @@ impl AddressOnlyService {
 
     /// Get merchant fee payment setting
     pub async fn get_merchant_fee_setting(&self, merchant_id: i64) -> Result<bool, ServiceError> {
-        let merchant = sqlx::query!(
-            "SELECT customer_pays_fee FROM merchants WHERE id = $1",
-            merchant_id
+        let merchant = sqlx::query(
+            "SELECT customer_pays_fee FROM merchants WHERE id = $1"
         )
+        .bind(merchant_id)
         .fetch_one(&self.db_pool)
         .await?;
 
-        Ok(merchant.customer_pays_fee)
+        use sqlx::Row;
+        Ok(merchant.get("customer_pays_fee"))
     }
 }

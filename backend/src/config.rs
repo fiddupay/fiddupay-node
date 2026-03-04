@@ -511,11 +511,18 @@ impl Config {
 
     pub async fn load_from_db(&mut self, pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
         // Query all settings
-        let settings = sqlx::query!("SELECT key, value FROM system_settings")
+        let settings = sqlx::query("SELECT key, value FROM system_settings")
             .fetch_all(pool)
             .await?;
 
-        for setting in settings {
+        for row in settings {
+            use sqlx::Row;
+            let key: String = row.get("key");
+            let value: String = row.get("value");
+            
+            struct Setting { key: String, value: String }
+            let setting = Setting { key, value };
+            
             match setting.key.as_str() {
                 // Fee Configuration
                 "DEFAULT_FEE_PERCENTAGE" => {
@@ -578,17 +585,17 @@ impl Config {
 
         for (network, address) in wallets {
             if !address.is_empty() {
-                sqlx::query!(
+                sqlx::query(
                     r#"
                     INSERT INTO platform_fee_wallets (network, address, updated_at)
                     VALUES ($1, $2, NOW())
                     ON CONFLICT (network) DO UPDATE SET 
                         address = EXCLUDED.address,
                         updated_at = NOW()
-                    "#,
-                    network,
-                    address
+                    "#
                 )
+                .bind(network)
+                .bind(address)
                 .execute(pool)
                 .await?;
             }

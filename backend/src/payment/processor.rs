@@ -64,18 +64,21 @@ impl PaymentProcessor {
         let payment_id = self.generate_payment_id();
         
         // Get merchant to retrieve fee percentage, preference and limits
-        let merchant_res: Result<_, sqlx::Error> = sqlx::query!(
-            "SELECT fee_percentage, customer_pays_fee, sandbox_mode, kyc_verified, daily_limit_usd FROM merchants WHERE id = $1",
-            merchant_id
+        let merchant_res = sqlx::query(
+            "SELECT fee_percentage, customer_pays_fee, sandbox_mode, kyc_verified, daily_limit_usd FROM merchants WHERE id = $1"
         )
+        .bind(merchant_id)
         .fetch_one(&self.db_pool)
         .await;
         
-        let merchant = merchant_res?;
+        let merchant_row = merchant_res?;
         
-        let fee_percentage = merchant.fee_percentage;
-        let customer_pays_fee = merchant.customer_pays_fee;
-        let is_sandbox = merchant.sandbox_mode;
+        use sqlx::Row;
+        let fee_percentage: Decimal = merchant_row.get("fee_percentage");
+        let customer_pays_fee: bool = merchant_row.get("customer_pays_fee");
+        let is_sandbox: bool = merchant_row.get("sandbox_mode");
+        let kyc_verified: bool = merchant_row.get("kyc_verified");
+        let daily_limit_usd: Option<Decimal> = merchant_row.get("daily_limit_usd");
         
         // Validate fee percentage is within acceptable bounds (0.1% - 5%)
         FeeCalculator::validate_fee_percentage(fee_percentage)?;
@@ -204,16 +207,16 @@ impl PaymentProcessor {
                 amount_usd
             };
 
-            (None, total_amount_usd, None, Some(fee_amount_usd), None, PaymentStatus::SelectionRequired, None)
+            (None, total_amount_usd, None, Some(fee_amount_usd), None::<String>, PaymentStatus::SelectionRequired, None)
         };
 
         // 5. ENFORCE DAILY VOLUME LIMIT for non-KYC merchants
-        if !merchant.kyc_verified {
-            let limit = merchant.daily_limit_usd.unwrap_or(self.config.daily_volume_limit_non_kyc_usd);
+        if !kyc_verified {
+            let limit = daily_limit_usd.unwrap_or(self.config.daily_volume_limit_non_kyc_usd);
             let remaining = self.merchant_service.get_daily_volume_remaining(
                 merchant_id,
-                merchant.kyc_verified,
-                merchant.daily_limit_usd
+                kyc_verified,
+                daily_limit_usd
             ).await?;
 
             if amount_usd > remaining {

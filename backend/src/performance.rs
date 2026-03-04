@@ -211,7 +211,7 @@ impl BatchOperations {
         let payment_ids: Vec<String> = updates.iter().map(|(id, _)| id.to_string()).collect();
         let statuses: Vec<String> = updates.iter().map(|(_, status)| status.to_string()).collect();
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE payment_transactions 
             SET status = data.status
@@ -220,10 +220,10 @@ impl BatchOperations {
                        unnest($2::text[]) as status
             ) as data
             WHERE payment_transactions.payment_id = data.payment_id
-            "#,
-            &payment_ids,
-            &statuses
+            "#
         )
+        .bind(&payment_ids)
+        .bind(&statuses)
         .execute(pool)
         .await?;
 
