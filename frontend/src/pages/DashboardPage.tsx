@@ -304,8 +304,35 @@ const RecentActivityList: React.FC = () => {
               <i className={`fas ${getTypeIcon(activity.type)} w-4 text-center`}></i>
               <span className={styles.paymentId}>{activity.id.substring(0, 8)}...</span>
             </div>
-            <span className={styles.paymentAmount}>
-              {activity.type === 'withdrawal' ? '-' : ''}${activity.usd_amount}
+            <span className={styles.paymentAmount} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: '1.2' }}>
+              {(() => {
+                const isStablecoin = activity.crypto_type?.toUpperCase().includes('USDT') ||
+                  activity.crypto_type?.toUpperCase().includes('USDC') ||
+                  activity.crypto_type?.toUpperCase().includes('BUSD') ||
+                  activity.crypto_type?.toUpperCase().includes('DAI');
+
+                const sign = (activity.type === 'withdrawal' || activity.type === 'refund') ? '-' : '';
+                const parts = activity.crypto_type?.split('_') || ['', ''];
+                const coin = parts[0];
+                const network = parts.length > 1 ? parts.slice(1).join('_') : 'Native';
+                const cryptoAmt = parseFloat(activity.crypto_amount || activity.usd_amount).toFixed(4);
+
+                if (isStablecoin) {
+                  return (
+                    <>
+                      <span style={{ fontWeight: 600 }}>{sign}{cryptoAmt} {coin}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>{network}</span>
+                    </>
+                  );
+                } else {
+                  return (
+                    <>
+                      <span style={{ fontWeight: 600 }}>{sign}${parseFloat(activity.usd_amount).toFixed(2)}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>{sign}{cryptoAmt} {coin}</span>
+                    </>
+                  );
+                }
+              })()}
             </span>
           </div>
           <div className={styles.paymentMeta}>
