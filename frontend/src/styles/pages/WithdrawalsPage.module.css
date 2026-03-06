@@ -281,9 +281,9 @@
 
 .copyableText {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.5rem;
-    max-width: 60%;
+    max-width: 65%;
     text-align: right;
     justify-content: flex-end;
 }
@@ -336,8 +336,13 @@
 }
 
 @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Status badges */

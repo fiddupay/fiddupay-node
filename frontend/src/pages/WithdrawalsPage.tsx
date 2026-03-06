@@ -349,7 +349,13 @@ const WithdrawalsPage: React.FC = () => {
                             {withdrawals.map((w) => (
                                 <div key={w.withdrawal_id} className={styles.historyItem}>
                                     <div className={styles.historyItemHeader}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <div>
+                                            <strong>{w.crypto_type}</strong>
+                                            <span className={styles.historyDate}>
+                                                {new Date(w.created_at).toLocaleDateString()} {new Date(w.created_at).toLocaleTimeString()}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                             <button
                                                 className={`${styles.refreshBtn} ${refreshingId === w.withdrawal_id ? styles.spinIcon : ''}`}
                                                 onClick={(e) => handleManualRefresh(w.withdrawal_id, e)}
@@ -357,14 +363,8 @@ const WithdrawalsPage: React.FC = () => {
                                             >
                                                 <i className="fas fa-sync-alt"></i>
                                             </button>
-                                            <div>
-                                                <strong>{w.crypto_type}</strong>
-                                                <span className={styles.historyDate}>
-                                                    {new Date(w.created_at).toLocaleDateString()} {new Date(w.created_at).toLocaleTimeString()}
-                                                </span>
-                                            </div>
+                                            {statusBadge(w.status)}
                                         </div>
-                                        {statusBadge(w.status)}
                                     </div>
                                     <div className={styles.historyDetails}>
                                         <div className={styles.historyDetailRow}>
