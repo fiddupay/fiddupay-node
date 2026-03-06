@@ -9,6 +9,7 @@ const navigation = [
   { name: 'Wallets', href: '/app/wallets', iconClass: 'fas fa-wallet' },
   { name: 'Balance', href: '/app/balance', iconClass: 'fas fa-university' },
   { name: 'Withdrawals', href: '/app/withdrawals', iconClass: 'fas fa-sign-out-alt' },
+  { name: 'Customers', href: '/app/customers', iconClass: 'fas fa-users' },
   { name: 'Analytics', href: '/app/analytics', iconClass: 'fas fa-chart-bar' },
   { name: 'Reports', href: '/app/reports', iconClass: 'fas fa-file-invoice' },
   { name: 'Settings', href: '/app/settings', iconClass: 'fas fa-cog' },

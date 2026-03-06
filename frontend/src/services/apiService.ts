@@ -118,6 +118,15 @@ export const securityAPI = {
     api.post(`/api/v1/merchants/security/balance-alerts/${alertId}/resolve`),
 }
 
+export const customerAPI = {
+  list: (params?: any) => api.get('/api/v1/merchants/customers', { params }),
+  create: (data: { external_id: string; email?: string; first_name?: string; last_name?: string }) => api.post('/api/v1/merchants/customers', data),
+  provisionWallets: (externalId: string, networks: string[]) => api.post(`/api/v1/merchants/customers/${externalId}/wallets`, { networks }),
+  getBalances: (externalId: string) => api.get(`/api/v1/merchants/customers/${externalId}/balances`),
+  withdraw: (externalId: string, data: { crypto_type: string; amount: string; destination_address: string }) => api.post(`/api/v1/merchants/customers/${externalId}/withdraw`, data),
+  sweep: (externalId: string, data: { crypto_type: string; amount: string }) => api.post(`/api/v1/merchants/customers/${externalId}/sweep`, data),
+}
+
 export const publicAPI = {
   contact: (data: { name: string; email: string; subject: string; message: string }) => api.post('/api/v1/contact', data),
   getSupportedCurrencies: (merchantId?: number) => {
@@ -135,5 +144,6 @@ export default {
   withdrawal: withdrawalAPI,
   wallet: walletAPI,
   security: securityAPI,
+  customer: customerAPI,
   public: publicAPI,
 }
