@@ -107,16 +107,19 @@ const MerchantCustomersPage: React.FC = () => {
         }
     }
 
-    const handleProvisionWallets = async () => {
+    const handleProvisionWallets = async (auto: boolean = false) => {
         if (!selectedCustomer) return;
-        if (selectedNetworks.length === 0) {
+
+        const networksToProvision = auto ? [] : selectedNetworks;
+
+        if (!auto && networksToProvision.length === 0) {
             showToast('Select at least one network', 'error')
             return;
         }
 
         try {
             setProvisioning(true)
-            const res = await customerAPI.provisionWallets(selectedCustomer.external_id, selectedNetworks)
+            const res = await customerAPI.provisionWallets(selectedCustomer.external_id, networksToProvision)
             setCustomerWallets(res.data?.wallets || [])
             showToast(`Provisioned ${res.data?.wallets?.length || 0} wallets successfully`, 'success')
 
@@ -332,14 +335,26 @@ const MerchantCustomersPage: React.FC = () => {
                                             ))}
                                         </div>
 
-                                        <button
-                                            className={styles.submitBtn}
-                                            onClick={handleProvisionWallets}
-                                            disabled={provisioning || selectedNetworks.length === 0}
-                                        >
-                                            {provisioning ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-wallet"></i>}
-                                            Provision Selected Networks
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                                            <button
+                                                className={styles.submitBtn}
+                                                onClick={() => handleProvisionWallets(true)}
+                                                disabled={provisioning}
+                                                style={{ background: '#059669' }}
+                                            >
+                                                {provisioning ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-magic"></i>}
+                                                Provision All Supported (Auto)
+                                            </button>
+
+                                            <button
+                                                className={styles.submitBtn}
+                                                onClick={() => handleProvisionWallets(false)}
+                                                disabled={provisioning || selectedNetworks.length === 0}
+                                            >
+                                                {provisioning ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-wallet"></i>}
+                                                Provision Selected
+                                            </button>
+                                        </div>
 
                                         {customerWallets.length > 0 && (
                                             <div className={styles.walletList} style={{ marginTop: '1.5rem' }}>

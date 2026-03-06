@@ -27,15 +27,23 @@ impl MerchantCustomerService {
     ) -> Result<MerchantCustomer, ServiceError> {
         let customer_res: Result<MerchantCustomer, sqlx::Error> = sqlx::query_as::<_, MerchantCustomer>(
             r#"
-            INSERT INTO merchant_customers (merchant_id, external_id, email, metadata)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (merchant_id, external_id) DO UPDATE SET email = EXCLUDED.email, metadata = EXCLUDED.metadata, updated_at = NOW()
-            RETURNING id, merchant_id, external_id, email, metadata, created_at, updated_at
+            INSERT INTO merchant_customers (merchant_id, external_id, email, first_name, last_name, metadata)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (merchant_id, external_id) 
+            DO UPDATE SET 
+                email = EXCLUDED.email, 
+                first_name = EXCLUDED.first_name, 
+                last_name = EXCLUDED.last_name, 
+                metadata = EXCLUDED.metadata, 
+                updated_at = NOW()
+            RETURNING id, merchant_id, external_id, email, first_name, last_name, metadata, created_at, updated_at
             "#
         )
         .bind(merchant_id)
         .bind(&req.external_id)
         .bind(&req.email)
+        .bind(&req.first_name)
+        .bind(&req.last_name)
         .bind(&req.metadata)
         .fetch_one(&self.db_pool)
         .await;
@@ -54,7 +62,7 @@ impl MerchantCustomerService {
     ) -> Result<Vec<MerchantCustomerWallet>, ServiceError> {
         // 1. Find customer
         let customer_res: Result<MerchantCustomer, sqlx::Error> = sqlx::query_as::<_, MerchantCustomer>(
-            "SELECT id, merchant_id, external_id, email, metadata, created_at, updated_at FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2"
+            "SELECT id, merchant_id, external_id, email, first_name, last_name, metadata, created_at, updated_at FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2"
         )
         .bind(merchant_id)
         .bind(external_id)
@@ -66,12 +74,30 @@ impl MerchantCustomerService {
         let encryption = Encryption::new()
             .map_err(|e| ServiceError::InternalError(format!("Encryption setup failed: {}", e)))?;
 
+        let mut networks = networks;
+        if networks.is_empty() {
+             // Fetch merchant's supported networks from database
+             let merchant_networks: Vec<String> = sqlx::query_scalar::<_, String>(
+                 "SELECT DISTINCT network FROM merchant_currencies WHERE merchant_id = $1"
+             )
+             .bind(merchant_id)
+             .fetch_all(&self.db_pool)
+             .await?;
+             
+             networks = merchant_networks;
+        }
+
         let mut wallets = Vec::new();
 
         for network_type in networks {
-            match network_type.to_lowercase().as_str() {
-                "evm" => {
-                    // Generate one key for ALL EVM networks
+            let normalized = network_type.to_uppercase();
+            match normalized.as_str() {
+                "EVM" | "ETH" | "ERC20" | "BSC" | "BEP20" | "POLYGON" | "MATIC" | "ARB" | "ARBITRUM" | "NATIVE" => {
+                    // Check if we already provisioned EVM to avoid duplicates in mixed requests
+                    if wallets.iter().any(|w| w.network == "Ethereum") {
+                        continue;
+                    }
+                    
                     let keypair = KeyGenerator::generate_evm_wallet()?;
                     let encrypted_key = encryption.encrypt(&keypair.private_key)
                         .map_err(|e| ServiceError::InternalError(format!("Encryption failed: {}", e)))?;
@@ -98,7 +124,12 @@ impl MerchantCustomerService {
                         wallets.push(wallet);
                     }
                 },
-                "solana" => {
+                "SOLANA" | "SOL" | "SPL" => {
+                     // Check if we already provisioned Solana
+                    if wallets.iter().any(|w| w.network == "Solana") {
+                        continue;
+                    }
+
                     let keypair = KeyGenerator::generate_solana_wallet()?;
                     let encrypted_key = encryption.encrypt(&keypair.private_key)
                         .map_err(|e| ServiceError::InternalError(format!("Encryption failed: {}", e)))?;
@@ -209,7 +240,7 @@ impl MerchantCustomerService {
 
         let customers_res: Result<Vec<MerchantCustomer>, sqlx::Error> = sqlx::query_as::<_, MerchantCustomer>(
             r#"
-            SELECT id, merchant_id, external_id, email, metadata, created_at, updated_at 
+            SELECT id, merchant_id, external_id, email, first_name, last_name, metadata, created_at, updated_at 
             FROM merchant_customers 
             WHERE merchant_id = $1
             ORDER BY created_at DESC 
@@ -244,7 +275,7 @@ impl MerchantCustomerService {
 
         // 1. Verify customer belongs to merchant
         let customer_res: Result<MerchantCustomer, sqlx::Error> = sqlx::query_as::<_, MerchantCustomer>(
-            "SELECT id, merchant_id, external_id, email, metadata, created_at, updated_at FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2"
+            "SELECT id, merchant_id, external_id, email, first_name, last_name, metadata, created_at, updated_at FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2"
         )
         .bind(merchant_id)
         .bind(external_id)
@@ -350,7 +381,7 @@ impl MerchantCustomerService {
 
         // 1. Verify customer belongs to merchant
         let customer_res: Result<MerchantCustomer, sqlx::Error> = sqlx::query_as::<_, MerchantCustomer>(
-            "SELECT id, merchant_id, external_id, email, metadata, created_at, updated_at FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2"
+            "SELECT id, merchant_id, external_id, email, first_name, last_name, metadata, created_at, updated_at FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2"
         )
         .bind(merchant_id)
         .bind(external_id)
