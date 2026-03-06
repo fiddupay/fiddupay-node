@@ -79,6 +79,14 @@ sudo caddy stop
 
 # Format Caddyfile
 caddy fmt --overwrite
+
+ sudo nano /etc/caddy/Caddyfile
+
+  find / -name "Caddyfile" 2>/dev/null
+   sudo cat /etc/caddy/Caddyfile
+   sudo systemctl cat caddy | grep -i caddyfile
+
+sudo journalctl -u caddy --since "30 seconds ago" | grep "enabling automatic TLS"
 ```
 
 ### Deployment & Releases
