@@ -86,6 +86,13 @@ caddy fmt --overwrite
    sudo cat /etc/caddy/Caddyfile
    sudo systemctl cat caddy | grep -i caddyfile
 
+   # Check API request logs
+tail -f /var/log/caddy/fiddupay.api.log
+
+# Check Payment Page request logs
+tail -f /var/log/caddy/fiddupay.pay.log
+
+
 sudo journalctl -u caddy --since "30 seconds ago" | grep "enabling automatic TLS"
 ```
 
