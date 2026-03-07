@@ -87,7 +87,7 @@ impl MerchantCustomerService {
              networks = merchant_networks;
         }
 
-        let mut wallets = Vec::new();
+        let mut wallets: Vec<MerchantCustomerWallet> = Vec::new();
 
         for network_type in networks {
             let normalized = network_type.to_uppercase();
