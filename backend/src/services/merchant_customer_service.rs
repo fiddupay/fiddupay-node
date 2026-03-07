@@ -477,7 +477,7 @@ impl MerchantCustomerService {
         match res {
             Ok(r) if r.rows_affected() > 0 => Ok(()),
             Ok(_) => Err(ServiceError::ValidationError(format!("Customer {} not found", external_id))),
-            Err(e) => Err(ServiceError::DatabaseError(e)),
+            Err(e) => Err(ServiceError::DatabaseError(e.to_string())),
         }
     }
 }
