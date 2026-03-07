@@ -15,6 +15,7 @@ pub struct WalletConfig {
     pub address: String,
     pub is_active: bool,
     pub sandbox_mode: bool,
+    pub wallet_mode: Option<String>,
     pub encrypted_private_key: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -46,7 +47,8 @@ impl WalletConfigService {
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (merchant_id, crypto_type, sandbox_mode) 
             DO UPDATE SET address = $4, is_active = $5, encrypted_private_key = COALESCE($7, merchant_wallets.encrypted_private_key), updated_at = NOW()
-            RETURNING id, merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key, created_at, updated_at
+            RETURNING id, merchant_id, crypto_type, network, address, is_active, sandbox_mode, 
+                      wallet_mode, encrypted_private_key, created_at, updated_at
             "#
         )
         .bind(merchant_id)
@@ -131,7 +133,7 @@ impl WalletConfigService {
 
     pub async fn get_wallet_configs(&self, merchant_id: i64, sandbox_mode: bool) -> Result<Vec<WalletConfig>, ServiceError> {
         let configs = sqlx::query_as::<_, WalletConfig>(
-            "SELECT id, merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key, created_at, updated_at FROM merchant_wallets WHERE merchant_id = $1 AND sandbox_mode = $2"
+            "SELECT id, merchant_id, crypto_type, network, address, is_active, sandbox_mode, wallet_mode, encrypted_private_key, created_at, updated_at FROM merchant_wallets WHERE merchant_id = $1 AND sandbox_mode = $2"
         )
         .bind(merchant_id)
         .bind(sandbox_mode)
@@ -348,7 +350,7 @@ impl WalletConfigService {
             ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
             DO UPDATE SET address = $4, is_active = $5, updated_at = NOW()
             RETURNING id, merchant_id, crypto_type, network, address, is_active, sandbox_mode,
-                      NULL::text as encrypted_private_key, created_at, updated_at
+                      NULL::text as wallet_mode, NULL::text as encrypted_private_key, created_at, updated_at
             "#
         )
         .bind(merchant_id)
@@ -397,7 +399,7 @@ impl WalletConfigService {
         let configs = sqlx::query_as::<_, WalletConfig>(
             r#"
             SELECT id, merchant_id, crypto_type, network, address, is_active, sandbox_mode,
-                   NULL::text as encrypted_private_key, created_at, updated_at
+                   NULL::text as wallet_mode, NULL::text as encrypted_private_key, created_at, updated_at
             FROM merchant_forwarding_wallets
             WHERE merchant_id = $1 AND sandbox_mode = $2
             "#

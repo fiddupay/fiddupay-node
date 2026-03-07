@@ -48,6 +48,9 @@ pub struct MerchantWallet {
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub wallet_mode: Option<String>,
+    pub encrypted_private_key: Option<String>,
+    pub sandbox_mode: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,6 +103,16 @@ mod tests {
             daily_limit_usd: None,
             role: "MERCHANT".to_string(),
             redirect_url: None,
+            first_name: None,
+            last_name: None,
+            gender: None,
+            phone_number: None,
+            country: None,
+            applicant_role: None,
+            business_country: None,
+            business_license_number: None,
+            business_certificate_url: None,
+            terms_accepted: false,
         };
 
         assert_eq!(merchant.id, 1);
@@ -121,6 +134,9 @@ mod tests {
             is_active: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            wallet_mode: Some("address_only".to_string()),
+            encrypted_private_key: None,
+            sandbox_mode: false,
         };
 
         assert_eq!(wallet.id, 1);
@@ -151,6 +167,16 @@ mod tests {
             daily_limit_usd: None,
             role: "MERCHANT".to_string(),
             redirect_url: None,
+            first_name: None,
+            last_name: None,
+            gender: None,
+            phone_number: None,
+            country: None,
+            applicant_role: None,
+            business_country: None,
+            business_license_number: None,
+            business_certificate_url: None,
+            terms_accepted: false,
         };
 
         // Test serialization
@@ -241,6 +267,16 @@ mod tests {
             daily_limit_usd: None,
             role: "MERCHANT".to_string(),
             redirect_url: None,
+            first_name: None,
+            last_name: None,
+            gender: None,
+            phone_number: None,
+            country: None,
+            applicant_role: None,
+            business_country: None,
+            business_license_number: None,
+            business_certificate_url: None,
+            terms_accepted: false,
         };
         assert_eq!(merchant_min.fee_percentage, Decimal::new(10, 2));
 

@@ -519,7 +519,15 @@ pub async fn get_fee_setting(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     let merchant_res = sqlx::query_as::<_, crate::models::merchant::Merchant>(
-        "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
+        r#"
+        SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, 
+               fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, 
+               kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
+               role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
+               country, applicant_role, business_country, business_license_number, 
+               business_certificate_url, terms_accepted 
+        FROM merchants WHERE id = $1
+        "#
     )
     .bind(context.merchant_id)
     .fetch_optional(&state.db_pool)

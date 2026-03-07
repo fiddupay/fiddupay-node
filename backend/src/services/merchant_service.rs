@@ -205,7 +205,16 @@ impl MerchantService {
 
         // Check if the target environment already has a key
         let merchant = sqlx::query_as::<_, Merchant>(
-            "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
+            r#"
+            SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, 
+                   fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, 
+                   kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
+                   role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
+                   country, applicant_role, business_country, business_license_number, 
+                   business_certificate_url, terms_accepted 
+            FROM merchants WHERE id = $1
+            "#
+
         )
         .bind(merchant_id)
         .fetch_optional(&self.db_pool)
@@ -252,7 +261,16 @@ impl MerchantService {
     ) -> Result<String, ServiceError> {
         // First, verify the old API key is correct
         let merchant = sqlx::query_as::<_, Merchant>(
-            "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url FROM merchants WHERE id = $1"
+            r#"
+            SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, 
+                   fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, 
+                   kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
+                   role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
+                   country, applicant_role, business_country, business_license_number, 
+                   business_certificate_url, terms_accepted 
+            FROM merchants WHERE id = $1
+            "#
+
         )
         .bind(merchant_id)
         .fetch_optional(&self.db_pool)
@@ -377,9 +395,16 @@ impl MerchantService {
                 if let Some(id_str) = parts.get(2) {
                     if let Ok(merchant_id) = id_str.parse::<i64>() {
                         let merchant = sqlx::query_as::<_, Merchant>(
-                            "SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url 
-                             FROM merchants 
-                             WHERE id = $1 AND is_active = true"
+                            r#"
+                            SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, 
+                                   fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, 
+                                   kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
+                                   role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
+                                   country, applicant_role, business_country, business_license_number, 
+                                   business_certificate_url, terms_accepted 
+                            FROM merchants 
+                            WHERE id = $1 AND is_active = true
+                            "#
                         )
                         .bind(merchant_id)
                         .fetch_optional(&self.db_pool)
