@@ -46,9 +46,10 @@ export class Withdrawals {
   }
 
   /**
-   * Process withdrawal (admin only)
+   * Process withdrawal (managed mode or admin triggered)
    */
-  async process(withdrawalId: string): Promise<Withdrawal> {
-    return this.client.request<Withdrawal>('POST', `/api/v1/merchants/withdrawals/${withdrawalId}/process`);
+  async process(withdrawalId: string, encryptionPassword?: string): Promise<Withdrawal> {
+    const data = encryptionPassword ? { encryption_password: encryptionPassword } : {};
+    return this.client.request<Withdrawal>('POST', `/api/v1/merchants/withdrawals/${withdrawalId}/process`, data);
   }
 }

@@ -12,6 +12,13 @@ export class Wallets {
   }
 
   /**
+   * Get actual wallet balances and volume statistics
+   */
+  async getBalances(options?: RequestOptions): Promise<{ wallets: any[] }> {
+    return this.client.request('GET', '/api/v1/merchants/wallets/balances');
+  }
+
+  /**
    * Unified wallet setup (address, generate, or import)
    */
   async setup(data: {

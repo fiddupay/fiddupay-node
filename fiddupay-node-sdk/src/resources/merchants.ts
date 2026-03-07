@@ -141,4 +141,26 @@ export class Merchants {
   async sendTestWebhook(options?: RequestOptions): Promise<{ status: string; message: string }> {
     return this.client.request('POST', '/api/v1/merchants/webhook/test');
   }
+
+  /**
+   * Get audit logs for the merchant
+   */
+  async getAuditLogs(params?: {
+    limit?: number;
+    offset?: number;
+    action?: string;
+    start_date?: string;
+    end_date?: string;
+  }, options?: RequestOptions): Promise<{ data: any[]; total: number }> {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    if (params?.action) queryParams.append('action', params.action);
+    if (params?.start_date) queryParams.append('start_date', params.start_date);
+    if (params?.end_date) queryParams.append('end_date', params.end_date);
+
+    const query = queryParams.toString();
+    const path = query ? `/api/v1/merchants/audit-logs?${query}` : '/api/v1/merchants/audit-logs';
+    return this.client.request('GET', path);
+  }
 }

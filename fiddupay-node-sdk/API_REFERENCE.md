@@ -363,7 +363,70 @@ Authorization: Bearer {api_key}
 
 ### Get Audit Logs
 ```http
-GET /api/v1/merchants/audit-logs
+GET /api/v1/merchants/audit-logs?limit=50&offset=0&action=payment.created
+Authorization: Bearer {api_key}
+```
+
+## Customer Management (Sub-Accounts)
+
+### Register Customer
+```http
+POST /api/v1/merchants/customers
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "external_id": "user_12345",
+  "email": "customer@example.com",
+  "metadata": { "loyalty_tier": "gold" }
+}
+```
+
+### Provision Customer Wallets
+```http
+POST /api/v1/merchants/customers/{external_id}/wallets
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "networks": ["evm", "solana"]
+}
+```
+
+### Get Customer Balances
+```http
+GET /api/v1/merchants/customers/{external_id}/balances
+Authorization: Bearer {api_key}
+```
+
+### Withdraw from Customer Wallet
+```http
+POST /api/v1/merchants/customers/{external_id}/withdraw
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "crypto_type": "SOL",
+  "amount": "1.0",
+  "destination_address": "external_wallet_address"
+}
+```
+
+### Sweep Customer Wallet to Merchant
+```http
+POST /api/v1/merchants/customers/{external_id}/sweep
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "crypto_type": "SOL",
+  "amount": "1.0" // Optional: Omit to sweep full balance
+}
+```
+
+### Deactivate Customer
+```http
+POST /api/v1/merchants/customers/{external_id}/deactivate
 Authorization: Bearer {api_key}
 ```
 
@@ -435,6 +498,17 @@ POST /api/v1/merchants/withdrawals/{withdrawal_id}/cancel
 Authorization: Bearer {api_key}
 ```
 
+### Process Withdrawal
+```http
+POST /api/v1/merchants/withdrawals/{withdrawal_id}/process
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "encryption_password": "your_secure_password"
+}
+```
+
 ## Wallet Management Endpoints
 
 ### Unified Wallet Setup
@@ -454,14 +528,18 @@ Content-Type: application/json
 ```
 **Recommended**: Use this single endpoint for all wallet onboarding methods.
 
-### Get Wallet Configs (Legacy)
-> [!WARNING]
-> Deprecated in favor of `GET /api/v1/merchants/status` for health, or `GET /api/v1/merchants/wallets` for raw config.
-
+### Get Wallet Configs
 ```http
 GET /api/v1/merchants/wallets
 Authorization: Bearer {api_key}
 ```
+
+### Get Wallet Balances
+```http
+GET /api/v1/merchants/wallets/balances
+Authorization: Bearer {api_key}
+```
+Returns actual on-chain balances and volume statistics for all configured merchant wallets.
 
 ### Configure Address-Only Wallet (Legacy)
 > [!WARNING]

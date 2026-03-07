@@ -240,6 +240,18 @@ export interface WalletConfig {
   updated_at: string;
 }
 
+export interface MerchantWalletBalance {
+  crypto_type: string;
+  network: string;
+  address: string;
+  is_active: boolean;
+  available_balance: string;
+  reserved_balance: string;
+  total_balance: string;
+  transaction_count: number;
+  total_volume_crypto: string;
+}
+
 export interface GenerateWalletRequest {
   crypto_type: CryptoType;
 }
@@ -278,6 +290,10 @@ export interface CreateWithdrawalRequest {
   crypto_type: CryptoType;
   amount: string;
   destination_address: string;
+}
+
+export interface ProcessWithdrawalRequest {
+  encryption_password?: string;
 }
 
 export interface Withdrawal {
@@ -491,6 +507,7 @@ export interface MerchantCustomer {
   external_id: string;
   email?: string;
   metadata?: any;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }

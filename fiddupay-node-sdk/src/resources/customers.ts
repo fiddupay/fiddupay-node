@@ -76,4 +76,12 @@ export class Customers {
     async sweep(externalId: string, data: CustomerSweepRequest, options?: RequestOptions): Promise<{ swept_amount: string; message: string }> {
         return this.client.post(`/api/v1/merchants/customers/${externalId}/sweep`, data, options);
     }
+
+    /**
+     * Deactivate a customer.
+     * This preserves their history but prevents further activity.
+     */
+    async deactivate(externalId: string, options?: RequestOptions): Promise<{ message: string }> {
+        return this.client.post(`/api/v1/merchants/customers/${externalId}/deactivate`, {}, options);
+    }
 }
