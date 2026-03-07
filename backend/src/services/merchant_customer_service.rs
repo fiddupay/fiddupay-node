@@ -27,8 +27,8 @@ impl MerchantCustomerService {
     ) -> Result<MerchantCustomer, ServiceError> {
         let customer_res: Result<MerchantCustomer, sqlx::Error> = sqlx::query_as::<_, MerchantCustomer>(
             r#"
-            INSERT INTO merchant_customers (merchant_id, external_id, email, first_name, last_name, metadata)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO merchant_customers (merchant_id, external_id, email, first_name, last_name, metadata, is_active)
+            VALUES ($1, $2, $3, $4, $5, $6, TRUE)
             ON CONFLICT (merchant_id, external_id) 
             DO UPDATE SET 
                 email = EXCLUDED.email, 
@@ -36,7 +36,7 @@ impl MerchantCustomerService {
                 last_name = EXCLUDED.last_name, 
                 metadata = EXCLUDED.metadata, 
                 updated_at = NOW()
-            RETURNING id, merchant_id, external_id, email, first_name, last_name, metadata, created_at, updated_at
+            RETURNING id, merchant_id, external_id, email, first_name, last_name, metadata, is_active, created_at, updated_at
             "#
         )
         .bind(merchant_id)
@@ -62,7 +62,7 @@ impl MerchantCustomerService {
     ) -> Result<Vec<MerchantCustomerWallet>, ServiceError> {
         // 1. Find customer
         let customer_res: Result<MerchantCustomer, sqlx::Error> = sqlx::query_as::<_, MerchantCustomer>(
-            "SELECT id, merchant_id, external_id, email, first_name, last_name, metadata, created_at, updated_at FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2"
+            "SELECT id, merchant_id, external_id, email, first_name, last_name, metadata, is_active, created_at, updated_at FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2"
         )
         .bind(merchant_id)
         .bind(external_id)
@@ -240,7 +240,7 @@ impl MerchantCustomerService {
 
         let customers_res: Result<Vec<MerchantCustomer>, sqlx::Error> = sqlx::query_as::<_, MerchantCustomer>(
             r#"
-            SELECT id, merchant_id, external_id, email, first_name, last_name, metadata, created_at, updated_at 
+            SELECT id, merchant_id, external_id, email, first_name, last_name, metadata, is_active, created_at, updated_at 
             FROM merchant_customers 
             WHERE merchant_id = $1
             ORDER BY created_at DESC 
@@ -275,7 +275,7 @@ impl MerchantCustomerService {
 
         // 1. Verify customer belongs to merchant
         let customer_res: Result<MerchantCustomer, sqlx::Error> = sqlx::query_as::<_, MerchantCustomer>(
-            "SELECT id, merchant_id, external_id, email, first_name, last_name, metadata, created_at, updated_at FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2"
+            "SELECT id, merchant_id, external_id, email, first_name, last_name, metadata, is_active, created_at, updated_at FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2"
         )
         .bind(merchant_id)
         .bind(external_id)
@@ -381,7 +381,7 @@ impl MerchantCustomerService {
 
         // 1. Verify customer belongs to merchant
         let customer_res: Result<MerchantCustomer, sqlx::Error> = sqlx::query_as::<_, MerchantCustomer>(
-            "SELECT id, merchant_id, external_id, email, first_name, last_name, metadata, created_at, updated_at FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2"
+            "SELECT id, merchant_id, external_id, email, first_name, last_name, metadata, is_active, created_at, updated_at FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2"
         )
         .bind(merchant_id)
         .bind(external_id)
@@ -458,5 +458,26 @@ impl MerchantCustomerService {
         tx.commit().await?;
 
         Ok(amount)
+    }
+
+    /// Deactivate a customer
+    pub async fn deactivate_customer(
+        &self,
+        merchant_id: i64,
+        external_id: &str,
+    ) -> Result<(), ServiceError> {
+        let res = sqlx::query(
+            "UPDATE merchant_customers SET is_active = FALSE, updated_at = NOW() WHERE merchant_id = $1 AND external_id = $2"
+        )
+        .bind(merchant_id)
+        .bind(external_id)
+        .execute(&self.db_pool)
+        .await;
+
+        match res {
+            Ok(r) if r.rows_affected() > 0 => Ok(()),
+            Ok(_) => Err(ServiceError::ValidationError(format!("Customer {} not found", external_id))),
+            Err(e) => Err(ServiceError::DatabaseError(e)),
+        }
     }
 }

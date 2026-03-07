@@ -54,6 +54,10 @@ export const merchantAPI = {
   }) => api.patch('/api/v1/merchants/settings', data),
   sendTestWebhook: () => api.post('/api/v1/merchants/webhook/test'),
   getReadinessStatus: () => api.get('/api/v1/merchants/status'),
+  getAuditLogs: (params?: { limit?: number; offset?: number }) => {
+    const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+    return api.get(`/api/v1/merchants/audit-logs${query}`);
+  },
 }
 
 export const paymentAPI = {
@@ -86,6 +90,15 @@ export const paymentAPI = {
   },
 }
 
+export const refundAPI = {
+  create: (data: { payment_id: string; amount: string; reason: string }) =>
+    api.post('/api/v1/merchants/refunds', data),
+  get: (refundId: string) =>
+    api.get(`/api/v1/merchants/refunds/${refundId}`),
+  complete: (refundId: string) =>
+    api.post(`/api/v1/merchants/refunds/${refundId}/complete`),
+}
+
 export const withdrawalAPI = {
   create: (data: { crypto_type: string; amount: string | number; to_address?: string; destination_address?: string; description?: string }) => api.post('/api/v1/merchants/withdrawals', data),
   process: (id: string, password: string) => api.post(`/api/v1/merchants/withdrawals/${id}/process`, { encryption_password: password }),
@@ -105,6 +118,7 @@ export const walletAPI = {
   getAll: () => api.get('/api/v1/merchants/wallets'),
   getBalances: () => api.get('/api/v1/merchants/wallets/balances'),
   revoke: (cryptoType: string) => api.delete(`/api/v1/merchants/wallets/${cryptoType}`),
+  exportKey: (cryptoType: string) => api.post('/api/v1/merchants/wallets/export-key', { crypto_type: cryptoType }),
 }
 
 export const securityAPI = {
@@ -112,10 +126,17 @@ export const securityAPI = {
   getAlerts: (params?: any) => api.get('/api/v1/merchants/security/alerts', { params }),
   getBalanceAlerts: (params?: any) => api.get('/api/v1/merchants/security/balance-alerts', { params }),
   checkGas: () => api.get('/api/v1/merchants/security/gas-check'),
+  getSettings: () => api.get('/api/v1/merchants/security/settings'),
   acknowledgeAlert: (alertId: string) =>
     api.post(`/api/v1/merchants/security/alerts/${alertId}/acknowledge`),
   resolveBalanceAlert: (alertId: string) =>
     api.post(`/api/v1/merchants/security/balance-alerts/${alertId}/resolve`),
+}
+
+export const sandboxAPI = {
+  enable: () => api.post('/api/v1/merchants/sandbox/enable'),
+  simulate: (paymentId: string, data: { status: string; transaction_hash?: string; from_address?: string }) =>
+    api.post(`/api/v1/merchants/sandbox/payments/${paymentId}/simulate`, data),
 }
 
 export const customerAPI = {
@@ -125,6 +146,7 @@ export const customerAPI = {
   getBalances: (externalId: string) => api.get(`/api/v1/merchants/customers/${externalId}/balances`),
   withdraw: (externalId: string, data: { crypto_type: string; amount: string; destination_address: string }) => api.post(`/api/v1/merchants/customers/${externalId}/withdraw`, data),
   sweep: (externalId: string, data: { crypto_type: string; amount: string }) => api.post(`/api/v1/merchants/customers/${externalId}/sweep`, data),
+  deactivate: (externalId: string) => api.post(`/api/v1/merchants/customers/${externalId}/deactivate`),
 }
 
 export const publicAPI = {
@@ -145,5 +167,7 @@ export default {
   wallet: walletAPI,
   security: securityAPI,
   customer: customerAPI,
+  refund: refundAPI,
+  sandbox: sandboxAPI,
   public: publicAPI,
 }

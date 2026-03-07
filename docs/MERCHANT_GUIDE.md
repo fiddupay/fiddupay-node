@@ -51,6 +51,23 @@ Response:
 }
 ```
 
+### 1.1 API Key Management
+You can manage your API keys via the dashboard or API.
+
+**Generate API Key:**
+```bash
+POST /api/v1/merchants/api-keys/generate
+{
+  "is_live": true
+}
+```
+
+**Rotate API Key:**
+```bash
+POST /api/v1/merchants/api-keys/rotate
+```
+Note: Rotating a key invalidates the previous one immediately.
+
 ### 2. Configure Wallets
 ```bash
 curl -X PUT https://api.fiddupay.com/api/v1/merchants/wallets \
@@ -474,9 +491,25 @@ Authorization: Bearer live_your_api_key_here
 
 ```
 Step 3: Set Webhook URL
-> Merchant provides webhook endpoint
-> System validates HTTPS
-> Merchant receives test webhook
+   > Merchant provides webhook endpoint
+   > System validates HTTPS
+   > Merchant receives test webhook
+```
+
+**Test Webhook Configuration:**
+To ensure your system is ready to handle FidduPay events:
+```bash
+POST /api/v1/merchants/webhook/test
+```
+This will send a `ping` event to your configured URL.
+
+### 1.4 Environment Switching
+Toggle between Sandbox and Live modes.
+```bash
+POST /api/v1/merchants/environment/switch
+{
+  "to_live": true
+}
 ```
 
 **API Endpoint:**
@@ -581,7 +614,30 @@ Authorization: Bearer live_your_api_key_here
 }
 ```
 
-### 2.3 Payment States
+**Cancel Payment:**
+```bash
+POST /api/v1/merchants/payments/pay_abc123/cancel
+```
+
+### 2.3 Refund Management
+Refunds can be processed for confirmed payments.
+
+**Create Refund:**
+```bash
+POST /api/v1/merchants/refunds
+{
+  "payment_id": "pay_abc123",
+  "amount": "100.00",
+  "reason": "Customer request"
+}
+```
+
+**Get Refund Details:**
+```bash
+GET /api/v1/merchants/refunds/ref_xyz
+```
+
+### 2.4 Payment States
 
 ```
 Payment Lifecycle:
@@ -594,7 +650,71 @@ PENDING > CONFIRMING > CONFIRMED
 
 ---
 
-## 3. INVOICE MANAGEMENT
+## 3. SUB-ACCOUNT & CUSTOMER MANAGEMENT (v2.4.4+)
+
+Manage individual customer profiles with dedicated deposit wallets. This allows you to track balances per user and automate fund sweeps.
+
+### 3.1 Register a Customer
+Assign your internal user ID to a FidduPay customer profile.
+
+```bash
+curl -X POST https://api.fiddupay.com/api/v1/merchants/customers \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "external_id": "user_123456",
+    "email": "customer@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "metadata": {
+      "tier": "gold",
+      "internal_reference": "ref_9988"
+    }
+  }'
+```
+
+### 3.2 Provision Dedicated Wallets
+Generate deposit addresses for specific networks (or provide an empty list for "Auto-mode" which uses all your supported networks).
+
+```bash
+curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_123456/wallets \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "networks": ["ETH", "SOL"] 
+  }'
+```
+
+### 3.3 Sweep Funds
+Move funds from a customer's sub-account balance to your master merchant balance.
+
+```bash
+curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_123456/sweep \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "crypto_type": "USDT",
+    "amount": "50.00"
+  }'
+```
+
+### 3.4 Deactivate Customer
+Safely stop accepting new deposits for a customer without deleting historical data.
+
+```bash
+curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_123456/deactivate \
+  -H "Authorization: Bearer your_api_key"
+```
+
+### 3.5 Using Metadata
+The `metadata` field is a flexible JSON object for internal mapping. Recommended uses:
+- **internal_id**: Map to your legacy database ID.
+- **preferences**: Store user-specific gateway settings.
+- **tags**: categorise users for internal reporting.
+
+---
+
+## 4. INVOICE MANAGEMENT
 
 ### 3.1 Invoice Creation (Future Feature)
 
@@ -903,7 +1023,25 @@ POST /api/v1/merchants/api-keys/rotate
     > Sensitive settings
 ```
 
-### 7.3 IP Whitelisting
+### 7.3 Security Alerts & Monitoring
+Monitor suspicious activities and account health.
+
+**Get Alerts:**
+```bash
+GET /api/v1/merchants/security/alerts
+```
+
+**Acknowledge Alert:**
+```bash
+POST /api/v1/merchants/security/alerts/alt_123/acknowledge
+```
+
+**Get Security Events:**
+```bash
+GET /api/v1/merchants/security/events
+```
+
+### 7.4 IP Whitelisting
 
 ```
 Current Implementation: 

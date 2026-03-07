@@ -129,6 +129,39 @@ export const API_DATA: DocSection[] = [
                     },
                     issues: []
                 }, null, 2)
+            },
+            {
+                id: 'generate-api-key',
+                method: 'POST',
+                path: '/api/v1/merchants/api-keys/generate',
+                title: 'Generate API Key',
+                description: 'Generate a new API key for the specified environment (live or sandbox).',
+                body: [
+                    { name: 'is_live', type: 'boolean', required: true, description: 'True for live, false for sandbox' }
+                ],
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/api-keys/generate \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"is_live": true}\'',
+                    node: 'const newKey = await fiddupay.merchants.generateApiKey(true);'
+                },
+                response: JSON.stringify({
+                    api_key: "sk_live_new_generated_key_..."
+                }, null, 2)
+            },
+            {
+                id: 'test-webhook',
+                method: 'POST',
+                path: '/api/v1/merchants/webhook/test',
+                title: 'Test Webhook Configuration',
+                description: 'Trigger a test webhook event to verify your endpoint is correctly receiving and acknowledging notifications.',
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/webhook/test \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'await fiddupay.merchants.sendTestWebhook();'
+                },
+                response: JSON.stringify({
+                    status: "success",
+                    message: "Test webhook sent to https://your-site.com/webhook",
+                    delivery_id: "del_123"
+                }, null, 2)
             }
         ]
     },
@@ -218,6 +251,133 @@ export const API_DATA: DocSection[] = [
                         { type: "payment", id: "pay_123", amount: "10.0", status: "completed", created_at: "2026-02-04T10:00:00Z" },
                         { type: "refund", id: "ref_456", amount: "5.0", status: "processed", created_at: "2026-02-04T11:00:00Z" }
                     ]
+                }, null, 2)
+            },
+            {
+                id: 'cancel-payment',
+                method: 'POST',
+                path: '/api/v1/merchants/payments/:payment_id/cancel',
+                title: 'Cancel Payment',
+                description: 'Explicitly cancel a pending payment request before it expires.',
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/payments/pay_123/cancel \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'await fiddupay.payments.cancel("pay_123");'
+                },
+                response: JSON.stringify({
+                    status: "CANCELLED",
+                    message: "Payment pay_123 has been cancelled"
+                }, null, 2)
+            }
+        ]
+    },
+    {
+        id: 'refunds',
+        title: 'Refunds',
+        description: 'Manage returns and fund reversals for your customers.',
+        endpoints: [
+            {
+                id: 'create-refund',
+                method: 'POST',
+                path: '/api/v1/merchants/refunds',
+                title: 'Create Refund',
+                description: 'Initialize a refund for a previously confirmed payment.',
+                body: [
+                    { name: 'payment_id', type: 'string', required: true, description: 'ID of original payment' },
+                    { name: 'amount', type: 'string', required: true, description: 'Amount to refund' },
+                    { name: 'reason', type: 'string', required: true, description: 'Reason for refund' }
+                ],
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/refunds \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "payment_id": "pay_123",\n    "amount": "10.0",\n    "reason": "Customer request"\n  }\'',
+                    node: 'const refund = await fiddupay.refunds.create({\n  payment_id: "pay_123",\n  amount: "10.0",\n  reason: "Customer request"\n});'
+                },
+                response: JSON.stringify({
+                    refund_id: "ref_456",
+                    status: "PENDING",
+                    amount: "10.0"
+                }, null, 2)
+            },
+            {
+                id: 'get-refund',
+                method: 'GET',
+                path: '/api/v1/merchants/refunds/:refund_id',
+                title: 'Retrieve Refund',
+                description: 'Get status and details of a specific refund request.',
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/refunds/ref_456 \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const refund = await fiddupay.refunds.get("ref_456");'
+                },
+                response: JSON.stringify({
+                    refund_id: "ref_456",
+                    status: "COMPLETED",
+                    amount: "10.0"
+                }, null, 2)
+            }
+        ]
+    },
+    {
+        id: 'customers',
+        title: 'Merchant Customers (Sub-Accounts)',
+        description: 'Manage individual customer sub-accounts with dedicated deposit wallets.',
+        endpoints: [
+            {
+                id: 'register-customer',
+                method: 'POST',
+                path: '/api/v1/merchants/customers',
+                title: 'Register Customer',
+                description: 'Create a new customer profile within your merchant account for dedicated wallet management.',
+                body: [
+                    { name: 'external_id', type: 'string', required: true, description: 'Your internal user ID' },
+                    { name: 'email', type: 'string', required: false, description: 'Customer email' },
+                    { name: 'metadata', type: 'object', required: false, description: 'Custom mapping data' }
+                ],
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/customers \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "external_id": "user_1234",\n    "email": "cust@example.com"\n  }\'',
+                    node: 'const customer = await fiddupay.customers.register({\n  external_id: "user_1234",\n  email: "cust@example.com"\n});'
+                },
+                response: JSON.stringify({
+                    id: "mc_789",
+                    external_id: "user_1234",
+                    status: "ACTIVE"
+                }, null, 2)
+            },
+            {
+                id: 'provision-wallets',
+                method: 'POST',
+                path: '/api/v1/merchants/customers/:id/wallets',
+                title: 'Provision Wallets',
+                description: 'Automatically generate or assign deposit addresses for a customer across selected networks.',
+                body: [
+                    { name: 'networks', type: 'string[]', required: true, description: 'SOL, ETH, etc. (Empty for all)' }
+                ],
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_1234/wallets \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"networks": ["SOL", "ETH"]}\'',
+                    node: 'await fiddupay.customers.provisionWallets("user_1234", ["SOL", "ETH"]);'
+                },
+                response: JSON.stringify({
+                    success: true,
+                    wallets: [
+                        { network: "SOL", address: "7x..." },
+                        { network: "ETH", address: "0x..." }
+                    ]
+                }, null, 2)
+            },
+            {
+                id: 'sweep-customer',
+                method: 'POST',
+                path: '/api/v1/merchants/customers/:id/sweep',
+                title: 'Sweep Funds',
+                description: 'Trigger a transfer of funds from a customer\'s sub-account directly into your main merchant balance.',
+                body: [
+                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, USDT, etc.' },
+                    { name: 'amount', type: 'string', required: true, description: 'Amount to sweep' }
+                ],
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_1234/sweep \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "crypto_type": "USDT",\n    "amount": "100.0"\n  }\'',
+                    node: 'await fiddupay.customers.sweep("user_1234", {\n  crypto_type: "USDT",\n  amount: "100.0"\n});'
+                },
+                response: JSON.stringify({
+                    success: true,
+                    transaction_hash: "0x..."
                 }, null, 2)
             }
         ]
@@ -345,6 +505,21 @@ export const API_DATA: DocSection[] = [
                     success: true,
                     message: "Wallet configuration removed successfully"
                 }, null, 2)
+            },
+            {
+                id: 'wallet-balances',
+                method: 'GET',
+                path: '/api/v1/merchants/wallets/balances',
+                title: 'Get Wallet Balances',
+                description: 'Retrieve real-time on-chain balances for all your configured settlement wallets.',
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/wallets/balances \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const balances = await fiddupay.wallets.getBalances();'
+                },
+                response: JSON.stringify([
+                    { crypto_type: "SOL", balance: "5.234", balance_usd: "523.40" },
+                    { crypto_type: "USDT_ETH", balance: "100.0", balance_usd: "100.00" }
+                ], null, 2)
             }
         ]
     },
@@ -589,6 +764,40 @@ export const API_DATA: DocSection[] = [
                 response: JSON.stringify([
                     { id: "wth_122", status: "completed", tx_hash: "0x..." }
                 ], null, 2)
+            },
+            {
+                id: 'process-withdrawal',
+                method: 'POST',
+                path: '/api/v1/merchants/withdrawals/:id/process',
+                title: 'Process (Broadcast) Withdrawal',
+                description: 'Explicitly trigger the broadcasting of a pending withdrawal to the blockchain. Requires your encryption password.',
+                body: [
+                    { name: 'encryption_password', type: 'string', required: true, description: 'Merchant-set password' }
+                ],
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/withdrawals/wth_123/process \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"encryption_password": "..."}\'',
+                    node: 'await fiddupay.withdrawals.process("wth_123", "your_password");'
+                },
+                response: JSON.stringify({
+                    success: true,
+                    tx_hash: "0x...",
+                    message: "Withdrawal broadcasted successfully"
+                }, null, 2)
+            },
+            {
+                id: 'cancel-withdrawal',
+                method: 'POST',
+                path: '/api/v1/merchants/withdrawals/:id/cancel',
+                title: 'Cancel Withdrawal',
+                description: 'Abort a pending withdrawal request before it is broadcasted.',
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/withdrawals/wth_123/cancel \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'await fiddupay.withdrawals.cancel("wth_123");'
+                },
+                response: JSON.stringify({
+                    status: "CANCELLED",
+                    message: "Withdrawal wth_123 has been cancelled"
+                }, null, 2)
             }
         ]
     },

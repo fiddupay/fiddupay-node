@@ -81,6 +81,7 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/merchants/customers/:external_id/balances", get(crate::api::customer_handlers::get_customer_balances))
         .route("/api/v1/merchants/customers/:external_id/withdraw", post(crate::api::customer_handlers::withdraw_from_customer))
         .route("/api/v1/merchants/customers/:external_id/sweep", post(crate::api::customer_handlers::sweep_customer_wallet))
+        .route("/api/v1/merchants/customers/:external_id/deactivate", post(crate::api::customer_handlers::deactivate_customer))
         
         // Invoice management
         .route("/api/v1/merchants/invoices", post(merchant_handlers::create_invoice))

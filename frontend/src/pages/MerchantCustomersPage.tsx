@@ -10,6 +10,7 @@ interface Customer {
     email?: string;
     first_name?: string;
     last_name?: string;
+    is_active: boolean;
     created_at: string;
 }
 
@@ -93,13 +94,8 @@ const MerchantCustomersPage: React.FC = () => {
         setCustomerBalances(null)
 
         try {
-            // In a real flow, you might have an endpoint to get just wallets,
-            // but here we can just query balances and it returns wallets associated.
             const balRes = await customerAPI.getBalances(customer.external_id)
             setCustomerBalances(balRes.data?.balances)
-
-            // Extract unique wallets from balance (if API supports returning plain wallets)
-            // Otherwise, assume provisioning is the main way to see them for now.
         } catch (error: any) {
             showToast(error.response?.data?.error || error.message || 'Failed to load customer details', 'error')
         } finally {
@@ -130,6 +126,29 @@ const MerchantCustomersPage: React.FC = () => {
             showToast(error.response?.data?.error || error.message || 'Failed to provision wallets', 'error')
         } finally {
             setProvisioning(false)
+        }
+    }
+
+    const handleDeactivate = async () => {
+        if (!selectedCustomer) return;
+        if (!window.confirm(`Are you sure you want to deactivate ${selectedCustomer.external_id}? This cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            setDetailsLoading(true)
+            await customerAPI.deactivate(selectedCustomer.external_id)
+            showToast('Customer deactivated successfully', 'success')
+
+            setCustomers(prev => prev.map(c =>
+                c.external_id === selectedCustomer.external_id ? { ...c, is_active: false } : c
+            ))
+            setSelectedCustomer({ ...selectedCustomer, is_active: false })
+
+        } catch (error: any) {
+            showToast(error.response?.data?.error || error.message || 'Failed to deactivate customer', 'error')
+        } finally {
+            setDetailsLoading(false)
         }
     }
 
@@ -204,16 +223,26 @@ const MerchantCustomersPage: React.FC = () => {
                                     <th>External ID</th>
                                     <th>Name</th>
                                     <th>Email</th>
+                                    <th>Status</th>
                                     <th>Created At</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {customers.map((c) => (
-                                    <tr key={c.id} className={styles.clickableRow} onClick={() => openCustomerDetails(c)}>
+                                    <tr
+                                        key={c.id}
+                                        className={`${styles.clickableRow} ${!c.is_active ? styles.inactiveRow : ''}`}
+                                        onClick={() => openCustomerDetails(c)}
+                                    >
                                         <td className={styles.idCell}>{c.external_id}</td>
                                         <td>{c.first_name || c.last_name ? `${c.first_name || ''} ${c.last_name || ''}`.trim() : '-'}</td>
                                         <td>{c.email || '-'}</td>
+                                        <td>
+                                            <span className={`${styles.statusBadge} ${c.is_active ? styles.statusActive : styles.statusInactive}`}>
+                                                {c.is_active ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </td>
                                         <td>{new Date(c.created_at).toLocaleDateString()}</td>
                                         <td>
                                             <button className={styles.actionBtn}>
@@ -300,7 +329,12 @@ const MerchantCustomersPage: React.FC = () => {
                 <div className={styles.modalOverlay}>
                     <div className={`${styles.modal} ${styles.modalLarge}`}>
                         <div className={styles.modalHeader}>
-                            <h2>Customer: <span className={styles.idCell}>{selectedCustomer.external_id}</span></h2>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <h2>Customer: <span className={styles.idCell}>{selectedCustomer.external_id}</span></h2>
+                                <span className={`${styles.statusBadge} ${selectedCustomer.is_active ? styles.statusActive : styles.statusInactive}`}>
+                                    {selectedCustomer.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                            </div>
                             <button className={styles.closeBtn} onClick={() => setSelectedCustomer(null)}>
                                 <i className="fas fa-times"></i>
                             </button>
@@ -311,12 +345,9 @@ const MerchantCustomersPage: React.FC = () => {
                                 <div className={styles.loading}><i className="fas fa-spinner fa-spin"></i></div>
                             ) : (
                                 <div className={styles.detailsGrid}>
-
-                                    {/* Provisioning Section */}
                                     <div>
                                         <h3 className={styles.sectionTitle}>
                                             <span>Provision Deposit Wallets</span>
-                                            {customerWallets.length > 0 && <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#10b981' }}>{customerWallets.length} New Wallets Provisioned</span>}
                                         </h3>
                                         <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '1rem' }}>
                                             Select the networks on which this customer can deposit funds. Dedicated addresses will be generated.
@@ -339,7 +370,7 @@ const MerchantCustomersPage: React.FC = () => {
                                             <button
                                                 className={styles.submitBtn}
                                                 onClick={() => handleProvisionWallets(true)}
-                                                disabled={provisioning}
+                                                disabled={provisioning || !selectedCustomer.is_active}
                                                 style={{ background: '#059669' }}
                                             >
                                                 {provisioning ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-magic"></i>}
@@ -349,7 +380,7 @@ const MerchantCustomersPage: React.FC = () => {
                                             <button
                                                 className={styles.submitBtn}
                                                 onClick={() => handleProvisionWallets(false)}
-                                                disabled={provisioning || selectedNetworks.length === 0}
+                                                disabled={provisioning || selectedNetworks.length === 0 || !selectedCustomer.is_active}
                                             >
                                                 {provisioning ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-wallet"></i>}
                                                 Provision Selected
@@ -367,7 +398,11 @@ const MerchantCustomersPage: React.FC = () => {
                                                         </div>
                                                         <div className={styles.walletAddress}>
                                                             {w.address}
-                                                            <button className={styles.actionBtn} style={{ padding: '0.1rem 0.3rem', marginLeft: '0.5rem', border: 'none' }} onClick={() => navigator.clipboard.writeText(w.address)}>
+                                                            <button
+                                                                className={styles.actionBtn}
+                                                                style={{ padding: '0.1rem 0.3rem', marginLeft: '0.5rem', border: 'none' }}
+                                                                onClick={() => navigator.clipboard.writeText(w.address)}
+                                                            >
                                                                 <i className="far fa-copy"></i>
                                                             </button>
                                                         </div>
@@ -416,21 +451,41 @@ const MerchantCustomersPage: React.FC = () => {
                                                     placeholder="0.00"
                                                 />
                                             </div>
-                                            <button type="submit" className={styles.submitBtn} style={{ width: 'auto', padding: '0.75rem 1.5rem' }} disabled={sweeping}>
+                                            <button
+                                                type="submit"
+                                                className={styles.submitBtn}
+                                                style={{ width: 'auto', padding: '0.75rem 1.5rem' }}
+                                                disabled={sweeping || !selectedCustomer.is_active}
+                                            >
                                                 {sweeping ? <i className="fas fa-spinner fa-spin"></i> : 'Sweep'}
                                             </button>
                                         </form>
-                                    </div>
 
+                                        <div style={{ marginTop: '2rem', borderTop: '1px solid #fee2e2', paddingTop: '1.5rem' }}>
+                                            <h3 className={`${styles.sectionTitle} ${styles.dangerText}`}>Danger Zone</h3>
+                                            <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '1rem' }}>
+                                                Deactivating a customer will prevent any further wallet provisioning or transactions.
+                                                This action is permanent for this external ID.
+                                            </p>
+                                            <button
+                                                className={styles.submitBtn}
+                                                style={{ background: '#ef4444', color: 'white' }}
+                                                onClick={handleDeactivate}
+                                                disabled={!selectedCustomer.is_active || detailsLoading}
+                                            >
+                                                {detailsLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-user-slash"></i>}
+                                                {selectedCustomer.is_active ? 'Deactivate Customer' : 'Customer Deactivated'}
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
             )}
-
         </div>
-    )
-}
+    );
+};
 
-export default MerchantCustomersPage
+export default MerchantCustomersPage;

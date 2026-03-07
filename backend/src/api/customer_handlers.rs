@@ -170,3 +170,19 @@ pub async fn withdraw_from_customer(
         },
     }
 }
+pub async fn deactivate_customer(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(external_id): Path<String>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(state.db_pool.clone());
+    
+    match service.deactivate_customer(context.merchant_id, &external_id).await {
+        Ok(_) => (StatusCode::OK, Json(json!({
+            "message": "Customer deactivated successfully"
+        }))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
+            "error": e.to_string()
+        }))).into_response(),
+    }
+}

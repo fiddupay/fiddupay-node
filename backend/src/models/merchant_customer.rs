@@ -15,6 +15,7 @@ pub struct MerchantCustomer {
     pub first_name: Option<String>,
     pub last_name: Option<String>,
     pub metadata: Option<serde_json::Value>,
+    pub is_active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
