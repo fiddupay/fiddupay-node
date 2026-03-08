@@ -56,7 +56,7 @@ pub struct CreateCustomerRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProvisionWalletRequest {
-    pub networks: Vec<String>, // "evm", "solana"
+    pub networks: Option<Vec<String>>, // "evm", "solana"
 }
 
 #[derive(Debug, Serialize, Deserialize)]

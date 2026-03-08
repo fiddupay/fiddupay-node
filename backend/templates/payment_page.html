@@ -527,7 +527,7 @@
                             </svg>
                         </button>
                     </div>
-                    <div class="amount-fiat">≈ ${{amount_usd}} USD</div>
+                    <div class="amount-fiat" id="amount-fiat-row">≈ ${{amount_usd}} USD</div>
 
                     <!-- feature_fee_amount_usd_start -->
                     <div class="fee-info">
@@ -535,6 +535,16 @@
                     </div>
                     <!-- feature_fee_amount_usd_end -->
                 </div>
+
+                <script>
+                    (function() {
+                        const crypto = '{{crypto_type}}';
+                        if (crypto.startsWith('USDT')) {
+                            const fiatRow = document.getElementById('amount-fiat-row');
+                            if (fiatRow) fiatRow.style.display = 'none';
+                        }
+                    })();
+                </script>
 
                 <div class="qr-card">
                     <img src="data:image/png;base64,{{qr_code}}" alt="Payment QR Code">

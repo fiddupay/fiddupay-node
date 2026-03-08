@@ -100,26 +100,32 @@ curl -X PUT https://api.fiddupay.com/api/v1/merchants/webhook \
   }'
 ```
 
-### 4. Create Payment
+# Payment Creation Policy (v2.4.5+)
+FidduPay enforces specific fields based on the type of currency to ensure accounting accuracy:
+
+1. **Stablecoins (USDT)**: Use `amount_usd`. (Backend assumes 1:1 and skips price fluctuation checks).
+2. **Volatile Crypto (SOL, ETH, etc.)**: Use `amount`. (Backend auto-calculates the USD value based on real-time prices).
+3. **Multi-Currency Selection**: Use `amount_usd`. (System calculates specific crypto amounts when the customer selects their currency).
+
 ```bash
-# USD-based payment
+# USDT-based payment (MUST use amount_usd)
 curl -X POST https://api.fiddupay.com/api/v1/merchants/payments \
   -H "Authorization: Bearer your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
     "amount_usd": "100.00",
     "crypto_type": "USDT_ETH",
-    "description": "Order #12345"
+    "description": "Stablecoin Order"
   }'
 
-# Crypto-based payment
+# Crypto-based payment (MUST use amount for volatile assets)
 curl -X POST https://api.fiddupay.com/api/v1/merchants/payments \
   -H "Authorization: Bearer your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
     "amount": "2.5",
     "crypto_type": "SOL",
-    "description": "Order #12345"
+    "description": "Volatile Asset Order"
   }'
 ```
 
@@ -557,7 +563,7 @@ Payment Creation Flow:
 
 **API Endpoint:**
 ```bash
-POST /api/v1/payments
+POST /api/v1/merchants/payments
 Authorization: Bearer live_your_api_key_here
 {
   "amount_usd": 100.00,
@@ -570,18 +576,25 @@ Authorization: Bearer live_your_api_key_here
   "expiration_minutes": 15
 }
 
+# OR create by fixed crypto amount (backend auto-calculates USD)
+{
+  "amount": "2.5",
+  "crypto_type": "SOL",
+  "description": "Fixed crypto amount payment"
+}
+
 Response:
 {
   "payment_id": "pay_abc123",
   "status": "PENDING",
-  "amount": 0.45,
+  "amount": 2.5,
   "amount_usd": 100.00,
   "crypto_type": "SOL",
   "network": "SOLANA",
   "deposit_address": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
   "payment_link": "https://pay.yourdomain.com/lnk_xyz789",
-  "qr_code_data": "solana:7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU?amount=0.45",
-  "fee_amount": 0.0068,
+  "qr_code_data": "solana:7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU?amount=2.5",
+  "fee_amount": 0.0375,
   "fee_amount_usd": 1.50,
   "expires_at": "2026-01-20T10:00:00Z",
   "created_at": "2026-01-20T09:45:00Z"

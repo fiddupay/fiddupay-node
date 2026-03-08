@@ -260,24 +260,41 @@ pub struct InvoiceItem {
 
 impl CreatePaymentRequest {
     pub fn validate(&self) -> Result<(), String> {
-        match (self.amount, self.amount_usd) {
-            (Some(_), Some(_)) => Err("Provide either amount or amount_usd, not both".to_string()),
-            (None, None) => Err("Either amount or amount_usd must be provided".to_string()),
-            (Some(amount), None) => {
-                if amount <= Decimal::ZERO {
-                    Err("Amount must be positive".to_string())
-                } else {
-                    Ok(())
+        // Enforce input field separation based on currency type
+        if let Some(ct) = self.crypto_type {
+            if ct.as_str() == "USDT" {
+                // Stablecoins MUST use amount_usd
+                if self.amount_usd.is_none() {
+                    return Err("USDT payments require 'amount_usd'".to_string());
                 }
-            },
-            (None, Some(amount_usd)) => {
-                if amount_usd <= Decimal::ZERO {
-                    Err("Amount USD must be positive".to_string())
-                } else {
-                    Ok(())
+                if self.amount.is_some() {
+                    return Err("USDT payments should use 'amount_usd', not 'amount'".to_string());
                 }
-            },
+                if self.amount_usd.unwrap() <= Decimal::ZERO {
+                    return Err("Amount USD must be positive".to_string());
+                }
+            } else {
+                // Volatile Cryptos MUST use amount
+                if self.amount.is_none() {
+                    return Err(format!("{} payments require 'amount'", ct));
+                }
+                if self.amount_usd.is_some() {
+                    return Err(format!("{} payments should use 'amount', not 'amount_usd'", ct));
+                }
+                if self.amount.unwrap() <= Decimal::ZERO {
+                    return Err("Amount must be positive".to_string());
+                }
+            }
+        } else {
+            // Multi-currency checkout MUST use amount_usd
+            if self.amount_usd.is_none() {
+                return Err("Multi-currency checkout requires 'amount_usd'".to_string());
+            }
+            if self.amount_usd.unwrap() <= Decimal::ZERO {
+                return Err("Amount USD must be positive".to_string());
+            }
         }
+        Ok(())
     }
 }
 

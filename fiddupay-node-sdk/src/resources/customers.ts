@@ -32,12 +32,12 @@ export class Customers {
      * Provision designated wallets for a customer.
      * You can request "evm" (covers ETH, BSC, Polygon, Arb) and/or "solana".
      */
-    async createWallets(data: ProvisionWalletRequest, options?: RequestOptions): Promise<{
+    async createWallets(externalId: string, data: ProvisionWalletRequest, options?: RequestOptions): Promise<{
         external_id: string;
         wallets: Array<{ crypto_type: string; network: string; address: string; created_at: string }>;
         message: string;
     }> {
-        return this.client.post('/api/v1/merchants/customers/wallets', data, options);
+        return this.client.post(`/api/v1/merchants/customers/${externalId}/wallets`, data, options);
     }
 
     /**

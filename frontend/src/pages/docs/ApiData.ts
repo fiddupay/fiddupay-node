@@ -184,8 +184,8 @@ export const API_DATA: DocSection[] = [
                     { name: 'expiration_minutes', type: 'integer', required: false, description: 'Defaults to 20 mins' }
                 ],
                 request: {
-                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/payments \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "amount_usd": "100.00",\n    "crypto_type": "USDT_ETH"\n  }\'',
-                    node: 'const payment = await fiddupay.payments.create({\n  amount_usd: "100.00",\n  crypto_type: "USDT_ETH"\n});'
+                    curl: '# USDT (Stablecoin) -> MUST use amount_usd\ncurl -X POST https://api.fiddupay.com/api/v1/merchants/payments \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"amount_usd": "100.00", "crypto_type": "USDT_ETH"}\'\n\n# SOL/ETH (Volatile) -> MUST use amount\ncurl -X POST https://api.fiddupay.com/api/v1/merchants/payments \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"amount": "2.5", "crypto_type": "SOL"}\'',
+                    node: '// USDT -> amount_usd\nconst p1 = await fiddupay.payments.create({ amount_usd: "100.00", crypto_type: "USDT_ETH" });\n\n// SOL -> amount\nconst p2 = await fiddupay.payments.create({ amount: "2.5", crypto_type: "SOL" });'
                 },
                 response: JSON.stringify({
                     payment_id: "pay_123",

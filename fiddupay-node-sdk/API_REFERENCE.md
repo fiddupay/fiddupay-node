@@ -204,17 +204,16 @@ Authorization: Bearer {api_key}
 Content-Type: application/json
 
 {
-  "amount_usd": "100.00",
+  "amount": "2.5",
   "crypto_type": "SOL",
-  "description": "Payment for order #123",
-  "webhook_url": "https://your-site.com/webhook",
-  "metadata": { "order_id": 123 },
-  "expires_in": 3600,
-  "partial_payments_enabled": false
+  "description": "Payment for order #123"
 }
 ```
 
-**Note**: You must provide either `amount` (in crypto) or `amount_usd` (in USD), but not both.
+**Field Enforcement Policy (v2.4.5+)**:
+- **Stablecoins (USDT)**: You MUST use `amount_usd`. The system treats it as 1:1 and skips price fetching.
+- **Native/Volatile (SOL, ETH, etc.)**: You MUST use `amount` (quantity). The system fetches real-time prices to calculate the USD value.
+- **Multi-Currency (Selection Required)**: Leave both `amount` and `crypto_type` out, and provide `amount_usd`. The customer will select their preferred currency on the payment page.
 
 ### List Payments
 ```http

@@ -39,7 +39,7 @@ pub async fn provision_customer_wallets(
 ) -> impl IntoResponse {
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
-    match service.provision_wallets(context.merchant_id, &external_id, req.networks).await {
+    match service.provision_wallets(context.merchant_id, &external_id, req.networks.unwrap_or_default()).await {
         Ok(wallets) => {
             // Filter out sensitive data (private keys are stored encrypted, but we return addresses)
             let response_wallets: Vec<_> = wallets.iter().map(|w| json!({

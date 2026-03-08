@@ -28,6 +28,7 @@ const PaymentsPage: React.FC = () => {
   const [paymentType, setPaymentType] = useState<'standard' | 'address-only'>('standard')
   const [newPayment, setNewPayment] = useState({
     amount_usd: '',
+    amount: '',
     crypto_type: '',
     description: '',
     merchant_address: '',
@@ -126,25 +127,24 @@ const PaymentsPage: React.FC = () => {
     e.preventDefault()
 
     // Comprehensive validation
-    const amount = parseFloat(newPayment.amount_usd)
-    if (!newPayment.amount_usd || isNaN(amount) || amount <= 0) {
-      showToast('Please enter a valid amount greater than 0', 'error')
-      return
-    }
+    const isStable = newPayment.crypto_type.startsWith('USDT');
 
-    if (amount < 0.01) {
-      showToast('Minimum payment amount is $0.01', 'error')
-      return
-    }
-
-    if (amount > 100000) {
-      showToast('Maximum payment amount is $100,000', 'error')
-      return
-    }
-
-    if (!newPayment.crypto_type) {
-      showToast('Please select a cryptocurrency', 'error')
-      return
+    if (isStable) {
+      const amountUSD = parseFloat(newPayment.amount_usd);
+      if (!newPayment.amount_usd || isNaN(amountUSD) || amountUSD <= 0) {
+        showToast('Please enter a valid USD amount greater than 0', 'error');
+        return;
+      }
+      if (amountUSD < 0.01) {
+        showToast('Minimum payment amount is $0.01', 'error');
+        return;
+      }
+    } else {
+      const amountCrypto = parseFloat(newPayment.amount);
+      if (!newPayment.amount || isNaN(amountCrypto) || amountCrypto <= 0) {
+        showToast('Please enter a valid crypto amount greater than 0', 'error');
+        return;
+      }
     }
 
     if (paymentType === 'address-only' && !newPayment.merchant_address) {
@@ -161,7 +161,7 @@ const PaymentsPage: React.FC = () => {
     try {
       if (paymentType === 'address-only') {
         await paymentAPI.create({
-          requested_amount: newPayment.amount_usd,
+          requested_amount: isStable ? newPayment.amount_usd : newPayment.amount,
           crypto_type: newPayment.crypto_type,
           merchant_address: newPayment.merchant_address,
           description: newPayment.description || undefined
@@ -169,7 +169,8 @@ const PaymentsPage: React.FC = () => {
         showToast('Address-only payment created successfully!', 'success')
       } else {
         const payment = await paymentAPI.create({
-          amount_usd: newPayment.amount_usd,
+          amount_usd: isStable ? newPayment.amount_usd : undefined,
+          amount: !isStable ? newPayment.amount : undefined,
           crypto_type: newPayment.crypto_type,
           description: newPayment.description || undefined,
           is_invoice: newPayment.is_invoice,
@@ -197,6 +198,7 @@ const PaymentsPage: React.FC = () => {
       setFilters(prev => ({ ...prev, page: 1 }))
       setNewPayment({
         amount_usd: '',
+        amount: '',
         crypto_type: 'USDT_ETH',
         description: '',
         merchant_address: '',
@@ -676,17 +678,35 @@ const PaymentsPage: React.FC = () => {
                 </div>
 
                 <div className={styles.inputGroup}>
-                  <label htmlFor="amount">Amount (USD)</label>
-                  <input
-                    type="number"
-                    id="amount"
-                    step="0.01"
-                    min="0.01"
-                    value={newPayment.amount_usd}
-                    onChange={(e) => setNewPayment(prev => ({ ...prev, amount_usd: e.target.value }))}
-                    placeholder="100.00"
-                    required
-                  />
+                  {newPayment.crypto_type.startsWith('USDT') ? (
+                    <>
+                      <label htmlFor="amount">Amount (USD)</label>
+                      <input
+                        type="number"
+                        id="amount"
+                        step="0.01"
+                        min="0.01"
+                        value={newPayment.amount_usd}
+                        onChange={(e) => setNewPayment(prev => ({ ...prev, amount_usd: e.target.value }))}
+                        placeholder="100.00"
+                        required
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <label htmlFor="amount">Amount ({newPayment.crypto_type.split('_')[0]})</label>
+                      <input
+                        type="number"
+                        id="amount"
+                        step="0.000001"
+                        min="0.000001"
+                        value={newPayment.amount}
+                        onChange={(e) => setNewPayment(prev => ({ ...prev, amount: e.target.value }))}
+                        placeholder="2.5"
+                        required
+                      />
+                    </>
+                  )}
                 </div>
 
                 <div className={styles.inputGroup}>
