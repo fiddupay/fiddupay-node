@@ -201,6 +201,9 @@ mod tests {
             is_active: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            wallet_mode: Some("managed".to_string()),
+            encrypted_private_key: None,
+            sandbox_mode: false,
         };
 
         // Test serialization
@@ -220,6 +223,17 @@ mod tests {
         let request = MerchantRegistrationRequest {
             email: "newmerchant@example.com".to_string(),
             business_name: "New Business".to_string(),
+            password: "password123".to_string(),
+            first_name: "John".to_string(),
+            last_name: "Doe".to_string(),
+            gender: "Male".to_string(),
+            phone_number: "1234567890".to_string(),
+            country: "US".to_string(),
+            applicant_role: "Owner".to_string(),
+            terms_accepted: true,
+            business_country: "US".to_string(),
+            business_license_number: None,
+            business_certificate_url: None,
         };
 
         assert_eq!(request.email, "newmerchant@example.com");
@@ -300,6 +314,16 @@ mod tests {
             daily_limit_usd: None,
             role: "MERCHANT".to_string(),
             redirect_url: None,
+            first_name: None,
+            last_name: None,
+            gender: None,
+            phone_number: None,
+            country: None,
+            applicant_role: None,
+            business_country: None,
+            business_license_number: None,
+            business_certificate_url: None,
+            terms_accepted: false,
         };
         assert_eq!(merchant_max.fee_percentage, Decimal::new(500, 2));
     }
@@ -324,6 +348,9 @@ mod tests {
                 is_active: true,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
+                wallet_mode: Some("managed".to_string()),
+                encrypted_private_key: None,
+                sandbox_mode: false,
             };
 
             assert_eq!(wallet.crypto_type, crypto_type);

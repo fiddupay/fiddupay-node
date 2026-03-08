@@ -371,7 +371,7 @@ pub async fn payment_status(
 
     match payment_info {
         Ok(Some(payment)) => {
-            let mut current_status = payment.status.clone();
+            let current_status = payment.status.clone();
             
             if current_status == "PENDING" || current_status == "CONFIRMING" {
                  let p_id_clone = payment.payment_id.clone();

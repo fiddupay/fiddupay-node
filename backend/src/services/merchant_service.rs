@@ -20,6 +20,43 @@ impl MerchantService {
         Self { db_pool, config }
     }
 
+    /// Validate a wallet address for a specific crypto type
+    pub fn validate_wallet_address(&self, address: &str, crypto_type: CryptoType) -> Result<(), ServiceError> {
+        match crypto_type {
+            CryptoType::Sol | CryptoType::UsdtSpl => {
+                // Solana address format: 32-44 characters, base58
+                if address.len() < 32 || address.len() > 44 {
+                    return Err(ServiceError::ValidationError("Invalid Solana address length".to_string()));
+                }
+                
+                // Basic character set validation for base58 (no 0, O, I, l)
+                let invalid_chars = ['0', 'O', 'I', 'l'];
+                if address.chars().any(|c| !c.is_alphanumeric() || invalid_chars.contains(&c)) {
+                    return Err(ServiceError::ValidationError("Invalid characters in Solana address".to_string()));
+                }
+            },
+            CryptoType::UsdtBep20 | CryptoType::UsdtPolygon | CryptoType::UsdtArbitrum | CryptoType::Eth => {
+                // EVM address format: 42 characters, starts with 0x
+                if !address.starts_with("0x") {
+                    return Err(ServiceError::ValidationError("EVM address must start with 0x".to_string()));
+                }
+                if address.len() != 42 {
+                    return Err(ServiceError::ValidationError("Invalid EVM address length".to_string()));
+                }
+                
+                // Hex validation
+                if !address[2..].chars().all(|c| c.is_ascii_hexdigit()) {
+                    return Err(ServiceError::ValidationError("Invalid hex in EVM address".to_string()));
+                }
+            },
+            _ => {
+                 // Unknown crypto type, skipping validation or returning generic error
+                 return Err(ServiceError::ValidationError(format!("Validation not implemented for {:?}", crypto_type)));
+            }
+        }
+        Ok(())
+    }
+
     /// Get daily volume remaining for a merchant
     pub async fn get_daily_volume_remaining(
         &self,

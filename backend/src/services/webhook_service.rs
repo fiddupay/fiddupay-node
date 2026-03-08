@@ -260,24 +260,25 @@ mod tests {
     }
 
     async fn create_test_merchant(pool: &PgPool) -> i64 {
-        let result = sqlx::query!(
+        let result = sqlx::query(
             r#"
             INSERT INTO merchants (email, business_name, test_api_key_hash, fee_percentage, is_active, sandbox_mode)
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING id
-            "#,
-            format!("test{}@example.com", uuid::Uuid::new_v4().simple()),
-            "Test Business",
-            format!("test_hash_{}", Uuid::new_v4().simple()),
-            rust_decimal::Decimal::new(150, 2), // 1.50%
-            true,
-            true // Important: sandbox_mode for tests
+            "#
         )
+        .bind(format!("test{}@example.com", uuid::Uuid::new_v4().simple()))
+        .bind("Test Business")
+        .bind(format!("test_hash_{}", Uuid::new_v4().simple()))
+        .bind(rust_decimal::Decimal::new(150, 2))
+        .bind(true)
+        .bind(true)
         .fetch_one(pool)
         .await
         .unwrap();
 
-        result.id
+        use sqlx::Row;
+        result.get::<i64, _>("id")
     }
 
     #[tokio::test]
@@ -296,23 +297,26 @@ mod tests {
         assert!(result.is_ok());
 
         // Verify webhook was stored
-        let config = sqlx::query!(
-            "SELECT url, is_active FROM webhook_configs WHERE merchant_id = $1",
-            merchant_id
+        let config = sqlx::query(
+            "SELECT url, is_active FROM webhook_configs WHERE merchant_id = $1"
         )
+        .bind(merchant_id)
         .fetch_one(&pool)
         .await
         .unwrap();
 
-        assert_eq!(config.url, "https://example.com/webhook");
-        assert!(config.is_active);
+        use sqlx::Row;
+        assert_eq!(config.get::<String, _>("url"), "https://example.com/webhook");
+        assert!(config.get::<bool, _>("is_active"));
 
         // Cleanup
-        sqlx::query!("DELETE FROM webhook_configs WHERE merchant_id = $1", merchant_id)
+        sqlx::query("DELETE FROM webhook_configs WHERE merchant_id = $1")
+            .bind(merchant_id)
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query!("DELETE FROM merchants WHERE id = $1", merchant_id)
+        sqlx::query("DELETE FROM merchants WHERE id = $1")
+            .bind(merchant_id)
             .execute(&pool)
             .await
             .unwrap();
@@ -340,7 +344,8 @@ mod tests {
         }
 
         // Cleanup
-        sqlx::query!("DELETE FROM merchants WHERE id = $1", merchant_id)
+        sqlx::query("DELETE FROM merchants WHERE id = $1")
+            .bind(merchant_id)
             .execute(&pool)
             .await
             .unwrap();
@@ -368,7 +373,8 @@ mod tests {
         }
 
         // Cleanup
-        sqlx::query!("DELETE FROM merchants WHERE id = $1", merchant_id)
+        sqlx::query("DELETE FROM merchants WHERE id = $1")
+            .bind(merchant_id)
             .execute(&pool)
             .await
             .unwrap();
@@ -396,7 +402,8 @@ mod tests {
         }
 
         // Cleanup
-        sqlx::query!("DELETE FROM merchants WHERE id = $1", merchant_id)
+        sqlx::query("DELETE FROM merchants WHERE id = $1")
+            .bind(merchant_id)
             .execute(&pool)
             .await
             .unwrap();
@@ -424,23 +431,26 @@ mod tests {
         ).await.unwrap();
 
         // Verify only one config exists with the new URL
-        let configs = sqlx::query!(
-            "SELECT url FROM webhook_configs WHERE merchant_id = $1",
-            merchant_id
+        let configs = sqlx::query(
+            "SELECT url FROM webhook_configs WHERE merchant_id = $1"
         )
+        .bind(merchant_id)
         .fetch_all(&pool)
         .await
         .unwrap();
 
         assert_eq!(configs.len(), 1);
-        assert_eq!(configs[0].url, "https://example.com/webhook2");
+        use sqlx::Row;
+        assert_eq!(configs[0].get::<String, _>("url"), "https://example.com/webhook2");
 
         // Cleanup
-        sqlx::query!("DELETE FROM webhook_configs WHERE merchant_id = $1", merchant_id)
+        sqlx::query("DELETE FROM webhook_configs WHERE merchant_id = $1")
+            .bind(merchant_id)
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query!("DELETE FROM merchants WHERE id = $1", merchant_id)
+        sqlx::query("DELETE FROM merchants WHERE id = $1")
+            .bind(merchant_id)
             .execute(&pool)
             .await
             .unwrap();
@@ -462,22 +472,25 @@ mod tests {
         assert!(result.is_ok());
 
         // Verify webhook was stored with full URL
-        let config = sqlx::query!(
-            "SELECT url FROM webhook_configs WHERE merchant_id = $1",
-            merchant_id
+        let config = sqlx::query(
+            "SELECT url FROM webhook_configs WHERE merchant_id = $1"
         )
+        .bind(merchant_id)
         .fetch_one(&pool)
         .await
         .unwrap();
 
-        assert_eq!(config.url, "https://example.com/api/webhooks?token=abc123");
+        use sqlx::Row;
+        assert_eq!(config.get::<String, _>("url"), "https://example.com/api/webhooks?token=abc123");
 
         // Cleanup
-        sqlx::query!("DELETE FROM webhook_configs WHERE merchant_id = $1", merchant_id)
+        sqlx::query("DELETE FROM webhook_configs WHERE merchant_id = $1")
+            .bind(merchant_id)
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query!("DELETE FROM merchants WHERE id = $1", merchant_id)
+        sqlx::query("DELETE FROM merchants WHERE id = $1")
+            .bind(merchant_id)
             .execute(&pool)
             .await
             .unwrap();
@@ -499,22 +512,25 @@ mod tests {
         assert!(result.is_ok());
 
         // Verify webhook was stored
-        let config = sqlx::query!(
-            "SELECT url FROM webhook_configs WHERE merchant_id = $1",
-            merchant_id
+        let config = sqlx::query(
+            "SELECT url FROM webhook_configs WHERE merchant_id = $1"
         )
+        .bind(merchant_id)
         .fetch_one(&pool)
         .await
         .unwrap();
 
-        assert_eq!(config.url, "https://example.com:8443/webhook");
+        use sqlx::Row;
+        assert_eq!(config.get::<String, _>("url"), "https://example.com:8443/webhook");
 
         // Cleanup
-        sqlx::query!("DELETE FROM webhook_configs WHERE merchant_id = $1", merchant_id)
+        sqlx::query("DELETE FROM webhook_configs WHERE merchant_id = $1")
+            .bind(merchant_id)
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query!("DELETE FROM merchants WHERE id = $1", merchant_id)
+        sqlx::query("DELETE FROM merchants WHERE id = $1")
+            .bind(merchant_id)
             .execute(&pool)
             .await
             .unwrap();
