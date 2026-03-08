@@ -27,6 +27,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/health", get(public_handlers::health_check))
         .route("/:link_id", get(payment_handlers::payment_page))
         .route("/:link_id/status", get(payment_handlers::payment_status))
+        .route("/:link_id/verify", post(payment_handlers::verify_payment_trigger))
         .route("/:link_id/select", post(payment_handlers::finalize_payment_selection))
         .route("/api/v1/merchants/register", post(merchant_auth_handlers::register_merchant))
         .route("/api/v1/merchants/login", post(merchant_auth_handlers::login_merchant))

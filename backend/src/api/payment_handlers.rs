@@ -278,10 +278,15 @@ pub async fn payment_page(
     let redirect_url = merchant_info.as_ref().and_then(|m| m.get::<Option<String>, _>("redirect_url"));
     let customer_pays_fee = merchant_info.as_ref().map(|m| m.get::<bool, _>("customer_pays_fee")).unwrap_or(true);
 
-    // Smart Verification: Trigger address scan if pending
+    // Smart Verification: Trigger address scan in background if pending
     if is_pending {
-        tracing::info!("Triggering smart verification for payment {}", link_id);
-        let _ = state.payment_service.verify_payment_by_address(&p_payment_id, p_merchant_id).await;
+        tracing::info!("Triggering background smart verification for payment {}", link_id);
+        let p_id_clone = p_payment_id.clone();
+        let m_id_clone = p_merchant_id;
+        let svc_clone = state.payment_service.clone();
+        tokio::spawn(async move {
+            let _ = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await;
+        });
     }
 
     // Fetch supported currencies if needed
@@ -369,15 +374,12 @@ pub async fn payment_status(
             let mut current_status = payment.status.clone();
             
             if current_status == "PENDING" || current_status == "CONFIRMING" {
-                 match state.payment_service.verify_payment_by_address(&payment.payment_id, payment.merchant_id).await {
-                     Ok(true) => {
-                         current_status = "CONFIRMED".to_string();
-                     },
-                     Ok(false) => {},
-                     Err(e) => {
-                         tracing::warn!("Failed to auto-verify payment {}: {}", link_id, e);
-                     }
-                 }
+                 let p_id_clone = payment.payment_id.clone();
+                 let m_id_clone = payment.merchant_id;
+                 let svc_clone = state.payment_service.clone();
+                 tokio::spawn(async move {
+                     let _ = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await;
+                 });
             }
 
             (StatusCode::OK, Json(json!({"status": current_status}))).into_response()
@@ -404,6 +406,141 @@ pub async fn finalize_payment_selection(
     Path(link_id): Path<String>,
     Json(req): Json<SelectionRequest>,
 ) -> impl IntoResponse {
+    let pool = state.db_pool.clone();
+    
+    // 1. Look up payment by link_id
+    let payment_link_res = sqlx::query(
+        "SELECT payment_id FROM payment_links WHERE link_id = $1"
+    )
+    .bind(&link_id)
+    .fetch_optional(&pool)
+    .await;
+
+    let payment_link = match payment_link_res {
+        Ok(Some(link)) => link,
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment link not found"}))).into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    };
+
+    let pl_payment_id: i64 = payment_link.get("payment_id");
+
+    // 2. Get payment details
+    let payment_record_res = sqlx::query_as::<_, crate::models::payment::Payment>(
+        r#"
+        SELECT id, payment_id, merchant_id, amount, amount_usd, crypto_type, network,
+               status, to_address, from_address, created_at, expires_at, confirmed_at,
+               confirmations, required_confirmations, description, metadata,
+               transaction_hash, webhook_url, fee_percentage, fee_amount, fee_amount_usd,
+               user_id, subscription_id, block_number, partial_payments_enabled,
+               total_paid, remaining_balance, is_non_custodial
+        FROM payment_transactions 
+        WHERE id = $1
+        "#
+    )
+    .bind(pl_payment_id)
+    .fetch_optional(&pool)
+    .await;
+
+    let payment_record = match payment_record_res {
+        Ok(Some(p)) => p,
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment record not found"}))).into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    };
+
+    if payment_record.status != "SELECTION_REQUIRED" {
+        return (StatusCode::BAD_REQUEST, Json(json!({"error": "Payment currency already selected"}))).into_response();
+    }
+
+    // 3. Resolve crypto type and calculate amounts
+    let crypto_type = req.crypto_type;
+    let merchant_id = payment_record.merchant_id;
+    
+    let to_address = match state.merchant_service.get_wallet_address(merchant_id, crypto_type).await {
+        Ok(addr) => addr,
+        Err(e) => return (StatusCode::BAD_REQUEST, Json(json!({"error": format!("Failed to get/generate merchant wallet: {}", e)}))).into_response(),
+    };
+
+    let price_service = state.price_service.clone();
+    let price = match price_service.get_price(crypto_type).await {
+        Ok(p) => p,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Price fetch failed: {}", e)}))).into_response(),
+    };
+    use rust_decimal::prelude::FromPrimitive;
+    let price_decimal = Decimal::from_f64(price).unwrap_or(Decimal::ONE);
+
+    let amount_usd = payment_record.amount_usd;
+    let amount_crypto = amount_usd / price_decimal;
+    let fee_amount_crypto = payment_record.fee_amount_usd / price_decimal;
+    let network = crypto_type.network();
+
+    // 4. Update payment record
+    if let Err(e) = sqlx::query(
+        r#"
+        UPDATE payment_transactions 
+        SET crypto_type = $1, amount = $2, to_address = $3, network = $4, fee_amount = $5, status = 'PENDING'
+        WHERE id = $6
+        "#
+    )
+    .bind(crypto_type.to_string())
+    .bind(amount_crypto)
+    .bind(&to_address)
+    .bind(network)
+    .bind(fee_amount_crypto)
+    .bind(payment_record.id)
+    .execute(&pool)
+    .await {
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
+    }
+
+    (StatusCode::OK, Json(json!({"message": "Selection finalized", "crypto_type": crypto_type.to_string()}))).into_response()
+}
+
+/// Lightweight trigger to start a background verification scan
+pub async fn verify_payment_trigger(
+    State(state): State<AppState>,
+    Path(link_id): Path<String>,
+) -> impl IntoResponse {
+    // Look up payment_id from link_id
+    let payment_res = if link_id.starts_with("pay_") {
+        sqlx::query("SELECT id, payment_id, merchant_id, status FROM payment_transactions WHERE payment_id = $1")
+            .bind(&link_id)
+            .fetch_optional(&state.db_pool)
+            .await
+    } else {
+        sqlx::query(
+            r#"
+            SELECT pt.id, pt.payment_id, pt.merchant_id, pt.status 
+            FROM payment_transactions pt
+            JOIN payment_links pl ON pl.payment_id = pt.id
+            WHERE pl.link_id = $1
+            "#
+        )
+        .bind(&link_id)
+        .fetch_optional(&state.db_pool)
+        .await
+    };
+
+    match payment_res {
+        Ok(Some(row)) => {
+            let p_payment_id: String = row.get("payment_id");
+            let p_merchant_id: i64 = row.get("merchant_id");
+            let p_status: String = row.get("status");
+
+            if p_status == "PENDING" || p_status == "CONFIRMING" {
+                let p_id_clone = p_payment_id.clone();
+                let m_id_clone = p_merchant_id;
+                let svc_clone = state.payment_service.clone();
+                tokio::spawn(async move {
+                    let _ = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await;
+                });
+            }
+
+            (StatusCode::ACCEPTED, Json(json!({"status": "verification_started"})))
+        },
+        Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
     let pool = state.db_pool.clone();
     
     // 1. Look up payment by link_id
