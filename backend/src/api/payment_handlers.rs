@@ -197,11 +197,10 @@ pub async fn payment_page(
     };
 
     // 3. Get payment details
-    let payment_res = sqlx::query(
-        r#"
         SELECT merchant_id, payment_id, status, amount, amount_usd, crypto_type, network, 
                to_address, fee_amount_usd, expires_at, created_at, confirmed_at, 
-               transaction_hash, partial_payments_enabled, total_paid, remaining_balance
+               transaction_hash, partial_payments_enabled, total_paid, remaining_balance,
+               last_verification_at
         FROM payment_transactions 
         WHERE id = $1 OR payment_id = $2
         "#
@@ -228,6 +227,7 @@ pub async fn payment_page(
     let p_fee_amount_usd: Decimal = payment.get("fee_amount_usd");
     let p_expires_at: chrono::DateTime<chrono::Utc> = payment.get("expires_at");
     let p_transaction_hash: Option<String> = payment.get("transaction_hash");
+    let p_last_verification_at: Option<chrono::DateTime<chrono::Utc>> = payment.get("last_verification_at");
 
     // Generate QR code for payment (only if selection is finished)
     let qr_code = if let (Some(ct_str), Some(addr)) = (&p_crypto_type, &p_to_address) {
@@ -278,15 +278,22 @@ pub async fn payment_page(
     let redirect_url = merchant_info.as_ref().and_then(|m| m.get::<Option<String>, _>("redirect_url"));
     let customer_pays_fee = merchant_info.as_ref().map(|m| m.get::<bool, _>("customer_pays_fee")).unwrap_or(true);
 
-    // Smart Verification: Trigger address scan in background if pending
+    // Smart Verification: Trigger address scan in background if pending (respecting cooldown)
     if is_pending {
-        tracing::info!("Triggering background smart verification for payment {}", link_id);
-        let p_id_clone = p_payment_id.clone();
-        let m_id_clone = p_merchant_id;
-        let svc_clone = state.payment_service.clone();
-        tokio::spawn(async move {
-            let _ = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await;
-        });
+        let needs_verification = match p_last_verification_at {
+            Some(last_v) => (chrono::Utc::now() - last_v) > chrono::Duration::seconds(20),
+            None => true,
+        };
+
+        if needs_verification {
+            tracing::info!("Triggering background smart verification for payment {}", link_id);
+            let p_id_clone = p_payment_id.clone();
+            let m_id_clone = p_merchant_id;
+            let svc_clone = state.payment_service.clone();
+            tokio::spawn(async move {
+                let _ = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await;
+            });
+        }
     }
 
     // Fetch supported currencies if needed
@@ -342,6 +349,7 @@ struct PaymentStatusInfo {
     payment_id: String,
     merchant_id: i64,
     status: String,
+    last_verification_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 pub async fn payment_status(
@@ -350,7 +358,7 @@ pub async fn payment_status(
 ) -> impl IntoResponse {
     let payment_info: Result<Option<PaymentStatusInfo>, sqlx::Error> = if link_id.starts_with("pay_") {
         sqlx::query_as::<_, PaymentStatusInfo>(
-            "SELECT payment_id, merchant_id, status FROM payment_transactions WHERE payment_id = $1"
+            "SELECT payment_id, merchant_id, status, last_verification_at FROM payment_transactions WHERE payment_id = $1"
         )
         .bind(&link_id)
         .fetch_optional(&state.db_pool)
@@ -358,7 +366,7 @@ pub async fn payment_status(
     } else {
         sqlx::query_as::<_, PaymentStatusInfo>(
             r#"
-            SELECT pt.payment_id, pt.merchant_id, pt.status 
+            SELECT pt.payment_id, pt.merchant_id, pt.status, pt.last_verification_at
             FROM payment_transactions pt
             JOIN payment_links pl ON pl.payment_id = pt.id
             WHERE pl.link_id = $1
@@ -374,12 +382,19 @@ pub async fn payment_status(
             let current_status = payment.status.clone();
             
             if current_status == "PENDING" || current_status == "CONFIRMING" {
-                 let p_id_clone = payment.payment_id.clone();
-                 let m_id_clone = payment.merchant_id;
-                 let svc_clone = state.payment_service.clone();
-                 tokio::spawn(async move {
-                     let _ = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await;
-                 });
+                 let needs_verification = match payment.last_verification_at {
+                     Some(last_v) => (chrono::Utc::now() - last_v) > chrono::Duration::seconds(20),
+                     None => true,
+                 };
+
+                 if needs_verification {
+                     let p_id_clone = payment.payment_id.clone();
+                     let m_id_clone = payment.merchant_id;
+                     let svc_clone = state.payment_service.clone();
+                     tokio::spawn(async move {
+                         let _ = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await;
+                     });
+                 }
             }
 
             (StatusCode::OK, Json(json!({"status": current_status}))).into_response()
@@ -502,14 +517,14 @@ pub async fn verify_payment_trigger(
 ) -> impl IntoResponse {
     // Look up payment_id from link_id
     let payment_res = if link_id.starts_with("pay_") {
-        sqlx::query("SELECT id, payment_id, merchant_id, status FROM payment_transactions WHERE payment_id = $1")
+        sqlx::query("SELECT id, payment_id, merchant_id, status, last_verification_at FROM payment_transactions WHERE payment_id = $1")
             .bind(&link_id)
             .fetch_optional(&state.db_pool)
             .await
     } else {
         sqlx::query(
             r#"
-            SELECT pt.id, pt.payment_id, pt.merchant_id, pt.status 
+            SELECT pt.id, pt.payment_id, pt.merchant_id, pt.status, pt.last_verification_at
             FROM payment_transactions pt
             JOIN payment_links pl ON pl.payment_id = pt.id
             WHERE pl.link_id = $1
@@ -527,12 +542,20 @@ pub async fn verify_payment_trigger(
             let p_status: String = row.get("status");
 
             if p_status == "PENDING" || p_status == "CONFIRMING" {
-                let p_id_clone = p_payment_id.clone();
-                let m_id_clone = p_merchant_id;
-                let svc_clone = state.payment_service.clone();
-                tokio::spawn(async move {
-                    let _ = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await;
-                });
+                let last_v_opt: Option<chrono::DateTime<chrono::Utc>> = row.get("last_verification_at");
+                let needs_verification = match last_v_opt {
+                    Some(last_v) => (chrono::Utc::now() - last_v) > chrono::Duration::seconds(20),
+                    None => true,
+                };
+
+                if needs_verification {
+                    let p_id_clone = p_payment_id.clone();
+                    let m_id_clone = p_merchant_id;
+                    let svc_clone = state.payment_service.clone();
+                    tokio::spawn(async move {
+                        let _ = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await;
+                    });
+                }
             }
 
             (StatusCode::ACCEPTED, Json(json!({"status": "verification_started"})))

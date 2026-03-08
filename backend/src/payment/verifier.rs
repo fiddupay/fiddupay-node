@@ -244,19 +244,36 @@ impl PaymentVerifier {
             return Err("Access denied".into());
         }
 
-        if payment.status == "CONFIRMED" || payment.status == "FAILED" {
+        if payment.status == "CONFIRMED" || payment.status == "FAILED" || payment.status == "CANCELLED" {
             return Ok(true);
+        }
+
+        // Verification Cooldown: Prevent redundant scans if triggered recently (e.g., 20s)
+        if let Some(last_v) = payment.last_verification_at {
+            let elapsed = Utc::now() - last_v;
+            if elapsed < chrono::Duration::seconds(20) {
+                tracing::debug!("Skipping verification for payment {}: cooldown active ({}s elapsed)", 
+                    payment_id, elapsed.num_seconds());
+                return Ok(false);
+            }
         }
 
         if payment.to_address.is_none() || payment.amount.is_none() || payment.crypto_type.is_none() {
              return Ok(false); // Not ready for verification
         }
 
+        // Update last_verification_at before starting the scan to prevent concurrent triggers
+        sqlx::query("UPDATE payment_transactions SET last_verification_at = $1 WHERE id = $2")
+            .bind(Utc::now())
+            .bind(payment.id)
+            .execute(&self.db_pool)
+            .await?;
+
         // Get merchant sandbox status
         let merchant_sandbox: bool = sqlx::query(
             "SELECT sandbox_mode FROM merchants WHERE id = $1"
         )
-        .bind(merchant_id)
+        .bind(payment.merchant_id)
         .fetch_one(&self.db_pool)
         .await
         .map(|r: sqlx::postgres::PgRow| r.get("sandbox_mode"))

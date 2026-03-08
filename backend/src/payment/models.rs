@@ -327,6 +327,7 @@ pub struct PaymentResponse {
     pub transaction_hash: Option<String>,
     pub from_address: Option<String>,
     pub partial_payments: Option<serde_json::Value>,
+    pub last_verification_at: Option<DateTime<Utc>>,
 }
 
 impl From<crate::models::payment::Payment> for PaymentResponse {
@@ -354,6 +355,7 @@ impl From<crate::models::payment::Payment> for PaymentResponse {
             transaction_hash: payment.transaction_hash,
             from_address: payment.from_address,
             partial_payments: None,
+            last_verification_at: payment.last_verification_at,
         }
     }
 }

@@ -382,6 +382,7 @@ impl PaymentService {
             required_confirmations: payment.required_confirmations.unwrap_or(1),
             description: payment.description,
             metadata: payment.metadata,
+            last_verification_at: payment.last_verification_at,
         })
     }
 

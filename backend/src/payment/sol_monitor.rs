@@ -92,6 +92,9 @@ impl SolanaMonitor {
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
         info!(" Fetching Solana transactions for address: {}", address);
 
+        // Fetch current slot once to avoid N+1 RPC calls for confirmation calculations
+        let current_slot = self.get_current_slot().await.unwrap_or(0);
+
         // First, get signatures for address
         let request = RpcRequest {
             jsonrpc: "2.0".to_string(),
@@ -116,7 +119,7 @@ impl SolanaMonitor {
 
         // Get details for each transaction
         for sig in signatures {
-            match self.get_transaction_details(&sig.signature).await {
+            match self.get_transaction_details_with_slot(&sig.signature, Some(current_slot)).await {
                 Ok(tx) => blockchain_txs.push(tx),
                 Err(e) => {
                     warn!("Failed to get transaction {}: {}", sig.signature, e);
@@ -128,10 +131,11 @@ impl SolanaMonitor {
         Ok(blockchain_txs)
     }
 
-    /// Get transaction details
-    pub async fn get_transaction_details(
+    /// Get transaction details with optional current slot for optimization
+    pub async fn get_transaction_details_with_slot(
         &self,
         signature: &str,
+        current_slot: Option<u64>,
     ) -> Result<BlockchainTransaction, Box<dyn std::error::Error + Send + Sync>> {
         let request = RpcRequest {
             jsonrpc: "2.0".to_string(),
@@ -208,10 +212,17 @@ impl SolanaMonitor {
             .map(|m| m.err.is_none())
             .unwrap_or(false);
 
-        // Get current slot for confirmations
-        let current_slot = self.get_current_slot().await?;
+        // Get current slot for confirmations (optimization: use passed slot if available)
+        let current_slot = if let Some(s) = current_slot {
+            s
+        } else {
+            self.get_current_slot().await.unwrap_or(tx_result.slot)
+        };
+
         let confirmations = if current_slot > tx_result.slot {
-            (current_slot - tx_result.slot) as u32
+            let count = (current_slot - tx_result.slot) as u32;
+            // Cap at 32 (standard finalization) to avoid confusingly high numbers for users
+            if count > 32 { 32 } else { count }
         } else {
             0
         };
@@ -229,6 +240,14 @@ impl SolanaMonitor {
             ),
             success,
         })
+    }
+
+    /// Public wrapper for get_transaction_details (Requirement 3.1)
+    pub async fn get_transaction_details(
+        &self,
+        signature: &str,
+    ) -> Result<BlockchainTransaction, Box<dyn std::error::Error + Send + Sync>> {
+        self.get_transaction_details_with_slot(signature, None).await
     }
 
     /// Get current slot number
