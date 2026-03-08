@@ -318,7 +318,16 @@ impl PaymentVerifier {
 
         // Check recipient address matches merchant's wallet (Requirement 3.3)
         let payment_to_address = payment.to_address.as_ref().ok_or("Merchant address missing")?;
-        if blockchain_tx.to_address.to_lowercase() != payment_to_address.to_lowercase() {
+        
+        let addresses_match = if payment.network.as_ref().map(|n| n.contains("Solana")).unwrap_or(false) {
+            // Solana addresses are case-sensitive (Base58)
+            blockchain_tx.to_address == *payment_to_address
+        } else {
+            // Ethereum/EVM addresses are case-insensitive
+            blockchain_tx.to_address.to_lowercase() == payment_to_address.to_lowercase()
+        };
+
+        if !addresses_match {
             warn!("Recipient address mismatch: expected merchant wallet {}, got {}",
                 payment_to_address,
                 blockchain_tx.to_address

@@ -170,12 +170,28 @@ impl SolanaMonitor {
             Decimal::ZERO
         };
 
-        // Get addresses from transaction
-        let from_address = tx_result.transaction.message.accountKeys.get(0)
-            .cloned()
-            .unwrap_or_default();
+        // Check recipient address matches merchant's wallet (Requirement 3.3)
+        let to_address = if let Some(ref meta) = tx_result.meta {
+            let mut found_to = String::new();
+            if meta.preBalances.len() == meta.postBalances.len() {
+                for i in 0..meta.postBalances.len() {
+                    let diff = meta.postBalances[i] as i64 - meta.preBalances[i] as i64;
+                    if diff > 0 { // This account received funds
+                        if let Some(key) = tx_result.transaction.message.accountKeys.get(i) {
+                            found_to = key.clone();
+                        }
+                    }
+                }
+            }
+            found_to
+        } else {
+            tx_result.transaction.message.accountKeys.get(1)
+                .cloned()
+                .unwrap_or_default()
+        };
 
-        let to_address = tx_result.transaction.message.accountKeys.get(1)
+        // Get sender address (the account that paid for the transaction or the first account)
+        let from_address = tx_result.transaction.message.accountKeys.get(0)
             .cloned()
             .unwrap_or_default();
 
