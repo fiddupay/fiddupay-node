@@ -108,7 +108,7 @@ pub async fn get_refund(
 ) -> impl IntoResponse {
     match state.refund_service.get_refund(refund_id).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
-        Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": "Refund not found"}))).into_response(),
     }
 }
 
@@ -197,6 +197,8 @@ pub async fn payment_page(
     };
 
     // 3. Get payment details
+    let payment_res = sqlx::query(
+        r#"
         SELECT merchant_id, payment_id, status, amount, amount_usd, crypto_type, network, 
                to_address, fee_amount_usd, expires_at, created_at, confirmed_at, 
                transaction_hash, partial_payments_enabled, total_paid, remaining_balance,
@@ -560,8 +562,8 @@ pub async fn verify_payment_trigger(
 
             (StatusCode::ACCEPTED, Json(json!({"status": "verification_started"})))
         },
-        Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))),
+        Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
 
