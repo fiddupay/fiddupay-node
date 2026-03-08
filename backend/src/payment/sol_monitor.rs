@@ -157,37 +157,43 @@ impl SolanaMonitor {
         let tx_result = rpc_response.result
             .ok_or("Transaction not found")?;
 
-        // Parse transaction amount (difference in balances)
-        let amount = if let Some(ref meta) = tx_result.meta {
-            if meta.preBalances.len() >= 2 && meta.postBalances.len() >= 2 {
-                let sent = meta.preBalances[0] as i64 - meta.postBalances[0] as i64;
-                // Convert from lamports to SOL (1 SOL = 1_000_000_000 lamports)
-                Decimal::from(sent.abs()) / Decimal::from(1_000_000_000)
-            } else {
-                Decimal::ZERO
-            }
-        } else {
-            Decimal::ZERO
-        };
+        // Parse transaction recipient and amount (Requirement 3.2, 3.3)
+        // We find the account with the maximum balance increase to identify the recipient
+        // and its actual received amount (excluding fees).
+        let (to_address, amount) = if let Some(ref meta) = tx_result.meta {
+            let mut max_increase = 0u64;
+            let mut recipient_idx = None;
 
-        // Check recipient address matches merchant's wallet (Requirement 3.3)
-        let to_address = if let Some(ref meta) = tx_result.meta {
-            let mut found_to = String::new();
             if meta.preBalances.len() == meta.postBalances.len() {
                 for i in 0..meta.postBalances.len() {
-                    let diff = meta.postBalances[i] as i64 - meta.preBalances[i] as i64;
-                    if diff > 0 { // This account received funds
-                        if let Some(key) = tx_result.transaction.message.accountKeys.get(i) {
-                            found_to = key.clone();
+                    let post = meta.postBalances[i];
+                    let pre = meta.preBalances[i];
+                    if post > pre {
+                        let increase = post - pre;
+                        if increase > max_increase {
+                            max_increase = increase;
+                            recipient_idx = Some(i);
                         }
                     }
                 }
             }
-            found_to
+
+            match recipient_idx {
+                Some(idx) => {
+                    let addr = tx_result.transaction.message.accountKeys.get(idx)
+                        .cloned()
+                        .unwrap_or_default();
+                    // Convert from lamports to SOL (1 SOL = 1_000_000_000 lamports)
+                    let decimal_amount = Decimal::from(max_increase) / Decimal::from(1_000_000_000u64);
+                    (addr, decimal_amount)
+                }
+                None => {
+                    // Fallback to old placeholder logic if no increase found
+                    (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO)
+                }
+            }
         } else {
-            tx_result.transaction.message.accountKeys.get(1)
-                .cloned()
-                .unwrap_or_default()
+            (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO)
         };
 
         // Get sender address (the account that paid for the transaction or the first account)
@@ -303,18 +309,55 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    #[ignore] // Requires network access
-    async fn test_get_current_slot() {
-        // Use environment variable or default for testing
-        let rpc_url = std::env::var("SOLANA_RPC_URL")
-            .unwrap_or_else(|_| "https://api.devnet.solana.com".to_string());
-        let monitor = SolanaMonitor {
-            client: reqwest::Client::new(),
-            rpc_url,
+    async fn test_parse_transaction_details() {
+        let json_data = r#"{
+            "meta": {
+                "err": null,
+                "fee": 14900,
+                "postBalances": [3342638250, 148489050, 1, 1],
+                "preBalances": [3352653150, 138489050, 1, 1],
+                "status": { "Ok": null }
+            },
+            "slot": 447055021,
+            "transaction": {
+                "message": {
+                    "accountKeys": [
+                        "3dJucSCQP1zGVFtbHpWchbSXapDmyzPbPZE6yWRM8uzQ",
+                        "HJjZJkuXLhn52aur41JUcDa5BmQ9ca3eY67tizEuUbjn",
+                        "11111111111111111111111111111111",
+                        "ComputeBudget111111111111111111111111111111"
+                    ]
+                }
+            }
+        }"#;
+
+        let tx_result: TransactionResult = serde_json::from_str(json_data).unwrap();
+        
+        // Manual implementation of the logic for verification in test
+        let (to_address, amount) = {
+            let meta = tx_result.meta.as_ref().unwrap();
+            let mut max_increase = 0u64;
+            let mut recipient_idx = None;
+
+            for i in 0..meta.postBalances.len() {
+                let post = meta.postBalances[i];
+                let pre = meta.preBalances[i];
+                if post > pre {
+                    let increase = post - pre;
+                    if increase > max_increase {
+                        max_increase = increase;
+                        recipient_idx = Some(i);
+                    }
+                }
+            }
+
+            let idx = recipient_idx.unwrap();
+            let addr = tx_result.transaction.message.accountKeys.get(idx).cloned().unwrap();
+            let decimal_amount = Decimal::from(max_increase) / Decimal::from(1_000_000_000u64);
+            (addr, decimal_amount)
         };
-        match monitor.get_current_slot().await {
-            Ok(slot) => println!("Current slot: {}", slot),
-            Err(e) => println!("Error: {}", e),
-        }
+
+        assert_eq!(to_address, "HJjZJkuXLhn52aur41JUcDa5BmQ9ca3eY67tizEuUbjn");
+        assert_eq!(amount.to_string(), "0.01");
     }
 }

@@ -47,28 +47,29 @@ const PaymentsPage: React.FC = () => {
   const { showToast } = useToast()
   const { user } = useAuthStore()
 
+  // 1. Initial Load: Stats and Currencies (Only on mount or sandbox switch)
   useEffect(() => {
-    // Initial load — show spinner only for this first fetch
-    const initialLoad = async () => {
-      setLoading(true)
+    const loadStaticData = async () => {
+      // Don't set global loading to true here, just let them load in background
       await Promise.all([
-        loadPayments(false),
         loadStats(),
         loadSupportedCurrencies()
       ])
-      setLoading(false)
     }
-    initialLoad()
+    loadStaticData()
 
-    // Background refresh: payments every 15s, stats every 60s
-    // These run silently — no loading spinner, no page flash
-    const paymentsInterval = setInterval(() => loadPayments(true), 15000)
+    // Background refresh: stats every 60s
     const statsInterval = setInterval(() => loadStats(), 60000)
+    return () => clearInterval(statsInterval)
+  }, [user?.sandbox_mode])
 
-    return () => {
-      clearInterval(paymentsInterval)
-      clearInterval(statsInterval)
-    }
+  // 2. Dynamic Load: Payments (On filter or sandbox change)
+  useEffect(() => {
+    loadPayments(false)
+
+    // Background refresh: payments every 15s
+    const paymentsInterval = setInterval(() => loadPayments(true), 15000)
+    return () => clearInterval(paymentsInterval)
   }, [filters, user?.sandbox_mode])
 
   const loadSupportedCurrencies = async () => {
