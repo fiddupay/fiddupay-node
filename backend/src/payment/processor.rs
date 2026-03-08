@@ -313,6 +313,7 @@ impl PaymentProcessor {
             description: request.description,
             metadata: request.metadata,
             partial_payments: None,
+            last_verification_at: None,
         })
     }
 

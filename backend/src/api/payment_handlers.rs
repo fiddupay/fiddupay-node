@@ -560,7 +560,7 @@ pub async fn verify_payment_trigger(
                 }
             }
 
-            (StatusCode::ACCEPTED, Json(json!({"status": "verification_started"})))
+            (StatusCode::ACCEPTED, Json(json!({"status": "verification_started"}))).into_response()
         },
         Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
