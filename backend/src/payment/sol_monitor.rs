@@ -99,7 +99,7 @@ impl SolanaMonitor {
             method: "getSignaturesForAddress".to_string(),
             params: serde_json::json!([
                 address,
-                { "limit": limit }
+                { "limit": limit, "commitment": "confirmed" }
             ]),
         };
 
@@ -141,7 +141,8 @@ impl SolanaMonitor {
                 signature,
                 {
                     "encoding": "json",
-                    "maxSupportedTransactionVersion": 0
+                    "maxSupportedTransactionVersion": 0,
+                    "commitment": "confirmed"
                 }
             ]),
         };

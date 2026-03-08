@@ -319,18 +319,18 @@ impl PaymentVerifier {
         // Check recipient address matches merchant's wallet (Requirement 3.3)
         let payment_to_address = payment.to_address.as_ref().ok_or("Merchant address missing")?;
         
-        let addresses_match = if payment.network.as_ref().map(|n| n.contains("Solana")).unwrap_or(false) {
+        let addresses_match = if payment.network.as_ref().map(|n| n.to_lowercase().contains("solana")).unwrap_or(false) {
             // Solana addresses are case-sensitive (Base58)
-            blockchain_tx.to_address == *payment_to_address
+            blockchain_tx.to_address.trim() == payment_to_address.trim()
         } else {
             // Ethereum/EVM addresses are case-insensitive
-            blockchain_tx.to_address.to_lowercase() == payment_to_address.to_lowercase()
+            blockchain_tx.to_address.trim().to_lowercase() == payment_to_address.trim().to_lowercase()
         };
 
         if !addresses_match {
-            warn!("Recipient address mismatch: expected merchant wallet {}, got {}",
-                payment_to_address,
-                blockchain_tx.to_address
+            info!("Recipient address mismatch: expected merchant wallet '{}', got '{}'",
+                payment_to_address.trim(),
+                blockchain_tx.to_address.trim()
             );
             return Ok(false);
         }
@@ -341,7 +341,7 @@ impl PaymentVerifier {
         let tolerance = payment_amount * Decimal::from_str("0.001")?; // 0.1%
 
         if amount_diff > tolerance {
-            warn!("Amount mismatch: expected {}, got {} (diff: {})",
+            info!("Amount mismatch: expected {}, got {} (diff: {})",
                 payment_amount,
                 blockchain_tx.amount,
                 amount_diff
@@ -349,6 +349,7 @@ impl PaymentVerifier {
             return Ok(false);
         }
 
+        info!("✅ Transaction validation successful for {}", blockchain_tx.hash);
         Ok(true)
     }
 
