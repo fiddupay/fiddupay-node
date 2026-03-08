@@ -326,8 +326,10 @@ mod tests {
                         "HJjZJkuXLhn52aur41JUcDa5BmQ9ca3eY67tizEuUbjn",
                         "11111111111111111111111111111111",
                         "ComputeBudget111111111111111111111111111111"
-                    ]
-                }
+                    ],
+                    "instructions": []
+                },
+                "signatures": ["2A3KhPCefptkDUbj2yZNo7Zcvn8AmBMWeUAkt64fQBCBae4KkX6wRyEgLFrvKWnYPwm7JERiRoW1sLcoLXxVje63"]
             }
         }"#;
 
