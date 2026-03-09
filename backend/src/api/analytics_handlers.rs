@@ -101,7 +101,7 @@ pub async fn list_unified_transactions(
             'withdrawal' as txn_type,
             withdrawal_id as id,
             amount::text as crypto_amount,
-            amount::text as usd_amount,
+            amount_usd::text as usd_amount,
             crypto_type,
             status,
             transaction_hash,

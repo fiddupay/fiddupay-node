@@ -251,12 +251,13 @@ const DashboardPage: React.FC = () => {
 
 // Recent Activity Component
 const RecentActivityList: React.FC = () => {
+  const { user } = useAuthStore()
   const [activities, setActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadRecentActivity()
-  }, [])
+  }, [user?.sandbox_mode])
 
   const loadRecentActivity = async () => {
     try {
@@ -302,7 +303,10 @@ const RecentActivityList: React.FC = () => {
           <div className={styles.paymentInfo}>
             <div className="flex items-center gap-2">
               <i className={`fas ${getTypeIcon(activity.type)} w-4 text-center`}></i>
-              <span className={styles.paymentId}>{activity.id.substring(0, 8)}...</span>
+              <span className={styles.paymentId}>
+                {activity.type === 'payment' ? 'Deposit' :
+                  activity.type.charAt(0).toUpperCase() + activity.type.slice(1)} ({activity.id.substring(0, 8)}...)
+              </span>
             </div>
             <span className={styles.paymentAmount} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: '1.2' }}>
               {(() => {
