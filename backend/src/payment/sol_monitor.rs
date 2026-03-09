@@ -8,6 +8,9 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use tracing::{info, warn, error};
+use std::sync::Arc;
+use futures_util::{StreamExt, SinkExt};
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
 use super::models::BlockchainTransaction;
 use super::blockchain_monitor::BlockchainMonitor;
@@ -15,6 +18,15 @@ use super::blockchain_monitor::BlockchainMonitor;
 // Get Solana RPC URL from config
 fn get_solana_rpc_url(config: &crate::config::Config) -> &str {
     &config.solana_rpc_url
+}
+
+// Get Solana WS URL from config
+fn get_solana_ws_url(config: &crate::config::Config, rpc_url: &str) -> String {
+    if rpc_url.contains("devnet") {
+        config.solana_devnet_ws_url.clone()
+    } else {
+        config.solana_ws_url.clone()
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -74,13 +86,17 @@ struct TransactionMeta {
 pub struct SolanaMonitor {
     client: Client,
     rpc_url: String,
+    ws_url: String,
 }
 
 impl SolanaMonitor {
     pub fn new(config: &crate::config::Config, rpc_url: Option<String>) -> Self {
+        let r_url = rpc_url.unwrap_or_else(|| get_solana_rpc_url(config).to_string());
+        let w_url = get_solana_ws_url(config, &r_url);
         Self {
             client: Client::new(),
-            rpc_url: rpc_url.unwrap_or_else(|| get_solana_rpc_url(config).to_string()),
+            rpc_url: r_url,
+            ws_url: w_url,
         }
     }
 
@@ -267,6 +283,86 @@ impl SolanaMonitor {
 
         let rpc_response: RpcResponse<u64> = response.json().await?;
         Ok(rpc_response.result)
+    }
+
+    /// Listen for new transactions using WebSockets (Requirement: Push-based)
+    pub async fn listen_for_signatures(
+        &self,
+        addresses: Vec<String>,
+        callback: Arc<dyn Fn(String, String) + Send + Sync>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        info!("🔌 Connecting to Solana WebSocket: {}", self.ws_url);
+        
+        let (ws_stream, _) = connect_async(&self.ws_url).await?;
+        let (mut write, mut read) = ws_stream.split();
+
+        let mut subscription_map = std::collections::HashMap::new();
+
+        // Subscribe to logs for each address
+        for (i, address) in addresses.iter().enumerate() {
+            let request_id = i as u64 + 1;
+            let subscribe_msg = serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "method": "logsSubscribe",
+                "params": [
+                    { "mentions": [address] },
+                    { "commitment": "confirmed" }
+                ]
+            });
+            write.send(Message::Text(subscribe_msg.to_string())).await?;
+            // We'll map the request_id to address temporarily, 
+            // then map the result subscription_id to address once we get the response.
+            subscription_map.insert(request_id, address.clone());
+            info!("✅ Subscription request sent for: {}", address);
+        }
+
+        let mut active_subscriptions = std::collections::HashMap::new();
+
+        // Handle incoming messages
+        while let Some(message) = read.next().await {
+            match message {
+                Ok(Message::Text(text)) => {
+                    let v: serde_json::Value = serde_json::from_str(&text)?;
+                    
+                    // 1. Check if it's a response to a subscription request
+                    if let Some(id) = v["id"].as_u64() {
+                        if let Some(address) = subscription_map.remove(&id) {
+                            if let Some(sub_id) = v["result"].as_u64() {
+                                active_subscriptions.insert(sub_id, address.clone());
+                                info!("📡 Active subscription ID {} for address {}", sub_id, address);
+                            }
+                        }
+                    }
+
+                    // 2. Check if it's a notification
+                    if v["method"] == "logsNotification" {
+                        if let Some(sub_id) = v["params"]["subscription"].as_u64() {
+                            if let Some(address) = active_subscriptions.get(&sub_id) {
+                                if let Some(signature) = v["params"]["result"]["value"]["signature"].as_str() {
+                                    let err = &v["params"]["result"]["value"]["err"];
+                                    if err.is_null() {
+                                        info!("🚀 Solana WebSocket: New transaction for {}: {}", address, signature);
+                                        callback(signature.to_string(), address.clone());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Ok(Message::Close(_)) => {
+                    warn!("Solana WebSocket closed");
+                    break;
+                }
+                Err(e) => {
+                    error!("Solana WebSocket error: {}", e);
+                    break;
+                }
+                _ => {}
+            }
+        }
+
+        Ok(())
     }
 
     /// Monitor address for new payments

@@ -15,7 +15,10 @@ import {
     MdVisibility,
     MdVisibilityOff,
     MdHelp,
-    MdLock
+    MdLock,
+    MdClose,
+    MdWarning,
+    MdError
 } from 'react-icons/md'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI } from '@/services/apiService'
@@ -40,7 +43,7 @@ const SettingsPage: React.FC = () => {
     const [webhookFormat, setWebhookFormat] = useState('standard')
     const [apiKey, setApiKey] = useState('')
     const [showApiKey, setShowApiKey] = useState(false)
-    const [showRotateConfirm, setShowRotateConfirm] = useState(false)
+    const [showRotateModal, setShowRotateModal] = useState(false)
     const [showSecret, setShowSecret] = useState(false)
     const [signingSecret, setSigningSecret] = useState('••••••••••••••••••••••••••••••••')
     const [showRotateSecretConfirm, setShowRotateSecretConfirm] = useState(false)
@@ -165,46 +168,39 @@ const SettingsPage: React.FC = () => {
         if (!user) return
 
         // If no key exists, we can generate directly without confirmation
-        if (!apiKey) {
+        if (!apiKey || apiKey === 'No API key generated') {
             try {
                 setLoading(true)
                 const response = await merchantAPI.generateApiKey(!user.sandbox_mode)
                 const newKey = response.data.api_key
-
-
-
                 setApiKey(newKey)
                 await loadUser(true)
-                showToast('API key generated successfully', 'success')
+                showToast(`New ${user.sandbox_mode ? 'Sandbox' : 'Live'} API key generated successfully`, 'success')
             } catch (error: any) {
-                showToast('Failed to generate API key', 'error')
+                showToast(error.response?.data?.message || 'Failed to generate API key', 'error')
             } finally {
                 setLoading(false)
             }
             return
         }
 
-        // Existing key rotation requires confirmation
-        if (!showRotateConfirm) {
-            setShowRotateConfirm(true)
-            showToast('Click rotate again to confirm. This will invalidate your current key.', 'info')
-            setTimeout(() => setShowRotateConfirm(false), 5000)
-            return
-        }
+        // Existing key rotation requires modal confirmation
+        setShowRotateModal(true)
+    }
+
+    const confirmRotation = async () => {
+        if (!user) return
 
         try {
             setLoading(true)
             const response = await merchantAPI.rotateApiKey(!user.sandbox_mode)
             const newKey = response.data.api_key
-
-
-
             setApiKey(newKey)
             await loadUser(true)
-            setShowRotateConfirm(false)
-            showToast('API key rotated successfully', 'success')
+            setShowRotateModal(false)
+            showToast(`API key rotated successfully. Old key is now invalid.`, 'success')
         } catch (error: any) {
-            showToast('Failed to rotate API key', 'error')
+            showToast(error.response?.data?.message || 'Failed to rotate API key', 'error')
         } finally {
             setLoading(false)
         }
@@ -389,19 +385,19 @@ const SettingsPage: React.FC = () => {
                                         <MdContentCopy /> Copy
                                     </button>
                                     <button
-                                        className={`${styles.rotateBtn} ${showRotateConfirm ? 'bg-red-50 border-red-500' : ''}`}
+                                        className={styles.rotateBtn}
                                         onClick={handleRotateKey}
                                         disabled={loading}
                                     >
-                                        {apiKey ? (
-                                            <>
-                                                <MdRefresh className={loading ? 'animate-spin' : ''} />
-                                                {showRotateConfirm ? 'Confirm Rotation' : 'Rotate Key'}
-                                            </>
-                                        ) : (
+                                        {(!apiKey || apiKey === 'No API key generated') ? (
                                             <>
                                                 <MdFlashOn className={loading ? 'animate-pulse' : ''} />
                                                 Generate Key
+                                            </>
+                                        ) : (
+                                            <>
+                                                <MdRefresh className={loading ? 'animate-spin' : ''} />
+                                                Rotate Key
                                             </>
                                         )}
                                     </button>
@@ -638,6 +634,60 @@ const SettingsPage: React.FC = () => {
                     </section>
                 )}
             </div>
+            {/* API Key Rotation Confirmation Modal */}
+            {showRotateModal && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modal}>
+                        <div className={styles.modalHeader}>
+                            <h2><MdWarning /> Confirm Key Rotation</h2>
+                            <button
+                                className={styles.closeBtn}
+                                onClick={() => setShowRotateModal(false)}
+                                disabled={loading}
+                            >
+                                <MdClose />
+                            </button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <p>
+                                Are you sure you want to rotate your <strong>{user?.sandbox_mode ? 'Sandbox' : 'Live'}</strong> API key?
+                                This is a destructive action that cannot be undone.
+                            </p>
+                            <div className={styles.warningBox}>
+                                <MdError />
+                                <p>
+                                    Rotating your key will immediately invalidate the current one.
+                                    Any applications or services using the old key will stop working until updated.
+                                </p>
+                            </div>
+                        </div>
+                        <div className={styles.modalActions}>
+                            <button
+                                className={styles.cancelBtn}
+                                onClick={() => setShowRotateModal(false)}
+                                disabled={loading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.confirmRotateBtn}
+                                onClick={confirmRotation}
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <>
+                                        <MdRefresh className="animate-spin" /> Rotating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <MdRefresh /> Confirm Rotation
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

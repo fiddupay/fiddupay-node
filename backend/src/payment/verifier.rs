@@ -12,6 +12,7 @@ use super::models::{PaymentTransaction, PaymentStatus, CryptoType, BlockchainTra
 use super::blockchain_monitor::get_blockchain_monitor;
 use crate::services::webhook_service::WebhookService;
 
+#[derive(Clone)]
 pub struct PaymentVerifier {
     db_pool: PgPool,
     webhook_service: WebhookService,

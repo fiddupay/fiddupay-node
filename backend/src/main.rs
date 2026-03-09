@@ -91,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!(" Starting background tasks...");
     let background_tasks = Arc::new(BackgroundTasks::new(
         db_pool.clone(),
-        config.webhook_signing_key.clone(),
+        config.clone(),
     ));
     background_tasks.start();
     tracing::info!(" Background tasks started");

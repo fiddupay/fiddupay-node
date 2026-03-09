@@ -12,6 +12,9 @@ use crate::error::ServiceError;
 use crate::models::webhook::WebhookPayload;
 use crate::payment::models::PaymentStatus;
 use crate::services::webhook_service::WebhookService;
+use crate::payment::sol_monitor::SolanaMonitor;
+use crate::payment::verifier::PaymentVerifier;
+use crate::payment::models::CryptoType;
 
 struct ExpiredPaymentRow {
     id: i64,
@@ -35,13 +38,16 @@ struct PendingWebhookRow {
 pub struct BackgroundTasks {
     db_pool: PgPool,
     webhook_service: Arc<WebhookService>,
+    config: crate::config::Config,
 }
 
 impl BackgroundTasks {
-    pub fn new(db_pool: PgPool, signing_key: String) -> Self {
+    pub fn new(db_pool: PgPool, config: crate::config::Config) -> Self {
+        let webhook_service = Arc::new(WebhookService::new(db_pool.clone(), config.webhook_signing_key.clone()));
         Self {
-            db_pool: db_pool.clone(),
-            webhook_service: Arc::new(WebhookService::new(db_pool, signing_key)),
+            db_pool,
+            webhook_service,
+            config,
         }
     }
 
@@ -59,6 +65,16 @@ impl BackgroundTasks {
         let tasks_webhook = self.clone();
         tokio::spawn(async move {
             tasks_webhook.run_webhook_retry().await;
+        });
+
+        let tasks_solana_prod = self.clone();
+        tokio::spawn(async move {
+            tasks_solana_prod.run_solana_monitor(false).await;
+        });
+
+        let tasks_solana_sandbox = self.clone();
+        tokio::spawn(async move {
+            tasks_solana_sandbox.run_solana_monitor(true).await;
         });
 
         info!("Background tasks started");
@@ -394,6 +410,108 @@ impl BackgroundTasks {
         }
 
         Ok(())
+    }
+
+    /// Run Solana real-time monitor (WebSocket logsSubscribe)
+    async fn run_solana_monitor(&self, sandbox_mode: bool) {
+        let cluster_name = if sandbox_mode { "Devnet" } else { "Mainnet" };
+        info!("Starting Solana {} real-time monitor...", cluster_name);
+        
+        loop {
+            // Get all unique addresses for pending Solana payments
+            // We search for both native SOL and SPL tokens
+            let addresses_res = sqlx::query(
+                r#"
+                SELECT DISTINCT to_address 
+                FROM payment_transactions 
+                WHERE status IN ('PENDING', 'CONFIRMING')
+                  AND to_address IS NOT NULL
+                  AND sandbox_mode = $1
+                  AND (network ILIKE '%solana%' OR crypto_type ILIKE '%sol%')
+                "#
+            )
+            .bind(sandbox_mode)
+            .fetch_all(&self.db_pool)
+            .await;
+
+            let addresses = match addresses_res {
+                Ok(rows) => {
+                    use sqlx::Row;
+                    rows.into_iter()
+                        .filter_map(|r| r.get::<Option<String>, _>("to_address"))
+                        .collect::<Vec<String>>()
+                }
+                Err(e) => {
+                    error!("Failed to fetch pending Solana addresses: {}", e);
+                    tokio::time::sleep(Duration::from_secs(30)).await;
+                    continue;
+                }
+            };
+
+            if addresses.is_empty() {
+                // No pending payments, wait and check again later
+                tokio::time::sleep(Duration::from_secs(60)).await;
+                continue;
+            }
+
+            info!("Monitoring {} active Solana {} addresses via WebSocket", addresses.len(), cluster_name);
+
+            // Initialize monitor and verifier
+            let rpc_url = if sandbox_mode {
+                Some(self.config.solana_devnet_rpc_url.clone())
+            } else {
+                Some(self.config.solana_rpc_url.clone())
+            };
+            
+            let monitor = SolanaMonitor::new(&self.config, rpc_url);
+            let verifier = Arc::new(PaymentVerifier::new(
+                self.db_pool.clone(),
+                (*self.webhook_service).clone(),
+                self.config.clone()
+            ));
+
+            let db_clone = self.db_pool.clone();
+            let verifier_clone = verifier.clone();
+
+            // Callback for new signatures
+            let callback = Arc::new(move |signature: String, address: String| {
+                let db = db_clone.clone();
+                let v = verifier_clone.clone();
+                let addr_clone = address.clone();
+                tokio::spawn(async move {
+                    // Optimized: Only check payments for the specific address that received the transaction
+                    let pending_res = sqlx::query(
+                        "SELECT id, merchant_id FROM payment_transactions WHERE to_address = $1 AND status IN ('PENDING', 'CONFIRMING')"
+                    )
+                    .bind(&addr_clone)
+                    .fetch_all(&db)
+                    .await;
+
+                    match pending_res {
+                        Ok(rows) => {
+                            use sqlx::Row;
+                            if rows.is_empty() {
+                                warn!("WebSocket detected transaction for {} but found no pending payments in DB", addr_clone);
+                                return;
+                            }
+                            for row in rows {
+                                let p_id: i64 = row.get("id");
+                                let m_id: i64 = row.get("merchant_id");
+                                info!("Verifying payment {} for signature {} on address {}", p_id, signature, addr_clone);
+                                let _ = v.verify_payment_by_hash(p_id, &signature, m_id).await;
+                            }
+                        }
+                        Err(e) => error!("Failed to query pending payments for address {}: {}", addr_clone, e),
+                    }
+                });
+            });
+
+            // Start listening (this block is long-running)
+            if let Err(e) = monitor.listen_for_signatures(addresses, callback).await {
+                error!("Solana WebSocket monitor crashed: {}. Reconnecting in 10s...", e);
+                tokio::time::sleep(Duration::from_secs(10)).await;
+            }
+        }
     }
 }
 

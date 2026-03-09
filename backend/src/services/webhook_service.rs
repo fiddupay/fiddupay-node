@@ -16,6 +16,7 @@ use crate::models::webhook::WebhookPayload;
 
 type HmacSha256 = Hmac<Sha256>;
 
+#[derive(Clone)]
 pub struct WebhookService {
     db_pool: PgPool,
     http_client: Client,

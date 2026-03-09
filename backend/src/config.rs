@@ -27,6 +27,7 @@ pub struct Config {
 
     // Blockchain RPC URLs (Production)
     pub solana_rpc_url: String,
+    pub solana_ws_url: String,
     pub ethereum_rpc_url: String,
     pub bsc_rpc_url: String,
     pub arbitrum_rpc_url: String,
@@ -34,6 +35,7 @@ pub struct Config {
 
     // Sandbox/Test Network URLs
     pub solana_devnet_rpc_url: String,
+    pub solana_devnet_ws_url: String,
     pub ethereum_sepolia_rpc_url: String,
     pub bsc_testnet_rpc_url: String,
     pub arbitrum_sepolia_rpc_url: String,
@@ -201,11 +203,15 @@ impl Config {
 
             // Blockchain RPC URLs - Production (All required, no defaults)
             solana_rpc_url: env::var("SOLANA_RPC_URL")?,
+            solana_ws_url: env::var("SOLANA_WS_URL")
+                .unwrap_or_else(|_| "wss://api.mainnet-beta.solana.com".to_string()),
             ethereum_rpc_url: env::var("ETHEREUM_RPC_URL")?,
             bsc_rpc_url: env::var("BSC_RPC_URL")?,
             arbitrum_rpc_url: env::var("ARBITRUM_RPC_URL")?,
             polygon_rpc_url: env::var("POLYGON_RPC_URL")?,
             solana_devnet_rpc_url: env::var("SOLANA_DEVNET_RPC_URL")?,
+            solana_devnet_ws_url: env::var("SOLANA_DEVNET_WS_URL")
+                .unwrap_or_else(|_| "wss://api.devnet.solana.com".to_string()),
             ethereum_sepolia_rpc_url: env::var("ETHEREUM_SEPOLIA_RPC_URL")?,
             bsc_testnet_rpc_url: env::var("BSC_TESTNET_RPC_URL")?,
             arbitrum_sepolia_rpc_url: env::var("ARBITRUM_SEPOLIA_RPC_URL")?,
@@ -620,11 +626,13 @@ impl Default for Config {
             server_workers: 4,
             request_timeout_seconds: 30,
             solana_rpc_url: "https://api.mainnet-beta.solana.com".to_string(),
+            solana_ws_url: "wss://api.mainnet-beta.solana.com".to_string(),
             ethereum_rpc_url: "https://eth-mainnet.g.alchemy.com/v2/demo".to_string(),
             bsc_rpc_url: "https://bsc-dataseed.binance.org".to_string(),
             arbitrum_rpc_url: "https://arb1.arbitrum.io/rpc".to_string(),
             polygon_rpc_url: "https://polygon-rpc.com".to_string(),
             solana_devnet_rpc_url: "https://api.devnet.solana.com".to_string(),
+            solana_devnet_ws_url: "wss://api.devnet.solana.com".to_string(),
             ethereum_sepolia_rpc_url: "https://eth-sepolia.g.alchemy.com/v2/demo".to_string(),
             bsc_testnet_rpc_url: "https://data-seed-prebsc-1-s1.binance.org:8545".to_string(),
             arbitrum_sepolia_rpc_url: "https://sepolia-rollup.arbitrum.io/rpc".to_string(),
