@@ -86,6 +86,12 @@ caddy fmt --overwrite
    sudo cat /etc/caddy/Caddyfile
    sudo systemctl cat caddy | grep -i caddyfile
 
+   sudo journalctl -u fiddupay -f
+
+   sudo journalctl -u fiddupay -n 100
+
+   sudo journalctl -u fiddupay --since "10 minutes ago"
+
    # Check API request logs
 tail -f /var/log/caddy/fiddupay.api.log
 
