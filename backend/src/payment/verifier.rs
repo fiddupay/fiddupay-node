@@ -108,11 +108,14 @@ impl PaymentVerifier {
         .await?;
 
         if let Some(existing_id) = existing_payment {
-            return Err(format!(
+            let err_msg = format!(
                 "Transaction hash already used for payment #{}. Each transaction can only be used once.",
                 existing_id
-            ).into());
+            );
+            warn!("[VERIFY-HEARTBEAT] Payment {} | BLOCKED: {}", payment_id, err_msg);
+            return Err(err_msg.into());
         }
+        info!("[VERIFY-HEARTBEAT] Payment {} | STEP 1: Uniqueness check passed", payment_id);
 
         // 2. Get payment from database and verify merchant ownership
         let payment_res: Result<Option<crate::models::payment::Payment>, sqlx::Error> = sqlx::query_as(
@@ -132,7 +135,11 @@ impl PaymentVerifier {
         .await;
 
         let payment = payment_res?
-            .ok_or("Payment not found")?;
+            .ok_or_else(|| {
+                error!("[VERIFY-HEARTBEAT] Payment {} | ERROR: Payment not found in DB", payment_id);
+                "Payment not found"
+            })?;
+        info!("[VERIFY-HEARTBEAT] Payment {} | STEP 2: DB record retrieved", payment_id);
 
         // 3. Verify merchant ownership
         if payment.merchant_id != merchant_id {
@@ -144,7 +151,7 @@ impl PaymentVerifier {
 
         // 4. Check if payment is already confirmed
         if payment.status == "CONFIRMED" {
-            info!(" Payment {} already confirmed", payment_id);
+            info!("[VERIFY-HEARTBEAT] Payment {} | SKIP: Already confirmed", payment_id);
             return Ok(true);
         }
 
@@ -155,8 +162,12 @@ impl PaymentVerifier {
         }
 
         // 6. Fetch blockchain transaction using the provided hash
-        let crypto_type_str = payment.crypto_type.as_ref().ok_or("Currency selection required before verification")?;
+        let crypto_type_str = payment.crypto_type.as_ref().ok_or_else(|| {
+            error!("[VERIFY-HEARTBEAT] Payment {} | ERROR: Crypto type missing", payment_id);
+            "Currency selection required before verification"
+        })?;
         let crypto_type = CryptoType::from_string(crypto_type_str)?;
+        info!("[VERIFY-HEARTBEAT] Payment {} | STEP 3: Starting blockchain lookup for {}", payment_id, transaction_hash);
 
         // Get merchant sandbox status
         let merchant_sandbox: bool = sqlx::query(
@@ -175,13 +186,19 @@ impl PaymentVerifier {
         let blockchain_tx = monitor
             .get_transaction_details(transaction_hash)
             .await
-            .map_err(|e| format!("Failed to fetch transaction from {}: {}", monitor.blockchain_name(), e))?;
+            .map_err(|e| {
+                error!("[VERIFY-HEARTBEAT] Payment {} | ERROR: Blockchain fetch failed: {}", payment_id, e);
+                format!("Failed to fetch transaction from {}: {}", monitor.blockchain_name(), e)
+            })?;
+        info!("[VERIFY-HEARTBEAT] Payment {} | STEP 4: Transaction found on {}", payment_id, monitor.blockchain_name());
 
         // 7. Verify transaction details match payment (Requirements 3.2, 3.3, 3.5)
         if !self.validate_transaction(&payment, &blockchain_tx)? {
+            warn!("[VERIFY-HEARTBEAT] Payment {} | FAILED: validation mismatch", payment_id);
             self.mark_payment_failed(payment_id, "Transaction validation failed").await?;
             return Err("Transaction validation failed: amount or address mismatch".into());
         }
+        info!("[VERIFY-HEARTBEAT] Payment {} | STEP 5: Validation successful (Amount/Address match)", payment_id);
 
         // 8. Update payment with transaction details
         sqlx::query(
@@ -204,7 +221,17 @@ impl PaymentVerifier {
         .bind(blockchain_tx.block_number.map(|n| n as i64))
         .bind(payment_id)
         .execute(&self.db_pool)
-        .await?;
+        .await
+        .map_err(|e| {
+            error!("[VERIFY-HEARTBEAT] Payment {} | ERROR: DB update failed: {}", payment_id, e);
+            e
+        })?;
+        
+        info!("[VERIFY-HEARTBEAT] Payment {} | STEP 6: DB updated (status={}, confs={})", 
+            payment_id, 
+            if (blockchain_tx.confirmations as i32) >= payment.required_confirmations.unwrap_or(1) { "CONFIRMED" } else { "CONFIRMING" },
+            blockchain_tx.confirmations
+        );
 
         // 9. If enough confirmations, confirm the payment (Requirements 3.4, 3.7)
         if (blockchain_tx.confirmations as i32) >= payment.required_confirmations.unwrap_or(1) {

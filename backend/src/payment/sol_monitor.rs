@@ -94,7 +94,10 @@ impl SolanaMonitor {
         let r_url = rpc_url.unwrap_or_else(|| get_solana_rpc_url(config).to_string());
         let w_url = get_solana_ws_url(config, &r_url);
         Self {
-            client: Client::new(),
+            client: Client::builder()
+                .timeout(std::time::Duration::from_secs(15))
+                .build()
+                .unwrap_or_default(),
             rpc_url: r_url,
             ws_url: w_url,
         }
@@ -126,9 +129,17 @@ impl SolanaMonitor {
             .post(&self.rpc_url)
             .json(&request)
             .send()
-            .await?;
+            .await
+            .map_err(|e| {
+                error!("Solana RPC getSignaturesForAddress network error: {}", e);
+                e
+            })?;
 
-        let rpc_response: RpcResponse<Vec<GetSignaturesResult>> = response.json().await?;
+        let rpc_response: RpcResponse<Vec<GetSignaturesResult>> = response.json().await
+            .map_err(|e| {
+                error!("Solana RPC getSignaturesForAddress JSON error: {}", e);
+                e
+            })?;
         let signatures = rpc_response.result;
 
         let mut blockchain_txs = Vec::new();
@@ -167,16 +178,48 @@ impl SolanaMonitor {
             ]),
         };
 
-        let response = self.client
-            .post(&self.rpc_url)
-            .json(&request)
-            .send()
-            .await?;
+        let mut tx_result: Option<TransactionResult> = None;
+        let mut retry_count = 0;
+        let max_retries = 3;
 
-        let rpc_response: RpcResponse<Option<TransactionResult>> = response.json().await?;
+        while retry_count <= max_retries {
+            let response = self.client
+                .post(&self.rpc_url)
+                .json(&request)
+                .send()
+                .await
+                .map_err(|e| {
+                    error!("Solana RPC getTransaction network error for {}: {}", signature, e);
+                    e
+                })?;
 
-        let tx_result = rpc_response.result
-            .ok_or("Transaction not found")?;
+            let text = response.text().await?;
+            let rpc_response: RpcResponse<Option<TransactionResult>> = match serde_json::from_str(&text) {
+                Ok(res) => res,
+                Err(e) => {
+                    error!("Solana RPC getTransaction JSON error for {}: {} | Raw response: {}", signature, e, text);
+                    return Err(e.into());
+                }
+            };
+
+            if let Some(res) = rpc_response.result {
+                tx_result = Some(res);
+                break;
+            }
+
+            if retry_count < max_retries {
+                retry_count += 1;
+                warn!("Solana Transaction {} not found yet (indexed status lag). Retrying in 2s... (Attempt {}/{})", signature, retry_count, max_retries);
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            } else {
+                break;
+            }
+        }
+
+        let tx_result = tx_result.ok_or_else(|| {
+            warn!("Solana Transaction {} not found after {} retries. This is likely due to RPC node indexing lag.", signature, max_retries);
+            "Transaction not found"
+        })?;
 
         // Parse transaction recipient and amount (Requirement 3.2, 3.3)
         // We find the account with the maximum balance increase to identify the recipient
@@ -281,7 +324,11 @@ impl SolanaMonitor {
             .send()
             .await?;
 
-        let rpc_response: RpcResponse<u64> = response.json().await?;
+        let rpc_response: RpcResponse<u64> = response.json().await
+            .map_err(|e| {
+                error!("Solana RPC getSlot JSON error: {}", e);
+                e
+            })?;
         Ok(rpc_response.result)
     }
 

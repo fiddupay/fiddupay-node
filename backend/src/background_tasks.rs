@@ -498,7 +498,9 @@ impl BackgroundTasks {
                                 let p_id: i64 = row.get("id");
                                 let m_id: i64 = row.get("merchant_id");
                                 info!("Verifying payment {} for signature {} on address {}", p_id, signature, addr_clone);
-                                let _ = v.verify_payment_by_hash(p_id, &signature, m_id).await;
+                                if let Err(e) = v.verify_payment_by_hash(p_id, &signature, m_id).await {
+                                    error!("WebSocket verification failed for payment {}: {}", p_id, e);
+                                }
                             }
                         }
                         Err(e) => error!("Failed to query pending payments for address {}: {}", addr_clone, e),

@@ -293,7 +293,9 @@ pub async fn payment_page(
             let m_id_clone = p_merchant_id;
             let svc_clone = state.payment_service.clone();
             tokio::spawn(async move {
-                let _ = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await;
+                if let Err(e) = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await {
+                    tracing::error!("Background smart verification failed for payment {}: {}", p_id_clone, e);
+                }
             });
         }
     }
@@ -389,14 +391,16 @@ pub async fn payment_status(
                      None => true,
                  };
 
-                 if needs_verification {
-                     let p_id_clone = payment.payment_id.clone();
-                     let m_id_clone = payment.merchant_id;
-                     let svc_clone = state.payment_service.clone();
-                     tokio::spawn(async move {
-                         let _ = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await;
-                     });
-                 }
+                  if needs_verification {
+                      let p_id_clone = payment.payment_id.clone();
+                      let m_id_clone = payment.merchant_id;
+                      let svc_clone = state.payment_service.clone();
+                      tokio::spawn(async move {
+                          if let Err(e) = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await {
+                              tracing::error!("Background status verification failed for payment {}: {}", p_id_clone, e);
+                          }
+                      });
+                  }
             }
 
             (StatusCode::OK, Json(json!({"status": current_status}))).into_response()
@@ -555,7 +559,9 @@ pub async fn verify_payment_trigger(
                     let m_id_clone = p_merchant_id;
                     let svc_clone = state.payment_service.clone();
                     tokio::spawn(async move {
-                        let _ = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await;
+                        if let Err(e) = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await {
+                            tracing::error!("Manual trigger verification failed for payment {}: {}", p_id_clone, e);
+                        }
                     });
                 }
             }
