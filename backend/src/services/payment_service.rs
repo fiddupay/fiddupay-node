@@ -209,6 +209,12 @@ impl PaymentService {
             query.push_str(&format!(" AND created_at <= ${}", param_count));
         }
 
+        // Add sandbox filter
+        if filters.is_sandbox.is_some() {
+            param_count += 1;
+            query.push_str(&format!(" AND sandbox_mode = ${}", param_count));
+        }
+
         // Add ordering and pagination
         query.push_str(" ORDER BY created_at DESC");
         param_count += 1;
@@ -237,6 +243,11 @@ impl PaymentService {
 
         if let Some(to_date) = filters.to_date {
             sql_query = sql_query.bind(to_date);
+        }
+
+        // Bind sandbox filter
+        if let Some(is_sandbox) = filters.is_sandbox {
+            sql_query = sql_query.bind(is_sandbox);
         }
 
         // Bind pagination
@@ -303,6 +314,12 @@ impl PaymentService {
             query.push_str(&format!(" AND created_at <= ${}", param_count));
         }
 
+        // Add sandbox filter
+        if filters.is_sandbox.is_some() {
+            param_count += 1;
+            query.push_str(&format!(" AND sandbox_mode = ${}", param_count));
+        }
+    
         // Build the query with parameters
         let mut sql_query = sqlx::query_scalar::<_, i64>(&query)
             .bind(merchant_id);
@@ -324,6 +341,10 @@ impl PaymentService {
 
         if let Some(to_date) = filters.to_date {
             sql_query = sql_query.bind(to_date);
+        }
+
+        if let Some(is_sandbox) = filters.is_sandbox {
+            sql_query = sql_query.bind(is_sandbox);
         }
 
         let count = sql_query.fetch_one(&self.db_pool).await?;

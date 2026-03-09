@@ -72,8 +72,9 @@ pub async fn verify_payment(
 pub async fn list_payments(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
-    Query(filters): Query<PaymentFilters>,
+    Query(mut filters): Query<PaymentFilters>,
 ) -> impl IntoResponse {
+    filters.is_sandbox = Some(context.sandbox_mode);
     match state.payment_service.list_payments(context.merchant_id, filters).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
@@ -175,6 +176,11 @@ pub async fn payment_page(
     State(state): State<AppState>,
     Path(link_id): Path<String>,
 ) -> impl IntoResponse {
+    // Quickly ignore requests that look like static assets (Requirement: Prevent wildcard interception)
+    if link_id.contains('.') || link_id == "favicon.ico" {
+        return (StatusCode::NOT_FOUND, "Not Found").into_response();
+    }
+
     use axum::response::Html;
     
     // 1. Try to look up by link_id in payment_links (vanity/shareable links)

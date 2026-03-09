@@ -6,6 +6,9 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{info, warn};
+use futures::FutureExt;
+use futures::future::BoxFuture;
+use futures::future::Shared;
 
 #[derive(Clone)]
 pub struct PriceCache {
@@ -26,6 +29,7 @@ pub struct PriceService {
     failure_threshold: u32,
     failure_reset_duration: Duration,
     config: crate::config::Config,
+    in_flight_requests: Arc<RwLock<HashMap<String, futures::future::Shared<futures::future::BoxFuture<'static, Result<f64, String>>>>>>,
 }
 
 impl PriceService {
@@ -37,35 +41,62 @@ impl PriceService {
             failure_threshold: 3,
             failure_reset_duration: Duration::from_secs(900), // 15 minutes
             config,
+            in_flight_requests: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
     pub async fn get_price(&self, crypto_type: CryptoType) -> Result<f64, String> {
         let cache_key = format!("{:?}", crypto_type);
         
-        // Check cache first
-        {
-            let cache = self.cache.read().await;
-            if let Some(cached) = cache.get(&cache_key) {
-                if cached.timestamp.elapsed() < self.cache_ttl {
-                    return Ok(cached.price);
-                }
+        // 1. Check cache first
+        if let Some(price) = self.get_cached_price(&cache_key).await {
+            return Ok(price);
+        }
+
+        // 2. Check for in-flight request or start one
+        let shared_future = {
+            let mut in_flight = self.in_flight_requests.write().await;
+            if let Some(shared) = in_flight.get(&cache_key) {
+                shared.clone()
+            } else {
+                let service = self.clone();
+                let key_clone = cache_key.clone();
+                let future = async move {
+                    let res = service.fetch_price(crypto_type).await;
+                    
+                    // Update cache on success
+                    if let Ok(price) = res {
+                        let mut cache = service.cache.write().await;
+                        cache.insert(key_clone.clone(), PriceCache {
+                            price,
+                            timestamp: Instant::now(),
+                        });
+                    }
+                    
+                    // Clean up in-flight tracker
+                    let mut in_flight = service.in_flight_requests.write().await;
+                    in_flight.remove(&key_clone);
+                    
+                    res
+                }.boxed().shared();
+                
+                in_flight.insert(cache_key, future.clone());
+                future
             }
-        }
+        };
 
-        // Fetch new price
-        let price = self.fetch_price(crypto_type).await?;
-        
-        // Update cache
-        {
-            let mut cache = self.cache.write().await;
-            cache.insert(cache_key, PriceCache {
-                price,
-                timestamp: Instant::now(),
-            });
-        }
+        shared_future.await
+    }
 
-        Ok(price)
+    async fn get_cached_price(&self, key: &str) -> Option<f64> {
+        let cache = self.cache.read().await;
+        cache.get(key).and_then(|cached| {
+            if cached.timestamp.elapsed() < self.cache_ttl {
+                Some(cached.price)
+            } else {
+                None
+            }
+        })
     }
 
     async fn is_api_failed(&self, api_name: &str) -> bool {
@@ -130,9 +161,6 @@ impl PriceService {
         }
 
         // Fallback APIs
-        if let Some(price) = self.fetch_from_binance("SOLUSDT").await {
-            return Ok(price);
-        }
         if let Some(price) = self.fetch_from_cryptocompare("SOL").await {
             return Ok(price);
         }
@@ -152,9 +180,6 @@ impl PriceService {
         }
 
         // Fallback APIs
-        if let Some(price) = self.fetch_from_binance("ETHUSDT").await {
-            return Ok(price);
-        }
         if let Some(price) = self.fetch_from_cryptocompare("ETH").await {
             return Ok(price);
         }
@@ -174,9 +199,6 @@ impl PriceService {
         }
 
         // Fallback APIs
-        if let Some(price) = self.fetch_from_binance("ARBUSDT").await {
-            return Ok(price);
-        }
         if let Some(price) = self.fetch_from_cryptocompare("ARB").await {
             return Ok(price);
         }
@@ -196,9 +218,6 @@ impl PriceService {
         }
 
         // Fallback APIs
-        if let Some(price) = self.fetch_from_binance("MATICUSDT").await {
-            return Ok(price);
-        }
         if let Some(price) = self.fetch_from_cryptocompare("MATIC").await {
             return Ok(price);
         }
@@ -218,9 +237,6 @@ impl PriceService {
         }
 
         // Fallback APIs
-        if let Some(price) = self.fetch_from_binance("BNBUSDT").await {
-            return Ok(price);
-        }
         if let Some(price) = self.fetch_from_cryptocompare("BNB").await {
             return Ok(price);
         }
@@ -256,33 +272,6 @@ impl PriceService {
         }
     }
 
-    async fn fetch_from_binance(&self, symbol: &str) -> Option<f64> {
-        let url = format!("https://api.binance.com/api/v3/ticker/price?symbol={}", symbol);
-        
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(10))
-            .user_agent("Mozilla/5.0 (compatible; FidduPay/1.0)")
-            .build()
-            .ok()?;
-        
-        match client.get(&url).send().await {
-            Ok(resp) => {
-                if !resp.status().is_success() {
-                    warn!("[PRICE] Binance returned status: {}", resp.status());
-                    return None;
-                }
-                if let Ok(json) = resp.json::<Value>().await {
-                    json["price"].as_str()?.parse().ok()
-                } else {
-                    None
-                }
-            }
-            Err(e) => {
-                warn!("[PRICE] Binance error: {}", e);
-                None
-            }
-        }
-    }
 
     async fn fetch_from_cryptocompare(&self, symbol: &str) -> Option<f64> {
         let url = format!("https://min-api.cryptocompare.com/data/price?fsym={}&tsyms=USD", symbol);
@@ -347,6 +336,7 @@ impl Clone for PriceService {
             failure_threshold: self.failure_threshold,
             failure_reset_duration: self.failure_reset_duration,
             config: self.config.clone(),
+            in_flight_requests: Arc::clone(&self.in_flight_requests),
         }
     }
 }

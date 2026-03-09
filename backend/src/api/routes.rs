@@ -21,21 +21,16 @@ pub fn create_router(state: AppState) -> Router {
     // Create rate limiter
     let rate_limiter = create_rate_limit_layer(&state.config);
 
-    // Public routes (no auth required)
-    let public_routes = Router::new()
+    // 1. API routes (Non-wildcard)
+    let api_public_routes = Router::new()
         .route("/", get(public_handlers::root_handler))
         .route("/health", get(public_handlers::health_check))
-        .route("/:link_id", get(payment_handlers::payment_page))
-        .route("/:link_id/status", get(payment_handlers::payment_status))
-        .route("/:link_id/verify", post(payment_handlers::verify_payment_trigger))
-        .route("/:link_id/select", post(payment_handlers::finalize_payment_selection))
         .route("/api/v1/merchants/register", post(merchant_auth_handlers::register_merchant))
         .route("/api/v1/merchants/login", post(merchant_auth_handlers::login_merchant))
         .route("/api/v1/p2p/register", post(crate::api::p2p_auth_handlers::register_p2p_user))
-        .route("/api/v1/currencies/supported", get(public_handlers::get_supported_currencies))
-        .route("/:payment_id/cancel", post(public_handlers::public_cancel_payment));
+        .route("/api/v1/currencies/supported", get(public_handlers::get_supported_currencies));
 
-    // Additional public routes
+    // 2. Additional public routes
     let additional_public_routes = Router::new()
         .route("/api/v1/status", get(status::get_system_status))
         .route("/api/v1/blog", get(blog::get_blog_posts))
@@ -43,10 +38,18 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/contact", post(public_handlers::submit_contact_form))
         .route("/api/v1/pricing", get(public_handlers::get_pricing_info));
 
-    // Create modular routers
+    // 3. Modular routers
     let merchant_router = merchant_routes::create_merchant_router(state.clone());
     let admin_router = admin_routes::create_admin_router(state.clone());
     let p2p_router = p2p_routes::create_p2p_router(state.clone());
+
+    // 4. Wildcard payment page routes (Merged LAST)
+    let wildcard_routes = Router::new()
+        .route("/:link_id", get(payment_handlers::payment_page))
+        .route("/:link_id/status", get(payment_handlers::payment_status))
+        .route("/:link_id/verify", post(payment_handlers::verify_payment_trigger))
+        .route("/:link_id/select", post(payment_handlers::finalize_payment_selection))
+        .route("/:payment_id/cancel", post(public_handlers::public_cancel_payment));
 
     // Combine routes with CORS
     let cors = CorsLayer::new()
@@ -60,11 +63,12 @@ pub fn create_router(state: AppState) -> Router {
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
         .allow_credentials(true);
 
-    public_routes
+    api_public_routes
         .merge(additional_public_routes)
         .merge(merchant_router)
         .merge(admin_router)
         .merge(p2p_router)
+        .merge(wildcard_routes)
         // Apply global rate limiting to all routes
         .layer(axum_middleware::from_fn_with_state(rate_limiter, rate_limit_middleware))
         .layer(cors)

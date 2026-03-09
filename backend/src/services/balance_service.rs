@@ -69,12 +69,14 @@ impl BalanceService {
             .and_then(|r| r.try_get::<Option<Decimal>, _>("total_balance").ok().flatten())
             .unwrap_or(Decimal::ZERO);
         let available = balance_record.as_ref()
-            .map(|r| r.get::<Decimal, _>("available_balance"))
+            .and_then(|r| r.try_get::<Option<Decimal>, _>("available_balance").ok().flatten())
             .unwrap_or(Decimal::ZERO);
         let pending = balance_record.as_ref()
-            .map(|r| r.get::<Decimal, _>("reserved_balance"))
+            .and_then(|r| r.try_get::<Option<Decimal>, _>("reserved_balance").ok().flatten())
             .unwrap_or(Decimal::ZERO);
-        let last_updated = Utc::now();
+        let last_updated = balance_record.as_ref()
+            .and_then(|r| r.try_get::<Option<DateTime<Utc>>, _>("last_updated").ok().flatten())
+            .unwrap_or_else(Utc::now);
 
         // Get current USD value
         let price: f64 = self.price_service.get_price(crypto_type).await.unwrap_or(0.0);

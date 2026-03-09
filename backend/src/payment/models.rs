@@ -368,6 +368,7 @@ pub struct PaymentFilters {
     pub to_date: Option<DateTime<Utc>>,
     pub page: Option<i64>,
     pub page_size: Option<i64>,
+    pub is_sandbox: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]
