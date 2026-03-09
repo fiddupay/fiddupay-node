@@ -74,7 +74,7 @@ impl AppState {
             ip_whitelist_service: Arc::new(IpWhitelistService::new(db_pool.clone())),
             audit_service: Arc::new(AuditService::new(db_pool.clone())),
             balance_service: balance_service.clone(),
-            withdrawal_service: Arc::new(WithdrawalService::new(db_pool.clone())),
+            withdrawal_service: Arc::new(WithdrawalService::new(db_pool.clone(), price_service.clone())),
             wallet_config_service: Arc::new(WalletConfigService::new(db_pool.clone())),
             currency_service: Arc::new(CurrencyService::new(db_pool.clone())),
             price_service,

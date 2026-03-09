@@ -245,11 +245,11 @@ impl BackgroundTasks {
         // Find all pending webhooks ready for retry
         let pending_webhooks_res = sqlx::query(
             r#"
-            SELECT id, merchant_id, payment_id, event_type, url, payload, attempts
+            SELECT id, merchant_id, payment_id, event_type, url, payload::text, attempts
             FROM webhook_deliveries
             WHERE status = 'pending'
-              AND COALESCE(next_retry_at, '1970-01-01'::timestamptz) <= $1
-              AND attempts < 12
+            AND COALESCE(next_retry_at, '1970-01-01'::timestamptz) <= $1
+            AND attempts < 12
             ORDER BY next_retry_at ASC NULLS FIRST
             LIMIT 100
             "#

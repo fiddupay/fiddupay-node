@@ -13,6 +13,7 @@ pub struct Withdrawal {
     pub merchant_id: i64,
     pub crypto_type: String,
     pub amount: Decimal,
+    pub amount_usd: Decimal,
     pub destination_address: String,
     pub status: String,
     pub fee: Decimal,
