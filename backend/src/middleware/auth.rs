@@ -114,18 +114,15 @@ pub async fn auth_middleware(
             Ok(token_data) => {
                 let merchant_id = token_data.claims.sub.parse::<i64>().unwrap_or_default();
                 
-                // Read sandbox_mode from JWT claims (new tokens have it)
-                // Fall back to DB for old tokens without the field
-                let sandbox_mode = token_data.claims.sandbox_mode;
-
-                // Verify merchant still exists (lightweight check)
-                match sqlx::query_scalar::<_, i64>(
-                    "SELECT id FROM merchants WHERE id = $1 AND is_active = true"
+                // Read sandbox_mode from DB to ensure it's always current with the merchant's choice
+                // This ensures environment switching in the dashboard is instant.
+                let sandbox_mode = match sqlx::query_scalar::<_, bool>(
+                    "SELECT sandbox_mode FROM merchants WHERE id = $1 AND is_active = true"
                 )
                 .bind(merchant_id)
                 .fetch_optional(&state.db_pool)
                 .await {
-                    Ok(Some(_)) => {},
+                    Ok(Some(mode)) => mode,
                     Ok(None) => {
                         return Err((
                             StatusCode::UNAUTHORIZED,
