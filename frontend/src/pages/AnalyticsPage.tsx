@@ -176,7 +176,7 @@ const AnalyticsPage: React.FC = () => {
                                         axisLine={false}
                                         tickLine={false}
                                         tick={{ fill: '#94a3b8', fontSize: 12 }}
-                                        tickFormatter={(value) => `$${value}`}
+                                        tickFormatter={(value: number | string) => `$${value}`}
                                     />
                                     <Tooltip
                                         contentStyle={{
