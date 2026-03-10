@@ -1,0 +1,104 @@
+﻿{
+    "jsonrpc":  "2.0",
+    "result":  {
+                   "blockTime":  1772972644,
+                   "meta":  {
+                                "computeUnitsConsumed":  450,
+                                "costUnits":  1784,
+                                "err":  null,
+                                "fee":  14900,
+                                "innerInstructions":  [
+
+                                                      ],
+                                "loadedAddresses":  {
+                                                        "readonly":  [
+
+                                                                     ],
+                                                        "writable":  [
+
+                                                                     ]
+                                                    },
+                                "logMessages":  [
+                                                    "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+                                                    "Program ComputeBudget111111111111111111111111111111 success",
+                                                    "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+                                                    "Program ComputeBudget111111111111111111111111111111 success",
+                                                    "Program 11111111111111111111111111111111 invoke [1]",
+                                                    "Program 11111111111111111111111111111111 success"
+                                                ],
+                                "postBalances":  [
+                                                     3342638250,
+                                                     148489050,
+                                                     1,
+                                                     1
+                                                 ],
+                                "postTokenBalances":  [
+
+                                                      ],
+                                "preBalances":  [
+                                                    3352653150,
+                                                    138489050,
+                                                    1,
+                                                    1
+                                                ],
+                                "preTokenBalances":  [
+
+                                                     ],
+                                "rewards":  [
+
+                                            ],
+                                "status":  {
+                                               "Ok":  null
+                                           }
+                            },
+                   "slot":  447055021,
+                   "transaction":  {
+                                       "message":  {
+                                                       "accountKeys":  [
+                                                                           "3dJucSCQP1zGVFtbHpWchbSXapDmyzPbPZE6yWRM8uzQ",
+                                                                           "HJjZJkuXLhn52aur41JUcDa5BmQ9ca3eY67tizEuUbjn",
+                                                                           "11111111111111111111111111111111",
+                                                                           "ComputeBudget111111111111111111111111111111"
+                                                                       ],
+                                                       "header":  {
+                                                                      "numReadonlySignedAccounts":  0,
+                                                                      "numReadonlyUnsignedAccounts":  2,
+                                                                      "numRequiredSignatures":  1
+                                                                  },
+                                                       "instructions":  [
+                                                                            {
+                                                                                "accounts":  [
+
+                                                                                             ],
+                                                                                "data":  "3DVGviTXKAPH",
+                                                                                "programIdIndex":  3,
+                                                                                "stackHeight":  1
+                                                                            },
+                                                                            {
+                                                                                "accounts":  [
+
+                                                                                             ],
+                                                                                "data":  "LCQ37u",
+                                                                                "programIdIndex":  3,
+                                                                                "stackHeight":  1
+                                                                            },
+                                                                            {
+                                                                                "accounts":  [
+                                                                                                 0,
+                                                                                                 1
+                                                                                             ],
+                                                                                "data":  "3Bxs4NN8M2Yn4TLb",
+                                                                                "programIdIndex":  2,
+                                                                                "stackHeight":  1
+                                                                            }
+                                                                        ],
+                                                       "recentBlockhash":  "G68sdYnJRa31acA133byZHmFVm1J9Nww9BT9kmDcqF2e"
+                                                   },
+                                       "signatures":  [
+                                                          "2A3KhPCefptkDUbj2yZNo7Zcvn8AmBMWeUAkt64fQBCBae4KkX6wRyEgLFrvKWnYPwm7JERiRoW1sLcoLXxVje63"
+                                                      ]
+                                   },
+                   "version":  "legacy"
+               },
+    "id":  1
+}
