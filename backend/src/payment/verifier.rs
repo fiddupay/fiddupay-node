@@ -545,25 +545,9 @@ impl PaymentVerifier {
             warn!("Failed to queue webhook for payment {}: {}", payment_id, e);
         }
 
-        // Collect platform fee in background (managed wallets only)
-        let fee_db_pool = self.db_pool.clone();
-        let fee_config = self.config.clone();
-        tokio::spawn(async move {
-            let fee_service = crate::services::fee_collection_service::FeeCollectionService::new(
-                fee_db_pool, fee_config
-            );
-            match fee_service.collect_fee(payment_id, merchant_id).await {
-                Ok(Some(tx_hash)) => {
-                    info!("Platform fee collected for payment {}: {}", payment_id, tx_hash);
-                }
-                Ok(None) => {
-                    // No fee to collect (non-managed or zero fee)
-                }
-                Err(e) => {
-                    error!("❌ Failed to collect platform fee for payment {}: {}", payment_id, e);
-                }
-            }
-        });
+        // Platform fee will be collected by the smart fee sweeping background job
+        // based on accumulated thresholds and admin settings.
+        // The old immediate FeeCollectionService call has been removed.
 
         Ok(())
 

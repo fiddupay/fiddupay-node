@@ -77,6 +77,17 @@ impl BackgroundTasks {
             tasks_solana_sandbox.run_solana_monitor(true).await;
         });
 
+        // Initialize Gas Monitor and Auto-Sweeper for platform fees
+        let monitor = crate::services::gas_monitor_service::GasMonitorService::new(self.db_pool.clone(), self.config.clone());
+        tokio::spawn(async move {
+            monitor.start_monitoring().await;
+        });
+
+        let fee_service = crate::services::fee_collection_service::FeeCollectionService::new(self.db_pool.clone(), self.config.clone());
+        tokio::spawn(async move {
+            fee_service.start_auto_sweeper().await;
+        });
+
         info!("Background tasks started");
     }
 

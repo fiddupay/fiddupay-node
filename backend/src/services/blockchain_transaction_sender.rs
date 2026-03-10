@@ -200,4 +200,48 @@ impl BlockchainTransactionSender {
             _ => Ok(U256::from(21000)), // Standard gas limit for EVM
         }
     }
+
+    /// Get current gas price for an EVM network
+    pub async fn get_current_gas_price(
+        &self,
+        crypto_type: CryptoType,
+        sandbox_mode: bool,
+    ) -> Result<U256, ServiceError> {
+        let (rpc_url, _) = match (crypto_type.clone(), sandbox_mode) {
+            (CryptoType::Eth, false) => (&self.config.ethereum_rpc_url, self.config.ethereum_chain_id),
+            (CryptoType::Eth, true) => (&self.config.ethereum_sepolia_rpc_url, self.config.ethereum_sepolia_chain_id),
+            (CryptoType::Bnb, false) => (&self.config.bsc_rpc_url, self.config.bsc_chain_id),
+            (CryptoType::Bnb, true) => (&self.config.bsc_testnet_rpc_url, self.config.bsc_testnet_chain_id),
+            (CryptoType::Matic, false) => (&self.config.polygon_rpc_url, self.config.polygon_chain_id),
+            (CryptoType::Matic, true) => (&self.config.polygon_mumbai_rpc_url, self.config.polygon_mumbai_chain_id),
+            (CryptoType::Arb, false) => (&self.config.arbitrum_rpc_url, self.config.arbitrum_chain_id),
+            (CryptoType::Arb, true) => (&self.config.arbitrum_sepolia_rpc_url, self.config.arbitrum_sepolia_chain_id),
+            _ => return Err(ServiceError::ValidationError("Unsupported or non-EVM network for gas query".to_string())),
+        };
+
+        let transport = Http::new(rpc_url)
+            .map_err(|e| ServiceError::Internal(format!("Failed to create transport: {}", e)))?;
+        let web3 = Web3::new(transport);
+
+        web3.eth().gas_price().await
+            .map_err(|e| ServiceError::Internal(format!("Failed to get gas price: {}", e)))
+    }
+
+    /// Get Solana recent blockhash fee calculator (simplified base fee)
+    pub async fn get_solana_fee(&self, sandbox_mode: bool) -> Result<u64, ServiceError> {
+        use solana_client::nonblocking::rpc_client::RpcClient;
+
+        let rpc_url = if sandbox_mode {
+            self.config.solana_devnet_rpc_url.clone()
+        } else {
+            self.config.solana_rpc_url.clone()
+        };
+        let rpc_client = RpcClient::new(rpc_url);
+
+        let fee_calculator = rpc_client.get_fee_for_message(&solana_sdk::message::Message::default())
+            .await
+            .unwrap_or(5000); // 5000 is default base fee
+
+        Ok(fee_calculator)
+    }
 }

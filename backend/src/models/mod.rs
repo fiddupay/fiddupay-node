@@ -19,3 +19,4 @@ pub mod contact;
 pub mod system_settings;
 pub mod merchant_customer;
 pub mod p2p;
+pub mod fee_sweep;

@@ -1008,3 +1008,70 @@ pub async fn acknowledge_alert(
         "message": format!("Alert {} acknowledged", alert_id)
     }))).into_response()
 }
+
+// ============================================================================
+// Smart Fee Sweeping Endpoints
+// ============================================================================
+
+pub async fn get_fee_sweep_settings(
+    State(state): State<AppState>,
+    Extension(context): Extension<AdminContext>,
+) -> impl IntoResponse {
+    if let Err(response) = verify_admin_access(&state, &context).await {
+        return response.into_response();
+    }
+
+    match state.admin_service.get_fee_sweep_settings().await {
+        Ok(settings) => Json(json!({ "success": true, "data": settings })).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "success": false, "error": e.to_string() }))
+        ).into_response()
+    }
+}
+
+pub async fn update_fee_sweep_settings(
+    State(state): State<AppState>,
+    Extension(context): Extension<AdminContext>,
+    Json(req): Json<crate::models::fee_sweep::UpdateFeeSweepSettingsRequest>,
+) -> impl IntoResponse {
+    if let Err(response) = verify_admin_access(&state, &context).await {
+        return response.into_response();
+    }
+
+    match state.admin_service.update_fee_sweep_settings(req).await {
+        Ok(settings) => Json(json!({ "success": true, "data": settings })).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "success": false, "error": e.to_string() }))
+        ).into_response()
+    }
+}
+
+pub async fn trigger_manual_sweep(
+    State(state): State<AppState>,
+    Extension(context): Extension<AdminContext>,
+    Path(network): Path<String>,
+) -> impl IntoResponse {
+    if let Err(response) = verify_admin_access(&state, &context).await {
+        return response.into_response();
+    }
+
+    let fee_service = crate::services::fee_collection_service::FeeCollectionService::new(
+        state.db_pool.clone(),
+        state.config.clone()
+    );
+
+    match fee_service.sweep_all_eligible(&network).await {
+        Ok(tx_hashes) => Json(json!({ 
+            "success": true, 
+            "message": format!("Swept fees for {} wallets", tx_hashes.len()),
+            "tx_hashes": tx_hashes 
+        })).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "success": false, "error": e.to_string() }))
+        ).into_response()
+    }
+}
+

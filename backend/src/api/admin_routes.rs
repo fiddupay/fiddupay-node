@@ -37,6 +37,11 @@ pub fn create_admin_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/admin/config/fees", get(admin_handlers::get_fee_config))
         .route("/api/v1/admin/config/limits", get(admin_handlers::get_system_limits))
         
+        // Smart Fee Sweeping
+        .route("/api/v1/admin/fee-sweep/settings", get(admin_handlers::get_fee_sweep_settings))
+        .route("/api/v1/admin/fee-sweep/settings", put(admin_handlers::update_fee_sweep_settings))
+        .route("/api/v1/admin/fee-sweep/trigger/:network", post(admin_handlers::trigger_manual_sweep))
+        
         // Admin Payment Management
         .route("/api/v1/admin/payments", get(admin_handlers::get_all_payments))
         .route("/api/v1/admin/payments/:payment_id", get(admin_handlers::get_payment_details))

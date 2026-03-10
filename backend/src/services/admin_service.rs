@@ -384,4 +384,68 @@ impl AdminService {
         tracing::info!("Security alert {} acknowledged", alert_id);
         Ok(())
     }
+
+    /// Get fee sweep settings
+    pub async fn get_fee_sweep_settings(&self) -> Result<crate::models::fee_sweep::FeeSweepSettings, ServiceError> {
+        let row = sqlx::query(
+            "SELECT id, is_auto_sweep_enabled, min_accumulated_usd, schedule_cron, discord_webhook_url, gas_alert_threshold_gwei, gas_alert_threshold_lamports, updated_at FROM fee_sweep_settings LIMIT 1"
+        )
+        .fetch_optional(&self.db_pool)
+        .await?;
+
+        if let Some(row) = row {
+            use sqlx::Row;
+            Ok(crate::models::fee_sweep::FeeSweepSettings {
+                id: row.get("id"),
+                is_auto_sweep_enabled: row.get("is_auto_sweep_enabled"),
+                min_accumulated_usd: row.try_get("min_accumulated_usd").ok(),
+                schedule_cron: row.try_get("schedule_cron").ok(),
+                discord_webhook_url: row.try_get("discord_webhook_url").ok(),
+                gas_alert_threshold_gwei: row.try_get("gas_alert_threshold_gwei").ok(),
+                gas_alert_threshold_lamports: row.try_get("gas_alert_threshold_lamports").ok(),
+                updated_at: row.try_get("updated_at").ok(),
+            })
+        } else {
+            // Return defaults if not configured
+            Ok(crate::models::fee_sweep::FeeSweepSettings {
+                id: 1,
+                is_auto_sweep_enabled: false,
+                min_accumulated_usd: None,
+                schedule_cron: None,
+                discord_webhook_url: None,
+                gas_alert_threshold_gwei: None,
+                gas_alert_threshold_lamports: None,
+                updated_at: None,
+            })
+        }
+    }
+
+    /// Update fee sweep settings
+    pub async fn update_fee_sweep_settings(&self, req: crate::models::fee_sweep::UpdateFeeSweepSettingsRequest) -> Result<crate::models::fee_sweep::FeeSweepSettings, ServiceError> {
+        sqlx::query(
+            r#"
+            INSERT INTO fee_sweep_settings (id, is_auto_sweep_enabled, min_accumulated_usd, schedule_cron, discord_webhook_url, gas_alert_threshold_gwei, gas_alert_threshold_lamports, updated_at)
+            VALUES (1, COALESCE($1, false), $2, $3, $4, $5, $6, NOW())
+            ON CONFLICT (id) DO UPDATE SET
+                is_auto_sweep_enabled = COALESCE($1, fee_sweep_settings.is_auto_sweep_enabled),
+                min_accumulated_usd = COALESCE($2, fee_sweep_settings.min_accumulated_usd),
+                schedule_cron = COALESCE($3, fee_sweep_settings.schedule_cron),
+                discord_webhook_url = COALESCE($4, fee_sweep_settings.discord_webhook_url),
+                gas_alert_threshold_gwei = COALESCE($5, fee_sweep_settings.gas_alert_threshold_gwei),
+                gas_alert_threshold_lamports = COALESCE($6, fee_sweep_settings.gas_alert_threshold_lamports),
+                updated_at = NOW()
+            "#
+        )
+        .bind(req.is_auto_sweep_enabled)
+        .bind(req.min_accumulated_usd)
+        .bind(req.schedule_cron)
+        .bind(req.discord_webhook_url)
+        .bind(req.gas_alert_threshold_gwei)
+        .bind(req.gas_alert_threshold_lamports)
+        .execute(&self.db_pool)
+        .await?;
+
+        self.get_fee_sweep_settings().await
+    }
+
 }
