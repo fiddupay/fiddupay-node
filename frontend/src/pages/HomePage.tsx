@@ -86,7 +86,7 @@ const HomePage: React.FC = () => {
             </div>
             <div className={styles.cryptoItem}>
               <div className={styles.cryptoIcon}>
-                <img src="https://cryptologos.cc/logos/arbitrum-arb-logo.png" alt="ARB" className={styles.cryptoImg} />
+                <img src="https://cryptologos.cc/logos/arbitrum-arb-logo.png?v=040" alt="ARB" className={styles.cryptoImg} />
               </div>
               <h3>Arbitrum</h3>
               <p>L2 Solution</p>
