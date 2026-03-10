@@ -125,9 +125,8 @@ impl WebhookService {
         if !skip_signature {
             let timestamp = Utc::now().timestamp();
             let signature = self.generate_signature(&payload_json, timestamp, secret);
-            request = request
-                .header("X-Signature", signature)
-                .header("X-Timestamp", timestamp.to_string());
+            let signature_header = format!("t={},v1={}", timestamp, signature);
+            request = request.header("signature", signature_header);
         }
 
         let response = request
