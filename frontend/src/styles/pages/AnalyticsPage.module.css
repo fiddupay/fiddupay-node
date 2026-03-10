@@ -1,48 +1,305 @@
 .page {
-    padding: 24px;
+    padding: 32px;
+    animation: fadeIn 0.5s ease-out;
+    background-color: var(--fiddu-bg-primary);
+    min-height: 100vh;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .header {
-    margin-bottom: 24px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
 }
 
 .header h1 {
     font-size: 28px;
     font-weight: 700;
-    color: var(--black);
+    color: var(--fiddu-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 8px;
 }
 
-.header p {
-    color: var(--gray);
+.header h1 i {
+    color: var(--fiddu-brand-primary);
 }
 
-.content {
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    min-height: 400px;
+.header p {
+    color: var(--fiddu-text-secondary);
+    font-size: 16px;
+}
+
+.filters {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+}
+
+.dateInput {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.dateInput label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fiddu-text-muted);
+    text-transform: uppercase;
+}
+
+.dateInput input {
+    padding: 8px 12px;
+    border: 1px solid var(--fiddu-border);
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--fiddu-text-primary);
+    background: white;
+}
+
+.refreshBtn {
+    padding: 10px;
+    aspect-ratio: 1;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: white;
+    border: 1px solid var(--fiddu-border);
+    border-radius: 6px;
+    color: var(--fiddu-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.refreshBtn:hover {
+    border-color: var(--fiddu-brand-primary);
+    color: var(--fiddu-brand-primary);
+}
+
+.loadingState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 100px 0;
+    color: var(--fiddu-text-muted);
+}
+
+.loadingState i {
+    font-size: 2rem;
+    margin-bottom: 16px;
+    color: var(--fiddu-brand-primary);
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.statCard {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid var(--fiddu-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.statHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.statLabel {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fiddu-text-secondary);
+}
+
+.statValue {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--fiddu-text-primary);
+    margin-bottom: 8px;
+}
+
+.statFooter {
+    font-size: 12px;
+    color: var(--fiddu-text-muted);
+}
+
+.mainGrid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 32px;
+}
+
+.chartSection,
+.recentActivity {
+    background: white;
+    padding: 32px;
+    border-radius: 16px;
+    border: 1px solid var(--fiddu-border);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.sectionHeader {
+    margin-bottom: 32px;
+}
+
+.sectionHeader h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--fiddu-text-primary);
+    margin-bottom: 4px;
+}
+
+.sectionHeader p {
+    font-size: 14px;
+    color: var(--fiddu-text-secondary);
+}
+
+.networkList {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.networkItem {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.networkInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.networkName {
+    font-weight: 600;
+    color: var(--fiddu-text-primary);
+}
+
+.networkCount {
+    font-size: 12px;
+    color: var(--fiddu-text-muted);
+}
+
+.networkValue {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.networkUsd {
+    font-weight: 700;
+    color: var(--fiddu-text-primary);
+    min-width: 100px;
+}
+
+.progressBar {
+    flex: 1;
+    height: 8px;
+    background: var(--fiddu-bg-primary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    background: var(--fiddu-brand-primary);
+    border-radius: 4px;
+    transition: width 1s ease-out;
+}
+
+.summaryBox {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.summaryItem {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px;
+    background: var(--fiddu-bg-primary);
+    border-radius: 8px;
+}
+
+.summaryItem .label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--fiddu-text-secondary);
+}
+
+.summaryItem .value {
+    font-weight: 700;
+    color: var(--fiddu-text-primary);
+}
+
+.summaryItem .positive {
+    color: #16a34a;
+}
+
+.summaryItem .negative {
+    color: #dc2626;
 }
 
 .emptyState {
     text-align: center;
-    color: var(--gray);
+    padding: 48px;
+    color: var(--fiddu-text-muted);
 }
 
 .emptyState i {
-    font-size: 48px;
+    font-size: 3rem;
     margin-bottom: 16px;
-    color: var(--brand-blue);
-    opacity: 0.5;
+    opacity: 0.2;
 }
 
-.emptyState h3 {
-    font-size: 20px;
-    margin-bottom: 8px;
-    color: var(--black);
+@media (max-width: 1024px) {
+    .mainGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 24px;
+    }
+
+    .filters {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .dateInput {
+        flex: 1;
+        min-width: 140px;
+    }
+
+    .refreshBtn {
+        width: 44px;
+    }
 }

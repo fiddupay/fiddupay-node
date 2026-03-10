@@ -18,8 +18,8 @@ export const merchantAPI = {
   getBalance: () => api.get('/api/v1/merchants/balance'),
   getAnalytics: (params?: {
     granularity?: string;
-    start_date?: string;
-    end_date?: string;
+    from_date?: string;
+    to_date?: string;
   }) => {
     const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
     return api.get(`/api/v1/merchants/analytics${query}`);

@@ -1,48 +1,252 @@
 .page {
-    padding: 24px;
+    padding: 32px;
+    animation: fadeIn 0.5s ease-out;
+    background-color: var(--fiddu-bg-primary);
+    min-height: 100vh;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .header {
-    margin-bottom: 24px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
 }
 
 .header h1 {
     font-size: 28px;
     font-weight: 700;
-    color: var(--black);
+    color: var(--fiddu-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 8px;
+}
+
+.header h1 i {
+    color: var(--fiddu-brand-primary);
 }
 
 .header p {
-    color: var(--gray);
+    color: var(--fiddu-text-secondary);
+    font-size: 16px;
 }
 
-.content {
-    background: var(--white);
-    border: 1px solid var(--border);
+.refreshBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: white;
+    border: 1px solid var(--fiddu-border);
     border-radius: 8px;
-    min-height: 400px;
+    font-weight: 600;
+    color: var(--fiddu-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.refreshBtn:hover:not(:disabled) {
+    background: var(--fiddu-bg-primary);
+    border-color: var(--fiddu-brand-primary);
+    color: var(--fiddu-brand-primary);
+}
+
+.refreshBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.loadingState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 100px 0;
+    color: var(--fiddu-text-muted);
+}
+
+.loadingState i {
+    font-size: 2rem;
+    margin-bottom: 16px;
+    color: var(--fiddu-brand-primary);
+}
+
+/* Stats Grid */
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+}
+
+.statCard {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid var(--fiddu-border);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
+}
+
+.statCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.statIcon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 24px;
 }
 
-.emptyState {
-    text-align: center;
-    color: var(--gray);
+.statLabel {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--fiddu-text-secondary);
+    margin: 0;
 }
 
-.emptyState i {
-    font-size: 48px;
-    margin-bottom: 16px;
-    color: var(--brand-blue);
-    opacity: 0.5;
+.statValue {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--fiddu-text-primary);
+    margin: 4px 0 0 0;
 }
 
-.emptyState h3 {
+/* Assets Breakdown */
+.balanceListSection {
+    background: white;
+    padding: 32px;
+    border-radius: 16px;
+    border: 1px solid var(--fiddu-border);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.sectionHeader {
+    margin-bottom: 24px;
+}
+
+.sectionHeader h2 {
     font-size: 20px;
-    margin-bottom: 8px;
-    color: var(--black);
+    font-weight: 700;
+    color: var(--fiddu-text-primary);
+}
+
+.assetsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.assetCard {
+    padding: 20px;
+    border: 1px solid var(--fiddu-border);
+    border-radius: 12px;
+    background: var(--fiddu-bg-primary);
+    transition: all 0.2s;
+}
+
+.assetCard:hover {
+    border-color: var(--fiddu-brand-primary);
+    background: white;
+    transform: scale(1.02);
+}
+
+.assetHeader {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.assetIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: white;
+    border: 1px solid var(--fiddu-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--fiddu-text-primary);
+}
+
+.assetName h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--fiddu-text-primary);
+}
+
+.assetName span {
+    font-size: 12px;
+    color: var(--fiddu-text-muted);
+}
+
+.assetValues {
+    text-align: right;
+}
+
+.cryptoAmount {
+    font-weight: 700;
+    color: var(--fiddu-text-primary);
+    font-size: 18px;
+}
+
+.usdAmount {
+    color: var(--fiddu-text-secondary);
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.emptyAssets {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px;
+    color: var(--fiddu-text-muted);
+}
+
+.emptyAssets i {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.2;
+}
+
+@media (max-width: 768px) {
+    .page {
+        padding: 20px;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .refreshBtn {
+        width: 100%;
+        justify-content: center;
+    }
 }
