@@ -374,11 +374,26 @@ impl PaymentVerifier {
         };
 
         if !addresses_match {
-            info!("Recipient address mismatch: expected merchant wallet '{}', got '{}'",
+            warn!("[VERIFY-VALIDATION] Payment {} | FAILED: Recipient address mismatch: expected merchant wallet '{}', got '{}'",
+                payment.payment_id,
                 payment_to_address.trim(),
                 blockchain_tx.to_address.trim()
             );
             return Ok(false);
+        }
+
+        // Check timestamp (Requirement 3.8: Replay Protection)
+        // Transaction must have occurred after the payment was created
+        if let Some(tx_time) = blockchain_tx.timestamp {
+            // Allow a small buffer (e.g., 60 seconds) for clock skew, though normally tx_time must be > created_at
+            if tx_time < payment.created_at - chrono::Duration::seconds(60) {
+                warn!("[VERIFY-VALIDATION] Payment {} | FAILED: Timestamp mismatch (Replay attack?). Payment created at {}, but transaction occurred at {}",
+                    payment.payment_id,
+                    payment.created_at,
+                    tx_time
+                );
+                return Ok(false);
+            }
         }
 
         // Check amount matches (allow 0.1% tolerance for fees) (Requirement 3.2)
@@ -387,7 +402,8 @@ impl PaymentVerifier {
         let tolerance = payment_amount * Decimal::from_str("0.001")?; // 0.1%
 
         if amount_diff > tolerance {
-            info!("Amount mismatch: expected {}, got {} (diff: {})",
+            warn!("[VERIFY-VALIDATION] Payment {} | FAILED: Amount mismatch: expected {}, got {} (diff: {})",
+                payment.payment_id,
                 payment_amount,
                 blockchain_tx.amount,
                 amount_diff
