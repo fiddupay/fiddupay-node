@@ -281,15 +281,19 @@ const DashboardPage: React.FC = () => {
                     <span className={styles.balanceAmount}>${parseFloat(balance.reserved_usd).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className={styles.balanceDivider}></div>
-                  {balance.balances.map((cb) => (
-                    <div key={cb.crypto_type} className={styles.currencyRow}>
-                      <span className={styles.currencyName}>{cb.crypto_type}</span>
-                      <div className={styles.currencyValues}>
-                        <span className={styles.currencyAmount}>{parseFloat(cb.amount).toLocaleString(undefined, { minimumFractionDigits: 4 })}</span>
-                        <span className={styles.currencyUsd}>${parseFloat(cb.amount_usd).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  {balance.balances.map((cb) => {
+                    const amt = parseFloat(cb.amount || '0')
+                    const amtUsd = parseFloat(cb.amount_usd || '0')
+                    return (
+                      <div key={cb.crypto_type} className={styles.currencyRow}>
+                        <span className={styles.currencyName}>{cb.crypto_type}</span>
+                        <div className={styles.currencyValues}>
+                          <span className={styles.currencyAmount}>{isNaN(amt) ? '0.0000' : amt.toLocaleString(undefined, { minimumFractionDigits: 4 })}</span>
+                          <span className={styles.currencyUsd}>${isNaN(amtUsd) ? '0.00' : amtUsd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <div className={styles.emptyState}>

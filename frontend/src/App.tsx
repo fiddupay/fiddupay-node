@@ -32,7 +32,7 @@ const PaymentsPage = React.lazy(() => import('@/pages/PaymentsPage'))
 const WalletsPage = React.lazy(() => import('@/pages/WalletsPage'))
 const BalancePage = React.lazy(() => import('@/pages/BalancePage'))
 const WithdrawalsPage = React.lazy(() => import('@/pages/WithdrawalsPage'))
-const AnalyticsPage = React.lazy(() => import('@/pages/AnalyticsPage'))
+
 const ReportsPage = React.lazy(() => import('@/pages/ReportsPage'))
 const SettingsPage = React.lazy(() => import('@/pages/SettingsPage'))
 const MerchantCustomersPage = React.lazy(() => import('@/pages/MerchantCustomersPage'))
@@ -134,14 +134,7 @@ const App: React.FC = () => {
                   </React.Suspense>
                 }
               />
-              <Route
-                path="analytics"
-                element={
-                  <React.Suspense fallback={<LoadingSpinner />}>
-                    <AnalyticsPage />
-                  </React.Suspense>
-                }
-              />
+
               <Route
                 path="customers"
                 element={
