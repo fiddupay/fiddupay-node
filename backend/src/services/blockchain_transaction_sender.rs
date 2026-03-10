@@ -48,7 +48,6 @@ impl BlockchainTransactionSender {
         use solana_sdk::{
             signature::{Keypair, Signer},
             pubkey::Pubkey,
-            system_transaction,
         };
         use std::str::FromStr;
 
@@ -81,11 +80,19 @@ impl BlockchainTransactionSender {
             .await
             .map_err(|e| ServiceError::Internal(format!("Failed to get Solana blockhash: {}", e)))?;
 
+        use solana_sdk::system_instruction;
+        use solana_sdk::transaction::Transaction;
+
         // Create the native SOL transfer transaction
-        let tx = system_transaction::transfer(
-            &sender_keypair,
+        let instructions = vec![system_instruction::transfer(
+            &sender_keypair.pubkey(),
             &to_pubkey,
             lamports,
+        )];
+        let tx = Transaction::new_signed_with_payer(
+            &instructions,
+            Some(&sender_keypair.pubkey()),
+            &[&sender_keypair],
             recent_blockhash,
         );
 

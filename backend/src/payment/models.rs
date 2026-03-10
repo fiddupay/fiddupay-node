@@ -36,7 +36,7 @@ impl PaymentStatus {
 }
 
 /// Cryptocurrency type enumeration (5 supported payment methods)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
 #[sqlx(type_name = "varchar", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum CryptoType {
     #[serde(rename = "USDT_BEP20")]

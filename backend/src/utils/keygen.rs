@@ -146,7 +146,7 @@ impl KeyGenerator {
             }
             64 => {
                 let bytes: [u8; 64] = key_bytes.try_into().unwrap();
-                let keypair = Keypair::from_bytes(&bytes)
+                let keypair = Keypair::try_from(&bytes)
                     .map_err(|_| ServiceError::ValidationError("Invalid Solana private key bytes".to_string()))?;
                 keypair.pubkey().to_bytes()
             }
