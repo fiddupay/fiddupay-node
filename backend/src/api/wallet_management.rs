@@ -542,7 +542,7 @@ pub async fn get_wallet_balances(
                 FROM withdrawals
                 WHERE merchant_id = mw.merchant_id
                   AND crypto_type = mw.crypto_type
-                  AND status = 'COMPLETED'
+                  AND status IN ('PENDING', 'APPROVED', 'PROCESSING', 'COMPLETED')
                   AND sandbox_mode = mw.sandbox_mode
             ) wd_stats ON true
             WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $2 AND mw.address != ''

@@ -267,7 +267,8 @@ pub async fn payment_page(
 
     // Determine status flags
     let is_selection_required = p_status == "SELECTION_REQUIRED";
-    let is_pending = p_status == "PENDING" || p_status == "CONFIRMING";
+    let is_pending = p_status == "PENDING";
+    let is_confirming = p_status == "CONFIRMING";
     let is_confirmed = p_status == "CONFIRMED";
     let is_cancelled = p_status == "CANCELLED";
     let is_expired = (p_status == "FAILED" || (p_expires_at < now)) && !is_confirmed && !is_cancelled;
@@ -337,6 +338,7 @@ pub async fn payment_page(
         expires_at: p_expires_at.to_rfc3339(),
         transaction_hash: p_transaction_hash,
         is_pending,
+        is_confirming,
         is_confirmed,
         is_expired,
         is_cancelled,
@@ -409,7 +411,11 @@ pub async fn payment_status(
                   }
             }
 
-            (StatusCode::OK, Json(json!({"status": current_status}))).into_response()
+            (
+                StatusCode::OK, 
+                [("Cache-Control", "no-cache, no-store, must-revalidate")],
+                Json(json!({"status": current_status}))
+            ).into_response()
         },
         Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
         Err(e) => {
@@ -596,6 +602,7 @@ struct PaymentPageData {
     expires_at: String,
     transaction_hash: Option<String>,
     is_pending: bool,
+    is_confirming: bool,
     is_confirmed: bool,
     is_expired: bool,
     is_cancelled: bool,
@@ -611,6 +618,8 @@ fn render_payment_page(data: PaymentPageData) -> String {
     
     let status_html = if data.is_confirmed {
         "✅ Confirmed"
+    } else if data.is_confirming {
+        "⏳ Confirming"
     } else if data.is_pending {
         "⏳ Waiting for payment"
     } else if data.is_expired {
@@ -638,15 +647,16 @@ fn render_payment_page(data: PaymentPageData) -> String {
         .replace("{{transaction_hash}}", &encode_text(&data.transaction_hash.unwrap_or_default()))
         .replace("{{status_display}}", status_html)
         .replace("{{redirect_url}}", &encode_text(&data.redirect_url.clone().unwrap_or_default()))
-        .replace("{{status}}", &encode_text(if data.is_confirmed { "CONFIRMED" } else if data.is_cancelled { "CANCELLED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" }))
+        .replace("{{status}}", &encode_text(if data.is_confirmed { "CONFIRMED" } else if data.is_confirming { "CONFIRMING" } else if data.is_cancelled { "CANCELLED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" }))
         .replace("{{is_confirmed_bool}}", if data.is_confirmed { "true" } else { "false" })
         .replace("{{is_expired_bool}}", if data.is_expired { "true" } else { "false" })
         .replace("{{is_selection_required_bool}}", if data.is_selection_required { "true" } else { "false" })
         .replace("{{supported_currencies_json}}", &supported_currencies_json);
 
-    let status = if data.is_confirmed { "CONFIRMED" } else if data.is_cancelled { "CANCELLED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" };
+    let status = if data.is_confirmed { "CONFIRMED" } else if data.is_confirming { "CONFIRMING" } else if data.is_cancelled { "CANCELLED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" };
     
     html = toggle_status_block(&html, "PENDING", status == "PENDING");
+    html = toggle_status_block(&html, "CONFIRMING", status == "CONFIRMING");
     html = toggle_status_block(&html, "CONFIRMED", status == "CONFIRMED");
     html = toggle_status_block(&html, "EXPIRED", status == "EXPIRED");
     html = toggle_status_block(&html, "CANCELLED", status == "CANCELLED");

@@ -17,6 +17,8 @@ impl WithdrawalProcessor {
     }
 
     pub async fn process_withdrawal(&self, withdrawal_id: &str) -> Result<(), ServiceError> {
+        tracing::info!("Starting processing for withdrawal: {}", withdrawal_id);
+        
         // 1. Fetch the withdrawal details
         let withdrawal = sqlx::query(
             r#"
@@ -37,7 +39,13 @@ impl WithdrawalProcessor {
         let wd_destination_address: String = withdrawal.get("destination_address");
         let wd_sandbox_mode: bool = withdrawal.get("sandbox_mode");
 
+        tracing::debug!(
+            "Withdrawal {}: merchant={}, crypto={}, amount={}, sandbox={}", 
+            withdrawal_id, wd_merchant_id, wd_crypto_type, wd_amount, wd_sandbox_mode
+        );
+
         if wd_status != "PENDING" {
+            tracing::warn!("Withdrawal {} requested for processing but has status {}", withdrawal_id, wd_status);
             return Err(ServiceError::ValidationError("Withdrawal already processed".to_string()));
         }
 
@@ -66,6 +74,8 @@ impl WithdrawalProcessor {
         let encryption = Encryption::new().map_err(|e| ServiceError::Internal(e))?;
         let private_key = encryption.decrypt(&encrypted_key).map_err(|e| ServiceError::Internal(e))?;
 
+        tracing::info!("Blockchain submission started for withdrawal {} to address {}", withdrawal_id, wd_destination_address);
+
         // 4. Send the transaction on-chain
         let sender = BlockchainTransactionSender::new(self.config.clone());
         let tx_hash = match sender.send_native_transaction(
@@ -76,9 +86,13 @@ impl WithdrawalProcessor {
             None,
             wd_sandbox_mode,
         ).await {
-            Ok(hash) => hash,
+            Ok(hash) => {
+                tracing::info!("Withdrawal {} submitted successfully. TX Hash: {}", withdrawal_id, hash);
+                hash
+            },
             Err(e) => {
                 // If it fails on-chain, reject the withdrawal with the error
+                tracing::error!("Withdrawal {} on-chain submission FAILED: {}", withdrawal_id, e);
                 self.reject_withdrawal(withdrawal_id, &e.to_string()).await?;
                 return Err(e);
             }
@@ -96,6 +110,8 @@ impl WithdrawalProcessor {
         .bind(withdrawal_id)
         .execute(&self.db_pool)
         .await?;
+
+        tracing::info!("Withdrawal {} fully completed and recorded in DB", withdrawal_id);
 
         Ok(())
     }

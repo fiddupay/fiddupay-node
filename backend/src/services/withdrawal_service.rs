@@ -68,6 +68,16 @@ impl WithdrawalService {
 
         let withdrawal = withdrawal_res?;
 
+        tracing::info!(
+            "Withdrawal created: id={}, merchant_id={}, crypto_type={}, amount={}, target={}, sandbox={}",
+            withdrawal.withdrawal_id,
+            withdrawal.merchant_id,
+            withdrawal.crypto_type,
+            withdrawal.amount,
+            withdrawal.destination_address,
+            sandbox_mode
+        );
+
         Ok(withdrawal)
     }
 
