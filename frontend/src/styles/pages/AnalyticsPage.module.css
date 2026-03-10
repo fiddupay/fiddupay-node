@@ -145,6 +145,20 @@
     color: var(--fiddu-text-muted);
 }
 
+.chartContainer {
+    background: white;
+    padding: 32px;
+    border-radius: 16px;
+    border: 1px solid var(--fiddu-border);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    margin-bottom: 32px;
+}
+
+.chartWrapper {
+    width: 100%;
+    margin-top: 24px;
+}
+
 .mainGrid {
     display: grid;
     grid-template-columns: 2fr 1fr;

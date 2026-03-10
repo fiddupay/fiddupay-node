@@ -1,7 +1,22 @@
 import React, { useEffect, useState } from 'react'
+import {
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    AreaChart,
+    Area
+} from 'recharts'
 import { merchantAPI } from '@/services/apiService'
 import { useToast } from '@/contexts/ToastContext'
 import styles from '@/styles/pages/AnalyticsPage.module.css'
+
+interface TimeSeriesPoint {
+    date: string;
+    volume_usd: string;
+    count: number;
+}
 
 interface AnalyticsData {
     total_volume_usd: string;
@@ -14,6 +29,7 @@ interface AnalyticsData {
         payment_count: number;
         average_value: string;
     }>;
+    payment_trends: TimeSeriesPoint[];
 }
 
 const AnalyticsPage: React.FC = () => {
@@ -52,11 +68,18 @@ const AnalyticsPage: React.FC = () => {
         ? ((analytics?.successful_payments || 0) / totalPayments * 100).toFixed(1)
         : '0'
 
+    // Format chart data
+    const chartData = analytics?.payment_trends?.map(point => ({
+        ...point,
+        volume: parseFloat(point.volume_usd),
+        displayDate: new Date(point.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    })) || []
+
     return (
         <div className={styles.page}>
             <div className={styles.header}>
                 <div>
-                    <h1><i className="fas fa-chart-pie"></i> Analytics</h1>
+                    <h1><i className="fas fa-chart-line"></i> Analytics</h1>
                     <p>Insights into your business performance and revenue</p>
                 </div>
                 <div className={styles.filters}>
@@ -124,6 +147,57 @@ const AnalyticsPage: React.FC = () => {
                             </div>
                             <div className={styles.statValue}>${parseFloat(analytics?.total_fees_paid || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                             <div className={styles.statFooter}>Networking and processing fees</div>
+                        </div>
+                    </div>
+
+                    <div className={styles.chartContainer}>
+                        <div className={styles.sectionHeader}>
+                            <h2>Revenue Trend</h2>
+                            <p>Daily processing volume in USD</p>
+                        </div>
+                        <div className={styles.chartWrapper}>
+                            <ResponsiveContainer width="100%" height={350}>
+                                <AreaChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="var(--fiddu-brand-primary)" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="var(--fiddu-brand-primary)" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                    <XAxis
+                                        dataKey="displayDate"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#94a3b8', fontSize: 12 }}
+                                        dy={10}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#94a3b8', fontSize: 12 }}
+                                        tickFormatter={(value) => `$${value}`}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                                            padding: '12px'
+                                        }}
+                                        formatter={(value: any) => [`$${parseFloat(value).toLocaleString()}`, 'Volume']}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="volume"
+                                        stroke="var(--fiddu-brand-primary)"
+                                        strokeWidth={3}
+                                        fillOpacity={1}
+                                        fill="url(#colorVolume)"
+                                        animationDuration={1500}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
 

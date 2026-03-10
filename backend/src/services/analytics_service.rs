@@ -90,6 +90,11 @@ impl AnalyticsService {
             .get_blockchain_stats(merchant_id, start_date, end_date, status.clone(), sandbox_mode)
             .await?;
 
+        // Get payment trends (daily)
+        let payment_trends = self
+            .get_payment_trends(merchant_id, start_date, end_date, sandbox_mode)
+            .await?;
+
         Ok(AnalyticsReport {
             total_volume_usd,
             successful_payments,
@@ -97,7 +102,61 @@ impl AnalyticsService {
             total_fees_paid,
             average_transaction_value,
             by_blockchain,
+            payment_trends,
         })
+    }
+
+    /// Get daily payment trends
+    async fn get_payment_trends(
+        &self,
+        merchant_id: i64,
+        start_date: DateTime<Utc>,
+        end_date: DateTime<Utc>,
+        sandbox_mode: Option<bool>,
+    ) -> Result<Vec<crate::models::analytics::TimeSeriesPoint>, ServiceError> {
+        let mut query = String::from(
+            r#"
+            SELECT 
+                DATE(created_at) as date,
+                COALESCE(SUM(CASE WHEN status = 'CONFIRMED' THEN amount_usd ELSE 0 END), 0) as volume_usd,
+                COUNT(CASE WHEN status = 'CONFIRMED' THEN 1 END) as count
+            FROM payment_transactions
+            WHERE merchant_id = $1
+                AND created_at >= $2
+                AND created_at <= $3
+            "#,
+        );
+
+        let mut param_count = 3;
+        if sandbox_mode.is_some() {
+            param_count += 1;
+            query.push_str(&format!(" AND sandbox_mode = ${}", param_count));
+        }
+
+        query.push_str(" GROUP BY DATE(created_at) ORDER BY date ASC");
+
+        let mut query_builder = sqlx::query(&query)
+            .bind(merchant_id)
+            .bind(start_date)
+            .bind(end_date);
+
+        if let Some(sb) = sandbox_mode {
+            query_builder = query_builder.bind(sb);
+        }
+
+        let rows = query_builder.fetch_all(&self.db_pool).await?;
+
+        use sqlx::Row;
+        let points = rows
+            .into_iter()
+            .map(|row| crate::models::analytics::TimeSeriesPoint {
+                date: row.get::<chrono::NaiveDate, _>("date").to_string(),
+                volume_usd: row.get::<Decimal, _>("volume_usd"),
+                count: row.get::<i64, _>("count"),
+            })
+            .collect();
+
+        Ok(points)
     }
 
     /// Get statistics broken down by blockchain

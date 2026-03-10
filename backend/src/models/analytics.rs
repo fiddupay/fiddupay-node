@@ -6,6 +6,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimeSeriesPoint {
+    pub date: String,
+    pub volume_usd: Decimal,
+    pub count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnalyticsReport {
     pub total_volume_usd: Decimal,
     pub successful_payments: i64,
@@ -13,6 +20,7 @@ pub struct AnalyticsReport {
     pub total_fees_paid: Decimal,
     pub average_transaction_value: Decimal,
     pub by_blockchain: HashMap<String, BlockchainStats>,
+    pub payment_trends: Vec<TimeSeriesPoint>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
