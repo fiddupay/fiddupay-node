@@ -1,22 +1,52 @@
 import React, { useEffect, useState } from 'react'
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI, paymentAPI } from '@/services/apiService'
-import { Analytics, Balance } from '../types'
+import { Balance } from '../types'
 import styles from '@/styles/pages/DashboardPage.module.css'
+
+interface AnalyticsData {
+  total_volume_usd: string
+  successful_payments: number
+  failed_payments: number
+  pending_payments?: number
+  total_fees_paid: string
+  average_transaction_value: string
+  average_payment_usd?: string
+  by_blockchain: Record<string, {
+    volume_usd: string
+    payment_count: number
+    average_value: string
+  }>
+  payment_trends: { date: string; volume_usd: string; count: number }[]
+}
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuthStore()
-  const [analytics, setAnalytics] = useState<Analytics | null>(null)
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [balance, setBalance] = useState<Balance | null>(null)
   const [loading, setLoading] = useState(true)
   const [dailyVolumeUsed, setDailyVolumeUsed] = useState(0)
+  const [dateRange, setDateRange] = useState({
+    from_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    to_date: new Date().toISOString().split('T')[0]
+  })
 
   useEffect(() => {
     loadDashboardData()
-    // Calculate daily volume used
+  }, [dateRange])
+
+  useEffect(() => {
     if (user?.daily_volume_remaining) {
       const remaining = parseFloat(user.daily_volume_remaining)
-      // Use dynamic limit from backend if set, otherwise fallback to system default ($1000 for non-kyc, 0 for unlimited)
       const systemDefaultLimit = user.kyc_verified ? 0 : 1000
       const limit = user.daily_limit_usd ? parseFloat(user.daily_limit_usd) : systemDefaultLimit
       const used = limit > 0 ? limit - remaining : 0
@@ -28,165 +58,300 @@ const DashboardPage: React.FC = () => {
     try {
       setLoading(true)
       const [analyticsData, balanceData] = await Promise.all([
-        merchantAPI.getAnalytics(),
+        merchantAPI.getAnalytics({
+          from_date: new Date(dateRange.from_date).toISOString(),
+          to_date: new Date(dateRange.to_date + 'T23:59:59Z').toISOString()
+        }),
         merchantAPI.getBalance()
       ])
       setAnalytics(analyticsData.data)
       setBalance(balanceData.data)
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
-      // Set empty data on error to prevent crashes
-      setAnalytics({
-        total_payments: 0,
-        total_volume_usd: '0',
-        successful_payments: 0,
-        pending_payments: 0,
-        failed_payments: 0,
-        average_payment_usd: '0',
-        payment_trends: [],
-        currency_breakdown: []
-      })
-      setBalance({
-        total_usd: '0',
-        available_usd: '0',
-        reserved_usd: '0',
-        balances: []
-      })
     } finally {
       setLoading(false)
     }
   }
 
-  // Real data from API with calculated trends
-  const stats = [
-    {
-      name: 'Total Payments',
-      value: analytics?.total_payments?.toLocaleString() || '0',
-      change: calculatePaymentTrend(analytics?.payment_trends || []),
-      changeType: getChangeType(calculatePaymentTrend(analytics?.payment_trends || [])),
-      iconClass: 'fas fa-money-bill-wave',
-    },
-    {
-      name: 'Total Volume',
-      value: analytics?.total_volume_usd ? `$${parseFloat(analytics.total_volume_usd).toLocaleString()}` : '$0',
-      change: calculateVolumeTrend(analytics?.payment_trends || []),
-      changeType: getChangeType(calculateVolumeTrend(analytics?.payment_trends || [])),
-      iconClass: 'fas fa-chart-line',
-    },
-    {
-      name: 'Balance',
-      value: balance?.total_usd ? `$${parseFloat(balance.total_usd).toLocaleString()}` : '$0',
-      change: '+0%', // Balance doesn't have historical comparison yet
-      changeType: 'neutral' as const,
-      iconClass: 'fas fa-wallet',
-    },
-    {
-      name: 'Pending',
-      value: analytics?.pending_payments?.toString() || '0',
-      change: calculatePendingTrend(analytics || undefined),
-      changeType: getChangeType(calculatePendingTrend(analytics || undefined)),
-      iconClass: 'fas fa-clock',
-    },
-  ]
+  const totalPayments = (analytics?.successful_payments || 0) + (analytics?.failed_payments || 0) + (analytics?.pending_payments || 0)
+  const successRate = totalPayments > 0
+    ? ((analytics?.successful_payments || 0) / totalPayments * 100).toFixed(1)
+    : '0'
 
-  // Helper functions for trend calculations
-  function calculatePaymentTrend(trends?: any[]): string {
-    if (!trends || trends.length < 2) return '+0%'
-    const recent = trends[trends.length - 1]?.count || 0
-    const previous = trends[trends.length - 2]?.count || 0
-    if (previous === 0) return '+0%'
-    const change = ((recent - previous) / previous) * 100
-    return `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`
-  }
-
-  function calculateVolumeTrend(trends?: any[]): string {
-    if (!trends || trends.length < 2) return '+0%'
-    const recent = parseFloat(trends[trends.length - 1]?.volume_usd || '0')
-    const previous = parseFloat(trends[trends.length - 2]?.volume_usd || '0')
-    if (previous === 0) return '+0%'
-    const change = ((recent - previous) / previous) * 100
-    return `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`
-  }
-
-  function calculatePendingTrend(analytics?: Analytics): string {
-    if (!analytics) return '+0%'
-    const total = analytics.total_payments || 0
-    const pending = analytics.pending_payments || 0
-    if (total === 0) return '+0%'
-    const pendingRate = (pending / total) * 100
-    return pendingRate > 5 ? '+2%' : '-2%' // Simple heuristic
-  }
-
-  function getChangeType(change: string): 'positive' | 'negative' | 'neutral' {
-    if (change.startsWith('+') && !change.startsWith('+0')) return 'positive'
-    if (change.startsWith('-')) return 'negative'
-    return 'neutral'
-  }
+  const chartData = analytics?.payment_trends?.map(point => ({
+    ...point,
+    volume: parseFloat(point.volume_usd),
+    displayDate: new Date(point.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  })) || []
 
   return (
-    <div className={styles.container}>
+    <div className={styles.page}>
+      {/* Header */}
       <div className={styles.header}>
-        <h1 className={styles.title}>Dashboard</h1>
-        <p className={styles.subtitle}>Welcome back! Here's what's happening with your payments.</p>
-        <div className={styles.headerActions}>
+        <div>
+          <h1 className={styles.title}>Dashboard</h1>
+          <p className={styles.subtitle}>Welcome back! Here's your business at a glance.</p>
+        </div>
+        <div className={styles.filters}>
+          <div className={styles.dateInput}>
+            <label>From</label>
+            <input
+              type="date"
+              value={dateRange.from_date}
+              onChange={(e) => setDateRange(prev => ({ ...prev, from_date: e.target.value }))}
+            />
+          </div>
+          <div className={styles.dateInput}>
+            <label>To</label>
+            <input
+              type="date"
+              value={dateRange.to_date}
+              onChange={(e) => setDateRange(prev => ({ ...prev, to_date: e.target.value }))}
+            />
+          </div>
+          <button className={styles.refreshBtn} onClick={loadDashboardData} disabled={loading}>
+            <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
+          </button>
           <a href="/docs" className={styles.docsLink}>
             <i className="fas fa-book"></i>
-            API Documentation
-          </a>
-          <a href="https://github.com/fiddupay/fiddupay-node" target="_blank" rel="noopener noreferrer" className={styles.sdkLink}>
-            <i className="fab fa-github"></i>
-            Node.js SDK
+            API Docs
           </a>
         </div>
       </div>
 
-      <div className={styles.statsGrid}>
-        {stats.map((stat) => (
-          <div key={stat.name} className={styles.statCard}>
-            <div className={styles.statContent}>
-              <div className={styles.statInfo}>
-                <p className={styles.statName}>{stat.name}</p>
-                <p className={styles.statValue}>{stat.value}</p>
+      {loading && !analytics ? (
+        <div className={styles.loadingState}>
+          <i className="fas fa-spinner fa-spin"></i>
+          <p>Loading your dashboard...</p>
+        </div>
+      ) : (
+        <>
+          {/* Stats Row */}
+          <div className={styles.statsGrid}>
+            <div className={styles.statCard}>
+              <div className={styles.statHeader}>
+                <span className={styles.statLabel}>Total Payments</span>
+                <i className="fas fa-receipt" style={{ color: '#3b82f6' }}></i>
               </div>
-              <div className={styles.statIcon}>
-                <i className={stat.iconClass}></i>
-              </div>
+              <div className={styles.statValue}>{totalPayments.toLocaleString()}</div>
+              <div className={styles.statFooter}>{analytics?.successful_payments || 0} successful / {analytics?.failed_payments || 0} failed</div>
             </div>
-            <div className={styles.statFooter}>
-              <span className={`${styles.statChange} ${styles[stat.changeType]}`}>
-                {stat.change}
-              </span>
-              <span className={styles.statPeriod}>from last month</span>
+
+            <div className={styles.statCard}>
+              <div className={styles.statHeader}>
+                <span className={styles.statLabel}>Total Volume</span>
+                <i className="fas fa-chart-line" style={{ color: '#10b981' }}></i>
+              </div>
+              <div className={styles.statValue}>${parseFloat(analytics?.total_volume_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div className={styles.statFooter}>Total revenue processed</div>
+            </div>
+
+            <div className={styles.statCard}>
+              <div className={styles.statHeader}>
+                <span className={styles.statLabel}>Success Rate</span>
+                <i className="fas fa-check-circle" style={{ color: '#22c55e' }}></i>
+              </div>
+              <div className={styles.statValue}>{successRate}%</div>
+              <div className={styles.statFooter}>Payment completion rate</div>
+            </div>
+
+            <div className={styles.statCard}>
+              <div className={styles.statHeader}>
+                <span className={styles.statLabel}>Balance</span>
+                <i className="fas fa-wallet" style={{ color: '#8b5cf6' }}></i>
+              </div>
+              <div className={styles.statValue}>${parseFloat(balance?.total_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div className={styles.statFooter}>Available: ${parseFloat(balance?.available_usd || '0').toLocaleString()}</div>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Daily Volume Limit Section */}
-      {user && (
-        <div className={styles.volumeLimitSection}>
-          <div className={styles.volumeLimitCard}>
-            <div className={styles.volumeLimitHeader}>
-              <div className={styles.volumeLimitIcon}>
-                {user.kyc_verified ? <i className="fas fa-check-circle"></i> : <i className="fas fa-exclamation-triangle"></i>}
+          {/* Revenue Trend Chart */}
+          <div className={styles.chartContainer}>
+            <div className={styles.sectionHeader}>
+              <h2>Revenue Trend</h2>
+              <p>Daily processing volume in USD</p>
+            </div>
+            <div className={styles.chartWrapper}>
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="displayDate"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#94a3b8', fontSize: 12 }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#94a3b8', fontSize: 12 }}
+                      tickFormatter={(value: number | string) => `$${value}`}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: '12px',
+                        border: 'none',
+                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                        padding: '12px'
+                      }}
+                      formatter={(value: any) => [`$${parseFloat(String(value ?? 0)).toLocaleString()}`, 'Volume']}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="volume"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorVolume)"
+                      animationDuration={1500}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className={styles.emptyState}>
+                  <i className="fas fa-chart-area"></i>
+                  <p>No trend data available for this period.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Middle Grid: Network Breakdown + Balance Overview */}
+          <div className={styles.mainGrid}>
+            <div className={styles.sectionCard}>
+              <div className={styles.sectionHeader}>
+                <h2>Network Breakdown</h2>
+                <p>Volume distribution across blockchains</p>
               </div>
-              <div className={styles.volumeLimitInfo}>
-                <h3 className={styles.volumeLimitTitle}>
-                  {user.kyc_verified ? 'KYC Verified Account' : 'Daily Volume Limit'}
-                </h3>
-                <p className={styles.volumeLimitSubtitle}>
-                  {user.kyc_verified
-                    ? 'No daily volume limits apply to your account'
-                    : `$${user.daily_volume_remaining} remaining today`
-                  }
-                </p>
+              <div className={styles.networkList}>
+                {analytics?.by_blockchain && Object.keys(analytics.by_blockchain).length > 0 ? (
+                  Object.entries(analytics.by_blockchain)
+                    .sort((a, b) => parseFloat(b[1].volume_usd) - parseFloat(a[1].volume_usd))
+                    .map(([network, stats]) => (
+                      <div key={network} className={styles.networkItem}>
+                        <div className={styles.networkInfo}>
+                          <span className={styles.networkName}>{network}</span>
+                          <span className={styles.networkCount}>{stats.payment_count} payments</span>
+                        </div>
+                        <div className={styles.networkValue}>
+                          <span className={styles.networkUsd}>
+                            ${parseFloat(stats.volume_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                          <div className={styles.networkBar}>
+                            <div
+                              className={styles.networkBarFill}
+                              style={{
+                                width: `${(parseFloat(stats.volume_usd) / (parseFloat(analytics.total_volume_usd) || 1) * 100)}%`
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <div className={styles.emptyState}>
+                    <i className="fas fa-globe"></i>
+                    <p>No network data available.</p>
+                  </div>
+                )}
               </div>
             </div>
-            {!user.kyc_verified && (
-              <div className={styles.volumeLimitProgress}>
-                <div className={styles.progressBar}>
+
+            <div className={styles.sectionCard}>
+              <div className={styles.sectionHeader}>
+                <h2>Balance Overview</h2>
+                <p>Current wallet balances</p>
+              </div>
+              {balance ? (
+                <div className={styles.balanceList}>
+                  <div className={styles.balanceRow}>
+                    <span className={styles.balanceLabel}>Available</span>
+                    <span className={styles.balanceAmount}>${parseFloat(balance.available_usd).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className={styles.balanceRow}>
+                    <span className={styles.balanceLabel}>Processing</span>
+                    <span className={styles.balanceAmount}>${parseFloat(balance.reserved_usd).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className={styles.balanceDivider}></div>
+                  {balance.balances.map((cb) => (
+                    <div key={cb.crypto_type} className={styles.currencyRow}>
+                      <span className={styles.currencyName}>{cb.crypto_type}</span>
+                      <div className={styles.currencyValues}>
+                        <span className={styles.currencyAmount}>{parseFloat(cb.amount).toLocaleString(undefined, { minimumFractionDigits: 4 })}</span>
+                        <span className={styles.currencyUsd}>${parseFloat(cb.amount_usd).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.emptyState}>
+                  <i className="fas fa-wallet"></i>
+                  <p>No balance data available.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Grid: Recent Activity + Performance */}
+          <div className={styles.mainGrid}>
+            <div className={styles.sectionCard}>
+              <div className={styles.sectionHeader}>
+                <h2>Recent Activity</h2>
+                <p>Latest transactions</p>
+              </div>
+              <RecentActivityList />
+            </div>
+
+            <div className={styles.sectionCard}>
+              <div className={styles.sectionHeader}>
+                <h2>Performance</h2>
+                <p>Key metrics summary</p>
+              </div>
+              <div className={styles.performanceList}>
+                <div className={styles.perfItem}>
+                  <span className={styles.perfLabel}>Successful</span>
+                  <span className={`${styles.perfValue} ${styles.positive}`}>{analytics?.successful_payments || 0}</span>
+                </div>
+                <div className={styles.perfItem}>
+                  <span className={styles.perfLabel}>Failed / Expired</span>
+                  <span className={`${styles.perfValue} ${styles.negative}`}>{analytics?.failed_payments || 0}</span>
+                </div>
+                <div className={styles.perfItem}>
+                  <span className={styles.perfLabel}>Avg. Transaction</span>
+                  <span className={styles.perfValue}>${parseFloat(analytics?.average_transaction_value || analytics?.average_payment_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className={styles.perfItem}>
+                  <span className={styles.perfLabel}>Total Fees</span>
+                  <span className={styles.perfValue}>${parseFloat(analytics?.total_fees_paid || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Daily Volume Limit */}
+          {user && !user.kyc_verified && (
+            <div className={styles.volumeLimitCard}>
+              <div className={styles.volumeLimitHeader}>
+                <div className={styles.volumeLimitIcon}>
+                  <i className="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                  <h3 className={styles.volumeLimitTitle}>Daily Volume Limit</h3>
+                  <p className={styles.volumeLimitSubtitle}>${user.daily_volume_remaining} remaining today</p>
+                </div>
+              </div>
+              <div className={styles.volumeProgressWrap}>
+                <div className={styles.volumeProgressBar}>
                   <div
-                    className={styles.progressFill}
+                    className={styles.volumeProgressFill}
                     style={{
                       width: `${user.daily_limit_usd && parseFloat(user.daily_limit_usd) > 0
                         ? ((parseFloat(user.daily_limit_usd) - parseFloat(user.daily_volume_remaining)) / parseFloat(user.daily_limit_usd)) * 100
@@ -194,57 +359,15 @@ const DashboardPage: React.FC = () => {
                     }}
                   />
                 </div>
-                <div className={styles.progressLabels}>
+                <div className={styles.volumeProgressLabels}>
                   <span>${dailyVolumeUsed.toFixed(2)} used</span>
                   <span>${user.daily_limit_usd ? parseFloat(user.daily_limit_usd).toLocaleString() : '1,000.00'} limit</span>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
+        </>
       )}
-
-      <div className={styles.content}>
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Recent Activity</h2>
-          {loading ? (
-            <div className={styles.loading}>
-              <i className="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
-            </div>
-          ) : (
-            <RecentActivityList />
-          )}
-        </div>
-
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Balance Overview</h2>
-          {loading ? (
-            <div className={styles.loading}>
-              <i className="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
-            </div>
-          ) : balance ? (
-            <div className={styles.balanceOverview}>
-              <div className={styles.balanceItem}>
-                <span className={styles.balanceLabel}>Available:</span>
-                <span className={styles.balanceValue}>${parseFloat(balance.available_usd).toLocaleString()}</span>
-              </div>
-              <div className={styles.balanceItem}>
-                <span className={styles.balanceLabel}>Processing:</span>
-                <span className={styles.balanceValue}>${parseFloat(balance.reserved_usd).toLocaleString()}</span>
-              </div>
-              {balance.balances.map((currencyBalance) => (
-                <div key={currencyBalance.crypto_type} className={styles.currencyBalance}>
-                  <span className={styles.currencyType}>{currencyBalance.crypto_type}:</span>
-                  <span className={styles.currencyAmount}>{currencyBalance.amount}</span>
-                  <span className={styles.currencyUsd}>(${parseFloat(currencyBalance.amount_usd).toLocaleString()})</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className={styles.placeholder}>No balance data available</div>
-          )}
-        </div>
-      </div>
     </div>
   )
 }
@@ -277,73 +400,72 @@ const RecentActivityList: React.FC = () => {
 
   if (loading) {
     return (
-      <div className={styles.loading}>
-        <i className="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+      <div className={styles.loadingState} style={{ padding: '2rem' }}>
+        <i className="fas fa-spinner fa-spin"></i>
       </div>
     )
   }
 
   if (activities.length === 0) {
-    return <div className={styles.placeholder}>No recent activity</div>
+    return (
+      <div className={styles.emptyState}>
+        <i className="fas fa-inbox"></i>
+        <p>No recent activity</p>
+      </div>
+    )
   }
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'payment': return 'fa-arrow-down text-green-500';
-      case 'refund': return 'fa-undo text-orange-500';
-      case 'withdrawal': return 'fa-arrow-up text-blue-500';
-      default: return 'fa-exchange-alt';
+      case 'payment': return 'fa-arrow-down text-green-500'
+      case 'refund': return 'fa-undo text-orange-500'
+      case 'withdrawal': return 'fa-arrow-up text-blue-500'
+      default: return 'fa-exchange-alt'
     }
   }
 
   return (
-    <div className={styles.paymentsList}>
+    <div className={styles.activityList}>
       {activities.map((activity: any) => (
-        <div key={`${activity.type}-${activity.id}`} className={styles.paymentItem}>
-          <div className={styles.paymentInfo}>
-            <div className="flex items-center gap-2">
-              <i className={`fas ${getTypeIcon(activity.type)} w-4 text-center`}></i>
-              <span className={styles.paymentId}>
+        <div key={`${activity.type}-${activity.id}`} className={styles.activityItem}>
+          <div className={styles.activityInfo}>
+            <div className={styles.activityLeft}>
+              <i className={`fas ${getTypeIcon(activity.type)}`} style={{ width: '16px', textAlign: 'center' }}></i>
+              <span className={styles.activityId}>
                 {activity.type === 'payment' ? 'Deposit' :
                   activity.type.charAt(0).toUpperCase() + activity.type.slice(1)} ({activity.id.substring(0, 8)}...)
               </span>
             </div>
-            <span className={styles.paymentAmount} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: '1.2' }}>
+            <div className={styles.activityRight}>
               {(() => {
-                const isStablecoin = activity.crypto_type?.toUpperCase().includes('USDT') ||
-                  activity.crypto_type?.toUpperCase().includes('USDC') ||
-                  activity.crypto_type?.toUpperCase().includes('BUSD') ||
-                  activity.crypto_type?.toUpperCase().includes('DAI');
-
-                const sign = (activity.type === 'withdrawal' || activity.type === 'refund') ? '-' : '';
-                const parts = activity.crypto_type?.split('_') || ['', ''];
-                const coin = parts[0];
-                const network = parts.length > 1 ? parts.slice(1).join('_') : 'Native';
-                const cryptoAmt = parseFloat(activity.crypto_amount || activity.usd_amount).toFixed(4);
+                const isStablecoin = activity.crypto_type?.toUpperCase().includes('USDT')
+                const sign = (activity.type === 'withdrawal' || activity.type === 'refund') ? '-' : ''
+                const parts = activity.crypto_type?.split('_') || ['', '']
+                const coin = parts[0]
+                const cryptoAmt = parseFloat(activity.crypto_amount || activity.usd_amount).toFixed(4)
 
                 if (isStablecoin) {
                   return (
                     <>
-                      <span style={{ fontWeight: 600 }}>{sign}{cryptoAmt} {coin}</span>
-                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>{network}</span>
+                      <span className={styles.activityAmount}>{sign}{cryptoAmt} {coin}</span>
                     </>
-                  );
+                  )
                 } else {
                   return (
                     <>
-                      <span style={{ fontWeight: 600 }}>{sign}${parseFloat(activity.usd_amount).toFixed(2)}</span>
-                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>{sign}{cryptoAmt} {coin}</span>
+                      <span className={styles.activityAmount}>{sign}${parseFloat(activity.usd_amount).toFixed(2)}</span>
+                      <span className={styles.activityCrypto}>{sign}{cryptoAmt} {coin}</span>
                     </>
-                  );
+                  )
                 }
               })()}
-            </span>
+            </div>
           </div>
-          <div className={styles.paymentMeta}>
-            <span className={`${styles.paymentStatus} ${styles[activity.status.toLowerCase()]}`}>
+          <div className={styles.activityMeta}>
+            <span className={`${styles.activityStatus} ${styles[activity.status.toLowerCase()]}`}>
               {activity.status}
             </span>
-            <span className={styles.paymentDate}>
+            <span className={styles.activityDate}>
               {new Date(activity.created_at).toLocaleDateString()}
             </span>
           </div>
