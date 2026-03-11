@@ -28,6 +28,7 @@ impl CurrencyService {
             ("ETH", "ETH", "Ethereum", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/eth.png"),
             ("ARB", "ARB", "Arbitrum One", "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png"),
             ("SOL", "SOL", "Solana", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
+            ("WSOL", "SOL", "Wrapped SOL (SPL)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
             ("MATIC", "MATIC", "Polygon", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/matic.png"),
             ("BNB", "BNB", "Binance Smart Chain", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/bnb.png"),
         ]
@@ -38,7 +39,7 @@ impl CurrencyService {
             "USDT" => vec!["USDT_ETH", "USDT_BEP20", "USDT_POLYGON", "USDT_ARBITRUM", "USDT_SPL"],
             "ETH" => vec!["ETH"],
             "ARB" => vec!["ARB"],
-            "SOL" => vec!["SOL"],
+            "SOL" => vec!["SOL", "WSOL"],
             "MATIC" => vec!["MATIC"],
             "BNB" => vec!["BNB"],
             _ => vec![],
@@ -51,7 +52,7 @@ impl CurrencyService {
             "USDT_BEP20" | "USDT_BSC" | "BNB" => "Binance Smart Chain (BEP-20)",
             "USDT_POLYGON" | "MATIC" => "Polygon (MATIC)",
             "USDT_ARBITRUM" | "ARB" => "Arbitrum One",
-            "USDT_SPL" | "USDT_SOL" | "SOL" => "Solana (SPL)",
+            "USDT_SPL" | "USDT_SOL" | "SOL" | "WSOL" => "Solana (SPL)",
             "BTC" => "Bitcoin",
             _ => "Unknown Network",
         }
@@ -63,7 +64,7 @@ impl CurrencyService {
             "USDT_BEP20" | "USDT_BSC" | "BNB" => 15,
             "USDT_POLYGON" | "MATIC" => 30,
             "USDT_ARBITRUM" | "ARB" => 1,
-            "USDT_SOL" | "SOL" => 32,
+            "USDT_SOL" | "SOL" | "WSOL" => 32,
             "BTC" => 6,
             _ => 1,
         }

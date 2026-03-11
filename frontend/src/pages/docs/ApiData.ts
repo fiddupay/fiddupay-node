@@ -368,7 +368,7 @@ export const API_DATA: DocSection[] = [
                 title: 'Sweep Funds',
                 description: 'Trigger a transfer of funds from a customer\'s sub-account directly into your main merchant balance.',
                 body: [
-                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, USDT, etc.' },
+                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, WSOL, USDT, etc.' },
                     { name: 'amount', type: 'string', required: true, description: 'Amount to sweep' }
                 ],
                 request: {
@@ -408,7 +408,7 @@ export const API_DATA: DocSection[] = [
                 title: 'Unified Wallet Setup',
                 description: 'A single endpoint to configure, generate, or import wallets for any supported cryptocurrency.',
                 body: [
-                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, ETH, USDT_SPL, etc.' },
+                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, ETH, WSOL, USDT_SPL, etc.' },
                     { name: 'mode', type: 'string', required: true, description: 'address, generate, or import' },
                     { name: 'address', type: 'string', required: false, description: 'Required for mode "address"' },
                     { name: 'private_key', type: 'string', required: false, description: 'Required for mode "import"' },

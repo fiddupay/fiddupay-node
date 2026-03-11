@@ -78,7 +78,7 @@ impl WithdrawalProcessor {
 
         // 4. Send the transaction on-chain
         let sender = BlockchainTransactionSender::new(self.config.clone());
-        let tx_hash = match sender.send_native_transaction(
+        let tx_hash = match sender.send_transaction(
             crypto_type_enum,
             &private_key,
             &wd_destination_address,

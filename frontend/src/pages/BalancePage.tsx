@@ -36,6 +36,7 @@ const NETWORK_LABELS: Record<string, { name: string, sandbox: string }> = {
     MATIC: { name: 'Polygon', sandbox: 'Polygon Mumbai' },
     ARB: { name: 'Arbitrum', sandbox: 'Arbitrum Sepolia' },
     USDT_SPL: { name: 'Solana SPL', sandbox: 'Solana Devnet SPL' },
+    WSOL: { name: 'Wrapped SOL', sandbox: 'Devnet WSOL' },
     USDT_ETH: { name: 'Ethereum ERC20', sandbox: 'Sepolia ERC20' },
     USDT_BEP20: { name: 'BSC BEP20', sandbox: 'BSC Testnet BEP20' },
     USDT_POLYGON: { name: 'Polygon', sandbox: 'Mumbai' },

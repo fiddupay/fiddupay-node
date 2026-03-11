@@ -31,6 +31,7 @@ interface GasValidation {
 
 const CRYPTO_OPTIONS = [
   { value: 'SOL', label: 'SOL', network: 'Solana' },
+  { value: 'WSOL', label: 'Wrapped SOL (SPL)', network: 'Solana' },
   { value: 'USDT_SPL', label: 'USDT (Solana)', network: 'Solana' },
   { value: 'ETH', label: 'ETH', network: 'Ethereum' },
   { value: 'USDT_ERC20', label: 'USDT (Ethereum)', network: 'Ethereum' },

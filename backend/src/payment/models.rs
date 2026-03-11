@@ -59,6 +59,8 @@ pub enum CryptoType {
     Matic,            // Polygon native
     #[serde(rename = "BNB")]
     Bnb,              // BSC native
+    #[serde(rename = "WSOL")]
+    WSol,             // Wrapped SOL (SPL token)
 }
 
 impl std::fmt::Display for CryptoType {
@@ -74,6 +76,7 @@ impl std::fmt::Display for CryptoType {
             CryptoType::UsdtPolygon => write!(f, "USDT_POLYGON"),
             CryptoType::Arb => write!(f, "ARB"),
             CryptoType::UsdtArbitrum => write!(f, "USDT_ARBITRUM"),
+            CryptoType::WSol => write!(f, "WSOL"),
         }
     }
 }
@@ -93,6 +96,7 @@ impl FromStr for CryptoType {
             "ARB" => Ok(CryptoType::Arb),
             "MATIC" => Ok(CryptoType::Matic),
             "BNB" => Ok(CryptoType::Bnb),
+            "WSOL" => Ok(CryptoType::WSol),
             _ => Err(format!("Unknown crypto type: {}", s)),
         }
     }
@@ -113,6 +117,7 @@ impl CryptoType {
             "USDT_BNB" | "USDT_BEP20" | "USDT_BSC" => Ok(CryptoType::UsdtBep20),
             "USDT_MATIC" | "USDT_POLYGON" => Ok(CryptoType::UsdtPolygon),
             "USDT_ARB" | "USDT_ARBITRUM" => Ok(CryptoType::UsdtArbitrum),
+            "WSOL" => Ok(CryptoType::WSol),
             unknown => {
                 tracing::warn!("Unknown crypto type string: '{}', rejecting", unknown);
                 Err(crate::error::ServiceError::ValidationError(
@@ -134,6 +139,7 @@ impl CryptoType {
             CryptoType::Arb => "ARB",
             CryptoType::Matic => "MATIC",
             CryptoType::Bnb => "BNB",
+            CryptoType::WSol => "WSOL",
         }
     }
 
@@ -149,12 +155,13 @@ impl CryptoType {
             CryptoType::Arb => "ARBITRUM",
             CryptoType::Matic => "POLYGON",
             CryptoType::Bnb => "BEP20",
+            CryptoType::WSol => "SOLANA_SPL",
         }
     }
 
     pub fn uri_scheme(&self) -> &'static str {
         match self {
-            CryptoType::Sol | CryptoType::UsdtSpl => "solana",
+            CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => "solana",
             _ => "ethereum", // All EVM chains use ethereum: prefix for EIP-681
         }
     }
@@ -173,6 +180,7 @@ impl CryptoType {
             CryptoType::Arb => 1,            // Arbitrum: configurable via CONFIRMATION_BLOCKS_ARBITRUM
             CryptoType::Matic => 30,         // Polygon: configurable via CONFIRMATION_BLOCKS_POLYGON
             CryptoType::Bnb => 15,           // BSC: configurable via CONFIRMATION_BLOCKS_BSC
+            CryptoType::WSol => 32,          // Solana SPL: configurable via CONFIRMATION_BLOCKS_SOL
         }
     }
 
@@ -180,7 +188,7 @@ impl CryptoType {
         match self {
             CryptoType::UsdtBep20 | CryptoType::Bnb => config.confirmation_blocks_bsc,
             CryptoType::UsdtArbitrum | CryptoType::Arb => config.confirmation_blocks_arbitrum,
-            CryptoType::UsdtSpl | CryptoType::Sol => config.confirmation_blocks_sol,
+            CryptoType::UsdtSpl | CryptoType::Sol | CryptoType::WSol => config.confirmation_blocks_sol,
             CryptoType::UsdtPolygon | CryptoType::Matic => config.confirmation_blocks_polygon,
             CryptoType::UsdtEth | CryptoType::Eth => config.confirmation_blocks_eth,
         }
@@ -190,7 +198,7 @@ impl CryptoType {
         match self {
             CryptoType::UsdtBep20 | CryptoType::Bnb => &config.bsc_rpc_url,
             CryptoType::UsdtArbitrum | CryptoType::Arb => &config.arbitrum_rpc_url,
-            CryptoType::UsdtSpl | CryptoType::Sol => &config.solana_rpc_url,
+            CryptoType::UsdtSpl | CryptoType::Sol | CryptoType::WSol => &config.solana_rpc_url,
             CryptoType::UsdtPolygon | CryptoType::Matic => &config.polygon_rpc_url,
             CryptoType::UsdtEth | CryptoType::Eth => &config.ethereum_rpc_url,
         }
@@ -207,6 +215,7 @@ impl CryptoType {
             CryptoType::UsdtBep20 => CryptoType::Bnb,
             CryptoType::UsdtPolygon => CryptoType::Matic,
             CryptoType::UsdtArbitrum => CryptoType::Arb,
+            CryptoType::WSol => CryptoType::Sol,
             _ => *self, // Already native
         }
     }
@@ -220,6 +229,7 @@ impl CryptoType {
             CryptoType::UsdtBep20 => Some("0x55d398326f99059fF775485246999027B3197955"),
             CryptoType::UsdtPolygon => Some("0xc2132D05D31c914a87C6611C10748AEb04B58e8F"),
             CryptoType::UsdtArbitrum => Some("0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9"),
+            CryptoType::WSol => Some("So11111111111111111111111111111111111111112"),
             // Native currencies don't use token contracts
             _ => None,
         }
