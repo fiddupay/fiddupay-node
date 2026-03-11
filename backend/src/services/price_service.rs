@@ -140,12 +140,10 @@ impl PriceService {
             CryptoType::Arb => self.fetch_arb_price().await,
             CryptoType::Matic => self.fetch_matic_price().await,
             CryptoType::Bnb => self.fetch_bnb_price().await,
-            // USDT tokens use their blockchain's native currency price
-            CryptoType::UsdtSpl => self.fetch_sol_price().await,
-            CryptoType::UsdtBep20 => self.fetch_bnb_price().await,
-            CryptoType::UsdtEth => self.fetch_eth_price().await,
-            CryptoType::UsdtPolygon => self.fetch_matic_price().await,
-            CryptoType::UsdtArbitrum => self.fetch_arb_price().await,
+            // USDT tokens are pegged to $1.00.
+            CryptoType::UsdtSpl | CryptoType::UsdtBep20 | CryptoType::UsdtEth | CryptoType::UsdtPolygon | CryptoType::UsdtArbitrum => {
+                Ok(1.0)
+            }
         }
     }
 

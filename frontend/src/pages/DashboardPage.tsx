@@ -439,7 +439,7 @@ const RecentActivityList: React.FC = () => {
                 const sign = (activity.type === 'withdrawal' || activity.type === 'refund') ? '-' : ''
                 const parts = activity.crypto_type?.split('_') || ['', '']
                 const coin = parts[0]
-                const cryptoAmt = parseFloat(activity.crypto_amount || activity.usd_amount).toFixed(4)
+                const cryptoAmt = parseFloat(activity.crypto_amount || activity.usd_amount).toFixed(6)
 
                 if (isStablecoin) {
                   return (

@@ -157,7 +157,7 @@ export default function WithdrawalInterface() {
                       <div className="flex items-center justify-between w-full">
                         <span>{crypto.label}</span>
                         <span className="text-sm text-gray-500 ml-2">
-                          {bal ? `${parseFloat(bal.available_balance).toFixed(4)}` : '0.0000'}
+                          {bal ? `${parseFloat(bal.available_balance).toFixed(6)}` : '0.000000'}
                         </span>
                       </div>
                     </SelectItem>
