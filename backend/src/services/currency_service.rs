@@ -27,8 +27,8 @@ impl CurrencyService {
             ("USDT_SPL", "USDT", "Solana (SPL)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
             ("ETH", "ETH", "Ethereum", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/eth.png"),
             ("ARB", "ARB", "Arbitrum One", "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png"),
-            ("SOL", "SOL", "Solana", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
-            ("WSOL", "SOL", "Wrapped SOL (SPL)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
+            ("SOL", "SOL", "Solana (SPL)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
+            ("WSOL", "SOL", "Solana (SPL)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
             ("MATIC", "MATIC", "Polygon", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/matic.png"),
             ("BNB", "BNB", "Binance Smart Chain", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/bnb.png"),
         ]

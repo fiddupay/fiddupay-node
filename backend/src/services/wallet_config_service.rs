@@ -64,22 +64,17 @@ impl WalletConfigService {
 
         let config = config_res?;
 
-        let sister_crypto = match crypto_type {
-            CryptoType::Sol => Some("USDT_SPL"),
-            CryptoType::WSol => None,
-            CryptoType::UsdtSpl => Some("SOL"),
-            CryptoType::Eth => Some("USDT_ETH"),
-            CryptoType::UsdtEth => Some("ETH"),
-            CryptoType::Bnb => Some("USDT_BEP20"),
-            CryptoType::UsdtBep20 => Some("BNB"),
-            CryptoType::Matic => Some("USDT_POLYGON"),
-            CryptoType::UsdtPolygon => Some("MATIC"),
-            CryptoType::Arb => Some("USDT_ARBITRUM"),
-            CryptoType::UsdtArbitrum => Some("ARB"),
+        let sisters = match crypto_type {
+            CryptoType::Sol | CryptoType::WSol | CryptoType::UsdtSpl => vec!["SOL", "WSOL", "USDT_SPL"],
+            CryptoType::Eth | CryptoType::UsdtEth => vec!["ETH", "USDT_ETH"],
+            CryptoType::Bnb | CryptoType::UsdtBep20 => vec!["BNB", "USDT_BEP20"],
+            CryptoType::Matic | CryptoType::UsdtPolygon => vec!["MATIC", "USDT_POLYGON"],
+            CryptoType::Arb | CryptoType::UsdtArbitrum => vec!["ARB", "USDT_ARBITRUM"],
         };
 
-        if let Some(sister) = sister_crypto {
-             sqlx::query(
+        for sister in sisters {
+            if sister == crypto_type.to_string() { continue; }
+            sqlx::query(
                 "INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key)
                  VALUES ($1, $2, $3, $4, $5, $6, $7)
                  ON CONFLICT (merchant_id, crypto_type, sandbox_mode) 
@@ -301,21 +296,16 @@ impl WalletConfigService {
         .execute(&self.db_pool)
         .await?;
 
-        let sister_crypto = match crypto_type {
-            CryptoType::Sol => Some("USDT_SPL"),
-            CryptoType::WSol => None,
-            CryptoType::UsdtSpl => Some("SOL"),
-            CryptoType::Eth => Some("USDT_ETH"),
-            CryptoType::UsdtEth => Some("ETH"),
-            CryptoType::Bnb => Some("USDT_BEP20"),
-            CryptoType::UsdtBep20 => Some("BNB"),
-            CryptoType::Matic => Some("USDT_POLYGON"),
-            CryptoType::UsdtPolygon => Some("MATIC"),
-            CryptoType::Arb => Some("USDT_ARBITRUM"),
-            CryptoType::UsdtArbitrum => Some("ARB"),
+        let sisters = match crypto_type {
+            CryptoType::Sol | CryptoType::WSol | CryptoType::UsdtSpl => vec!["SOL", "WSOL", "USDT_SPL"],
+            CryptoType::Eth | CryptoType::UsdtEth => vec!["ETH", "USDT_ETH"],
+            CryptoType::Bnb | CryptoType::UsdtBep20 => vec!["BNB", "USDT_BEP20"],
+            CryptoType::Matic | CryptoType::UsdtPolygon => vec!["MATIC", "USDT_POLYGON"],
+            CryptoType::Arb | CryptoType::UsdtArbitrum => vec!["ARB", "USDT_ARBITRUM"],
         };
 
-        if let Some(sister) = sister_crypto {
+        for sister in sisters {
+            if sister == crypto_type.to_string() { continue; }
             sqlx::query(
                 "UPDATE merchant_wallets SET address = '', is_active = false, updated_at = NOW() 
                  WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
@@ -365,22 +355,17 @@ impl WalletConfigService {
         .fetch_one(&self.db_pool)
         .await?;
 
-        let sister_crypto = match crypto_type {
-            CryptoType::Sol => Some("USDT_SPL"),
-            CryptoType::WSol => None,
-            CryptoType::UsdtSpl => Some("SOL"),
-            CryptoType::Eth => Some("USDT_ETH"),
-            CryptoType::UsdtEth => Some("ETH"),
-            CryptoType::Bnb => Some("USDT_BEP20"),
-            CryptoType::UsdtBep20 => Some("BNB"),
-            CryptoType::Matic => Some("USDT_POLYGON"),
-            CryptoType::UsdtPolygon => Some("MATIC"),
-            CryptoType::Arb => Some("USDT_ARBITRUM"),
-            CryptoType::UsdtArbitrum => Some("ARB"),
+        let sisters = match crypto_type {
+            CryptoType::Sol | CryptoType::WSol | CryptoType::UsdtSpl => vec!["SOL", "WSOL", "USDT_SPL"],
+            CryptoType::Eth | CryptoType::UsdtEth => vec!["ETH", "USDT_ETH"],
+            CryptoType::Bnb | CryptoType::UsdtBep20 => vec!["BNB", "USDT_BEP20"],
+            CryptoType::Matic | CryptoType::UsdtPolygon => vec!["MATIC", "USDT_POLYGON"],
+            CryptoType::Arb | CryptoType::UsdtArbitrum => vec!["ARB", "USDT_ARBITRUM"],
         };
 
-        if let Some(sister) = sister_crypto {
-             sqlx::query(
+        for sister in sisters {
+            if sister == crypto_type.to_string() { continue; }
+            sqlx::query(
                 "INSERT INTO merchant_forwarding_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode)
                  VALUES ($1, $2, $3, $4, $5, $6)
                  ON CONFLICT (merchant_id, crypto_type, sandbox_mode) 
