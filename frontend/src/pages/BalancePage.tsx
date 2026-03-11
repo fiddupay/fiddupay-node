@@ -250,7 +250,7 @@ const BalancePage: React.FC = () => {
                                             </div>
                                             <div className={styles.assetMeta}>
                                                 <h3>{asset.crypto_type.split('_')[0]}</h3>
-                                                <span>{asset.crypto_type.includes('_') ? asset.crypto_type.split('_')[1] : 'Mainnet'}</span>
+                                                <span>{asset.crypto_type.includes('_') ? asset.crypto_type.split('_')[1] : (user?.sandbox_mode ? 'Devnet' : 'Mainnet')}</span>
                                             </div>
                                         </div>
                                         <div className={styles.assetValues}>
