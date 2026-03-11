@@ -2,7 +2,14 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { merchantAPI } from '@/services/apiService'
 import { Balance, BalanceHistory } from '@/types'
 import { useToast } from '@/contexts/ToastContext'
+import { useAuthStore } from '@/stores/authStore'
 import styles from '@/styles/pages/BalancePage.module.css'
+
+// Safe parseFloat that never returns NaN
+const safeFloat = (val: any): number => {
+    const n = parseFloat(val)
+    return isNaN(n) ? 0 : n
+}
 import {
     AreaChart,
     Area,
@@ -28,10 +35,11 @@ const BalancePage: React.FC = () => {
     const [loading, setLoading] = useState(true)
     const [selectedAsset, setSelectedAsset] = useState<string | null>(null) // null means 'Total'
     const { showToast } = useToast()
+    const { user } = useAuthStore()
 
     useEffect(() => {
         loadData()
-    }, [])
+    }, [user?.sandbox_mode])
 
     const loadData = async () => {
         try {
@@ -57,10 +65,10 @@ const BalancePage: React.FC = () => {
     const pieData = useMemo(() => {
         if (!balance?.balances) return []
         return balance.balances
-            .filter(b => parseFloat(b.amount_usd) > 0)
+            .filter(b => safeFloat(b.amount_usd) > 0)
             .map(b => ({
                 name: b.crypto_type.split('_')[0],
-                value: parseFloat(b.amount_usd)
+                value: safeFloat(b.amount_usd)
             }))
             .sort((a, b) => b.value - a.value)
     }, [balance])
@@ -69,10 +77,10 @@ const BalancePage: React.FC = () => {
         if (!history?.points) return []
         return history.points.map(p => ({
             date: new Date(p.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-            total: parseFloat(p.total_usd),
+            total: safeFloat(p.total_usd),
             [selectedAsset || 'total']: selectedAsset
-                ? parseFloat(p.balances[selectedAsset] || '0')
-                : parseFloat(p.total_usd)
+                ? safeFloat(p.balances[selectedAsset] || '0')
+                : safeFloat(p.total_usd)
         }))
     }, [history, selectedAsset])
 
@@ -106,21 +114,21 @@ const BalancePage: React.FC = () => {
                             <div className={styles.statIcon}><i className="fas fa-vault"></i></div>
                             <div className={styles.statInfo}>
                                 <p className={styles.statLabel}>Total Assets (USD)</p>
-                                <p className={styles.statValue}>${parseFloat(balance?.total_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                <p className={styles.statValue}>${safeFloat(balance?.total_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                             </div>
                         </div>
                         <div className={styles.statCard}>
                             <div className={styles.statIcon} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><i className="fas fa-unlock"></i></div>
                             <div className={styles.statInfo}>
                                 <p className={styles.statLabel}>Available Now</p>
-                                <p className={styles.statValue}>${parseFloat(balance?.available_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                <p className={styles.statValue}>${safeFloat(balance?.available_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                             </div>
                         </div>
                         <div className={styles.statCard}>
                             <div className={styles.statIcon} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}><i className="fas fa-hourglass-half"></i></div>
                             <div className={styles.statInfo}>
                                 <p className={styles.statLabel}>Settling / Reserved</p>
-                                <p className={styles.statValue}>${parseFloat(balance?.reserved_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                <p className={styles.statValue}>${safeFloat(balance?.reserved_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                             </div>
                         </div>
                     </div>
@@ -247,10 +255,10 @@ const BalancePage: React.FC = () => {
                                         </div>
                                         <div className={styles.assetValues}>
                                             <div className={styles.cryptoValue}>
-                                                {parseFloat(asset.amount).toFixed(6)} {asset.crypto_type.split('_')[0]}
+                                                {safeFloat(asset.amount).toFixed(6)} {asset.crypto_type.split('_')[0]}
                                             </div>
                                             <div className={styles.usdValue}>
-                                                ${parseFloat(asset.amount_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                ${safeFloat(asset.amount_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </div>
                                         </div>
                                     </div>
