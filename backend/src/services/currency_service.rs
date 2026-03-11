@@ -89,8 +89,21 @@ impl CurrencyService {
 
         // Filter supported list
         all_supported.into_iter()
-            .filter(|(crypto_type, _, _, _)| {
-                active_wallets.contains(&crypto_type.to_string())
+            .filter(|(crypto_type, group, _, _)| {
+                // Return true if this specific crypto is active
+                if active_wallets.contains(&crypto_type.to_string()) {
+                    return true;
+                }
+
+                // Robustness: If this is part of a "sister" group (like Solana), 
+                // and any other member of that group is active, show this one too.
+                // This handles cases where backfilling hasn't happened yet.
+                if *group == "SOL" || *crypto_type == "USDT_SPL" {
+                    let solana_siblings = vec!["SOL", "WSOL", "USDT_SPL"];
+                    return active_wallets.iter().any(|aw| solana_siblings.contains(&aw.as_str()));
+                }
+
+                false
             })
             .collect()
     }

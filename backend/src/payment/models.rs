@@ -147,7 +147,7 @@ impl CryptoType {
         match self {
             CryptoType::UsdtBep20 => "BEP20",
             CryptoType::UsdtArbitrum => "ARBITRUM",
-            CryptoType::UsdtSpl => "SOLANA_SPL",
+            CryptoType::UsdtSpl => "SOLANA",
             CryptoType::UsdtPolygon => "POLYGON",
             CryptoType::UsdtEth => "ETHEREUM",
             CryptoType::Sol => "SOLANA",
@@ -155,7 +155,7 @@ impl CryptoType {
             CryptoType::Arb => "ARBITRUM",
             CryptoType::Matic => "POLYGON",
             CryptoType::Bnb => "BEP20",
-            CryptoType::WSol => "SOLANA_SPL",
+            CryptoType::WSol => "SOLANA",
         }
     }
 
