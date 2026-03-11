@@ -21,7 +21,7 @@ interface Wallet {
     created_at: string;
 }
 
-const NETWORKS = ['Native', 'ERC20', 'BEP20', 'TRC20', 'SOL', 'POLYGON', 'ARB'];
+const NETWORKS = ['Native', 'ERC20', 'BEP20', 'SOL', 'POLYGON', 'ARB'];
 
 const MerchantCustomersPage: React.FC = () => {
     const { showToast } = useToast()
@@ -120,12 +120,18 @@ const MerchantCustomersPage: React.FC = () => {
         setCustomerBalances(null)
 
         try {
-            const balRes = await customerAPI.getBalances(customer.external_id)
-            setCustomerBalances(balRes.data?.balances)
-            // If the user has wallets, they are returned in the balances usually, 
-            // but the list() wallets endpoint might be separate if needed.
-        } catch (error: any) {
-            console.error('Failed to load balances:', error)
+            const [walletRes, balRes] = await Promise.allSettled([
+                customerAPI.getWallets(customer.external_id),
+                customerAPI.getBalances(customer.external_id),
+            ])
+            if (walletRes.status === 'fulfilled') {
+                setCustomerWallets(walletRes.value.data?.wallets || [])
+            }
+            if (balRes.status === 'fulfilled') {
+                setCustomerBalances(balRes.value.data?.balances)
+            }
+        } catch {
+            // silently handle — UI will show empty states
         } finally {
             setDetailsLoading(false)
         }

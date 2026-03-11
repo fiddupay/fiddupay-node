@@ -225,6 +225,29 @@ impl MerchantCustomerService {
         Ok(balances)
     }
 
+    /// Get all provisioned wallets for a customer (addresses only, no private keys)
+    pub async fn get_customer_wallets(
+        &self,
+        merchant_id: i64,
+        external_id: &str,
+    ) -> Result<Vec<MerchantCustomerWallet>, ServiceError> {
+        let wallets = sqlx::query_as::<_, MerchantCustomerWallet>(
+            r#"
+            SELECT w.id, w.customer_id, w.merchant_id, w.crypto_type, w.network, w.address, w.encrypted_private_key, w.created_at, w.updated_at
+            FROM merchant_customer_wallets w
+            JOIN merchant_customers mc ON mc.id = w.customer_id
+            WHERE mc.merchant_id = $1 AND mc.external_id = $2
+            ORDER BY w.created_at
+            "#
+        )
+        .bind(merchant_id)
+        .bind(external_id)
+        .fetch_all(&self.db_pool)
+        .await?;
+
+        Ok(wallets)
+    }
+
     pub async fn list_customers(
         &self,
         merchant_id: i64,

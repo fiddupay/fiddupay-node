@@ -28,6 +28,7 @@ pub struct MerchantCustomerWallet {
     pub crypto_type: String,
     pub network: String,
     pub address: String,
+    #[serde(skip_serializing)]
     pub encrypted_private_key: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

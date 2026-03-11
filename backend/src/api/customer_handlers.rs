@@ -79,6 +79,24 @@ pub async fn get_customer_balances(
     }
 }
 
+pub async fn get_customer_wallets(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(external_id): Path<String>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(state.db_pool.clone());
+    
+    match service.get_customer_wallets(context.merchant_id, &external_id).await {
+        Ok(wallets) => (StatusCode::OK, Json(json!({
+            "external_id": external_id,
+            "wallets": wallets
+        }))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
+            "error": e.to_string()
+        }))).into_response(),
+    }
+}
+
 pub async fn sweep_customer_wallet(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,

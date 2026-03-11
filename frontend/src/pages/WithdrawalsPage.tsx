@@ -94,11 +94,9 @@ const WithdrawalsPage: React.FC = () => {
             let balances: WalletBalance[] = []
             try {
                 const balRes = await walletAPI.getBalances()
-                console.log('[WithdrawalsPage] balances API response:', balRes.data)
                 balances = Array.isArray(balRes.data?.wallets) ? balRes.data.wallets : []
             } catch (balErr: any) {
                 const errMsg = balErr.response?.data?.error || balErr.message || 'Unknown error'
-                console.error('[WithdrawalsPage] Failed to fetch balances:', balErr.response?.status, errMsg)
                 setBalanceError(`Failed to load wallets: ${errMsg}`)
             }
 

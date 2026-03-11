@@ -16,6 +16,7 @@ pub struct WalletConfig {
     pub is_active: bool,
     pub sandbox_mode: bool,
     pub wallet_mode: Option<String>,
+    #[serde(skip_serializing)]
     pub encrypted_private_key: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
