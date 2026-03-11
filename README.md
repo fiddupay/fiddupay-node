@@ -90,7 +90,7 @@ caddy fmt --overwrite
 
    sudo journalctl -u fiddupay -n 100
 
-   sudo journalctl -u fiddupay --since "10 minutes ago"
+   sudo journalctl -u fiddupay --since "227 minutes ago" --no-pager
 
    # Check API request logs
 tail -f /var/log/caddy/fiddupay.api.log
