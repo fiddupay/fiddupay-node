@@ -474,7 +474,7 @@ impl BackgroundTasks {
                 Some(self.config.solana_rpc_url.clone())
             };
             
-            let monitor = SolanaMonitor::new(&self.config, rpc_url);
+            let monitor = SolanaMonitor::new(&self.config, rpc_url, None);
             let verifier = Arc::new(PaymentVerifier::new(
                 self.db_pool.clone(),
                 (*self.webhook_service).clone(),
@@ -537,8 +537,9 @@ mod tests {
     #[tokio::test]
     async fn test_background_tasks_creation() {
         let pool = PgPool::connect_lazy("postgres://localhost/test").unwrap();
-        let signing_key = "test_signing_key_32_bytes_long!!".to_string();
-        let _tasks = BackgroundTasks::new(pool, signing_key);
+        let mut config = crate::config::Config::default();
+        config.webhook_signing_key = "test_signing_key_32_bytes_long!!".to_string();
+        let _tasks = BackgroundTasks::new(pool, config);
         // Just verify it compiles and creates
         assert!(true);
     }
