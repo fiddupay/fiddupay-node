@@ -13,6 +13,16 @@ export const authAPI = {
     api.post('/api/v1/merchants/login', data),
 }
 
+const cleanParams = (params: any) => {
+  const cleaned: any = {};
+  Object.keys(params).forEach(key => {
+    if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+      cleaned[key] = params[key];
+    }
+  });
+  return cleaned;
+};
+
 export const merchantAPI = {
   getProfile: () => api.get('/api/v1/merchants/profile'),
   getBalance: () => api.get('/api/v1/merchants/balance'),
@@ -20,9 +30,15 @@ export const merchantAPI = {
     granularity?: string;
     from_date?: string;
     to_date?: string;
+    status?: string;
+    blockchain?: string;
   }) => {
-    const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+    const query = params ? `?${new URLSearchParams(cleanParams(params)).toString()}` : '';
     return api.get(`/api/v1/merchants/analytics${query}`);
+  },
+  getBalanceHistory: (params?: { limit?: number }) => {
+    const query = params ? `?${new URLSearchParams(cleanParams(params as any)).toString()}` : '';
+    return api.get(`/api/v1/merchants/balance-history${query}`);
   },
 
   // Invoice Management
@@ -30,7 +46,7 @@ export const merchantAPI = {
     api.post('/api/v1/merchants/invoices', data),
 
   getInvoices: (params?: { limit?: number; offset?: number }) => {
-    const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+    const query = params ? `?${new URLSearchParams(cleanParams(params)).toString()}` : '';
     return api.get(`/api/v1/merchants/invoices${query}`);
   },
 
@@ -55,7 +71,7 @@ export const merchantAPI = {
   sendTestWebhook: () => api.post('/api/v1/merchants/webhook/test'),
   getReadinessStatus: () => api.get('/api/v1/merchants/status'),
   getAuditLogs: (params?: { limit?: number; offset?: number }) => {
-    const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+    const query = params ? `?${new URLSearchParams(cleanParams(params)).toString()}` : '';
     return api.get(`/api/v1/merchants/audit-logs${query}`);
   },
 }
@@ -74,7 +90,7 @@ export const paymentAPI = {
     limit?: number;
     offset?: number;
   }) => {
-    const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+    const query = params ? `?${new URLSearchParams(cleanParams(params)).toString()}` : '';
     return api.get(`/api/v1/merchants/payments${query}`);
   },
   get: (paymentId: string) => api.get(`/api/v1/merchants/payments/${paymentId}`),
@@ -85,7 +101,7 @@ export const paymentAPI = {
 
   // Unified Transactions
   getUnifiedTransactions: (params?: any) => {
-    const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+    const query = params ? `?${new URLSearchParams(cleanParams(params)).toString()}` : '';
     return api.get(`/api/v1/merchants/transactions${query}`);
   },
 }

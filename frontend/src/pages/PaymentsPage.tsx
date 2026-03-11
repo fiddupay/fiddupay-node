@@ -106,16 +106,19 @@ const PaymentsPage: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      const analytics = await merchantAPI.getAnalytics()
+      const analytics = await merchantAPI.getAnalytics({
+        status: filters.status,
+        blockchain: filters.blockchain
+      })
       if (analytics.data) {
         const successfulPayments = analytics.data.successful_payments || 0
         const totalPayments = analytics.data.total_payments || 0
         const successRate = totalPayments > 0 ? ((successfulPayments / totalPayments) * 100).toFixed(1) + '%' : '0%'
 
         setStats({
-          totalPayments: analytics.data.total_payments || 0,
-          totalVolume: `$${analytics.data.total_volume_usd || '0.00'}`,
-          successRate: successRate
+          totalPayments,
+          totalVolume: `$${Number(analytics.data.total_volume_usd || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          successRate
         })
       }
     } catch (error) {

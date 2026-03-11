@@ -19,6 +19,8 @@ use serde_json::json;
 pub struct AnalyticsQuery {
     pub from_date: Option<chrono::DateTime<chrono::Utc>>,
     pub to_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub status: Option<String>,
+    pub blockchain: Option<String>,
 }
 
 pub async fn get_analytics(
@@ -29,7 +31,14 @@ pub async fn get_analytics(
     let from = query.from_date.unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
     let to = query.to_date.unwrap_or_else(|| chrono::Utc::now());
     
-    match state.analytics_service.get_analytics(context.merchant_id, from, to, None, None, Some(context.sandbox_mode)).await {
+    match state.analytics_service.get_analytics(
+        context.merchant_id, 
+        from, 
+        to, 
+        query.blockchain, 
+        query.status, 
+        Some(context.sandbox_mode)
+    ).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
@@ -198,8 +207,14 @@ pub async fn get_balance_history(
     Extension(context): Extension<MerchantContext>,
     Query(params): Query<BalanceHistoryQuery>,
 ) -> impl IntoResponse {
-    let _limit = params.limit.unwrap_or(100).min(1000);
+    let limit = params.limit.unwrap_or(100).min(1000);
     
-    // Balance history not available in current implementation
-    (StatusCode::NOT_IMPLEMENTED, Json(json!({"error": "Balance history not implemented"}))).into_response()
+    match state.analytics_service.get_balance_history(
+        context.merchant_id,
+        limit,
+        context.sandbox_mode
+    ).await {
+        Ok(history) => (StatusCode::OK, Json(history)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
 }

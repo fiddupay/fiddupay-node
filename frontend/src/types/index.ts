@@ -100,8 +100,11 @@ export interface FeeSettingResponse {
 export interface PaymentFilters {
   status?: string
   crypto_type?: string
+  blockchain?: string
   start_date?: string
   end_date?: string
+  from_date?: string // Added for consistency with analytics
+  to_date?: string   // Added for consistency with analytics
   page?: number
   page_size?: number
 }
@@ -123,27 +126,27 @@ export interface Wallet {
 
 // Analytics Types
 export interface Analytics {
-  total_payments: number
   total_volume_usd: string
   successful_payments: number
-  pending_payments: number
   failed_payments: number
-  average_payment_usd: string
-  payment_trends: PaymentTrend[]
-  currency_breakdown: CurrencyBreakdown[]
+  pending_payments: number
+  total_payments: number
+  total_fees_paid: string
+  average_transaction_value: string
+  by_blockchain: Record<string, BlockchainStats>
+  payment_trends: TimeSeriesPoint[]
 }
 
-export interface PaymentTrend {
+export interface TimeSeriesPoint {
   date: string
   count: number
   volume_usd: string
 }
 
-export interface CurrencyBreakdown {
-  crypto_type: string
-  count: number
+export interface BlockchainStats {
   volume_usd: string
-  percentage: number
+  payment_count: number
+  average_value: string
 }
 
 // Balance Types
@@ -158,6 +161,17 @@ export interface CurrencyBalance {
   crypto_type: string
   amount: string
   amount_usd: string
+}
+
+// Balance History Types
+export interface BalanceTrendPoint {
+  date: string
+  total_usd: string
+  balances: Record<string, string> // crypto_type -> amount
+}
+
+export interface BalanceHistory {
+  points: BalanceTrendPoint[]
 }
 
 // Withdrawal Types

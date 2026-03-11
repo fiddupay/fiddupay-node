@@ -370,160 +370,128 @@ const WalletsPage: React.FC = () => {
         </Link>
       </div>
 
-      <div className={styles.walletGrid}>
+      <div className={styles.walletList}>
         {supportedCryptos.map((network) => {
           const wallet = wallets?.find(w => network.cryptos.some((c: any) => c.crypto_type === w.crypto_type && w.address !== ""))
           const baseCryptoType = network.cryptos[0].crypto_type
+          const balInfo = wallet ? walletBalances.find(b => b.crypto_type === wallet.crypto_type) : null
 
           return (
-            <div key={network.name} className={styles.walletCard} style={{ position: 'relative' }}>
-              <div className={styles.walletHeader}>
-                <div className={styles.coinInfo}>
-                  <div className={styles.coinIcon}>
-                    <img src={network.icon_url} alt={network.name} />
-                  </div>
-                  <div className={styles.coinDetails}>
-                    <h3>{network.name}</h3>
-                    <div className="flex gap-1 mt-1">
-                      {network.cryptos.map((c: any) => (
-                        <span key={c.crypto_type} className={styles.networkBadge} title={c.network}>
-                          {c.crypto_type.split('_')[0]}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+            <div key={network.name} className={styles.walletRow}>
+              {/* Network Info Section */}
+              <div className={styles.coinSection}>
+                <div className={styles.coinIcon}>
+                  <img src={network.icon_url} alt={network.name} />
                 </div>
-
-                <div className="flex items-center gap-5">
-                  <label className={styles.networkToggle} title={`${wallet?.is_active ? 'Disable' : 'Enable'} Network`}>
-                    <input
-                      type="checkbox"
-                      checked={wallet?.is_active ?? false}
-                      onChange={(e) => handleToggleNetwork(network.name, e.target.checked)}
-                      disabled={!wallet}
-                    />
-                    <span className={styles.slider}></span>
-                  </label>
-
-                  {wallet && (
-                    <div className={styles.walletActions}>
-                      <button
-                        className={styles.actionMenuToggle}
-                        onClick={() => setActiveMenu(activeMenu === network.name ? null : network.name)}
-                      >
-                        <i className="fas fa-ellipsis-v"></i>
-                      </button>
-                      {activeMenu === network.name && (
-                        <div className={styles.actionDropdown}>
-                          {settlementMode === 'managed' && (
-                            <button
-                              className={styles.actionItem}
-                              onClick={() => handleWalletAction(baseCryptoType, network.name, 'generate')}
-                            >
-                              <i className="fas fa-sync-alt"></i> Generate New
-                            </button>
-                          )}
-                          <button
-                            className={`${styles.actionItem} ${styles.danger}`}
-                            onClick={() => handleWalletAction(baseCryptoType, network.name, 'revoke')}
-                          >
-                            <i className="fas fa-trash-alt"></i> Revoke / Remove
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                <div className={styles.coinDetails}>
+                  <h3>{network.name}</h3>
+                  <div className="flex gap-1 mt-1">
+                    {network.cryptos.map((c: any) => (
+                      <span key={c.crypto_type} className={styles.networkBadge} title={c.network}>
+                        {c.crypto_type.split('_')[0]}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div className={styles.walletContent}>
+              {/* Address Section */}
+              <div className={styles.addressSection}>
                 {wallet ? (
                   <>
-                    <div className={styles.addressContainer}>
-                      <label className={styles.addressLabel}>
-                        {settlementMode === 'forwarding' ? 'Forwarding Payout Address' : 'Network Deposit Address'}
-                      </label>
-                      <div className={styles.addressRow}>
-                        <span className={styles.addressText}>{wallet.address}</span>
-                        <button className={styles.copyBtn} onClick={() => copyToClipboard(wallet.address)} title="Copy Address">
-                          <i className="fas fa-copy"></i>
-                        </button>
-                      </div>
+                    <label className={styles.rowLabel}>
+                      {settlementMode === 'forwarding' ? 'Forwarding Payout Address' : 'Network Deposit Address'}
+                    </label>
+                    <div className={styles.addressBox}>
+                      <span>{wallet.address}</span>
+                      <button className={styles.copyIconBtn} onClick={() => copyToClipboard(wallet.address)} title="Copy Address">
+                        <i className="fas fa-copy"></i>
+                      </button>
                     </div>
-                    {/* Balance & Volume Stats */}
-                    {(() => {
-                      const balInfo = walletBalances.find(b => b.crypto_type === wallet.crypto_type)
-                      if (!balInfo) return null
-                      return (
-                        <div className={styles.addressContainer} style={{ marginTop: '0.5rem', background: '#f0fdf4', borderColor: '#bbf7d0' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                            <div>
-                              <span style={{ color: '#6b7280', fontWeight: 500 }}>Balance</span>
-                              <div style={{ color: '#059669', fontWeight: 700, fontSize: '0.95rem' }}>
-                                {parseFloat(balInfo.available_balance || '0').toFixed(6)}
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <span style={{ color: '#6b7280', fontWeight: 500 }}>Transactions</span>
-                              <div style={{ color: '#1f2937', fontWeight: 700, fontSize: '0.95rem' }}>
-                                {balInfo.transaction_count || 0}
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <span style={{ color: '#6b7280', fontWeight: 500 }}>Volume</span>
-                              <div style={{ color: '#1f2937', fontWeight: 700, fontSize: '0.95rem' }}>
-                                {parseFloat(balInfo.total_volume_crypto || '0').toFixed(6)}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })()}
                   </>
                 ) : (
-                  <div className={styles.emptyState}>
-                    <i className="fas fa-shield-alt text-gray-300 text-3xl mb-2 mx-auto block"></i>
-                    <p className="text-sm">
-                      {settlementMode === 'managed' ? "No wallet generated yet" :
-                        settlementMode === 'imported' ? "Provide private key to start" :
-                          "Provide destination address"}
-                    </p>
+                  <div className="text-gray-400 italic text-sm">
+                    {settlementMode === 'managed' ? "No wallet generated yet" :
+                      settlementMode === 'imported' ? "Provide private key to start" :
+                        "Provide destination address"}
                   </div>
                 )}
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                {wallet ? (
-                  <div className="flex justify-between items-center text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      {wallet.is_active ? (
-                        <>
-                          <i className="fas fa-check-circle text-green-500"></i> Active
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-pause-circle text-gray-400"></i> Disabled
-                        </>
-                      )}
-                    </span>
-                    <span>Updated: {new Date(wallet.updated_at || wallet.configured_at || Date.now()).toLocaleDateString()}</span>
+              {/* Stats Section */}
+              <div className={styles.statsSection}>
+                {balInfo && (
+                  <div className={styles.statsRow}>
+                    <div className={styles.statMini}>
+                      <span className={styles.statMiniLabel}>Balance</span>
+                      <div className={styles.statMiniValue}>{parseFloat(balInfo.available_balance || '0').toFixed(6)}</div>
+                    </div>
+                    <div className={styles.statMini}>
+                      <span className={styles.statMiniLabel}>Volume</span>
+                      <div className={styles.statMiniValue}>{parseFloat(balInfo.total_volume_crypto || '0').toFixed(6)}</div>
+                    </div>
+                    <div className={styles.statMini}>
+                      <span className={styles.statMiniLabel}>Txns</span>
+                      <div className={styles.statMiniValue}>{balInfo.transaction_count || 0}</div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="flex gap-2">
-                    {settlementMode === 'managed' ? (
-                      <button className={styles.generateBtn} onClick={() => handleWalletAction(baseCryptoType, network.name, 'generate')}>
-                        <i className="fas fa-magic"></i> Generate {network.name}
-                      </button>
-                    ) : (
-                      <button className={styles.generateBtn} onClick={() => {
-                        setNewWallet({ crypto_type: baseCryptoType, address: '' })
-                        setShowConfigModal(true)
-                      }}>
-                        <i className={`fas ${settlementMode === 'imported' ? 'fa-key' : 'fa-edit'}`}></i>
-                        {settlementMode === 'imported' ? `Import ${network.name}` : `Configure ${network.name}`}
-                      </button>
+                )}
+              </div>
+
+              {/* Action Section */}
+              <div className={styles.actionSection}>
+                <label className={styles.networkToggle} title={`${wallet?.is_active ? 'Disable' : 'Enable'} Network`}>
+                  <input
+                    type="checkbox"
+                    checked={wallet?.is_active ?? false}
+                    onChange={(e) => handleToggleNetwork(network.name, e.target.checked)}
+                    disabled={!wallet}
+                  />
+                  <span className={styles.slider}></span>
+                </label>
+
+                {wallet ? (
+                  <div className={styles.walletActions}>
+                    <button
+                      className={styles.actionMenuToggle}
+                      onClick={() => setActiveMenu(activeMenu === network.name ? null : network.name)}
+                    >
+                      <i className="fas fa-ellipsis-v"></i>
+                    </button>
+                    {activeMenu === network.name && (
+                      <div className={styles.actionDropdown}>
+                        {settlementMode === 'managed' && (
+                          <button
+                            className={styles.actionItem}
+                            onClick={() => handleWalletAction(baseCryptoType, network.name, 'generate')}
+                          >
+                            <i className="fas fa-sync-alt"></i> New Address
+                          </button>
+                        )}
+                        <button
+                          className={`${styles.actionItem} ${styles.danger}`}
+                          onClick={() => handleWalletAction(baseCryptoType, network.name, 'revoke')}
+                        >
+                          <i className="fas fa-trash-alt"></i> Revoke
+                        </button>
+                      </div>
                     )}
                   </div>
+                ) : (
+                  <button
+                    className={styles.generateBtn}
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
+                    onClick={() => {
+                      if (settlementMode === 'managed') {
+                        handleWalletAction(baseCryptoType, network.name, 'generate')
+                      } else {
+                        setNewWallet({ crypto_type: baseCryptoType, address: '' })
+                        setShowConfigModal(true)
+                      }
+                    }}
+                  >
+                    <i className="fas fa-plus"></i> Setup
+                  </button>
                 )}
               </div>
             </div>

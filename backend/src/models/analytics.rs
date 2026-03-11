@@ -13,10 +13,24 @@ pub struct TimeSeriesPoint {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BalanceTrendPoint {
+    pub date: String,
+    pub total_usd: Decimal,
+    pub balances: HashMap<String, Decimal>, // crypto_type -> amount (crypto)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BalanceHistory {
+    pub points: Vec<BalanceTrendPoint>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnalyticsReport {
     pub total_volume_usd: Decimal,
     pub successful_payments: i64,
     pub failed_payments: i64,
+    pub pending_payments: i64,
+    pub total_payments: i64,
     pub total_fees_paid: Decimal,
     pub average_transaction_value: Decimal,
     pub by_blockchain: HashMap<String, BlockchainStats>,
@@ -52,9 +66,12 @@ mod tests {
             total_volume_usd: Decimal::new(100000, 2),
             successful_payments: 20,
             failed_payments: 5,
+            pending_payments: 2,
+            total_payments: 27,
             total_fees_paid: Decimal::new(1500, 2),
             average_transaction_value: Decimal::new(5000, 2),
             by_blockchain,
+            payment_trends: vec![],
         };
 
         assert_eq!(report.total_volume_usd, Decimal::new(100000, 2));
@@ -94,9 +111,12 @@ mod tests {
             total_volume_usd: Decimal::new(100000, 2),
             successful_payments: 50,
             failed_payments: 10,
+            pending_payments: 5,
+            total_payments: 65,
             total_fees_paid: Decimal::new(1500, 2),
             average_transaction_value: Decimal::new(2000, 2),
             by_blockchain,
+            payment_trends: vec![],
         };
 
         let json = serde_json::to_string(&report).unwrap();
@@ -173,9 +193,12 @@ mod tests {
             total_volume_usd: Decimal::new(100000, 2),
             successful_payments: 50,
             failed_payments: 5,
+            pending_payments: 5,
+            total_payments: 60,
             total_fees_paid: Decimal::new(1500, 2),
             average_transaction_value: Decimal::new(2000, 2),
             by_blockchain,
+            payment_trends: vec![],
         };
 
         assert_eq!(report.by_blockchain.len(), 4);
@@ -191,9 +214,12 @@ mod tests {
             total_volume_usd: Decimal::new(0, 0),
             successful_payments: 0,
             failed_payments: 0,
+            pending_payments: 0,
+            total_payments: 0,
             total_fees_paid: Decimal::new(0, 0),
             average_transaction_value: Decimal::new(0, 0),
             by_blockchain: HashMap::new(),
+            payment_trends: vec![],
         };
 
         assert_eq!(report.total_volume_usd, Decimal::new(0, 0));
@@ -213,9 +239,12 @@ mod tests {
             total_volume_usd: total_volume,
             successful_payments,
             failed_payments: 5,
+            pending_payments: 0,
+            total_payments: (successful_payments + 5) as i64,
             total_fees_paid: Decimal::new(1500, 2),
             average_transaction_value: expected_average,
             by_blockchain: HashMap::new(),
+            payment_trends: vec![],
         };
 
         assert_eq!(report.average_transaction_value, expected_average);
@@ -250,9 +279,12 @@ mod tests {
             total_volume_usd: Decimal::new(50000, 2),
             successful_payments: 10,
             failed_payments: 40, // 80% failure rate
+            pending_payments: 0,
+            total_payments: 50,
             total_fees_paid: Decimal::new(750, 2),
             average_transaction_value: Decimal::new(5000, 2),
             by_blockchain: HashMap::new(),
+            payment_trends: vec![],
         };
 
         assert_eq!(report.successful_payments, 10);
@@ -271,9 +303,12 @@ mod tests {
             total_volume_usd: total_volume,
             successful_payments: 20,
             failed_payments: 5,
+            pending_payments: 0,
+            total_payments: 25,
             total_fees_paid: expected_fees,
             average_transaction_value: Decimal::new(5000, 2),
             by_blockchain: HashMap::new(),
+            payment_trends: vec![],
         };
 
         assert_eq!(report.total_fees_paid, expected_fees);
@@ -313,9 +348,12 @@ mod tests {
             total_volume_usd: Decimal::new(100000000, 2), // $1,000,000
             successful_payments: 1000,
             failed_payments: 50,
+            pending_payments: 0,
+            total_payments: 1050,
             total_fees_paid: Decimal::new(1500000, 2), // $15,000 (1.5%)
             average_transaction_value: Decimal::new(100000, 2), // $1,000
             by_blockchain,
+            payment_trends: vec![],
         };
 
         assert_eq!(report.total_volume_usd, Decimal::new(100000000, 2));
@@ -340,9 +378,12 @@ mod tests {
             total_volume_usd: Decimal::new(50000, 2),
             successful_payments: 25,
             failed_payments: 3,
+            pending_payments: 0,
+            total_payments: 28,
             total_fees_paid: Decimal::new(750, 2),
             average_transaction_value: Decimal::new(2000, 2),
             by_blockchain,
+            payment_trends: vec![],
         };
 
         assert_eq!(report.by_blockchain.len(), 1);
@@ -357,9 +398,12 @@ mod tests {
             total_volume_usd: Decimal::new(75000, 2),
             successful_payments: 30,
             failed_payments: 0, // Filtered out
+            pending_payments: 0,
+            total_payments: 30,
             total_fees_paid: Decimal::new(1125, 2),
             average_transaction_value: Decimal::new(2500, 2),
             by_blockchain: HashMap::new(),
+            payment_trends: vec![],
         };
 
         assert_eq!(report.successful_payments, 30);
@@ -373,9 +417,12 @@ mod tests {
             total_volume_usd: Decimal::new(25000, 2),
             successful_payments: 10,
             failed_payments: 2,
+            pending_payments: 0,
+            total_payments: 12,
             total_fees_paid: Decimal::new(375, 2),
             average_transaction_value: Decimal::new(2500, 2),
             by_blockchain: HashMap::new(),
+            payment_trends: vec![],
         };
 
         // Verify calculations
@@ -421,9 +468,12 @@ mod tests {
             total_volume_usd: Decimal::new(100000, 2), // $1,000
             successful_payments: 2,
             failed_payments: 0,
+            pending_payments: 0,
+            total_payments: 2,
             total_fees_paid: Decimal::new(1500, 2), // $15
             average_transaction_value: Decimal::new(50000, 2), // $500
             by_blockchain: HashMap::new(),
+            payment_trends: vec![],
         };
 
         assert_eq!(report.successful_payments, 2);
@@ -437,9 +487,12 @@ mod tests {
             total_volume_usd: Decimal::new(10000, 2), // $100
             successful_payments: 100,
             failed_payments: 5,
+            pending_payments: 0,
+            total_payments: 105,
             total_fees_paid: Decimal::new(150, 2), // $1.50
             average_transaction_value: Decimal::new(100, 2), // $1.00
             by_blockchain: HashMap::new(),
+            payment_trends: vec![],
         };
 
         assert_eq!(report.successful_payments, 100);
@@ -466,9 +519,12 @@ mod tests {
             total_volume_usd: Decimal::new(50000, 2),
             successful_payments: 25,
             failed_payments: 2,
+            pending_payments: 0,
+            total_payments: 27,
             total_fees_paid: Decimal::new(0, 0), // No fees
             average_transaction_value: Decimal::new(2000, 2),
             by_blockchain: HashMap::new(),
+            payment_trends: vec![],
         };
 
         assert_eq!(report.total_fees_paid, Decimal::new(0, 0));

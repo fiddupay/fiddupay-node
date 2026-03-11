@@ -36,6 +36,8 @@ impl AnalyticsService {
                 COALESCE(SUM(CASE WHEN status = 'CONFIRMED' THEN amount_usd ELSE 0 END), 0) as total_volume_usd,
                 COUNT(CASE WHEN status = 'CONFIRMED' THEN 1 END) as successful_payments,
                 COUNT(CASE WHEN status IN ('FAILED', 'EXPIRED') THEN 1 END) as failed_payments,
+                COUNT(CASE WHEN status NOT IN ('CONFIRMED', 'FAILED', 'EXPIRED', 'CANCELLED', 'REFUNDED') THEN 1 END) as pending_payments,
+                COUNT(*) as total_payments,
                 COALESCE(SUM(CASE WHEN status = 'CONFIRMED' THEN fee_amount_usd ELSE 0 END), 0) as total_fees_paid
             FROM payment_transactions
             WHERE merchant_id = $1
@@ -60,7 +62,7 @@ impl AnalyticsService {
         }
 
         // Execute the main query
-        let mut query_builder = sqlx::query_as::<_, (Decimal, i64, i64, Decimal)>(&query)
+        let mut query_builder = sqlx::query_as::<_, (Decimal, i64, i64, i64, i64, Decimal)>(&query)
             .bind(merchant_id)
             .bind(start_date)
             .bind(end_date);
@@ -75,7 +77,7 @@ impl AnalyticsService {
             query_builder = query_builder.bind(st);
         }
 
-        let (total_volume_usd, successful_payments, failed_payments, total_fees_paid) =
+        let (total_volume_usd, successful_payments, failed_payments, pending_payments, total_payments, total_fees_paid) =
             query_builder.fetch_one(&self.db_pool).await?;
 
         // Calculate average transaction value
@@ -99,11 +101,119 @@ impl AnalyticsService {
             total_volume_usd,
             successful_payments,
             failed_payments,
+            pending_payments,
+            total_payments,
             total_fees_paid,
             average_transaction_value,
             by_blockchain,
             payment_trends,
         })
+    }
+
+    /// Get historical balance points for a merchant
+    pub async fn get_balance_history(
+        &self,
+        merchant_id: i64,
+        _limit: i64,
+        sandbox_mode: bool,
+    ) -> Result<crate::models::analytics::BalanceHistory, ServiceError> {
+        // Fetch all confirmed payments and completed withdrawals
+        let query = r#"
+            (SELECT 
+                'payment' as txn_type,
+                amount as crypto_amount,
+                crypto_type,
+                created_at
+            FROM payment_transactions
+            WHERE merchant_id = $1 AND sandbox_mode = $2 AND status = 'CONFIRMED')
+            
+            UNION ALL
+            
+            (SELECT 
+                'withdrawal' as txn_type,
+                amount as crypto_amount,
+                crypto_type,
+                created_at
+            FROM withdrawals
+            WHERE merchant_id = $1 AND sandbox_mode = $2 AND status = 'COMPLETED')
+            
+            ORDER BY created_at ASC
+        "#;
+
+        let rows = sqlx::query(query)
+            .bind(merchant_id)
+            .bind(sandbox_mode)
+            .fetch_all(&self.db_pool)
+            .await?;
+
+        // Current prices for USD calculation (simplified: using current price for all historical points)
+        // In a real system, we'd use historical prices.
+        let prices = self.get_current_prices().await?;
+
+        let mut running_balances: HashMap<String, Decimal> = HashMap::new();
+        let mut daily_points: HashMap<String, crate::models::analytics::BalanceTrendPoint> = HashMap::new();
+        let mut dates: Vec<String> = Vec::new();
+
+        use sqlx::Row;
+        for row in rows {
+            let txn_type: String = row.get("txn_type");
+            let amount: Decimal = row.get("crypto_amount");
+            let crypto_type: String = row.get("crypto_type");
+            let created_at: DateTime<Utc> = row.get("created_at");
+            let date_str = created_at.format("%Y-%m-%d").to_string();
+
+            let balance = running_balances.entry(crypto_type).or_insert(Decimal::ZERO);
+            if txn_type == "payment" {
+                *balance += amount;
+            } else {
+                *balance -= amount;
+            }
+
+            // Calculate total USD for this point
+            let mut total_usd = Decimal::ZERO;
+            for (ct, amt) in &running_balances {
+                if let Some(price) = prices.get(ct) {
+                    total_usd += amt * price;
+                }
+            }
+
+            if !daily_points.contains_key(&date_str) {
+                dates.push(date_str.clone());
+            }
+
+            daily_points.insert(date_str, crate::models::analytics::BalanceTrendPoint {
+                date: created_at.format("%Y-%m-%d").to_string(),
+                total_usd,
+                balances: running_balances.clone(),
+            });
+        }
+
+        let mut points: Vec<crate::models::analytics::BalanceTrendPoint> = dates.into_iter()
+            .map(|d| daily_points.remove(&d).unwrap())
+            .collect();
+
+        // Ensure we have at least one point if history exists
+        if points.is_empty() {
+             return Ok(crate::models::analytics::BalanceHistory { points: vec![] });
+        }
+
+        Ok(crate::models::analytics::BalanceHistory { points })
+    }
+
+    /// Helper to get current prices for all supported assets
+    async fn get_current_prices(&self) -> Result<HashMap<String, Decimal>, ServiceError> {
+        let rows = sqlx::query("SELECT crypto_type, price_usd FROM exchange_rates")
+            .fetch_all(&self.db_pool)
+            .await?;
+        
+        let mut prices = HashMap::new();
+        use sqlx::Row;
+        for row in rows {
+            let ct: String = row.get("crypto_type");
+            let price: Decimal = row.get("price_usd");
+            prices.insert(ct, price);
+        }
+        Ok(prices)
     }
 
     /// Get daily payment trends

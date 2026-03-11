@@ -136,102 +136,155 @@
 
 /* Assets Breakdown */
 .balanceListSection {
-    background: white;
-    padding: 32px;
-    border-radius: 16px;
-    border: 1px solid var(--fiddu-border);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    margin-top: 2rem;
 }
 
 .sectionHeader {
     margin-bottom: 24px;
 }
 
-.sectionHeader h2 {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--fiddu-text-primary);
+.assetsList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.assetsGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-}
-
-.assetCard {
-    padding: 20px;
+.assetRow {
+    background: white;
     border: 1px solid var(--fiddu-border);
     border-radius: 12px;
-    background: var(--fiddu-bg-primary);
-    transition: all 0.2s;
-}
-
-.assetCard:hover {
-    border-color: var(--fiddu-brand-primary);
-    background: white;
-    transform: scale(1.02);
-}
-
-.assetHeader {
+    padding: 16px 24px;
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 20px;
+    justify-content: space-between;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
 }
 
-.assetIcon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: white;
-    border: 1px solid var(--fiddu-border);
+.assetRow:hover {
+    transform: translateX(8px);
+    border-color: var(--fiddu-brand-primary);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+}
+
+.assetRow.active {
+    background: var(--fiddu-bg-primary);
+    border-color: var(--fiddu-brand-primary);
+    box-shadow: 0 0 0 1px var(--fiddu-brand-primary);
+}
+
+.assetMain {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+}
+
+.assetIconBox {
+    width: 48px;
+    height: 48px;
+    background: var(--fiddu-bg-primary);
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 24px;
     color: var(--fiddu-text-primary);
+    border: 1px solid var(--fiddu-border);
 }
 
-.assetName h3 {
+.assetMeta h3 {
     font-size: 16px;
     font-weight: 700;
-    margin: 0;
     color: var(--fiddu-text-primary);
+    margin: 0;
 }
 
-.assetName span {
+.assetMeta span {
     font-size: 12px;
     color: var(--fiddu-text-muted);
+    font-weight: 500;
 }
 
 .assetValues {
+    display: flex;
+    align-items: center;
+    gap: 48px;
     text-align: right;
 }
 
-.cryptoAmount {
-    font-weight: 700;
-    color: var(--fiddu-text-primary);
-    font-size: 18px;
+.cryptoValue {
+    font-family: monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--fiddu-text-secondary);
 }
 
-.usdAmount {
-    color: var(--fiddu-text-secondary);
-    font-size: 14px;
-    margin-top: 4px;
+.usdValue {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--fiddu-text-primary);
+    min-width: 120px;
+}
+
+.chartsGrid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    margin-bottom: 40px;
+}
+
+.premiumCard {
+    background: white;
+    border: 1px solid var(--fiddu-border);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.cardHeader h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--fiddu-text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chartContainer {
+    height: 300px;
+    width: 100%;
+}
+
+.miniPieContainer {
+    height: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .emptyAssets {
-    grid-column: 1 / -1;
     text-align: center;
     padding: 48px;
+    background: white;
+    border: 1px dashed var(--fiddu-border);
+    border-radius: 16px;
     color: var(--fiddu-text-muted);
 }
 
 .emptyAssets i {
-    font-size: 3rem;
+    font-size: 48px;
     margin-bottom: 16px;
-    opacity: 0.2;
+    opacity: 0.3;
 }
 
 @media (max-width: 768px) {
