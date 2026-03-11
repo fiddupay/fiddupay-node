@@ -109,6 +109,21 @@ impl BlockchainTransactionSender {
             recent_blockhash,
         );
 
+        // Run simulation before sending (Requirement: Catch errors early)
+        match rpc_client.simulate_transaction(&tx).await {
+            Ok(sim) => {
+                if let Some(err) = sim.value.err {
+                    tracing::error!("[SOLANA-SIM] Simulation failed for SOL transfer: {:?}", err);
+                    return Err(ServiceError::Internal(format!("Transaction simulation failed: {}", err)));
+                }
+                tracing::info!("[SOLANA-SIM] Simulation successful for SOL transfer");
+            },
+            Err(e) => {
+                tracing::error!("[SOLANA-SIM] Simulation RPC error: {}", e);
+                return Err(ServiceError::Internal(format!("Failed to simulate transaction: {}", e)));
+            }
+        }
+
         // Send and confirm the transaction on-chain
         let signature = rpc_client.send_and_confirm_transaction(&tx)
             .await
@@ -136,7 +151,7 @@ impl BlockchainTransactionSender {
         };
         use spl_token::instruction::transfer_checked;
         use std::str::FromStr;
-        use spl_associated_token_account::{get_associated_token_address, instruction::create_associated_token_account};
+        use spl_associated_token_account::{get_associated_token_address, instruction::create_associated_token_account_idempotent};
 
         let sender_keypair = Keypair::from_base58_string(private_key);
         
@@ -165,20 +180,23 @@ impl BlockchainTransactionSender {
             self.config.solana_rpc_url.clone()
         };
         let rpc_client = RpcClient::new(rpc_url);
-
-        // Calculate ATAs
-        let source_ata = get_associated_token_address(&sender_keypair.pubkey(), &mint_pubkey);
-        let destination_ata = get_associated_token_address(&to_pubkey, &mint_pubkey);
-
+        
         let mut instructions: Vec<Instruction> = Vec::new();
 
-        // Check if destination ATA exists
+        // Calculate ATAs
+        let sender_pubkey = sender_keypair.pubkey();
+        let source_ata = get_associated_token_address(&sender_pubkey, &mint_pubkey);
+        let destination_ata = get_associated_token_address(&to_pubkey, &mint_pubkey);
+
+        // Check if destination ATA exists (Requirement: Idempotent creation)
         let dest_account = rpc_client.get_account(&destination_ata).await;
         if dest_account.is_err() {
             // Must create the destination ATA funded by the sender
+            // We use the IDEMPOTENT variant to prevent failures if the account is created concurrently
+            tracing::info!("[SOLANA-FEE] Destination ATA does not exist or fetch error. Adding 'CreateATAIdempotent' instruction (Rent ≈ 0.002 SOL)");
             instructions.push(
-                create_associated_token_account(
-                    &sender_keypair.pubkey(),
+                create_associated_token_account_idempotent(
+                    &sender_pubkey,
                     &to_pubkey,
                     &mint_pubkey,
                     &spl_token::id(),
@@ -210,6 +228,21 @@ impl BlockchainTransactionSender {
             &[&sender_keypair],
             recent_blockhash,
         );
+
+        // Run simulation before sending (Requirement: Catch errors early)
+        match rpc_client.simulate_transaction(&tx).await {
+            Ok(sim) => {
+                if let Some(err) = sim.value.err {
+                    tracing::error!("[SOLANA-SIM] Simulation failed for token transfer: {:?}", err);
+                    return Err(ServiceError::Internal(format!("Transaction simulation failed: {}", err)));
+                }
+                tracing::info!("[SOLANA-SIM] Simulation successful for token transfer");
+            },
+            Err(e) => {
+                tracing::error!("[SOLANA-SIM] Simulation RPC error: {}", e);
+                return Err(ServiceError::Internal(format!("Failed to simulate transaction: {}", e)));
+            }
+        }
 
         let signature = rpc_client.send_and_confirm_transaction(&tx)
             .await

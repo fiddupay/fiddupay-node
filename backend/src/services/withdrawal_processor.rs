@@ -93,6 +93,14 @@ impl WithdrawalProcessor {
             Err(e) => {
                 // If it fails on-chain, reject the withdrawal with the error
                 tracing::error!("Withdrawal {} on-chain submission FAILED: {}", withdrawal_id, e);
+                
+                // REFUND the merchant's ledger balance (Requirement: Ledger Security)
+                if let Err(refund_err) = self.refund_withdrawal_balance(wd_merchant_id, &wd_crypto_type, wd_amount, wd_sandbox_mode).await {
+                    tracing::error!("CRITICAL: Failed to refund balance for failed withdrawal {}: {}", withdrawal_id, refund_err);
+                } else {
+                    tracing::info!("Refunded {} {} to merchant {} ledger after failed withdrawal", wd_amount, wd_crypto_type, wd_merchant_id);
+                }
+
                 self.reject_withdrawal(withdrawal_id, &e.to_string()).await?;
                 return Err(e);
             }
@@ -112,6 +120,30 @@ impl WithdrawalProcessor {
         .await?;
 
         tracing::info!("Withdrawal {} fully completed and recorded in DB", withdrawal_id);
+
+        Ok(())
+    }
+
+    pub async fn refund_withdrawal_balance(
+        &self, 
+        merchant_id: i64, 
+        crypto_type: &str, 
+        amount: Decimal,
+        sandbox_mode: bool
+    ) -> Result<(), ServiceError> {
+        sqlx::query(
+            r#"
+            UPDATE merchant_balances 
+            SET available_balance = available_balance + $1, last_updated = NOW()
+            WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
+            "#
+        )
+        .bind(amount)
+        .bind(merchant_id)
+        .bind(crypto_type)
+        .bind(sandbox_mode)
+        .execute(&self.db_pool)
+        .await?;
 
         Ok(())
     }

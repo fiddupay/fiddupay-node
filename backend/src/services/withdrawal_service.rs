@@ -41,6 +41,46 @@ impl WithdrawalService {
         let amount_usd = request.amount * Decimal::from_f64(price).unwrap_or(Decimal::ZERO);
         let amount_usd = amount_usd.round_dp(2);
 
+        let mut tx = self.db_pool.begin().await?;
+
+        // 1. Lock and check merchant balance (Requirement: Ledger Security)
+        let balance_row = sqlx::query(
+            "SELECT available_balance FROM merchant_balances 
+             WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 
+             FOR UPDATE"
+        )
+        .bind(merchant_id)
+        .bind(&request.crypto_type)
+        .bind(sandbox_mode)
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        let available: Decimal = match balance_row {
+            Some(row) => row.get("available_balance"),
+            None => return Err(ServiceError::ValidationError("No balance found for this currency".to_string())),
+        };
+
+        if available < request.amount {
+            return Err(ServiceError::ValidationError(format!(
+                "Insufficient ledger balance. Available: {}, Requested: {}", 
+                available, request.amount
+            )));
+        }
+
+        // 2. Deduct balance from ledger immediately (Requirement: Prevent double-spending)
+        sqlx::query(
+            "UPDATE merchant_balances 
+             SET available_balance = available_balance - $1, last_updated = NOW()
+             WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
+        )
+        .bind(request.amount)
+        .bind(merchant_id)
+        .bind(&request.crypto_type)
+        .bind(sandbox_mode)
+        .execute(&mut *tx)
+        .await?;
+
+        // 3. Create the withdrawal record
         let withdrawal_res: Result<Withdrawal, sqlx::Error> = sqlx::query_as::<_, Withdrawal>(
             r#"
             INSERT INTO withdrawals (
@@ -63,10 +103,11 @@ impl WithdrawalService {
         .bind(Decimal::ZERO) // fee
         .bind(request.amount) // net_amount
         .bind(sandbox_mode)
-        .fetch_one(&self.db_pool)
+        .fetch_one(&mut *tx)
         .await;
 
         let withdrawal = withdrawal_res?;
+        tx.commit().await?;
 
         tracing::info!(
             "Withdrawal created: id={}, merchant_id={}, crypto_type={}, amount={}, target={}, sandbox={}",
