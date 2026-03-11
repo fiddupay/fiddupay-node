@@ -52,7 +52,7 @@ impl CurrencyService {
             "USDT_BEP20" | "USDT_BSC" | "BNB" => "Binance Smart Chain (BEP-20)",
             "USDT_POLYGON" | "MATIC" => "Polygon (MATIC)",
             "USDT_ARBITRUM" | "ARB" => "Arbitrum One",
-            "USDT_SPL" | "USDT_SOL" | "SOL" | "WSOL" => "Solana (SPL)",
+            "USDT_SPL" | "SOL" | "WSOL" => "Solana (SPL)",
             "BTC" => "Bitcoin",
             _ => "Unknown Network",
         }
@@ -64,7 +64,7 @@ impl CurrencyService {
             "USDT_BEP20" | "USDT_BSC" | "BNB" => 15,
             "USDT_POLYGON" | "MATIC" => 30,
             "USDT_ARBITRUM" | "ARB" => 1,
-            "USDT_SOL" | "SOL" | "WSOL" => 32,
+            "USDT_SPL" | "SOL" | "WSOL" => 32,
             "BTC" => 6,
             _ => 1,
         }

@@ -65,7 +65,7 @@ impl WalletConfigService {
         let config = config_res?;
 
         let sister_crypto = match crypto_type {
-            CryptoType::Sol => Some("USDT_SOL"),
+            CryptoType::Sol => Some("USDT_SPL"),
             CryptoType::WSol => None,
             CryptoType::UsdtSpl => Some("SOL"),
             CryptoType::Eth => Some("USDT_ETH"),
@@ -302,7 +302,7 @@ impl WalletConfigService {
         .await?;
 
         let sister_crypto = match crypto_type {
-            CryptoType::Sol => Some("USDT_SOL"),
+            CryptoType::Sol => Some("USDT_SPL"),
             CryptoType::WSol => None,
             CryptoType::UsdtSpl => Some("SOL"),
             CryptoType::Eth => Some("USDT_ETH"),
@@ -366,7 +366,7 @@ impl WalletConfigService {
         .await?;
 
         let sister_crypto = match crypto_type {
-            CryptoType::Sol => Some("USDT_SOL"),
+            CryptoType::Sol => Some("USDT_SPL"),
             CryptoType::WSol => None,
             CryptoType::UsdtSpl => Some("SOL"),
             CryptoType::Eth => Some("USDT_ETH"),
