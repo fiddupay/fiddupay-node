@@ -21,7 +21,7 @@ interface Wallet {
     created_at: string;
 }
 
-const NETWORKS = ['Native', 'ERC20', 'BEP20', 'SOL', 'POLYGON', 'ARB'];
+
 
 const MerchantCustomersPage: React.FC = () => {
     const { showToast } = useToast()
@@ -40,8 +40,6 @@ const MerchantCustomersPage: React.FC = () => {
     const [detailsLoading, setDetailsLoading] = useState(false)
     const [customerWallets, setCustomerWallets] = useState<Wallet[]>([])
     const [customerBalances, setCustomerBalances] = useState<any>(null)
-    const [selectedNetworks, setSelectedNetworks] = useState<string[]>(['Native', 'ERC20', 'BEP20'])
-    const [provisioning, setProvisioning] = useState(false)
     const [sweepCryptoType, setSweepCryptoType] = useState('USDT')
     const [sweepAmount, setSweepAmount] = useState('')
     const [sweeping, setSweeping] = useState(false)
@@ -137,28 +135,7 @@ const MerchantCustomersPage: React.FC = () => {
         }
     }
 
-    const handleProvisionWallets = async (auto: boolean = false) => {
-        if (!selectedCustomer) return;
-        const networksToProvision = auto ? [] : selectedNetworks;
-        if (!auto && networksToProvision.length === 0) {
-            showToast('Select at least one network', 'error')
-            return;
-        }
 
-        try {
-            setProvisioning(true)
-            const res = await customerAPI.provisionWallets(selectedCustomer.external_id, networksToProvision)
-            setCustomerWallets(res.data?.wallets || [])
-            showToast(`Provisioned ${res.data?.wallets?.length || 0} wallets successfully`, 'success')
-
-            const balRes = await customerAPI.getBalances(selectedCustomer.external_id)
-            setCustomerBalances(balRes.data?.balances)
-        } catch (error: any) {
-            showToast(error.response?.data?.error || error.message || 'Failed to provision wallets', 'error')
-        } finally {
-            setProvisioning(false)
-        }
-    }
 
     const handleSweep = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -441,44 +418,11 @@ const MerchantCustomersPage: React.FC = () => {
                                     <div className={styles.drawerSection}>
                                         <h3><i className="fas fa-wallet" style={{ color: '#2563eb' }}></i> Dedicated Wallets</h3>
                                         <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>
-                                            Select networks to provision permanent deposit addresses for this customer.
+                                            Auto-provisioned deposit addresses for this customer.
                                         </p>
-                                        
-                                        <div className={styles.networkGrid}>
-                                            {NETWORKS.map(net => (
-                                                <label key={net} className={styles.networkLabel}>
-                                                    <input 
-                                                        type="checkbox"
-                                                        checked={selectedNetworks.includes(net)}
-                                                        onChange={() => setSelectedNetworks(prev => prev.includes(net) ? prev.filter(n => n !== net) : [...prev, net])}
-                                                    />
-                                                    {net}
-                                                </label>
-                                            ))}
-                                        </div>
 
-                                        <div style={{ display: 'flex', gap: '1rem' }}>
-                                            <button 
-                                                className={styles.actionBtn} 
-                                                style={{ flex: 1 }}
-                                                onClick={() => handleProvisionWallets(false)}
-                                                disabled={provisioning || !selectedCustomer.is_active || selectedNetworks.length === 0}
-                                            >
-                                                {provisioning ? <i className="fas fa-sync fa-spin"></i> : <i className="fas fa-plus-circle"></i>}
-                                                Provision
-                                            </button>
-                                            <button 
-                                                className={styles.actionBtn} 
-                                                style={{ flex: 1, background: '#10b981' }}
-                                                onClick={() => handleProvisionWallets(true)}
-                                                disabled={provisioning || !selectedCustomer.is_active}
-                                            >
-                                                <i className="fas fa-bolt"></i> Auto All
-                                            </button>
-                                        </div>
-
-                                        {customerWallets.length > 0 && (
-                                            <div style={{ marginTop: '1.5rem' }}>
+                                        {customerWallets.length > 0 ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                                 {customerWallets.map((w, idx) => (
                                                     <div key={idx} className={styles.walletItem}>
                                                         <div className={styles.walletHeader}>
@@ -499,6 +443,11 @@ const MerchantCustomersPage: React.FC = () => {
                                                         </div>
                                                     </div>
                                                 ))}
+                                            </div>
+                                        ) : (
+                                            <div style={{ textAlign: 'center', padding: '2rem 1rem', background: '#f8fafc', borderRadius: '12px', color: '#94a3b8' }}>
+                                                <i className="fas fa-wallet" style={{ fontSize: '1.5rem', marginBottom: '0.5rem', display: 'block' }}></i>
+                                                <p style={{ margin: 0, fontSize: '0.85rem' }}>No wallets provisioned yet</p>
                                             </div>
                                         )}
                                     </div>

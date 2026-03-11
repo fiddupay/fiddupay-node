@@ -19,12 +19,12 @@ impl MerchantCustomerService {
         Self { db_pool }
     }
 
-    /// Register a new customer for a merchant
+    /// Register a new customer for a merchant and auto-provision wallets
     pub async fn register_customer(
         &self,
         merchant_id: i64,
         req: CreateCustomerRequest,
-    ) -> Result<MerchantCustomer, ServiceError> {
+    ) -> Result<(MerchantCustomer, Vec<MerchantCustomerWallet>), ServiceError> {
         let customer_res: Result<MerchantCustomer, sqlx::Error> = sqlx::query_as::<_, MerchantCustomer>(
             r#"
             INSERT INTO merchant_customers (merchant_id, external_id, email, first_name, last_name, metadata, is_active)
@@ -50,7 +50,14 @@ impl MerchantCustomerService {
 
         let customer = customer_res?;
 
-        Ok(customer)
+        // Auto-provision wallets using merchant's supported networks (empty vec = auto-detect)
+        let wallets = self.provision_wallets(merchant_id, &customer.external_id, vec![]).await
+            .unwrap_or_else(|e| {
+                tracing::warn!("Auto-provision wallets failed for customer {}: {}", customer.external_id, e);
+                vec![]
+            });
+
+        Ok((customer, wallets))
     }
 
     /// Provision unique wallets for a customer across multiple networks

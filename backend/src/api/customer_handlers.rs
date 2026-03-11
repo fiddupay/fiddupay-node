@@ -21,9 +21,10 @@ pub async fn register_customer(
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
     match service.register_customer(context.merchant_id, req).await {
-        Ok(customer) => (StatusCode::CREATED, Json(json!({
+        Ok((customer, wallets)) => (StatusCode::CREATED, Json(json!({
             "customer": customer,
-            "message": "Customer registered successfully"
+            "wallets": wallets,
+            "message": "Customer registered successfully with auto-provisioned wallets"
         }))).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
             "error": e.to_string()
