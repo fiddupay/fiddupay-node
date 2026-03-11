@@ -311,7 +311,7 @@ impl EvmMonitor {
 /// Factory function to create appropriate blockchain monitor
 pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::Config, is_sandbox: bool) -> Box<dyn BlockchainMonitor> {
     match crypto_type.network() {
-        "Solana" => {
+        "Solana" | "SOLANA_SPL" => {
             let rpc_url = if is_sandbox {
                 Some(config.solana_devnet_rpc_url.clone())
             } else {

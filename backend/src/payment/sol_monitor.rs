@@ -75,12 +75,38 @@ struct TransactionMessage {
 }
 
 #[derive(Debug, Deserialize)]
+struct TokenBalanceInfo {
+    #[allow(non_snake_case)]
+    accountIndex: u64,
+    mint: Option<String>,
+    owner: Option<String>,
+    #[allow(non_snake_case)]
+    uiTokenAmount: Option<UiTokenAmount>,
+}
+
+#[derive(Debug, Deserialize)]
+struct UiTokenAmount {
+    amount: Option<String>,
+    decimals: Option<u32>,
+    #[allow(non_snake_case)]
+    uiAmount: Option<f64>,
+    #[allow(non_snake_case)]
+    uiAmountString: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 struct TransactionMeta {
     err: Option<serde_json::Value>,
     #[allow(non_snake_case)]
     preBalances: Vec<u64>,
     #[allow(non_snake_case)]
     postBalances: Vec<u64>,
+    #[allow(non_snake_case)]
+    #[serde(default)]
+    preTokenBalances: Vec<TokenBalanceInfo>,
+    #[allow(non_snake_case)]
+    #[serde(default)]
+    postTokenBalances: Vec<TokenBalanceInfo>,
 }
 
 pub struct SolanaMonitor {
@@ -222,39 +248,60 @@ impl SolanaMonitor {
         })?;
 
         // Parse transaction recipient and amount (Requirement 3.2, 3.3)
-        // We find the account with the maximum balance increase to identify the recipient
-        // and its actual received amount (excluding fees).
+        // Strategy:
+        //   1. If postTokenBalances exist → SPL token transfer (e.g. USDT)
+        //      → Use the token account OWNER as to_address, and the token amount
+        //   2. Otherwise → Native SOL transfer
+        //      → Use lamport balance diffs (preBalances/postBalances)
         let (to_address, amount) = if let Some(ref meta) = tx_result.meta {
-            let mut max_increase = 0u64;
-            let mut recipient_idx = None;
+            // --- SPL Token Transfer Detection ---
+            if !meta.postTokenBalances.is_empty() {
+                // Find the token account that received tokens by comparing pre vs post
+                let mut best_recipient_owner: Option<String> = None;
+                let mut best_amount = Decimal::ZERO;
 
-            if meta.preBalances.len() == meta.postBalances.len() {
-                for i in 0..meta.postBalances.len() {
-                    let post = meta.postBalances[i];
-                    let pre = meta.preBalances[i];
-                    if post > pre {
-                        let increase = post - pre;
-                        if increase > max_increase {
-                            max_increase = increase;
-                            recipient_idx = Some(i);
+                for post_tb in &meta.postTokenBalances {
+                    let post_raw = post_tb.uiTokenAmount.as_ref()
+                        .and_then(|u| u.amount.as_ref())
+                        .and_then(|a| a.parse::<u128>().ok())
+                        .unwrap_or(0);
+
+                    let decimals = post_tb.uiTokenAmount.as_ref()
+                        .and_then(|u| u.decimals)
+                        .unwrap_or(6);
+
+                    // Find matching pre-balance for same account index
+                    let pre_raw = meta.preTokenBalances.iter()
+                        .find(|pre| pre.accountIndex == post_tb.accountIndex)
+                        .and_then(|pre| pre.uiTokenAmount.as_ref())
+                        .and_then(|u| u.amount.as_ref())
+                        .and_then(|a| a.parse::<u128>().ok())
+                        .unwrap_or(0);
+
+                    if post_raw > pre_raw {
+                        let increase = post_raw - pre_raw;
+                        let token_amount = Decimal::from(increase) / Decimal::from(10u64.pow(decimals));
+
+                        if token_amount > best_amount {
+                            best_amount = token_amount;
+                            // Use the OWNER of the token account — this is the merchant wallet
+                            best_recipient_owner = post_tb.owner.clone();
                         }
                     }
                 }
-            }
 
-            match recipient_idx {
-                Some(idx) => {
-                    let addr = tx_result.transaction.message.accountKeys.get(idx)
-                        .cloned()
-                        .unwrap_or_default();
-                    // Convert from lamports to SOL (1 SOL = 1_000_000_000 lamports)
-                    let decimal_amount = Decimal::from(max_increase) / Decimal::from(1_000_000_000u64);
-                    (addr, decimal_amount)
+                if let Some(owner) = best_recipient_owner {
+                    info!("[SOL-MONITOR] SPL token transfer detected: {} tokens to owner {}", best_amount, owner);
+                    (owner, best_amount)
+                } else {
+                    // postTokenBalances exist but no increase found (e.g. ATA creation only)
+                    // Fall through to SOL balance diff logic
+                    info!("[SOL-MONITOR] postTokenBalances present but no token increase found, falling back to SOL balance diff");
+                    Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.accountKeys)
                 }
-                None => {
-                    // Fallback to old placeholder logic if no increase found
-                    (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO)
-                }
+            } else {
+                // --- Native SOL Transfer ---
+                Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.accountKeys)
             }
         } else {
             (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO)
@@ -440,6 +487,41 @@ impl SolanaMonitor {
 
             // Poll every 2 seconds (Solana slot time is ~400ms)
             tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        }
+    }
+
+    /// Helper method to parse native SOL transfers from pre/post lamport balances
+    fn parse_sol_balance_diff(meta: &TransactionMeta, account_keys: &[String]) -> (String, Decimal) {
+        let mut max_increase = 0u64;
+        let mut recipient_idx = None;
+
+        if meta.preBalances.len() == meta.postBalances.len() {
+            for i in 0..meta.postBalances.len() {
+                let post = meta.postBalances[i];
+                let pre = meta.preBalances[i];
+                if post > pre {
+                    let increase = post - pre;
+                    if increase > max_increase {
+                        max_increase = increase;
+                        recipient_idx = Some(i);
+                    }
+                }
+            }
+        }
+
+        match recipient_idx {
+            Some(idx) => {
+                let addr = account_keys.get(idx)
+                    .cloned()
+                    .unwrap_or_default();
+                // Convert from lamports to SOL (1 SOL = 1_000_000_000 lamports)
+                let decimal_amount = Decimal::from(max_increase) / Decimal::from(1_000_000_000u64);
+                (addr, decimal_amount)
+            }
+            None => {
+                // Fallback to second account if no increase found
+                (account_keys.get(1).cloned().unwrap_or_default(), Decimal::ZERO)
+            }
         }
     }
 }

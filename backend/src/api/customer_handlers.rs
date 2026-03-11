@@ -4,7 +4,10 @@
 use crate::api::state::AppState;
 use crate::middleware::auth::MerchantContext;
 use crate::services::merchant_customer_service::MerchantCustomerService;
-use crate::models::merchant_customer::{CreateCustomerRequest, ProvisionWalletRequest};
+use crate::models::merchant_customer::{
+    CreateCustomerRequest, PayMerchantRequest, 
+    UpdateCustomerStatusRequest, UpdateCustomerPermissionsRequest
+};
 use axum::{
     extract::{State, Path},
     http::StatusCode,
@@ -36,13 +39,12 @@ pub async fn provision_customer_wallets(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
     Path(external_id): Path<String>,
-    Json(req): Json<ProvisionWalletRequest>,
+    Json(req): Json<crate::models::merchant_customer::ProvisionWalletRequest>,
 ) -> impl IntoResponse {
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
     match service.provision_wallets(context.merchant_id, &external_id, req.networks.unwrap_or_default()).await {
         Ok(wallets) => {
-            // Filter out sensitive data (private keys are stored encrypted, but we return addresses)
             let response_wallets: Vec<_> = wallets.iter().map(|w| json!({
                 "crypto_type": w.crypto_type,
                 "network": w.network,
@@ -91,6 +93,134 @@ pub async fn get_customer_wallets(
         Ok(wallets) => (StatusCode::OK, Json(json!({
             "external_id": external_id,
             "wallets": wallets
+        }))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
+            "error": e.to_string()
+        }))).into_response(),
+    }
+}
+
+pub async fn get_deposit_address(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path((external_id, crypto_type)): Path<(String, String)>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(state.db_pool.clone());
+    
+    match service.get_deposit_address(context.merchant_id, &external_id, &crypto_type).await {
+        Ok(address) => (StatusCode::OK, Json(json!({
+            "external_id": external_id,
+            "crypto_type": crypto_type,
+            "deposit_address": address
+        }))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
+            "error": e.to_string()
+        }))).into_response(),
+    }
+}
+
+#[derive(serde::Deserialize)]
+pub struct TransactionQuery {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+pub async fn get_customer_transactions(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(external_id): Path<String>,
+    axum::extract::Query(params): axum::extract::Query<TransactionQuery>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(state.db_pool.clone());
+    let limit = params.limit.unwrap_or(50);
+    let offset = params.offset.unwrap_or(0);
+
+    match service.get_customer_transactions(context.merchant_id, &external_id, limit, offset).await {
+        Ok((transactions, total)) => (StatusCode::OK, Json(json!({
+            "external_id": external_id,
+            "transactions": transactions,
+            "total": total,
+            "limit": limit,
+            "offset": offset
+        }))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
+            "error": e.to_string()
+        }))).into_response(),
+    }
+}
+
+pub async fn pay_merchant(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(external_id): Path<String>,
+    Json(req): Json<PayMerchantRequest>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(state.db_pool.clone());
+    
+    match service.pay_merchant(
+        context.merchant_id,
+        &external_id,
+        &req.crypto_type,
+        &req.amount,
+        req.reference_id.as_deref(),
+        req.description.as_deref(),
+        context.sandbox_mode,
+    ).await {
+        Ok(transaction) => (StatusCode::OK, Json(json!({
+            "transaction": transaction,
+            "message": "Payment initiated. On-chain transaction will be processed."
+        }))).into_response(),
+        Err(e) => {
+            let status = match e {
+                crate::error::ServiceError::InsufficientFunds(_) => StatusCode::PAYMENT_REQUIRED,
+                _ => StatusCode::BAD_REQUEST,
+            };
+            (status, Json(json!({
+                "error": e.to_string()
+            }))).into_response()
+        },
+    }
+}
+
+pub async fn update_customer_status(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(external_id): Path<String>,
+    Json(req): Json<UpdateCustomerStatusRequest>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(state.db_pool.clone());
+    
+    match service.update_customer_status(
+        context.merchant_id, &external_id, &req.status, req.reason.as_deref()
+    ).await {
+        Ok(customer) => (StatusCode::OK, Json(json!({
+            "customer": customer,
+            "message": format!("Customer status updated to '{}'", req.status)
+        }))).into_response(),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
+            "error": e.to_string()
+        }))).into_response(),
+    }
+}
+
+pub async fn update_customer_permissions(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(external_id): Path<String>,
+    Json(req): Json<UpdateCustomerPermissionsRequest>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(state.db_pool.clone());
+
+    let withdrawal_limit = req.withdrawal_limit.as_deref().and_then(|s| {
+        rust_decimal::Decimal::from_str_exact(s).ok()
+    });
+
+    match service.update_customer_permissions(
+        context.merchant_id, &external_id, req.can_withdraw, withdrawal_limit
+    ).await {
+        Ok(customer) => (StatusCode::OK, Json(json!({
+            "customer": customer,
+            "message": "Customer permissions updated"
         }))).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
             "error": e.to_string()
@@ -189,6 +319,7 @@ pub async fn withdraw_from_customer(
         },
     }
 }
+
 pub async fn deactivate_customer(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
