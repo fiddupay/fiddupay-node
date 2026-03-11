@@ -210,6 +210,20 @@ impl CryptoType {
             _ => *self, // Already native
         }
     }
+
+    /// Returns the official token contract/mint address for the given crypto type.
+    /// Returns None for native currencies.
+    pub fn token_address(&self) -> Option<&'static str> {
+        match self {
+            CryptoType::UsdtSpl => Some("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"), 
+            CryptoType::UsdtEth => Some("0xdAC17F958D2ee523a2206206994597C13D831ec7"),
+            CryptoType::UsdtBep20 => Some("0x55d398326f99059fF775485246999027B3197955"),
+            CryptoType::UsdtPolygon => Some("0xc2132D05D31c914a87C6611C10748AEb04B58e8F"),
+            CryptoType::UsdtArbitrum => Some("0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9"),
+            // Native currencies don't use token contracts
+            _ => None,
+        }
+    }
 }
 
 /// Payment creation request

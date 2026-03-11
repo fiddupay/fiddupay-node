@@ -317,7 +317,8 @@ pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::C
             } else {
                 None // Uses default from config (mainnet)
             };
-            Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, rpc_url))
+            let expected_mint = crypto_type.token_address().map(|s| s.to_string());
+            Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, rpc_url, expected_mint))
         },
         "Ethereum" => Box::new(EvmMonitor::new_ethereum(&config)),
         "BSC" => Box::new(EvmMonitor::new_bsc(&config)),
@@ -330,7 +331,8 @@ pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::C
             } else {
                 None
             };
-            Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, rpc_url))
+            let expected_mint = crypto_type.token_address().map(|s| s.to_string());
+            Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, rpc_url, expected_mint))
         },
     }
 }

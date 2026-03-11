@@ -22,5 +22,8 @@
     "url": "https://github.com/CHToken/crypto-payment-gateway.git"
   },
   "author": "TechyTro Software",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.13.6"
+  }
 }

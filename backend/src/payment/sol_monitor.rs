@@ -113,19 +113,19 @@ pub struct SolanaMonitor {
     client: Client,
     rpc_url: String,
     ws_url: String,
+    expected_mint: Option<String>,
 }
 
 impl SolanaMonitor {
-    pub fn new(config: &crate::config::Config, rpc_url: Option<String>) -> Self {
-        let r_url = rpc_url.unwrap_or_else(|| get_solana_rpc_url(config).to_string());
-        let w_url = get_solana_ws_url(config, &r_url);
+    pub fn new(config: &crate::config::Config, custom_rpc_url: Option<String>, expected_mint: Option<String>) -> Self {
         Self {
             client: Client::builder()
-                .timeout(std::time::Duration::from_secs(15))
+                .timeout(std::time::Duration::from_secs(10))
                 .build()
-                .unwrap_or_default(),
-            rpc_url: r_url,
-            ws_url: w_url,
+                .unwrap_or_else(|_| Client::new()),
+            rpc_url: custom_rpc_url.unwrap_or_else(|| config.solana_rpc_url.clone()),
+            ws_url: config.solana_ws_url.clone(),
+            expected_mint,
         }
     }
 
@@ -261,6 +261,13 @@ impl SolanaMonitor {
                 let mut best_amount = Decimal::ZERO;
 
                 for post_tb in &meta.postTokenBalances {
+                    // MINT VALIDATION: skip if we expect a specific mint and this doesn't match
+                    if let (Some(expected), Some(actual_mint)) = (&self.expected_mint, &post_tb.mint) {
+                        if expected != actual_mint {
+                            continue;
+                        }
+                    }
+
                     let post_raw = post_tb.uiTokenAmount.as_ref()
                         .and_then(|u| u.amount.as_ref())
                         .and_then(|a| a.parse::<u128>().ok())
@@ -270,9 +277,9 @@ impl SolanaMonitor {
                         .and_then(|u| u.decimals)
                         .unwrap_or(6);
 
-                    // Find matching pre-balance for same account index
+                    // Find matching pre-balance for same account index AND mint
                     let pre_raw = meta.preTokenBalances.iter()
-                        .find(|pre| pre.accountIndex == post_tb.accountIndex)
+                        .find(|pre| pre.accountIndex == post_tb.accountIndex && pre.mint == post_tb.mint)
                         .and_then(|pre| pre.uiTokenAmount.as_ref())
                         .and_then(|u| u.amount.as_ref())
                         .and_then(|a| a.parse::<u128>().ok())
