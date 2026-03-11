@@ -2,7 +2,7 @@ use crate::error::ServiceError;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 
 use crate::models::withdrawal::Withdrawal;
 use crate::services::price_service::PriceService;
