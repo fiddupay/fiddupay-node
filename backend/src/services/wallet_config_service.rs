@@ -66,6 +66,7 @@ impl WalletConfigService {
 
         let sister_crypto = match crypto_type {
             CryptoType::Sol => Some("USDT_SOL"),
+            CryptoType::WSol => None,
             CryptoType::UsdtSpl => Some("SOL"),
             CryptoType::Eth => Some("USDT_ETH"),
             CryptoType::UsdtEth => Some("ETH"),
@@ -153,7 +154,7 @@ impl WalletConfigService {
         let crypto_type = CryptoType::from_string(&request.crypto_type)?;
         
         let wallet = match crypto_type {
-            CryptoType::Sol | CryptoType::UsdtSpl => KeyGenerator::generate_solana_wallet()?,
+            CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => KeyGenerator::generate_solana_wallet()?,
             _ => KeyGenerator::generate_evm_wallet()?,
         };
         
@@ -208,7 +209,7 @@ impl WalletConfigService {
         let crypto_type = CryptoType::from_string(&request.crypto_type)?;
         
         let address = match crypto_type {
-            CryptoType::Sol | CryptoType::UsdtSpl => KeyGenerator::validate_private_key(&request.private_key, "solana")?,
+            CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => KeyGenerator::validate_private_key(&request.private_key, "solana")?,
             _ => KeyGenerator::validate_private_key(&request.private_key, "ethereum")?,
         };
 
@@ -302,6 +303,7 @@ impl WalletConfigService {
 
         let sister_crypto = match crypto_type {
             CryptoType::Sol => Some("USDT_SOL"),
+            CryptoType::WSol => None,
             CryptoType::UsdtSpl => Some("SOL"),
             CryptoType::Eth => Some("USDT_ETH"),
             CryptoType::UsdtEth => Some("ETH"),
@@ -365,6 +367,7 @@ impl WalletConfigService {
 
         let sister_crypto = match crypto_type {
             CryptoType::Sol => Some("USDT_SOL"),
+            CryptoType::WSol => None,
             CryptoType::UsdtSpl => Some("SOL"),
             CryptoType::Eth => Some("USDT_ETH"),
             CryptoType::UsdtEth => Some("ETH"),

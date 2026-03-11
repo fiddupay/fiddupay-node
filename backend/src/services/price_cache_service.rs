@@ -39,7 +39,7 @@ impl CachedPriceFetcher {
 
         // Fetch from API with circuit breaker
         let (symbol, category) = match crypto_type {
-            CryptoType::Sol => ("SOLUSDT", "spot"),
+            CryptoType::Sol | CryptoType::WSol => ("SOLUSDT", "spot"),
             CryptoType::UsdtSpl => ("USDTUSDT", "spot"),
             CryptoType::UsdtBep20 => ("USDTUSDT", "spot"),
             CryptoType::UsdtArbitrum => ("USDTUSDT", "spot"),

@@ -133,7 +133,7 @@ impl FeeCollectionService {
             .get("sandbox_mode");
 
         let tx_hash = tx_sender
-            .send_native_transaction(crypto_type, &private_key, &platform_wallet_address, total_fee, None, merchant_sandbox)
+            .send_transaction(crypto_type, &private_key, &platform_wallet_address, total_fee, None, merchant_sandbox)
             .await
             .map_err(|e| format!("Fee sweep transfer failed: {}", e))?;
 
@@ -279,7 +279,7 @@ impl FeeCollectionService {
     /// Map CryptoType to the network name used in platform_fee_wallets table
     fn crypto_type_to_network(&self, crypto_type: CryptoType) -> &'static str {
         match crypto_type {
-            CryptoType::Sol | CryptoType::UsdtSpl => "SOLANA",
+            CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => "SOLANA",
             CryptoType::Eth | CryptoType::UsdtEth => "ETHEREUM",
             CryptoType::Bnb | CryptoType::UsdtBep20 => "BSC",
             CryptoType::Matic | CryptoType::UsdtPolygon => "POLYGON",

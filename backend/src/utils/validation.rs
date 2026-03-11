@@ -6,7 +6,7 @@ pub fn validate_wallet_address(
     crypto_type: CryptoType,
 ) -> Result<(), ServiceError> {
     match crypto_type {
-        CryptoType::Sol | CryptoType::UsdtSpl => {
+        CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => {
             // Solana addresses are base58 encoded, typically 32-44 characters
             if address.len() < 32 || address.len() > 44 {
                 return Err(ServiceError::ValidationError(

@@ -55,7 +55,7 @@ impl GasFeeService {
             CryptoType::Bnb | CryptoType::UsdtBep20 => self.get_bsc_gas_rpc().await,
             CryptoType::Matic | CryptoType::UsdtPolygon => self.get_polygon_gas_rpc().await,
             CryptoType::Arb | CryptoType::UsdtArbitrum => self.get_arbitrum_gas_rpc().await,
-            CryptoType::Sol | CryptoType::UsdtSpl => self.get_solana_gas_rpc().await,
+            CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => self.get_solana_gas_rpc().await,
         }
     }
 
@@ -334,7 +334,7 @@ impl GasFeeService {
                 Ok(native_balance >= withdrawal_amount + gas_estimate.estimated_withdrawal_cost)
             }
             // USDT variants: need separate gas deposit
-            CryptoType::UsdtEth | CryptoType::UsdtBep20 | CryptoType::UsdtPolygon | CryptoType::UsdtArbitrum | CryptoType::UsdtSpl => {
+            CryptoType::UsdtEth | CryptoType::UsdtBep20 | CryptoType::UsdtPolygon | CryptoType::UsdtArbitrum | CryptoType::UsdtSpl | CryptoType::WSol => {
                 Ok(native_balance >= gas_estimate.estimated_withdrawal_cost)
             }
         }

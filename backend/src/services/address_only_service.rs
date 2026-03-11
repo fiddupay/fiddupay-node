@@ -333,7 +333,7 @@ impl AddressOnlyService {
         let tx_sender = crate::services::blockchain_transaction_sender::BlockchainTransactionSender::new(self.config.clone());
         // For Phase 1 address-only mode, we default to false (mainnet) as the legacy table 
         // doesn't have a sandbox_mode column yet.
-        tx_sender.send_native_transaction(CryptoType::Sol, private_key, to_address, amount, None, false).await
+        tx_sender.send_transaction(CryptoType::Sol, private_key, to_address, amount, None, false).await
     }
 
     /// Send EVM transaction  
@@ -352,7 +352,7 @@ impl AddressOnlyService {
             .to_u128()
             .map(web3::types::U256::from);
             
-        tx_sender.send_native_transaction(crypto_type, private_key, to_address, amount, gas_price_wei, false).await
+        tx_sender.send_transaction(crypto_type, private_key, to_address, amount, gas_price_wei, false).await
     }
 
     /// Get private key for deposit address

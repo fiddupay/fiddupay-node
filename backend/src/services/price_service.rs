@@ -135,7 +135,7 @@ impl PriceService {
 
     async fn fetch_price(&self, crypto_type: CryptoType) -> Result<f64, String> {
         match crypto_type {
-            CryptoType::Sol => self.fetch_sol_price().await,
+            CryptoType::Sol | CryptoType::WSol => self.fetch_sol_price().await,
             CryptoType::Eth => self.fetch_eth_price().await,
             CryptoType::Arb => self.fetch_arb_price().await,
             CryptoType::Matic => self.fetch_matic_price().await,
