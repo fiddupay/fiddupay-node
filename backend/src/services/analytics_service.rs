@@ -208,6 +208,7 @@ impl AnalyticsService {
     async fn get_current_prices(&self) -> Result<HashMap<String, Decimal>, ServiceError> {
         let crypto_types = vec![
             CryptoType::Sol,
+            CryptoType::WSol,
             CryptoType::UsdtSpl,
             CryptoType::Eth,
             CryptoType::UsdtEth,

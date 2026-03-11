@@ -37,18 +37,22 @@ impl CachedPriceFetcher {
             }
         }
 
+        // For USDT variants, return 1.0 directly
+        match crypto_type {
+            CryptoType::UsdtSpl | CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon | CryptoType::UsdtEth => {
+                return Ok(Decimal::ONE);
+            }
+            _ => {}
+        }
+
         // Fetch from API with circuit breaker
         let (symbol, category) = match crypto_type {
             CryptoType::Sol | CryptoType::WSol => ("SOLUSDT", "spot"),
-            CryptoType::UsdtSpl => ("USDTUSDT", "spot"),
-            CryptoType::UsdtBep20 => ("USDTUSDT", "spot"),
-            CryptoType::UsdtArbitrum => ("USDTUSDT", "spot"),
-            CryptoType::UsdtPolygon => ("USDTUSDT", "spot"),
-            CryptoType::UsdtEth => ("USDTUSDT", "spot"),
             CryptoType::Eth => ("ETHUSDT", "spot"),
             CryptoType::Arb => ("ARBUSDT", "spot"),
             CryptoType::Matic => ("MATICUSDT", "spot"),
             CryptoType::Bnb => ("BNBUSDT", "spot"),
+            _ => ("BTCUSDT", "spot"), // Should not reach here for supported types
         };
 
         let price: Decimal = self.circuit_breaker.call(|| async {

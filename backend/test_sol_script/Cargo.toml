@@ -3,6 +3,19 @@ name = "test_sol_script"
 version = "0.1.0"
 edition = "2021"
 
+- [x] Route `send_transaction` vs token transactions properly in `blockchain_transaction_sender.rs`
+
+## Balance and Pricing Fixes [DONE]
+- [x] Fix stablecoin pricing in `price_service.rs` to return 1.0 USD
+- [x] Fix stablecoin pricing in `PriceCacheService` to return 1.0 USD
+- [x] Add `WSol` support to `BalanceService` and `AnalyticsService` summaries and charts
+- [x] Synchronize `get_wallet_balances` (Withdrawals Page) to use `merchant_balances` table for consistency
+- [x] Fix visual rounding in frontend components from 4 to 6 decimal places
+
+## Merchant Redirect and Redirect [TODO]
+- [ ] Investigate why webhook signature might be failing for some merchants
+- [ ] Final verification of all Solana SPL transaction logic
+
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.11", features = ["json"] }

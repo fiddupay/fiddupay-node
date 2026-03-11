@@ -101,6 +101,7 @@ impl BalanceService {
     pub async fn get_all_balances(&self, merchant_id: i64, sandbox_mode: bool) -> Result<BalanceSummary, ServiceError> {
         let crypto_types = vec![
             CryptoType::Sol,
+            CryptoType::WSol,
             CryptoType::UsdtSpl,
             CryptoType::Eth,
             CryptoType::UsdtEth,
