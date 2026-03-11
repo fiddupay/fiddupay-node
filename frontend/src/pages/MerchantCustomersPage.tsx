@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { customerAPI } from '@/services/apiService'
 import styles from '@/styles/pages/MerchantCustomersPage.module.css'
 import { useToast } from '@/contexts/ToastContext'
@@ -27,23 +27,21 @@ const MerchantCustomersPage: React.FC = () => {
     const { showToast } = useToast()
     const [customers, setCustomers] = useState<Customer[]>([])
     const [loading, setLoading] = useState(true)
+    const [searchTerm, setSearchTerm] = useState('')
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
-    // Create Customer Modal State
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+    // Drawer States
+    const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false)
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+    
+    // Form States
     const [newCustomer, setNewCustomer] = useState({ external_id: '', email: '', first_name: '', last_name: '' })
     const [submitting, setSubmitting] = useState(false)
-
-    // Customer Details Modal State
-    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+    const [detailsLoading, setDetailsLoading] = useState(false)
     const [customerWallets, setCustomerWallets] = useState<Wallet[]>([])
     const [customerBalances, setCustomerBalances] = useState<any>(null)
-    const [detailsLoading, setDetailsLoading] = useState(false)
-
-    // Provisioning State
     const [selectedNetworks, setSelectedNetworks] = useState<string[]>(['Native', 'ERC20', 'BEP20'])
     const [provisioning, setProvisioning] = useState(false)
-
-    // Sweep State
     const [sweepCryptoType, setSweepCryptoType] = useState('USDT')
     const [sweepAmount, setSweepAmount] = useState('')
     const [sweeping, setSweeping] = useState(false)
@@ -66,6 +64,34 @@ const MerchantCustomersPage: React.FC = () => {
         }
     }
 
+    const stats = useMemo(() => {
+        const total = customers.length
+        const active = customers.filter(c => c.is_active).length
+        const recent = customers.filter(c => {
+            const date = new Date(c.created_at)
+            const now = new Date()
+            const diff = now.getTime() - date.getTime()
+            return diff < 7 * 24 * 60 * 60 * 1000 // Last 7 days
+        }).length
+        return { total, active, recent }
+    }, [customers])
+
+    const filteredCustomers = useMemo(() => {
+        return customers.filter(c => {
+            const matchesSearch = 
+                c.external_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (c.email?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (`${c.first_name || ''} ${c.last_name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()))
+            
+            const matchesStatus = 
+                statusFilter === 'all' || 
+                (statusFilter === 'active' && c.is_active) || 
+                (statusFilter === 'inactive' && !c.is_active)
+                
+            return matchesSearch && matchesStatus
+        })
+    }, [customers, searchTerm, statusFilter])
+
     const handleCreateCustomer = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!newCustomer.external_id) {
@@ -76,12 +102,12 @@ const MerchantCustomersPage: React.FC = () => {
         try {
             setSubmitting(true)
             await customerAPI.create(newCustomer)
-            showToast('Customer created successfully', 'success')
-            setIsCreateModalOpen(false)
+            showToast('Customer registered successfully', 'success')
+            setIsCreateDrawerOpen(false)
             setNewCustomer({ external_id: '', email: '', first_name: '', last_name: '' })
             fetchCustomers()
         } catch (error: any) {
-            showToast(error.response?.data?.error || error.message || 'Failed to create customer', 'error')
+            showToast(error.response?.data?.error || error.message || 'Failed to register customer', 'error')
         } finally {
             setSubmitting(false)
         }
@@ -96,8 +122,10 @@ const MerchantCustomersPage: React.FC = () => {
         try {
             const balRes = await customerAPI.getBalances(customer.external_id)
             setCustomerBalances(balRes.data?.balances)
+            // If the user has wallets, they are returned in the balances usually, 
+            // but the list() wallets endpoint might be separate if needed.
         } catch (error: any) {
-            showToast(error.response?.data?.error || error.message || 'Failed to load customer details', 'error')
+            console.error('Failed to load balances:', error)
         } finally {
             setDetailsLoading(false)
         }
@@ -105,9 +133,7 @@ const MerchantCustomersPage: React.FC = () => {
 
     const handleProvisionWallets = async (auto: boolean = false) => {
         if (!selectedCustomer) return;
-
         const networksToProvision = auto ? [] : selectedNetworks;
-
         if (!auto && networksToProvision.length === 0) {
             showToast('Select at least one network', 'error')
             return;
@@ -119,7 +145,6 @@ const MerchantCustomersPage: React.FC = () => {
             setCustomerWallets(res.data?.wallets || [])
             showToast(`Provisioned ${res.data?.wallets?.length || 0} wallets successfully`, 'success')
 
-            // Refresh balances
             const balRes = await customerAPI.getBalances(selectedCustomer.external_id)
             setCustomerBalances(balRes.data?.balances)
         } catch (error: any) {
@@ -129,33 +154,9 @@ const MerchantCustomersPage: React.FC = () => {
         }
     }
 
-    const handleDeactivate = async () => {
-        if (!selectedCustomer) return;
-        if (!window.confirm(`Are you sure you want to deactivate ${selectedCustomer.external_id}? This cannot be undone.`)) {
-            return;
-        }
-
-        try {
-            setDetailsLoading(true)
-            await customerAPI.deactivate(selectedCustomer.external_id)
-            showToast('Customer deactivated successfully', 'success')
-
-            setCustomers(prev => prev.map(c =>
-                c.external_id === selectedCustomer.external_id ? { ...c, is_active: false } : c
-            ))
-            setSelectedCustomer({ ...selectedCustomer, is_active: false })
-
-        } catch (error: any) {
-            showToast(error.response?.data?.error || error.message || 'Failed to deactivate customer', 'error')
-        } finally {
-            setDetailsLoading(false)
-        }
-    }
-
     const handleSweep = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!selectedCustomer) return;
-        if (!sweepCryptoType || !sweepAmount) return;
+        if (!selectedCustomer || !sweepCryptoType || !sweepAmount) return;
 
         try {
             setSweeping(true)
@@ -163,10 +164,8 @@ const MerchantCustomersPage: React.FC = () => {
                 crypto_type: sweepCryptoType,
                 amount: sweepAmount
             })
-            showToast(`Successfully swept ${sweepAmount} ${sweepCryptoType} to Master Balance`, 'success')
+            showToast(`Successfully swept ${sweepAmount} ${sweepCryptoType}`, 'success')
             setSweepAmount('')
-
-            // Refresh balances
             const balRes = await customerAPI.getBalances(selectedCustomer.external_id)
             setCustomerBalances(balRes.data?.balances)
         } catch (error: any) {
@@ -176,77 +175,162 @@ const MerchantCustomersPage: React.FC = () => {
         }
     }
 
-    const toggleNetwork = (net: string) => {
-        setSelectedNetworks(prev =>
-            prev.includes(net) ? prev.filter(n => n !== net) : [...prev, net]
-        )
+    const handleDeactivate = async () => {
+        if (!selectedCustomer) return;
+        if (!window.confirm('Are you sure? This customer will no longer be able to use their wallets.')) return;
+
+        try {
+            setDetailsLoading(true)
+            await customerAPI.deactivate(selectedCustomer.external_id)
+            showToast('Customer deactivated', 'success')
+            setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? { ...c, is_active: false } : c))
+            setSelectedCustomer({ ...selectedCustomer, is_active: false })
+        } catch (error: any) {
+            showToast(error.response?.data?.error || 'Failed to deactivate', 'error')
+        } finally {
+            setDetailsLoading(false)
+        }
+    }
+
+    const getInitials = (c: Customer) => {
+        if (c.first_name && c.last_name) return `${c.first_name[0]}${c.last_name[0]}`.toUpperCase()
+        return c.external_id.substring(0, 2).toUpperCase()
     }
 
     return (
         <div className={styles.page}>
-            <div className={styles.header}>
+            <header className={styles.header}>
                 <div className={styles.headerInfo}>
-                    <h1>Merchant Customers</h1>
-                    <p>Manage sub-accounts and their dedicated crypto deposit wallets</p>
+                    <h1>Customer Directory</h1>
+                    <p>Manage your ecosystem of sub-accounts and dedicated wallets</p>
                 </div>
-                <button className={styles.addBtn} onClick={() => setIsCreateModalOpen(true)}>
-                    <i className="fas fa-plus"></i>
-                    Add Customer
-                </button>
-            </div>
+                <div className={styles.headerActions}>
+                    <button className={styles.addBtn} onClick={() => setIsCreateDrawerOpen(true)}>
+                        <i className="fas fa-user-plus"></i>
+                        Register Customer
+                    </button>
+                </div>
+            </header>
 
-            <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                    <div className={styles.cardTitle}>
+            <section className={styles.statsGrid}>
+                <div className={styles.statCard}>
+                    <div className={`${styles.statIcon} ${styles.primary}`}>
                         <i className="fas fa-users"></i>
-                        Customers List
                     </div>
+                    <div className={styles.statInfo}>
+                        <h3>Total Customers</h3>
+                        <p className={styles.statValue}>{stats.total}</p>
+                    </div>
+                </div>
+                <div className={styles.statCard}>
+                    <div className={`${styles.statIcon} ${styles.success}`}>
+                        <i className="fas fa-user-check"></i>
+                    </div>
+                    <div className={styles.statInfo}>
+                        <h3>Active Accounts</h3>
+                        <p className={styles.statValue}>{stats.active}</p>
+                    </div>
+                </div>
+                <div className={styles.statCard}>
+                    <div className={`${styles.statIcon} ${styles.warning}`}>
+                        <i className="fas fa-sparkles"></i>
+                    </div>
+                    <div className={styles.statInfo}>
+                        <h3>New This Week</h3>
+                        <p className={styles.statValue}>
+                            {stats.recent}
+                            <span className={`${styles.statTrend} ${styles.up}`}>
+                                <i className="fas fa-arrow-up"></i>
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section className={styles.filterBar}>
+                <div className={styles.searchWrapper}>
+                    <i className="fas fa-search"></i>
+                    <input 
+                        className={styles.searchInput}
+                        placeholder="Search ID, name, or email..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <div className={styles.filterActions}>
+                    <select 
+                        className={styles.filterSelect}
+                        value={statusFilter}
+                        onChange={(e: any) => setStatusFilter(e.target.value)}
+                    >
+                        <option value="all">All Statuses</option>
+                        <option value="active">Active Only</option>
+                        <option value="inactive">Inactive Only</option>
+                    </select>
+                    <button className={styles.actionBtn} style={{ background: 'white', color: '#1e293b', border: '1px solid #e2e8f0' }} onClick={fetchCustomers}>
+                        <i className="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </section>
+
+            <div className={styles.contentCard}>
+                <div className={styles.tableHeader}>
+                    <h2>Registered Entities</h2>
+                    <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>
+                        {filteredCustomers.length} results found
+                    </span>
                 </div>
 
                 {loading ? (
-                    <div className={styles.loading}>
-                        <i className="fas fa-spinner fa-spin"></i>
+                    <div className={styles.loadingOverlay}>
+                        <i className="fas fa-circle-notch fa-spin fa-3x"></i>
                     </div>
-                ) : customers.length === 0 ? (
-                    <div className={styles.emptyState}>
-                        <i className="fas fa-user-slash"></i>
-                        <p>No customers found.</p>
-                        <button className={styles.addBtn} onClick={() => setIsCreateModalOpen(true)}>
-                            Register First Customer
-                        </button>
+                ) : filteredCustomers.length === 0 ? (
+                    <div className={styles.noData}>
+                        <i className="fas fa-users-slash"></i>
+                        <p>{searchTerm ? 'No results match your search' : 'No customers registered yet'}</p>
                     </div>
                 ) : (
                     <div className={styles.tableContainer}>
                         <table className={styles.table}>
                             <thead>
                                 <tr>
+                                    <th>Customer Identity</th>
                                     <th>External ID</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
                                     <th>Status</th>
-                                    <th>Created At</th>
-                                    <th>Action</th>
+                                    <th>Joined Date</th>
+                                    <th style={{ textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {customers.map((c) => (
-                                    <tr
-                                        key={c.id}
-                                        className={`${styles.clickableRow} ${!c.is_active ? styles.inactiveRow : ''}`}
+                                {filteredCustomers.map(c => (
+                                    <tr 
+                                        key={c.id} 
+                                        className={styles.customerRow}
                                         onClick={() => openCustomerDetails(c)}
                                     >
-                                        <td className={styles.idCell}>{c.external_id}</td>
-                                        <td>{c.first_name || c.last_name ? `${c.first_name || ''} ${c.last_name || ''}`.trim() : '-'}</td>
-                                        <td>{c.email || '-'}</td>
                                         <td>
-                                            <span className={`${styles.statusBadge} ${c.is_active ? styles.statusActive : styles.statusInactive}`}>
-                                                {c.is_active ? 'Active' : 'Inactive'}
-                                            </span>
+                                            <div className={styles.customerInfo}>
+                                                <div className={styles.avatar}>{getInitials(c)}</div>
+                                                <div className={styles.customerMeta}>
+                                                    <span className={styles.customerName}>
+                                                        {c.first_name || c.last_name ? `${c.first_name || ''} ${c.last_name || ''}`.trim() : 'Unnamed Customer'}
+                                                    </span>
+                                                    <span className={styles.customerEmail}>{c.email || 'No email provided'}</span>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td>{new Date(c.created_at).toLocaleDateString()}</td>
+                                        <td><span className={styles.externalId}>{c.external_id}</span></td>
                                         <td>
-                                            <button className={styles.actionBtn}>
-                                                Manage <i className="fas fa-chevron-right ml-1"></i>
+                                            <div className={`${styles.statusBadge} ${c.is_active ? styles.statusActive : styles.statusInactive}`}>
+                                                <div className={styles.statusDot}></div>
+                                                {c.is_active ? 'Online' : 'Deactivated'}
+                                            </div>
+                                        </td>
+                                        <td>{new Date(c.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            <button className={styles.actionBtn} style={{ padding: '0.5rem 1rem', background: '#f1f5f9', color: '#1e293b', display: 'inline-flex' }}>
+                                                Manage <i className="fas fa-chevron-right ml-2"></i>
                                             </button>
                                         </td>
                                     </tr>
@@ -257,66 +341,75 @@ const MerchantCustomersPage: React.FC = () => {
                 )}
             </div>
 
-            {/* Create Customer Modal */}
-            {isCreateModalOpen && (
-                <div className={styles.modalOverlay}>
-                    <div className={styles.modal}>
-                        <div className={styles.modalHeader}>
-                            <h2>Register New Customer</h2>
-                            <button className={styles.closeBtn} onClick={() => setIsCreateModalOpen(false)}>
+            {/* Create Customer Drawer */}
+            {isCreateDrawerOpen && (
+                <div className={styles.overlay} onClick={() => setIsCreateDrawerOpen(false)}>
+                    <div className={styles.drawer} onClick={e => e.stopPropagation()}>
+                        <div className={styles.drawerHeader}>
+                            <h2><i className="fas fa-user-plus" style={{ color: '#2563eb' }}></i> New Customer</h2>
+                            <button className={styles.closeBtn} onClick={() => setIsCreateDrawerOpen(false)}>
                                 <i className="fas fa-times"></i>
                             </button>
                         </div>
-                        <div className={styles.modalBody}>
+                        <div className={styles.drawerBody}>
                             <form onSubmit={handleCreateCustomer}>
                                 <div className={styles.formGroup}>
-                                    <label>External ID (Required)*</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder="e.g. user_12345"
-                                        value={newCustomer.external_id}
-                                        onChange={(e) => setNewCustomer({ ...newCustomer, external_id: e.target.value })}
-                                        className={styles.input}
-                                    />
-                                    <small style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                                        A unique identifier for this user in your own system.
-                                    </small>
+                                    <label>External Reference ID*</label>
+                                    <div className={styles.inputGroup}>
+                                        <i className="fas fa-id-card"></i>
+                                        <input 
+                                            className={styles.inputStyle}
+                                            required
+                                            placeholder="e.g. system_user_99"
+                                            value={newCustomer.external_id}
+                                            onChange={e => setNewCustomer({ ...newCustomer, external_id: e.target.value })}
+                                        />
+                                    </div>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
+                                        Must be unique. Used to link this entity to your internal systems.
+                                    </p>
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Email (Optional)</label>
-                                    <input
-                                        type="email"
-                                        placeholder="customer@example.com"
-                                        value={newCustomer.email}
-                                        onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
-                                        className={styles.input}
-                                    />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div className={styles.formGroup}>
-                                        <label>First Name (Optional)</label>
-                                        <input
-                                            type="text"
-                                            placeholder="John"
-                                            value={newCustomer.first_name}
-                                            onChange={(e) => setNewCustomer({ ...newCustomer, first_name: e.target.value })}
-                                            className={styles.input}
-                                        />
-                                    </div>
-                                    <div className={styles.formGroup}>
-                                        <label>Last Name (Optional)</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Doe"
-                                            value={newCustomer.last_name}
-                                            onChange={(e) => setNewCustomer({ ...newCustomer, last_name: e.target.value })}
-                                            className={styles.input}
+                                    <label>Email Address</label>
+                                    <div className={styles.inputGroup}>
+                                        <i className="fas fa-envelope"></i>
+                                        <input 
+                                            className={styles.inputStyle}
+                                            type="email"
+                                            placeholder="customer@domain.com"
+                                            value={newCustomer.email}
+                                            onChange={e => setNewCustomer({ ...newCustomer, email: e.target.value })}
                                         />
                                     </div>
                                 </div>
-                                <button type="submit" className={styles.submitBtn} disabled={submitting}>
-                                    {submitting ? <><i className="fas fa-spinner fa-spin"></i> Registering...</> : 'Register Customer'}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                    <div className={styles.formGroup}>
+                                        <label>First Name</label>
+                                        <div className={styles.inputGroup}>
+                                            <i className="fas fa-user-circle"></i>
+                                            <input 
+                                                className={styles.inputStyle}
+                                                placeholder="John"
+                                                value={newCustomer.first_name}
+                                                onChange={e => setNewCustomer({ ...newCustomer, first_name: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Last Name</label>
+                                        <div className={styles.inputGroup}>
+                                            <i className="fas fa-user-circle"></i>
+                                            <input 
+                                                className={styles.inputStyle}
+                                                placeholder="Doe"
+                                                value={newCustomer.last_name}
+                                                onChange={e => setNewCustomer({ ...newCustomer, last_name: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <button className={styles.addBtn} style={{ width: '100%', marginTop: '2rem' }} disabled={submitting}>
+                                    {submitting ? <i className="fas fa-circle-notch fa-spin"></i> : 'Complete Registration'}
                                 </button>
                             </form>
                         </div>
@@ -324,84 +417,76 @@ const MerchantCustomersPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Customer Details & Wallets Modal */}
+            {/* Customer Details Drawer */}
             {selectedCustomer && (
-                <div className={styles.modalOverlay}>
-                    <div className={`${styles.modal} ${styles.modalLarge}`}>
-                        <div className={styles.modalHeader}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <h2>Customer: <span className={styles.idCell}>{selectedCustomer.external_id}</span></h2>
-                                <span className={`${styles.statusBadge} ${selectedCustomer.is_active ? styles.statusActive : styles.statusInactive}`}>
-                                    {selectedCustomer.is_active ? 'Active' : 'Inactive'}
-                                </span>
-                            </div>
+                <div className={styles.overlay} onClick={() => setSelectedCustomer(null)}>
+                    <div className={styles.drawer} onClick={e => e.stopPropagation()}>
+                        <div className={styles.drawerHeader}>
+                            <h2><i className="fas fa-id-badge" style={{ color: '#2563eb' }}></i> Profile: {selectedCustomer.external_id}</h2>
                             <button className={styles.closeBtn} onClick={() => setSelectedCustomer(null)}>
                                 <i className="fas fa-times"></i>
                             </button>
                         </div>
-
-                        <div className={styles.modalBody}>
+                        <div className={styles.drawerBody}>
                             {detailsLoading ? (
-                                <div className={styles.loading}><i className="fas fa-spinner fa-spin"></i></div>
+                                <div className={styles.loadingOverlay}><i className="fas fa-circle-notch fa-spin fa-2x"></i></div>
                             ) : (
-                                <div className={styles.detailsGrid}>
-                                    <div>
-                                        <h3 className={styles.sectionTitle}>
-                                            <span>Provision Deposit Wallets</span>
-                                        </h3>
-                                        <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '1rem' }}>
-                                            Select the networks on which this customer can deposit funds. Dedicated addresses will be generated.
+                                <>
+                                    <div className={styles.drawerSection}>
+                                        <h3><i className="fas fa-wallet" style={{ color: '#2563eb' }}></i> Dedicated Wallets</h3>
+                                        <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>
+                                            Select networks to provision permanent deposit addresses for this customer.
                                         </p>
-
-                                        <div className={styles.checkboxList} style={{ marginBottom: '1.25rem' }}>
+                                        
+                                        <div className={styles.networkGrid}>
                                             {NETWORKS.map(net => (
-                                                <label key={net} className={styles.checkboxItem}>
-                                                    <input
+                                                <label key={net} className={styles.networkLabel}>
+                                                    <input 
                                                         type="checkbox"
                                                         checked={selectedNetworks.includes(net)}
-                                                        onChange={() => toggleNetwork(net)}
+                                                        onChange={() => setSelectedNetworks(prev => prev.includes(net) ? prev.filter(n => n !== net) : [...prev, net])}
                                                     />
                                                     {net}
                                                 </label>
                                             ))}
                                         </div>
 
-                                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                                            <button
-                                                className={styles.submitBtn}
+                                        <div style={{ display: 'flex', gap: '1rem' }}>
+                                            <button 
+                                                className={styles.actionBtn} 
+                                                style={{ flex: 1 }}
+                                                onClick={() => handleProvisionWallets(false)}
+                                                disabled={provisioning || !selectedCustomer.is_active || selectedNetworks.length === 0}
+                                            >
+                                                {provisioning ? <i className="fas fa-sync fa-spin"></i> : <i className="fas fa-plus-circle"></i>}
+                                                Provision
+                                            </button>
+                                            <button 
+                                                className={styles.actionBtn} 
+                                                style={{ flex: 1, background: '#10b981' }}
                                                 onClick={() => handleProvisionWallets(true)}
                                                 disabled={provisioning || !selectedCustomer.is_active}
-                                                style={{ background: '#059669' }}
                                             >
-                                                {provisioning ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-magic"></i>}
-                                                Provision All Supported (Auto)
-                                            </button>
-
-                                            <button
-                                                className={styles.submitBtn}
-                                                onClick={() => handleProvisionWallets(false)}
-                                                disabled={provisioning || selectedNetworks.length === 0 || !selectedCustomer.is_active}
-                                            >
-                                                {provisioning ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-wallet"></i>}
-                                                Provision Selected
+                                                <i className="fas fa-bolt"></i> Auto All
                                             </button>
                                         </div>
 
                                         {customerWallets.length > 0 && (
-                                            <div className={styles.walletList} style={{ marginTop: '1.5rem' }}>
-                                                <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>Newly Provisioned Addresses:</h4>
-                                                {customerWallets.map((w, i) => (
-                                                    <div key={i} className={styles.walletItem}>
-                                                        <div className={styles.walletItemHeader}>
+                                            <div style={{ marginTop: '1.5rem' }}>
+                                                {customerWallets.map((w, idx) => (
+                                                    <div key={idx} className={styles.walletItem}>
+                                                        <div className={styles.walletHeader}>
                                                             <span className={styles.walletType}>{w.crypto_type}</span>
                                                             <span className={styles.walletNetwork}>{w.network}</span>
                                                         </div>
-                                                        <div className={styles.walletAddress}>
-                                                            {w.address}
-                                                            <button
-                                                                className={styles.actionBtn}
-                                                                style={{ padding: '0.1rem 0.3rem', marginLeft: '0.5rem', border: 'none' }}
-                                                                onClick={() => navigator.clipboard.writeText(w.address)}
+                                                        <div className={styles.addressBox}>
+                                                            <span className={styles.addressText}>{w.address}</span>
+                                                            <button 
+                                                                className={styles.copyBtn}
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(w.address)
+                                                                    showToast('Address copied!', 'success')
+                                                                }}
                                                             >
                                                                 <i className="far fa-copy"></i>
                                                             </button>
@@ -412,80 +497,71 @@ const MerchantCustomersPage: React.FC = () => {
                                         )}
                                     </div>
 
-                                    {/* Balances & Sweeping Region */}
-                                    <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem' }}>
-                                        <h3 className={styles.sectionTitle}>Sweep Funds to Master Balance</h3>
-                                        <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '1rem' }}>
-                                            Move funds from this customer's dedicated wallets into your main merchant master balance.
+                                    <div className={styles.drawerSection}>
+                                        <h3><i className="fas fa-coins" style={{ color: '#f59e0b' }}></i> Asset Balances & Sweep</h3>
+                                        <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>
+                                            Consolidated balances across all provisioned wallets.
                                         </p>
 
                                         {customerBalances && (
-                                            <div style={{ marginBottom: '1rem', padding: '1rem', background: '#f3f4f6', borderRadius: '0.5rem' }}>
-                                                <h4 style={{ fontSize: '0.85rem', margin: '0 0 0.5rem 0' }}>Current Sub-Account Balances:</h4>
-                                                <pre style={{ fontSize: '0.8rem', margin: 0, fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
-                                                    {JSON.stringify(customerBalances, null, 2)}
-                                                </pre>
+                                            <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                                                <pre style={{ margin: 0 }}>{JSON.stringify(customerBalances, null, 2)}</pre>
                                             </div>
                                         )}
 
-                                        <form onSubmit={handleSweep} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-                                            <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
-                                                <label>Asset (e.g. USDT)</label>
-                                                <input
-                                                    type="text"
-                                                    required
+                                        <form className={styles.sweepForm} onSubmit={handleSweep}>
+                                            <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                                <label>Asset</label>
+                                                <input 
+                                                    className={styles.inputStyle} 
+                                                    style={{ padding: '0.75rem 1rem' }}
+                                                    placeholder="USDT"
                                                     value={sweepCryptoType}
-                                                    onChange={(e) => setSweepCryptoType(e.target.value.toUpperCase())}
-                                                    className={styles.input}
+                                                    onChange={e => setSweepCryptoType(e.target.value.toUpperCase())}
                                                 />
                                             </div>
-                                            <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
+                                            <div className={styles.formGroup} style={{ marginBottom: 0 }}>
                                                 <label>Amount</label>
-                                                <input
+                                                <input 
+                                                    className={styles.inputStyle} 
+                                                    style={{ padding: '0.75rem 1rem' }}
                                                     type="number"
                                                     step="any"
-                                                    required
-                                                    value={sweepAmount}
-                                                    onChange={(e) => setSweepAmount(e.target.value)}
-                                                    className={styles.input}
                                                     placeholder="0.00"
+                                                    value={sweepAmount}
+                                                    onChange={e => setSweepAmount(e.target.value)}
                                                 />
                                             </div>
-                                            <button
-                                                type="submit"
-                                                className={styles.submitBtn}
-                                                style={{ width: 'auto', padding: '0.75rem 1.5rem' }}
-                                                disabled={sweeping || !selectedCustomer.is_active}
-                                            >
+                                            <button className={styles.actionBtn} disabled={sweeping || !selectedCustomer.is_active}>
                                                 {sweeping ? <i className="fas fa-spinner fa-spin"></i> : 'Sweep'}
                                             </button>
                                         </form>
-
-                                        <div style={{ marginTop: '2rem', borderTop: '1px solid #fee2e2', paddingTop: '1.5rem' }}>
-                                            <h3 className={`${styles.sectionTitle} ${styles.dangerText}`}>Danger Zone</h3>
-                                            <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '1rem' }}>
-                                                Deactivating a customer will prevent any further wallet provisioning or transactions.
-                                                This action is permanent for this external ID.
-                                            </p>
-                                            <button
-                                                className={styles.submitBtn}
-                                                style={{ background: '#ef4444', color: 'white' }}
-                                                onClick={handleDeactivate}
-                                                disabled={!selectedCustomer.is_active || detailsLoading}
-                                            >
-                                                {detailsLoading ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-user-slash"></i>}
-                                                {selectedCustomer.is_active ? 'Deactivate Customer' : 'Customer Deactivated'}
-                                            </button>
-                                        </div>
                                     </div>
-                                </div>
+
+                                    <div style={{ marginTop: '3rem', padding: '1.5rem', border: '1.5px dashed #fee2e2', borderRadius: '20px' }}>
+                                        <h3 style={{ color: '#ef4444', fontSize: '1.1rem', fontWeight: 800, margin: '0 0 1rem 0' }}>Archive Area</h3>
+                                        <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>
+                                            Deactivating this customer will disable all their provisioned wallets immediately.
+                                        </p>
+                                        <button 
+                                            className={`${styles.actionBtn} ${styles.danger}`}
+                                            style={{ width: '100%' }}
+                                            onClick={handleDeactivate}
+                                            disabled={!selectedCustomer.is_active || detailsLoading}
+                                        >
+                                            <i className="fas fa-user-slash"></i>
+                                            {selectedCustomer.is_active ? 'Terminate Customer Account' : 'Account Terminated'}
+                                        </button>
+                                    </div>
+                                </>
                             )}
                         </div>
                     </div>
                 </div>
             )}
         </div>
-    );
-};
+    )
+}
 
 export default MerchantCustomersPage;
+
