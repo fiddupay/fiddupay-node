@@ -60,7 +60,7 @@ impl BalanceService {
             "#
         )
         .bind(merchant_id)
-        .bind(crypto_type.as_str())
+        .bind(crypto_type.to_string())
         .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
         .await?;
@@ -170,7 +170,7 @@ impl BalanceService {
                 .bind(amount_change)
                 .bind(Utc::now())
                 .bind(merchant_id)
-                .bind(crypto_type.as_str())
+                .bind(crypto_type.to_string())
                 .bind(sandbox_mode)
                 .execute(&self.db_pool)
                 .await?;
@@ -188,7 +188,7 @@ impl BalanceService {
                 .bind(amount_change)
                 .bind(Utc::now())
                 .bind(merchant_id)
-                .bind(crypto_type.as_str())
+                .bind(crypto_type.to_string())
                 .bind(sandbox_mode)
                 .execute(&self.db_pool)
                 .await?;
@@ -203,7 +203,7 @@ impl BalanceService {
                 )
                 .bind(Utc::now())
                 .bind(merchant_id)
-                .bind(crypto_type.as_str())
+                .bind(crypto_type.to_string())
                 .bind(sandbox_mode)
                 .execute(&self.db_pool)
                 .await?;
@@ -237,7 +237,7 @@ impl BalanceService {
         .bind(amount)
         .bind(Utc::now())
         .bind(merchant_id)
-        .bind(crypto_type.as_str())
+        .bind(crypto_type.to_string())
         .bind(sandbox_mode)
         .execute(&self.db_pool)
         .await?;
@@ -259,7 +259,7 @@ impl BalanceService {
             "#
         )
         .bind(merchant_id)
-        .bind(crypto_type.as_str())
+        .bind(crypto_type.to_string())
         .bind(Utc::now())
         .bind(sandbox_mode)
         .execute(&self.db_pool)
@@ -298,7 +298,7 @@ impl BalanceService {
                 "#
             )
             .bind(merchant_id)
-            .bind(crypto_type.as_str())
+            .bind(crypto_type.to_string())
             .bind(sandbox_mode)
             .fetch_one(&self.db_pool)
             .await?;
@@ -312,7 +312,7 @@ impl BalanceService {
                 "#
             )
             .bind(merchant_id)
-            .bind(crypto_type.as_str())
+            .bind(crypto_type.to_string())
             .bind(sandbox_mode)
             .fetch_one(&self.db_pool)
             .await?;
@@ -337,7 +337,7 @@ impl BalanceService {
                 "#
             )
             .bind(merchant_id)
-            .bind(crypto_type.as_str())
+            .bind(crypto_type.to_string())
             .bind(available_balance)
             .bind(reserved_balance)
             .bind(Utc::now())

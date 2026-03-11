@@ -29,6 +29,25 @@ const PRIORITY_COLORS = [
     '#06b6d4', '#f97316', '#3b82f6', '#14b8a6', '#6366f1'
 ];
 
+const NETWORK_LABELS: Record<string, { name: string, sandbox: string }> = {
+    SOL: { name: 'Solana', sandbox: 'Solana Devnet' },
+    ETH: { name: 'Ethereum', sandbox: 'Ethereum Sepolia' },
+    BNB: { name: 'BSC', sandbox: 'BSC Testnet' },
+    MATIC: { name: 'Polygon', sandbox: 'Polygon Mumbai' },
+    ARB: { name: 'Arbitrum', sandbox: 'Arbitrum Sepolia' },
+    USDT_SPL: { name: 'Solana SPL', sandbox: 'Solana Devnet SPL' },
+    USDT_ETH: { name: 'Ethereum ERC20', sandbox: 'Sepolia ERC20' },
+    USDT_BEP20: { name: 'BSC BEP20', sandbox: 'BSC Testnet BEP20' },
+    USDT_POLYGON: { name: 'Polygon', sandbox: 'Mumbai' },
+    USDT_ARBITRUM: { name: 'Arbitrum', sandbox: 'Arbitrum Sepolia' },
+};
+
+const getNetworkLabel = (cryptoType: string, isSandbox: boolean): string => {
+    const entry = NETWORK_LABELS[cryptoType]
+    if (entry) return isSandbox ? entry.sandbox : entry.name
+    return isSandbox ? 'Testnet' : 'Mainnet'
+};
+
 const BalancePage: React.FC = () => {
     const [balance, setBalance] = useState<Balance | null>(null)
     const [history, setHistory] = useState<BalanceHistory | null>(null)
@@ -65,10 +84,10 @@ const BalancePage: React.FC = () => {
     const pieData = useMemo(() => {
         if (!balance?.balances) return []
         return balance.balances
-            .filter(b => safeFloat(b.amount_usd) > 0)
+            .filter(b => safeFloat(b.balance_usd) > 0)
             .map(b => ({
                 name: b.crypto_type.split('_')[0],
-                value: safeFloat(b.amount_usd)
+                value: safeFloat(b.balance_usd)
             }))
             .sort((a, b) => b.value - a.value)
     }, [balance])
@@ -250,15 +269,15 @@ const BalancePage: React.FC = () => {
                                             </div>
                                             <div className={styles.assetMeta}>
                                                 <h3>{asset.crypto_type.split('_')[0]}</h3>
-                                                <span>{asset.crypto_type.includes('_') ? asset.crypto_type.split('_')[1] : (user?.sandbox_mode ? 'Devnet' : 'Mainnet')}</span>
+                                                <span>{getNetworkLabel(asset.crypto_type, !!user?.sandbox_mode)}</span>
                                             </div>
                                         </div>
                                         <div className={styles.assetValues}>
                                             <div className={styles.cryptoValue}>
-                                                {safeFloat(asset.amount).toFixed(6)} {asset.crypto_type.split('_')[0]}
+                                                {safeFloat(asset.total_balance).toFixed(6)} {asset.crypto_type.split('_')[0]}
                                             </div>
                                             <div className={styles.usdValue}>
-                                                ${safeFloat(asset.amount_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                ${safeFloat(asset.balance_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </div>
                                         </div>
                                     </div>

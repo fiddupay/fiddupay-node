@@ -8,14 +8,18 @@ use std::collections::HashMap;
 
 use crate::error::ServiceError;
 use crate::models::analytics::{AnalyticsReport, BlockchainStats};
+use crate::services::price_service::PriceService;
+use crate::payment::models::CryptoType;
+use std::sync::Arc;
 
 pub struct AnalyticsService {
     db_pool: PgPool,
+    price_service: Arc<PriceService>,
 }
 
 impl AnalyticsService {
-    pub fn new(db_pool: PgPool) -> Self {
-        Self { db_pool }
+    pub fn new(db_pool: PgPool, price_service: Arc<PriceService>) -> Self {
+        Self { db_pool, price_service }
     }
 
     /// Get analytics for a merchant within a date range
@@ -200,28 +204,31 @@ impl AnalyticsService {
         Ok(crate::models::analytics::BalanceHistory { points })
     }
 
-    /// Helper to get current prices for all supported assets
+    /// Helper to get current prices for all supported assets using PriceService
     async fn get_current_prices(&self) -> Result<HashMap<String, Decimal>, ServiceError> {
-        // Try to fetch from exchange_rates table, fall back to hardcoded prices
-        let result = sqlx::query("SELECT crypto_type, price_usd FROM exchange_rates")
-            .fetch_all(&self.db_pool)
-            .await;
+        let crypto_types = vec![
+            CryptoType::Sol,
+            CryptoType::UsdtSpl,
+            CryptoType::Eth,
+            CryptoType::UsdtEth,
+            CryptoType::Bnb,
+            CryptoType::UsdtBep20,
+            CryptoType::Matic,
+            CryptoType::UsdtPolygon,
+            CryptoType::Arb,
+            CryptoType::UsdtArbitrum,
+        ];
 
-        match result {
-            Ok(rows) if !rows.is_empty() => {
-                let mut prices = HashMap::new();
-                use sqlx::Row;
-                for row in rows {
-                    let ct: String = row.get("crypto_type");
-                    let price: Decimal = row.get("price_usd");
-                    prices.insert(ct, price);
+        let mut prices = HashMap::new();
+        for ct in crypto_types {
+            if let Ok(price) = self.price_service.get_price(ct).await {
+                if let Some(price_decimal) = Decimal::from_f64_retain(price) {
+                    // Store under the Display format (e.g., "SOL", "USDT_SPL")
+                    prices.insert(ct.to_string(), price_decimal);
                 }
-                Ok(prices)
-            }
-            _ => {
-                Ok(HashMap::new())
             }
         }
+        Ok(prices)
     }
 
     /// Get daily payment trends

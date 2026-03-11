@@ -159,8 +159,13 @@ export interface Balance {
 
 export interface CurrencyBalance {
   crypto_type: string
-  amount: string
-  amount_usd: string
+  total_balance: string
+  available_balance: string
+  reserved_balance: string
+  balance_usd: string
+  available_usd: string
+  reserved_usd: string
+  last_updated: string
 }
 
 // Balance History Types
