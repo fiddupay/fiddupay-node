@@ -35,9 +35,16 @@ const DashboardPage: React.FC = () => {
   const [balance, setBalance] = useState<Balance | null>(null)
   const [loading, setLoading] = useState(true)
   const [dailyVolumeUsed, setDailyVolumeUsed] = useState(0)
-  const [dateRange, setDateRange] = useState({
-    from_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    to_date: new Date().toISOString().split('T')[0]
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 (Sun) to 6 (Sat)
+    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust to Monday
+    const monday = new Date(now.setDate(diff));
+
+    return {
+      from_date: monday.toISOString().split('T')[0],
+      to_date: new Date().toISOString().split('T')[0]
+    };
   })
 
   useEffect(() => {
@@ -112,7 +119,7 @@ const DashboardPage: React.FC = () => {
           <button className={styles.refreshBtn} onClick={loadDashboardData} disabled={loading}>
             <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
           </button>
-          <a href="/docs" className={styles.docsLink}>
+          <a href="/docs" className={styles.docsLink} target="_blank" rel="noopener noreferrer">
             <i className="fas fa-book"></i>
             API Docs
           </a>
@@ -280,20 +287,6 @@ const DashboardPage: React.FC = () => {
                     <span className={styles.balanceLabel}>Processing</span>
                     <span className={styles.balanceAmount}>${parseFloat(balance.reserved_usd).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className={styles.balanceDivider}></div>
-                  {balance.balances.map((cb) => {
-                    const amt = parseFloat(cb.amount || '0')
-                    const amtUsd = parseFloat(cb.amount_usd || '0')
-                    return (
-                      <div key={cb.crypto_type} className={styles.currencyRow}>
-                        <span className={styles.currencyName}>{cb.crypto_type}</span>
-                        <div className={styles.currencyValues}>
-                          <span className={styles.currencyAmount}>{isNaN(amt) ? '0.0000' : amt.toLocaleString(undefined, { minimumFractionDigits: 4 })}</span>
-                          <span className={styles.currencyUsd}>${isNaN(amtUsd) ? '0.00' : amtUsd.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </div>
-                      </div>
-                    )
-                  })}
                 </div>
               ) : (
                 <div className={styles.emptyState}>
