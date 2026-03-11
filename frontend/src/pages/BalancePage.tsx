@@ -36,13 +36,16 @@ const BalancePage: React.FC = () => {
     const loadData = async () => {
         try {
             setLoading(true)
-            const [balRes, histRes] = await Promise.all([
-                merchantAPI.getBalance(),
-                merchantAPI.getBalanceHistory({ limit: 30 })
-            ])
-
+            const balRes = await merchantAPI.getBalance()
             if (balRes.data) setBalance(balRes.data)
-            if (histRes.data) setHistory(histRes.data)
+
+            // Balance history is non-critical — don't let it block the page
+            try {
+                const histRes = await merchantAPI.getBalanceHistory({ limit: 30 })
+                if (histRes.data) setHistory(histRes.data)
+            } catch (histErr) {
+                console.warn('Balance history unavailable:', histErr)
+            }
         } catch (error) {
             console.error('Failed to load balance data:', error)
             showToast('Failed to load balance data', 'error')
@@ -141,32 +144,39 @@ const BalancePage: React.FC = () => {
                                 )}
                             </div>
                             <div className={styles.chartContainer}>
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={chartData}>
-                                        <defs>
-                                            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
-                                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(val) => `$${val}`} />
-                                        <Tooltip
-                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                                            formatter={(value: any) => [`$${parseFloat(value).toLocaleString()}`, selectedAsset ? 'Amount' : 'Total USD']}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey={selectedAsset || 'total'}
-                                            stroke="#2563eb"
-                                            strokeWidth={3}
-                                            fillOpacity={1}
-                                            fill="url(#colorValue)"
-                                            animationDuration={1500}
-                                        />
-                                    </AreaChart>
-                                </ResponsiveContainer>
+                                {chartData.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <AreaChart data={chartData}>
+                                            <defs>
+                                                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
+                                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(val) => `$${val}`} />
+                                            <Tooltip
+                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                                                formatter={(value: any) => [`$${parseFloat(value).toLocaleString()}`, selectedAsset ? 'Amount' : 'Total USD']}
+                                            />
+                                            <Area
+                                                type="monotone"
+                                                dataKey={selectedAsset || 'total'}
+                                                stroke="#2563eb"
+                                                strokeWidth={3}
+                                                fillOpacity={1}
+                                                fill="url(#colorValue)"
+                                                animationDuration={1500}
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', color: '#94a3b8', flexDirection: 'column', gap: '8px' }}>
+                                        <i className="fas fa-chart-area" style={{ fontSize: '2rem' }}></i>
+                                        <p style={{ margin: 0, fontSize: '0.85rem' }}>No balance history data yet</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -176,29 +186,35 @@ const BalancePage: React.FC = () => {
                                 <h3><i className="fas fa-chart-pie"></i> Distribution</h3>
                             </div>
                             <div className={styles.miniPieContainer}>
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={pieData}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={60}
-                                            outerRadius={80}
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                            animationBegin={200}
-                                            animationDuration={1000}
-                                        >
-                                            {pieData.map((_entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={PRIORITY_COLORS[index % PRIORITY_COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <PieTooltip
-                                            contentStyle={{ borderRadius: '8px', border: 'none', fontSize: '12px' }}
-                                            formatter={(val: any) => [`$${parseFloat(val).toLocaleString()}`, 'Value']}
-                                        />
-                                    </PieChart>
-                                </ResponsiveContainer>
+                                {pieData.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height={200}>
+                                        <PieChart>
+                                            <Pie
+                                                data={pieData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={60}
+                                                outerRadius={80}
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                                animationBegin={200}
+                                                animationDuration={1000}
+                                            >
+                                                {pieData.map((_entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={PRIORITY_COLORS[index % PRIORITY_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <PieTooltip
+                                                contentStyle={{ borderRadius: '8px', border: 'none', fontSize: '12px' }}
+                                                formatter={(val: any) => [`$${parseFloat(val).toLocaleString()}`, 'Value']}
+                                            />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: '#94a3b8', fontSize: '0.85rem' }}>
+                                        No assets to display
+                                    </div>
+                                )}
                                 <div style={{ fontSize: '0.8rem', color: '#64748b', textAlign: 'center', marginTop: '1rem' }}>
                                     {pieData.length} active assets
                                 </div>

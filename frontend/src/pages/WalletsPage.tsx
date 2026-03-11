@@ -6,21 +6,8 @@ import { useToast } from '@/contexts/ToastContext'
 import { useAuthStore } from '@/stores/authStore'
 import { Link } from 'react-router-dom'
 
-interface WalletBalance {
-  crypto_type: string
-  network: string
-  address: string
-  is_active: boolean
-  available_balance: string
-  reserved_balance: string
-  total_balance: string
-  transaction_count: number
-  total_volume_crypto: string
-}
-
 const WalletsPage: React.FC = () => {
   const [wallets, setWallets] = useState<Wallet[]>([])
-  const [walletBalances, setWalletBalances] = useState<WalletBalance[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [showConfigModal, setShowConfigModal] = useState(false)
@@ -84,12 +71,8 @@ const WalletsPage: React.FC = () => {
 
   const loadWallets = async () => {
     try {
-      const [walletsData, balancesData] = await Promise.all([
-        walletAPI.getAll(),
-        walletAPI.getAll().catch(() => ({ data: { wallets: [] } }))
-      ])
+      const walletsData = await walletAPI.getAll()
       setWallets(Array.isArray(walletsData.data.wallets) ? walletsData.data.wallets : [])
-      setWalletBalances(Array.isArray(balancesData.data.wallets) ? balancesData.data.wallets : [])
     } catch (error) {
       console.error('Failed to load wallets:', error)
     }
@@ -450,65 +433,21 @@ const WalletsPage: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                    {/* Balance & Volume Stats */}
-                    {(() => {
-                      const balInfo = walletBalances.find(b => b.crypto_type === wallet.crypto_type)
-                      if (!balInfo) return null
-                      return (
-                        <div className={styles.addressContainer} style={{ marginTop: '0.5rem', background: '#f0fdf4', borderColor: '#bbf7d0' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                            <div>
-                              <span style={{ color: '#6b7280', fontWeight: 500 }}>Balance</span>
-                              <div style={{ color: '#059669', fontWeight: 700, fontSize: '0.95rem' }}>
-                                {parseFloat(balInfo.available_balance || '0').toFixed(6)}
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <span style={{ color: '#6b7280', fontWeight: 500 }}>Transactions</span>
-                              <div style={{ color: '#1f2937', fontWeight: 700, fontSize: '0.95rem' }}>
-                                {balInfo.transaction_count || 0}
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <span style={{ color: '#6b7280', fontWeight: 500 }}>Volume</span>
-                              <div style={{ color: '#1f2937', fontWeight: 700, fontSize: '0.95rem' }}>
-                                {parseFloat(balInfo.total_volume_crypto || '0').toFixed(6)}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })()}
+
+                    <div className={styles.statusInfo}>
+                      <i className={`fas fa-check-circle ${styles.statusIcon} ${wallet.is_active ? styles.active : styles.inactive}`}></i>
+                      <span>ActiveUpdated: {new Date(wallet.updated_at || wallet.configured_at || Date.now()).toLocaleDateString()}</span>
+                    </div>
                   </>
                 ) : (
                   <div className={styles.emptyState}>
-                    <i className="fas fa-shield-alt text-gray-300 text-3xl mb-2 mx-auto block"></i>
-                    <p className="text-sm">
-                      {settlementMode === 'managed' ? "No wallet generated yet" :
-                        settlementMode === 'imported' ? "Provide private key to start" :
-                          "Provide destination address"}
-                    </p>
+                    <p className="text-sm">Not configured yet</p>
                   </div>
                 )}
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                {wallet ? (
-                  <div className="flex justify-between items-center text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      {wallet.is_active ? (
-                        <>
-                          <i className="fas fa-check-circle text-green-500"></i> Active
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-pause-circle text-gray-400"></i> Disabled
-                        </>
-                      )}
-                    </span>
-                    <span>Updated: {new Date(wallet.updated_at || wallet.configured_at || Date.now()).toLocaleDateString()}</span>
-                  </div>
-                ) : (
+              <div className="mt-6">
+                {!wallet && (
                   <div className="flex gap-2">
                     {settlementMode === 'managed' ? (
                       <button className={styles.generateBtn} onClick={() => handleWalletAction(baseCryptoType, network.name, 'generate')}>
@@ -520,7 +459,7 @@ const WalletsPage: React.FC = () => {
                         setShowConfigModal(true)
                       }}>
                         <i className={`fas ${settlementMode === 'imported' ? 'fa-key' : 'fa-edit'}`}></i>
-                        {settlementMode === 'imported' ? `Import ${network.name}` : `Configure ${network.name}`}
+                        Setup {network.name}
                       </button>
                     )}
                   </div>
@@ -532,189 +471,195 @@ const WalletsPage: React.FC = () => {
       </div>
 
       {/* Configuration Modal */}
-      {showConfigModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowConfigModal(false)}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2>{settlementMode === 'imported' ? 'Import Wallet' : 'Configure Wallet'}</h2>
-              <button className={styles.closeButton} onClick={() => setShowConfigModal(false)}>
-                <i className="fas fa-times text-xl"></i>
-              </button>
-            </div>
-            <div className={styles.formGroup}>
-              <label>Select Network</label>
-              <select value={newWallet.crypto_type} onChange={(e) => setNewWallet({ ...newWallet, crypto_type: e.target.value })}>
-                {supportedCryptos.map(network => (
-                  <option key={network.name} value={network.cryptos[0].crypto_type}>
-                    {network.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {settlementMode === 'managed' ? (
-              <div className="py-6 text-center bg-gray-50 rounded-lg border border-gray-200">
-                <i className="fas fa-magic text-blue-500 text-3xl mb-3"></i>
-                <p className="text-gray-700 font-medium">Automatic Wallet Generation</p>
-                <p className="text-sm text-gray-500 px-6 mt-2">
-                  In Managed mode, FidduPay creates and secures your wallets.
-                  Simply click the <strong>Generate</strong> button on any network card in the main view.
-                </p>
+      {
+        showConfigModal && (
+          <div className={styles.modalOverlay} onClick={() => setShowConfigModal(false)}>
+            <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h2>{settlementMode === 'imported' ? 'Import Wallet' : 'Configure Wallet'}</h2>
+                <button className={styles.closeButton} onClick={() => setShowConfigModal(false)}>
+                  <i className="fas fa-times text-xl"></i>
+                </button>
               </div>
-            ) : (
               <div className={styles.formGroup}>
-                <label>{settlementMode === 'imported' ? 'Private Key' : (settlementMode === 'forwarding' ? 'Forwarding Destination Address' : 'Wallet Address')}</label>
-                <input
-                  type={settlementMode === 'imported' ? 'password' : 'text'}
-                  value={newWallet.address}
-                  onChange={(e) => setNewWallet({ ...newWallet, address: e.target.value })}
-                  placeholder={settlementMode === 'imported' ? 'Enter private key' : (settlementMode === 'forwarding' ? 'Enter your payout address' : 'Enter 0x... or specific address')}
-                  className={settlementMode === 'imported' ? styles.privateKeyInput : ''}
-                  autoFocus
-                />
-                <p className={styles.inputHelper}>
-                  {settlementMode === 'imported'
-                    ? "Your private key will be encrypted and used to derive your wallet address."
-                    : settlementMode === 'forwarding'
-                      ? "Payments received will be automatically forwarded to this address."
-                      : "Payments sent to this address will be detected automatically."}
-                </p>
+                <label>Select Network</label>
+                <select value={newWallet.crypto_type} onChange={(e) => setNewWallet({ ...newWallet, crypto_type: e.target.value })}>
+                  {supportedCryptos.map(network => (
+                    <option key={network.name} value={network.cryptos[0].crypto_type}>
+                      {network.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-            )}
-            {/* Apply to All EVM checkbox */}
-            {(() => {
-              const selectedNetwork = supportedCryptos.find(n => n.cryptos.some((c: any) => c.crypto_type === newWallet.crypto_type));
-              if (selectedNetwork && isEvmNetwork(selectedNetwork.name)) {
-                return (
-                  <div className={styles.formGroup} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {settlementMode === 'managed' ? (
+                <div className="py-6 text-center bg-gray-50 rounded-lg border border-gray-200">
+                  <i className="fas fa-magic text-blue-500 text-3xl mb-3"></i>
+                  <p className="text-gray-700 font-medium">Automatic Wallet Generation</p>
+                  <p className="text-sm text-gray-500 px-6 mt-2">
+                    In Managed mode, FidduPay creates and secures your wallets.
+                    Simply click the <strong>Generate</strong> button on any network card in the main view.
+                  </p>
+                </div>
+              ) : (
+                <div className={styles.formGroup}>
+                  <label>{settlementMode === 'imported' ? 'Private Key' : (settlementMode === 'forwarding' ? 'Forwarding Destination Address' : 'Wallet Address')}</label>
+                  <input
+                    type={settlementMode === 'imported' ? 'password' : 'text'}
+                    value={newWallet.address}
+                    onChange={(e) => setNewWallet({ ...newWallet, address: e.target.value })}
+                    placeholder={settlementMode === 'imported' ? 'Enter private key' : (settlementMode === 'forwarding' ? 'Enter your payout address' : 'Enter 0x... or specific address')}
+                    className={settlementMode === 'imported' ? styles.privateKeyInput : ''}
+                    autoFocus
+                  />
+                  <p className={styles.inputHelper}>
+                    {settlementMode === 'imported'
+                      ? "Your private key will be encrypted and used to derive your wallet address."
+                      : settlementMode === 'forwarding'
+                        ? "Payments received will be automatically forwarded to this address."
+                        : "Payments sent to this address will be detected automatically."}
+                  </p>
+                </div>
+              )}
+              {/* Apply to All EVM checkbox */}
+              {(() => {
+                const selectedNetwork = supportedCryptos.find(n => n.cryptos.some((c: any) => c.crypto_type === newWallet.crypto_type));
+                if (selectedNetwork && isEvmNetwork(selectedNetwork.name)) {
+                  return (
+                    <div className={styles.formGroup} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input
+                        type="checkbox"
+                        id="applyAllEvm"
+                        checked={applyToAllEvm}
+                        onChange={(e) => setApplyToAllEvm(e.target.checked)}
+                        style={{ width: '18px', height: '18px' }}
+                      />
+                      <label htmlFor="applyAllEvm" style={{ cursor: 'pointer', fontWeight: 500, fontSize: '0.85rem' }}>
+                        Apply to all EVM networks (Ethereum, BSC, Polygon, Arbitrum)
+                      </label>
+                    </div>
+                  )
+                }
+                return null;
+              })()}
+              <div className={styles.modalActions}>
+                <button className={styles.cancelBtn} onClick={() => setShowConfigModal(false)}>Cancel</button>
+                <button className={styles.confirmBtn} onClick={handleConfigureWallet} disabled={refreshing}>
+                  {refreshing ? 'Processing...' : (settlementMode === 'imported' ? 'Import & Encrypt Key' : 'Save Configuration')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Revoke/Generate Confirmation Modal */}
+      {
+        confirmModal.show && (
+          <div className={styles.modalOverlay} onClick={() => setConfirmModal({ show: false, type: null, networkName: null, action: null })}>
+            <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+              <div className={styles.modalHeader}>
+                <h2>{confirmModal.action === 'revoke' ? 'Revoke Wallet?' : 'Generate New?'}</h2>
+                <button className={styles.closeButton} onClick={() => setConfirmModal({ show: false, type: null, networkName: null, action: null })}>
+                  <i className="fas fa-times text-xl"></i>
+                </button>
+              </div>
+              <div className="py-4 text-gray-600">
+                <p className="mb-4">
+                  {confirmModal.action === 'revoke'
+                    ? `Are you sure you want to revoke the ${confirmModal.networkName} wallet configuration? You will need to re-configure it to receive payments.`
+                    : `Are you sure you want to generate a new ${confirmModal.networkName} wallet address? This will replace your current one.`}
+                </p>
+
+                {confirmModal.action === 'generate' && confirmModal.networkName && isEvmNetwork(confirmModal.networkName) && (
+                  <div className={styles.formGroup} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                     <input
                       type="checkbox"
-                      id="applyAllEvm"
+                      id="applyAllEvmGenerate"
                       checked={applyToAllEvm}
                       onChange={(e) => setApplyToAllEvm(e.target.checked)}
                       style={{ width: '18px', height: '18px' }}
                     />
-                    <label htmlFor="applyAllEvm" style={{ cursor: 'pointer', fontWeight: 500, fontSize: '0.85rem' }}>
-                      Apply to all EVM networks (Ethereum, BSC, Polygon, Arbitrum)
+                    <label htmlFor="applyAllEvmGenerate" style={{ cursor: 'pointer', fontWeight: 500, fontSize: '0.85rem' }}>
+                      Generate identical key for all EVM networks
                     </label>
                   </div>
-                )
-              }
-              return null;
-            })()}
-            <div className={styles.modalActions}>
-              <button className={styles.cancelBtn} onClick={() => setShowConfigModal(false)}>Cancel</button>
-              <button className={styles.confirmBtn} onClick={handleConfigureWallet} disabled={refreshing}>
-                {refreshing ? 'Processing...' : (settlementMode === 'imported' ? 'Import & Encrypt Key' : 'Save Configuration')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                )}
 
-      {/* Revoke/Generate Confirmation Modal */}
-      {confirmModal.show && (
-        <div className={styles.modalOverlay} onClick={() => setConfirmModal({ show: false, type: null, networkName: null, action: null })}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-            <div className={styles.modalHeader}>
-              <h2>{confirmModal.action === 'revoke' ? 'Revoke Wallet?' : 'Generate New?'}</h2>
-              <button className={styles.closeButton} onClick={() => setConfirmModal({ show: false, type: null, networkName: null, action: null })}>
-                <i className="fas fa-times text-xl"></i>
-              </button>
-            </div>
-            <div className="py-4 text-gray-600">
-              <p className="mb-4">
-                {confirmModal.action === 'revoke'
-                  ? `Are you sure you want to revoke the ${confirmModal.networkName} wallet configuration? You will need to re-configure it to receive payments.`
-                  : `Are you sure you want to generate a new ${confirmModal.networkName} wallet address? This will replace your current one.`}
-              </p>
-
-              {confirmModal.action === 'generate' && confirmModal.networkName && isEvmNetwork(confirmModal.networkName) && (
-                <div className={styles.formGroup} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <input
-                    type="checkbox"
-                    id="applyAllEvmGenerate"
-                    checked={applyToAllEvm}
-                    onChange={(e) => setApplyToAllEvm(e.target.checked)}
-                    style={{ width: '18px', height: '18px' }}
-                  />
-                  <label htmlFor="applyAllEvmGenerate" style={{ cursor: 'pointer', fontWeight: 500, fontSize: '0.85rem' }}>
-                    Generate identical key for all EVM networks
-                  </label>
+                <div className={`bg-${confirmModal.action === 'revoke' ? 'red' : 'yellow'}-50 border border-${confirmModal.action === 'revoke' ? 'red' : 'yellow'}-200 rounded-lg p-3 flex gap-3 text-sm text-${confirmModal.action === 'revoke' ? 'red' : 'yellow'}-800`}>
+                  <i className="fas fa-exclamation-triangle mt-1"></i>
+                  <p>This action cannot be undone. Make sure you don't have pending funds.</p>
                 </div>
-              )}
-
-              <div className={`bg-${confirmModal.action === 'revoke' ? 'red' : 'yellow'}-50 border border-${confirmModal.action === 'revoke' ? 'red' : 'yellow'}-200 rounded-lg p-3 flex gap-3 text-sm text-${confirmModal.action === 'revoke' ? 'red' : 'yellow'}-800`}>
-                <i className="fas fa-exclamation-triangle mt-1"></i>
-                <p>This action cannot be undone. Make sure you don't have pending funds.</p>
+              </div>
+              <div className={styles.modalActions}>
+                <button className={styles.cancelBtn} onClick={() => setConfirmModal({ show: false, type: null, networkName: null, action: null })}>Cancel</button>
+                <button
+                  className={styles.confirmBtn}
+                  style={{ backgroundColor: confirmModal.action === 'revoke' ? '#ef4444' : '#2563eb' }}
+                  onClick={confirmModal.action === 'revoke' ? handleRevokeWallet : confirmGeneration}
+                  disabled={refreshing}
+                >
+                  {refreshing ? 'Processing...' : `Yes, ${confirmModal.action === 'revoke' ? 'Revoke' : 'Generate'}`}
+                </button>
               </div>
             </div>
-            <div className={styles.modalActions}>
-              <button className={styles.cancelBtn} onClick={() => setConfirmModal({ show: false, type: null, networkName: null, action: null })}>Cancel</button>
-              <button
-                className={styles.confirmBtn}
-                style={{ backgroundColor: confirmModal.action === 'revoke' ? '#ef4444' : '#2563eb' }}
-                onClick={confirmModal.action === 'revoke' ? handleRevokeWallet : confirmGeneration}
-                disabled={refreshing}
-              >
-                {refreshing ? 'Processing...' : `Yes, ${confirmModal.action === 'revoke' ? 'Revoke' : 'Generate'}`}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Redesigned Private Key Reveal Modal */}
-      {generatedKey && (
-        <div className={styles.modalOverlay}>
-          <div className={`${styles.modalContent} ${styles.premiumModal}`} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalContentRedesign}>
-              <div className={styles.securityHeader}>
-                <div className={styles.securityIcon}>
-                  <i className="fas fa-shield-alt"></i>
+      {
+        generatedKey && (
+          <div className={styles.modalOverlay}>
+            <div className={`${styles.modalContent} ${styles.premiumModal}`} onClick={e => e.stopPropagation()}>
+              <div className={styles.modalContentRedesign}>
+                <div className={styles.securityHeader}>
+                  <div className={styles.securityIcon}>
+                    <i className="fas fa-shield-alt"></i>
+                  </div>
+                  <h2>Secure Your Wallet</h2>
+                  <p>Your new {generatedKey.network} wallet is ready.</p>
                 </div>
-                <h2>Secure Your Wallet</h2>
-                <p>Your new {generatedKey.network} wallet is ready.</p>
+
+                <div className={styles.keySection}>
+                  <div className={styles.keyField}>
+                    <label className={styles.keyLabel}>
+                      <i className="fas fa-link"></i> Public Address
+                    </label>
+                    <code className={styles.keyValue}>{generatedKey.address}</code>
+                  </div>
+                  <div className={styles.keyField}>
+                    <label className={styles.keyLabel}>
+                      <i className="fas fa-key"></i> Private Key (Secret)
+                    </label>
+                    <code className={`${styles.keyValue} ${styles.secret}`}>{generatedKey.privateKey}</code>
+                  </div>
+                </div>
+
+                <button className={styles.copyKeyBtn} onClick={() => copyToClipboard(generatedKey.privateKey, 'Private Key')}>
+                  <i className="fas fa-copy"></i> Copy Private Key
+                </button>
+
+                <div className="mt-6">
+                  <div className={styles.warningBox}>
+                    <i className="fas fa-exclamation-circle"></i>
+                    <p>
+                      <strong>WARNING:</strong> This key is NEVER stored. If you close this window without saving it,
+                      <strong> any funds sent to this address will be lost forever.</strong>
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className={styles.keySection}>
-                <div className={styles.keyField}>
-                  <label className={styles.keyLabel}>
-                    <i className="fas fa-link"></i> Public Address
-                  </label>
-                  <code className={styles.keyValue}>{generatedKey.address}</code>
-                </div>
-                <div className={styles.keyField}>
-                  <label className={styles.keyLabel}>
-                    <i className="fas fa-key"></i> Private Key (Secret)
-                  </label>
-                  <code className={`${styles.keyValue} ${styles.secret}`}>{generatedKey.privateKey}</code>
-                </div>
+              <div className={styles.modalFooterRedesign}>
+                <button className={styles.finishBtn} onClick={() => setGeneratedKey(null)}>
+                  I Have Safely Stored My Key
+                </button>
               </div>
-
-              <button className={styles.copyKeyBtn} onClick={() => copyToClipboard(generatedKey.privateKey, 'Private Key')}>
-                <i className="fas fa-copy"></i> Copy Private Key
-              </button>
-
-              <div className="mt-6">
-                <div className={styles.warningBox}>
-                  <i className="fas fa-exclamation-circle"></i>
-                  <p>
-                    <strong>WARNING:</strong> This key is NEVER stored. If you close this window without saving it,
-                    <strong> any funds sent to this address will be lost forever.</strong>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.modalFooterRedesign}>
-              <button className={styles.finishBtn} onClick={() => setGeneratedKey(null)}>
-                I Have Safely Stored My Key
-              </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   )
 }
 

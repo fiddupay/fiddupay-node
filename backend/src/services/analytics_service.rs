@@ -202,18 +202,26 @@ impl AnalyticsService {
 
     /// Helper to get current prices for all supported assets
     async fn get_current_prices(&self) -> Result<HashMap<String, Decimal>, ServiceError> {
-        let rows = sqlx::query("SELECT crypto_type, price_usd FROM exchange_rates")
+        // Try to fetch from exchange_rates table, fall back to hardcoded prices
+        let result = sqlx::query("SELECT crypto_type, price_usd FROM exchange_rates")
             .fetch_all(&self.db_pool)
-            .await?;
-        
-        let mut prices = HashMap::new();
-        use sqlx::Row;
-        for row in rows {
-            let ct: String = row.get("crypto_type");
-            let price: Decimal = row.get("price_usd");
-            prices.insert(ct, price);
+            .await;
+
+        match result {
+            Ok(rows) if !rows.is_empty() => {
+                let mut prices = HashMap::new();
+                use sqlx::Row;
+                for row in rows {
+                    let ct: String = row.get("crypto_type");
+                    let price: Decimal = row.get("price_usd");
+                    prices.insert(ct, price);
+                }
+                Ok(prices)
+            }
+            _ => {
+                Ok(HashMap::new())
+            }
         }
-        Ok(prices)
     }
 
     /// Get daily payment trends
