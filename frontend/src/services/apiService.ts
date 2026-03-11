@@ -38,7 +38,7 @@ export const merchantAPI = {
   },
   getBalanceHistory: (params?: { limit?: number }) => {
     const query = params ? `?${new URLSearchParams(cleanParams(params as any)).toString()}` : '';
-    return api.get(`/api/v1/merchants/balance-history${query}`);
+    return api.get(`/api/v1/merchants/balance/history${query}`);
   },
 
   // Invoice Management
