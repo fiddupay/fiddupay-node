@@ -42,4 +42,5 @@ pub struct Payment {
     pub remaining_balance: Option<Decimal>,
     pub is_non_custodial: Option<bool>,
     pub last_verification_at: Option<DateTime<Utc>>,
+    pub sandbox_mode: bool,
 }

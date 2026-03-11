@@ -118,13 +118,16 @@ pub struct SolanaMonitor {
 
 impl SolanaMonitor {
     pub fn new(config: &crate::config::Config, custom_rpc_url: Option<String>, expected_mint: Option<String>) -> Self {
+        let rpc_url = custom_rpc_url.unwrap_or_else(|| config.solana_rpc_url.clone());
+        let ws_url = get_solana_ws_url(config, &rpc_url);
+        
         Self {
             client: Client::builder()
                 .timeout(std::time::Duration::from_secs(10))
                 .build()
                 .unwrap_or_else(|_| Client::new()),
-            rpc_url: custom_rpc_url.unwrap_or_else(|| config.solana_rpc_url.clone()),
-            ws_url: config.solana_ws_url.clone(),
+            rpc_url,
+            ws_url,
             expected_mint,
         }
     }

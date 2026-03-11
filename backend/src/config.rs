@@ -145,6 +145,10 @@ pub struct Config {
     pub bscscan_api_url: String,
     pub arbiscan_api_url: String,
     pub polygonscan_api_url: String,
+    pub etherscan_sepolia_api_url: String,
+    pub bscscan_testnet_api_url: String,
+    pub arbiscan_sepolia_api_url: String,
+    pub polygonscan_mumbai_api_url: String,
 
 
     // Email Configuration
@@ -418,6 +422,14 @@ impl Config {
                 .unwrap_or_else(|_| "https://api.arbiscan.io/api".to_string()),
             polygonscan_api_url: env::var("POLYGONSCAN_API_URL")
                 .unwrap_or_else(|_| "https://api.polygonscan.com/api".to_string()),
+            etherscan_sepolia_api_url: env::var("ETHERSCAN_SEPOLIA_API_URL")
+                .unwrap_or_else(|_| "https://api-sepolia.etherscan.io/api".to_string()),
+            bscscan_testnet_api_url: env::var("BSCSCAN_TESTNET_API_URL")
+                .unwrap_or_else(|_| "https://api-testnet.bscscan.com/api".to_string()),
+            arbiscan_sepolia_api_url: env::var("ARBISCAN_SEPOLIA_API_URL")
+                .unwrap_or_else(|_| "https://api-sepolia.arbiscan.io/api".to_string()),
+            polygonscan_mumbai_api_url: env::var("POLYGONSCAN_MUMBAI_API_URL")
+                .unwrap_or_else(|_| "https://api-mumbai.polygonscan.com/api".to_string()),
 
             // Email Configuration
             email_enabled: env::var("EMAIL_ENABLED")
@@ -702,6 +714,10 @@ impl Default for Config {
             bscscan_api_url: "https://api.bscscan.com/api".to_string(),
             arbiscan_api_url: "https://api.arbiscan.io/api".to_string(),
             polygonscan_api_url: "https://api.polygonscan.com/api".to_string(),
+            etherscan_sepolia_api_url: "https://api-sepolia.etherscan.io/api".to_string(),
+            bscscan_testnet_api_url: "https://api-testnet.bscscan.com/api".to_string(),
+            arbiscan_sepolia_api_url: "https://api-sepolia.arbiscan.io/api".to_string(),
+            polygonscan_mumbai_api_url: "https://api-mumbai.polygonscan.com/api".to_string(),
             email_enabled: false,
             email_from: "noreply@fiddupay.com".to_string(),
             smtp_host: None,

@@ -126,7 +126,7 @@ impl PaymentVerifier {
                    transaction_hash, webhook_url, fee_percentage, fee_amount, 
                    fee_amount_usd, user_id, subscription_id, block_number, 
                    partial_payments_enabled, total_paid, remaining_balance, is_non_custodial,
-                   last_verification_at
+                   last_verification_at, sandbox_mode
             FROM payment_transactions
             WHERE id = $1
             "#
@@ -170,18 +170,8 @@ impl PaymentVerifier {
         let crypto_type = CryptoType::from_string(crypto_type_str)?;
         info!("[VERIFY-HEARTBEAT] Payment {} | STEP 3: Starting blockchain lookup for {}", payment_id, transaction_hash);
 
-        // Get merchant sandbox status
-        let merchant_sandbox: bool = sqlx::query(
-            "SELECT sandbox_mode FROM merchants WHERE id = $1"
-        )
-        .bind(merchant_id)
-        .fetch_one(&self.db_pool)
-        .await
-        .map(|r: sqlx::postgres::PgRow| r.get("sandbox_mode"))
-        .unwrap_or(false);
-
-        // Get appropriate blockchain monitor for this crypto type
-        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), merchant_sandbox);
+        // Get appropriate blockchain monitor for this crypto type using payment's sandbox mode
+        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), payment.sandbox_mode);
 
         // Fetch transaction from blockchain (Requirement 3.1)
         let blockchain_tx = monitor
@@ -298,20 +288,9 @@ impl PaymentVerifier {
             .execute(&self.db_pool)
             .await?;
 
-        // Get merchant sandbox status
-        let merchant_sandbox: bool = sqlx::query(
-            "SELECT sandbox_mode FROM merchants WHERE id = $1"
-        )
-        .bind(payment.merchant_id)
-        .fetch_one(&self.db_pool)
-        .await
-        .map(|r: sqlx::postgres::PgRow| r.get("sandbox_mode"))
-        .unwrap_or(false);
-
         let crypto_type_str = payment.crypto_type.as_ref().unwrap();
         let crypto_type = CryptoType::from_string(crypto_type_str)?;
-        
-        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), merchant_sandbox);
+        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), payment.sandbox_mode);
         let address = payment.to_address.as_ref().unwrap();
 
         // Get recent transactions for the address

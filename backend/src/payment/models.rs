@@ -410,8 +410,8 @@ pub struct PaginationInfo {
 }
 
 pub type PaymentTransaction = crate::models::payment::Payment;
-pub type PartialPaymentInfo = crate::models::payment::Payment;
-pub type PartialPaymentRecord = crate::models::payment::Payment;
+pub type PartialPaymentInfo = crate::models::payment_extra::PartialPayment;
+pub type PartialPaymentRecord = crate::models::payment_extra::PartialPayment;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockchainTransaction {
     pub hash: String,

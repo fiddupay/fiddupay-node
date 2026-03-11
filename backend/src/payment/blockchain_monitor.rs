@@ -40,42 +40,42 @@ pub struct EvmMonitor {
 }
 
 impl EvmMonitor {
-    pub fn new_bsc(config: &crate::config::Config) -> Self {
+    pub fn new_bsc(config: &crate::config::Config, is_sandbox: bool) -> Self {
         Self {
             client: Client::new(),
-            api_url: config.bscscan_api_url.clone(),
+            api_url: if is_sandbox { config.bscscan_testnet_api_url.clone() } else { config.bscscan_api_url.clone() },
             api_key: config.etherscan_api_key.clone(),
-            chain_name: "BSC",
+            chain_name: if is_sandbox { "BSC Testnet" } else { "BSC" },
             decimals: 18, // USDT on BSC has 18 decimals
         }
     }
 
-    pub fn new_arbitrum(config: &crate::config::Config) -> Self {
+    pub fn new_arbitrum(config: &crate::config::Config, is_sandbox: bool) -> Self {
         Self {
             client: Client::new(),
-            api_url: config.arbiscan_api_url.clone(),
+            api_url: if is_sandbox { config.arbiscan_sepolia_api_url.clone() } else { config.arbiscan_api_url.clone() },
             api_key: config.etherscan_api_key.clone(),
-            chain_name: "Arbitrum",
+            chain_name: if is_sandbox { "Arbitrum Sepolia" } else { "Arbitrum" },
             decimals: 6, // USDT on Arbitrum has 6 decimals
         }
     }
 
-    pub fn new_polygon(config: &crate::config::Config) -> Self {
+    pub fn new_polygon(config: &crate::config::Config, is_sandbox: bool) -> Self {
         Self {
             client: Client::new(),
-            api_url: config.polygonscan_api_url.clone(),
+            api_url: if is_sandbox { config.polygonscan_mumbai_api_url.clone() } else { config.polygonscan_api_url.clone() },
             api_key: config.etherscan_api_key.clone(),
-            chain_name: "Polygon",
+            chain_name: if is_sandbox { "Polygon Mumbai" } else { "Polygon" },
             decimals: 6, // USDT on Polygon has 6 decimals
         }
     }
 
-    pub fn new_ethereum(config: &crate::config::Config) -> Self {
+    pub fn new_ethereum(config: &crate::config::Config, is_sandbox: bool) -> Self {
         Self {
             client: Client::new(),
-            api_url: config.etherscan_api_url.clone(),
+            api_url: if is_sandbox { config.etherscan_sepolia_api_url.clone() } else { config.etherscan_api_url.clone() },
             api_key: config.etherscan_api_key.clone(),
-            chain_name: "Ethereum",
+            chain_name: if is_sandbox { "Ethereum Sepolia" } else { "Ethereum" },
             decimals: 6, // USDT on Ethereum has 6 decimals
         }
     }
@@ -311,7 +311,7 @@ impl EvmMonitor {
 /// Factory function to create appropriate blockchain monitor
 pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::Config, is_sandbox: bool) -> Box<dyn BlockchainMonitor> {
     match crypto_type.network() {
-        "Solana" | "SOLANA_SPL" => {
+        "SOLANA" | "SOLANA_SPL" => {
             let rpc_url = if is_sandbox {
                 Some(config.solana_devnet_rpc_url.clone())
             } else {
@@ -320,10 +320,10 @@ pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::C
             let expected_mint = crypto_type.token_address().map(|s| s.to_string());
             Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, rpc_url, expected_mint))
         },
-        "Ethereum" => Box::new(EvmMonitor::new_ethereum(&config)),
-        "BSC" => Box::new(EvmMonitor::new_bsc(&config)),
-        "Polygon" => Box::new(EvmMonitor::new_polygon(&config)),
-        "Arbitrum" => Box::new(EvmMonitor::new_arbitrum(&config)),
+        "ETHEREUM" => Box::new(EvmMonitor::new_ethereum(&config, is_sandbox)),
+        "BEP20" => Box::new(EvmMonitor::new_bsc(&config, is_sandbox)),
+        "POLYGON" => Box::new(EvmMonitor::new_polygon(&config, is_sandbox)),
+        "ARBITRUM" => Box::new(EvmMonitor::new_arbitrum(&config, is_sandbox)),
         _ => {
              // Default to Solana for unknown types (fallback)
             let rpc_url = if is_sandbox {
