@@ -31,10 +31,11 @@ impl BlockchainTransactionSender {
         gas_price: Option<U256>,
         sandbox_mode: bool,
     ) -> Result<String, ServiceError> {
-        let is_spl = crypto_type.network() == "SOLANA_SPL";
+        let is_solana = crypto_type.network() == "SOLANA";
         let is_solana_native = crypto_type == CryptoType::Sol;
+        let is_spl = is_solana && !is_solana_native;
         
-        let is_evm_token = !is_solana_native && !is_spl && !crypto_type.is_native_currency();
+        let is_evm_token = !is_solana && !crypto_type.is_native_currency();
 
         if is_solana_native {
             self.send_solana_transaction(private_key, to_address, amount, sandbox_mode).await
@@ -385,8 +386,8 @@ impl BlockchainTransactionSender {
         let token_contract_address: Address = token_address_str.parse()
             .map_err(|_| ServiceError::ValidationError("Invalid token contract address".to_string()))?;
 
-        // Most tokens like USDT/USDC have 6 decimals on EVM (except BSC where it's 18 sometimes, assuming 6 for now)
-        let decimals = 6;
+        // Most tokens like USDT/USDC have 6 decimals on EVM (except BSC where USDT BEP20 is 18)
+        let decimals = if crypto_type == CryptoType::UsdtBep20 { 18 } else { 6 };
         let token_amount = (amount * Decimal::new(10i64.pow(decimals as u32), 0))
             .to_u128()
             .ok_or_else(|| ServiceError::ValidationError("Invalid token amount".to_string()))?;
