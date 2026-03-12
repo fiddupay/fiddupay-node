@@ -314,15 +314,19 @@ impl SolanaMonitor {
                 if let Some(owner) = best_recipient_owner {
                     info!("[SOL-MONITOR] SPL token transfer detected: {} tokens to owner {}", best_amount, owner);
                     (owner, best_amount)
-                } else {
-                    // postTokenBalances exist but no increase found (e.g. ATA creation only)
-                    // Fall through to SOL balance diff logic
-                    info!("[SOL-MONITOR] postTokenBalances present but no token increase found, falling back to SOL balance diff");
+                } else if self.expected_mint.is_none() {
+                    // Fall back to SOL diff only if we aren't looking for a specific token
                     Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.accountKeys)
+                } else {
+                    // We expected a token but didn't find a matching increase
+                    (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO)
                 }
-            } else {
+            } else if self.expected_mint.is_none() {
                 // --- Native SOL Transfer ---
                 Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.accountKeys)
+            } else {
+                // Not an SPL transfer and we were expecting one
+                (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO)
             }
         } else {
             (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO)

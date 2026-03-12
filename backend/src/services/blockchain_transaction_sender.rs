@@ -189,12 +189,24 @@ impl BlockchainTransactionSender {
         let source_ata = get_associated_token_address(&sender_pubkey, &mint_pubkey);
         let destination_ata = get_associated_token_address(&to_pubkey, &mint_pubkey);
 
-        // Check if destination ATA exists (Requirement: Idempotent creation)
+        tracing::info!("[SOLANA-TRANSFER] Sender: {}, to: {}, mint: {}", sender_pubkey, to_pubkey, mint_pubkey);
+        tracing::info!("[SOLANA-TRANSFER] Source ATA: {}, Destination ATA: {}", source_ata, destination_ata);
+
+        // 1. Check if source ATA exists and has balance
+        let source_account = rpc_client.get_account(&source_ata).await;
+        if source_account.is_err() {
+            tracing::error!("[SOLANA-TRANSFER] Source ATA {} does not exist. Withdrawal impossible without on-chain tokens.", source_ata);
+            return Err(ServiceError::ValidationError(format!("Source token account not initialized. Ensure you have {} on-chain.", if mint_address == "So11111111111111111111111111111111111111112" { "WSOL" } else { "USDT" })));
+        }
+
+        let mut instructions: Vec<Instruction> = Vec::new();
+
+        // 2. Check if destination ATA exists (Requirement: Idempotent creation)
         let dest_account = rpc_client.get_account(&destination_ata).await;
         if dest_account.is_err() {
             // Must create the destination ATA funded by the sender
             // We use the IDEMPOTENT variant to prevent failures if the account is created concurrently
-            tracing::info!("[SOLANA-FEE] Destination ATA does not exist or fetch error. Adding 'CreateATAIdempotent' instruction (Rent ≈ 0.002 SOL)");
+            tracing::info!("[SOLANA-FEE] Destination ATA {} does not exist. Adding 'CreateATAIdempotent' instruction (Rent ≈ 0.002 SOL)", destination_ata);
             instructions.push(
                 create_associated_token_account_idempotent(
                     &sender_pubkey,
@@ -235,7 +247,7 @@ impl BlockchainTransactionSender {
             Ok(sim) => {
                 if let Some(err) = sim.value.err {
                     tracing::error!("[SOLANA-SIM] Simulation failed for token transfer: {:?}", err);
-                    return Err(ServiceError::Internal(format!("Transaction simulation failed: {}", err)));
+                    return Err(ServiceError::Internal(format!("Transaction simulation failed: {}. Ensure you have enough SOL for fees and enough tokens for withdrawal.", err)));
                 }
                 tracing::info!("[SOLANA-SIM] Simulation successful for token transfer");
             },
