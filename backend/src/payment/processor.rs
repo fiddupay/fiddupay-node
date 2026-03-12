@@ -205,7 +205,7 @@ impl PaymentProcessor {
                      confirmations, required_confirmations, transaction_hash, from_address, webhook_url,
                      fee_percentage, fee_amount, fee_amount_usd, network,
                      user_id, subscription_id, block_number, partial_payments_enabled,
-                     total_paid, remaining_balance, is_non_custodial, last_verification_at
+                     total_paid, remaining_balance, is_non_custodial, last_verification_at, sandbox_mode
             "#
         )
         .bind(&payment_id)

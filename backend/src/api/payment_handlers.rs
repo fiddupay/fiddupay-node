@@ -465,7 +465,7 @@ pub async fn finalize_payment_selection(
                confirmations, required_confirmations, description, metadata,
                transaction_hash, webhook_url, fee_percentage, fee_amount, fee_amount_usd,
                 user_id, subscription_id, block_number, partial_payments_enabled,
-                total_paid, remaining_balance, is_non_custodial, last_verification_at
+                total_paid, remaining_balance, is_non_custodial, last_verification_at, sandbox_mode
         FROM payment_transactions 
         WHERE id = $1
         "#
