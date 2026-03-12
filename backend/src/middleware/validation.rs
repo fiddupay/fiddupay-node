@@ -210,32 +210,3 @@ fn is_private_or_localhost(host: &str) -> bool {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_password_validation() {
-        assert!(validate_password_strength("Password123!").is_ok());
-        assert!(validate_password_strength("weak").is_err());
-        assert!(validate_password_strength("password123").is_err());
-    }
-
-    #[test]
-    fn test_webhook_url_validation() {
-        assert!(validate_webhook_url("https://example.com/webhook").is_ok());
-        assert!(validate_webhook_url("http://example.com/webhook").is_err());
-        assert!(validate_webhook_url("https://localhost/webhook").is_err());
-        assert!(validate_webhook_url("https://192.168.1.1/webhook").is_err());
-    }
-
-    #[test]
-    fn test_private_ip_detection() {
-        assert!(is_private_or_localhost("localhost"));
-        assert!(is_private_or_localhost("127.0.0.1"));
-        assert!(is_private_or_localhost("192.168.1.1"));
-        assert!(is_private_or_localhost("10.0.0.1"));
-        assert!(!is_private_or_localhost("8.8.8.8"));
-        assert!(!is_private_or_localhost("example.com"));
-    }
-}

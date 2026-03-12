@@ -33,12 +33,15 @@ export interface MerchantProfile {
   email: string;
   created_at: string;
   kyc_verified: boolean;
-  daily_volume_remaining?: string; // Only present for non-KYC merchants
-  daily_limit_usd?: string;
+  daily_volume_usd: string;
+  daily_volume_limit: string;
+  daily_volume_remaining: string;
   tier_level?: string;
   two_factor_enabled: boolean;
   sandbox_mode: boolean;
-  settlement_mode: 'forwarding' | 'managed' | 'imported';
+  settlement_mode: 'forwarding' | 'managed';
+  wallets_locked: boolean;
+  customer_wallets_locked: boolean;
 }
 
 export interface CreatePaymentRequest {
@@ -156,7 +159,7 @@ export interface UnifiedSettingsRequest {
   webhook_url?: string;
   redirect_url?: string;
   webhook_format?: 'json' | 'form';
-  settlement_mode?: 'forwarding' | 'managed' | 'imported';
+  settlement_mode?: 'forwarding' | 'managed';
   customer_pays_fee?: boolean;
   fee_percentage?: number;
   ip_whitelist?: string[];
@@ -254,16 +257,24 @@ export interface MerchantWalletBalance {
 
 export interface GenerateWalletRequest {
   crypto_type: CryptoType;
+  network?: string;
+  is_active?: boolean;
+  enable_all_evm?: boolean;
 }
 
-export interface ImportWalletRequest {
-  crypto_type: CryptoType;
-  private_key: string;
+export interface GeneratedWallet {
+  crypto_type: string;
+  address: string;
+  network: string;
+  is_active: boolean;
 }
 
-export interface ExportKeyRequest {
-  crypto_type: CryptoType;
+export interface GeneratedWalletResponse {
+  wallet: GeneratedWallet;
+  mode: string;
+  message: string;
 }
+
 
 export interface ConfigureAddressRequest {
   crypto_type: CryptoType;
@@ -344,10 +355,10 @@ export interface SecurityAlert {
 
 export interface BalanceAlert {
   alert_id: string;
-  crypto_type: CryptoType;
+  crypto_type: string;
   current_balance: string;
   threshold: string;
-  resolved: boolean;
+  status: 'active' | 'resolved'; // Changed from resolved: bool to match monitoring logic
   resolved_at?: string;
   created_at: string;
 }
@@ -368,6 +379,10 @@ export interface UpdateSecuritySettingsRequest {
     low_balance?: string;
     failed_transactions?: number;
   };
+}
+
+export interface SetLockRequest {
+  locked: boolean;
 }
 
 export interface ListSecurityEventsParams {
@@ -538,3 +553,53 @@ export interface CustomerBalanceResponse {
   external_id: string;
   balances: CustomerBalance[];
 }
+
+export interface CustomerTransaction {
+  id: number;
+  customer_id: number;
+  merchant_id: number;
+  crypto_type: string;
+  amount: string;
+  amount_usd: string;
+  tx_hash: string;
+  status: string;
+  created_at: string;
+}
+
+export interface CustomerStatusRequest {
+  status: 'active' | 'suspended' | 'inactive';
+  reason?: string;
+}
+
+export interface CustomerPermissionsRequest {
+  can_withdraw?: boolean;
+  withdrawal_limit?: string;
+}
+
+/**
+ * Customer Internal Payment Request
+ */
+export interface CustomerPayMerchantRequest {
+  crypto_type: string;
+  amount: string;
+  reference_id?: string;
+  description?: string;
+}
+
+/**
+ * Balance History Entry
+ */
+export interface BalanceHistoryEntry {
+  id: number;
+  crypto_type: string;
+  amount: string;
+  type: string;
+  status: string;
+  reference_id?: string;
+  created_at: string;
+}
+
+/**
+ * Security Monitoring Types
+ */
+// Consolidated with existing Security types above

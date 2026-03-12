@@ -717,7 +717,7 @@ impl MerchantService {
             }
         } 
         
-        // MANAGED / IMPORTED MODE: Look in merchant_wallets
+        // MANAGED MODE: Look in merchant_wallets
         
         let wallet_opt = sqlx::query(
             "SELECT address FROM merchant_wallets 
@@ -757,7 +757,7 @@ impl MerchantService {
         mode: &str,
     ) -> Result<(), ServiceError> {
         // Validate the mode
-        if !["forwarding", "managed", "imported"].contains(&mode) {
+        if !["forwarding", "managed"].contains(&mode) {
             return Err(ServiceError::ValidationError("Invalid settlement mode".to_string()));
         }
 
@@ -782,7 +782,7 @@ impl MerchantService {
         redirect_url: Option<String>,
     ) -> Result<(), ServiceError> {
         if let Some(ref mode) = settlement_mode {
-            if !["forwarding", "managed", "imported"].contains(&mode.as_str()) {
+            if !["forwarding", "managed"].contains(&mode.as_str()) {
                 return Err(ServiceError::ValidationError("Invalid settlement mode".to_string()));
             }
         }

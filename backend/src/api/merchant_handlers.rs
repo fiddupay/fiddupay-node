@@ -39,7 +39,6 @@ pub use crate::api::payment_handlers::{
     create_refund,
     get_refund,
     complete_refund,
-    enable_sandbox,
     simulate_payment,
 };
 

@@ -8,7 +8,10 @@ import {
     CustomerSweepRequest,
     ListCustomersParams,
     PaginatedResponse,
-    RequestOptions
+    RequestOptions,
+    CustomerTransaction,
+    CustomerStatusRequest,
+    CustomerPermissionsRequest
 } from '../types';
 
 /**
@@ -83,5 +86,51 @@ export class Customers {
      */
     async deactivate(externalId: string, options?: RequestOptions): Promise<{ message: string }> {
         return this.client.post(`/api/v1/merchants/customers/${externalId}/deactivate`, {}, options);
+    }
+
+    /**
+     * Get transaction history for a specific customer.
+     */
+    async getTransactions(externalId: string, params?: { limit?: number; offset?: number }, options?: RequestOptions): Promise<PaginatedResponse<CustomerTransaction>> {
+        const queryParams = new URLSearchParams();
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
+        if (params?.offset) queryParams.append('offset', params.offset.toString());
+        
+        const path = `/api/v1/merchants/customers/${externalId}/transactions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+        return this.client.get<PaginatedResponse<CustomerTransaction>>(path, options);
+    }
+
+    /**
+     * Update customer status (active, suspended, inactive).
+     */
+    async updateStatus(externalId: string, data: CustomerStatusRequest, options?: RequestOptions): Promise<{ message: string }> {
+        return this.client.patch(`/api/v1/merchants/customers/${externalId}/status`, data, options);
+    }
+
+    /**
+     * Update customer-specific permissions and limits.
+     */
+    async updatePermissions(externalId: string, data: CustomerPermissionsRequest, options?: RequestOptions): Promise<{ message: string }> {
+        return this.client.patch(`/api/v1/merchants/customers/${externalId}/permissions`, data, options);
+    }
+
+    /**
+     * Get the specific deposit address for a customer for a given cryptocurrency.
+     */
+    async getDepositAddress(externalId: string, cryptoType: string, options?: RequestOptions): Promise<{ address: string; crypto_type: string }> {
+        return this.client.get(`/api/v1/merchants/customers/${externalId}/deposit-address/${cryptoType}`, options);
+    }
+
+    /**
+     * Initiate an internal payment from a customer's designated wallet balance to the merchant's master balance.
+     * This is useful for charging users for services on your platform.
+     */
+    async payMerchant(externalId: string, data: {
+        crypto_type: string;
+        amount: string;
+        reference_id?: string;
+        description?: string;
+    }, options?: RequestOptions): Promise<{ transaction: any; message: string }> {
+        return this.client.post(`/api/v1/merchants/customers/${externalId}/pay-merchant`, data, options);
     }
 }

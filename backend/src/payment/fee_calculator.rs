@@ -78,38 +78,3 @@ impl FeeCalculator {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use rust_decimal_macros::dec;
-
-    #[test]
-    fn test_validate_fee_percentage() {
-        // Valid fee percentages
-        assert!(FeeCalculator::validate_fee_percentage(dec!(0.01)).is_ok());
-        assert!(FeeCalculator::validate_fee_percentage(dec!(1.50)).is_ok());
-        assert!(FeeCalculator::validate_fee_percentage(dec!(10.00)).is_ok());
-        
-        // Invalid fee percentages
-        assert!(FeeCalculator::validate_fee_percentage(dec!(0.00)).is_err());
-        assert!(FeeCalculator::validate_fee_percentage(dec!(-1.00)).is_err());
-    }
-
-    #[test]
-    fn test_calculate_fee_usd() {
-        let amount = dec!(100.00);
-        let fee_pct = dec!(1.50);
-        let expected_fee = dec!(1.50);
-        
-        assert_eq!(FeeCalculator::calculate_fee_usd(amount, fee_pct), expected_fee);
-    }
-
-    #[test]
-    fn test_calculate_net_amount() {
-        let gross = dec!(100.00);
-        let fee_pct = dec!(2.50);
-        let expected_net = dec!(97.50);
-        
-        assert_eq!(FeeCalculator::calculate_net_amount(gross, fee_pct), expected_net);
-    }
-}

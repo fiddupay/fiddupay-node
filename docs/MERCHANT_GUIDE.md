@@ -10,7 +10,7 @@ Complete guide for merchants to integrate FidduPay cryptocurrency payment gatewa
 - **KYC Verified Merchants**: No daily volume limits
 - **Reset**: Daily limits reset at midnight UTC
 - **Tracking**: Real-time volume tracking across all transaction types
-- **v2.4.4 Update**: Introduced On-Demand Managed Wallets, Multi-Currency Checkout, Unified Settings, and Full SDK Parity.
+- **v2.4.6 Update**: Introduced Extended Wallet Security Locks (Toggle Master/Customer), Customer Permissions, Manual Deposit Address retrieval, internal Customer-to-Merchant payments, and Balance History tracking.
 
 
 ### Check Your Daily Volume Status
@@ -97,6 +97,32 @@ curl -X PUT https://api.fiddupay.com/api/v1/merchants/webhook \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://your-site.com/webhook"
+  }'
+```
+
+### 5. Wallet Security Locks (v2.4.6)
+Protect your wallets from unauthorized activity by toggling security locks.
+
+**Toggle Master Wallet Lock:**
+```bash
+curl -X POST https://api.fiddupay.com/api/v1/merchants/security/lock-master \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "locked": true,
+    "reason": "Security review in progress",
+    "duration_minutes": 120
+  }'
+```
+
+**Toggle Customer Wallet Lock:**
+```bash
+curl -X POST https://api.fiddupay.com/api/v1/merchants/security/lock-customers \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "locked": true,
+    "reason": "Maintenance"
   }'
 ```
 
@@ -719,6 +745,41 @@ curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_123456/dea
   -H "Authorization: Bearer your_api_key"
 ```
 
+### 3.5 Customer Pay Merchant (v2.4.6)
+Charge a customer directly from their sub-account balance.
+
+```bash
+curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_123456/pay-merchant \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "crypto_type": "USDT",
+    "amount": "15.0",
+    "description": "Premium Subscription"
+  }'
+```
+
+### 3.6 Update Permissions (v2.4.6)
+Manage what customers can do with their sub-accounts.
+
+```bash
+curl -X PATCH https://api.fiddupay.com/api/v1/merchants/customers/user_123456/permissions \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "can_withdraw": true,
+    "withdrawal_limit": "1000.0"
+  }'
+```
+
+### 3.7 Get Specific Deposit Address (v2.4.6)
+Retrieve the exact deposit address for a specific cryptocurrency.
+
+```bash
+curl -X GET https://api.fiddupay.com/api/v1/merchants/customers/user_123456/deposit-address/SOL \
+  -H "Authorization: Bearer your_api_key"
+```
+
 ### 3.5 Using Metadata
 The `metadata` field is a flexible JSON object for internal mapping. Recommended uses:
 - **internal_id**: Map to your legacy database ID.
@@ -795,6 +856,14 @@ Balance Structure:
 ```bash
 GET /api/v1/merchants/balance
 Authorization: Bearer live_your_api_key_here
+
+### 4.2 Balance History (v2.4.6)
+Track how your balance changes over time.
+
+```bash
+curl -X GET https://api.fiddupay.com/api/v1/merchants/balance/history?limit=100 \
+  -H "Authorization: Bearer your_api_key"
+```
 
 Response:
 {

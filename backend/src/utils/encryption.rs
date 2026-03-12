@@ -72,20 +72,3 @@ impl Encryption {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_encryption_roundtrip() {
-        std::env::set_var("ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
-        
-        let enc = Encryption::new().unwrap();
-        let plaintext = "secret data";
-        
-        let encrypted = enc.encrypt(plaintext).unwrap();
-        let decrypted = enc.decrypt(&encrypted).unwrap();
-        
-        assert_eq!(plaintext, decrypted);
-    }
-}

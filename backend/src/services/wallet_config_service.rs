@@ -332,78 +332,13 @@ impl WalletConfigService {
         
         Ok(GeneratedWalletResponse {
             config,
-            private_key: Some(wallet.private_key),
         })
     }
 
     pub async fn generate_wallet_managed(&self, merchant_id: i64, sandbox_mode: bool, request: GenerateWalletRequest) -> Result<GeneratedWalletResponse, ServiceError> {
-        let mut response = self.generate_wallet(merchant_id, sandbox_mode, request).await?;
-        response.private_key = None;
-        Ok(response)
+        self.generate_wallet(merchant_id, sandbox_mode, request).await
     }
 
-    pub async fn import_wallet(&self, merchant_id: i64, sandbox_mode: bool, request: ImportWalletRequest) -> Result<WalletConfig, ServiceError> {
-        let crypto_type = CryptoType::from_string(&request.crypto_type)?;
-        
-        let address = match crypto_type {
-            CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => KeyGenerator::validate_private_key(&request.private_key, "solana")?,
-            _ => KeyGenerator::validate_private_key(&request.private_key, "ethereum")?,
-        };
-
-        let encryption = crate::utils::encryption::Encryption::new()
-            .map_err(|e| ServiceError::InternalError(format!("Encryption error: {}", e)))?;
-        let encrypted_key = encryption.encrypt(&request.private_key)
-            .map_err(|e| ServiceError::InternalError(format!("Encryption error: {}", e)))?;
-        let config = self.set_wallet_address(
-            merchant_id, 
-            crypto_type.clone(), 
-            address.clone(), 
-            request.is_active.unwrap_or(true), 
-            sandbox_mode,
-            Some(encrypted_key.clone())
-        ).await?;
-
-        if request.enable_all_evm.unwrap_or(false) && is_evm(&crypto_type) {
-            let evm_networks = vec![
-                CryptoType::Eth,
-                CryptoType::Bnb,
-                CryptoType::Matic,
-                CryptoType::Arb,
-            ];
-            for network in evm_networks {
-                if network != crypto_type {
-                    self.set_wallet_address(
-                        merchant_id,
-                        network,
-                        address.clone(),
-                        request.is_active.unwrap_or(true),
-                        sandbox_mode,
-                        Some(encrypted_key.clone())
-                    ).await?;
-                }
-            }
-        }
-
-        Ok(config)
-    }
-
-    pub async fn export_private_key(&self, merchant_id: i64, sandbox_mode: bool, request: ExportKeyRequest) -> Result<String, ServiceError> {
-        let row = sqlx::query(
-            "SELECT encrypted_private_key FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
-        )
-        .bind(merchant_id)
-        .bind(&request.crypto_type)
-        .bind(sandbox_mode)
-        .fetch_optional(&self.db_pool)
-        .await?;
-
-        if let Some(r) = row {
-             if let Some(key) = r.try_get::<Option<String>, _>("encrypted_private_key").ok().flatten() {
-                  return Ok(key);
-             }
-        }
-        Err(ServiceError::NotFound("Private key not found".to_string()))
-    }
 
     pub async fn validate_gas_for_withdrawal(&self, merchant_id: i64, sandbox_mode: bool, crypto_type: CryptoType, amount: Decimal) -> Result<GasValidationResult, ServiceError> {
         let balance = self.get_balance(merchant_id, crypto_type, sandbox_mode).await?;
@@ -746,13 +681,6 @@ pub struct GenerateWalletRequest {
     pub enable_all_evm: Option<bool>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ImportWalletRequest {
-    pub crypto_type: String,
-    pub private_key: String,
-    pub is_active: Option<bool>,
-    pub enable_all_evm: Option<bool>,
-}
 
 // Helper to determine if a CryptoType is an EVM network
 fn is_evm(crypto_type: &CryptoType) -> bool {
@@ -765,16 +693,10 @@ fn is_evm(crypto_type: &CryptoType) -> bool {
     )
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ExportKeyRequest {
-    pub crypto_type: String,
-}
 
 #[derive(Debug, Serialize)]
 pub struct GeneratedWalletResponse {
     pub config: WalletConfig,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub private_key: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

@@ -52,4 +52,25 @@ export class Withdrawals {
     const data = encryptionPassword ? { encryption_password: encryptionPassword } : {};
     return this.client.request<Withdrawal>('POST', `/api/v1/merchants/withdrawals/${withdrawalId}/process`, data);
   }
+
+  /**
+   * Validate gas requirements for a withdrawal
+   */
+  async validateGas(cryptoType: string, amount: string): Promise<any> {
+    return this.client.request('GET', `/api/v1/merchants/wallets/gas-check?crypto_type=${cryptoType}&amount=${amount}`);
+  }
+
+  /**
+   * Get gas price estimates for all supported networks
+   */
+  async getGasEstimates(): Promise<any> {
+    return this.client.request('GET', '/api/v1/merchants/wallets/gas-estimates');
+  }
+
+  /**
+   * Check if withdrawal is possible for a specific cryptocurrency
+   */
+  async checkCapability(cryptoType: string): Promise<any> {
+    return this.client.request('GET', `/api/v1/merchants/wallets/withdrawal-capability/${cryptoType}`);
+  }
 }

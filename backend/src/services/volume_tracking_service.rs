@@ -63,19 +63,3 @@ impl VolumeTrackingService {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use rust_decimal_macros::dec;
-
-    #[tokio::test]
-    async fn test_kyc_verified_no_limit() {
-        // This would require a test database setup
-        // For now, just test the logic
-        let large_amount = dec!(10000.00);
-        let small_limit = dec!(100.00);
-        
-        // KYC verified should always return true regardless of amount
-        // This test would need actual database setup to run
-    }
-}

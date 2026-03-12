@@ -227,4 +227,22 @@ export class Payments {
       );
     }
   }
+
+  /**
+   * Get payment analytics and reporting
+   */
+  async getAnalytics(params?: {
+    from_date?: string;
+    to_date?: string;
+    granularity?: 'day' | 'week' | 'month';
+  }, options?: RequestOptions): Promise<any> {
+    const queryParams = new URLSearchParams();
+    if (params?.from_date) queryParams.append('from_date', params.from_date);
+    if (params?.to_date) queryParams.append('to_date', params.to_date);
+    if (params?.granularity) queryParams.append('granularity', params.granularity);
+
+    const query = queryParams.toString();
+    const path = query ? `/api/v1/merchants/analytics?${query}` : '/api/v1/merchants/analytics';
+    return this.client.request('GET', path);
+  }
 }

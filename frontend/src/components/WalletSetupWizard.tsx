@@ -12,9 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface WalletConfig {
   network: string;
-  wallet_mode: 'address_only' | 'gateway_generated' | 'merchant_provided';
+  wallet_mode: 'address_only' | 'gateway_generated';
   address: string;
-  has_private_key: boolean;
 }
 
 interface NetworkConfig {
@@ -43,7 +42,6 @@ export default function WalletSetupWizard() {
 
   // Form states
   const [address, setAddress] = useState('');
-  const [privateKey, setPrivateKey] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -117,33 +115,6 @@ export default function WalletSetupWizard() {
     }
   }
 
-  const handleImportWallet = async () => {
-    if (!privateKey || !password || password !== confirmPassword) {
-      setError('Please fill all fields with matching passwords');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      await walletAPI.setup({
-        crypto_type: getSelectedCryptoType(),
-        mode: 'import',
-        private_key: privateKey
-      })
-
-      setSuccess(`Private key imported for ${selectedNetwork}`)
-      setPrivateKey('')
-      setPassword('')
-      setConfirmPassword('')
-      loadWalletConfigs()
-    } catch (err) {
-      setError('Network error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getWalletForNetwork = (networkId: string) => {
     return wallets.find(w => w.network === networkId);
@@ -184,8 +155,7 @@ export default function WalletSetupWizard() {
                           <div className="flex items-center gap-1 text-green-600">
                             <i className="fas fa-check-circle text-sm"></i>
                             <span className="text-xs">
-                              {wallet.wallet_mode === 'address_only' ? 'Address Only' :
-                                wallet.wallet_mode === 'gateway_generated' ? 'Generated' : 'Imported'}
+                              {wallet.wallet_mode === 'address_only' ? 'Address Only' : 'Generated'}
                             </span>
                           </div>
                         )}
@@ -200,7 +170,7 @@ export default function WalletSetupWizard() {
             <div>
               <Label className="text-base font-medium">Wallet Configuration</Label>
               <Tabs value={selectedMode} onValueChange={setSelectedMode} className="mt-2">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="address_only" className="text-xs">
                     <i className="fas fa-shield-alt mr-1"></i>
                     Address Only
@@ -208,10 +178,6 @@ export default function WalletSetupWizard() {
                   <TabsTrigger value="gateway_generated" className="text-xs">
                     <i className="fas fa-key mr-1"></i>
                     Generate
-                  </TabsTrigger>
-                  <TabsTrigger value="merchant_provided" className="text-xs">
-                    <i className="fas fa-file-import mr-1"></i>
-                    Import
                   </TabsTrigger>
                 </TabsList>
 
@@ -243,7 +209,7 @@ export default function WalletSetupWizard() {
                     <div className="flex items-center gap-3">
                       <i className="fas fa-key text-lg"></i>
                       <AlertDescription>
-                        FidduPay generates encrypted keys. Withdrawal capability enabled. You can export keys anytime.
+                        FidduPay generates encrypted keys. Withdrawal capability enabled.
                       </AlertDescription>
                     </div>
                   </Alert>
@@ -272,49 +238,6 @@ export default function WalletSetupWizard() {
                   </Button>
                 </TabsContent>
 
-                <TabsContent value="merchant_provided" className="space-y-4">
-                  <Alert>
-                    <div className="flex items-center gap-3">
-                      <i className="fas fa-exclamation-triangle text-lg"></i>
-                      <AlertDescription>
-                        Import your existing private key. Withdrawal capability enabled. Key will be encrypted and stored securely.
-                      </AlertDescription>
-                    </div>
-                  </Alert>
-                  <div>
-                    <Label htmlFor="private-key">Private Key</Label>
-                    <Input
-                      id="private-key"
-                      type="password"
-                      value={privateKey}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPrivateKey(e.target.value)}
-                      placeholder={selectedNetwork === 'solana' ? 'Base58 private key' : '0x... or hex private key'}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="import-password">Encryption Password</Label>
-                    <Input
-                      id="import-password"
-                      type="password"
-                      value={password}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                      placeholder="Password to encrypt your key"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="import-confirm">Confirm Password</Label>
-                    <Input
-                      id="import-confirm"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm password"
-                    />
-                  </div>
-                  <Button onClick={handleImportWallet} disabled={loading} className="w-full">
-                    Import Private Key
-                  </Button>
-                </TabsContent>
               </Tabs>
             </div>
           </div>

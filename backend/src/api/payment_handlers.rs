@@ -133,16 +133,6 @@ pub async fn complete_refund(
 // Sandbox Endpoints
 // ============================================================================
 
-pub async fn enable_sandbox(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
-) -> impl IntoResponse {
-    match state.sandbox_service.create_sandbox_credentials(context.merchant_id).await {
-        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
-    }
-}
-
 #[derive(Deserialize)]
 pub struct SimulatePaymentRequest {
     pub success: bool,

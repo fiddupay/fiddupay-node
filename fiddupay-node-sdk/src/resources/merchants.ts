@@ -29,16 +29,6 @@ export class Merchants {
     return this.client.request('GET', '/api/v1/merchants/status');
   }
 
-  /**
-   * Set wallet address for a cryptocurrency
-   */
-  async setWallet(data: {
-    crypto_type: string;
-    address: string
-  }, options?: RequestOptions): Promise<{ message: string }> {
-    return this.client.request('PUT', '/api/v1/merchants/wallets', data);
-  }
-
   async switchEnvironment(data: {
     environment: 'sandbox' | 'production'
   }, options?: RequestOptions): Promise<{ message: string; environment: string }> {
@@ -67,59 +57,12 @@ export class Merchants {
   }
 
   /**
-   * Set webhook URL
-   * @deprecated Use updateSettings instead
+   * Get current fee setting
    */
-  async setWebhook(data: {
-    webhook_url: string
-  }, options?: RequestOptions): Promise<{ message: string }> {
-    const requestData = { url: data.webhook_url };
-    return this.client.request('PUT', '/api/v1/merchants/webhook', requestData);
+  async getFeeSetting(options?: RequestOptions): Promise<{ fee_percentage: number; customer_pays_fee: boolean }> {
+    return this.client.request('GET', '/api/v1/merchants/fee-setting');
   }
 
-  /**
-   * Set IP whitelist
-   * @deprecated Use updateSettings instead
-   */
-  async setIpWhitelist(data: {
-    ip_addresses: string[]
-  }, options?: RequestOptions): Promise<{ message: string }> {
-    return this.client.request('PUT', '/api/v1/merchants/ip-whitelist', data);
-  }
-
-  /**
-   * Get IP whitelist
-   */
-  async getIpWhitelist(options?: RequestOptions): Promise<{ ip_addresses: string[] }> {
-    return this.client.request('GET', '/api/v1/merchants/ip-whitelist');
-  }
-
-  /**
-   * Get merchant balance
-   */
-  async getBalance(options?: RequestOptions): Promise<{
-    balances: Array<{
-      crypto_type: string;
-      balance: string;
-      balance_usd: string;
-      pending: string;
-      pending_usd: string;
-    }>;
-    total_balance_usd: string;
-    total_pending_usd: string;
-  }> {
-    return this.client.request('GET', '/api/v1/merchants/balance');
-  }
-
-  /**
-   * Update global settlement mode
-   */
-  /**
-   * @deprecated Use updateSettings instead
-   */
-  async updateSettlementMode(mode: 'forwarding' | 'managed' | 'imported'): Promise<any> {
-    return this.client.request('PUT', '/api/v1/merchants/settlement-mode', { mode });
-  }
 
   /**
    * Update global merchant settings (Unified)
@@ -143,6 +86,20 @@ export class Merchants {
   }
 
   /**
+   * Get merchant balance
+   */
+  async getBalance(options?: RequestOptions): Promise<{
+    balances: Record<string, {
+      available: string;
+      pending: string;
+      total: string;
+    }>;
+    total_usd: string;
+  }> {
+    return this.client.request('GET', '/api/v1/merchants/balance');
+  }
+
+  /**
    * Get audit logs for the merchant
    */
   async getAuditLogs(params?: {
@@ -161,6 +118,24 @@ export class Merchants {
 
     const query = queryParams.toString();
     const path = query ? `/api/v1/merchants/audit-logs?${query}` : '/api/v1/merchants/audit-logs';
+    return this.client.request('GET', path);
+  }
+
+  /**
+   * Get balance history for the merchant
+   */
+  async getBalanceHistory(params?: {
+    limit?: number;
+    offset?: number;
+    crypto_type?: string;
+  }, options?: RequestOptions): Promise<{ data: any[]; total: number }> {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    if (params?.crypto_type) queryParams.append('crypto_type', params.crypto_type);
+
+    const query = queryParams.toString();
+    const path = query ? `/api/v1/merchants/balance/history?${query}` : '/api/v1/merchants/balance/history';
     return this.client.request('GET', path);
   }
 }

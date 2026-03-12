@@ -62,4 +62,18 @@ export class Security {
   async resolveBalanceAlert(alertId: string, options?: RequestOptions): Promise<any> {
     return this.client.request('POST', `/api/v1/merchants/security/balance-alerts/${alertId}/resolve`);
   }
+
+  /**
+   * Toggle master wallet withdrawal lock
+   */
+  async toggleWalletLock(locked: boolean, password: string, options?: RequestOptions): Promise<{ status: string; locked: boolean }> {
+    return this.client.post('/api/v1/merchants/security/wallets/lock', { locked, password }, options);
+  }
+
+  /**
+   * Toggle customer designated wallet withdrawal lock
+   */
+  async toggleCustomerWalletLock(locked: boolean, password: string, options?: RequestOptions): Promise<{ status: string; locked: boolean }> {
+    return this.client.post('/api/v1/merchants/security/customers/wallets/lock', { locked, password }, options);
+  }
 }

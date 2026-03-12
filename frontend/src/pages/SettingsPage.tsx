@@ -32,7 +32,7 @@ const SettingsPage: React.FC = () => {
     const { showToast } = useToast()
     const [loading, setLoading] = useState(false)
     const [activeTab, setActiveTab] = useState<TabType>('settlement')
-    const [selectedMode, setSelectedMode] = useState<'forwarding' | 'managed' | 'imported'>('managed')
+    const [selectedMode, setSelectedMode] = useState<'forwarding' | 'managed'>('managed')
     const [customerPaysFee, setCustomerPaysFee] = useState(false)
     const [webhookUrls, setWebhookUrls] = useState({
         standard: '',
@@ -47,6 +47,17 @@ const SettingsPage: React.FC = () => {
     const [showSecret, setShowSecret] = useState(false)
     const [signingSecret, setSigningSecret] = useState('••••••••••••••••••••••••••••••••')
     const [showRotateSecretConfirm, setShowRotateSecretConfirm] = useState(false)
+    const [passwordConfirm, setPasswordConfirm] = useState<{
+        show: boolean;
+        target: 'wallet' | 'customer' | null;
+        newLockState: boolean;
+        password: '';
+    }>({
+        show: false,
+        target: null,
+        newLockState: false,
+        password: ''
+    })
 
     useEffect(() => {
         fetchSettings()
@@ -123,7 +134,7 @@ const SettingsPage: React.FC = () => {
         }
     }
 
-    const handleUpdateSettlementMode = async (mode: 'forwarding' | 'managed' | 'imported') => {
+    const handleUpdateSettlementMode = async (mode: 'forwarding' | 'managed') => {
         await handleUpdateSettings({ settlement_mode: mode })
         setSelectedMode(mode)
     }
@@ -242,28 +253,44 @@ const SettingsPage: React.FC = () => {
     const handleToggleWalletLock = async () => {
         if (!user) return
         const newLockState = !user.wallets_locked
-        try {
-            setLoading(true)
-            await securityAPI.toggleWalletLock(newLockState)
-            await loadUser(true)
-            showToast(`Wallets ${newLockState ? 'locked' : 'unlocked'} successfully`, 'success')
-        } catch (error: any) {
-            showToast('Failed to update wallet lock status', 'error')
-        } finally {
-            setLoading(false)
-        }
+        setPasswordConfirm({
+            show: true,
+            target: 'wallet',
+            newLockState,
+            password: ''
+        })
     }
 
     const handleToggleCustomerWalletLock = async () => {
         if (!user) return
         const newLockState = !user.customer_wallets_locked
+        setPasswordConfirm({
+            show: true,
+            target: 'customer',
+            newLockState,
+            password: ''
+        })
+    }
+
+    const confirmLockAction = async () => {
+        if (!passwordConfirm.target || !passwordConfirm.password) {
+            showToast('Please enter your password to confirm', 'error')
+            return
+        }
+
         try {
             setLoading(true)
-            await securityAPI.toggleCustomerWalletLock(newLockState)
+            if (passwordConfirm.target === 'wallet') {
+                await securityAPI.toggleWalletLock(passwordConfirm.newLockState, passwordConfirm.password)
+                showToast(`Wallets ${passwordConfirm.newLockState ? 'locked' : 'unlocked'} successfully`, 'success')
+            } else {
+                await securityAPI.toggleCustomerWalletLock(passwordConfirm.newLockState, passwordConfirm.password)
+                showToast(`Customer wallets ${passwordConfirm.newLockState ? 'locked' : 'unlocked'} successfully`, 'success')
+            }
             await loadUser(true)
-            showToast(`Customer wallets ${newLockState ? 'locked' : 'unlocked'} successfully`, 'success')
+            setPasswordConfirm({ show: false, target: null, newLockState: false, password: '' })
         } catch (error: any) {
-            showToast('Failed to update customer wallet lock status', 'error')
+            showToast(error.response?.data?.error || 'Failed to verify password', 'error')
         } finally {
             setLoading(false)
         }
@@ -328,15 +355,6 @@ const SettingsPage: React.FC = () => {
                                 <MdCloudDone size={32} />
                                 <h3>Managed Wallet</h3>
                                 <span>Funds are held in FidduPay generated wallets.</span>
-                            </div>
-                            <div
-                                className={`${styles.modeCard} ${selectedMode === 'imported' ? styles.activeCard : ''}`}
-                                onClick={() => handleUpdateSettlementMode('imported')}
-                            >
-                                {selectedMode === 'imported' && <MdCheckCircle className={styles.checkIcon} />}
-                                <MdAccountBalanceWallet size={32} />
-                                <h3>Imported Wallet</h3>
-                                <span>Use your own private keys for advanced setup.</span>
                             </div>
                         </div>
 
@@ -765,8 +783,86 @@ const SettingsPage: React.FC = () => {
                     </div>
                 </div>
             )}
+            {/* Password Confirmation Modal */}
+            {passwordConfirm.show && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modal}>
+                        <div className={styles.modalHeader}>
+                            <h2><MdLock /> Security Confirmation</h2>
+                            <button
+                                className={styles.closeBtn}
+                                onClick={() => setPasswordConfirm({ ...passwordConfirm, show: false })}
+                                disabled={loading}
+                            >
+                                <MdClose />
+                            </button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <p>
+                                You are about to <strong>{passwordConfirm.newLockState ? 'lock' : 'unlock'}</strong> your 
+                                {passwordConfirm.target === 'wallet' ? ' primary ' : ' customer '} 
+                                wallets. This is a sensitive security action.
+                            </p>
+                            <div className={styles.inputGroup} style={{ marginTop: '20px' }}>
+                                <label style={{ fontSize: '14px', fontWeight: 600, color: '#374151' }}>
+                                    Enter Account Password
+                                </label>
+                                <input
+                                    type="password"
+                                    value={passwordConfirm.password}
+                                    onChange={(e) => setPasswordConfirm({ ...passwordConfirm, password: e.target.value as any })}
+                                    placeholder="Your account password"
+                                    className={styles.urlInput}
+                                    autoFocus
+                                    onKeyDown={(e) => e.key === 'Enter' && confirmLockAction()}
+                                />
+                            </div>
+                            {!passwordConfirm.newLockState && (
+                                <div className={styles.warningBox} style={{ marginTop: '15px' }}>
+                                    <MdWarning />
+                                    <p>Unlocking wallets allows changing destination addresses. Ensure you know what you are doing.</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className={styles.modalActions}>
+                            <button
+                                className={styles.cancelBtn}
+                                onClick={() => setPasswordConfirm({ ...passwordConfirm, show: false })}
+                                disabled={loading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.confirmRotateBtn}
+                                onClick={confirmLockAction}
+                                disabled={loading || !passwordConfirm.password}
+                                style={{ backgroundColor: passwordConfirm.newLockState ? '#10b981' : '#3b82f6' }}
+                            >
+                                {loading ? (
+                                    <>
+                                        <MdRefresh className="animate-spin" /> Verifying...
+                                    </>
+                                ) : (
+                                    <>
+                                        {passwordConfirm.newLockState ? <MdLock /> : <MdLockOpen />}
+                                        Confirm {passwordConfirm.newLockState ? 'Lock' : 'Unlock'}
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
+
+// Helper icons not in MD
+const MdLockOpen = (props: any) => (
+    <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 24 24" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <path fill="none" d="M0 0h24v24H0V0z"></path>
+        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h2c0-1.66 1.34-3 3-3s3 1.34 3 3v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"></path>
+    </svg>
+)
 
 export default SettingsPage

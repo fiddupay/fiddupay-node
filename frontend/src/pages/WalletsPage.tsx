@@ -82,13 +82,12 @@ const WalletsPage: React.FC = () => {
     try {
       const address = newWallet.address.trim()
       if (!address) {
-        showToast(`Please enter a ${settlementMode === 'imported' ? 'private key' : 'wallet address'}`, 'error')
+        showToast('Please enter a wallet address', 'error')
         return
       }
 
       setRefreshing(true)
 
-      const mode = settlementMode === 'imported' ? 'import' : 'address';
 
       const selectedNetwork = supportedCryptos.find(n => n.cryptos.some((c: any) => c.crypto_type === newWallet.crypto_type));
       const selectedIsEvm = selectedNetwork ? isEvmNetwork(selectedNetwork.name) : false;
@@ -130,36 +129,25 @@ const WalletsPage: React.FC = () => {
           'success'
         )
       } else {
-        // Managed / Imported mode: existing behavior (apply to whole network)
-        if (settlementMode === 'imported' && applyToAllEvm && selectedIsEvm) {
-          await walletAPI.setup({
-            crypto_type: newWallet.crypto_type,
-            mode: 'import',
-            private_key: address,
-            is_active: true,
-            enable_all_evm: true
-          });
-        } else {
-          // Manual looping for other modes/scenarios where we don't have a single cross-network backend handler yet
-          const cryptosToUpdate = selectedNetwork ? selectedNetwork.cryptos.map((c: any) => c.crypto_type) : [newWallet.crypto_type];
+        // Managed mode: existing behavior (apply to whole network)
+        const cryptosToUpdate = selectedNetwork ? selectedNetwork.cryptos.map((c: any) => c.crypto_type) : [newWallet.crypto_type];
 
-          await Promise.all(cryptosToUpdate.map((ct: string) =>
-            walletAPI.setup({
-              crypto_type: ct,
-              mode: mode,
-              address: settlementMode === 'imported' ? undefined : address,
-              private_key: settlementMode === 'imported' ? address : undefined,
-              is_active: true
-            })
-          ));
-        }
-
-        await loadWallets()
-        setShowConfigModal(false)
-        setNewWallet({ crypto_type: 'SOL', address: '' })
-        setApplyToAllEvm(false)
-        showToast('Wallet configured successfully for all assets on this network!', 'success')
+        await Promise.all(cryptosToUpdate.map((ct: string) =>
+          walletAPI.setup({
+            crypto_type: ct,
+            mode: 'generate',
+            address: '',
+            is_active: true
+          })
+        ));
+        
+        showToast('Managed wallets generated successfully for all assets on this network!', 'success')
       }
+
+      await loadWallets()
+      setShowConfigModal(false)
+      setNewWallet({ crypto_type: 'SOL', address: '' })
+      setApplyToAllEvm(false)
     } catch (error: any) {
       showToast(error.response?.data?.error?.message || error.response?.data?.error || 'Failed to configure wallet', 'error')
     } finally {
@@ -175,7 +163,6 @@ const WalletsPage: React.FC = () => {
     action: null
   })
 
-  const [generatedKey, setGeneratedKey] = useState<{ address: string; privateKey: string; network: string } | null>(null)
 
   const handleWalletAction = (cryptoType: string, networkName: string, action: 'generate' | 'revoke') => {
     setConfirmModal({ show: true, type: cryptoType, networkName, action })
@@ -254,7 +241,7 @@ const WalletsPage: React.FC = () => {
         is_active: true,
         enable_all_evm: applyToAllEvm,
       })
-      const { wallet, managed } = response.data
+      const { wallet } = response.data
 
       // Replicate the generated address to all sibling tokens on this SINGLE network manually
       // (The backend also handles the cross-network `enable_all_evm` if the flag is passed)
@@ -279,22 +266,8 @@ const WalletsPage: React.FC = () => {
         }
       }
 
-      // In managed mode, the backend does NOT return private_key — show only a success toast
-      if (managed || settlementMode === 'managed' || !wallet.private_key) {
-        await loadWallets()
-        showToast(`${confirmModal.networkName} wallet generated successfully! Keys are securely managed by FidduPay.`, 'success')
-        setConfirmModal({ show: false, type: null, networkName: null, action: null })
-        return
-      }
-
-      // Non-managed mode: show private key reveal modal
-      setGeneratedKey({
-        address: wallet.config.address,
-        privateKey: wallet.private_key,
-        network: confirmModal.networkName || ''
-      })
       await loadWallets()
-      showToast('New wallet generated successfully!', 'success')
+      showToast('New wallet generated successfully! Keys are securely managed by FidduPay.', 'success')
       setConfirmModal({ show: false, type: null, networkName: null, action: null })
     } catch (error: any) {
       showToast(error.response?.data?.error?.message || error.response?.data?.error || 'Failed to generate wallet', 'error')
@@ -325,10 +298,10 @@ const WalletsPage: React.FC = () => {
           <h1>Wallet Management</h1>
           <p>Network-specific configuration for your deposit addresses</p>
         </div>
-        {settlementMode !== 'managed' && (
+        {settlementMode === 'forwarding' && (
           <button className={styles.configureBtn} onClick={() => setShowConfigModal(true)}>
-            <i className={`fas ${settlementMode === 'imported' ? 'fa-key' : 'fa-plus'} mr-2`}></i>
-            {settlementMode === 'imported' ? 'Import Wallet' : 'Configure Networks'}
+            <i className="fas fa-plus mr-2"></i>
+            Configure Networks
           </button>
         )}
       </header>
@@ -337,14 +310,11 @@ const WalletsPage: React.FC = () => {
       <div className={styles.smartHeader}>
         <div className={styles.modeInfo}>
           <h3>
-            <i className={`fas ${settlementMode === 'managed' ? 'fa-cloud' :
-              settlementMode === 'imported' ? 'fa-key' : 'fa-share-square'
-              }`}></i>
+            <i className={`fas ${settlementMode === 'managed' ? 'fa-cloud' : 'fa-share-square'} mr-2`}></i>
             Global Settlement Mode: <span className="text-blue-600">{settlementMode.toUpperCase()}</span>
           </h3>
           <p>
             {settlementMode === 'managed' && "FidduPay securely manages your keys. You can withdraw anytime."}
-            {settlementMode === 'imported' && "Using your own private keys. You have full custody."}
             {settlementMode === 'forwarding' && "Funds are auto-forwards to your destination addresses."}
           </p>
         </div>
@@ -458,7 +428,7 @@ const WalletsPage: React.FC = () => {
                         setNewWallet({ crypto_type: baseCryptoType, address: '' })
                         setShowConfigModal(true)
                       }}>
-                        <i className={`fas ${settlementMode === 'imported' ? 'fa-key' : 'fa-edit'}`}></i>
+                        <i className="fas fa-edit"></i>
                         Setup {network.name}
                       </button>
                     )}
@@ -476,7 +446,7 @@ const WalletsPage: React.FC = () => {
           <div className={styles.modalOverlay} onClick={() => setShowConfigModal(false)}>
             <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
               <div className={styles.modalHeader}>
-                <h2>{settlementMode === 'imported' ? 'Import Wallet' : 'Configure Wallet'}</h2>
+                <h2>Configure Wallet</h2>
                 <button className={styles.closeButton} onClick={() => setShowConfigModal(false)}>
                   <i className="fas fa-times text-xl"></i>
                 </button>
@@ -502,19 +472,16 @@ const WalletsPage: React.FC = () => {
                 </div>
               ) : (
                 <div className={styles.formGroup}>
-                  <label>{settlementMode === 'imported' ? 'Private Key' : (settlementMode === 'forwarding' ? 'Forwarding Destination Address' : 'Wallet Address')}</label>
+                  <label>{settlementMode === 'forwarding' ? 'Forwarding Destination Address' : 'Wallet Address'}</label>
                   <input
-                    type={settlementMode === 'imported' ? 'password' : 'text'}
+                    type="text"
                     value={newWallet.address}
                     onChange={(e) => setNewWallet({ ...newWallet, address: e.target.value })}
-                    placeholder={settlementMode === 'imported' ? 'Enter private key' : (settlementMode === 'forwarding' ? 'Enter your payout address' : 'Enter 0x... or specific address')}
-                    className={settlementMode === 'imported' ? styles.privateKeyInput : ''}
+                    placeholder={settlementMode === 'forwarding' ? 'Enter your payout address' : 'Enter 0x... or specific address'}
                     autoFocus
                   />
                   <p className={styles.inputHelper}>
-                    {settlementMode === 'imported'
-                      ? "Your private key will be encrypted and used to derive your wallet address."
-                      : settlementMode === 'forwarding'
+                    {settlementMode === 'forwarding'
                         ? "Payments received will be automatically forwarded to this address."
                         : "Payments sent to this address will be detected automatically."}
                   </p>
@@ -544,7 +511,7 @@ const WalletsPage: React.FC = () => {
               <div className={styles.modalActions}>
                 <button className={styles.cancelBtn} onClick={() => setShowConfigModal(false)}>Cancel</button>
                 <button className={styles.confirmBtn} onClick={handleConfigureWallet} disabled={refreshing}>
-                  {refreshing ? 'Processing...' : (settlementMode === 'imported' ? 'Import & Encrypt Key' : 'Save Configuration')}
+                  {refreshing ? 'Processing...' : 'Save Configuration'}
                 </button>
               </div>
             </div>
@@ -606,59 +573,6 @@ const WalletsPage: React.FC = () => {
         )
       }
 
-      {/* Redesigned Private Key Reveal Modal */}
-      {
-        generatedKey && (
-          <div className={styles.modalOverlay}>
-            <div className={`${styles.modalContent} ${styles.premiumModal}`} onClick={e => e.stopPropagation()}>
-              <div className={styles.modalContentRedesign}>
-                <div className={styles.securityHeader}>
-                  <div className={styles.securityIcon}>
-                    <i className="fas fa-shield-alt"></i>
-                  </div>
-                  <h2>Secure Your Wallet</h2>
-                  <p>Your new {generatedKey.network} wallet is ready.</p>
-                </div>
-
-                <div className={styles.keySection}>
-                  <div className={styles.keyField}>
-                    <label className={styles.keyLabel}>
-                      <i className="fas fa-link"></i> Public Address
-                    </label>
-                    <code className={styles.keyValue}>{generatedKey.address}</code>
-                  </div>
-                  <div className={styles.keyField}>
-                    <label className={styles.keyLabel}>
-                      <i className="fas fa-key"></i> Private Key (Secret)
-                    </label>
-                    <code className={`${styles.keyValue} ${styles.secret}`}>{generatedKey.privateKey}</code>
-                  </div>
-                </div>
-
-                <button className={styles.copyKeyBtn} onClick={() => copyToClipboard(generatedKey.privateKey, 'Private Key')}>
-                  <i className="fas fa-copy"></i> Copy Private Key
-                </button>
-
-                <div className="mt-6">
-                  <div className={styles.warningBox}>
-                    <i className="fas fa-exclamation-circle"></i>
-                    <p>
-                      <strong>WARNING:</strong> This key is NEVER stored. If you close this window without saving it,
-                      <strong> any funds sent to this address will be lost forever.</strong>
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.modalFooterRedesign}>
-                <button className={styles.finishBtn} onClick={() => setGeneratedKey(null)}>
-                  I Have Safely Stored My Key
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      }
     </div >
   )
 }

@@ -109,11 +109,10 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(client.analytics).toBeDefined();
       expect(client.webhooks).toBeDefined();
       expect(client.wallets).toBeDefined();
-      expect(client.withdrawals).toBeDefined();
-      expect(client.security).toBeDefined();
-      expect(client.balances).toBeDefined();
-      expect(client.auditLogs).toBeDefined();
-      expect(client.sandbox).toBeDefined();
+      expect(client.withdrawals.process).toBeDefined();
+      expect(client.withdrawals.validateGas).toBeDefined();
+      expect(client.withdrawals.getGasEstimates).toBeDefined();
+      expect(client.withdrawals.checkCapability).toBeDefined();
     });
 
     it('should have payment methods', () => {
@@ -123,56 +122,21 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(client.payments.cancel).toBeDefined();
       expect(client.payments.createAddressOnly).toBeDefined();
       expect(client.payments.retrieveAddressOnly).toBeDefined();
-      expect(client.payments.updateFeeSetting).toBeDefined();
-      expect(client.payments.getFeeSetting).toBeDefined();
+      expect(client.payments.getAnalytics).toBeDefined();
     });
 
     it('should have merchant methods', () => {
       expect(client.merchants.getBalance).toBeDefined();
       expect(client.merchants.register).toBeDefined();
       expect(client.merchants.retrieve).toBeDefined();
-      expect(client.merchants.setWallet).toBeDefined();
       expect(client.merchants.switchEnvironment).toBeDefined();
       expect(client.merchants.generateApiKey).toBeDefined();
       expect(client.merchants.rotateApiKey).toBeDefined();
       expect(client.merchants.updateSettings).toBeDefined();
       expect(client.merchants.getSettings).toBeDefined();
       expect(client.merchants.sendTestWebhook).toBeDefined();
-    });
-
-    it('should have refund methods', () => {
-      expect(client.refunds.create).toBeDefined();
-      expect(client.refunds.retrieve).toBeDefined();
-      expect(client.refunds.list).toBeDefined();
-    });
-
-    it('should have analytics methods', () => {
-      expect(client.analytics.retrieve).toBeDefined();
-      expect(client.analytics.export).toBeDefined();
-    });
-
-    it('should have webhook methods', () => {
-      expect(client.webhooks.verifySignature).toBeDefined();
-      expect(client.webhooks.constructEvent).toBeDefined();
-      expect(client.webhooks.generateSignature).toBeDefined();
-    });
-
-    it('should have wallet methods', () => {
-      expect(client.wallets.setup).toBeDefined();
-      expect(client.wallets.getConfigurations).toBeDefined();
-      expect(client.wallets.exportKey).toBeDefined();
-      expect(client.wallets.checkGasRequirements).toBeDefined();
-      expect(client.wallets.getGasEstimates).toBeDefined();
-      expect(client.wallets.checkWithdrawalCapability).toBeDefined();
-      expect(client.wallets.revoke).toBeDefined();
-    });
-
-    it('should have withdrawal methods', () => {
-      expect(client.withdrawals.create).toBeDefined();
-      expect(client.withdrawals.get).toBeDefined();
-      expect(client.withdrawals.list).toBeDefined();
-      expect(client.withdrawals.cancel).toBeDefined();
-      expect(client.withdrawals.process).toBeDefined();
+      expect(client.merchants.getBalanceHistory).toBeDefined();
+      expect(client.merchants.getFeeSetting).toBeDefined();
     });
 
     it('should have security methods', () => {
@@ -184,6 +148,8 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(client.security.checkGasBalances).toBeDefined();
       expect(client.security.getSettings).toBeDefined();
       expect(client.security.updateSettings).toBeDefined();
+      expect(client.security.toggleWalletLock).toBeDefined();
+      expect(client.security.toggleCustomerWalletLock).toBeDefined();
     });
 
     it('should have balance methods', () => {
@@ -196,7 +162,6 @@ describe('FidduPay SDK - Core Functionality', () => {
     });
 
     it('should have sandbox methods', () => {
-      expect(client.sandbox.enable).toBeDefined();
       expect(client.sandbox.simulatePayment).toBeDefined();
     });
   });

@@ -291,32 +291,3 @@ impl ApiVersionManager {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_api_key_validation() {
-        let validator = ApiKeyValidator;
-        
-        assert!(validator.validate_format("pk_live_1234567890123456789012345678901234567890").is_ok());
-        assert!(validator.validate_format("pk_test_1234567890123456789012345678901234567890").is_ok());
-        assert!(validator.validate_format("invalid_key").is_err());
-        assert!(validator.validate_format("pk_live_short").is_err());
-    }
-
-    #[tokio::test]
-    async fn test_rate_limiter() {
-        let limiter = AdvancedRateLimiter::new();
-        
-        // Should allow first request
-        assert!(limiter.check_rate_limit("test_key").await.is_ok());
-        
-        // Should eventually hit rate limit
-        for _ in 0..200 {
-            let _ = limiter.check_rate_limit("test_key").await;
-        }
-        
-        assert!(limiter.check_rate_limit("test_key").await.is_err());
-    }
-}

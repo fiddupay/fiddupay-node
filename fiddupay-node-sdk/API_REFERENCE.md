@@ -177,7 +177,7 @@ Authorization: Bearer {api_key}
 Content-Type: application/json
 
 {
-  "mode": "forwarding" // or "managed", "imported"
+  "mode": "forwarding" // or "managed"
 }
 ```
 
@@ -518,9 +518,8 @@ Content-Type: application/json
 
 {
   "crypto_type": "SOL",
-  "mode": "generate", // or "import" or "address"
+  "mode": "generate", // or "address"
   "address": "external_address_if_mode_is_address",
-  "private_key": "private_key_if_mode_is_import",
   "is_active": true,
   "enable_all_evm": true
 }
@@ -579,31 +578,6 @@ Content-Type: application/json
 }
 ```
 
-### Import Wallet (Legacy)
-> [!WARNING]
-> Deprecated in favor of `POST /api/v1/merchants/wallets` with `mode: "import"`.
-
-```http
-POST /api/v1/merchants/wallets/import
-Authorization: Bearer {api_key}
-Content-Type: application/json
-
-{
-  "crypto_type": "SOL",
-  "private_key": "your_private_key"
-}
-```
-
-### Export Private Key
-```http
-POST /api/v1/merchants/wallets/export-key
-Authorization: Bearer {api_key}
-Content-Type: application/json
-
-{
-  "crypto_type": "SOL"
-}
-```
 
 ### Check Gas Requirements
 ```http

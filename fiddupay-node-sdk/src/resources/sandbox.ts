@@ -7,12 +7,6 @@ import {
 export class Sandbox {
   constructor(private client: HttpClient) { }
 
-  /**
-   * Enable sandbox mode
-   */
-  async enable(): Promise<{ success: boolean }> {
-    return this.client.request<{ success: boolean }>('POST', '/api/v1/merchants/sandbox/enable');
-  }
 
   /**
    * Simulate payment status

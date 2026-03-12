@@ -57,7 +57,6 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         // Wallet management (unified setup via POST /wallets with mode field)
         .route("/api/v1/merchants/wallets/balances", get(wallet_management::get_wallet_balances))
         .route("/api/v1/merchants/wallets", get(wallet_management::get_wallets).post(wallet_management::setup_wallet))
-        .route("/api/v1/merchants/wallets/export-key", post(wallet_management::export_private_key))
         .route("/api/v1/merchants/wallets/:crypto_type", axum::routing::delete(wallet_management::delete_wallet))
         .route("/api/v1/merchants/wallets/gas-check", get(wallet_management::check_gas_requirements))
         .route("/api/v1/merchants/wallets/gas-estimates", get(wallet_management::get_gas_estimates))
@@ -79,7 +78,7 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         
         // Customer management (Sub-Account Designated Wallets)
         .route("/api/v1/merchants/customers", get(crate::api::customer_handlers::list_customers).post(crate::api::customer_handlers::register_customer))
-        .route("/api/v1/merchants/customers/:external_id/wallets", get(crate::api::customer_handlers::get_customer_wallets))
+        .route("/api/v1/merchants/customers/:external_id/wallets", get(crate::api::customer_handlers::get_customer_wallets).post(crate::api::customer_handlers::provision_customer_wallets))
         .route("/api/v1/merchants/customers/:external_id/balances", get(crate::api::customer_handlers::get_customer_balances))
         .route("/api/v1/merchants/customers/:external_id/deposit-address/:crypto_type", get(crate::api::customer_handlers::get_deposit_address))
         .route("/api/v1/merchants/customers/:external_id/transactions", get(crate::api::customer_handlers::get_customer_transactions))
@@ -96,7 +95,6 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/merchants/invoices/:invoice_id", get(merchant_handlers::get_invoice))
         
         // Sandbox testing
-        .route("/api/v1/merchants/sandbox/enable", post(merchant_handlers::enable_sandbox))
         .route("/api/v1/merchants/sandbox/payments/:payment_id/simulate", post(merchant_handlers::simulate_payment))
         
         // Apply merchant API key authentication

@@ -84,91 +84,6 @@ pub async fn get_wallets(
     }
 }
 
-pub async fn configure_address_only_wallet(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
-    Json(req): Json<ConfigureAddressRequest>,
-) -> impl IntoResponse {
-    let wallet_service = WalletConfigService::new(state.db_pool.clone());
-    
-    let configure_request = ConfigureWalletRequest {
-        crypto_type: req.crypto_type.clone(),
-        address: req.address.clone(),
-        is_active: req.is_active,
-    };
-    
-    let sandbox_mode = get_sandbox_mode(&state.db_pool, context.merchant_id).await;
-
-    match wallet_service.configure_address_only(context.merchant_id, sandbox_mode, configure_request).await {
-        Ok(config) => (StatusCode::OK, Json(json!({
-            "wallet": config,
-            "message": "Address-only wallet configured successfully. No withdrawal capability."
-        }))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
-    }
-}
-
-pub async fn generate_wallet(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
-    Json(req): Json<GenerateWalletRequest>,
-) -> impl IntoResponse {
-    let wallet_service = WalletConfigService::new(state.db_pool.clone());
-    
-    let sandbox_mode = get_sandbox_mode(&state.db_pool, context.merchant_id).await;
-
-    match wallet_service.generate_wallet(context.merchant_id, sandbox_mode, req).await {
-        Ok(response) => (StatusCode::CREATED, Json(json!({
-            "wallet": response,
-            "message": "Wallet generated successfully. Save the private key securely - it won't be shown again."
-        }))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
-    }
-}
-
-pub async fn import_wallet(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
-    Json(req): Json<ImportWalletRequest>,
-) -> impl IntoResponse {
-    let wallet_service = WalletConfigService::new(state.db_pool.clone());
-    
-    let sandbox_mode = get_sandbox_mode(&state.db_pool, context.merchant_id).await;
-
-    match wallet_service.import_wallet(context.merchant_id, sandbox_mode, req).await {
-        Ok(config) => (StatusCode::OK, Json(json!({
-            "wallet": config,
-            "message": "Private key imported successfully. Withdrawal capability enabled."
-        }))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
-    }
-}
-
-pub async fn export_private_key(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
-    Json(req): Json<ExportKeyRequest>,
-) -> impl IntoResponse {
-    let wallet_service = WalletConfigService::new(state.db_pool.clone());
-    
-    let sandbox_mode = get_sandbox_mode(&state.db_pool, context.merchant_id).await;
-
-    match wallet_service.export_private_key(context.merchant_id, sandbox_mode, req).await {
-        Ok(private_key) => (StatusCode::OK, Json(json!({
-            "private_key": private_key,
-            "warning": "Keep this private key secure. Anyone with access can control your funds."
-        }))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
-    }
-}
 
 pub async fn delete_wallet(
     State(state): State<AppState>,
@@ -323,13 +238,6 @@ pub async fn process_withdrawal(
 // ============================================================================
 
 #[derive(Debug, Deserialize)]
-pub struct ConfigureAddressRequest {
-    pub crypto_type: String,
-    pub address: String,
-    pub is_active: Option<bool>,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct GasCheckQuery {
     pub crypto_type: CryptoType,
     pub amount: Decimal,
@@ -405,12 +313,6 @@ pub async fn setup_wallet(
         "generate" => {
             let (sandbox_mode, settlement_mode) = get_merchant_modes(&state.db_pool, context.merchant_id).await;
 
-            if settlement_mode == "imported" {
-                return (StatusCode::BAD_REQUEST, Json(json!({
-                    "error": "Wallet generation is not available in imported mode. Please use 'import' to provide your private key."
-                }))).into_response();
-            }
-
             let generate_request = GenerateWalletRequest {
                 crypto_type: req.crypto_type,
                 enable_all_evm: req.enable_all_evm,
@@ -441,32 +343,6 @@ pub async fn setup_wallet(
                 Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
             }
         },
-        "import" => {
-            let (sandbox_mode, settlement_mode) = get_merchant_modes(&state.db_pool, context.merchant_id).await;
-
-            if settlement_mode == "managed" {
-                return (StatusCode::BAD_REQUEST, Json(json!({
-                    "error": "Wallet import is not available in managed mode. Please use 'generate' to create a wallet."
-                }))).into_response();
-            }
-
-            if let Some(private_key) = req.private_key {
-                match wallet_service.import_wallet(context.merchant_id, sandbox_mode, ImportWalletRequest {
-                    crypto_type: req.crypto_type,
-                    private_key,
-                    is_active: req.is_active,
-                    enable_all_evm: req.enable_all_evm,
-                }).await {
-                    Ok(config) => (StatusCode::OK, Json(json!({
-                        "wallet": config,
-                        "mode": "import",
-                        "message": "Wallet imported successfully."
-                    }))).into_response(),
-                    Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
-                }
-            } else {
-                (StatusCode::BAD_REQUEST, Json(json!({"error": "Private key is required for mode 'import'"}))).into_response()
-            }
         },
         _ => (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid mode. Use 'address', 'generate', or 'import'."}))).into_response(),
     }

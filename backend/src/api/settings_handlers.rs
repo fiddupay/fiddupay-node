@@ -296,32 +296,6 @@ pub async fn rotate_api_key(
 }
 
 // ============================================================================
-// Wallet (deprecated set_wallet)
-// ============================================================================
-
-#[derive(Deserialize)]
-pub struct SetWalletRequest {
-    pub crypto_type: String,
-    pub address: String,
-}
-
-pub async fn set_wallet(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
-    Json(req): Json<SetWalletRequest>,
-) -> impl IntoResponse {
-    let crypto_type = match CryptoType::from_string(&req.crypto_type) {
-        Ok(ct) => ct,
-        Err(_) => return (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid crypto_type"}))).into_response(),
-    };
-    
-    match state.merchant_service.set_wallet_address(context.merchant_id, crypto_type, req.address).await {
-        Ok(_) => (StatusCode::OK, Json(json!({"success": true}))).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
-    }
-}
-
-// ============================================================================
 // Unified Settings
 // ============================================================================
 
@@ -595,6 +569,7 @@ pub async fn get_invoice(
 #[derive(Deserialize)]
 pub struct SetLockRequest {
     pub locked: bool,
+    pub password: Option<String>,
 }
 
 pub async fn toggle_wallet_lock(
@@ -602,6 +577,40 @@ pub async fn toggle_wallet_lock(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<SetLockRequest>,
 ) -> impl IntoResponse {
+    // 1. Verify password if provided (required for security)
+    let password = match req.password {
+        Some(p) => p,
+        None => return (StatusCode::BAD_REQUEST, Json(json!({"error": "Password required for this action"}))).into_response(),
+    };
+
+    // 2. Fetch password hash
+    let password_hash: Option<String> = match sqlx::query_scalar::<_, Option<String>>(
+        "SELECT password_hash FROM merchants WHERE id = $1"
+    )
+    .bind(context.merchant_id)
+    .fetch_one(&state.db_pool)
+    .await {
+        Ok(h) => h,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Database error: {}", e)}))).into_response(),
+    };
+
+    let hash_str = match password_hash {
+        Some(h) => h,
+        None => return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Account does not have a password configured"}))).into_response(),
+    };
+
+    // 3. Verify password
+    use argon2::{Argon2, PasswordHash, PasswordVerifier};
+    let parsed_hash = match PasswordHash::new(&hash_str) {
+        Ok(h) => h,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Invalid stored password format"}))).into_response(),
+    };
+
+    if Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_err() {
+        return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid password"}))).into_response();
+    }
+
+    // 4. Proceed with lock toggle
     match state.merchant_service.set_wallet_lock(context.merchant_id, req.locked).await {
         Ok(_) => (StatusCode::OK, Json(json!({"status": "success", "locked": req.locked}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
@@ -613,6 +622,39 @@ pub async fn toggle_customer_wallet_lock(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<SetLockRequest>,
 ) -> impl IntoResponse {
+    // 1. Verify password if provided
+    let password = match req.password {
+        Some(p) => p,
+        None => return (StatusCode::BAD_REQUEST, Json(json!({"error": "Password required for this action"}))).into_response(),
+    };
+
+    // 2. Fetch password hash
+    let password_hash: Option<String> = match sqlx::query_scalar::<_, Option<String>>(
+        "SELECT password_hash FROM merchants WHERE id = $1"
+    )
+    .bind(context.merchant_id)
+    .fetch_one(&state.db_pool)
+    .await {
+        Ok(h) => h,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Database error: {}", e)}))).into_response(),
+    };
+
+    let hash_str = match password_hash {
+        Some(h) => h,
+        None => return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Account does not have a password configured"}))).into_response(),
+    };
+
+    // 3. Verify password
+    use argon2::{Argon2, PasswordHash, PasswordVerifier};
+    let parsed_hash = match PasswordHash::new(&hash_str) {
+        Ok(h) => h,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Invalid stored password format"}))).into_response(),
+    };
+
+    if Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_err() {
+        return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid password"}))).into_response();
+    }
+
     match state.merchant_service.set_customer_wallet_lock(context.merchant_id, req.locked).await {
         Ok(_) => (StatusCode::OK, Json(json!({"status": "success", "locked": req.locked}))).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),

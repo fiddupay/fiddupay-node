@@ -23,10 +23,8 @@ export class Wallets {
    */
   async setup(data: {
     crypto_type: string;
-    mode: 'address' | 'generate' | 'import';
+    mode: 'address' | 'generate';
     address?: string;
-    private_key?: string;
-    is_active?: boolean;
     enable_all_evm?: boolean;
   }, options?: RequestOptions): Promise<any> {
     return this.client.request('POST', '/api/v1/merchants/wallets', data);
@@ -40,16 +38,6 @@ export class Wallets {
     return this.client.request('POST', '/api/v1/merchants/wallets/generate', data);
   }
 
-  /**
-   * Import an existing wallet using private key
-   * @deprecated Use setup with mode 'import' instead
-   */
-  async import(data: {
-    crypto_type: string;
-    private_key: string
-  }, options?: RequestOptions): Promise<any> {
-    return this.client.request('POST', '/api/v1/merchants/wallets/import', data);
-  }
 
   /**
    * Configure a wallet with just an address (no private key)
@@ -62,12 +50,6 @@ export class Wallets {
     return this.client.request('POST', '/api/v1/merchants/wallets/configure-address', data);
   }
 
-  /**
-   * Export wallet key
-   */
-  async exportKey(data: { crypto_type: string }, options?: RequestOptions): Promise<any> {
-    return this.client.request('POST', '/api/v1/merchants/wallets/export-key', data);
-  }
 
   /**
    * Get gas estimates

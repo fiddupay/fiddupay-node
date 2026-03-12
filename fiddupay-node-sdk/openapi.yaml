@@ -227,7 +227,7 @@ components:
           example: true
         settlement_mode:
           type: string
-          enum: [forwarding, managed, imported]
+          enum: [forwarding, managed]
           example: "managed"
           description: "Global settlement strategy for the merchant"
 
@@ -729,7 +729,7 @@ components:
       properties:
         settlement_mode:
           type: string
-          enum: [forwarding, managed, imported]
+          enum: [forwarding, managed]
           example: "managed"
         customer_pays_fee:
           type: boolean
@@ -937,7 +937,7 @@ paths:
                   format: uri
                 settlement_mode:
                   type: string
-                  enum: [forwarding, managed, imported]
+                  enum: [forwarding, managed]
                 customer_pays_fee:
                   type: boolean
                 ip_whitelist:
@@ -972,7 +972,7 @@ paths:
               properties:
                 mode:
                   type: string
-                  enum: [forwarding, managed, imported]
+                  enum: [forwarding, managed]
                   example: "forwarding"
       responses:
         '200':

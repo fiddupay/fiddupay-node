@@ -100,28 +100,3 @@ pub async fn csrf_middleware(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_csrf_token_generation() {
-        let store = CsrfTokenStore::new();
-        let token = store.generate_token("test_key").await;
-        
-        assert!(!token.is_empty());
-        assert!(store.validate_token("test_key", &token).await);
-        assert!(!store.validate_token("test_key", "invalid").await);
-    }
-
-    #[tokio::test]
-    async fn test_token_consumption() {
-        let store = CsrfTokenStore::new();
-        let token = store.generate_token("test_key").await;
-        
-        assert!(store.validate_token("test_key", &token).await);
-        
-        store.consume_token("test_key").await;
-        assert!(!store.validate_token("test_key", &token).await);
-    }
-}

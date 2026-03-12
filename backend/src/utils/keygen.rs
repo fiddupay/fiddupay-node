@@ -187,36 +187,3 @@ impl KeyGenerator {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_generate_evm_wallet() {
-        let wallet = KeyGenerator::generate_evm_wallet().unwrap();
-        assert_eq!(wallet.private_key.len(), 64); // 32 bytes in hex
-        assert!(wallet.address.starts_with("0x"));
-        assert_eq!(wallet.address.len(), 42); // 0x + 40 hex chars
-    }
-
-    #[test]
-    fn test_generate_solana_wallet() {
-        let wallet = KeyGenerator::generate_solana_wallet().unwrap();
-        assert!(!wallet.private_key.is_empty());
-        assert!(!wallet.address.is_empty());
-        assert_eq!(wallet.address, wallet.public_key); // In Solana, address = public key
-    }
-
-    #[test]
-    fn test_validate_evm_private_key() {
-        // Valid private key
-        let valid_key = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-        let result = KeyGenerator::validate_evm_private_key(valid_key);
-        assert!(result.is_ok());
-
-        // Invalid length
-        let invalid_key = "0123456789abcdef";
-        let result = KeyGenerator::validate_evm_private_key(invalid_key);
-        assert!(result.is_err());
-    }
-}

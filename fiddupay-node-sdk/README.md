@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.4.4
+# FidduPay Node.js SDK v2.4.6
 
-[![version](https://img.shields.io/badge/version-v2.4.4-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.4.6-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -185,6 +185,10 @@ await client.wallets.setup({
   is_active: true
 });
 
+// Wallet Security locks (New in v2.4.6)
+await client.security.toggleWalletLock(true); // Lock master wallets
+await client.security.toggleCustomerWalletLock(true); // Lock customer wallets
+
 ```
 
 ## Refund Operations
@@ -201,6 +205,33 @@ const refund = await client.refunds.create({
 const refunds = await client.refunds.list({
   paymentId: 'pay_123'
 });
+
+## Customer Management
+
+```typescript
+// Register a customer
+const customer = await client.customers.register({
+  external_id: 'user_123',
+  email: 'user@example.com'
+});
+
+// Provision wallets
+await client.customers.createWallets('user_123', {
+  external_id: 'user_123',
+  networks: ['evm', 'solana']
+});
+
+// Update permissions (New in v2.4.6)
+await client.customers.updatePermissions('user_123', {
+  can_withdraw: true,
+  withdrawal_limit: '500.0'
+});
+
+// Sweep funds to master wallet
+await client.customers.sweep('user_123', {
+  crypto_type: 'USDT_ETH'
+});
+```
 ```
 
 ## Analytics

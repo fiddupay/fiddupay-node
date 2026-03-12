@@ -134,7 +134,6 @@ export const walletAPI = {
   getAll: () => api.get('/api/v1/merchants/wallets'),
   getBalances: () => api.get('/api/v1/merchants/wallets/balances'),
   revoke: (cryptoType: string) => api.delete(`/api/v1/merchants/wallets/${cryptoType}`),
-  exportKey: (cryptoType: string) => api.post('/api/v1/merchants/wallets/export-key', { crypto_type: cryptoType }),
 }
 
 export const securityAPI = {
@@ -147,10 +146,10 @@ export const securityAPI = {
     api.post(`/api/v1/merchants/security/alerts/${alertId}/acknowledge`),
   resolveBalanceAlert: (alertId: string) =>
     api.post(`/api/v1/merchants/security/balance-alerts/${alertId}/resolve`),
-  toggleWalletLock: (locked: boolean) =>
-    api.post('/api/v1/merchants/security/wallets/lock', { locked }),
-  toggleCustomerWalletLock: (locked: boolean) =>
-    api.post('/api/v1/merchants/security/customers/wallets/lock', { locked }),
+  toggleWalletLock: (locked: boolean, password: string) =>
+    api.post('/api/v1/merchants/security/wallets/lock', { locked, password }),
+  toggleCustomerWalletLock: (locked: boolean, password: string) =>
+    api.post('/api/v1/merchants/security/customers/wallets/lock', { locked, password }),
 }
 
 export const sandboxAPI = {

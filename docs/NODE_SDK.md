@@ -1,4 +1,4 @@
-# FidduPay Node.js SDK Guide
+# FidduPay Node.js SDK Guide v2.4.6
 
 **Official Node.js SDK for FidduPay Cryptocurrency Payment Gateway**
 
@@ -203,8 +203,14 @@ await fiddupay.merchants.updateSettlementMode('managed');
 await fiddupay.merchants.updateSettings({
   webhook_url: 'https://example.com/webhooks',
   settlement_mode: 'forwarding',
-  customer_pays_fee: true
+  customer_pays_fee: true,
+  wallets_locked: false,
+  customer_wallets_locked: false
 });
+
+// NEW: Wallet Security Locks (v2.4.6)
+await fiddupay.security.toggleWalletLock(true, { reason: 'Security alert' });
+await fiddupay.security.toggleCustomerWalletLock(true);
 
 // NEW: Operational Readiness Check
 const status = await fiddupay.merchants.getStatus();
@@ -224,6 +230,10 @@ await fiddupay.wallets.setup({
 
 // Get configurations
 const configs = await fiddupay.wallets.getConfigurations();
+
+// NEW: Check Gas Balances (v2.4.6)
+const gasStatus = await fiddupay.security.checkGasBalances();
+console.log('Gas statuses:', gasStatus.wallets);
 ```
 
 ### Transaction Feed
@@ -231,6 +241,9 @@ const configs = await fiddupay.wallets.getConfigurations();
 // NEW: Unified Transaction History
 const { transactions } = await fiddupay.transactions.list();
 // Returns combined payments, refunds, and withdrawals
+
+// NEW: Merchant Balance History (v2.4.6)
+const history = await fiddupay.merchants.getBalanceHistory({ limit: 50 });
 ```
 
 ### Analytics
@@ -260,7 +273,33 @@ const refund = await fiddupay.refunds.create({
 });
 
 // Retrieve refund status
-const refund = await fiddupay.refunds.retrieve('ref_1234567890');
+const refundData = await fiddupay.refunds.retrieve('ref_1234567890');
+
+// --- NEW in v2.4.6: Customer Management ---
+
+// Register customer
+const customer = await fiddupay.customers.register({
+  external_id: 'user_123',
+  email: 'user@example.com'
+});
+
+// Provision wallets
+await client.customers.createWallets('user_123', {
+  networks: ['evm']
+});
+
+// Customer Pay Merchant
+await client.customers.payMerchant('user_123', {
+  crypto_type: 'USDT_ETH',
+  amount: '10.0',
+  description: 'Monthly subscription'
+});
+
+// Update permissions
+await client.customers.updatePermissions('user_123', {
+  can_withdraw: true,
+  withdrawal_limit: '1000'
+});
 ```
 
 ---
@@ -604,7 +643,7 @@ examples/
 
 ---
 
-**Document Version**: 1.1.1 
-**Last Updated**: February 4, 2026
-**Next Review**: April 1, 2026  
+**Document Version**: 2.4.6
+**Last Updated**: March 12, 2026
+**Next Review**: June 1, 2026  
 **Owner**: TechyTro Software - FidduPay SDK Team

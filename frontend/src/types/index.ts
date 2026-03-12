@@ -9,7 +9,7 @@ export interface User {
   daily_volume_remaining: string
   daily_limit_usd?: string
   sandbox_mode: boolean
-  settlement_mode: 'forwarding' | 'managed' | 'imported'
+  settlement_mode: 'forwarding' | 'managed'
   webhook_url?: string
   webhook_format?: string
   redirect_url?: string
