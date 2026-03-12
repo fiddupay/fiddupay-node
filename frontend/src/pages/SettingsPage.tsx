@@ -21,7 +21,7 @@ import {
     MdError
 } from 'react-icons/md'
 import { useAuthStore } from '@/stores/authStore'
-import { merchantAPI } from '@/services/apiService'
+import { merchantAPI, securityAPI } from '@/services/apiService'
 import { useToast } from '@/contexts/ToastContext'
 import styles from '@/styles/pages/SettingsPage.module.css'
 
@@ -239,6 +239,36 @@ const SettingsPage: React.FC = () => {
         }
     }
 
+    const handleToggleWalletLock = async () => {
+        if (!user) return
+        const newLockState = !user.wallets_locked
+        try {
+            setLoading(true)
+            await securityAPI.toggleWalletLock(newLockState)
+            await loadUser(true)
+            showToast(`Wallets ${newLockState ? 'locked' : 'unlocked'} successfully`, 'success')
+        } catch (error: any) {
+            showToast('Failed to update wallet lock status', 'error')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleToggleCustomerWalletLock = async () => {
+        if (!user) return
+        const newLockState = !user.customer_wallets_locked
+        try {
+            setLoading(true)
+            await securityAPI.toggleCustomerWalletLock(newLockState)
+            await loadUser(true)
+            showToast(`Customer wallets ${newLockState ? 'locked' : 'unlocked'} successfully`, 'success')
+        } catch (error: any) {
+            showToast('Failed to update customer wallet lock status', 'error')
+        } finally {
+            setLoading(false)
+        }
+    }
+
     return (
         <div className={styles.page}>
             <div className={styles.header}>
@@ -299,7 +329,6 @@ const SettingsPage: React.FC = () => {
                                 <h3>Managed Wallet</h3>
                                 <span>Funds are held in FidduPay generated wallets.</span>
                             </div>
-
                             <div
                                 className={`${styles.modeCard} ${selectedMode === 'imported' ? styles.activeCard : ''}`}
                                 onClick={() => handleUpdateSettlementMode('imported')}
@@ -309,6 +338,54 @@ const SettingsPage: React.FC = () => {
                                 <h3>Imported Wallet</h3>
                                 <span>Use your own private keys for advanced setup.</span>
                             </div>
+                        </div>
+
+                        <div className={styles.safeguardBox}>
+                            <div className={styles.safeguardInfo}>
+                                <div className={styles.safeguardIcon}>
+                                    {user?.wallets_locked ? <MdLock color="#34d399" /> : <MdWarning color="#fbbf24" />}
+                                </div>
+                                <div className={styles.safeguardText}>
+                                    <h3>Primary Wallet Protection</h3>
+                                    <p>
+                                        {user?.wallets_locked 
+                                            ? "Your primary wallet addresses are locked. You must unlock them before making any changes."
+                                            : "Your primary wallets are currently unlocked. We recommend locking them to prevent accidental changes."
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+                            <button 
+                                className={`${styles.lockBtn} ${user?.wallets_locked ? styles.unlocked : styles.locked}`}
+                                onClick={handleToggleWalletLock}
+                                disabled={loading}
+                            >
+                                {user?.wallets_locked ? 'Unlock Wallets' : 'Lock Wallets'}
+                            </button>
+                        </div>
+
+                        <div className={styles.safeguardBox} style={{ marginTop: '20px' }}>
+                            <div className={styles.safeguardInfo}>
+                                <div className={styles.safeguardIcon}>
+                                    {user?.customer_wallets_locked ? <MdLock color="#34d399" /> : <MdWarning color="#fbbf24" />}
+                                </div>
+                                <div className={styles.safeguardText}>
+                                    <h3>Customer Wallet Protection</h3>
+                                    <p>
+                                        {user?.customer_wallets_locked 
+                                            ? "Customer deposit addresses are locked. You must unlock them before re-provisioning wallets for your users."
+                                            : "Customer deposit addresses are currently unlocked. We recommend locking them for enhanced security."
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+                            <button 
+                                className={`${styles.lockBtn} ${user?.customer_wallets_locked ? styles.unlocked : styles.locked}`}
+                                onClick={handleToggleCustomerWalletLock}
+                                disabled={loading}
+                            >
+                                {user?.customer_wallets_locked ? 'Unlock Customer Wallets' : 'Lock Customer Wallets'}
+                            </button>
                         </div>
                     </section>
                 )}

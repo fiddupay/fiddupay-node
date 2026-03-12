@@ -65,6 +65,8 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         
         // Security settings (merchant's own security preferences)
         .route("/api/v1/merchants/security/settings", get(security_monitoring::get_security_settings).put(security_monitoring::update_security_settings))
+        .route("/api/v1/merchants/security/wallets/lock", post(merchant_handlers::toggle_wallet_lock))
+        .route("/api/v1/merchants/security/customers/wallets/lock", post(merchant_handlers::toggle_customer_wallet_lock))
         .route("/api/v1/merchants/security/events", get(security_monitoring::get_security_events))
         .route("/api/v1/merchants/security/alerts", get(security_monitoring::get_security_alerts))
         .route("/api/v1/merchants/security/alerts/:alert_id/acknowledge", post(security_monitoring::acknowledge_security_alert))

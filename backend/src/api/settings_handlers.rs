@@ -33,7 +33,7 @@ pub async fn get_merchant_profile(
         r#"
         SELECT id, business_name, email, sandbox_mode, settlement_mode, 
                kyc_verified, daily_limit_usd, created_at, redirect_url,
-               test_api_key_hash, live_api_key_hash
+               test_api_key_hash, live_api_key_hash, wallets_locked, customer_wallets_locked
         FROM merchants
         WHERE id = $1
         "#
@@ -76,6 +76,8 @@ pub async fn get_merchant_profile(
     let m_daily_limit_usd: Option<Decimal> = merchant.get("daily_limit_usd");
     let m_created_at: chrono::DateTime<chrono::Utc> = merchant.get("created_at");
     let m_redirect_url: Option<String> = merchant.get("redirect_url");
+    let m_wallets_locked: bool = merchant.get("wallets_locked");
+    let m_customer_wallets_locked: bool = merchant.get("customer_wallets_locked");
 
     let display_key = if context.api_key == "DASHBOARD_SESSION" {
         let hash_opt = if m_sandbox_mode { &m_test_api_key_hash } else { &m_live_api_key_hash };
@@ -98,6 +100,8 @@ pub async fn get_merchant_profile(
         "redirect_url": m_redirect_url,
         "webhook_url": webhook_url,
         "webhook_format": webhook_format,
+        "wallets_locked": m_wallets_locked,
+        "customer_wallets_locked": m_customer_wallets_locked,
         "sandbox_mode": m_sandbox_mode,
         "settlement_mode": m_settlement_mode,
         "kyc_verified": m_kyc_verified,
@@ -581,5 +585,62 @@ pub async fn get_invoice(
     match state.invoice_service.get_invoice(context.merchant_id, &invoice_id).await {
         Ok(invoice) => (StatusCode::OK, Json(invoice)).into_response(),
         Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+// ============================================================================
+// Wallet Security
+// ============================================================================
+
+#[derive(Deserialize)]
+pub struct WalletLockRequest {
+    pub locked: bool,
+}
+
+pub async fn toggle_wallet_lock(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(payload): Json<WalletLockRequest>,
+) -> impl IntoResponse {
+    let merchant_id = context.merchant_id;
+
+    match state.merchant_service.set_wallet_lock(merchant_id, payload.locked).await {
+        Ok(_) => (
+            StatusCode::OK,
+            Json(json!({
+                "success": true,
+                "message": if payload.locked { "Wallets locked successfully" } else { "Wallets unlocked successfully" }
+            })),
+        ).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        ).into_response(),
+    }
+}
+#[derive(Deserialize)]
+pub struct SetLockRequest {
+    pub locked: bool,
+}
+
+pub async fn toggle_wallet_lock(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<SetLockRequest>,
+) -> impl IntoResponse {
+    match state.merchant_service.set_wallet_lock(context.merchant_id, req.locked).await {
+        Ok(_) => (StatusCode::OK, Json(json!({"status": "success", "locked": req.locked}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+pub async fn toggle_customer_wallet_lock(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<SetLockRequest>,
+) -> impl IntoResponse {
+    match state.merchant_service.set_customer_wallet_lock(context.merchant_id, req.locked).await {
+        Ok(_) => (StatusCode::OK, Json(json!({"status": "success", "locked": req.locked}))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }

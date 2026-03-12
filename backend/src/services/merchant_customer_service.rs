@@ -230,6 +230,89 @@ impl MerchantCustomerService {
         let network = crypto_type.network().to_string();
         let crypto_str = crypto_type.to_string();
 
+        tracing::info!(
+            "save_customer_wallet: customer={}, merchant={}, crypto={}, sandbox={}",
+            customer_id, merchant_id, crypto_str, sandbox_mode
+        );
+
+        // 1. Check if customer wallets are locked for this merchant
+        let customer_wallets_locked = sqlx::query_scalar::<_, bool>(
+            "SELECT customer_wallets_locked FROM merchants WHERE id = $1"
+        )
+        .bind(merchant_id)
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+
+        // 2. Check if this is an existing customer with any wallets
+        let has_existing_wallets = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM merchant_customer_wallets WHERE customer_id = $1 AND sandbox_mode = $2"
+        )
+        .bind(customer_id)
+        .bind(sandbox_mode)
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))? > 0;
+
+        // 3. Fetch current wallet if it exists for this specific crypto
+        let current_wallet = sqlx::query!(
+            "SELECT address, encrypted_private_key FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
+            customer_id,
+            crypto_str,
+            sandbox_mode
+        )
+        .fetch_optional(&self.db_pool)
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+
+        // 4. If this is an existing customer but we are provisioning a NEW currency for them,
+        // we still block it if customer wallets are locked.
+        if current_wallet.is_none() && has_existing_wallets && customer_wallets_locked {
+            tracing::warn!("Blocked new currency provisioning for existing customer {} (customer wallets locked)", customer_id);
+            return Err(ServiceError::BadRequest(
+                "Customer wallets are locked. Please unlock in settings to provision new currencies for this user.".to_string()
+            ));
+        }
+
+        if let Some(current) = current_wallet {
+            if current.address != address {
+                if customer_wallets_locked {
+                    tracing::warn!("Blocked customer wallet change for merchant {} (customer wallets locked)", merchant_id);
+                    return Err(ServiceError::BadRequest(
+                        "Customer wallets are locked. Please unlock in settings to change.".to_string()
+                    ));
+                }
+
+                tracing::info!(
+                    "Archiving customer wallet state for customer {}: address changed",
+                    customer_id
+                );
+
+                // Archive to history
+                sqlx::query(
+                    r#"
+                    INSERT INTO merchant_wallet_history (
+                        merchant_id, customer_id, owner_type, crypto_type, network, 
+                        old_address, new_address, wallet_mode, 
+                        encrypted_private_key, reason
+                    )
+                    VALUES ($1, $2, 'customer', $3, $4, $5, $6, 'managed', $7, $8)
+                    "#
+                )
+                .bind(merchant_id)
+                .bind(customer_id)
+                .bind(&crypto_str)
+                .bind(&network)
+                .bind(&current.address)
+                .bind(&address)
+                .bind(&current.encrypted_private_key)
+                .bind("Customer wallet re-provisioned")
+                .execute(&self.db_pool)
+                .await
+                .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+            }
+        }
+
         let wallet = sqlx::query_as::<_, MerchantCustomerWallet>(
             r#"
             INSERT INTO merchant_customer_wallets (customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, sandbox_mode)

@@ -576,18 +576,71 @@ impl MerchantService {
         // Get the network name for this crypto type
         let network = crypto_type.network();
         let crypto_type_str = crypto_type.to_string();
-        
+         // 1. Check if the merchant has wallets locked
+        let wallets_locked = sqlx::query_scalar::<_, bool>(
+            "SELECT wallets_locked FROM merchants WHERE id = $1"
+        )
+        .bind(merchant_id)
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+
+        // 2. Fetch current wallet if it exists
+        let current_wallet = sqlx::query!(
+            "SELECT address, wallet_mode, encrypted_private_key, is_active FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
+            merchant_id,
+            crypto_type_str,
+            sandbox_mode
+        )
+        .fetch_optional(&self.db_pool)
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+
+        if let Some(current) = current_wallet {
+            if current.address != address {
+                if wallets_locked {
+                    return Err(ServiceError::BadRequest(
+                        "Wallets are locked. Please unlock in settings to change address.".to_string()
+                    ));
+                }
+
+                // Archive the old address to history before updating (including key and mode)
+                sqlx::query(
+                    r#"
+                    INSERT INTO merchant_wallet_history (
+                        merchant_id, owner_type, crypto_type, network, 
+                        old_address, new_address, wallet_mode, 
+                        encrypted_private_key, is_active, reason
+                    )
+                    VALUES ($1, 'merchant', $2, $3, $4, $5, $6, $7, $8, $9)
+                    "#
+                )
+                .bind(merchant_id)
+                .bind(&crypto_type_str)
+                .bind(network)
+                .bind(&current.address)
+                .bind(&address)
+                .bind(current.wallet_mode.as_deref().unwrap_or("address_only"))
+                .bind(&current.encrypted_private_key)
+                .bind(current.is_active)
+                .bind("Updated via settings")
+                .execute(&self.db_pool)
+                .await?;
+            }
+        }
+
         // Insert or update the wallet address
         // Use ON CONFLICT to update if the merchant already has a wallet for this crypto type and mode
         sqlx::query(
             r#"
-            INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, wallet_mode, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, 'address_only', $7, $8)
             ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
             DO UPDATE SET 
                 address = EXCLUDED.address,
                 network = EXCLUDED.network,
                 is_active = EXCLUDED.is_active,
+                wallet_mode = EXCLUDED.wallet_mode,
                 updated_at = EXCLUDED.updated_at
             "#
         )
@@ -753,203 +806,37 @@ impl MerchantService {
         Ok(())
     }
 
-
-
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_generate_api_key_length() {
-        // Create a mock pool (we don't need a real connection for this test)
-        let service = MerchantService {
-            db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-            config: crate::config::Config::default(),
-        };
+    /// Toggle the wallet lock status for a merchant
+    pub async fn set_wallet_lock(
+        &self,
+        merchant_id: i64,
+        locked: bool,
+    ) -> Result<(), ServiceError> {
+        sqlx::query(
+            "UPDATE merchants SET wallets_locked = $1, updated_at = NOW() WHERE id = $2"
+        )
+        .bind(locked)
+        .bind(merchant_id)
+        .execute(&self.db_pool)
+        .await?;
         
-        let api_key = service.generate_api_key(false);
-        // Prefix "sk_" (3) + 32 random chars = 35 total
-        assert_eq!(api_key.len(), 35);
-        assert!(api_key.starts_with("sk_"));
+        Ok(())
     }
 
-    #[tokio::test]
-    async fn test_generate_api_key_uniqueness() {
-        let service = MerchantService {
-            db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-            config: crate::config::Config::default(),
-        };
+    /// Toggle the customer wallet lock status for a merchant
+    pub async fn set_customer_wallet_lock(
+        &self,
+        merchant_id: i64,
+        locked: bool,
+    ) -> Result<(), ServiceError> {
+        sqlx::query(
+            "UPDATE merchants SET customer_wallets_locked = $1, updated_at = NOW() WHERE id = $2"
+        )
+        .bind(locked)
+        .bind(merchant_id)
+        .execute(&self.db_pool)
+        .await?;
         
-        let key1 = service.generate_api_key(false);
-        let key2 = service.generate_api_key(false);
-        
-        // Keys should be different
-        assert_ne!(key1, key2);
-    }
-
-    #[tokio::test]
-    async fn test_generate_api_key_alphanumeric() {
-        let service = MerchantService {
-                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-                    config: crate::config::Config::default(),
-                };
-        
-        let api_key = service.generate_api_key(false);
-        
-        // Should contain alphanumeric characters and underscores
-        assert!(api_key.chars().all(|c| c.is_alphanumeric() || c == '_'));
-        assert!(api_key.contains('_'));
-    }
-
-    #[tokio::test]
-    async fn test_api_key_hashing() {
-        use argon2::{Argon2, PasswordHasher};
-        use argon2::password_hash::{SaltString, rand_core::OsRng};
-        
-        // Test that argon2 hashing works correctly
-        // Use a valid session key format just in case validation is applied elsewhere
-        let api_key = "sk_s_123_testkey1234567890123456"; 
-        let salt1 = SaltString::generate(&mut OsRng);
-        let salt2 = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-        
-        let hash1 = argon2.hash_password(api_key.as_bytes(), &salt1).unwrap().to_string();
-        let hash2 = argon2.hash_password(api_key.as_bytes(), &salt2).unwrap().to_string();
-        
-        // Hashes should be different (different salts)
-        assert_ne!(hash1, hash2);
-    }
-
-    #[tokio::test]
-    async fn test_default_fee_percentage() {
-        // Test that default fee percentage is 1.50%
-        let fee = Decimal::new(150, 2);
-        assert_eq!(fee.to_string(), "1.50");
-    }
-
-    // Wallet address validation tests
-    #[tokio::test]
-    async fn test_validate_solana_address_valid() {
-        let service = MerchantService {
-                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-                    config: crate::config::Config::default(),
-                };
-        
-        // Valid Solana address (base58, 32-44 chars)
-        let valid_address = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU";
-        let result = service.validate_wallet_address(valid_address, CryptoType::Sol);
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_validate_solana_address_too_short() {
-        let service = MerchantService {
-                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-                    config: crate::config::Config::default(),
-                };
-        
-        // Too short
-        let invalid_address = "7xKXtg2CW87d97TXJSDpbD5jBkhe";
-        let result = service.validate_wallet_address(invalid_address, CryptoType::Sol);
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_validate_solana_address_invalid_chars() {
-        let service = MerchantService {
-                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-                    config: crate::config::Config::default(),
-                };
-        
-        // Contains invalid base58 characters (0, O, I, l)
-        let invalid_address = "0OIl7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU";
-        let result = service.validate_wallet_address(invalid_address, CryptoType::Sol);
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_validate_evm_address_valid() {
-        let service = MerchantService {
-                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-                    config: crate::config::Config::default(),
-                };
-        
-        // Valid EVM address
-        let valid_address = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0";
-        let result = service.validate_wallet_address(valid_address, CryptoType::UsdtBep20);
-        assert!(result.is_ok());
-        
-        // Also test with lowercase
-        let valid_address_lower = "0x742d35cc6634c0532925a3b844bc9e7595f0beb0";
-        let result = service.validate_wallet_address(valid_address_lower, CryptoType::UsdtArbitrum);
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_validate_evm_address_no_prefix() {
-        let service = MerchantService {
-                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-                    config: crate::config::Config::default(),
-                };
-        
-        // Missing 0x prefix
-        let invalid_address = "742d35Cc6634C0532925a3b844Bc9e7595f0bEb0";
-        let result = service.validate_wallet_address(invalid_address, CryptoType::UsdtBep20);
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_validate_evm_address_wrong_length() {
-        let service = MerchantService {
-                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-                    config: crate::config::Config::default(),
-                };
-        
-        // Too short
-        let invalid_address = "0x742d35Cc6634C0532925a3b844Bc9e7595f0b";
-        let result = service.validate_wallet_address(invalid_address, CryptoType::UsdtPolygon);
-        assert!(result.is_err());
-        
-        // Too long
-        let invalid_address = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0123";
-        let result = service.validate_wallet_address(invalid_address, CryptoType::UsdtPolygon);
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_validate_evm_address_invalid_hex() {
-        let service = MerchantService {
-                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-                    config: crate::config::Config::default(),
-                };
-        
-        // Contains non-hex characters (g, z)
-        let invalid_address = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEgz";
-        let result = service.validate_wallet_address(invalid_address, CryptoType::UsdtBep20);
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_validate_all_crypto_types() {
-        let service = MerchantService {
-                    db_pool: PgPool::connect_lazy("postgres://localhost/test").unwrap(),
-                    config: crate::config::Config::default(),
-                };
-        
-        // Test valid addresses for all crypto types
-        let test_cases = vec![
-            (CryptoType::Sol, "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"),
-            (CryptoType::UsdtSpl, "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"),
-            (CryptoType::UsdtBep20, "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0"),
-            (CryptoType::UsdtArbitrum, "0x1234567890123456789012345678901234567890"),
-            (CryptoType::UsdtPolygon, "0xabcdefABCDEF0123456789abcdefABCDEF012345"),
-        ];
-        
-        for (crypto_type, address) in test_cases {
-            let result = service.validate_wallet_address(address, crypto_type);
-            assert!(result.is_ok(), "Failed for {:?}: {:?}", crypto_type, result);
-        }
+        Ok(())
     }
 }

@@ -147,6 +147,10 @@ export const securityAPI = {
     api.post(`/api/v1/merchants/security/alerts/${alertId}/acknowledge`),
   resolveBalanceAlert: (alertId: string) =>
     api.post(`/api/v1/merchants/security/balance-alerts/${alertId}/resolve`),
+  toggleWalletLock: (locked: boolean) =>
+    api.post('/api/v1/merchants/security/wallets/lock', { locked }),
+  toggleCustomerWalletLock: (locked: boolean) =>
+    api.post('/api/v1/merchants/security/customers/wallets/lock', { locked }),
 }
 
 export const sandboxAPI = {

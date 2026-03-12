@@ -41,24 +41,105 @@ impl WalletConfigService {
         encrypted_private_key: Option<String>,
     ) -> Result<WalletConfig, ServiceError> {
         let network = crypto_type.network().to_string();
-        
+        let crypto_type_str = crypto_type.to_string();
+        let mode = if encrypted_private_key.is_some() { "managed" } else { "address_only" };
+
+        tracing::info!(
+            "set_wallet_address: merchant={}, crypto={}, mode={}, sandbox={}",
+            merchant_id, crypto_type_str, mode, sandbox_mode
+        );
+
+        // 1. Check if the merchant has wallets locked
+        let wallets_locked = sqlx::query_scalar::<_, bool>(
+            "SELECT wallets_locked FROM merchants WHERE id = $1"
+        )
+        .bind(merchant_id)
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+
+        // 2. Fetch current wallet if it exists
+        let current_wallet = sqlx::query!(
+            "SELECT address, wallet_mode, encrypted_private_key, is_active FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
+            merchant_id,
+            crypto_type_str,
+            sandbox_mode
+        )
+        .fetch_optional(&self.db_pool)
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+
+        if let Some(current) = current_wallet {
+            // If the address or mode is different, we check the lock and record history
+            let address_changed = current.address != address;
+            let mode_changed = current.wallet_mode.as_deref().unwrap_or("address_only") != mode;
+            let active_changed = current.is_active != is_active;
+
+            if address_changed || mode_changed || active_changed {
+                if wallets_locked {
+                    tracing::warn!("Blocked wallet change for merchant {} (wallets locked)", merchant_id);
+                    return Err(ServiceError::BadRequest(
+                        "Wallets are locked. Please unlock in settings to change wallet configuration.".to_string()
+                    ));
+                }
+
+                tracing::info!(
+                    "Archiving wallet state for merchant {}: address_changed={}, mode_changed={}, active_changed={}",
+                    merchant_id, address_changed, mode_changed, active_changed
+                );
+
+                // Archive the old address to history before updating (including key and mode)
+                sqlx::query(
+                    r#"
+                    INSERT INTO merchant_wallet_history (
+                        merchant_id, owner_type, crypto_type, network, 
+                        old_address, new_address, wallet_mode, 
+                        encrypted_private_key, is_active, reason
+                    )
+                    VALUES ($1, 'merchant', $2, $3, $4, $5, $6, $7, $8, $9)
+                    "#
+                )
+                .bind(merchant_id)
+                .bind(&crypto_type_str)
+                .bind(&network)
+                .bind(&current.address)
+                .bind(&address)
+                .bind(current.wallet_mode.as_deref().unwrap_or("address_only"))
+                .bind(&current.encrypted_private_key)
+                .bind(current.is_active)
+                .bind("Updated via wallet management")
+                .execute(&self.db_pool)
+                .await
+                .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+            }
+        }
+
         let config_res: Result<WalletConfig, sqlx::Error> = sqlx::query_as::<_, WalletConfig>(
             r#"
-            INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO merchant_wallets (
+                merchant_id, crypto_type, network, address, is_active, 
+                sandbox_mode, encrypted_private_key, wallet_mode
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (merchant_id, crypto_type, sandbox_mode) 
-            DO UPDATE SET address = $4, is_active = $5, encrypted_private_key = COALESCE($7, merchant_wallets.encrypted_private_key), updated_at = NOW()
+            DO UPDATE SET 
+                address = EXCLUDED.address, 
+                is_active = EXCLUDED.is_active, 
+                encrypted_private_key = EXCLUDED.encrypted_private_key,
+                wallet_mode = EXCLUDED.wallet_mode,
+                updated_at = NOW()
             RETURNING id, merchant_id, crypto_type, network, address, is_active, sandbox_mode, 
                       wallet_mode, encrypted_private_key, created_at, updated_at
             "#
         )
         .bind(merchant_id)
-        .bind(crypto_type.to_string())
+        .bind(&crypto_type_str)
         .bind(&network)
         .bind(&address)
         .bind(is_active)
         .bind(sandbox_mode)
         .bind(&encrypted_private_key)
+        .bind(mode)
         .fetch_one(&self.db_pool)
         .await;
 
@@ -74,11 +155,61 @@ impl WalletConfigService {
 
         for sister in sisters {
             if sister == crypto_type.to_string() { continue; }
+
+            // Fetch current sister state to determine if we should archive
+            let current_sister = sqlx::query!(
+                "SELECT address, wallet_mode, encrypted_private_key, is_active FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
+                merchant_id,
+                sister,
+                sandbox_mode
+            )
+            .fetch_optional(&self.db_pool)
+            .await
+            .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+
+            if let Some(current) = current_sister {
+                let address_changed = current.address != address;
+                let mode_changed = current.wallet_mode.as_deref().unwrap_or("address_only") != mode;
+                let active_changed = current.is_active != is_active;
+
+                if address_changed || mode_changed || active_changed {
+                    tracing::info!("Archiving sister wallet state for merchant {}: crypto={}", merchant_id, sister);
+                    
+                    sqlx::query(
+                        r#"
+                        INSERT INTO merchant_wallet_history (
+                            merchant_id, owner_type, crypto_type, network, 
+                            old_address, new_address, wallet_mode, 
+                            encrypted_private_key, is_active, reason
+                        )
+                        VALUES ($1, 'merchant', $2, $3, $4, $5, $6, $7, $8, $9)
+                        "#
+                    )
+                    .bind(merchant_id)
+                    .bind(sister)
+                    .bind(&network)
+                    .bind(&current.address)
+                    .bind(&address)
+                    .bind(current.wallet_mode.as_deref().unwrap_or("address_only"))
+                    .bind(&current.encrypted_private_key)
+                    .bind(current.is_active)
+                    .bind("Sister wallet updated")
+                    .execute(&self.db_pool)
+                    .await
+                    .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+                }
+            }
+
             sqlx::query(
-                "INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)
+                "INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key, wallet_mode)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                  ON CONFLICT (merchant_id, crypto_type, sandbox_mode) 
-                 DO UPDATE SET address = $4, is_active = $5, encrypted_private_key = COALESCE($7, merchant_wallets.encrypted_private_key), updated_at = NOW()"
+                 DO UPDATE SET 
+                    address = EXCLUDED.address, 
+                    is_active = EXCLUDED.is_active, 
+                    encrypted_private_key = EXCLUDED.encrypted_private_key,
+                    wallet_mode = EXCLUDED.wallet_mode,
+                    updated_at = NOW()"
             )
             .bind(merchant_id)
             .bind(sister)
@@ -87,6 +218,7 @@ impl WalletConfigService {
             .bind(is_active)
             .bind(sandbox_mode)
             .bind(&encrypted_private_key)
+            .bind(mode)
             .execute(&self.db_pool)
             .await?;
         }
@@ -285,6 +417,62 @@ impl WalletConfigService {
 
     pub async fn delete_wallet_config(&self, merchant_id: i64, sandbox_mode: bool, crypto_type_str: String) -> Result<(), ServiceError> {
         let crypto_type = CryptoType::from_string(&crypto_type_str)?;
+        let network = crypto_type.network().to_string();
+
+        tracing::info!(
+            "delete_wallet_config: merchant={}, crypto={}, sandbox={}",
+            merchant_id, crypto_type_str, sandbox_mode
+        );
+
+        // Check if the merchant has wallets locked
+        let wallets_locked = sqlx::query_scalar::<_, bool>(
+            "SELECT wallets_locked FROM merchants WHERE id = $1"
+        )
+        .bind(merchant_id)
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+
+        if wallets_locked {
+            tracing::warn!("Blocked wallet deletion for merchant {} (locked)", merchant_id);
+            return Err(ServiceError::BadRequest(
+                "Wallets are locked. Please unlock in settings to remove configuration.".to_string()
+            ));
+        }
+
+        // Fetch current to archive
+        let current = sqlx::query!(
+            "SELECT address, wallet_mode, encrypted_private_key FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
+            merchant_id,
+            crypto_type_str,
+            sandbox_mode
+        )
+        .fetch_optional(&self.db_pool)
+        .await?;
+
+        if let Some(curr) = current {
+            if !curr.address.is_empty() {
+                sqlx::query(
+                    r#"
+                    INSERT INTO merchant_wallet_history (
+                        merchant_id, owner_type, crypto_type, network, 
+                        old_address, new_address, wallet_mode, 
+                        encrypted_private_key, is_active, reason
+                    )
+                    VALUES ($1, 'merchant', $2, $3, $4, '', $5, $6, true, $7)
+                    "#
+                )
+                .bind(merchant_id)
+                .bind(&crypto_type_str)
+                .bind(&network)
+                .bind(&curr.address)
+                .bind(curr.wallet_mode.as_deref().unwrap_or("address_only"))
+                .bind(&curr.encrypted_private_key)
+                .bind("Deleted via dashboard")
+                .execute(&self.db_pool)
+                .await?;
+            }
+        }
         
         sqlx::query(
             "UPDATE merchant_wallets SET address = '', is_active = false, updated_at = NOW() 
@@ -333,6 +521,64 @@ impl WalletConfigService {
         sandbox_mode: bool,
     ) -> Result<WalletConfig, ServiceError> {
         crate::utils::validation::validate_wallet_address(&address, crypto_type)?;
+        let crypto_type_str = crypto_type.to_string();
+        let network = crypto_type.network().to_string();
+
+        tracing::info!(
+            "set_forwarding_address: merchant={}, crypto={}, sandbox={}",
+            merchant_id, crypto_type_str, sandbox_mode
+        );
+
+        // Check if the merchant has wallets locked
+        let wallets_locked = sqlx::query_scalar::<_, bool>(
+            "SELECT wallets_locked FROM merchants WHERE id = $1"
+        )
+        .bind(merchant_id)
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+
+        // Archive if changing
+        let current_address = sqlx::query_scalar::<_, String>(
+            "SELECT address FROM merchant_forwarding_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
+        )
+        .bind(merchant_id)
+        .bind(&crypto_type_str)
+        .bind(sandbox_mode)
+        .fetch_optional(&self.db_pool)
+        .await?;
+
+        if let Some(current) = current_address {
+            if current != address && !current.is_empty() {
+                if wallets_locked {
+                    tracing::warn!("Blocked forwarding address change for merchant {} (locked)", merchant_id);
+                    return Err(ServiceError::BadRequest(
+                        "Wallets are locked. Please unlock in settings to change address.".to_string()
+                    ));
+                }
+
+                tracing::info!("Archiving forwarding address for merchant {}", merchant_id);
+
+                // Archive the old address to history before updating
+                sqlx::query(
+                    r#"
+                    INSERT INTO merchant_wallet_history (
+                        merchant_id, owner_type, crypto_type, network, 
+                        old_address, new_address, wallet_mode, reason
+                    )
+                    VALUES ($1, 'merchant', $2, $3, $4, $5, 'forwarding', $6)
+                    "#
+                )
+                .bind(merchant_id)
+                .bind(&crypto_type_str)
+                .bind(&network)
+                .bind(&current)
+                .bind(&address)
+                .bind("Updated via forwarding management")
+                .execute(&self.db_pool)
+                .await?;
+            }
+        }
 
         let network = crypto_type.network().to_string();
 
@@ -403,15 +649,67 @@ impl WalletConfigService {
 
     pub async fn delete_forwarding_config(&self, merchant_id: i64, sandbox_mode: bool, crypto_type_str: String) -> Result<(), ServiceError> {
         let crypto_type = CryptoType::from_string(&crypto_type_str)?;
-        let network = crypto_type.network();
+        let network = crypto_type.network().to_string();
+
+        tracing::info!(
+            "delete_forwarding_config: merchant={}, crypto={}, sandbox={}",
+            merchant_id, crypto_type_str, sandbox_mode
+        );
+
+        // Check if the merchant has wallets locked
+        let wallets_locked = sqlx::query_scalar::<_, bool>(
+            "SELECT wallets_locked FROM merchants WHERE id = $1"
+        )
+        .bind(merchant_id)
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+
+        if wallets_locked {
+            tracing::warn!("Blocked forwarding deletion for merchant {} (locked)", merchant_id);
+            return Err(ServiceError::BadRequest(
+                "Wallets are locked. Please unlock in settings to remove configuration.".to_string()
+            ));
+        }
+
+        // Fetch current to archive
+        let current = sqlx::query_scalar::<_, String>(
+            "SELECT address FROM merchant_forwarding_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
+        )
+        .bind(merchant_id)
+        .bind(&crypto_type_str)
+        .bind(sandbox_mode)
+        .fetch_optional(&self.db_pool)
+        .await?;
+
+        if let Some(curr) = current {
+            if !curr.is_empty() {
+                sqlx::query(
+                    r#"
+                    INSERT INTO merchant_wallet_history (
+                        merchant_id, owner_type, crypto_type, network, 
+                        old_address, new_address, wallet_mode, reason
+                    )
+                    VALUES ($1, 'merchant', $2, $3, $4, '', 'forwarding', $5)
+                    "#
+                )
+                .bind(merchant_id)
+                .bind(&crypto_type_str)
+                .bind(&network)
+                .bind(&curr)
+                .bind("Deleted via dashboard")
+                .execute(&self.db_pool)
+                .await?;
+            }
+        }
 
         sqlx::query(
             "UPDATE merchant_forwarding_wallets SET address = '', is_active = false, updated_at = NOW()
              WHERE merchant_id = $1 AND (crypto_type = $2 OR network = $3) AND sandbox_mode = $4"
         )
         .bind(merchant_id)
-        .bind(crypto_type.to_string())
-        .bind(network)
+        .bind(&crypto_type_str)
+        .bind(&network)
         .bind(sandbox_mode)
         .execute(&self.db_pool)
         .await?;

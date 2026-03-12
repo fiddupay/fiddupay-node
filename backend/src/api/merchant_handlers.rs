@@ -18,6 +18,8 @@ pub use crate::api::settings_handlers::{
     set_wallet,
     update_merchant_settings,
     get_merchant_settings,
+    toggle_wallet_lock,
+    toggle_customer_wallet_lock,
     send_test_webhook,
     get_ip_whitelist,
     get_fee_setting,

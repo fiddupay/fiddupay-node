@@ -776,7 +776,96 @@ input:checked+.slider:before {
     cursor: not-allowed;
 }
 
+@media (max-width: 480px) {
+  .header h1 {
+    font-size: 20px;
+  }
+}
+
+/* Safeguard Box Styles */
+.safeguardBox {
+    margin-top: 32px;
+    padding: 24px;
+    background: #fffdf5;
+    border: 1px solid #fef3c7;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+}
+
+.safeguardInfo {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.safeguardIcon {
+    width: 48px;
+    height: 48px;
+    background: white;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+}
+
+.safeguardInfo h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #92400e;
+}
+
+.safeguardInfo p {
+    font-size: 14px;
+    color: #b45309;
+    margin: 0;
+}
+
+.lockBtn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    border: none;
+}
+
+.locked {
+    background-color: #34d399;
+    color: white;
+}
+
+.locked:hover {
+    background-color: #10b981;
+}
+
+.unlocked {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.unlocked:hover {
+    background-color: #d97706;
+}
+
 @media (max-width: 768px) {
+    .safeguardBox {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    .safeguardInfo {
+        flex-direction: column;
+        align-items: center;
+    }
   .page {
     padding: 16px;
   }

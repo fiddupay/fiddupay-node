@@ -14,6 +14,8 @@ export interface User {
   webhook_format?: string
   redirect_url?: string
   api_key?: string
+  wallets_locked: boolean
+  customer_wallets_locked: boolean
 }
 
 export interface LoginCredentials {
