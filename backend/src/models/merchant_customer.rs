@@ -22,6 +22,7 @@ pub struct MerchantCustomer {
     pub withdrawal_limit: Option<Decimal>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub sandbox_mode: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -36,6 +37,7 @@ pub struct MerchantCustomerWallet {
     pub encrypted_private_key: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub sandbox_mode: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -48,6 +50,7 @@ pub struct MerchantCustomerBalance {
     pub locked_balance: Decimal,
     pub total_balance: Decimal,
     pub last_updated_at: DateTime<Utc>,
+    pub sandbox_mode: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -68,6 +71,7 @@ pub struct CustomerTransaction {
     pub description: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub sandbox_mode: bool,
 }
 
 // ============================================================================

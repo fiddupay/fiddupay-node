@@ -13,7 +13,7 @@ use sqlx::PgPool;
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
-const CUSTOMER_COLS: &str = "id, merchant_id, external_id, email, first_name, last_name, metadata, is_active, status, status_reason, can_withdraw, withdrawal_limit, created_at, updated_at";
+const CUSTOMER_COLS: &str = "id, merchant_id, external_id, email, first_name, last_name, metadata, is_active, status, status_reason, can_withdraw, withdrawal_limit, created_at, updated_at, sandbox_mode";
 
 pub struct MerchantCustomerService {
     db_pool: PgPool,
@@ -77,12 +77,13 @@ impl MerchantCustomerService {
     }
 
     /// Fetch and validate a customer
-    async fn get_verified_customer(&self, merchant_id: i64, external_id: &str) -> Result<MerchantCustomer, ServiceError> {
+    async fn get_verified_customer(&self, merchant_id: i64, external_id: &str, sandbox_mode: bool) -> Result<MerchantCustomer, ServiceError> {
         let customer = sqlx::query_as::<_, MerchantCustomer>(
-            &format!("SELECT {} FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2", CUSTOMER_COLS)
+            &format!("SELECT {} FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2 AND sandbox_mode = $3", CUSTOMER_COLS)
         )
         .bind(merchant_id)
         .bind(external_id)
+        .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await
         .map_err(|_| ServiceError::ValidationError(format!("Customer {} not found", external_id)))?;
@@ -99,12 +100,13 @@ impl MerchantCustomerService {
         &self,
         merchant_id: i64,
         req: CreateCustomerRequest,
+        sandbox_mode: bool,
     ) -> Result<(MerchantCustomer, Vec<MerchantCustomerWallet>), ServiceError> {
         let customer = sqlx::query_as::<_, MerchantCustomer>(
             &format!(r#"
-            INSERT INTO merchant_customers (merchant_id, external_id, email, first_name, last_name, metadata, is_active)
-            VALUES ($1, $2, $3, $4, $5, $6, TRUE)
-            ON CONFLICT (merchant_id, external_id) 
+            INSERT INTO merchant_customers (merchant_id, external_id, email, first_name, last_name, metadata, is_active, sandbox_mode)
+            VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7)
+            ON CONFLICT (merchant_id, external_id, sandbox_mode) 
             DO UPDATE SET 
                 email = EXCLUDED.email, 
                 first_name = EXCLUDED.first_name, 
@@ -120,11 +122,12 @@ impl MerchantCustomerService {
         .bind(&req.first_name)
         .bind(&req.last_name)
         .bind(&req.metadata)
+        .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await?;
 
         // Auto-provision wallets using merchant's supported networks
-        let wallets = self.provision_wallets(merchant_id, &customer.external_id, vec![]).await
+        let wallets = self.provision_wallets(merchant_id, &customer.external_id, vec![], sandbox_mode).await
             .unwrap_or_else(|e| {
                 tracing::warn!("Auto-provision wallets failed for customer {}: {}", customer.external_id, e);
                 vec![]
@@ -139,8 +142,9 @@ impl MerchantCustomerService {
         merchant_id: i64,
         external_id: &str,
         networks: Vec<String>,
+        sandbox_mode: bool,
     ) -> Result<Vec<MerchantCustomerWallet>, ServiceError> {
-        let customer = self.get_verified_customer(merchant_id, external_id).await?;
+        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
 
         let encryption = Encryption::new()
             .map_err(|e| ServiceError::InternalError(format!("Encryption setup failed: {}", e)))?;
@@ -182,6 +186,7 @@ impl MerchantCustomerService {
                         let wallet = self.save_customer_wallet(
                             customer.id, merchant_id, crypto,
                             keypair.address.clone(), encrypted_key.clone(),
+                            sandbox_mode,
                         ).await?;
                         wallets.push(wallet);
                     }
@@ -201,6 +206,7 @@ impl MerchantCustomerService {
                         let wallet = self.save_customer_wallet(
                             customer.id, merchant_id, crypto,
                             keypair.address.clone(), encrypted_key.clone(),
+                            sandbox_mode,
                         ).await?;
                         wallets.push(wallet);
                     }
@@ -219,16 +225,17 @@ impl MerchantCustomerService {
         crypto_type: CryptoType,
         address: String,
         encrypted_key: String,
+        sandbox_mode: bool,
     ) -> Result<MerchantCustomerWallet, ServiceError> {
         let network = crypto_type.network().to_string();
         let crypto_str = crypto_type.to_string();
 
         let wallet = sqlx::query_as::<_, MerchantCustomerWallet>(
             r#"
-            INSERT INTO merchant_customer_wallets (customer_id, merchant_id, crypto_type, network, address, encrypted_private_key)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (customer_id, crypto_type) DO UPDATE SET address = EXCLUDED.address, encrypted_private_key = EXCLUDED.encrypted_private_key, updated_at = NOW()
-            RETURNING id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at
+            INSERT INTO merchant_customer_wallets (customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, sandbox_mode)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (customer_id, crypto_type, sandbox_mode) DO UPDATE SET address = EXCLUDED.address, encrypted_private_key = EXCLUDED.encrypted_private_key, updated_at = NOW()
+            RETURNING id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at, sandbox_mode
             "#
         )
         .bind(customer_id)
@@ -237,16 +244,18 @@ impl MerchantCustomerService {
         .bind(&network)
         .bind(&address)
         .bind(&encrypted_key)
+        .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await?;
 
         // Initialize balance record
         sqlx::query(
-            "INSERT INTO merchant_customer_balances (customer_id, merchant_id, crypto_type) VALUES ($1, $2, $3) ON CONFLICT (customer_id, crypto_type) DO NOTHING"
+            "INSERT INTO merchant_customer_balances (customer_id, merchant_id, crypto_type, sandbox_mode) VALUES ($1, $2, $3, $4) ON CONFLICT (customer_id, crypto_type, sandbox_mode) DO NOTHING"
         )
         .bind(customer_id)
         .bind(merchant_id)
         .bind(&crypto_str)
+        .bind(sandbox_mode)
         .execute(&self.db_pool)
         .await?;
 
@@ -261,17 +270,19 @@ impl MerchantCustomerService {
         &self,
         merchant_id: i64,
         external_id: &str,
+        sandbox_mode: bool,
     ) -> Result<Vec<MerchantCustomerBalance>, ServiceError> {
         let balances = sqlx::query_as::<_, MerchantCustomerBalance>(
             r#"
-            SELECT mb.id, mb.customer_id, mb.merchant_id, mb.crypto_type, mb.available_balance, mb.locked_balance, mb.total_balance, mb.last_updated_at
+            SELECT mb.id, mb.customer_id, mb.merchant_id, mb.crypto_type, mb.available_balance, mb.locked_balance, mb.total_balance, mb.last_updated_at, mb.sandbox_mode
             FROM merchant_customer_balances mb
             JOIN merchant_customers mc ON mc.id = mb.customer_id
-            WHERE mc.merchant_id = $1 AND mc.external_id = $2
+            WHERE mc.merchant_id = $1 AND mc.external_id = $2 AND mb.sandbox_mode = $3
             "#
         )
         .bind(merchant_id)
         .bind(external_id)
+        .bind(sandbox_mode)
         .fetch_all(&self.db_pool)
         .await?;
 
@@ -282,18 +293,20 @@ impl MerchantCustomerService {
         &self,
         merchant_id: i64,
         external_id: &str,
+        sandbox_mode: bool,
     ) -> Result<Vec<MerchantCustomerWallet>, ServiceError> {
         let wallets = sqlx::query_as::<_, MerchantCustomerWallet>(
             r#"
-            SELECT w.id, w.customer_id, w.merchant_id, w.crypto_type, w.network, w.address, w.encrypted_private_key, w.created_at, w.updated_at
+            SELECT w.id, w.customer_id, w.merchant_id, w.crypto_type, w.network, w.address, w.encrypted_private_key, w.created_at, w.updated_at, w.sandbox_mode
             FROM merchant_customer_wallets w
             JOIN merchant_customers mc ON mc.id = w.customer_id
-            WHERE mc.merchant_id = $1 AND mc.external_id = $2
+            WHERE mc.merchant_id = $1 AND mc.external_id = $2 AND w.sandbox_mode = $3
             ORDER BY w.created_at
             "#
         )
         .bind(merchant_id)
         .bind(external_id)
+        .bind(sandbox_mode)
         .fetch_all(&self.db_pool)
         .await?;
 
@@ -305,15 +318,17 @@ impl MerchantCustomerService {
         merchant_id: i64,
         external_id: &str,
         crypto_type_str: &str,
+        sandbox_mode: bool,
     ) -> Result<String, ServiceError> {
-        let customer = self.get_verified_customer(merchant_id, external_id).await?;
+        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
         Self::check_permissions(&customer, "view")?;
 
         let wallet = sqlx::query_as::<_, MerchantCustomerWallet>(
-            "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2"
+            "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at, sandbox_mode FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
         .bind(customer.id)
         .bind(crypto_type_str)
+        .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
         .await?
         .ok_or_else(|| ServiceError::ValidationError(format!("No wallet found for {}", crypto_type_str)))?;
@@ -327,15 +342,17 @@ impl MerchantCustomerService {
         external_id: &str,
         limit: i64,
         offset: i64,
+        sandbox_mode: bool,
     ) -> Result<(Vec<CustomerTransaction>, i64), ServiceError> {
-        let customer = self.get_verified_customer(merchant_id, external_id).await?;
+        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
         Self::check_permissions(&customer, "view")?;
 
         let total: i64 = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM customer_transactions WHERE customer_id = $1 AND merchant_id = $2"
+            "SELECT COUNT(*) FROM customer_transactions WHERE customer_id = $1 AND merchant_id = $2 AND sandbox_mode = $3"
         )
         .bind(customer.id)
         .bind(merchant_id)
+        .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await?;
 
@@ -343,15 +360,16 @@ impl MerchantCustomerService {
             r#"
             SELECT id, customer_id, merchant_id, type, crypto_type, amount, fee, status,
                    destination_address, transaction_hash, reference_id, description,
-                   created_at, updated_at
+                   created_at, updated_at, sandbox_mode
             FROM customer_transactions
-            WHERE customer_id = $1 AND merchant_id = $2
+            WHERE customer_id = $1 AND merchant_id = $2 AND sandbox_mode = $3
             ORDER BY created_at DESC
-            LIMIT $3 OFFSET $4
+            LIMIT $4 OFFSET $5
             "#
         )
         .bind(customer.id)
         .bind(merchant_id)
+        .bind(sandbox_mode)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.db_pool)
@@ -365,11 +383,13 @@ impl MerchantCustomerService {
         merchant_id: i64,
         limit: i64,
         offset: i64,
+        sandbox_mode: bool,
     ) -> Result<(Vec<MerchantCustomer>, i64), ServiceError> {
         let total_count: i64 = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM merchant_customers WHERE merchant_id = $1"
+            "SELECT COUNT(*) FROM merchant_customers WHERE merchant_id = $1 AND sandbox_mode = $2"
         )
         .bind(merchant_id)
+        .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await?;
 
@@ -377,12 +397,13 @@ impl MerchantCustomerService {
             &format!(r#"
             SELECT {} 
             FROM merchant_customers 
-            WHERE merchant_id = $1
+            WHERE merchant_id = $1 AND sandbox_mode = $2
             ORDER BY created_at DESC 
-            LIMIT $2 OFFSET $3
+            LIMIT $3 OFFSET $4
             "#, CUSTOMER_COLS)
         )
         .bind(merchant_id)
+        .bind(sandbox_mode)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.db_pool)
@@ -408,25 +429,27 @@ impl MerchantCustomerService {
             .map_err(|_| ServiceError::ValidationError(format!("Invalid amount format: {}", amount_str)))?;
 
         // 1. Verify customer and check permissions
-        let customer = self.get_verified_customer(merchant_id, external_id).await?;
+        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
         Self::check_withdrawal_permissions(&customer, amount)?;
 
         // 2. Fetch wallet
         let _wallet = sqlx::query_as::<_, MerchantCustomerWallet>(
-            "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2"
+            "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at, sandbox_mode FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
         .bind(customer.id)
         .bind(crypto_type_str)
+        .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await
         .map_err(|_| ServiceError::ValidationError(format!("Wallet for {} not found for this customer", crypto_type_str)))?;
 
         // 3. Check Balance
         let balance = sqlx::query_as::<_, MerchantCustomerBalance>(
-            "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at FROM merchant_customer_balances WHERE customer_id = $1 AND crypto_type = $2"
+            "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at, sandbox_mode FROM merchant_customer_balances WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
         .bind(customer.id)
         .bind(crypto_type_str)
+        .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
         .await?;
 
@@ -436,17 +459,15 @@ impl MerchantCustomerService {
         }
 
         // 4. Lock funds and create withdrawal record
-        let _crypto_type = CryptoType::from_str(crypto_type_str)
-            .map_err(|_| ServiceError::ValidationError("Invalid crypto type".to_string()))?;
-
         let mut tx = self.db_pool.begin().await?;
 
         sqlx::query(
-            "UPDATE merchant_customer_balances SET available_balance = available_balance - $1, locked_balance = locked_balance + $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3"
+            "UPDATE merchant_customer_balances SET available_balance = available_balance - $1, locked_balance = locked_balance + $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
         )
         .bind(amount)
         .bind(customer.id)
         .bind(crypto_type_str)
+        .bind(sandbox_mode)
         .execute(&mut *tx)
         .await?;
 
@@ -478,8 +499,8 @@ impl MerchantCustomerService {
         // Record in customer_transactions ledger
         sqlx::query(
             r#"
-            INSERT INTO customer_transactions (customer_id, merchant_id, type, crypto_type, amount, fee, status, destination_address, reference_id, description)
-            VALUES ($1, $2, 'WITHDRAWAL', $3, $4, 0, 'PENDING', $5, $6, 'Withdrawal to external address')
+            INSERT INTO customer_transactions (customer_id, merchant_id, type, crypto_type, amount, fee, status, destination_address, reference_id, description, sandbox_mode)
+            VALUES ($1, $2, 'WITHDRAWAL', $3, $4, 0, 'PENDING', $5, $6, 'Withdrawal to external address', $7)
             "#
         )
         .bind(customer.id)
@@ -488,6 +509,7 @@ impl MerchantCustomerService {
         .bind(amount)
         .bind(destination_address)
         .bind(&withdrawal_id)
+        .bind(sandbox_mode)
         .execute(&mut *tx)
         .await?;
 
@@ -515,15 +537,16 @@ impl MerchantCustomerService {
         }
 
         // 1. Verify customer permissions
-        let customer = self.get_verified_customer(merchant_id, external_id).await?;
+        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
         Self::check_permissions(&customer, "pay")?;
 
         // 2. Get customer's wallet (need private key for on-chain tx)
         let wallet = sqlx::query_as::<_, MerchantCustomerWallet>(
-            "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2"
+            "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at, sandbox_mode FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
         .bind(customer.id)
         .bind(crypto_type_str)
+        .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await
         .map_err(|_| ServiceError::ValidationError(format!("Wallet for {} not found", crypto_type_str)))?;
@@ -543,10 +566,11 @@ impl MerchantCustomerService {
 
         // 4. Check customer balance
         let balance = sqlx::query_as::<_, MerchantCustomerBalance>(
-            "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at FROM merchant_customer_balances WHERE customer_id = $1 AND crypto_type = $2"
+            "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at, sandbox_mode FROM merchant_customer_balances WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
         .bind(customer.id)
         .bind(crypto_type_str)
+        .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
         .await?;
 
@@ -559,11 +583,12 @@ impl MerchantCustomerService {
         let mut tx = self.db_pool.begin().await?;
 
         sqlx::query(
-            "UPDATE merchant_customer_balances SET available_balance = available_balance - $1, locked_balance = locked_balance + $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3"
+            "UPDATE merchant_customer_balances SET available_balance = available_balance - $1, locked_balance = locked_balance + $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
         )
         .bind(amount)
         .bind(customer.id)
         .bind(crypto_type_str)
+        .bind(sandbox_mode)
         .execute(&mut *tx)
         .await?;
 
@@ -572,11 +597,11 @@ impl MerchantCustomerService {
 
         let customer_tx = sqlx::query_as::<_, CustomerTransaction>(
             r#"
-            INSERT INTO customer_transactions (customer_id, merchant_id, type, crypto_type, amount, fee, status, destination_address, reference_id, description)
-            VALUES ($1, $2, 'MERCHANT_PAYMENT', $3, $4, 0, 'PENDING', $5, $6, $7)
+            INSERT INTO customer_transactions (customer_id, merchant_id, type, crypto_type, amount, fee, status, destination_address, reference_id, description, sandbox_mode)
+            VALUES ($1, $2, 'MERCHANT_PAYMENT', $3, $4, 0, 'PENDING', $5, $6, $7, $8)
             RETURNING id, customer_id, merchant_id, type, crypto_type, amount, fee, status,
                       destination_address, transaction_hash, reference_id, description,
-                      created_at, updated_at
+                      created_at, updated_at, sandbox_mode
             "#
         )
         .bind(customer.id)
@@ -586,6 +611,7 @@ impl MerchantCustomerService {
         .bind(&merchant_address)
         .bind(&tx_ref)
         .bind(&tx_desc)
+        .bind(sandbox_mode)
         .fetch_one(&mut *tx)
         .await?;
 
@@ -628,13 +654,14 @@ impl MerchantCustomerService {
         amount_str: Option<String>,
         sandbox_mode: bool,
     ) -> Result<Decimal, ServiceError> {
-        let customer = self.get_verified_customer(merchant_id, external_id).await?;
+        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
 
         let balance_record = sqlx::query_as::<_, MerchantCustomerBalance>(
-            "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at FROM merchant_customer_balances WHERE customer_id = $1 AND crypto_type = $2 FOR UPDATE"
+            "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at, sandbox_mode FROM merchant_customer_balances WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 FOR UPDATE"
         )
         .bind(customer.id)
         .bind(crypto_type_str)
+        .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
         .await?
         .ok_or_else(|| ServiceError::ValidationError(format!("No balance record found for {}", crypto_type_str)))?;
@@ -653,17 +680,15 @@ impl MerchantCustomerService {
             return Err(ServiceError::InsufficientFunds(crypto_type_str.to_string()));
         }
 
-        let _crypto_type = CryptoType::from_str(crypto_type_str)
-            .map_err(|_| ServiceError::ValidationError("Invalid crypto type".to_string()))?;
-
         let mut tx = self.db_pool.begin().await?;
 
         sqlx::query(
-            "UPDATE merchant_customer_balances SET available_balance = available_balance - $1, total_balance = total_balance - $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3"
+            "UPDATE merchant_customer_balances SET available_balance = available_balance - $1, total_balance = total_balance - $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
         )
         .bind(amount)
         .bind(customer.id)
         .bind(crypto_type_str)
+        .bind(sandbox_mode)
         .execute(&mut *tx)
         .await?;
 
@@ -687,14 +712,15 @@ impl MerchantCustomerService {
         // Record in customer_transactions
         sqlx::query(
             r#"
-            INSERT INTO customer_transactions (customer_id, merchant_id, type, crypto_type, amount, fee, status, description)
-            VALUES ($1, $2, 'SWEEP', $3, $4, 0, 'COMPLETED', 'Funds swept to merchant balance')
+            INSERT INTO customer_transactions (customer_id, merchant_id, type, crypto_type, amount, fee, status, description, sandbox_mode)
+            VALUES ($1, $2, 'SWEEP', $3, $4, 0, 'COMPLETED', 'Funds swept to merchant balance', $5)
             "#
         )
         .bind(customer.id)
         .bind(merchant_id)
         .bind(crypto_type_str)
         .bind(amount)
+        .bind(sandbox_mode)
         .execute(&mut *tx)
         .await?;
 
@@ -713,6 +739,7 @@ impl MerchantCustomerService {
         external_id: &str,
         status: &str,
         reason: Option<&str>,
+        sandbox_mode: bool,
     ) -> Result<MerchantCustomer, ServiceError> {
         // Validate status value
         match status {
@@ -724,7 +751,7 @@ impl MerchantCustomerService {
             &format!(r#"
             UPDATE merchant_customers 
             SET status = $3, status_reason = $4, updated_at = NOW()
-            WHERE merchant_id = $1 AND external_id = $2
+            WHERE merchant_id = $1 AND external_id = $2 AND sandbox_mode = $5
             RETURNING {}
             "#, CUSTOMER_COLS)
         )
@@ -732,6 +759,7 @@ impl MerchantCustomerService {
         .bind(external_id)
         .bind(status)
         .bind(reason)
+        .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await
         .map_err(|_| ServiceError::ValidationError(format!("Customer {} not found", external_id)))?;
@@ -745,6 +773,7 @@ impl MerchantCustomerService {
         external_id: &str,
         can_withdraw: Option<bool>,
         withdrawal_limit: Option<Decimal>,
+        sandbox_mode: bool,
     ) -> Result<MerchantCustomer, ServiceError> {
         let customer = sqlx::query_as::<_, MerchantCustomer>(
             &format!(r#"
@@ -752,7 +781,7 @@ impl MerchantCustomerService {
             SET can_withdraw = COALESCE($3, can_withdraw),
                 withdrawal_limit = COALESCE($4, withdrawal_limit),
                 updated_at = NOW()
-            WHERE merchant_id = $1 AND external_id = $2
+            WHERE merchant_id = $1 AND external_id = $2 AND sandbox_mode = $5
             RETURNING {}
             "#, CUSTOMER_COLS)
         )
@@ -760,6 +789,7 @@ impl MerchantCustomerService {
         .bind(external_id)
         .bind(can_withdraw)
         .bind(withdrawal_limit)
+        .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await
         .map_err(|_| ServiceError::ValidationError(format!("Customer {} not found", external_id)))?;
@@ -772,12 +802,14 @@ impl MerchantCustomerService {
         &self,
         merchant_id: i64,
         external_id: &str,
+        sandbox_mode: bool,
     ) -> Result<(), ServiceError> {
         let res = sqlx::query(
-            "UPDATE merchant_customers SET is_active = FALSE, status = 'blocked', status_reason = 'Deactivated by merchant', updated_at = NOW() WHERE merchant_id = $1 AND external_id = $2"
+            "UPDATE merchant_customers SET is_active = FALSE, status = 'blocked', status_reason = 'Deactivated by merchant', updated_at = NOW() WHERE merchant_id = $1 AND external_id = $2 AND sandbox_mode = $3"
         )
         .bind(merchant_id)
         .bind(external_id)
+        .bind(sandbox_mode)
         .execute(&self.db_pool)
         .await;
 

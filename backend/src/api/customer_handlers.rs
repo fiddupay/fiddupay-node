@@ -23,7 +23,7 @@ pub async fn register_customer(
 ) -> impl IntoResponse {
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
-    match service.register_customer(context.merchant_id, req).await {
+    match service.register_customer(context.merchant_id, req, context.sandbox_mode).await {
         Ok((customer, wallets)) => (StatusCode::CREATED, Json(json!({
             "customer": customer,
             "wallets": wallets,
@@ -43,7 +43,7 @@ pub async fn provision_customer_wallets(
 ) -> impl IntoResponse {
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
-    match service.provision_wallets(context.merchant_id, &external_id, req.networks.unwrap_or_default()).await {
+    match service.provision_wallets(context.merchant_id, &external_id, req.networks.unwrap_or_default(), context.sandbox_mode).await {
         Ok(wallets) => {
             let response_wallets: Vec<_> = wallets.iter().map(|w| json!({
                 "crypto_type": w.crypto_type,
@@ -71,7 +71,7 @@ pub async fn get_customer_balances(
 ) -> impl IntoResponse {
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
-    match service.get_customer_balances(context.merchant_id, &external_id).await {
+    match service.get_customer_balances(context.merchant_id, &external_id, context.sandbox_mode).await {
         Ok(balances) => (StatusCode::OK, Json(json!({
             "external_id": external_id,
             "balances": balances
@@ -89,7 +89,7 @@ pub async fn get_customer_wallets(
 ) -> impl IntoResponse {
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
-    match service.get_customer_wallets(context.merchant_id, &external_id).await {
+    match service.get_customer_wallets(context.merchant_id, &external_id, context.sandbox_mode).await {
         Ok(wallets) => (StatusCode::OK, Json(json!({
             "external_id": external_id,
             "wallets": wallets
@@ -107,7 +107,7 @@ pub async fn get_deposit_address(
 ) -> impl IntoResponse {
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
-    match service.get_deposit_address(context.merchant_id, &external_id, &crypto_type).await {
+    match service.get_deposit_address(context.merchant_id, &external_id, &crypto_type, context.sandbox_mode).await {
         Ok(address) => (StatusCode::OK, Json(json!({
             "external_id": external_id,
             "crypto_type": crypto_type,
@@ -135,7 +135,7 @@ pub async fn get_customer_transactions(
     let limit = params.limit.unwrap_or(50);
     let offset = params.offset.unwrap_or(0);
 
-    match service.get_customer_transactions(context.merchant_id, &external_id, limit, offset).await {
+    match service.get_customer_transactions(context.merchant_id, &external_id, limit, offset, context.sandbox_mode).await {
         Ok((transactions, total)) => (StatusCode::OK, Json(json!({
             "external_id": external_id,
             "transactions": transactions,
@@ -191,7 +191,7 @@ pub async fn update_customer_status(
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
     match service.update_customer_status(
-        context.merchant_id, &external_id, &req.status, req.reason.as_deref()
+        context.merchant_id, &external_id, &req.status, req.reason.as_deref(), context.sandbox_mode
     ).await {
         Ok(customer) => (StatusCode::OK, Json(json!({
             "customer": customer,
@@ -216,7 +216,7 @@ pub async fn update_customer_permissions(
     });
 
     match service.update_customer_permissions(
-        context.merchant_id, &external_id, req.can_withdraw, withdrawal_limit
+        context.merchant_id, &external_id, req.can_withdraw, withdrawal_limit, context.sandbox_mode
     ).await {
         Ok(customer) => (StatusCode::OK, Json(json!({
             "customer": customer,
@@ -274,7 +274,7 @@ pub async fn list_customers(
     let limit = params.limit.unwrap_or(50);
     let offset = params.offset.unwrap_or(0);
     
-    match service.list_customers(context.merchant_id, limit, offset).await {
+    match service.list_customers(context.merchant_id, limit, offset, context.sandbox_mode).await {
         Ok((customers, total)) => (StatusCode::OK, Json(json!({
             "customers": customers,
             "total": total,
@@ -327,7 +327,7 @@ pub async fn deactivate_customer(
 ) -> impl IntoResponse {
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
-    match service.deactivate_customer(context.merchant_id, &external_id).await {
+    match service.deactivate_customer(context.merchant_id, &external_id, context.sandbox_mode).await {
         Ok(_) => (StatusCode::OK, Json(json!({
             "message": "Customer deactivated successfully"
         }))).into_response(),
