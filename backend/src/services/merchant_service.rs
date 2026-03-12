@@ -8,7 +8,7 @@ use crate::utils::api_keys::ApiKeyGenerator;
 use chrono::Utc;
 use nanoid::nanoid;
 use rust_decimal::Decimal;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 
 pub struct MerchantService {
     db_pool: PgPool,
@@ -586,18 +586,23 @@ impl MerchantService {
         .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
         // 2. Fetch current wallet if it exists
-        let current_wallet = sqlx::query!(
-            "SELECT address, wallet_mode, encrypted_private_key, is_active FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
-            merchant_id,
-            crypto_type_str,
-            sandbox_mode
+        let current_wallet = sqlx::query(
+            "SELECT address, wallet_mode, encrypted_private_key, is_active FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
+        .bind(merchant_id)
+        .bind(&crypto_type_str)
+        .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
         .await
         .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
-        if let Some(current) = current_wallet {
-            if current.address != address {
+        if let Some(row) = current_wallet {
+            let current_address: String = row.get("address");
+            let current_mode: Option<String> = row.get("wallet_mode");
+            let current_key: Option<String> = row.get("encrypted_private_key");
+            let current_active: bool = row.get("is_active");
+
+            if current_address != address {
                 if wallets_locked {
                     return Err(ServiceError::BadRequest(
                         "Wallets are locked. Please unlock in settings to change address.".to_string()
@@ -618,11 +623,11 @@ impl MerchantService {
                 .bind(merchant_id)
                 .bind(&crypto_type_str)
                 .bind(network)
-                .bind(&current.address)
+                .bind(&current_address)
                 .bind(&address)
-                .bind(current.wallet_mode.as_deref().unwrap_or("address_only"))
-                .bind(&current.encrypted_private_key)
-                .bind(current.is_active)
+                .bind(current_mode.as_deref().unwrap_or("address_only"))
+                .bind(&current_key)
+                .bind(current_active)
                 .bind("Updated via settings")
                 .execute(&self.db_pool)
                 .await?;

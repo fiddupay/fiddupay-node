@@ -77,6 +77,9 @@ pub enum ServiceError {
     #[error("Internal error: {0}")]
     InternalError(String),
 
+    #[error("Bad request: {0}")]
+    BadRequest(String),
+
     #[error("Insufficient funds: {0}")]
     InsufficientFunds(String),
 }
@@ -197,6 +200,11 @@ impl IntoResponse for ServiceError {
             ServiceError::WalletNotConfigured(ref msg) => (
                 StatusCode::BAD_REQUEST,
                 "WALLET_NOT_CONFIGURED",
+                msg.as_str(),
+            ),
+            ServiceError::BadRequest(ref msg) => (
+                StatusCode::BAD_REQUEST,
+                "BAD_REQUEST",
                 msg.as_str(),
             ),
         };

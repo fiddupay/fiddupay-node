@@ -9,7 +9,7 @@ use crate::models::merchant_customer::{
 use crate::payment::models::CryptoType;
 use crate::utils::keygen::KeyGenerator;
 use crate::utils::encryption::Encryption;
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
@@ -255,18 +255,16 @@ impl MerchantCustomerService {
         .map_err(|e| ServiceError::DatabaseError(e.to_string()))? > 0;
 
         // 3. Fetch current wallet if it exists for this specific crypto
-        let current_wallet = sqlx::query!(
-            "SELECT address, encrypted_private_key FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
-            customer_id,
-            crypto_str,
-            sandbox_mode
+        let current_wallet = sqlx::query(
+            "SELECT address, encrypted_private_key FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
+        .bind(customer_id)
+        .bind(&crypto_str)
+        .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
         .await
         .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
-        // 4. If this is an existing customer but we are provisioning a NEW currency for them,
-        // we still block it if customer wallets are locked.
         if current_wallet.is_none() && has_existing_wallets && customer_wallets_locked {
             tracing::warn!("Blocked new currency provisioning for existing customer {} (customer wallets locked)", customer_id);
             return Err(ServiceError::BadRequest(
@@ -274,8 +272,11 @@ impl MerchantCustomerService {
             ));
         }
 
-        if let Some(current) = current_wallet {
-            if current.address != address {
+        if let Some(row) = current_wallet {
+            let current_address: String = row.get("address");
+            let current_key: String = row.get("encrypted_private_key");
+
+            if current_address != address {
                 if customer_wallets_locked {
                     tracing::warn!("Blocked customer wallet change for merchant {} (customer wallets locked)", merchant_id);
                     return Err(ServiceError::BadRequest(
@@ -303,9 +304,9 @@ impl MerchantCustomerService {
                 .bind(customer_id)
                 .bind(&crypto_str)
                 .bind(&network)
-                .bind(&current.address)
+                .bind(&current_address)
                 .bind(&address)
-                .bind(&current.encrypted_private_key)
+                .bind(&current_key)
                 .bind("Customer wallet re-provisioned")
                 .execute(&self.db_pool)
                 .await

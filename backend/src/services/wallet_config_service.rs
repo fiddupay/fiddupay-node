@@ -59,21 +59,26 @@ impl WalletConfigService {
         .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
         // 2. Fetch current wallet if it exists
-        let current_wallet = sqlx::query!(
-            "SELECT address, wallet_mode, encrypted_private_key, is_active FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
-            merchant_id,
-            crypto_type_str,
-            sandbox_mode
+        let current_wallet_row = sqlx::query(
+            "SELECT address, wallet_mode, encrypted_private_key, is_active FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
+        .bind(merchant_id)
+        .bind(&crypto_type_str)
+        .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
         .await
         .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
-        if let Some(current) = current_wallet {
+        if let Some(row) = current_wallet_row {
+            let current_address: String = row.get("address");
+            let current_mode: Option<String> = row.get("wallet_mode");
+            let current_key: Option<String> = row.get("encrypted_private_key");
+            let current_active: bool = row.get("is_active");
+
             // If the address or mode is different, we check the lock and record history
-            let address_changed = current.address != address;
-            let mode_changed = current.wallet_mode.as_deref().unwrap_or("address_only") != mode;
-            let active_changed = current.is_active != is_active;
+            let address_changed = current_address != address;
+            let mode_changed = current_mode.as_deref().unwrap_or("address_only") != mode;
+            let active_changed = current_active != is_active;
 
             if address_changed || mode_changed || active_changed {
                 if wallets_locked {
@@ -102,11 +107,11 @@ impl WalletConfigService {
                 .bind(merchant_id)
                 .bind(&crypto_type_str)
                 .bind(&network)
-                .bind(&current.address)
+                .bind(&current_address)
                 .bind(&address)
-                .bind(current.wallet_mode.as_deref().unwrap_or("address_only"))
-                .bind(&current.encrypted_private_key)
-                .bind(current.is_active)
+                .bind(current_mode.as_deref().unwrap_or("address_only"))
+                .bind(&current_key)
+                .bind(current_active)
                 .bind("Updated via wallet management")
                 .execute(&self.db_pool)
                 .await
@@ -157,20 +162,25 @@ impl WalletConfigService {
             if sister == crypto_type.to_string() { continue; }
 
             // Fetch current sister state to determine if we should archive
-            let current_sister = sqlx::query!(
-                "SELECT address, wallet_mode, encrypted_private_key, is_active FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
-                merchant_id,
-                sister,
-                sandbox_mode
+            let current_sister_row = sqlx::query(
+                "SELECT address, wallet_mode, encrypted_private_key, is_active FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
             )
+            .bind(merchant_id)
+            .bind(sister)
+            .bind(sandbox_mode)
             .fetch_optional(&self.db_pool)
             .await
             .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
-            if let Some(current) = current_sister {
-                let address_changed = current.address != address;
-                let mode_changed = current.wallet_mode.as_deref().unwrap_or("address_only") != mode;
-                let active_changed = current.is_active != is_active;
+            if let Some(row) = current_sister_row {
+                let current_address: String = row.get("address");
+                let current_mode: Option<String> = row.get("wallet_mode");
+                let current_key: Option<String> = row.get("encrypted_private_key");
+                let current_active: bool = row.get("is_active");
+
+                let address_changed = current_address != address;
+                let mode_changed = current_mode.as_deref().unwrap_or("address_only") != mode;
+                let active_changed = current_active != is_active;
 
                 if address_changed || mode_changed || active_changed {
                     tracing::info!("Archiving sister wallet state for merchant {}: crypto={}", merchant_id, sister);
@@ -188,11 +198,11 @@ impl WalletConfigService {
                     .bind(merchant_id)
                     .bind(sister)
                     .bind(&network)
-                    .bind(&current.address)
+                    .bind(&current_address)
                     .bind(&address)
-                    .bind(current.wallet_mode.as_deref().unwrap_or("address_only"))
-                    .bind(&current.encrypted_private_key)
-                    .bind(current.is_active)
+                    .bind(current_mode.as_deref().unwrap_or("address_only"))
+                    .bind(&current_key)
+                    .bind(current_active)
                     .bind("Sister wallet updated")
                     .execute(&self.db_pool)
                     .await
@@ -441,17 +451,22 @@ impl WalletConfigService {
         }
 
         // Fetch current to archive
-        let current = sqlx::query!(
-            "SELECT address, wallet_mode, encrypted_private_key FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
-            merchant_id,
-            crypto_type_str,
-            sandbox_mode
+        let current_row = sqlx::query(
+            "SELECT address, wallet_mode, encrypted_private_key FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
+        .bind(merchant_id)
+        .bind(&crypto_type_str)
+        .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
-        .await?;
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
-        if let Some(curr) = current {
-            if !curr.address.is_empty() {
+        if let Some(row) = current_row {
+            let current_address: String = row.get("address");
+            let current_mode: Option<String> = row.get("wallet_mode");
+            let current_key: Option<String> = row.get("encrypted_private_key");
+
+            if !current_address.is_empty() {
                 sqlx::query(
                     r#"
                     INSERT INTO merchant_wallet_history (
@@ -465,12 +480,13 @@ impl WalletConfigService {
                 .bind(merchant_id)
                 .bind(&crypto_type_str)
                 .bind(&network)
-                .bind(&curr.address)
-                .bind(curr.wallet_mode.as_deref().unwrap_or("address_only"))
-                .bind(&curr.encrypted_private_key)
+                .bind(&current_address)
+                .bind(current_mode.as_deref().unwrap_or("address_only"))
+                .bind(&current_key)
                 .bind("Deleted via dashboard")
                 .execute(&self.db_pool)
-                .await?;
+                .await
+                .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
             }
         }
         

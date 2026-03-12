@@ -192,7 +192,7 @@ impl AnalyticsService {
             });
         }
 
-        let mut points: Vec<crate::models::analytics::BalanceTrendPoint> = dates.into_iter()
+        let points: Vec<crate::models::analytics::BalanceTrendPoint> = dates.into_iter()
             .map(|d| daily_points.remove(&d).unwrap())
             .collect();
 

@@ -593,32 +593,6 @@ pub async fn get_invoice(
 // ============================================================================
 
 #[derive(Deserialize)]
-pub struct WalletLockRequest {
-    pub locked: bool,
-}
-
-pub async fn toggle_wallet_lock(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
-    Json(payload): Json<WalletLockRequest>,
-) -> impl IntoResponse {
-    let merchant_id = context.merchant_id;
-
-    match state.merchant_service.set_wallet_lock(merchant_id, payload.locked).await {
-        Ok(_) => (
-            StatusCode::OK,
-            Json(json!({
-                "success": true,
-                "message": if payload.locked { "Wallets locked successfully" } else { "Wallets unlocked successfully" }
-            })),
-        ).into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e.to_string() })),
-        ).into_response(),
-    }
-}
-#[derive(Deserialize)]
 pub struct SetLockRequest {
     pub locked: bool,
 }
