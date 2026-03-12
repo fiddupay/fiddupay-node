@@ -6,7 +6,11 @@ import { setSuppressAuthRedirect } from '@/utils/api'
 import { useToast } from '@/contexts/ToastContext'
 import styles from '@/styles/components/layout/Header.module.css'
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  onMenuClick?: () => void
+}
+
+const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { user, loadUser } = useAuthStore()
   const { showToast } = useToast()
 
@@ -41,7 +45,7 @@ const Header: React.FC = () => {
     <header className={styles.header}>
       <div className={styles.container}>
         <div className={styles.left}>
-          <button className={styles.menuButton}>
+          <button className={styles.menuButton} onClick={onMenuClick}>
             <MdMenu />
           </button>
         </div>

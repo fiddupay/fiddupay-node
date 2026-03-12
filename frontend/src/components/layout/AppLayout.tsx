@@ -8,6 +8,10 @@ import styles from '@/styles/components/layout/AppLayout.module.css'
 
 const AppLayout: React.FC = () => {
   const { isAuthenticated, loading } = useAuthStore()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
+
+  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen)
+  const closeMobileMenu = () => setIsMobileMenuOpen(false)
 
   if (loading) {
     return (
@@ -23,9 +27,14 @@ const AppLayout: React.FC = () => {
 
   return (
     <div className={styles.layout}>
-      <Sidebar />
+      <Sidebar isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
+      
+      {isMobileMenuOpen && (
+        <div className={styles.overlay} onClick={closeMobileMenu} />
+      )}
+
       <div className={styles.mainContent}>
-        <Header />
+        <Header onMenuClick={toggleMobileMenu} />
         <main className={styles.main}>
           <div className={styles.container}>
             <Outlet />

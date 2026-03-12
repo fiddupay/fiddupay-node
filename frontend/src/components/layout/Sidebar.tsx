@@ -14,12 +14,17 @@ const navigation = [
   { name: 'Settings', href: '/app/settings', iconClass: 'fas fa-cog' },
 ]
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  isOpen?: boolean
+  onClose?: () => void
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation()
   const { user, logout } = useAuthStore()
 
   return (
-    <div className={styles.sidebar}>
+    <div className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
       <div className={styles.sidebarContent}>
         <div className={styles.logo}>
           <h1>FidduPay</h1>
@@ -30,7 +35,7 @@ const Sidebar: React.FC = () => {
             {navigation.map((item) => {
               const isActive = location.pathname.startsWith(item.href)
               return (
-                <li key={item.name}>
+                <li key={item.name} onClick={onClose}>
                   <NavLink
                     to={item.href}
                     className={`${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
