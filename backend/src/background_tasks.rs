@@ -461,7 +461,7 @@ impl BackgroundTasks {
 
             if addresses.is_empty() {
                 // No pending payments, wait and check again later
-                tokio::time::sleep(Duration::from_secs(60)).await;
+                tokio::time::sleep(Duration::from_secs(5)).await;
                 continue;
             }
 

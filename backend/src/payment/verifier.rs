@@ -270,7 +270,7 @@ impl PaymentVerifier {
         // Verification Cooldown: Prevent redundant scans if triggered recently (e.g., 20s)
         if let Some(last_v) = payment.last_verification_at {
             let elapsed = Utc::now() - last_v;
-            if elapsed < chrono::Duration::seconds(20) {
+            if elapsed < chrono::Duration::seconds(5) {
                 tracing::debug!("Skipping verification for payment {}: cooldown active ({}s elapsed)", 
                     payment_id, elapsed.num_seconds());
                 return Ok(false);
@@ -294,8 +294,8 @@ impl PaymentVerifier {
         let address = payment.to_address.as_ref().unwrap();
 
         // Get recent transactions for the address
-        // Check last 20 transactions to find a match
-        let transactions = monitor.get_transactions_to_address(address, 20).await?;
+        // Check last 20 transactions to find a match, filtering by payment creation time
+        let transactions = monitor.get_transactions_to_address(address, 20, Some(payment.created_at)).await?;
 
         for tx in transactions {
             // Check if this transaction is already linked to another payment
@@ -353,7 +353,7 @@ impl PaymentVerifier {
         };
 
         if !addresses_match {
-            warn!("[VERIFY-VALIDATION] Payment {} | FAILED: Recipient address mismatch: expected merchant wallet '{}', got '{}'",
+            tracing::debug!("[VERIFY-VALIDATION] Payment {} | FAILED: Recipient address mismatch: expected merchant wallet '{}', got '{}'",
                 payment.payment_id,
                 payment_to_address.trim(),
                 blockchain_tx.to_address.trim()
@@ -366,7 +366,7 @@ impl PaymentVerifier {
         if let Some(tx_time) = blockchain_tx.timestamp {
             // Allow a small buffer (e.g., 60 seconds) for clock skew, though normally tx_time must be > created_at
             if tx_time < payment.created_at - chrono::Duration::seconds(60) {
-                warn!("[VERIFY-VALIDATION] Payment {} | FAILED: Timestamp mismatch (Replay attack?). Payment created at {}, but transaction occurred at {}",
+                tracing::debug!("[VERIFY-VALIDATION] Payment {} | FAILED: Timestamp mismatch (Replay attack?). Payment created at {}, but transaction occurred at {}",
                     payment.payment_id,
                     payment.created_at,
                     tx_time
@@ -381,7 +381,7 @@ impl PaymentVerifier {
         let tolerance = payment_amount * Decimal::from_str("0.001")?; // 0.1%
 
         if amount_diff > tolerance {
-            warn!("[VERIFY-VALIDATION] Payment {} | FAILED: Amount mismatch: expected {}, got {} (diff: {})",
+            tracing::debug!("[VERIFY-VALIDATION] Payment {} | FAILED: Amount mismatch: expected {}, got {} (diff: {})",
                 payment.payment_id,
                 payment_amount,
                 blockchain_tx.amount,

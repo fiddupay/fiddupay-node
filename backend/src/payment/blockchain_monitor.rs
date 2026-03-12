@@ -23,6 +23,7 @@ pub trait BlockchainMonitor: Send + Sync {
         &self,
         address: &str,
         limit: usize,
+        min_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>>;
 
     /// Get blockchain name
@@ -177,6 +178,7 @@ impl BlockchainMonitor for EvmMonitor {
         &self,
         address: &str,
         limit: usize,
+        min_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
         info!(" Fetching {} transactions for address: {}", self.chain_name, address);
 
@@ -204,6 +206,17 @@ impl BlockchainMonitor for EvmMonitor {
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string();
+
+            // Optimization: skip if transaction is obviously too old (EVM APIs often provide timestamp in list)
+            if let (Some(min_ts), Some(tx_ts_str)) = (min_timestamp, tx.get("timeStamp").and_then(|v| v.as_str())) {
+                if let Ok(ts_secs) = tx_ts_str.parse::<i64>() {
+                    if let Some(ts) = chrono::DateTime::from_timestamp(ts_secs, 0) {
+                        if ts < min_ts - chrono::Duration::seconds(60) {
+                            continue;
+                        }
+                    }
+                }
+            }
 
             // Get full transaction details
             match self.get_transaction_details(&hash).await {

@@ -290,7 +290,7 @@ pub async fn payment_page(
     // Smart Verification: Trigger address scan in background if pending (respecting cooldown)
     if is_pending {
         let needs_verification = match p_last_verification_at {
-            Some(last_v) => (chrono::Utc::now() - last_v) > chrono::Duration::seconds(20),
+            Some(last_v) => (chrono::Utc::now() - last_v) > chrono::Duration::seconds(5),
             None => true,
         };
 
@@ -562,7 +562,7 @@ pub async fn verify_payment_trigger(
             if p_status == "PENDING" || p_status == "CONFIRMING" {
                 let last_v_opt: Option<chrono::DateTime<chrono::Utc>> = row.get("last_verification_at");
                 let needs_verification = match last_v_opt {
-                    Some(last_v) => (chrono::Utc::now() - last_v) > chrono::Duration::seconds(20),
+                    Some(last_v) => (chrono::Utc::now() - last_v) > chrono::Duration::seconds(5),
                     None => true,
                 };
 

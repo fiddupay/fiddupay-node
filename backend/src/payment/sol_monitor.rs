@@ -137,6 +137,7 @@ impl SolanaMonitor {
         &self,
         address: &str,
         limit: usize,
+        min_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
         info!(" Fetching Solana transactions for address: {}", address);
 
@@ -175,6 +176,16 @@ impl SolanaMonitor {
 
         // Get details for each transaction
         for sig in signatures {
+            // Optimization: Skip transactions older than min_timestamp (Requirement 3.8 protection)
+            if let (Some(min_ts), Some(block_time)) = (min_timestamp, sig.block_time) {
+                if let Some(ts) = chrono::DateTime::from_timestamp(block_time, 0) {
+                    // Allow 60s buffer for clock skew
+                    if ts < min_ts - chrono::Duration::seconds(60) {
+                        continue;
+                    }
+                }
+            }
+
             match self.get_transaction_details_with_slot(&sig.signature, Some(current_slot)).await {
                 Ok(tx) => blockchain_txs.push(tx),
                 Err(e) => {
@@ -480,7 +491,7 @@ impl SolanaMonitor {
         let mut known_txs = std::collections::HashSet::new();
 
         loop {
-            match self.get_transactions_to_address(address, 50).await {
+            match self.get_transactions_to_address(address, 50, None).await {
                 Ok(transactions) => {
                     for tx in transactions {
                         if !known_txs.contains(&tx.hash) {
@@ -550,8 +561,9 @@ impl BlockchainMonitor for SolanaMonitor {
         &self,
         address: &str,
         limit: usize,
+        min_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
-        self.get_transactions_to_address(address, limit).await
+        self.get_transactions_to_address(address, limit, min_timestamp).await
     }
 
     fn blockchain_name(&self) -> &'static str {
