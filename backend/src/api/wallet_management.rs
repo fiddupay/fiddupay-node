@@ -195,7 +195,7 @@ pub async fn check_withdrawal_capability(
             let message = if can_withdraw {
                 "Withdrawal available - wallet has private key access"
             } else {
-                "Withdrawal not available - configure wallet with private key access (generate or import)"
+                "Withdrawal not available - configure wallet (generate)"
             };
             
             (StatusCode::OK, Json(json!({
@@ -251,9 +251,8 @@ pub struct ProcessWithdrawalRequest {
 #[derive(Debug, Deserialize)]
 pub struct UnifiedWalletSetupRequest {
     pub crypto_type: String,
-    pub mode: String, // "address", "generate", "import"
+    pub mode: String, // "address", "generate"
     pub address: Option<String>,
-    pub private_key: Option<String>,
     pub is_active: Option<bool>,
     pub enable_all_evm: Option<bool>,
 }
@@ -343,8 +342,7 @@ pub async fn setup_wallet(
                 Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
             }
         },
-        },
-        _ => (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid mode. Use 'address', 'generate', or 'import'."}))).into_response(),
+        _ => (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid mode. Use 'address' or 'generate'."}))).into_response(),
     }
 }
 
