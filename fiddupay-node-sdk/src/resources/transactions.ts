@@ -18,7 +18,12 @@ export class Transactions {
     /**
      * List unified transactions (payments, refunds, withdrawals)
      */
-    async list(options?: RequestOptions): Promise<{ transactions: UnifiedTransaction[] }> {
-        return this.client.request('GET', '/api/v1/merchants/transactions');
+    async list(params?: { limit?: number }, options?: RequestOptions): Promise<{ transactions: UnifiedTransaction[] }> {
+        const queryParams = new URLSearchParams();
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
+        
+        const query = queryParams.toString();
+        const path = query ? `/api/v1/merchants/transactions?${query}` : '/api/v1/merchants/transactions';
+        return this.client.request('GET', path);
     }
 }

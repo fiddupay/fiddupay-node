@@ -140,6 +140,35 @@ pub async fn complete_refund(
     }
 }
 
+#[derive(Deserialize)]
+pub struct RefundListQuery {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+pub async fn list_refunds(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Query(params): Query<RefundListQuery>,
+) -> impl IntoResponse {
+    let limit = params.limit.unwrap_or(50).min(100).max(1);
+    let offset = params.offset.unwrap_or(0).max(0);
+
+    match state.refund_service.list_refunds(
+        context.merchant_id,
+        limit,
+        offset,
+        context.sandbox_mode
+    ).await {
+        Ok((refunds, total)) => (StatusCode::OK, Json(json!({
+            "refunds": refunds,
+            "total": total,
+            "has_more": (offset + limit) < total
+        }))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
 // ============================================================================
 // Sandbox Endpoints
 // ============================================================================

@@ -309,4 +309,59 @@ impl RefundService {
 
         Ok(balance)
     }
+
+    pub async fn list_refunds(
+        &self,
+        merchant_id: i64,
+        limit: i64,
+        offset: i64,
+        is_sandbox: bool,
+    ) -> Result<(Vec<RefundResponse>, i64), ServiceError> {
+        // 1. Get total count
+        let total_count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM refunds WHERE merchant_id = $1 AND sandbox_mode = $2"
+        )
+        .bind(merchant_id)
+        .bind(is_sandbox)
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        // 2. Fetch refund records with payment details joined
+        let rows = sqlx::query(
+            r#"
+            SELECT r.refund_id, r.merchant_id, r.payment_id, r.amount, r.amount_usd,
+                   r.reason, r.status, r.transaction_hash, r.created_at, r.completed_at,
+                   p.payment_id as public_payment_id, p.crypto_type, p.from_address
+            FROM refunds r
+            JOIN payment_transactions p ON r.payment_id = p.id
+            WHERE r.merchant_id = $1 AND r.sandbox_mode = $2
+            ORDER BY r.created_at DESC
+            LIMIT $3 OFFSET $4
+            "#
+        )
+        .bind(merchant_id)
+        .bind(is_sandbox)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.db_pool)
+        .await?;
+
+        let refunds = rows.into_iter().map(|row| {
+            RefundResponse {
+                refund_id: row.get("refund_id"),
+                payment_id: row.get("public_payment_id"),
+                amount: row.get("amount"),
+                amount_usd: row.get("amount_usd"),
+                status: row.get("status"),
+                reason: row.get("reason"),
+                transaction_hash: row.get("transaction_hash"),
+                created_at: row.get("created_at"),
+                completed_at: row.get("completed_at"),
+                crypto_type: row.try_get::<Option<String>, _>("crypto_type").ok().flatten().unwrap_or_else(|| "UNKNOWN".to_string()),
+                target_address: row.get("from_address"),
+            }
+        }).collect();
+
+        Ok((refunds, total_count))
+    }
 }

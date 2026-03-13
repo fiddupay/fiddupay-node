@@ -37,6 +37,7 @@ pub use crate::api::payment_handlers::{
     finalize_payment_selection,
     create_refund,
     get_refund,
+    list_refunds,
     complete_refund,
     simulate_payment,
 };

@@ -33,8 +33,7 @@ export interface MerchantProfile {
   email: string;
   created_at: string;
   kyc_verified: boolean;
-  daily_volume_usd: string;
-  daily_volume_limit: string;
+  daily_limit_usd: string;
   daily_volume_remaining: string;
   tier_level?: string;
   two_factor_enabled: boolean;
@@ -42,6 +41,10 @@ export interface MerchantProfile {
   settlement_mode: 'forwarding' | 'managed';
   wallets_locked: boolean;
   customer_wallets_locked: boolean;
+  webhook_url?: string;
+  webhook_format?: string;
+  redirect_url?: string;
+  api_key?: string;
 }
 
 export interface CreatePaymentRequest {
@@ -167,6 +170,9 @@ export interface AnalyticsQuery {
   from_date?: string;
   to_date?: string;
   granularity?: 'day' | 'week' | 'month';
+  status?: string;
+  blockchain?: string;
+  format?: 'csv' | 'json' | 'xlsx';
 }
 
 export interface UnifiedSettingsRequest {
@@ -236,7 +242,7 @@ export interface UpdateFeeSettingRequest {
 
 export interface FeeSettingResponse {
   customer_pays_fee: boolean;
-  description: string;
+  fee_percentage: number;
 }
 
 export interface UpdateFeeSettingResponse {

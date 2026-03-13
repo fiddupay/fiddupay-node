@@ -104,17 +104,15 @@ export class Merchants {
    */
   async getAuditLogs(params?: {
     limit?: number;
-    offset?: number;
-    action?: string;
-    start_date?: string;
-    end_date?: string;
-  }, options?: RequestOptions): Promise<{ data: any[]; total: number }> {
+    action_type?: string;
+    from?: string;
+    to?: string;
+  }, options?: RequestOptions): Promise<any[]> {
     const queryParams = new URLSearchParams();
     if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.offset) queryParams.append('offset', params.offset.toString());
-    if (params?.action) queryParams.append('action', params.action);
-    if (params?.start_date) queryParams.append('start_date', params.start_date);
-    if (params?.end_date) queryParams.append('end_date', params.end_date);
+    if (params?.action_type) queryParams.append('action_type', params.action_type);
+    if (params?.from) queryParams.append('from', params.from);
+    if (params?.to) queryParams.append('to', params.to);
 
     const query = queryParams.toString();
     const path = query ? `/api/v1/merchants/audit-logs?${query}` : '/api/v1/merchants/audit-logs';
@@ -126,13 +124,9 @@ export class Merchants {
    */
   async getBalanceHistory(params?: {
     limit?: number;
-    offset?: number;
-    crypto_type?: string;
-  }, options?: RequestOptions): Promise<{ data: any[]; total: number }> {
+  }, options?: RequestOptions): Promise<{ points: any[] }> {
     const queryParams = new URLSearchParams();
     if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.offset) queryParams.append('offset', params.offset.toString());
-    if (params?.crypto_type) queryParams.append('crypto_type', params.crypto_type);
 
     const query = queryParams.toString();
     const path = query ? `/api/v1/merchants/balance/history?${query}` : '/api/v1/merchants/balance/history';

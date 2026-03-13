@@ -21,6 +21,7 @@ pub struct AnalyticsQuery {
     pub to_date: Option<chrono::DateTime<chrono::Utc>>,
     pub status: Option<String>,
     pub blockchain: Option<String>,
+    pub format: Option<String>,
 }
 
 pub async fn get_analytics(
@@ -52,9 +53,23 @@ pub async fn export_analytics(
     let from = query.from_date.unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
     let to = query.to_date.unwrap_or_else(|| chrono::Utc::now());
     
-    match state.analytics_service.export_csv(context.merchant_id, from, to, None, None, Some(context.sandbox_mode)).await {
-        Ok(csv) => (StatusCode::OK, csv).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    if query.format.as_deref() == Some("json") {
+        match state.analytics_service.get_analytics(
+            context.merchant_id, 
+            from, 
+            to, 
+            query.blockchain.clone(), 
+            query.status.clone(), 
+            Some(context.sandbox_mode)
+        ).await {
+            Ok(report) => (StatusCode::OK, Json(report)).into_response(),
+            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        }
+    } else {
+        match state.analytics_service.export_csv(context.merchant_id, from, to, query.blockchain, query.status, Some(context.sandbox_mode)).await {
+            Ok(csv) => (StatusCode::OK, csv).into_response(),
+            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        }
     }
 }
 
