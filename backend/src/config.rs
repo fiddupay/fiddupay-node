@@ -32,6 +32,7 @@ pub struct Config {
     pub bsc_rpc_url: String,
     pub arbitrum_rpc_url: String,
     pub polygon_rpc_url: String,
+    pub bitcoin_rpc_url: String,
 
     // Sandbox/Test Network URLs
     pub solana_devnet_rpc_url: String,
@@ -40,6 +41,7 @@ pub struct Config {
     pub bsc_testnet_rpc_url: String,
     pub arbitrum_sepolia_rpc_url: String,
     pub polygon_mumbai_rpc_url: String,
+    pub bitcoin_testnet_rpc_url: String,
 
     // Blockchain Settings
     pub confirmation_blocks_sol: u32,
@@ -47,6 +49,7 @@ pub struct Config {
     pub confirmation_blocks_bsc: u32,
     pub confirmation_blocks_polygon: u32,
     pub confirmation_blocks_arbitrum: u32,
+    pub confirmation_blocks_btc: u32,
 
     // Chain IDs (Production)
     pub ethereum_chain_id: u64,
@@ -213,6 +216,8 @@ impl Config {
             bsc_rpc_url: env::var("BSC_RPC_URL")?,
             arbitrum_rpc_url: env::var("ARBITRUM_RPC_URL")?,
             polygon_rpc_url: env::var("POLYGON_RPC_URL")?,
+            bitcoin_rpc_url: env::var("BITCOIN_RPC_URL")
+                .unwrap_or_else(|_| "https://blockchain.info".to_string()),
             solana_devnet_rpc_url: env::var("SOLANA_DEVNET_RPC_URL")?,
             solana_devnet_ws_url: env::var("SOLANA_DEVNET_WS_URL")
                 .unwrap_or_else(|_| "wss://api.devnet.solana.com".to_string()),
@@ -220,6 +225,8 @@ impl Config {
             bsc_testnet_rpc_url: env::var("BSC_TESTNET_RPC_URL")?,
             arbitrum_sepolia_rpc_url: env::var("ARBITRUM_SEPOLIA_RPC_URL")?,
             polygon_mumbai_rpc_url: env::var("POLYGON_MUMBAI_RPC_URL")?,
+            bitcoin_testnet_rpc_url: env::var("BITCOIN_TESTNET_RPC_URL")
+                .unwrap_or_else(|_| "https://testnet.blockchain.info".to_string()),
 
 
             // Blockchain Settings
@@ -237,6 +244,9 @@ impl Config {
                 .parse()?,
             confirmation_blocks_arbitrum: env::var("CONFIRMATION_BLOCKS_ARBITRUM")
                 .unwrap_or_else(|_| "1".to_string())
+                .parse()?,
+            confirmation_blocks_btc: env::var("CONFIRMATION_BLOCKS_BITCOIN")
+                .unwrap_or_else(|_| "2".to_string())
                 .parse()?,
 
             // Chain IDs (Production) - Required (No defaults)
@@ -524,6 +534,10 @@ impl Config {
             return Err("JWT_SECRET is required".to_string());
         }
 
+        if self.bitcoin_rpc_url.is_empty() {
+             return Err("BITCOIN_RPC_URL is required".to_string());
+        }
+
         Ok(())
     }
 
@@ -729,6 +743,9 @@ impl Default for Config {
             fee_wallet_bsc: "".to_string(),
             fee_wallet_polygon: "".to_string(),
             fee_wallet_arbitrum: "".to_string(),
+            bitcoin_rpc_url: "https://blockchain.info".to_string(),
+            bitcoin_testnet_rpc_url: "https://testnet.blockchain.info".to_string(),
+            confirmation_blocks_btc: 2,
         }
     }
 }

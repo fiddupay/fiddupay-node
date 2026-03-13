@@ -354,7 +354,6 @@ pub async fn setup_wallet(
 
             let generate_request = GenerateWalletRequest {
                 crypto_type: req.crypto_type.clone(),
-                enable_all_evm: req.enable_all_evm,
             };
 
             let is_managed = settlement_mode == "managed";

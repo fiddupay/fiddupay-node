@@ -156,6 +156,7 @@ impl WalletConfigService {
             CryptoType::Bnb | CryptoType::UsdtBep20 => vec!["BNB", "USDT_BEP20"],
             CryptoType::Matic | CryptoType::UsdtPolygon => vec!["MATIC", "USDT_POLYGON"],
             CryptoType::Arb | CryptoType::UsdtArbitrum => vec!["ARB", "USDT_ARBITRUM"],
+            CryptoType::Btc => vec!["BTC"],
         };
 
         for sister in sisters {
@@ -441,6 +442,7 @@ impl WalletConfigService {
             CryptoType::Bnb | CryptoType::UsdtBep20 => vec!["BNB", "USDT_BEP20"],
             CryptoType::Matic | CryptoType::UsdtPolygon => vec!["MATIC", "USDT_POLYGON"],
             CryptoType::Arb | CryptoType::UsdtArbitrum => vec!["ARB", "USDT_ARBITRUM"],
+            CryptoType::Btc => vec!["BTC"],
         };
 
         for sister in sisters {
@@ -558,6 +560,7 @@ impl WalletConfigService {
             CryptoType::Bnb | CryptoType::UsdtBep20 => vec!["BNB", "USDT_BEP20"],
             CryptoType::Matic | CryptoType::UsdtPolygon => vec!["MATIC", "USDT_POLYGON"],
             CryptoType::Arb | CryptoType::UsdtArbitrum => vec!["ARB", "USDT_ARBITRUM"],
+            CryptoType::Btc => vec!["BTC"],
         };
 
         for sister in sisters {
@@ -675,7 +678,7 @@ pub struct ConfigureWalletRequest {
     pub is_active: Option<bool>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct GenerateWalletRequest {
     pub crypto_type: String,
 }

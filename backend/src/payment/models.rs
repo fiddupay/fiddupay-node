@@ -200,6 +200,7 @@ impl CryptoType {
             CryptoType::UsdtSpl | CryptoType::Sol | CryptoType::WSol => config.confirmation_blocks_sol,
             CryptoType::UsdtPolygon | CryptoType::Matic => config.confirmation_blocks_polygon,
             CryptoType::UsdtEth | CryptoType::Eth => config.confirmation_blocks_eth,
+            CryptoType::Btc => config.confirmation_blocks_btc,
         }
     }
 
@@ -210,6 +211,7 @@ impl CryptoType {
             CryptoType::UsdtSpl | CryptoType::Sol | CryptoType::WSol => &config.solana_rpc_url,
             CryptoType::UsdtPolygon | CryptoType::Matic => &config.polygon_rpc_url,
             CryptoType::UsdtEth | CryptoType::Eth => &config.ethereum_rpc_url,
+            CryptoType::Btc => &config.bitcoin_rpc_url,
         }
     }
 

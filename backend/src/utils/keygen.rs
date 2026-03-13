@@ -68,18 +68,17 @@ impl KeyGenerator {
         use bitcoin::key::Secp256k1;
         use bitcoin::{Network, PrivateKey, Address};
         use bitcoin::secp256k1::SecretKey;
+        use bitcoin::PublicKey as BitcoinPublicKey;
 
         let network = if is_sandbox { Network::Testnet } else { Network::Bitcoin };
         let secp = Secp256k1::new();
-        let mut rng = OsRng;
-        let secret_key = SecretKey::new(&mut rng);
+        let secret_key = SecretKey::new(&mut OsRng);
         
         let private_key = PrivateKey::new(secret_key, network);
-        let public_key = private_key.public_key(&secp);
+        let public_key = BitcoinPublicKey::new(private_key.public_key(&secp).inner);
         
         // Generate SegWit address (Bech32)
-        let address = Address::p2wpkh(&public_key, network)
-            .map_err(|e| ServiceError::InternalError(format!("BTC address generation failed: {}", e)))?;
+        let address = Address::p2wpkh(&public_key, network);
         
         Ok(WalletKeyPair {
             private_key: private_key.to_wif(),
@@ -195,9 +194,8 @@ impl KeyGenerator {
         
         // We assume Mainnet if not specified, but this should be configurable
         let secp = bitcoin::key::Secp256k1::new();
-        let public_key = private_key.public_key(&secp);
-        let address = bitcoin::Address::p2wpkh(&public_key, Network::Bitcoin)
-            .map_err(|e| ServiceError::InternalError(format!("Address derivation failed: {}", e)))?;
+        let public_key = bitcoin::PublicKey::new(private_key.public_key(&secp).inner);
+        let address = bitcoin::Address::p2wpkh(&public_key, Network::Bitcoin);
             
         Ok(address.to_string())
     }

@@ -44,6 +44,19 @@ pub fn validate_wallet_address(
                 ));
             }
         }
+        CryptoType::Btc => {
+            // Basic Bech32 validation for SegWit addresses
+            if !address.starts_with("bc1") {
+                return Err(ServiceError::ValidationError(
+                    "Bitcoin SegWit address must start with bc1".to_string()
+                ));
+            }
+            if address.len() < 42 || address.len() > 62 {
+                return Err(ServiceError::ValidationError(
+                    "Bitcoin SegWit address has invalid length".to_string()
+                ));
+            }
+        }
     }
     
     Ok(())

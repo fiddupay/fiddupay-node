@@ -56,6 +56,18 @@ impl GasFeeService {
             CryptoType::Matic | CryptoType::UsdtPolygon => self.get_polygon_gas_rpc().await,
             CryptoType::Arb | CryptoType::UsdtArbitrum => self.get_arbitrum_gas_rpc().await,
             CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => self.get_solana_gas_rpc().await,
+            CryptoType::Btc => {
+                // Return a flat estimate for BTC for now
+                Ok(GasFeeEstimate {
+                    network: "bitcoin".to_string(),
+                    native_currency: "BTC".to_string(),
+                    standard_fee: Decimal::new(1000, 8), // 0.00001 BTC
+                    fast_fee: Decimal::new(2000, 8),
+                    estimated_withdrawal_cost: Decimal::new(1000, 8),
+                    base_fee: None,
+                    priority_fee: None,
+                })
+            }
         }
     }
 

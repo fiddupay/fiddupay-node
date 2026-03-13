@@ -335,7 +335,7 @@ pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::C
             let expected_mint = crypto_type.token_address().map(|s| s.to_string());
             Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, rpc_url, expected_mint))
         },
-        "BITCOIN" => Box::new(crate::payment::btc_monitor::BtcMonitor::new(is_sandbox)),
+        "BITCOIN" => Box::new(self::btc_monitor::BtcMonitor::new(is_sandbox)),
         "ETHEREUM" => Box::new(EvmMonitor::new_ethereum(&config, is_sandbox)),
         "BEP20" => Box::new(EvmMonitor::new_bsc(&config, is_sandbox)),
         "POLYGON" => Box::new(EvmMonitor::new_polygon(&config, is_sandbox)),

@@ -284,6 +284,7 @@ impl FeeCollectionService {
             CryptoType::Bnb | CryptoType::UsdtBep20 => "BSC",
             CryptoType::Matic | CryptoType::UsdtPolygon => "POLYGON",
             CryptoType::Arb | CryptoType::UsdtArbitrum => "ARBITRUM",
+            CryptoType::Btc => "BITCOIN",
         }
     }
 }

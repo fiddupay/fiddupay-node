@@ -757,7 +757,6 @@ impl MerchantService {
             let wallet_service = crate::services::wallet_config_service::WalletConfigService::new(self.db_pool.clone());
             let gen_req = crate::services::wallet_config_service::GenerateWalletRequest {
                 crypto_type: lookup_crypto_type.to_string(),
-                enable_all_evm: None,
             };
             
             let response = wallet_service.generate_wallet(merchant_id, sandbox_mode_val, gen_req).await?;
