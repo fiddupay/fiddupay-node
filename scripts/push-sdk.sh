@@ -3,6 +3,17 @@
 # Script to push SDK changes to the isolated SDK repository
 # Usage: git subtree push --prefix fiddupay-node-sdk https://github.com/fiddupay/fiddupay-node.git main
 
+# Check if script is run as root/sudo
+if [ "$EUID" -eq 0 ]; then
+  echo "⚠️  Warning: Running this script with sudo/root is NOT recommended."
+  echo "Git authentication usually fails when run as root if your credentials are saved for your normal user."
+  echo "If you get 'permission denied', run: sudo chown -R \$USER:\$USER ."
+  read -p "Do you still want to proceed? (y/N) " confirm
+  if [[ ! $confirm =~ ^[Yy]$ ]]; then
+    exit 1
+  fi
+fi
+
 BRANCH=${1:-main}
 TAG=$2
 REMOTE_URL="https://github.com/fiddupay/fiddupay-node.git"

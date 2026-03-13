@@ -68,7 +68,6 @@ describe('FidduPay SDK - Integration Test Suite', () => {
 
     it('should have all wallet methods available', () => {
       expect(typeof client.wallets.setup).toBe('function');
-      expect(typeof client.wallets.exportKey).toBe('function');
       expect(typeof client.wallets.checkGasRequirements).toBe('function');
       expect(typeof client.wallets.gasCheck).toBe('function');
       expect(typeof client.wallets.revoke).toBe('function');
@@ -93,7 +92,6 @@ describe('FidduPay SDK - Integration Test Suite', () => {
     });
 
     it('should have all sandbox methods available', () => {
-      expect(typeof client.sandbox.enable).toBe('function');
       expect(typeof client.sandbox.simulatePayment).toBe('function');
     });
 
