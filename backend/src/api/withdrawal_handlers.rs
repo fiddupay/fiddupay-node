@@ -20,6 +20,14 @@ pub async fn create_withdrawal(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<crate::services::withdrawal_service::WithdrawalRequest>,
 ) -> impl IntoResponse {
+    // 1. Enforce settlement mode (Requirement: Managed mode only for manual withdrawals)
+    if context.settlement_mode != "managed" {
+        return (
+            StatusCode::FORBIDDEN, 
+            Json(json!({"error": "Manual withdrawals are only available in Managed settlement mode"}))
+        ).into_response();
+    }
+
     match state.withdrawal_service.create_withdrawal(context.merchant_id, req, context.sandbox_mode).await {
         Ok(withdrawal) => {
             // Check settlement mode to see if we should auto-process
