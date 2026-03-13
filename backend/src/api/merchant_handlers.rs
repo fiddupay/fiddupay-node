@@ -15,7 +15,6 @@ pub use crate::api::settings_handlers::{
     switch_environment,
     generate_api_key,
     rotate_api_key,
-    set_wallet,
     update_merchant_settings,
     get_merchant_settings,
     toggle_wallet_lock,

@@ -342,9 +342,9 @@ const SettingsPage: React.FC = () => {
                                 onClick={() => handleUpdateSettlementMode('forwarding')}
                             >
                                 {selectedMode === 'forwarding' && <MdCheckCircle className={styles.checkIcon} />}
-                                <MdForward size={32} />
-                                <h3>Forwarding Bridge</h3>
-                                <span>Auto-forwards funds to your external addresses.</span>
+                                 <MdForward size={32} />
+                                <h3>Forwarding Bridge (WIP)</h3>
+                                <span>Auto-forwards funds to your external addresses. (Experimental)</span>
                             </div>
 
                             <div

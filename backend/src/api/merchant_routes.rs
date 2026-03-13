@@ -1,7 +1,7 @@
 // Merchant Routes
 // All merchant-specific API endpoints with API key authentication
 
-use crate::api::{merchant_handlers, wallet_management, security_monitoring};
+use crate::api::{merchant_handlers, wallet_management, security_monitoring, address_only};
 use crate::middleware::auth;
 use axum::{
     middleware as axum_middleware,
@@ -96,6 +96,14 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         
         // Sandbox testing
         .route("/api/v1/merchants/sandbox/payments/:payment_id/simulate", post(merchant_handlers::simulate_payment))
+        
+        // Address-Only Mode (Phase 1)
+        .route("/api/v1/merchants/address-only/create", post(address_only::create_address_only_payment))
+        .route("/api/v1/merchants/address-only/status", get(address_only::get_address_only_payment_status))
+        .route("/api/v1/merchants/address-only/currencies", get(address_only::get_supported_native_currencies))
+        .route("/api/v1/merchants/address-only/stats", get(address_only::get_address_only_stats))
+        .route("/api/v1/merchants/address-only/fee-setting", get(address_only::get_fee_setting).put(address_only::update_fee_setting))
+        .route("/api/v1/merchants/address-only/health", get(address_only::get_address_only_health))
         
         // Apply merchant API key authentication
         .layer(axum_middleware::from_fn_with_state(

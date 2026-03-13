@@ -1005,7 +1005,8 @@
       "name": "Merchant Payments",
       "item": [
         {
-          "name": "Create Payment",
+          "name": "Create Payment (Managed Mode Only)",
+          "description": "Initialize a multi-chain payment. Returns 403 in Forwarding mode.",
           "request": {
             "method": "POST",
             "header": [
@@ -1210,6 +1211,56 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"crypto_type\": \"SOL\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Address-Only Mode (WIP)",
+      "description": "WORK IN PROGRESS: Endpoints exclusive to merchants in Forwarding mode for native-only payments. Currently in beta.",
+      "item": [
+        {
+          "name": "Create Address-Only Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{apiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/address-only/create",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "v1", "merchants", "address-only", "create" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"merchant_address\": \"your_external_address\",\n  \"requested_amount\": \"1.0\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Address-Only Status",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{apiKey}}" } ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/address-only/status?payment_id=addr_123",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "v1", "merchants", "address-only", "status" ],
+              "query": [ { "key": "payment_id", "value": "addr_123" } ]
+            }
+          }
+        },
+        {
+          "name": "List Supported Currencies",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{apiKey}}" } ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/address-only/currencies",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "v1", "merchants", "address-only", "currencies" ]
             }
           }
         }

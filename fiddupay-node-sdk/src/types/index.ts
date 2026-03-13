@@ -116,6 +116,20 @@ export interface AddressOnlyPayment {
   metadata?: Record<string, any>;
 }
 
+export interface AddressOnlyStats {
+  total_payments: number;
+  completed_payments: number;
+  pending_payments: number;
+  total_volume: string;
+  total_fees_collected: string;
+}
+
+export interface AddressOnlyHealthStatus {
+  database_healthy: boolean;
+  monitoring_active: boolean;
+  supported_currencies: string[];
+}
+
 export interface ListPaymentsRequest {
   limit?: number;
   offset?: number;

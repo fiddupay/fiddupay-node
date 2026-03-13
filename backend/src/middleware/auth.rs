@@ -16,6 +16,7 @@ pub struct MerchantContext {
     pub merchant_id: i64,
     pub api_key: String,
     pub sandbox_mode: bool,
+    pub settlement_mode: String,
 }
 
 /// Extract API key from Authorization header
@@ -86,6 +87,7 @@ pub async fn auth_middleware(
                     merchant_id: merchant.id,
                     api_key: api_key.clone(),
                     sandbox_mode: !is_live_prefix,
+                    settlement_mode: merchant.settlement_mode.clone(),
                 };
                 request.extensions_mut().insert(context);
                 Ok(next.run(request).await)
@@ -116,13 +118,16 @@ pub async fn auth_middleware(
                 
                 // Read sandbox_mode from DB to ensure it's always current with the merchant's choice
                 // This ensures environment switching in the dashboard is instant.
-                let sandbox_mode = match sqlx::query_scalar::<_, bool>(
-                    "SELECT sandbox_mode FROM merchants WHERE id = $1 AND is_active = true"
+                let (sandbox_mode, settlement_mode) = match sqlx::query(
+                    "SELECT sandbox_mode, settlement_mode FROM merchants WHERE id = $1 AND is_active = true"
                 )
                 .bind(merchant_id)
                 .fetch_optional(&state.db_pool)
                 .await {
-                    Ok(Some(mode)) => mode,
+                    Ok(Some(row)) => {
+                        use sqlx::Row;
+                        (row.get::<bool, _>("sandbox_mode"), row.get::<String, _>("settlement_mode"))
+                    },
                     Ok(None) => {
                         return Err((
                             StatusCode::UNAUTHORIZED,
@@ -148,6 +153,7 @@ pub async fn auth_middleware(
                     merchant_id,
                     api_key: "DASHBOARD_SESSION".to_string(),
                     sandbox_mode,
+                    settlement_mode,
                 };
                 
                 request.extensions_mut().insert(context);

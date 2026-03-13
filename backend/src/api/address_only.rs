@@ -46,6 +46,12 @@ pub async fn create_address_only_payment(
     Extension(address_service): Extension<AddressOnlyService>,
     Json(request): Json<CreateAddressOnlyPaymentRequest>,
 ) -> Result<Json<AddressOnlyPaymentResponse>, ServiceError> {
+    // Reject Managed mode from using Address-Only payments
+    if context.settlement_mode == "managed" {
+        return Err(ServiceError::Forbidden(
+            "Address-Only payments are not available in Managed mode. Please use Standard payments.".to_string()
+        ));
+    }
     
     let payment = address_service
         .create_payment_request(
@@ -64,7 +70,7 @@ pub async fn create_address_only_payment(
         processing_fee: payment.processing_fee,
         customer_pays_fee: payment.customer_amount > payment.requested_amount,
         customer_instructions: format!(
-            "Send exactly {} {} to the deposit address. {}",
+            "Send exactly {} {} to the deposit address. {} (Work In Progress - Experimental)",
             payment.customer_amount,
             request.crypto_type.to_string(),
             if payment.customer_amount > payment.requested_amount {

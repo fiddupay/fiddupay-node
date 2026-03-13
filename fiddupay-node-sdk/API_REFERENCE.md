@@ -1,4 +1,4 @@
-# FidduPay API Reference v2.4.4
+# FidduPay API Reference v2.4.6
 
 ## Base URL
 - **Sandbox**: `http://localhost:8080`
@@ -215,6 +215,9 @@ Content-Type: application/json
 - **Native/Volatile (SOL, ETH, etc.)**: You MUST use `amount` (quantity). The system fetches real-time prices to calculate the USD value.
 - **Multi-Currency (Selection Required)**: Leave both `amount` and `crypto_type` out, and provide `amount_usd`. The customer will select their preferred currency on the payment page.
 
+**Settlement Mode Enforcement**:
+- If `settlement_mode` is `forwarding`, this endpoint will return `403 Forbidden`. You MUST use Address-Only endpoints instead.
+
 ### List Payments
 ```http
 GET /api/v1/merchants/payments
@@ -233,7 +236,43 @@ POST /api/v1/merchants/payments/{payment_id}/verify
 Authorization: Bearer {api_key}
 ```
 
-### Unified Transaction Feed
+Returns a chronological feed combining payments, refunds, and withdrawals.
+
+## Address-Only Endpoints (WORK IN PROGRESS)
+> [!IMPORTANT]
+> This feature is currently in active development. Endpoints are experimental and for testing purposes only. Forwarding mode is not yet fully production-ready.
+
+### Create Address-Only Payment
+```http
+POST /api/v1/merchants/address-only/create
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "crypto_type": "SOL",
+  "merchant_address": "your_external_wallet_address",
+  "requested_amount": "1.5"
+}
+```
+
+### Get Address-Only Status
+```http
+GET /api/v1/merchants/address-only/status?payment_id={payment_id}
+Authorization: Bearer {api_key}
+```
+
+### List Supported Native Currencies
+```http
+GET /api/v1/merchants/address-only/currencies
+Authorization: Bearer {api_key}
+```
+
+### Get Address-Only Mode Stats
+```http
+GET /api/v1/merchants/address-only/stats
+Authorization: Bearer {api_key}
+```
+
 ```http
 GET /api/v1/merchants/transactions
 Authorization: Bearer {api_key}
@@ -692,6 +731,7 @@ Authorization: Bearer {api_key}
 | `PAYMENT_NOT_FOUND` | Payment ID not found |
 | `WITHDRAWAL_FAILED` | Withdrawal processing failed |
 | `RATE_LIMIT_EXCEEDED` | Too many requests |
+| `SETTLEMENT_MODE_MISMATCH` | Action forbidden in current settlement mode |
 
 ## Supported Cryptocurrencies
 

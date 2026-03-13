@@ -24,6 +24,17 @@ pub async fn create_payment(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<CreatePaymentRequest>,
 ) -> impl IntoResponse {
+    // Rejection Forwarding mode from using Standard payments
+    if context.settlement_mode == "forwarding" {
+        return (
+            StatusCode::FORBIDDEN, 
+            Json(json!({
+                "error": "Standard payments are not available in Forwarding mode. Please use Address-Only payments.",
+                "code": "SETTLEMENT_MODE_MISMATCH"
+            }))
+        ).into_response();
+    }
+
     match state.payment_service.create_payment(context.merchant_id, req).await {
         Ok(response) => (StatusCode::CREATED, Json(response)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),

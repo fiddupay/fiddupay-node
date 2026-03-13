@@ -72,6 +72,15 @@ const PaymentsPage: React.FC = () => {
     return () => clearInterval(paymentsInterval)
   }, [filters, user?.sandbox_mode])
 
+  // Reset payment type if user is in incompatible settlement mode
+  useEffect(() => {
+    if (user?.settlement_mode === 'managed' && paymentType === 'address-only') {
+      setPaymentType('standard');
+    } else if (user?.settlement_mode === 'forwarding' && paymentType === 'standard') {
+      setPaymentType('address-only');
+    }
+  }, [user?.settlement_mode, paymentType]);
+
   const loadSupportedCurrencies = async () => {
     try {
       const response = await publicAPI.getSupportedCurrencies(user?.id)
@@ -660,24 +669,28 @@ const PaymentsPage: React.FC = () => {
                 <div className={styles.inputGroup}>
                   <label>Payment Type</label>
                   <div className={styles.radioGroup}>
-                    <label>
-                      <input
-                        type="radio"
-                        value="standard"
-                        checked={paymentType === 'standard'}
-                        onChange={(e) => setPaymentType(e.target.value as 'standard' | 'address-only')}
-                      />
-                      Standard Payment
-                    </label>
-                    <label>
-                      <input
-                        type="radio"
-                        value="address-only"
-                        checked={paymentType === 'address-only'}
-                        onChange={(e) => setPaymentType(e.target.value as 'standard' | 'address-only')}
-                      />
-                      Address-Only Payment
-                    </label>
+                    {user?.settlement_mode !== 'forwarding' && (
+                      <label>
+                        <input
+                          type="radio"
+                          value="standard"
+                          checked={paymentType === 'standard'}
+                          onChange={(e) => setPaymentType(e.target.value as 'standard' | 'address-only')}
+                        />
+                        Standard Payment
+                      </label>
+                    )}
+                    {user?.settlement_mode !== 'managed' && (
+                      <label>
+                        <input
+                          type="radio"
+                          value="address-only"
+                          checked={paymentType === 'address-only'}
+                          onChange={(e) => setPaymentType(e.target.value as 'standard' | 'address-only')}
+                        />
+                        Address-Only Payment (WIP)
+                      </label>
+                    )}
                   </div>
                 </div>
 

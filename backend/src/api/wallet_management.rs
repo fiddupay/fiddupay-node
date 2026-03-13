@@ -5,7 +5,7 @@ use crate::api::state::AppState;
 use crate::middleware::auth::MerchantContext;
 use crate::services::wallet_config_service::{
     WalletConfigService, ConfigureWalletRequest, GenerateWalletRequest, 
-    ImportWalletRequest, ExportKeyRequest, GasValidationResult
+    GasValidationResult
 };
 use crate::services::withdrawal_processor::WithdrawalProcessor;
 use crate::payment::models::CryptoType;

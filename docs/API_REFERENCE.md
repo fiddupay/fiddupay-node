@@ -53,6 +53,25 @@ All requests must include a Bearer token in the `Authorization` header:
 | GET | `/api/v1/merchants/payments/:id` | Retrieve payment details |
 | GET | `/api/v1/merchants/payments` | List payments with filtering |
 | POST | `/api/v1/merchants/payments/:id/cancel` | Cancel a pending payment |
+| POST | `/api/v1/merchants/sandbox/payments/:id/simulate` | Simulate payment (Sandbox only) |
+
+### Address-Only Operations (WIP - Experimental)
+> [!WARNING]
+> Address-Only Mode (Forwarding Mode) is currently in **Beta / Work In Progress**. Endpoints in this section are subject to change and should not be used in critical production flows yet.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/merchants/address-only/create` | Create a native-only deposit address |
+| GET | `/api/v1/merchants/address-only/status` | Get status by payment ID |
+| GET | `/api/v1/merchants/address-only/currencies` | List supported native currencies |
+| GET | `/api/v1/merchants/address-only/stats` | Get merchant address-only stats |
+| GET | `/api/v1/merchants/address-only/fee-setting` | Get current fee payment setting |
+| PUT | `/api/v1/merchants/address-only/fee-setting` | Update who pays the fee |
+
+## Error Responses (Mode Enforcement)
+Starting with v2.4.6, the gateway strictly enforces settlement modes:
+- **403 Forbidden**: "Standard payments are not available in Forwarding mode."
+- **403 Forbidden**: "Address-Only payments are not available in Managed mode."
 
 ---
 

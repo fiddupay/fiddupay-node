@@ -175,7 +175,7 @@ export const API_DATA: DocSection[] = [
                 method: 'POST',
                 path: '/api/v1/merchants/payments',
                 title: 'Create Payment',
-                description: 'Initialize a new multi-chain payment request.',
+                description: 'Initialize a new multi-chain payment request. (Forbidden in Forwarding mode)',
                 body: [
                     { name: 'amount_usd', type: 'string', required: false, description: 'USD amount (e.g. "99.99")' },
                     { name: 'amount', type: 'string', required: false, description: 'Crypto amount (e.g. "0.5")' },
@@ -266,6 +266,57 @@ export const API_DATA: DocSection[] = [
                 response: JSON.stringify({
                     status: "CANCELLED",
                     message: "Payment pay_123 has been cancelled"
+                }, null, 2)
+            }
+        ]
+    },
+    {
+        id: 'address-only',
+        title: 'Address-Only Mode (WIP)',
+        description: 'Native-only cryptocurrency payments where the customer sends funds directly to your wallet. (Exclusive to Forwarding mode - UNDER DEVELOPMENT)',
+        endpoints: [
+            {
+                id: 'create-address-only',
+                method: 'POST',
+                path: '/api/v1/merchants/address-only/create',
+                title: 'Create Address-Only Payment (Experimental)',
+                description: 'Generate a deposit address for a native currency payment. (Forbidden in Managed mode - Feature in Beta)',
+                body: [
+                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, ETH, BNB, MATIC, ARB' },
+                    { name: 'merchant_address', type: 'string', required: true, description: 'Your on-chain wallet address' },
+                    { name: 'requested_amount', type: 'string', required: true, description: 'Native amount (e.g. "1.5")' }
+                ],
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/address-only/create \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "crypto_type": "SOL",\n    "merchant_address": "your_address...",\n    "requested_amount": "1.5"\n  }\'',
+                    node: 'const payment = await fiddupay.addressOnly.create({\n  crypto_type: "SOL",\n  merchant_address: "...",\n  requested_amount: "1.5"\n});'
+                },
+                response: JSON.stringify({
+                    payment_id: "addr_123",
+                    gateway_deposit_address: "0x...",
+                    requested_amount: "1.5",
+                    customer_amount: "1.51",
+                    processing_fee: "0.01",
+                    customer_pays_fee: true,
+                    customer_instructions: "Send exactly 1.51 SOL to the deposit address."
+                }, null, 2)
+            },
+            {
+                id: 'get-address-only-status',
+                method: 'GET',
+                path: '/api/v1/merchants/address-only/status',
+                title: 'Get Status',
+                description: 'Retrieve the current status of an address-only payment.',
+                parameters: [
+                    { name: 'payment_id', type: 'string', required: true, description: 'The payment ID' }
+                ],
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/address-only/status?payment_id=addr_123 \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const status = await fiddupay.addressOnly.getStatus("addr_123");'
+                },
+                response: JSON.stringify({
+                    payment_id: "addr_123",
+                    status: "confirmed",
+                    amount_received: "1.51"
                 }, null, 2)
             }
         ]
