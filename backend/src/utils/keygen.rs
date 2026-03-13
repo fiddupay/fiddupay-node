@@ -71,6 +71,7 @@ impl KeyGenerator {
         use bitcoin::PublicKey as BitcoinPublicKey;
 
         let network = if is_sandbox { Network::Testnet } else { Network::Bitcoin };
+        let secp = Secp256k1::new();
         let mut entropy = [0u8; 32];
         rand::RngCore::fill_bytes(&mut OsRng, &mut entropy);
         let secret_key = SecretKey::from_slice(&entropy).map_err(|e| ServiceError::Internal(format!("BTC key generation failed: {}", e)))?;
@@ -175,7 +176,7 @@ impl KeyGenerator {
             }
             64 => {
                 let bytes: [u8; 64] = key_bytes.try_into().unwrap();
-                let keypair = Keypair::try_from(bytes) // Use try_from instead of deprecated from_bytes
+                let keypair = Keypair::try_from(&bytes[..]) // Use slice reference instead of array
                     .map_err(|_| ServiceError::ValidationError("Invalid Solana private key bytes".to_string()))?;
                 keypair.pubkey().to_bytes()
             }
