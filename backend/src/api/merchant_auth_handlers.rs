@@ -132,8 +132,8 @@ pub async fn register_merchant(
             let auth_response = AuthResponse {
                 user: MerchantProfile {
                     id: response.merchant_id,
-                    business_name: req.business_name,
-                    email: req.email,
+                    business_name: req.business_name.clone(),
+                    email: req.email.clone(),
                     api_key: response.api_key, // Return the REAL key once on registration
                     created_at: chrono::Utc::now().to_rfc3339(),
                     two_factor_enabled: false,

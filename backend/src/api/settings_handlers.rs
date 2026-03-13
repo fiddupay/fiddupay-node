@@ -385,7 +385,7 @@ pub async fn update_merchant_settings(
     if req.webhook_url.is_some() || req.webhook_format.is_some() {
         if let Err(e) = state.webhook_service.set_webhook_url(
             context.merchant_id, 
-            req.webhook_url,
+            req.webhook_url.clone(),
             req.webhook_format.clone()
         ).await {
             return (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response();

@@ -95,9 +95,9 @@ pub async fn delete_wallet(
     let (sandbox_mode, settlement_mode) = get_merchant_modes(&state.db_pool, context.merchant_id).await;
 
     let result = if settlement_mode == "forwarding" {
-        wallet_service.delete_forwarding_config(context.merchant_id, sandbox_mode, crypto_type).await
+        wallet_service.delete_forwarding_config(context.merchant_id, sandbox_mode, crypto_type.clone()).await
     } else {
-        wallet_service.delete_wallet_config(context.merchant_id, sandbox_mode, crypto_type).await
+        wallet_service.delete_wallet_config(context.merchant_id, sandbox_mode, crypto_type.clone()).await
     };
 
     match result {
@@ -290,7 +290,7 @@ pub async fn setup_wallet(
                     match wallet_service.set_forwarding_address(
                         context.merchant_id,
                         crypto_type,
-                        address,
+                        address.clone(),
                         req.is_active.unwrap_or(true),
                         sandbox_mode,
                     ).await {
@@ -318,8 +318,8 @@ pub async fn setup_wallet(
                     }
                 } else {
                     let configure_request = ConfigureWalletRequest {
-                        crypto_type: req.crypto_type,
-                        address,
+                        crypto_type: req.crypto_type.clone(),
+                        address: address.clone(),
                         is_active: req.is_active,
                     };
                     match wallet_service.configure_address_only(context.merchant_id, sandbox_mode, configure_request).await {
@@ -354,7 +354,7 @@ pub async fn setup_wallet(
             let (sandbox_mode, settlement_mode) = get_merchant_modes(&state.db_pool, context.merchant_id).await;
 
             let generate_request = GenerateWalletRequest {
-                crypto_type: req.crypto_type,
+                crypto_type: req.crypto_type.clone(),
                 enable_all_evm: req.enable_all_evm,
             };
 
