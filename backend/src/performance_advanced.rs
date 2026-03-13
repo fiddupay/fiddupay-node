@@ -58,7 +58,8 @@ impl OptimizedQueries {
                    COALESCE(customer_pays_fee, true) as customer_pays_fee,
                    is_active, sandbox_mode, settlement_mode, COALESCE(kyc_verified, false) as kyc_verified, created_at, updated_at,
                    api_key_expires_at, daily_limit_usd, COALESCE(role::text, 'MERCHANT') as role, redirect_url,
-                   first_name, last_name, gender, phone_number, country, applicant_role, business_country, business_license_number, business_certificate_url, COALESCE(terms_accepted, false) as terms_accepted
+                   first_name, last_name, gender, phone_number, country, applicant_role, business_country, business_license_number, business_certificate_url, COALESCE(terms_accepted, false) as terms_accepted,
+                   wallets_locked, customer_wallets_locked
             FROM merchants 
             WHERE id = $1 AND is_active = true
             "#

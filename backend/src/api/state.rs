@@ -63,8 +63,11 @@ impl AppState {
         let invoice_service = Arc::new(InvoiceService::new(db_pool.clone()));
         let balance_service = Arc::new(BalanceService::new(db_pool.clone(), price_service.clone()));
 
+        let audit_service = Arc::new(AuditService::new(db_pool.clone()));
+        let merchant_service = Arc::new(MerchantService::new(db_pool.clone(), config.clone(), audit_service.clone()));
+
         Self {
-            merchant_service: Arc::new(MerchantService::new(db_pool.clone(), config.clone())),
+            merchant_service,
             payment_service: Arc::new(PaymentService::new(db_pool.clone(), &config.payment_page_base_url, price_service.clone(), invoice_service.clone(), &config.webhook_signing_key, config.clone())),
             refund_service: Arc::new(RefundService::new(db_pool.clone(), webhook_service.clone())),
             analytics_service: Arc::new(AnalyticsService::new(db_pool.clone(), price_service.clone())),
@@ -72,7 +75,7 @@ impl AppState {
             admin_service: Arc::new(AdminService::new(db_pool.clone())),
             webhook_service: webhook_service.clone(),
             ip_whitelist_service: Arc::new(IpWhitelistService::new(db_pool.clone())),
-            audit_service: Arc::new(AuditService::new(db_pool.clone())),
+            audit_service,
             balance_service: balance_service.clone(),
             withdrawal_service: Arc::new(WithdrawalService::new(db_pool.clone(), price_service.clone())),
             wallet_config_service: Arc::new(WalletConfigService::new(db_pool.clone())),

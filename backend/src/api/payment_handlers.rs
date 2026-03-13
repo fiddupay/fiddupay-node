@@ -109,7 +109,22 @@ pub async fn create_refund(
     Json(req): Json<CreateRefundRequest>,
 ) -> impl IntoResponse {
     match state.refund_service.create_refund(context.merchant_id, req.payment_id, req.amount, req.reason).await {
-        Ok(response) => (StatusCode::CREATED, Json(response)).into_response(),
+        Ok(response) => {
+            // Log refund creation and trace
+            state.audit_service.log_event(
+                context.merchant_id,
+                "refund_creation",
+                &format!("Created refund for payment {}", response.payment_id),
+                Some(json!({
+                    "refund_id": response.id,
+                    "payment_id": response.payment_id,
+                    "amount": response.amount
+                }))
+            ).await;
+            tracing::info!("EVENT: refund_creation | Merchant: {} | Payment: {} | Refund: {}", context.merchant_id, response.payment_id, response.id);
+
+            (StatusCode::CREATED, Json(response)).into_response()
+        },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -131,11 +146,26 @@ pub struct CompleteRefundRequest {
 
 pub async fn complete_refund(
     State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
     Path(refund_id): Path<String>,
     Json(req): Json<CompleteRefundRequest>,
 ) -> impl IntoResponse {
-    match state.refund_service.complete_refund(refund_id, req.transaction_hash).await {
-        Ok(_) => (StatusCode::OK, Json(json!({"success": true}))).into_response(),
+    match state.refund_service.complete_refund(refund_id.clone(), req.transaction_hash.clone()).await {
+        Ok(_) => {
+            // Log refund completion and trace
+            state.audit_service.log_event(
+                context.merchant_id,
+                "refund_completion",
+                &format!("Completed refund {}", refund_id),
+                Some(json!({
+                    "refund_id": refund_id,
+                    "transaction_hash": req.transaction_hash
+                }))
+            ).await;
+            tracing::info!("EVENT: refund_completion | Merchant: {} | Refund: {}", context.merchant_id, refund_id);
+
+            (StatusCode::OK, Json(json!({"success": true}))).into_response()
+        },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }

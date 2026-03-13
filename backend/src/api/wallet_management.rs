@@ -101,9 +101,20 @@ pub async fn delete_wallet(
     };
 
     match result {
-        Ok(_) => (StatusCode::OK, Json(json!({
-            "message": "Wallet configuration removed successfully"
-        }))).into_response(),
+        Ok(_) => {
+            // Log wallet deletion and trace
+            state.audit_service.log_event(
+                context.merchant_id,
+                "wallet_deletion",
+                &format!("Removed wallet configuration for {}", crypto_type),
+                Some(json!({"crypto_type": crypto_type}))
+            ).await;
+            tracing::info!("EVENT: wallet_deletion | Merchant: {} | Crypto: {}", context.merchant_id, crypto_type);
+
+            (StatusCode::OK, Json(json!({
+                "message": "Wallet configuration removed successfully"
+            }))).into_response()
+        },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
             "error": e.to_string()
         }))).into_response(),
@@ -283,11 +294,26 @@ pub async fn setup_wallet(
                         req.is_active.unwrap_or(true),
                         sandbox_mode,
                     ).await {
-                        Ok(config) => (StatusCode::OK, Json(json!({
-                            "wallet": config,
-                            "mode": "address",
-                            "message": "Forwarding address configured successfully."
-                        }))).into_response(),
+                        Ok(config) => {
+                            // Log forwarding setup and trace
+                            state.audit_service.log_event(
+                                context.merchant_id,
+                                "wallet_setup_forwarding",
+                                &format!("Configured {} forwarding address", req.crypto_type),
+                                Some(json!({
+                                    "crypto_type": req.crypto_type,
+                                    "address": address,
+                                    "is_active": req.is_active.unwrap_or(true)
+                                }))
+                            ).await;
+                            tracing::info!("EVENT: wallet_setup_forwarding | Merchant: {} | Crypto: {}", context.merchant_id, req.crypto_type);
+
+                            (StatusCode::OK, Json(json!({
+                                "wallet": config,
+                                "mode": "address",
+                                "message": "Forwarding address configured successfully."
+                            }))).into_response()
+                        },
                         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
                     }
                 } else {
@@ -297,11 +323,26 @@ pub async fn setup_wallet(
                         is_active: req.is_active,
                     };
                     match wallet_service.configure_address_only(context.merchant_id, sandbox_mode, configure_request).await {
-                        Ok(config) => (StatusCode::OK, Json(json!({
-                            "wallet": config,
-                            "mode": "address",
-                            "message": "Address-only wallet configured successfully."
-                        }))).into_response(),
+                        Ok(config) => {
+                            // Log address-only setup and trace
+                            state.audit_service.log_event(
+                                context.merchant_id,
+                                "wallet_setup_address_only",
+                                &format!("Configured {} address-only wallet", req.crypto_type),
+                                Some(json!({
+                                    "crypto_type": req.crypto_type,
+                                    "address": address,
+                                    "is_active": req.is_active
+                                }))
+                            ).await;
+                            tracing::info!("EVENT: wallet_setup_address_only | Merchant: {} | Crypto: {}", context.merchant_id, req.crypto_type);
+
+                            (StatusCode::OK, Json(json!({
+                                "wallet": config,
+                                "mode": "address",
+                                "message": "Address-only wallet configured successfully."
+                            }))).into_response()
+                        },
                         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
                     }
                 }
@@ -332,6 +373,20 @@ pub async fn setup_wallet(
                     } else {
                         "Wallet generated successfully."
                     };
+
+                    // Log wallet generation and trace
+                    state.audit_service.log_event(
+                        context.merchant_id,
+                        "wallet_generation",
+                        &format!("Generated new {} wallet ({})", req.crypto_type, if is_managed { "managed" } else { "user-managed" }),
+                        Some(json!({
+                            "crypto_type": req.crypto_type,
+                            "managed": is_managed,
+                            "enable_all_evm": req.enable_all_evm.unwrap_or(false)
+                        }))
+                    ).await;
+                    tracing::info!("EVENT: wallet_generation | Merchant: {} | Crypto: {} | Managed: {}", context.merchant_id, req.crypto_type, is_managed);
+
                     (StatusCode::CREATED, Json(json!({
                         "wallet": response,
                         "mode": "generate",

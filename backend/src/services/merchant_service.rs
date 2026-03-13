@@ -13,11 +13,12 @@ use sqlx::{PgPool, Row};
 pub struct MerchantService {
     db_pool: PgPool,
     config: crate::config::Config,
+    audit_service: std::sync::Arc<crate::services::audit_service::AuditService>,
 }
 
 impl MerchantService {
-    pub fn new(db_pool: PgPool, config: crate::config::Config) -> Self {
-        Self { db_pool, config }
+    pub fn new(db_pool: PgPool, config: crate::config::Config, audit_service: std::sync::Arc<crate::services::audit_service::AuditService>) -> Self {
+        Self { db_pool, config, audit_service }
     }
 
     /// Validate a wallet address for a specific crypto type
@@ -126,7 +127,8 @@ impl MerchantService {
             )
             VALUES ($1, $2, 'PENDING', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT', $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
             RETURNING id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url,
-                      first_name, last_name, gender, phone_number, country, applicant_role, business_country, business_license_number, business_certificate_url, terms_accepted
+                      first_name, last_name, gender, phone_number, country, applicant_role, business_country, business_license_number, business_certificate_url, terms_accepted,
+                      wallets_locked, customer_wallets_locked
             "#
         )
         .bind(&email)
@@ -438,7 +440,7 @@ impl MerchantService {
                                    kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
                                    role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
                                    country, applicant_role, business_country, business_license_number, 
-                                   business_certificate_url, terms_accepted 
+                                   business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked 
                             FROM merchants 
                             WHERE id = $1 AND is_active = true
                             "#
@@ -659,6 +661,19 @@ impl MerchantService {
         .bind(Utc::now())
         .execute(&self.db_pool)
         .await?;
+
+        // Log wallet address change
+        self.audit_service.log_event(
+            merchant_id,
+            "wallet_address_update",
+            &format!("Updated {} wallet address", crypto_type_str),
+            Some(serde_json::json!({
+                "crypto_type": crypto_type_str,
+                "address": address,
+                "sandbox_mode": sandbox_mode
+            }))
+        ).await;
+        tracing::info!("EVENT: wallet_address_update | Merchant: {} | Crypto: {} | Sandbox: {}", merchant_id, crypto_type_str, sandbox_mode);
         
         Ok(())
     }
@@ -688,7 +703,7 @@ impl MerchantService {
         // First, check settlement mode and sandbox mode
         use sqlx::Row;
         let merchant = sqlx::query(
-            "SELECT settlement_mode, sandbox_mode FROM merchants WHERE id = $1"
+            "SELECT settlement_mode, sandbox_mode, wallets_locked, customer_wallets_locked FROM merchants WHERE id = $1"
         )
         .bind(merchant_id)
         .fetch_one(&self.db_pool)
@@ -769,6 +784,15 @@ impl MerchantService {
         .bind(merchant_id)
         .execute(&self.db_pool)
         .await?;
+
+        // Log settlement mode update
+        self.audit_service.log_event(
+            merchant_id,
+            "settlement_mode_update",
+            &format!("Updated settlement mode to {}", mode),
+            Some(serde_json::json!({"settlement_mode": mode}))
+        ).await;
+        tracing::info!("EVENT: settlement_mode_update | Merchant: {} | Mode: {}", merchant_id, mode);
 
         Ok(())
     }

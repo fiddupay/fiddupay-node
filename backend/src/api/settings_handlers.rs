@@ -243,6 +243,15 @@ pub async fn switch_environment(
             if let Some(api_key) = maybe_key {
                 response["api_key"] = json!(api_key);
             }
+            // Log switch and trace
+            state.audit_service.log_event(
+                context.merchant_id,
+                "environment_switch",
+                &format!("Switched to {}", if req.to_live { "live" } else { "sandbox" }),
+                Some(json!({"to_live": req.to_live}))
+            ).await;
+            tracing::info!("EVENT: environment_switch | Merchant: {} | To: {}", context.merchant_id, if req.to_live { "live" } else { "sandbox" });
+
             (StatusCode::OK, Json(response)).into_response()
         },
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
@@ -260,7 +269,18 @@ pub async fn generate_api_key(
     Json(req): Json<GenerateApiKeyRequest>,
 ) -> impl IntoResponse {
     match state.merchant_service.generate_and_store_api_key_with_expiry(context.merchant_id, req.is_live, None).await {
-        Ok(api_key) => (StatusCode::OK, Json(json!({"api_key": api_key}))).into_response(),
+        Ok(api_key) => {
+            // Log key generation and trace
+            state.audit_service.log_event(
+                context.merchant_id,
+                "api_key_generation",
+                &format!("Generated new {} API key", if req.is_live { "live" } else { "test" }),
+                Some(json!({"is_live": req.is_live}))
+            ).await;
+            tracing::info!("EVENT: api_key_generation | Merchant: {} | Live: {}", context.merchant_id, req.is_live);
+
+            (StatusCode::OK, Json(json!({"api_key": api_key}))).into_response()
+        },
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)}))).into_response(),
     }
 }
@@ -290,7 +310,19 @@ pub async fn rotate_api_key(
     };
 
     match result {
-        Ok(new_api_key) => (StatusCode::OK, Json(json!({"api_key": new_api_key}))).into_response(),
+        Ok(new_api_key) => {
+            // Log key rotation and trace
+            let is_live = new_api_key.starts_with("sk_live_");
+            state.audit_service.log_event(
+                context.merchant_id,
+                "api_key_rotation",
+                &format!("Rotated {} API key", if is_live { "live" } else { "test" }),
+                Some(json!({"is_live": is_live}))
+            ).await;
+            tracing::info!("EVENT: api_key_rotation | Merchant: {} | Live: {}", context.merchant_id, is_live);
+
+            (StatusCode::OK, Json(json!({"api_key": new_api_key}))).into_response()
+        },
         Err(e) => e.into_response(),
     }
 }
@@ -380,6 +412,15 @@ pub async fn update_merchant_settings(
             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
         }
     }
+
+    // Log settings update and trace
+    state.audit_service.log_event(
+        context.merchant_id,
+        "settings_update",
+        "Updated merchant profile settings",
+        Some(json!(req))
+    ).await;
+    tracing::info!("EVENT: settings_update | Merchant: {}", context.merchant_id);
 
     (StatusCode::OK, Json(json!({
         "status": "success",
@@ -503,7 +544,7 @@ pub async fn get_fee_setting(
                kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
                role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
                country, applicant_role, business_country, business_license_number, 
-               business_certificate_url, terms_accepted 
+               business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked 
         FROM merchants WHERE id = $1
         "#
     )
@@ -612,7 +653,18 @@ pub async fn toggle_wallet_lock(
 
     // 4. Proceed with lock toggle
     match state.merchant_service.set_wallet_lock(context.merchant_id, req.locked).await {
-        Ok(_) => (StatusCode::OK, Json(json!({"status": "success", "locked": req.locked}))).into_response(),
+        Ok(_) => {
+            // Log lock toggle and trace
+            state.audit_service.log_event(
+                context.merchant_id,
+                "wallet_lock_toggle",
+                &format!("Merchant wallets {}", if req.locked { "locked" } else { "unlocked" }),
+                Some(json!({"locked": req.locked}))
+            ).await;
+            tracing::info!("EVENT: wallet_lock_toggle | Merchant: {} | Locked: {}", context.merchant_id, req.locked);
+
+            (StatusCode::OK, Json(json!({"status": "success", "locked": req.locked}))).into_response()
+        },
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -656,7 +708,18 @@ pub async fn toggle_customer_wallet_lock(
     }
 
     match state.merchant_service.set_customer_wallet_lock(context.merchant_id, req.locked).await {
-        Ok(_) => (StatusCode::OK, Json(json!({"status": "success", "locked": req.locked}))).into_response(),
+        Ok(_) => {
+            // Log lock toggle and trace
+            state.audit_service.log_event(
+                context.merchant_id,
+                "customer_wallet_lock_toggle",
+                &format!("Customer wallets {}", if req.locked { "locked" } else { "unlocked" }),
+                Some(json!({"locked": req.locked}))
+            ).await;
+            tracing::info!("EVENT: customer_wallet_lock_toggle | Merchant: {} | Locked: {}", context.merchant_id, req.locked);
+
+            (StatusCode::OK, Json(json!({"status": "success", "locked": req.locked}))).into_response()
+        },
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }

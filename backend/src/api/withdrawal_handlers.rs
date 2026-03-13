@@ -48,6 +48,20 @@ pub async fn create_withdrawal(
                 }
             }
 
+            // Log withdrawal creation and trace
+            state.audit_service.log_event(
+                context.merchant_id,
+                "withdrawal_creation",
+                &format!("Created withdrawal request for {}{}", withdrawal.amount, withdrawal.currency),
+                Some(json!({
+                    "withdrawal_id": withdrawal.withdrawal_id,
+                    "currency": withdrawal.currency,
+                    "amount": withdrawal.amount,
+                    "destination": withdrawal.destination_address
+                }))
+            ).await;
+            tracing::info!("EVENT: withdrawal_creation | Merchant: {} | Withdrawal: {} | Amount: {} {}", context.merchant_id, withdrawal.withdrawal_id, withdrawal.amount, withdrawal.currency);
+
             (StatusCode::CREATED, Json(withdrawal)).into_response()
         },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
@@ -89,7 +103,18 @@ pub async fn cancel_withdrawal(
     Path(withdrawal_id): Path<String>,
 ) -> impl IntoResponse {
     match state.withdrawal_service.cancel_withdrawal(context.merchant_id, &withdrawal_id).await {
-        Ok(_) => (StatusCode::OK, Json(json!({"message": "Withdrawal cancelled"}))).into_response(),
+        Ok(_) => {
+            // Log withdrawal cancellation and trace
+            state.audit_service.log_event(
+                context.merchant_id,
+                "withdrawal_cancellation",
+                &format!("Cancelled withdrawal {}", withdrawal_id),
+                Some(json!({"withdrawal_id": withdrawal_id}))
+            ).await;
+            tracing::info!("EVENT: withdrawal_cancellation | Merchant: {} | Withdrawal: {}", context.merchant_id, withdrawal_id);
+
+            (StatusCode::OK, Json(json!({"message": "Withdrawal cancelled"}))).into_response()
+        },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }

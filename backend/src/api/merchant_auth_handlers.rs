@@ -146,6 +146,15 @@ pub async fn register_merchant(
                 dashboard_token: token,
             };
             
+            // Log registration and trace
+            state.audit_service.log_event(
+                response.merchant_id,
+                "registration",
+                "Successfully registered new merchant",
+                Some(json!({"email": req.email, "business_name": req.business_name}))
+            ).await;
+            tracing::info!("EVENT: registration | Merchant: {} | Email: {}", response.merchant_id, req.email);
+
             (StatusCode::CREATED, Json(auth_response)).into_response()
         },
         Err(e) => e.into_response(),
@@ -158,7 +167,7 @@ pub async fn login_merchant(
 ) -> impl IntoResponse {
     // Query the database for the user
     let merchant_query = sqlx::query(
-        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role::text as role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd FROM merchants WHERE email = $1 AND is_active = true"
+        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role::text as role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked FROM merchants WHERE email = $1 AND is_active = true"
     )
     .bind(&req.email)
     .fetch_optional(&state.db_pool)
@@ -268,6 +277,15 @@ pub async fn login_merchant(
                          "Not generated".to_string()
                     }
                 };
+
+                // Log login and trace
+                state.audit_service.log_event(
+                    m_id,
+                    "login",
+                    "Successfully logged in via dashboard",
+                    Some(json!({"email": m_email}))
+                ).await;
+                tracing::info!("EVENT: login | Merchant: {} | Email: {}", m_id, m_email);
 
                 AuthResponse {
                     user: MerchantProfile {
