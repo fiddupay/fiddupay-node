@@ -71,14 +71,17 @@ impl KeyGenerator {
         use bitcoin::PublicKey as BitcoinPublicKey;
 
         let network = if is_sandbox { Network::Testnet } else { Network::Bitcoin };
-        let secp = Secp256k1::new();
-        let secret_key = SecretKey::new(&mut OsRng);
+        let mut entropy = [0u8; 32];
+        rand::RngCore::fill_bytes(&mut OsRng, &mut entropy);
+        let secret_key = SecretKey::from_slice(&entropy).map_err(|e| ServiceError::Internal(format!("BTC key generation failed: {}", e)))?;
         
         let private_key = PrivateKey::new(secret_key, network);
         let public_key = BitcoinPublicKey::new(private_key.public_key(&secp).inner);
         
         // Generate SegWit address (Bech32)
-        let address = Address::p2wpkh(&public_key, network);
+        let compressed_public_key = bitcoin::CompressedPublicKey::try_from(public_key)
+            .map_err(|_| ServiceError::Internal("Failed to create compressed public key".to_string()))?;
+        let address = Address::p2wpkh(&compressed_public_key, network);
         
         Ok(WalletKeyPair {
             private_key: private_key.to_wif(),
@@ -172,7 +175,7 @@ impl KeyGenerator {
             }
             64 => {
                 let bytes: [u8; 64] = key_bytes.try_into().unwrap();
-                let keypair = Keypair::from_bytes(&bytes)
+                let keypair = Keypair::try_from(bytes) // Use try_from instead of deprecated from_bytes
                     .map_err(|_| ServiceError::ValidationError("Invalid Solana private key bytes".to_string()))?;
                 keypair.pubkey().to_bytes()
             }
@@ -195,7 +198,9 @@ impl KeyGenerator {
         // We assume Mainnet if not specified, but this should be configurable
         let secp = bitcoin::key::Secp256k1::new();
         let public_key = bitcoin::PublicKey::new(private_key.public_key(&secp).inner);
-        let address = bitcoin::Address::p2wpkh(&public_key, Network::Bitcoin);
+        let compressed_public_key = bitcoin::CompressedPublicKey::try_from(public_key)
+            .map_err(|_| ServiceError::ValidationError("Invalid BTC public key for compressed format".to_string()))?;
+        let address = bitcoin::Address::p2wpkh(&compressed_public_key, Network::Bitcoin);
             
         Ok(address.to_string())
     }

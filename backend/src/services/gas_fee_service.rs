@@ -342,7 +342,7 @@ impl GasFeeService {
         
         match crypto_type {
             // Native currencies: deduct gas from withdrawal amount
-            CryptoType::Eth | CryptoType::Bnb | CryptoType::Matic | CryptoType::Arb | CryptoType::Sol => {
+            CryptoType::Eth | CryptoType::Bnb | CryptoType::Matic | CryptoType::Arb | CryptoType::Sol | CryptoType::Btc => {
                 Ok(native_balance >= withdrawal_amount + gas_estimate.estimated_withdrawal_cost)
             }
             // USDT variants: need separate gas deposit
