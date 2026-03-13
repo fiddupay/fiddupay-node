@@ -496,10 +496,11 @@ impl PaymentVerifier {
 
         // Log fee recording for audit trail (Requirement 6.3)
         info!(
-            " Payment {} confirmed for merchant {} - Fee recorded: {:?} crypto (${}) at {}% rate",
+            " Payment {} confirmed for merchant {} - Fee recorded: {} {} (est. ${}) at {}% rate",
             payment_id,
             merchant_id,
-            payment.fee_amount,
+            payment.fee_amount.unwrap_or(Decimal::ZERO),
+            crypto_type_str,
             payment.fee_amount_usd,
             payment.fee_percentage
         );

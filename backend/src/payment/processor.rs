@@ -288,8 +288,13 @@ impl PaymentProcessor {
         }
 
         info!(
-            "Created payment {} for merchant {} - Status: {:?} - Amount USD: ${}",
-            payment_id, merchant_id, status, amount_usd
+            "Created payment {} for merchant {} - Status: {:?} - Amount: {} {} (Est. ${})",
+            payment_id, 
+            merchant_id, 
+            status, 
+            crypto_amount.unwrap_or(Decimal::ZERO),
+            request.crypto_type.map(|ct| ct.to_string()).unwrap_or_else(|| "USD".to_string()),
+            amount_usd
         );
         
         Ok(PaymentResponse {
