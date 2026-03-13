@@ -5,8 +5,8 @@ use async_trait::async_trait;
 use reqwest::Client;
 use rust_decimal::Decimal;
 use tracing::{info, warn};
-use super::models::{BlockchainTransaction, CryptoType};
-use super::blockchain_monitor::BlockchainMonitor;
+use crate::payment::models::{BlockchainTransaction, CryptoType};
+use super::BlockchainMonitor;
 
 pub struct BtcMonitor {
     client: Client,
