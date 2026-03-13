@@ -322,90 +322,92 @@ const WithdrawalsPage: React.FC = () => {
                 )}
 
                 {/* Withdrawal History */}
-                <div className={styles.historyCard}>
-                    <div className={styles.formCardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <i className="fas fa-history"></i>
-                            <h2>Withdrawal History</h2>
+                {settlementMode !== 'forwarding' && (
+                    <div className={styles.historyCard}>
+                        <div className={styles.formCardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <i className="fas fa-history"></i>
+                                <h2>Withdrawal History</h2>
+                            </div>
+                            <button
+                                className={`${styles.refreshBtn} ${refreshingId === 'global' ? styles.spinIcon : ''}`}
+                                onClick={(e) => handleManualRefresh('global', e)}
+                                title="Refresh history"
+                            >
+                                <i className="fas fa-sync-alt"></i>
+                            </button>
                         </div>
-                        <button
-                            className={`${styles.refreshBtn} ${refreshingId === 'global' ? styles.spinIcon : ''}`}
-                            onClick={(e) => handleManualRefresh('global', e)}
-                            title="Refresh history"
-                        >
-                            <i className="fas fa-sync-alt"></i>
-                        </button>
-                    </div>
 
-                    {withdrawals.length === 0 ? (
-                        <div className={styles.emptyHistory}>
-                            <i className="fas fa-inbox"></i>
-                            <p>No withdrawals yet</p>
-                        </div>
-                    ) : (
-                        <div className={styles.historyList}>
-                            {withdrawals.map((w) => (
-                                <div key={w.withdrawal_id} className={styles.historyItem}>
-                                    <div className={styles.historyItemHeader}>
-                                        <div>
-                                            <strong>{w.crypto_type}</strong>
-                                            <span className={styles.historyDate}>
-                                                {new Date(w.created_at).toLocaleDateString()} {new Date(w.created_at).toLocaleTimeString()}
-                                            </span>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <button
-                                                className={`${styles.refreshBtn} ${refreshingId === w.withdrawal_id ? styles.spinIcon : ''}`}
-                                                onClick={(e) => handleManualRefresh(w.withdrawal_id, e)}
-                                                title="Refresh status"
-                                            >
-                                                <i className="fas fa-sync-alt"></i>
-                                            </button>
-                                            {statusBadge(w.status)}
-                                        </div>
-                                    </div>
-                                    <div className={styles.historyDetails}>
-                                        <div className={styles.historyDetailRow}>
-                                            <span>Amount</span>
-                                            <strong>{parseFloat(w.amount || '0').toFixed(6)}</strong>
-                                        </div>
-                                        <div className={styles.historyDetailRow}>
-                                            <span>Fee</span>
-                                            <span style={{ color: '#059669' }}>0 (Free)</span>
-                                        </div>
-                                        <div className={styles.historyDetailRow}>
-                                            <span>To</span>
-                                            <div className={styles.copyableText}>
-                                                <span className={styles.addressFull}>{w.destination_address}</span>
-                                                <button className={styles.iconBtn} onClick={() => handleCopy(w.destination_address)} title="Copy address">
-                                                    <i className="far fa-copy"></i>
+                        {withdrawals.length === 0 ? (
+                            <div className={styles.emptyHistory}>
+                                <i className="fas fa-inbox"></i>
+                                <p>No withdrawals yet</p>
+                            </div>
+                        ) : (
+                            <div className={styles.historyList}>
+                                {withdrawals.map((w) => (
+                                    <div key={w.withdrawal_id} className={styles.historyItem}>
+                                        <div className={styles.historyItemHeader}>
+                                            <div>
+                                                <strong>{w.crypto_type}</strong>
+                                                <span className={styles.historyDate}>
+                                                    {new Date(w.created_at).toLocaleDateString()} {new Date(w.created_at).toLocaleTimeString()}
+                                                </span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <button
+                                                    className={`${styles.refreshBtn} ${refreshingId === w.withdrawal_id ? styles.spinIcon : ''}`}
+                                                    onClick={(e) => handleManualRefresh(w.withdrawal_id, e)}
+                                                    title="Refresh status"
+                                                >
+                                                    <i className="fas fa-sync-alt"></i>
                                                 </button>
+                                                {statusBadge(w.status)}
                                             </div>
                                         </div>
-                                        {w.transaction_hash && (
+                                        <div className={styles.historyDetails}>
                                             <div className={styles.historyDetailRow}>
-                                                <span>TX Hash</span>
+                                                <span>Amount</span>
+                                                <strong>{parseFloat(w.amount || '0').toFixed(6)}</strong>
+                                            </div>
+                                            <div className={styles.historyDetailRow}>
+                                                <span>Fee</span>
+                                                <span style={{ color: '#059669' }}>0 (Free)</span>
+                                            </div>
+                                            <div className={styles.historyDetailRow}>
+                                                <span>To</span>
                                                 <div className={styles.copyableText}>
-                                                    <span className={styles.addressFull}>{w.transaction_hash}</span>
-                                                    <div className={styles.actionIcons}>
-                                                        <button className={styles.iconBtn} onClick={() => handleCopy(w.transaction_hash!)} title="Copy hash">
-                                                            <i className="far fa-copy"></i>
-                                                        </button>
-                                                        {getExplorerUrl(w.crypto_type, w.transaction_hash, user?.sandbox_mode || false) && (
-                                                            <a href={getExplorerUrl(w.crypto_type, w.transaction_hash, user?.sandbox_mode || false)!} target="_blank" rel="noopener noreferrer" className={styles.iconBtn} title="View on explorer">
-                                                                <i className="fas fa-external-link-alt"></i>
-                                                            </a>
-                                                        )}
-                                                    </div>
+                                                    <span className={styles.addressFull}>{w.destination_address}</span>
+                                                    <button className={styles.iconBtn} onClick={() => handleCopy(w.destination_address)} title="Copy address">
+                                                        <i className="far fa-copy"></i>
+                                                    </button>
                                                 </div>
                                             </div>
-                                        )}
+                                            {w.transaction_hash && (
+                                                <div className={styles.historyDetailRow}>
+                                                    <span>TX Hash</span>
+                                                    <div className={styles.copyableText}>
+                                                        <span className={styles.addressFull}>{w.transaction_hash}</span>
+                                                        <div className={styles.actionIcons}>
+                                                            <button className={styles.iconBtn} onClick={() => handleCopy(w.transaction_hash!)} title="Copy hash">
+                                                                <i className="far fa-copy"></i>
+                                                            </button>
+                                                            {getExplorerUrl(w.crypto_type, w.transaction_hash, user?.sandbox_mode || false) && (
+                                                                <a href={getExplorerUrl(w.crypto_type, w.transaction_hash, user?.sandbox_mode || false)!} target="_blank" rel="noopener noreferrer" className={styles.iconBtn} title="View on explorer">
+                                                                    <i className="fas fa-external-link-alt"></i>
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Confirmation Modal */}
