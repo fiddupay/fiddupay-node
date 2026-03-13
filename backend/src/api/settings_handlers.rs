@@ -527,7 +527,7 @@ pub async fn get_ip_whitelist(
 // Fee Settings (GET only — updates now via PATCH /settings)
 // ============================================================================
 
-#[derive(Serialize)]
+#[derive(Serialize, sqlx::FromRow)]
 pub struct GetFeeSettingResponse {
     pub fee_percentage: Decimal,
     pub customer_pays_fee: bool,
@@ -537,14 +537,9 @@ pub async fn get_fee_setting(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    let merchant_res = sqlx::query_as::<_, crate::models::merchant::Merchant>(
+    let merchant_res = sqlx::query_as::<_, GetFeeSettingResponse>(
         r#"
-        SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, 
-               fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, 
-               kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
-               role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
-               country, applicant_role, business_country, business_license_number, 
-               business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked 
+        SELECT fee_percentage, customer_pays_fee 
         FROM merchants WHERE id = $1
         "#
     )
@@ -553,14 +548,11 @@ pub async fn get_fee_setting(
     .await;
 
     match merchant_res {
-        Ok(Some(m)) => Json(GetFeeSettingResponse {
-            fee_percentage: m.fee_percentage,
-            customer_pays_fee: m.customer_pays_fee,
-        }).into_response(),
-        Ok(None) => (StatusCode::NOT_FOUND, "Merchant not found").into_response(),
+        Ok(Some(m)) => (StatusCode::OK, Json(m)).into_response(),
+        Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Merchant not found"}))).into_response(),
         Err(e) => {
-            tracing::error!("Failed to fetch merchant fees: {:?}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response()
+            tracing::error!("Failed to fetch merchant fees for merchant {}: {:?}", context.merchant_id, e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Database error: {}", e)}))).into_response()
         }
     }
 }
