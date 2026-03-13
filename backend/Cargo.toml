@@ -101,6 +101,7 @@ aes-gcm = "0.10"
 rand = "0.8.5"
 
 # Blockchain key generation (minimal set)
+bitcoin = "0.32"  # Bitcoin support
 secp256k1 = { version = "0.28", features = ["rand"] }  # For EVM chains
 tiny-keccak = { version = "2.0", features = ["keccak"] }  # For EVM addresses
 

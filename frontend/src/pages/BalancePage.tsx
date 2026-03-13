@@ -41,6 +41,7 @@ const NETWORK_LABELS: Record<string, { name: string, sandbox: string }> = {
     USDT_BEP20: { name: 'BSC BEP20', sandbox: 'BSC Testnet BEP20' },
     USDT_POLYGON: { name: 'Polygon', sandbox: 'Mumbai' },
     USDT_ARBITRUM: { name: 'Arbitrum', sandbox: 'Arbitrum Sepolia' },
+    BTC: { name: 'Bitcoin', sandbox: 'BTC Testnet' },
 };
 
 const getNetworkLabel = (cryptoType: string, isSandbox: boolean): string => {

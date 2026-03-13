@@ -61,6 +61,8 @@ pub enum CryptoType {
     Bnb,              // BSC native
     #[serde(rename = "WSOL")]
     WSol,             // Wrapped SOL (SPL token)
+    #[serde(rename = "BTC")]
+    Btc,              // Bitcoin native
 }
 
 impl std::fmt::Display for CryptoType {
@@ -77,6 +79,7 @@ impl std::fmt::Display for CryptoType {
             CryptoType::Arb => write!(f, "ARB"),
             CryptoType::UsdtArbitrum => write!(f, "USDT_ARBITRUM"),
             CryptoType::WSol => write!(f, "WSOL"),
+            CryptoType::Btc => write!(f, "BTC"),
         }
     }
 }
@@ -97,6 +100,7 @@ impl FromStr for CryptoType {
             "MATIC" => Ok(CryptoType::Matic),
             "BNB" => Ok(CryptoType::Bnb),
             "WSOL" => Ok(CryptoType::WSol),
+            "BTC" => Ok(CryptoType::Btc),
             _ => Err(format!("Unknown crypto type: {}", s)),
         }
     }
@@ -118,6 +122,7 @@ impl CryptoType {
             "USDT_MATIC" | "USDT_POLYGON" => Ok(CryptoType::UsdtPolygon),
             "USDT_ARB" | "USDT_ARBITRUM" => Ok(CryptoType::UsdtArbitrum),
             "WSOL" => Ok(CryptoType::WSol),
+            "BTC" => Ok(CryptoType::Btc),
             unknown => {
                 tracing::warn!("Unknown crypto type string: '{}', rejecting", unknown);
                 Err(crate::error::ServiceError::ValidationError(
@@ -140,6 +145,7 @@ impl CryptoType {
             CryptoType::Matic => "MATIC",
             CryptoType::Bnb => "BNB",
             CryptoType::WSol => "WSOL",
+            CryptoType::Btc => "BTC",
         }
     }
 
@@ -156,12 +162,14 @@ impl CryptoType {
             CryptoType::Matic => "POLYGON",
             CryptoType::Bnb => "BEP20",
             CryptoType::WSol => "SOLANA",
+            CryptoType::Btc => "BITCOIN",
         }
     }
 
     pub fn uri_scheme(&self) -> &'static str {
         match self {
             CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => "solana",
+            CryptoType::Btc => "bitcoin",
             _ => "ethereum", // All EVM chains use ethereum: prefix for EIP-681
         }
     }
@@ -181,6 +189,7 @@ impl CryptoType {
             CryptoType::Matic => 30,         // Polygon: configurable via CONFIRMATION_BLOCKS_POLYGON
             CryptoType::Bnb => 15,           // BSC: configurable via CONFIRMATION_BLOCKS_BSC
             CryptoType::WSol => 32,          // Solana SPL: configurable via CONFIRMATION_BLOCKS_SOL
+            CryptoType::Btc => 2,            // Bitcoin: 2 confirmations for safety
         }
     }
 

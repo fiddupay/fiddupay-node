@@ -140,6 +140,7 @@ impl PriceService {
             CryptoType::Arb => self.fetch_arb_price().await,
             CryptoType::Matic => self.fetch_matic_price().await,
             CryptoType::Bnb => self.fetch_bnb_price().await,
+            CryptoType::Btc => self.fetch_btc_price().await,
             // USDT tokens are pegged to $1.00.
             CryptoType::UsdtSpl | CryptoType::UsdtBep20 | CryptoType::UsdtEth | CryptoType::UsdtPolygon | CryptoType::UsdtArbitrum => {
                 Ok(1.0)
@@ -242,6 +243,25 @@ impl PriceService {
         Err("Failed to fetch BNB price from all sources".to_string())
     }
 
+    async fn fetch_btc_price(&self) -> Result<f64, String> {
+        // Primary: CoinGecko (only if not failed)
+        if !self.is_api_failed("coingecko").await {
+            if let Some(price) = self.fetch_from_coingecko("bitcoin").await {
+                self.record_api_success("coingecko").await;
+                return Ok(price);
+            } else {
+                self.record_api_failure("coingecko").await;
+            }
+        }
+
+        // Fallback APIs
+        if let Some(price) = self.fetch_from_cryptocompare("BTC").await {
+            return Ok(price);
+        }
+        
+        Err("Failed to fetch BTC price from all sources".to_string())
+    }
+
     async fn fetch_from_coingecko(&self, coin_id: &str) -> Option<f64> {
         let url = format!("https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=usd", coin_id);
         
@@ -313,6 +333,7 @@ impl PriceService {
                     CryptoType::Arb,
                     CryptoType::Matic,
                     CryptoType::Bnb,
+                    CryptoType::Btc,
                 ];
                 
                 for crypto in cryptos {

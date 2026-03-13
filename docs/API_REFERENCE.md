@@ -72,6 +72,8 @@ All requests must include a Bearer token in the `Authorization` header:
 Starting with v2.4.6, the gateway strictly enforces settlement modes:
 - **403 Forbidden**: "Standard payments are not available in Forwarding mode."
 - **403 Forbidden**: "Address-Only payments are not available in Managed mode."
+- **Unified EVM Wallet**: All EVM networks (ETH, BSC, Polygon, Arbitrum) share a single private key and address. Updating one syncs them all.
+- **Bitcoin Support**: Native Bitcoin (SegWit) is supported for both Managed and Forwarding modes.
 
 ---
 

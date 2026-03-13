@@ -179,7 +179,7 @@ export const API_DATA: DocSection[] = [
                 body: [
                     { name: 'amount_usd', type: 'string', required: false, description: 'USD amount (e.g. "99.99")' },
                     { name: 'amount', type: 'string', required: false, description: 'Crypto amount (e.g. "0.5")' },
-                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, USDT_ETH, USDT_SPL, etc.' },
+                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, BTC, USDT_ETH, USDT_SPL, etc.' },
                     { name: 'webhook_url', type: 'string', required: false, description: 'Override default webhook' },
                     { name: 'expiration_minutes', type: 'integer', required: false, description: 'Defaults to 20 mins' }
                 ],
@@ -282,7 +282,7 @@ export const API_DATA: DocSection[] = [
                 title: 'Create Address-Only Payment (Experimental)',
                 description: 'Generate a deposit address for a native currency payment. (Forbidden in Managed mode - Feature in Beta)',
                 body: [
-                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, ETH, BNB, MATIC, ARB' },
+                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, BTC, ETH, BNB, MATIC, ARB' },
                     { name: 'merchant_address', type: 'string', required: true, description: 'Your on-chain wallet address' },
                     { name: 'requested_amount', type: 'string', required: true, description: 'Native amount (e.g. "1.5")' }
                 ],
@@ -398,7 +398,7 @@ export const API_DATA: DocSection[] = [
                 title: 'Provision Wallets',
                 description: 'Automatically generate or assign deposit addresses for a customer across selected networks.',
                 body: [
-                    { name: 'networks', type: 'string[]', required: true, description: 'SOL, ETH, etc. (Empty for all)' }
+                    { name: 'networks', type: 'string[]', required: true, description: 'SOL, BTC, ETH, etc. (Empty for all)' }
                 ],
                 request: {
                     curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_1234/wallets \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"networks": ["SOL", "ETH"]}\'',
@@ -460,7 +460,7 @@ export const API_DATA: DocSection[] = [
                 title: 'Withdraw for Customer',
                 description: 'Request a withdrawal from a customer\'s sub-account balance to an external address.',
                 body: [
-                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, ETH, etc.' },
+                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, BTC, ETH, etc.' },
                     { name: 'amount', type: 'string', required: true, description: 'Amount to withdraw' },
                     { name: 'destination_address', type: 'string', required: true, description: 'External wallet address' }
                 ],
@@ -551,11 +551,10 @@ export const API_DATA: DocSection[] = [
                 title: 'Unified Wallet Setup',
                 description: 'A single endpoint to configure or generate wallets for any supported cryptocurrency.',
                 body: [
-                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, ETH, WSOL, USDT_SPL, etc.' },
+                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, BTC, ETH, WSOL, USDT_SPL, etc.' },
                     { name: 'mode', type: 'string', required: true, description: 'address or generate' },
                     { name: 'address', type: 'string', required: false, description: 'Required for mode "address"' },
-                    { name: 'is_active', type: 'boolean', required: false, description: 'Set as primary wallet' },
-                    { name: 'enable_all_evm', type: 'boolean', required: false, description: 'Apply EVM key to all supported EVM networks' }
+                    { name: 'is_active', type: 'boolean', required: false, description: 'Set as primary wallet' }
                 ],
                 request: {
                     curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/wallets \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "crypto_type": "SOL",\n    "mode": "generate"\n  }\'',

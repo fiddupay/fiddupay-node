@@ -63,6 +63,31 @@ impl KeyGenerator {
         })
     }
 
+    /// Generate Bitcoin wallet (SegWit/Bech32)
+    pub fn generate_btc_wallet(is_sandbox: bool) -> Result<WalletKeyPair, ServiceError> {
+        use bitcoin::key::Secp256k1;
+        use bitcoin::{Network, PrivateKey, Address};
+        use bitcoin::secp256k1::SecretKey;
+
+        let network = if is_sandbox { Network::Testnet } else { Network::Bitcoin };
+        let secp = Secp256k1::new();
+        let mut rng = OsRng;
+        let secret_key = SecretKey::new(&mut rng);
+        
+        let private_key = PrivateKey::new(secret_key, network);
+        let public_key = private_key.public_key(&secp);
+        
+        // Generate SegWit address (Bech32)
+        let address = Address::p2wpkh(&public_key, network)
+            .map_err(|e| ServiceError::InternalError(format!("BTC address generation failed: {}", e)))?;
+        
+        Ok(WalletKeyPair {
+            private_key: private_key.to_wif(),
+            public_key: public_key.to_string(),
+            address: address.to_string(),
+        })
+    }
+
     /// Generate encrypted wallet for storage
     pub fn generate_encrypted_wallet(
         network: &str,
@@ -71,6 +96,7 @@ impl KeyGenerator {
         let wallet = match network {
             "ethereum" | "bsc" | "polygon" | "arbitrum" => Self::generate_evm_wallet()?,
             "solana" => Self::generate_solana_wallet()?,
+            "bitcoin" => Self::generate_btc_wallet(false)?, // Default to mainnet for this generic helper
             _ => return Err(ServiceError::ValidationError(
                 format!("Unsupported network: {}", network)
             )),
@@ -94,6 +120,7 @@ impl KeyGenerator {
                 Self::validate_evm_private_key(private_key)
             }
             "solana" => Self::validate_solana_private_key(private_key),
+            "bitcoin" => Self::validate_btc_private_key(private_key),
             _ => Err(ServiceError::ValidationError(
                 format!("Unsupported network: {}", network)
             )),
@@ -158,6 +185,21 @@ impl KeyGenerator {
         };
 
         Ok(bs58::encode(public_key_bytes).into_string())
+    }
+
+    fn validate_btc_private_key(wif: &str) -> Result<String, ServiceError> {
+        use bitcoin::{PrivateKey, Network};
+        
+        let private_key = PrivateKey::from_wif(wif)
+            .map_err(|_| ServiceError::ValidationError("Invalid BTC WIF private key".to_string()))?;
+        
+        // We assume Mainnet if not specified, but this should be configurable
+        let secp = bitcoin::key::Secp256k1::new();
+        let public_key = private_key.public_key(&secp);
+        let address = bitcoin::Address::p2wpkh(&public_key, Network::Bitcoin)
+            .map_err(|e| ServiceError::InternalError(format!("Address derivation failed: {}", e)))?;
+            
+        Ok(address.to_string())
     }
 
     fn public_key_to_eth_address(public_key_hex: &str) -> Result<String, ServiceError> {

@@ -212,7 +212,7 @@ const PaymentsPage: React.FC = () => {
       setNewPayment({
         amount_usd: '',
         amount: '',
-        crypto_type: 'USDT_ETH',
+        crypto_type: supportedCryptos[0] || 'SOL',
         description: '',
         merchant_address: '',
         is_invoice: false,

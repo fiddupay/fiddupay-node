@@ -211,6 +211,22 @@ impl MerchantCustomerService {
                         wallets.push(wallet);
                     }
                 },
+                "BITCOIN" | "BTC" => {
+                    if wallets.iter().any(|w| w.network == "Bitcoin") {
+                        continue;
+                    }
+
+                    let keypair = KeyGenerator::generate_btc_wallet(sandbox_mode)?;
+                    let encrypted_key = encryption.encrypt(&keypair.private_key)
+                        .map_err(|e| ServiceError::InternalError(format!("Encryption failed: {}", e)))?;
+
+                    let wallet = self.save_customer_wallet(
+                        customer.id, merchant_id, CryptoType::Btc,
+                        keypair.address.clone(), encrypted_key.clone(),
+                        sandbox_mode,
+                    ).await?;
+                    wallets.push(wallet);
+                },
                 _ => return Err(ServiceError::ValidationError(format!("Unsupported network type: {}", network_type))),
             }
         }

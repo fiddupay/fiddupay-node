@@ -543,12 +543,14 @@ const MerchantCustomersPage: React.FC = () => {
                                                                                              w.network.toLowerCase().includes('bsc') ? 'bsc' :
                                                                                              w.network.toLowerCase().includes('solana') ? 'sol' :
                                                                                              w.network.toLowerCase().includes('polygon') ? 'poly' :
-                                                                                             w.network.toLowerCase().includes('arbitrum') ? 'arb' : '';
+                                                                                             w.network.toLowerCase().includes('arbitrum') ? 'arb' :
+                                                                                             w.network.toLowerCase().includes('bitcoin') ? 'btc' : '';
                                                                             
                                                                             const assetIcon = w.crypto_type.toLowerCase().includes('usdt') ? 'fa-dollar-sign' :
                                                                                              w.crypto_type.toLowerCase().includes('eth') ? 'fa-ethereum' :
                                                                                              w.crypto_type.toLowerCase().includes('sol') ? 'fa-sun' :
                                                                                              w.crypto_type.toLowerCase().includes('bnb') ? 'fa-coins' :
+                                                                                             w.crypto_type.toLowerCase().includes('btc') ? 'fa-bitcoin' :
                                                                                              w.crypto_type.toLowerCase().includes('matic') ? 'fa-polygon' : 'fa-wallet';
 
                                                                             return (

@@ -265,7 +265,6 @@ pub struct UnifiedWalletSetupRequest {
     pub mode: String, // "address", "generate"
     pub address: Option<String>,
     pub is_active: Option<bool>,
-    pub enable_all_evm: Option<bool>,
 }
 
 pub async fn setup_wallet(
@@ -381,8 +380,7 @@ pub async fn setup_wallet(
                         Some(&format!("Generated new {} wallet ({})", req.crypto_type, if is_managed { "managed" } else { "user-managed" })),
                         Some(json!({
                             "crypto_type": req.crypto_type,
-                            "managed": is_managed,
-                            "enable_all_evm": req.enable_all_evm.unwrap_or(false)
+                            "managed": is_managed
                         }))
                     ).await;
                     tracing::info!("EVENT: wallet_generation | Merchant: {} | Crypto: {} | Managed: {}", context.merchant_id, req.crypto_type, is_managed);

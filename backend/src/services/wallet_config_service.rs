@@ -309,7 +309,7 @@ impl WalletConfigService {
             Some(encrypted_key.clone())
         ).await?;
 
-        if request.enable_all_evm.unwrap_or(false) && is_evm(&crypto_type) {
+        if is_evm(&crypto_type) {
             let evm_networks = vec![
                 CryptoType::Eth,
                 CryptoType::Bnb,
@@ -678,7 +678,6 @@ pub struct ConfigureWalletRequest {
 #[derive(Debug, Deserialize)]
 pub struct GenerateWalletRequest {
     pub crypto_type: String,
-    pub enable_all_evm: Option<bool>,
 }
 
 
