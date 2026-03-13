@@ -393,7 +393,7 @@ pub async fn update_merchant_settings(
     }
 
     // 4. Update IP Whitelist if provided
-    if let Some(ips) = req.ip_whitelist {
+    if let Some(ips) = req.ip_whitelist.clone() {
         if let Err(e) = state.ip_whitelist_service.set_whitelist(context.merchant_id, ips).await {
             return (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response();
         }
