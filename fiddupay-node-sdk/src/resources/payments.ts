@@ -10,7 +10,9 @@ import {
   FeeSettingResponse,
   UpdateFeeSettingResponse,
   RequestOptions,
-  SelectionRequest
+  SelectionRequest,
+  AddressOnlyStats,
+  AddressOnlyHealthStatus
 } from '../types';
 import { FidduPayValidationError } from '../errors';
 
@@ -88,21 +90,42 @@ export class Payments {
   }
 
   /**
-   * Create an address-only payment
+   * Create an address-only payment (WORK IN PROGRESS)
    */
   async createAddressOnly(data: CreateAddressOnlyPaymentRequest, options?: RequestOptions): Promise<AddressOnlyPayment> {
     this.validateCreateAddressOnlyPayment(data);
-    return this.client.post<AddressOnlyPayment>('/api/v1/merchants/address-only-payments', data, options);
+    return this.client.post<AddressOnlyPayment>('/api/v1/merchants/address-only/create', data, options);
   }
 
   /**
-   * Retrieve an address-only payment by ID
+   * Retrieve an address-only payment status by ID (WORK IN PROGRESS)
    */
   async retrieveAddressOnly(paymentId: string, options?: RequestOptions): Promise<AddressOnlyPayment> {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
-    return this.client.get<AddressOnlyPayment>(`/api/v1/merchants/address-only-payments/${paymentId}`, options);
+    return this.client.get<AddressOnlyPayment>(`/api/v1/merchants/address-only/status?payment_id=${paymentId}`, options);
+  }
+
+  /**
+   * List supported native currencies for address-only mode (EXPERIMENTAL)
+   */
+  async listAddressOnlyCurrencies(options?: RequestOptions): Promise<string[]> {
+    return this.client.get<string[]>('/api/v1/merchants/address-only/currencies', options);
+  }
+
+  /**
+   * Get address-only mode statistics (EXPERIMENTAL)
+   */
+  async getAddressOnlyStats(options?: RequestOptions): Promise<AddressOnlyStats> {
+    return this.client.get<AddressOnlyStats>('/api/v1/merchants/address-only/stats', options);
+  }
+
+  /**
+   * Get address-only mode health status (EXPERIMENTAL)
+   */
+  async getAddressOnlyHealth(options?: RequestOptions): Promise<AddressOnlyHealthStatus> {
+    return this.client.get<AddressOnlyHealthStatus>('/api/v1/merchants/address-only/health', options);
   }
 
   /**
@@ -112,14 +135,14 @@ export class Payments {
     if (typeof data.customer_pays_fee !== 'boolean') {
       throw new FidduPayValidationError('customer_pays_fee must be a boolean', 'customer_pays_fee');
     }
-    return this.client.post<UpdateFeeSettingResponse>('/api/v1/merchants/fee-setting', data, options);
+    return this.client.put<UpdateFeeSettingResponse>('/api/v1/merchants/address-only/fee-setting', data, options);
   }
 
   /**
    * Get current fee setting
    */
   async getFeeSetting(options?: RequestOptions): Promise<FeeSettingResponse> {
-    return this.client.get<FeeSettingResponse>('/api/v1/merchants/fee-setting', options);
+    return this.client.get<FeeSettingResponse>('/api/v1/merchants/address-only/fee-setting', options);
   }
 
   private validateCreatePayment(data: CreatePaymentRequest): void {
