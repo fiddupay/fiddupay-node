@@ -667,7 +667,7 @@ impl MerchantService {
         self.audit_service.log_event(
             merchant_id,
             "wallet_address_update",
-            &format!("Updated {} wallet address", crypto_type_str),
+            Some(&format!("Updated {} wallet address", crypto_type_str)),
             Some(serde_json::json!({
                 "crypto_type": crypto_type_str,
                 "address": address,
@@ -790,7 +790,7 @@ impl MerchantService {
         self.audit_service.log_event(
             merchant_id,
             "settlement_mode_update",
-            &format!("Updated settlement mode to {}", mode),
+            Some(&format!("Updated settlement mode to {}", mode)),
             Some(serde_json::json!({"settlement_mode": mode}))
         ).await;
         tracing::info!("EVENT: settlement_mode_update | Merchant: {} | Mode: {}", merchant_id, mode);

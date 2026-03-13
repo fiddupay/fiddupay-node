@@ -247,7 +247,7 @@ pub async fn switch_environment(
             state.audit_service.log_event(
                 context.merchant_id,
                 "environment_switch",
-                &format!("Switched to {}", if req.to_live { "live" } else { "sandbox" }),
+                Some(&format!("Switched to {}", if req.to_live { "live" } else { "sandbox" })),
                 Some(json!({"to_live": req.to_live}))
             ).await;
             tracing::info!("EVENT: environment_switch | Merchant: {} | To: {}", context.merchant_id, if req.to_live { "live" } else { "sandbox" });
@@ -274,7 +274,7 @@ pub async fn generate_api_key(
             state.audit_service.log_event(
                 context.merchant_id,
                 "api_key_generation",
-                &format!("Generated new {} API key", if req.is_live { "live" } else { "test" }),
+                Some(&format!("Generated new {} API key", if req.is_live { "live" } else { "test" })),
                 Some(json!({"is_live": req.is_live}))
             ).await;
             tracing::info!("EVENT: api_key_generation | Merchant: {} | Live: {}", context.merchant_id, req.is_live);
@@ -316,7 +316,7 @@ pub async fn rotate_api_key(
             state.audit_service.log_event(
                 context.merchant_id,
                 "api_key_rotation",
-                &format!("Rotated {} API key", if is_live { "live" } else { "test" }),
+                Some(&format!("Rotated {} API key", if is_live { "live" } else { "test" })),
                 Some(json!({"is_live": is_live}))
             ).await;
             tracing::info!("EVENT: api_key_rotation | Merchant: {} | Live: {}", context.merchant_id, is_live);
@@ -331,7 +331,7 @@ pub async fn rotate_api_key(
 // Unified Settings
 // ============================================================================
 
-#[derive(Deserialize, Validate)]
+#[derive(Deserialize, Serialize, Validate)]
 pub struct UnifiedSettingsRequest {
     #[validate(custom(function = "validate_optional_webhook_url"))]
     pub webhook_url: Option<String>,
@@ -417,7 +417,7 @@ pub async fn update_merchant_settings(
     state.audit_service.log_event(
         context.merchant_id,
         "settings_update",
-        "Updated merchant profile settings",
+        Some("Updated merchant profile settings"),
         Some(json!(req))
     ).await;
     tracing::info!("EVENT: settings_update | Merchant: {}", context.merchant_id);
@@ -658,7 +658,7 @@ pub async fn toggle_wallet_lock(
             state.audit_service.log_event(
                 context.merchant_id,
                 "wallet_lock_toggle",
-                &format!("Merchant wallets {}", if req.locked { "locked" } else { "unlocked" }),
+                Some(&format!("Merchant wallets {}", if req.locked { "locked" } else { "unlocked" })),
                 Some(json!({"locked": req.locked}))
             ).await;
             tracing::info!("EVENT: wallet_lock_toggle | Merchant: {} | Locked: {}", context.merchant_id, req.locked);
@@ -713,7 +713,7 @@ pub async fn toggle_customer_wallet_lock(
             state.audit_service.log_event(
                 context.merchant_id,
                 "customer_wallet_lock_toggle",
-                &format!("Customer wallets {}", if req.locked { "locked" } else { "unlocked" }),
+                Some(&format!("Customer wallets {}", if req.locked { "locked" } else { "unlocked" })),
                 Some(json!({"locked": req.locked}))
             ).await;
             tracing::info!("EVENT: customer_wallet_lock_toggle | Merchant: {} | Locked: {}", context.merchant_id, req.locked);

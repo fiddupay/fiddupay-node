@@ -150,7 +150,7 @@ pub async fn register_merchant(
             state.audit_service.log_event(
                 response.merchant_id,
                 "registration",
-                "Successfully registered new merchant",
+                Some("Successfully registered new merchant"),
                 Some(json!({"email": req.email, "business_name": req.business_name}))
             ).await;
             tracing::info!("EVENT: registration | Merchant: {} | Email: {}", response.merchant_id, req.email);
@@ -223,6 +223,7 @@ pub async fn login_merchant(
                 let merchant_service = crate::services::merchant_service::MerchantService::new(
                     state.db_pool.clone(),
                     state.config.clone(),
+                    state.audit_service.clone(),
                 );
 
                 let remaining_volume: Decimal = merchant_service.get_daily_volume_remaining(
@@ -282,7 +283,7 @@ pub async fn login_merchant(
                 state.audit_service.log_event(
                     m_id,
                     "login",
-                    "Successfully logged in via dashboard",
+                    Some("Successfully logged in via dashboard"),
                     Some(json!({"email": m_email}))
                 ).await;
                 tracing::info!("EVENT: login | Merchant: {} | Email: {}", m_id, m_email);

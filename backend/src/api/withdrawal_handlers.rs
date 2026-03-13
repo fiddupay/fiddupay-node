@@ -52,15 +52,15 @@ pub async fn create_withdrawal(
             state.audit_service.log_event(
                 context.merchant_id,
                 "withdrawal_creation",
-                &format!("Created withdrawal request for {}{}", withdrawal.amount, withdrawal.currency),
+                Some(&format!("Created withdrawal request for {}{}", withdrawal.amount, withdrawal.crypto_type)),
                 Some(json!({
                     "withdrawal_id": withdrawal.withdrawal_id,
-                    "currency": withdrawal.currency,
+                    "currency": withdrawal.crypto_type,
                     "amount": withdrawal.amount,
                     "destination": withdrawal.destination_address
                 }))
             ).await;
-            tracing::info!("EVENT: withdrawal_creation | Merchant: {} | Withdrawal: {} | Amount: {} {}", context.merchant_id, withdrawal.withdrawal_id, withdrawal.amount, withdrawal.currency);
+            tracing::info!("EVENT: withdrawal_creation | Merchant: {} | Withdrawal: {} | Amount: {} {}", context.merchant_id, withdrawal.withdrawal_id, withdrawal.amount, withdrawal.crypto_type);
 
             (StatusCode::CREATED, Json(withdrawal)).into_response()
         },
@@ -108,7 +108,7 @@ pub async fn cancel_withdrawal(
             state.audit_service.log_event(
                 context.merchant_id,
                 "withdrawal_cancellation",
-                &format!("Cancelled withdrawal {}", withdrawal_id),
+                Some(&format!("Cancelled withdrawal {}", withdrawal_id)),
                 Some(json!({"withdrawal_id": withdrawal_id}))
             ).await;
             tracing::info!("EVENT: withdrawal_cancellation | Merchant: {} | Withdrawal: {}", context.merchant_id, withdrawal_id);

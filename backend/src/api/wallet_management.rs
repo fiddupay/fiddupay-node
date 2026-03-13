@@ -106,7 +106,7 @@ pub async fn delete_wallet(
             state.audit_service.log_event(
                 context.merchant_id,
                 "wallet_deletion",
-                &format!("Removed wallet configuration for {}", crypto_type),
+                Some(&format!("Removed wallet configuration for {}", crypto_type)),
                 Some(json!({"crypto_type": crypto_type}))
             ).await;
             tracing::info!("EVENT: wallet_deletion | Merchant: {} | Crypto: {}", context.merchant_id, crypto_type);
@@ -299,7 +299,7 @@ pub async fn setup_wallet(
                             state.audit_service.log_event(
                                 context.merchant_id,
                                 "wallet_setup_forwarding",
-                                &format!("Configured {} forwarding address", req.crypto_type),
+                                Some(&format!("Configured {} forwarding address", req.crypto_type)),
                                 Some(json!({
                                     "crypto_type": req.crypto_type,
                                     "address": address,
@@ -328,7 +328,7 @@ pub async fn setup_wallet(
                             state.audit_service.log_event(
                                 context.merchant_id,
                                 "wallet_setup_address_only",
-                                &format!("Configured {} address-only wallet", req.crypto_type),
+                                Some(&format!("Configured {} address-only wallet", req.crypto_type)),
                                 Some(json!({
                                     "crypto_type": req.crypto_type,
                                     "address": address,
@@ -378,7 +378,7 @@ pub async fn setup_wallet(
                     state.audit_service.log_event(
                         context.merchant_id,
                         "wallet_generation",
-                        &format!("Generated new {} wallet ({})", req.crypto_type, if is_managed { "managed" } else { "user-managed" }),
+                        Some(&format!("Generated new {} wallet ({})", req.crypto_type, if is_managed { "managed" } else { "user-managed" })),
                         Some(json!({
                             "crypto_type": req.crypto_type,
                             "managed": is_managed,

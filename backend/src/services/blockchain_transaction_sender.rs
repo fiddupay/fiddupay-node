@@ -182,7 +182,6 @@ impl BlockchainTransactionSender {
         };
         let rpc_client = RpcClient::new(rpc_url);
         
-        let mut instructions: Vec<Instruction> = Vec::new();
 
         // Calculate ATAs
         let sender_pubkey = sender_keypair.pubkey();

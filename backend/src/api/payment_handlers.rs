@@ -114,14 +114,14 @@ pub async fn create_refund(
             state.audit_service.log_event(
                 context.merchant_id,
                 "refund_creation",
-                &format!("Created refund for payment {}", response.payment_id),
+                Some(&format!("Created refund for payment {}", response.payment_id)),
                 Some(json!({
-                    "refund_id": response.id,
+                    "refund_id": response.refund_id,
                     "payment_id": response.payment_id,
                     "amount": response.amount
                 }))
             ).await;
-            tracing::info!("EVENT: refund_creation | Merchant: {} | Payment: {} | Refund: {}", context.merchant_id, response.payment_id, response.id);
+            tracing::info!("EVENT: refund_creation | Merchant: {} | Payment: {} | Refund: {}", context.merchant_id, response.payment_id, response.refund_id);
 
             (StatusCode::CREATED, Json(response)).into_response()
         },
@@ -156,7 +156,7 @@ pub async fn complete_refund(
             state.audit_service.log_event(
                 context.merchant_id,
                 "refund_completion",
-                &format!("Completed refund {}", refund_id),
+                Some(&format!("Completed refund {}", refund_id)),
                 Some(json!({
                     "refund_id": refund_id,
                     "transaction_hash": req.transaction_hash
