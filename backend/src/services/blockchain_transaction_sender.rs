@@ -618,7 +618,7 @@ impl BlockchainTransactionSender {
         let sighash_all = EcdsaSighashType::All;
 
         {
-            let cache = SighashCache::new(&tx);
+            let mut cache = SighashCache::new(&tx);
             let pubkey_hash = compressed_public_key.wpubkey_hash();
             let script_code = ScriptBuf::new_p2wpkh(&pubkey_hash);
 
