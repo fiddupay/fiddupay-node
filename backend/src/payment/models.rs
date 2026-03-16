@@ -216,7 +216,7 @@ impl CryptoType {
     }
 
     pub fn is_native_currency(&self) -> bool {
-        matches!(self, CryptoType::Sol | CryptoType::Eth | CryptoType::Bnb | CryptoType::Matic | CryptoType::Arb)
+        matches!(self, CryptoType::Sol | CryptoType::Eth | CryptoType::Bnb | CryptoType::Matic | CryptoType::Arb | CryptoType::Btc)
     }
 
     pub fn get_native_currency(&self) -> CryptoType {

@@ -2,7 +2,7 @@ use sqlx::PgPool;
 use chrono::{DateTime, Utc, Duration};
 use serde::Serialize;
 use crate::error::ServiceError;
-use crate::utils::keygen::{generate_solana_keypair, generate_evm_keypair};
+use crate::utils::keygen::KeyGenerator;
 use crate::utils::encryption::Encryption;
 
 #[derive(Debug, Serialize)]
@@ -125,15 +125,17 @@ impl DepositAddressService {
         Ok(result.rows_affected())
     }
 
-    fn generate_keypair(&self, crypto_type: &str) -> Result<crate::utils::keygen::KeyPair, ServiceError> {
+    fn generate_keypair(&self, crypto_type: &str) -> Result<crate::utils::keygen::WalletKeyPair, ServiceError> {
         match crypto_type {
             "SOL" | "USDT_SPL" => {
-                generate_solana_keypair()
-                    .map_err(|e| ServiceError::InternalError(format!("Solana keygen failed: {}", e)))
+                KeyGenerator::generate_solana_wallet()
             }
             "USDT_BEP20" | "USDT_ARBITRUM" | "USDT_POLYGON" => {
-                generate_evm_keypair()
-                    .map_err(|e| ServiceError::InternalError(format!("EVM keygen failed: {}", e)))
+                KeyGenerator::generate_evm_wallet()
+            }
+            "BTC" => {
+                let is_sandbox = self.config.bitcoin_rpc_url.contains("testnet");
+                KeyGenerator::generate_btc_wallet(is_sandbox)
             }
             _ => Err(ServiceError::ValidationError(format!("Unsupported crypto type: {}", crypto_type)))
         }

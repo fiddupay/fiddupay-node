@@ -104,7 +104,8 @@ impl PaymentMonitorService {
             "MATIC" => self.get_matic_balance(address).await,
             "ARB" => self.get_arb_balance(address).await,
             "SOL" => self.get_sol_balance(address).await,
-            _ => Err(ServiceError::ValidationError("Unsupported crypto type".to_string())),
+            "BTC" => self.get_btc_balance(address).await,
+            _ => Err(ServiceError::ValidationError(format!("Unsupported crypto type: {}", crypto_type))),
         }
     }
 
@@ -195,6 +196,44 @@ impl PaymentMonitorService {
 
         if let Some(result) = response.get("result").and_then(|v| v.get("value")).and_then(|v| v.as_u64()) {
             Ok(Decimal::new(result as i64, 9))
+        } else {
+            Ok(Decimal::ZERO)
+        }
+    }
+
+    async fn get_btc_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
+        let is_sandbox = self.config.bitcoin_rpc_url.contains("testnet");
+        let api_url = if is_sandbox {
+            "https://blockstream.info/testnet/api"
+        } else {
+            "https://blockstream.info/api"
+        };
+        
+        let url = format!("{}/address/{}", api_url, address);
+        let client = reqwest::Client::new();
+        let response: serde_json::Value = client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| ServiceError::Internal(format!("BTC API error: {}", e)))?
+            .json()
+            .await
+            .map_err(|e| ServiceError::Internal(format!("BTC API parse error: {}", e)))?;
+
+        let chain_stats = response.get("chain_stats");
+        let funded_sum = chain_stats.and_then(|v| v.get("funded_txo_sum")).and_then(|v| v.as_u64()).unwrap_or(0);
+        let spent_sum = chain_stats.and_then(|v| v.get("spent_txo_sum")).and_then(|v| v.as_u64()).unwrap_or(0);
+        
+        let mempool_stats = response.get("mempool_stats");
+        let mempool_funded = mempool_stats.and_then(|v| v.get("funded_txo_sum")).and_then(|v| v.as_u64()).unwrap_or(0);
+        let mempool_spent = mempool_stats.and_then(|v| v.get("spent_txo_sum")).and_then(|v| v.as_u64()).unwrap_or(0);
+
+        let total_funded = funded_sum + mempool_funded;
+        let total_spent = spent_sum + mempool_spent;
+        
+        if total_funded > total_spent {
+            let satoshis = total_funded - total_spent;
+            Ok(Decimal::new(satoshis as i64, 8)) // 8 decimals for BTC
         } else {
             Ok(Decimal::ZERO)
         }

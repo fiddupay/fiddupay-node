@@ -34,11 +34,14 @@ impl BlockchainTransactionSender {
         let is_solana = crypto_type.network() == "SOLANA";
         let is_solana_native = crypto_type == CryptoType::Sol;
         let is_spl = is_solana && !is_solana_native;
+        let is_bitcoin = crypto_type.network() == "BITCOIN";
         
-        let is_evm_token = !is_solana && !crypto_type.is_native_currency();
+        let is_evm_token = !is_solana && !is_bitcoin && !crypto_type.is_native_currency();
 
         if is_solana_native {
             self.send_solana_transaction(private_key, to_address, amount, sandbox_mode).await
+        } else if is_bitcoin {
+            self.send_bitcoin_transaction(private_key, to_address, amount, sandbox_mode).await
         } else if is_spl {
             let mint = crypto_type.token_address().ok_or_else(|| ServiceError::ValidationError("Missing SPL mint address".to_string()))?;
             self.send_solana_token_transaction(&mint, private_key, to_address, amount, sandbox_mode).await
@@ -510,5 +513,142 @@ impl BlockchainTransactionSender {
             .unwrap_or(5000); // 5000 is default base fee
 
         Ok(fee_calculator)
+    }
+
+    /// Send Bitcoin transaction (Builds, signs, and broadcasts via Blockstream API)
+    async fn send_bitcoin_transaction(
+        &self,
+        private_key: &str,
+        to_address: &str,
+        amount: Decimal,
+        sandbox_mode: bool,
+    ) -> Result<String, ServiceError> {
+        use bitcoin::{Network, Address, PrivateKey, Transaction, TxIn, TxOut, OutPoint, ScriptBuf, Sequence, Witness};
+        use bitcoin::sighash::{SighashCache, EcdsaSighashType};
+        use bitcoin::blockdata::transaction::Version;
+        use bitcoin::locktime::absolute::LockTime;
+        use std::str::FromStr;
+
+        let network = if sandbox_mode { Network::Testnet } else { Network::Bitcoin };
+        let api_url = if sandbox_mode { "https://blockstream.info/testnet/api" } else { "https://blockstream.info/api" };
+
+        let pk = PrivateKey::from_wif(private_key)
+            .map_err(|e| ServiceError::Internal(format!("Invalid BTC Private Key: {}", e)))?;
+        
+        let secp = bitcoin::key::Secp256k1::new();
+        let pubkey = pk.public_key(&secp);
+        let from_address = Address::p2wpkh(&pubkey.into(), network);
+
+        // 1. Fetch UTXOs
+        let utxo_url = format!("{}/address/{}/utxo", api_url, from_address);
+        let client = reqwest::Client::new();
+        let utxos_resp = client.get(&utxo_url).send().await
+            .map_err(|e| ServiceError::Internal(format!("Failed to fetch UTXOs: {}", e)))?;
+        let utxos: Vec<serde_json::Value> = utxos_resp.json().await
+            .map_err(|e| ServiceError::Internal(format!("Failed to parse UTXOs: {}", e)))?;
+
+        // 2. Select UTXOs
+        let target_sats = (amount * Decimal::new(100_000_000, 0)).to_u64().unwrap_or(0);
+        let mut selected_utxos = Vec::new();
+        let mut total_input_sats = 0u64;
+        let fee_sats = 1500u64; // Flat estimate or vsize weight multiplied by rate 
+
+        for utxo in utxos {
+            let value = utxo["value"].as_u64().unwrap_or(0);
+            let txid = utxo["txid"].as_str().unwrap_or("");
+            let vout = utxo["vout"].as_u64().unwrap_or(0) as u32;
+
+            if value > 0 && !txid.is_empty() {
+                selected_utxos.push((txid.to_string(), vout, value));
+                total_input_sats += value;
+                if total_input_sats >= target_sats + fee_sats {
+                    break;
+                }
+            }
+        }
+
+        if total_input_sats < target_sats + fee_sats {
+            return Err(ServiceError::ValidationError(format!("Insufficient BTC balance. Need {} sats, have {} sats", target_sats + fee_sats, total_input_sats)));
+        }
+
+        // 3. Build Transaction
+        let mut tx = Transaction {
+            version: Version::TWO,
+            lock_time: LockTime::ZERO,
+            input: Vec::new(),
+            output: Vec::new(),
+        };
+
+        // Inputs
+        for (txid_str, vout, _) in &selected_utxos {
+            let txid = bitcoin::Txid::from_str(txid_str).map_err(|_| ServiceError::Internal("Invalid Txid".to_string()))?;
+            tx.input.push(TxIn {
+                previous_output: OutPoint { txid, vout: *vout },
+                script_sig: ScriptBuf::new(),
+                sequence: Sequence::MAX,
+                witness: Witness::new(),
+            });
+        }
+
+        // Outputs
+        let dest_addr = Address::from_str(to_address).map_err(|_| ServiceError::ValidationError("Invalid destination addr".to_string()))?;
+        tx.output.push(TxOut {
+            value: target_sats,
+            // script_pubkey might need to be resolved via address network match check
+            script_pubkey: dest_addr.script_pubkey(),
+        });
+
+        // Change output
+        let change_sats = total_input_sats - target_sats - fee_sats;
+        if change_sats > 546 { // Dust limit
+            tx.output.push(TxOut {
+                value: change_sats,
+                script_pubkey: from_address.script_pubkey(),
+            });
+        }
+
+        // 4. Sign inputs (P2WPKH SegWit signatures)
+        let mut signatures = Vec::new();
+        let sighash_all = EcdsaSighashType::All;
+
+        {
+            let cache = SighashCache::new(&tx);
+            let pubkey_hash = pubkey.pubkey_hash();
+            let script_code = ScriptBuf::new_p2wpkh(&pubkey_hash);
+
+            for (idx, (_, _, value)) in selected_utxos.iter().enumerate() {
+                let sighash = cache.segwit_v0_sighash(idx, &script_code, *value, sighash_all)
+                    .map_err(|e| ServiceError::Internal(format!("Sighash error: {}", e)))?;
+                
+                let sig = secp.sign_ecdsa(&bitcoin::secp256k1::Message::from_slice(&sighash[..]).unwrap(), &pk.inner);
+                signatures.push(sig);
+            }
+        }
+
+        // Apply witnesses
+        for (idx, sig) in signatures.into_iter().enumerate() {
+            let mut witness = Witness::new();
+            witness.push(sig.serialize_der().to_vec());
+            witness.push(pubkey.to_bytes());
+            tx.input[idx].witness = witness;
+        }
+
+        // 5. Broadcast
+        use bitcoin::consensus::encode::serialize_hex;
+        let tx_hex = serialize_hex(&tx);
+        
+        let broadcast_url = format!("{}/tx", api_url);
+        let broadcast_resp = client.post(&broadcast_url)
+            .body(tx_hex)
+            .send()
+            .await
+            .map_err(|e| ServiceError::Internal(format!("Failed to broadcast: {}", e)))?;
+
+        if !broadcast_resp.status().is_success() {
+            let err_text = broadcast_resp.text().await.unwrap_or_default();
+            return Err(ServiceError::Internal(format!("Broadcast failed: {}", err_text)));
+        }
+
+        Ok(tx.compute_txid().to_string())
     }
 }

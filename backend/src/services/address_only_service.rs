@@ -243,11 +243,16 @@ impl AddressOnlyService {
             CryptoType::Matic => "polygon",
             CryptoType::Arb => "arbitrum",
             CryptoType::Sol => "solana",
+            CryptoType::Btc => "bitcoin",
             _ => return Err(ServiceError::ValidationError("Unsupported crypto type".to_string())),
         };
 
         let wallet = match crypto_type {
             CryptoType::Sol => KeyGenerator::generate_solana_wallet()?,
+            CryptoType::Btc => {
+                let is_sandbox = self.config.bitcoin_rpc_url.contains("testnet");
+                KeyGenerator::generate_btc_wallet(is_sandbox)?
+            }
             _ => KeyGenerator::generate_evm_wallet()?,
         };
 
@@ -265,7 +270,8 @@ impl AddressOnlyService {
             CryptoType::Bnb | 
             CryptoType::Matic | 
             CryptoType::Arb | 
-            CryptoType::Sol
+            CryptoType::Sol |
+            CryptoType::Btc
         )
     }
 
@@ -311,6 +317,13 @@ impl AddressOnlyService {
                     amount,
                 ).await
             }
+            CryptoType::Btc => {
+                self.send_bitcoin_transaction(
+                    &private_key,
+                    &payment.merchant_destination_address,
+                    amount,
+                ).await
+            }
             _ => {
                 self.send_evm_transaction(
                     payment.crypto_type,
@@ -321,6 +334,18 @@ impl AddressOnlyService {
                 ).await
             }
         }
+    }
+
+    /// Send Bitcoin transaction
+    async fn send_bitcoin_transaction(
+        &self,
+        private_key: &str,
+        to_address: &str,
+        amount: Decimal,
+    ) -> Result<String, ServiceError> {
+        let tx_sender = crate::services::blockchain_transaction_sender::BlockchainTransactionSender::new(self.config.clone());
+        let is_sandbox = self.config.bitcoin_rpc_url.contains("testnet");
+        tx_sender.send_transaction(CryptoType::Btc, private_key, to_address, amount, None, is_sandbox).await
     }
 
     /// Send Solana transaction
