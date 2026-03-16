@@ -1,4 +1,4 @@
-# FidduPay API Reference v2.4.6
+# FidduPay API Reference v2.4.7
 
 ## Base URL
 - **Sandbox**: `http://localhost:8080`

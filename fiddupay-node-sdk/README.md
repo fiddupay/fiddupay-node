@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.4.6
+# FidduPay Node.js SDK v2.4.7
 
-[![version](https://img.shields.io/badge/version-v2.4.6-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.4.7-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -313,7 +313,7 @@ The SDK includes a dedicated Postman collection for merchant integration:
 
 ## API Reference
 
-For complete API documentation, visit: [https://docs.fiddupay.com](https://docs.fiddupay.com)
+For complete API documentation, visit: [https://fiddupay.com/docs](https://fiddupay.com/docs)
 
 ## Contributing
 
@@ -329,9 +329,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- **Documentation**: [https://docs.fiddupay.com](https://docs.fiddupay.com)
+- **Documentation**: [https://fiddupay.com/docs](https://fiddupay.com/docs)
 - **Issues**: [GitHub Issues](https://github.com/fiddupay/fiddupay-node/issues)
-- **Email**: support@fiddupay.com
+- **Email**: techytrosoftware@gmail.com
 
 ---
 
