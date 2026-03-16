@@ -623,7 +623,7 @@ impl BlockchainTransactionSender {
             let script_code = ScriptBuf::new_p2wpkh(&pubkey_hash);
 
             for (idx, (_, _, value)) in selected_utxos.iter().enumerate() {
-                let sighash = cache.segwit_signature_hash(idx, &script_code, Amount::from_sat(*value), sighash_all)
+                let sighash = cache.p2wpkh_signature_hash(idx, &script_code, Amount::from_sat(*value), sighash_all)
                     .map_err(|e| ServiceError::Internal(format!("Sighash error: {}", e)))?;
                 
                 let sig = secp.sign_ecdsa(&bitcoin::secp256k1::Message::from_slice(&sighash[..]).unwrap(), &pk.inner);
