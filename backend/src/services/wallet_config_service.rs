@@ -293,6 +293,7 @@ impl WalletConfigService {
         
         let wallet = match crypto_type {
             CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => KeyGenerator::generate_solana_wallet()?,
+            CryptoType::Btc => KeyGenerator::generate_btc_wallet(sandbox_mode)?,
             _ => KeyGenerator::generate_evm_wallet()?,
         };
         

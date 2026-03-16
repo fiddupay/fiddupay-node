@@ -244,7 +244,7 @@ impl FeeCollectionService {
 
     /// Background task to run scheduled sweeps
     pub async fn start_auto_sweeper(&self) {
-        let networks = vec!["ETHEREUM", "BSC", "POLYGON", "ARBITRUM", "SOLANA"];
+        let networks = vec!["ETHEREUM", "BSC", "POLYGON", "ARBITRUM", "SOLANA", "BITCOIN"];
         
         loop {
             // Check once per hour

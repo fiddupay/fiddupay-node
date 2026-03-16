@@ -30,6 +30,7 @@ const NETWORKS: NetworkConfig[] = [
   { name: 'Polygon', id: 'polygon', crypto_type: 'MATIC', native_currency: 'MATIC', description: 'Polygon network' },
   { name: 'Arbitrum', id: 'arbitrum', crypto_type: 'ARB', native_currency: 'ARB', description: 'Arbitrum One' },
   { name: 'Solana', id: 'solana', crypto_type: 'SOL', native_currency: 'SOL', description: 'Solana mainnet' },
+  { name: 'Bitcoin', id: 'bitcoin', crypto_type: 'BTC', native_currency: 'BTC', description: 'Bitcoin mainnet' },
 ];
 
 export default function WalletSetupWizard() {

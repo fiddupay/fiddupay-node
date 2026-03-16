@@ -31,6 +31,7 @@ impl CurrencyService {
             ("WSOL", "SOL", "Solana (SPL)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
             ("MATIC", "MATIC", "Polygon", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/matic.png"),
             ("BNB", "BNB", "Binance Smart Chain", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/bnb.png"),
+            ("BTC", "BTC", "Bitcoin", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/btc.png"),
         ]
     }
 
@@ -42,6 +43,7 @@ impl CurrencyService {
             "SOL" => vec!["SOL", "WSOL"],
             "MATIC" => vec!["MATIC"],
             "BNB" => vec!["BNB"],
+            "BTC" => vec!["BTC"],
             _ => vec![],
         }
     }

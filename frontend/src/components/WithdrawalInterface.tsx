@@ -41,6 +41,7 @@ const CRYPTO_OPTIONS = [
   { value: 'USDT_POLYGON', label: 'USDT (Polygon)', network: 'Polygon' },
   { value: 'ARB', label: 'ARB', network: 'Arbitrum' },
   { value: 'USDT_ARBITRUM', label: 'USDT (Arbitrum)', network: 'Arbitrum' },
+  { value: 'BTC', label: 'BTC', network: 'Bitcoin' },
 ];
 
 export default function WithdrawalInterface() {
