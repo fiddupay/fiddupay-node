@@ -227,6 +227,17 @@ await client.customers.updatePermissions('user_123', {
   withdrawal_limit: '500.0'
 });
 
+// Get customer deposit address
+const addrObj = await client.customers.getDepositAddress('user_123', 'SOL');
+console.log('Deposit address:', addrObj.address);
+
+// Pay merchant from sub-account balance
+await client.customers.payMerchant('user_123', {
+  crypto_type: 'SOL',
+  amount: '1.0',
+  description: 'Charge for service'
+});
+
 // Sweep funds to master wallet
 await client.customers.sweep('user_123', {
   crypto_type: 'USDT_ETH'
@@ -284,14 +295,15 @@ try {
 
 ## Supported Cryptocurrencies
 
-**5 Major Blockchain Networks:**
+**6 Major Blockchain Networks:**
+- **Bitcoin** - BTC (SegWit)
 - **Solana** - SOL + USDT (SPL)
 - **Ethereum** - ETH + USDT (ERC-20)
 - **Binance Smart Chain** - BNB + USDT (BEP-20)
 - **Polygon** - MATIC + USDT
 - **Arbitrum** - ARB + USDT
 
-**Total: 10 cryptocurrency options across 5 blockchains**
+**Total: 11 cryptocurrency options across 6 blockchains**
 
 ## Postman Documentation
 

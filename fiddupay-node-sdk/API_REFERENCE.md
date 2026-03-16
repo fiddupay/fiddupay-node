@@ -420,6 +420,35 @@ Content-Type: application/json
 }
 ```
 
+### List Customers
+```http
+GET /api/v1/merchants/customers?limit=50&offset=0
+Authorization: Bearer {api_key}
+```
+
+### Update Customer Status
+```http
+PATCH /api/v1/merchants/customers/{external_id}/status
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "status": "active" // active, suspended, inactive
+}
+```
+
+### Update Customer Permissions
+```http
+PATCH /api/v1/merchants/customers/{external_id}/permissions
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "can_withdraw": true,
+  "withdrawal_limit": "500.00"
+}
+```
+
 ### Provision Customer Wallets
 ```http
 POST /api/v1/merchants/customers/{external_id}/wallets
@@ -435,6 +464,31 @@ Content-Type: application/json
 ```http
 GET /api/v1/merchants/customers/{external_id}/balances
 Authorization: Bearer {api_key}
+```
+
+### Get Customer Deposit Address
+```http
+GET /api/v1/merchants/customers/{external_id}/deposit-address/{crypto_type}
+Authorization: Bearer {api_key}
+```
+
+### Get Customer Transactions
+```http
+GET /api/v1/merchants/customers/{external_id}/transactions
+Authorization: Bearer {api_key}
+```
+
+### Pay Merchant From Customer Wallet
+```http
+POST /api/v1/merchants/customers/{external_id}/pay-merchant
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "crypto_type": "SOL",
+  "amount": "1.0",
+  "reference_id": "order_123"
+}
 ```
 
 ### Withdraw from Customer Wallet
@@ -577,6 +631,13 @@ GET /api/v1/merchants/wallets/balances
 Authorization: Bearer {api_key}
 ```
 Returns actual on-chain balances and volume statistics for all configured merchant wallets.
+
+### Revoke/Remove Wallet Configuration
+```http
+DELETE /api/v1/merchants/wallets/{crypto_type}
+Authorization: Bearer {api_key}
+```
+Removes the specified wallet from the merchant profile.
 
 ### Configure Address-Only Wallet (Legacy)
 > [!WARNING]
@@ -735,6 +796,7 @@ Authorization: Bearer {api_key}
 
 ## Supported Cryptocurrencies
 
+- **Bitcoin**: BTC (SegWit/Bech32)
 - **Solana**: SOL, USDT (SPL)
 - **Ethereum**: ETH, USDT (ERC-20)
 - **Binance Smart Chain**: BNB, USDT (BEP-20)
