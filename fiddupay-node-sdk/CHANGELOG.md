@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.4.7] - 2026-03-17
+## [2.4.8] - 2026-03-17
 
 ### Added
 - **Bitcoin (BTC) Support**: Full validation and creating payments mechanics align support across native SegWit address configurations via `validCryptoTypes` allowed filters.
