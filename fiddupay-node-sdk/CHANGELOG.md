@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.7] - 2026-03-17
+
+### Added
+- **Bitcoin (BTC) Support**: Full validation and creating payments mechanics align support across native SegWit address configurations via `validCryptoTypes` allowed filters.
+- **Enhanced Documentation**: Updated `API_REFERENCE.md` and `README.md` specs mappings for `List Customers`, `Wallet Revocation`, etc.
+
 ## [2.4.4] - 2026-02-26
 
 ### 🚀 Developer Experience (DX) Simplification

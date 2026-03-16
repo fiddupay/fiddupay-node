@@ -235,7 +235,7 @@ console.log('Deposit address:', addrObj.address);
 await client.customers.payMerchant('user_123', {
   crypto_type: 'SOL',
   amount: '1.0',
-  description: 'Charge for service'
+  reference_id: 'order_123'
 });
 
 // Sweep funds to master wallet
