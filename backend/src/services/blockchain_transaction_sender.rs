@@ -537,7 +537,10 @@ impl BlockchainTransactionSender {
         
         let secp = bitcoin::key::Secp256k1::new();
         let pubkey = pk.public_key(&secp);
-        let from_address = Address::p2wpkh(&pubkey.into(), network);
+        
+        let compressed_public_key = bitcoin::CompressedPublicKey::try_from(pubkey)
+            .map_err(|_| ServiceError::Internal("Failed to create compressed public key".to_string()))?;
+        let from_address = Address::p2wpkh(&compressed_public_key, network);
 
         // 1. Fetch UTXOs
         let utxo_url = format!("{}/address/{}/utxo", api_url, from_address);
@@ -591,10 +594,13 @@ impl BlockchainTransactionSender {
         }
 
         // Outputs
-        let dest_addr = Address::from_str(to_address).map_err(|_| ServiceError::ValidationError("Invalid destination addr".to_string()))?;
+        use bitcoin::Amount;
+        let dest_addr = Address::from_str(to_address).map_err(|_| ServiceError::ValidationError("Invalid destination addr".to_string()))?
+            .require_network(network)
+            .map_err(|_| ServiceError::ValidationError("Address network mismatch".to_string()))?;
+            
         tx.output.push(TxOut {
-            value: target_sats,
-            // script_pubkey might need to be resolved via address network match check
+            value: Amount::from_sat(target_sats),
             script_pubkey: dest_addr.script_pubkey(),
         });
 
@@ -602,7 +608,7 @@ impl BlockchainTransactionSender {
         let change_sats = total_input_sats - target_sats - fee_sats;
         if change_sats > 546 { // Dust limit
             tx.output.push(TxOut {
-                value: change_sats,
+                value: Amount::from_sat(change_sats),
                 script_pubkey: from_address.script_pubkey(),
             });
         }
@@ -613,11 +619,11 @@ impl BlockchainTransactionSender {
 
         {
             let cache = SighashCache::new(&tx);
-            let pubkey_hash = pubkey.pubkey_hash();
+            let pubkey_hash = compressed_public_key.wpubkey_hash();
             let script_code = ScriptBuf::new_p2wpkh(&pubkey_hash);
 
             for (idx, (_, _, value)) in selected_utxos.iter().enumerate() {
-                let sighash = cache.segwit_v0_sighash(idx, &script_code, *value, sighash_all)
+                let sighash = cache.segwit_v0_sighash(idx, &script_code, Amount::from_sat(*value), sighash_all)
                     .map_err(|e| ServiceError::Internal(format!("Sighash error: {}", e)))?;
                 
                 let sig = secp.sign_ecdsa(&bitcoin::secp256k1::Message::from_slice(&sighash[..]).unwrap(), &pk.inner);
