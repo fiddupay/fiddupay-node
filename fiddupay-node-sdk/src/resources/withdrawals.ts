@@ -19,7 +19,7 @@ export class Withdrawals {
   /**
    * List withdrawals with optional filters
    */
-  async list(params?: ListWithdrawalsParams): Promise<PaginatedResponse<Withdrawal>> {
+  async list(params?: ListWithdrawalsParams): Promise<Withdrawal[]> {
     const queryParams = new URLSearchParams();
 
     if (params?.limit) queryParams.append('limit', params.limit.toString());
@@ -28,7 +28,7 @@ export class Withdrawals {
     if (params?.crypto_type) queryParams.append('crypto_type', params.crypto_type);
 
     const url = `/api/v1/merchants/withdrawals${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    return this.client.request<PaginatedResponse<Withdrawal>>('GET', url);
+    return this.client.request<Withdrawal[]>('GET', url);
   }
 
   /**

@@ -2,11 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.4.7] - 2026-03-17
+## [2.4.9] - 2026-03-17
 
 ### Added
 - **Bitcoin (BTC) Support**: Full validation and creating payments mechanics align support across native SegWit address configurations via `validCryptoTypes` allowed filters.
 - **Enhanced Documentation**: Updated `API_REFERENCE.md` and `README.md` specs mappings for `List Customers`, `Wallet Revocation`, etc.
+
+### Fixed
+- **Endpoint Response Wrapping**: Fixed singular/plural mapping mismatches in `merchants.ts`, `customers.ts`, `payments.ts`, and `withdrawals.ts` resolving multiple `.data` or `.customers` casting wrapper `undefined` bugs.
+- **Balance Type System**: Overhauled `Balance` in `types/index.ts` to accurately model the backend's array summary lists for multicurrency displays.
 
 ## [2.4.4] - 2026-02-26
 

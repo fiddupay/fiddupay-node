@@ -53,7 +53,13 @@ export class Customers {
     /**
      * List all registered customers for the merchant with pagination.
      */
-    async list(params?: ListCustomersParams, options?: RequestOptions): Promise<PaginatedResponse<MerchantCustomer>> {
+    async list(params?: ListCustomersParams, options?: RequestOptions): Promise<{
+        customers: MerchantCustomer[];
+        total: number;
+        has_more: boolean;
+        limit: number;
+        offset: number;
+    }> {
         const queryParams = new URLSearchParams();
 
         if (params?.limit) queryParams.append('limit', params.limit.toString());
@@ -62,7 +68,13 @@ export class Customers {
         const query = queryParams.toString();
         const path = query ? `/api/v1/merchants/customers?${query}` : '/api/v1/merchants/customers';
 
-        return this.client.get<PaginatedResponse<MerchantCustomer>>(path, options);
+        return this.client.get<{
+            customers: MerchantCustomer[];
+            total: number;
+            has_more: boolean;
+            limit: number;
+            offset: number;
+        }>(path, options);
     }
 
     /**
@@ -91,13 +103,25 @@ export class Customers {
     /**
      * Get transaction history for a specific customer.
      */
-    async getTransactions(externalId: string, params?: { limit?: number; offset?: number }, options?: RequestOptions): Promise<PaginatedResponse<CustomerTransaction>> {
+    async getTransactions(externalId: string, params?: { limit?: number; offset?: number }, options?: RequestOptions): Promise<{
+        transactions: CustomerTransaction[];
+        total: number;
+        limit: number;
+        offset: number;
+        external_id: string;
+    }> {
         const queryParams = new URLSearchParams();
         if (params?.limit) queryParams.append('limit', params.limit.toString());
         if (params?.offset) queryParams.append('offset', params.offset.toString());
         
         const path = `/api/v1/merchants/customers/${externalId}/transactions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-        return this.client.get<PaginatedResponse<CustomerTransaction>>(path, options);
+        return this.client.get<{
+            transactions: CustomerTransaction[];
+            total: number;
+            limit: number;
+            offset: number;
+            external_id: string;
+        }>(path, options);
     }
 
     /**
@@ -118,7 +142,8 @@ export class Customers {
      * Get the specific deposit address for a customer for a given cryptocurrency.
      */
     async getDepositAddress(externalId: string, cryptoType: string, options?: RequestOptions): Promise<{ address: string; crypto_type: string }> {
-        return this.client.get(`/api/v1/merchants/customers/${externalId}/deposit-address/${cryptoType}`, options);
+        const response = await this.client.get<{ deposit_address: string; crypto_type: string }>(`/api/v1/merchants/customers/${externalId}/deposit-address/${cryptoType}`, options);
+        return { address: response.deposit_address, crypto_type: response.crypto_type };
     }
 
     /**

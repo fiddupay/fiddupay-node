@@ -1,5 +1,5 @@
 import { HttpClient } from '../client';
-import { Merchant, MerchantProfile, RequestOptions, UnifiedSettingsRequest } from '../types';
+import { Balance, Merchant, MerchantProfile, RequestOptions, UnifiedSettingsRequest } from '../types';
 
 export class Merchants {
   constructor(private client: HttpClient) { }
@@ -11,7 +11,7 @@ export class Merchants {
     email: string;
     business_name: string;
     password: string;
-  }): Promise<{ user: any; api_key: string }> {
+  }): Promise<{ user: MerchantProfile; dashboard_token: string }> {
     return this.client.request('POST', '/api/v1/merchants/register', data);
   }
 
@@ -19,7 +19,8 @@ export class Merchants {
    * Get current merchant profile
    */
   async retrieve(options?: RequestOptions): Promise<MerchantProfile> {
-    return this.client.request<MerchantProfile>('GET', '/api/v1/merchants/profile');
+    const response = await this.client.request<{ user: MerchantProfile }>('GET', '/api/v1/merchants/profile');
+    return response.user;
   }
 
   /**
@@ -84,19 +85,19 @@ export class Merchants {
   async sendTestWebhook(options?: RequestOptions): Promise<{ status: string; message: string }> {
     return this.client.request('POST', '/api/v1/merchants/webhook/test');
   }
+  
+  /**
+   * Get IP whitelist for the merchant
+   */
+  async getIpWhitelist(options?: RequestOptions): Promise<{ ip_whitelist: string[] }> {
+    return this.client.request('GET', '/api/v1/merchants/ip-whitelist');
+  }
 
   /**
    * Get merchant balance
    */
-  async getBalance(options?: RequestOptions): Promise<{
-    balances: Record<string, {
-      available: string;
-      pending: string;
-      total: string;
-    }>;
-    total_usd: string;
-  }> {
-    return this.client.request('GET', '/api/v1/merchants/balance');
+  async getBalance(options?: RequestOptions): Promise<Balance> {
+    return this.client.request<Balance>('GET', '/api/v1/merchants/balance');
   }
 
   /**

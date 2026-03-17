@@ -19,7 +19,7 @@ export class Wallets {
   }
 
   /**
-   * Unified wallet setup (address, generate, or import)
+   * Unified wallet setup (address or generate)
    */
   async setup(data: {
     crypto_type: string;

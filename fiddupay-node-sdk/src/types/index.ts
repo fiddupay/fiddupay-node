@@ -140,10 +140,16 @@ export interface ListPaymentsRequest {
   crypto_type?: CryptoType;
 }
 
+export interface PaginationInfo {
+  page: number;
+  page_size: number;
+  total_pages: number;
+  total_count: number;
+}
+
 export interface ListPaymentsResponse {
-  payments: Payment[];
-  total: number;
-  has_more: boolean;
+  data: Payment[];
+  pagination: PaginationInfo;
 }
 
 export interface CreateRefundRequest {
@@ -185,6 +191,7 @@ export interface UnifiedSettingsRequest {
   ip_whitelist?: string[];
   sandbox_mode?: boolean;
   rotate_webhook_secret?: boolean;
+  webhook_signing_secret?: string; // Returned from GET /settings
 }
 
 export interface Merchant {
@@ -417,13 +424,21 @@ export interface ListSecurityAlertsParams {
 }
 
 // Balance Types
-export interface Balance {
-  balances: Record<CryptoType, {
-    available: string;
-    pending: string;
-    total: string;
-  }>;
+export interface BalanceEntry {
+  crypto_type: CryptoType;
+  total: string;
+  available: string;
+  reserved: string;
   total_usd: string;
+  available_usd: string;
+  reserved_usd: string;
+}
+
+export interface Balance {
+  total_usd: string;
+  available_usd: string;
+  reserved_usd: string;
+  balances: BalanceEntry[];
 }
 
 export interface BalanceHistory {
