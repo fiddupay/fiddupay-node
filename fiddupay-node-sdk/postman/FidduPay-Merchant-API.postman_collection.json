@@ -1225,13 +1225,27 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{apiKey}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/merchants/address-only/create",
-              "host": [ "{{baseUrl}}" ],
-              "path": [ "api", "v1", "merchants", "address-only", "create" ]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "address-only",
+                "create"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -1243,12 +1257,30 @@
           "name": "Get Address-Only Status",
           "request": {
             "method": "GET",
-            "header": [ { "key": "Authorization", "value": "Bearer {{apiKey}}" } ],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/merchants/address-only/status?payment_id=addr_123",
-              "host": [ "{{baseUrl}}" ],
-              "path": [ "api", "v1", "merchants", "address-only", "status" ],
-              "query": [ { "key": "payment_id", "value": "addr_123" } ]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "address-only",
+                "status"
+              ],
+              "query": [
+                {
+                  "key": "payment_id",
+                  "value": "addr_123"
+                }
+              ]
             }
           }
         },
@@ -1256,11 +1288,24 @@
           "name": "List Supported Currencies",
           "request": {
             "method": "GET",
-            "header": [ { "key": "Authorization", "value": "Bearer {{apiKey}}" } ],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/merchants/address-only/currencies",
-              "host": [ "{{baseUrl}}" ],
-              "path": [ "api", "v1", "merchants", "address-only", "currencies" ]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "address-only",
+                "currencies"
+              ]
             }
           }
         }
