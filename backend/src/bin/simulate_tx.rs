@@ -151,7 +151,7 @@ async fn simulate_solana(config: &Config, pool: &PgPool, tx_hash: &str) -> Resul
     let monitor = SolanaMonitor::new(config, None, None);
     println!("\nFetching details via SolanaMonitor with config for signature lookup...");
     
-    let tx = monitor.get_transaction_details(tx_hash).await?;
+    let tx = monitor.get_transaction_details(tx_hash).await.map_err(|e| format!("{}", e))?;
     
     println!("\n[Solana Transaction Details]");
     println!("From:       {}", tx.from_address);
