@@ -11,7 +11,8 @@ import {
     RequestOptions,
     CustomerTransaction,
     CustomerStatusRequest,
-    CustomerPermissionsRequest
+    CustomerPermissionsRequest,
+    CustomerWalletsResponse
 } from '../types';
 
 /**
@@ -35,12 +36,15 @@ export class Customers {
      * Provision designated wallets for a customer.
      * You can request "evm" (covers ETH, BSC, Polygon, Arb) and/or "solana".
      */
-    async createWallets(externalId: string, data: ProvisionWalletRequest, options?: RequestOptions): Promise<{
-        external_id: string;
-        wallets: Array<{ crypto_type: string; network: string; address: string; created_at: string }>;
-        message: string;
-    }> {
+    async createWallets(externalId: string, data: ProvisionWalletRequest, options?: RequestOptions): Promise<CustomerWalletsResponse & { message: string }> {
         return this.client.post(`/api/v1/merchants/customers/${externalId}/wallets`, data, options);
+    }
+
+    /**
+     * Retrieve the provisioned designated wallets for a customer.
+     */
+    async getWallets(externalId: string, options?: RequestOptions): Promise<CustomerWalletsResponse> {
+        return this.client.get(`/api/v1/merchants/customers/${externalId}/wallets`, options);
     }
 
     /**

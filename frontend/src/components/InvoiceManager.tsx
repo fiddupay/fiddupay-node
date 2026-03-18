@@ -44,9 +44,13 @@ export const InvoiceManager: React.FC = () => {
     setLoading(true);
     try {
       await merchantAPI.createInvoice({
-        amount_usd: formData.amount_usd,
-        description: formData.description,
-        due_date: formData.due_date
+        items: [{
+          description: formData.description,
+          quantity: 1,
+          unit_price: formData.amount_usd,
+          amount: formData.amount_usd
+        }],
+        due_date: formData.due_date ? formData.due_date.split('T')[0] : undefined
       });
       setFormData({ amount_usd: '', description: '', due_date: '' });
       setShowCreateForm(false);

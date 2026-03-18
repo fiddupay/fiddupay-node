@@ -16,7 +16,7 @@ export class HttpClient {
     this.apiKey = config.apiKey;
     this.maxRetries = config.maxRetries || 3;
 
-    const baseURL = config.baseURL || this.getBaseURL(config.environment || 'sandbox');
+    const baseURL = config.baseURL || this.getBaseURL();
 
     this.client = axios.create({
       baseURL,
@@ -33,10 +33,8 @@ export class HttpClient {
     this.setupInterceptors();
   }
 
-  private getBaseURL(environment: string): string {
-    return environment === 'production'
-      ? 'https://api.fiddupay.com/v1'
-      : 'https://api-sandbox.fiddupay.com/v1';
+  private getBaseURL(): string {
+    return 'https://api.fiddupay.com';
   }
 
   private setupInterceptors(): void {
@@ -107,7 +105,7 @@ export class HttpClient {
     }
 
     // Don't add Authorization header for registration endpoint or registration key
-    if (path !== '/api/v1/merchant/register' && this.apiKey !== 'registration_key') {
+    if (path !== '/api/v1/merchants/register' && path !== '/api/v1/merchants/login' && this.apiKey !== 'registration_key') {
       config.headers = {
         'Authorization': `Bearer ${this.apiKey}`
       };

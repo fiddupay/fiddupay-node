@@ -5,26 +5,28 @@ export type CryptoType = 'SOL' | 'ETH' | 'BNB' | 'MATIC' | 'ARB' | 'USDT_ETH' | 
 export type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'REFUNDED' | 'SELECTION_REQUIRED';
 
 export type WebhookEventType =
-  | 'payment.detected'
   | 'payment.confirmed'
-  | 'payment.partially_paid'
   | 'payment.expired'
-  | 'payment.failed'
-  | 'payment.captured'
-  | 'refund.created'
-  | 'refund.completed'
-  | 'refund.failed'
-  | 'withdrawal.created'
-  | 'withdrawal.processed'
-  | 'wallet.low_balance';
+  | 'refund.completed';
 
 export interface FidduPayConfig {
   apiKey: string;
-  environment?: 'sandbox' | 'production';
   apiVersion?: string;
   timeout?: number;
   maxRetries?: number;
   baseURL?: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+  two_factor_code?: string;
+  remember_me?: boolean;
+}
+
+export interface LoginResponse {
+  user: MerchantProfile;
+  dashboard_token: string;
 }
 
 export interface MerchantProfile {
@@ -93,9 +95,16 @@ export interface Payment {
   network?: string;
   payment_link?: string;
   qr_code_data?: string;
+  fee_percentage?: string;
   fee_amount?: string;
   fee_amount_usd?: string;
   webhook_url?: string;
+  partial_payments_enabled?: boolean;
+  total_paid?: string;
+  remaining_balance?: string;
+  is_non_custodial?: boolean;
+  block_number?: number;
+  sandbox_mode?: boolean;
   partial_payments?: Record<string, any>;
 }
 
@@ -117,6 +126,8 @@ export interface AddressOnlyPayment {
   confirmed_at?: string;
   description?: string;
   metadata?: Record<string, any>;
+  forwarding_amount?: string;
+  merchant_destination_address?: string;
 }
 
 export interface AddressOnlyStats {
@@ -184,7 +195,7 @@ export interface AnalyticsQuery {
 export interface UnifiedSettingsRequest {
   webhook_url?: string;
   redirect_url?: string;
-  webhook_format?: 'json' | 'form';
+  webhook_format?: 'json' | 'discord' | 'slack';
   settlement_mode?: 'forwarding' | 'managed';
   customer_pays_fee?: boolean;
   fee_percentage?: number;
@@ -330,7 +341,7 @@ export interface CreateWithdrawalRequest {
 }
 
 export interface ProcessWithdrawalRequest {
-  encryption_password?: string;
+  encryption_password: string;
 }
 
 export interface Withdrawal {
@@ -503,6 +514,7 @@ export interface CreateInvoiceRequest {
   customer_name?: string;
   items: InvoiceItem[];
   tax?: string;
+  currency?: string;
   due_date?: string;
   notes?: string;
 }
@@ -517,6 +529,7 @@ export interface Invoice {
   subtotal: string;
   tax: string;
   total: string;
+  currency: string;
   payment_id?: string;
   due_date?: string;
   notes?: string;
@@ -555,8 +568,14 @@ export interface MerchantCustomer {
   merchant_id: number;
   external_id: string;
   email?: string;
+  first_name?: string;
+  last_name?: string;
   metadata?: any;
   is_active: boolean;
+  status: string;
+  status_reason?: string;
+  can_withdraw: boolean;
+  withdrawal_limit?: string;
   created_at: string;
   updated_at: string;
 }
@@ -564,11 +583,12 @@ export interface MerchantCustomer {
 export interface CreateCustomerRequest {
   external_id: string;
   email?: string;
+  first_name?: string;
+  last_name?: string;
   metadata?: any;
 }
 
 export interface ProvisionWalletRequest {
-  external_id: string;
   networks: ('evm' | 'solana')[];
 }
 
@@ -588,6 +608,19 @@ export interface CustomerBalanceResponse {
   balances: CustomerBalance[];
 }
 
+export interface CustomerWallet {
+  crypto_type: string;
+  network: string;
+  address: string;
+  is_active: boolean;
+  created_at?: string;
+}
+
+export interface CustomerWalletsResponse {
+  external_id: string;
+  wallets: CustomerWallet[];
+}
+
 export interface CustomerTransaction {
   id: number;
   customer_id: number;
@@ -601,7 +634,7 @@ export interface CustomerTransaction {
 }
 
 export interface CustomerStatusRequest {
-  status: 'active' | 'suspended' | 'inactive';
+  status: 'active' | 'flagged' | 'suspended' | 'blocked';
   reason?: string;
 }
 

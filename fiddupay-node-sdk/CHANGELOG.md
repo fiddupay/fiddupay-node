@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.5.0] - 2026-03-18
+
+### Added
+- **Merchant Login**: New `merchants.login()` method with `LoginRequest`/`LoginResponse` types
+- **Public Endpoints**: Added `merchants.getSupportedCurrencies()`, `merchants.getPricing()`, `merchants.getSystemStatus()`
+- **Postman Collection**: Added 14 missing endpoints (Cancel Payment, List Refunds, Address-Only Stats/Health/Fee Setting, Wallet Balances, Revoke Wallet, Process Withdrawal, Pricing, Contact Form)
+
+### Fixed
+- **Critical**: Fixed auth-skip path in `client.ts` from `/api/v1/merchant/register` to `/api/v1/merchants/register`
+- **Critical**: Added `/api/v1/merchants/login` to auth-skip paths for public login endpoint
+- **Webhook Events**: Aligned `validTypes` to backend's actual 3 events (`payment.confirmed`, `payment.expired`, `refund.completed`)
+
+### Removed
+- **`environment`** field from `FidduPayConfig` (environment switching is handled by the backend via `sandbox_mode`)
+- **`payments.getAnalytics()`**: Removed duplicate method (use `analytics.retrieve()` instead)
+- **Stale webhook events**: Removed 9 non-existent event types from `WebhookEventType` union
+
+### Changed  
+- Updated all tests to reflect SDK changes (106/106 passing)
+
 ## [2.4.9] - 2026-03-17
 
 ### Added

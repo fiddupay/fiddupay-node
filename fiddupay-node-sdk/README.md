@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.4.9
+# FidduPay Node.js SDK v2.5.0
 
-[![version](https://img.shields.io/badge/version-v2.4.9-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.5.0-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -228,9 +228,18 @@ const refunds = await client.refunds.list({
 ```typescript
 // Create an invoice
 const invoice = await client.invoices.create({
-  amount_usd: '150.00',
-  description: 'Consulting services',
-  customer_email: 'client@example.com'
+  customer_email: 'client@example.com',
+  customer_name: 'John Doe',
+  items: [
+    {
+      description: 'Consulting services',
+      quantity: 1,
+      unit_price: '150.00',
+      amount: '150.00'
+    }
+  ],
+  tax: '0.00',
+  notes: 'Payment due within 30 days'
 });
 
 // List invoices
@@ -271,7 +280,6 @@ const customer = await client.customers.register({
 
 // Provision wallets
 await client.customers.createWallets('user_123', {
-  external_id: 'user_123',
   networks: ['evm', 'solana']
 });
 

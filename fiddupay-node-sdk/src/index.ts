@@ -67,27 +67,9 @@ export class FidduPayClient {
       return; // Skip validation for registration
     }
 
-    // Updated API key validation - must start with sk_ for sandbox or live_ for production
+    // Validate API key format
     if (!config.apiKey.startsWith('sk_') && !config.apiKey.startsWith('live_')) {
       throw new FidduPayValidationError('Invalid API key format. API key must start with "sk_" (sandbox) or "live_" (production)');
-    }
-
-    // Auto-detect environment from API key if not specified
-    if (!config.environment) {
-      config.environment = config.apiKey.startsWith('sk_') ? 'sandbox' : 'production';
-    }
-
-    if (config.environment && !['sandbox', 'production'].includes(config.environment)) {
-      throw new FidduPayValidationError('Environment must be either "sandbox" or "production"');
-    }
-
-    // Validate API key matches environment
-    if (config.environment === 'sandbox' && !config.apiKey.startsWith('sk_')) {
-      throw new FidduPayValidationError('Sandbox environment requires API key starting with "sk_"');
-    }
-
-    if (config.environment === 'production' && !config.apiKey.startsWith('live_')) {
-      throw new FidduPayValidationError('Production environment requires API key starting with "live_"');
     }
 
     if (config.timeout && (config.timeout < 1000 || config.timeout > 60000)) {

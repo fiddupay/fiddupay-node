@@ -42,7 +42,7 @@ export const merchantAPI = {
   },
 
   // Invoice Management
-  createInvoice: (data: { amount_usd: string; description: string; due_date: string }) =>
+  createInvoice: (data: { customer_email?: string; customer_name?: string; items: any[]; tax?: string; notes?: string; due_date?: string; currency?: string }) =>
     api.post('/api/v1/merchants/invoices', data),
 
   getInvoices: (params?: { limit?: number; offset?: number }) => {
@@ -61,6 +61,8 @@ export const merchantAPI = {
   getMerchantSettings: () => api.get('/api/v1/merchants/settings'),
   updateSettings: (data: {
     webhook_url?: string;
+    webhook_format?: string;
+    redirect_url?: string;
     settlement_mode?: string;
     customer_pays_fee?: boolean;
     fee_percentage?: number;
@@ -70,7 +72,7 @@ export const merchantAPI = {
   }) => api.patch('/api/v1/merchants/settings', data),
   sendTestWebhook: () => api.post('/api/v1/merchants/webhook/test'),
   getReadinessStatus: () => api.get('/api/v1/merchants/status'),
-  getAuditLogs: (params?: { limit?: number; offset?: number }) => {
+  getAuditLogs: (params?: { limit?: number; from?: string; to?: string; action_type?: string }) => {
     const query = params ? `?${new URLSearchParams(cleanParams(params)).toString()}` : '';
     return api.get(`/api/v1/merchants/audit-logs${query}`);
   },
@@ -78,7 +80,6 @@ export const merchantAPI = {
 
 export const paymentAPI = {
   create: (data: any) => api.post('/api/v1/merchants/payments', data),
-  getStatus: (paymentId: string) => api.get(`/api/v1/merchants/payments/${paymentId}/status`),
   getHistory: (params?: {
     status?: string;
     crypto_type?: string;
@@ -117,6 +118,8 @@ export const refundAPI = {
 
 export const withdrawalAPI = {
   create: (data: { crypto_type: string; amount: string | number; to_address?: string; destination_address?: string; description?: string }) => api.post('/api/v1/merchants/withdrawals', data),
+  get: (id: string) => api.get(`/api/v1/merchants/withdrawals/${id}`),
+  cancel: (id: string) => api.post(`/api/v1/merchants/withdrawals/${id}/cancel`),
   process: (id: string, password: string) => api.post(`/api/v1/merchants/withdrawals/${id}/process`, { encryption_password: password }),
   getHistory: (params?: any) => api.get('/api/v1/merchants/withdrawals', { params }),
   validateGas: (cryptoType: string, amount: number) => api.get(`/api/v1/merchants/wallets/gas-check?crypto_type=${cryptoType}&amount=${amount}`),
@@ -125,9 +128,8 @@ export const withdrawalAPI = {
 export const walletAPI = {
   setup: (data: {
     crypto_type: string;
-    mode: 'address' | 'generate' | 'import';
+    mode: 'address' | 'generate';
     address?: string;
-    private_key?: string;
     is_active?: boolean;
     enable_all_evm?: boolean;
   }) => api.post('/api/v1/merchants/wallets', data),
@@ -154,7 +156,7 @@ export const securityAPI = {
 
 export const sandboxAPI = {
   enable: () => api.post('/api/v1/merchants/sandbox/enable'),
-  simulate: (paymentId: string, data: { status: string; transaction_hash?: string; from_address?: string }) =>
+  simulate: (paymentId: string, data: { success: boolean; transaction_hash?: string; from_address?: string }) =>
     api.post(`/api/v1/merchants/sandbox/payments/${paymentId}/simulate`, data),
 }
 
@@ -162,6 +164,7 @@ export const customerAPI = {
   list: (params?: any) => api.get('/api/v1/merchants/customers', { params }),
   create: (data: { external_id: string; email?: string; first_name?: string; last_name?: string }) => api.post('/api/v1/merchants/customers', data),
   getWallets: (externalId: string) => api.get(`/api/v1/merchants/customers/${externalId}/wallets`),
+  createWallets: (externalId: string, data: { networks: string[] }) => api.post(`/api/v1/merchants/customers/${externalId}/wallets`, data),
   getBalances: (externalId: string) => api.get(`/api/v1/merchants/customers/${externalId}/balances`),
   getDepositAddress: (externalId: string, cryptoType: string) => api.get(`/api/v1/merchants/customers/${externalId}/deposit-address/${cryptoType}`),
   getTransactions: (externalId: string, params?: any) => api.get(`/api/v1/merchants/customers/${externalId}/transactions`, { params }),

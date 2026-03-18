@@ -7,8 +7,7 @@ describe('FidduPay SDK - Core Functionality', () => {
 
   beforeEach(() => {
     client = new FidduPay({
-      apiKey: 'sk_sandbox_1234567890',
-      environment: 'sandbox'
+      apiKey: 'sk_sandbox_1234567890'
     });
   });
 
@@ -34,13 +33,12 @@ describe('FidduPay SDK - Core Functionality', () => {
 
     it('should support all crypto types', () => {
       const fiddupay = new FidduPay({
-        apiKey: 'sk_sandbox_1234567890abcdef',
-        environment: 'sandbox'
+        apiKey: 'sk_sandbox_1234567890abcdef'
       });
 
       const allCryptoTypes: CryptoType[] = [
         'SOL', 'ETH', 'BNB', 'MATIC', 'ARB',
-        'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'
+        'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL', 'BTC'
       ];
 
       allCryptoTypes.forEach(token => {
@@ -73,25 +71,10 @@ describe('FidduPay SDK - Core Functionality', () => {
       }).toThrow('Invalid API key format');
     });
 
-    it('should throw error for invalid environment', () => {
-      expect(() => {
-        new FidduPay({
-          apiKey: 'sk_sandbox_1234567890',
-          environment: 'invalid' as any
-        });
-      }).toThrow(FidduPayValidationError);
-      expect(() => {
-        new FidduPay({
-          apiKey: 'sk_sandbox_1234567890',
-          environment: 'invalid' as any
-        });
-      }).toThrow('Environment must be either "sandbox" or "production"');
-    });
 
     it('should create instance with all configuration options', () => {
       const fiddupay = new FidduPay({
         apiKey: 'sk_sandbox_full_config',
-        environment: 'sandbox',
         timeout: 15000,
         maxRetries: 5,
         baseURL: 'https://custom.api.com/v1'
@@ -109,34 +92,103 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(client.analytics).toBeDefined();
       expect(client.webhooks).toBeDefined();
       expect(client.wallets).toBeDefined();
-      expect(client.withdrawals.process).toBeDefined();
-      expect(client.withdrawals.validateGas).toBeDefined();
-      expect(client.withdrawals.getGasEstimates).toBeDefined();
-      expect(client.withdrawals.checkCapability).toBeDefined();
+      expect(client.withdrawals).toBeDefined();
+      expect(client.invoices).toBeDefined();
+      expect(client.customers).toBeDefined();
+      expect(client.balances).toBeDefined();
+      expect(client.auditLogs).toBeDefined();
+      expect(client.sandbox).toBeDefined();
+      expect(client.contact).toBeDefined();
+      expect(client.transactions).toBeDefined();
     });
 
     it('should have payment methods', () => {
       expect(client.payments.create).toBeDefined();
       expect(client.payments.retrieve).toBeDefined();
+      expect(client.payments.verify).toBeDefined();
       expect(client.payments.list).toBeDefined();
       expect(client.payments.cancel).toBeDefined();
+      expect(client.payments.finalizeSelection).toBeDefined();
       expect(client.payments.createAddressOnly).toBeDefined();
       expect(client.payments.retrieveAddressOnly).toBeDefined();
-      expect(client.payments.getAnalytics).toBeDefined();
+      expect(client.payments.listAddressOnlyCurrencies).toBeDefined();
+      expect(client.payments.getAddressOnlyStats).toBeDefined();
+      expect(client.payments.getAddressOnlyHealth).toBeDefined();
+      expect(client.payments.updateFeeSetting).toBeDefined();
+      expect(client.payments.getFeeSetting).toBeDefined();
     });
 
     it('should have merchant methods', () => {
-      expect(client.merchants.getBalance).toBeDefined();
       expect(client.merchants.register).toBeDefined();
       expect(client.merchants.retrieve).toBeDefined();
+      expect(client.merchants.getStatus).toBeDefined();
       expect(client.merchants.switchEnvironment).toBeDefined();
       expect(client.merchants.generateApiKey).toBeDefined();
       expect(client.merchants.rotateApiKey).toBeDefined();
+      expect(client.merchants.getFeeSetting).toBeDefined();
       expect(client.merchants.updateSettings).toBeDefined();
       expect(client.merchants.getSettings).toBeDefined();
       expect(client.merchants.sendTestWebhook).toBeDefined();
+      expect(client.merchants.getIpWhitelist).toBeDefined();
+      expect(client.merchants.getBalance).toBeDefined();
+      expect(client.merchants.getAuditLogs).toBeDefined();
       expect(client.merchants.getBalanceHistory).toBeDefined();
-      expect(client.merchants.getFeeSetting).toBeDefined();
+      expect(client.merchants.login).toBeDefined();
+      expect(client.merchants.getSupportedCurrencies).toBeDefined();
+      expect(client.merchants.getPricing).toBeDefined();
+      expect(client.merchants.getSystemStatus).toBeDefined();
+    });
+
+    it('should have customer methods', () => {
+      expect(client.customers.register).toBeDefined();
+      expect(client.customers.createWallets).toBeDefined();
+      expect(client.customers.getWallets).toBeDefined();
+      expect(client.customers.getBalances).toBeDefined();
+      expect(client.customers.list).toBeDefined();
+      expect(client.customers.withdraw).toBeDefined();
+      expect(client.customers.sweep).toBeDefined();
+      expect(client.customers.deactivate).toBeDefined();
+      expect(client.customers.getTransactions).toBeDefined();
+      expect(client.customers.updateStatus).toBeDefined();
+      expect(client.customers.updatePermissions).toBeDefined();
+      expect(client.customers.getDepositAddress).toBeDefined();
+      expect(client.customers.payMerchant).toBeDefined();
+    });
+
+    it('should have invoice methods', () => {
+      expect(client.invoices.create).toBeDefined();
+      expect(client.invoices.retrieve).toBeDefined();
+      expect(client.invoices.list).toBeDefined();
+    });
+
+    it('should have refund methods', () => {
+      expect(client.refunds.create).toBeDefined();
+      expect(client.refunds.retrieve).toBeDefined();
+      expect(client.refunds.list).toBeDefined();
+      expect(client.refunds.complete).toBeDefined();
+    });
+
+    it('should have wallet methods', () => {
+      expect(client.wallets.setup).toBeDefined();
+      expect(client.wallets.generate).toBeDefined();
+      expect(client.wallets.configureAddress).toBeDefined();
+      expect(client.wallets.getConfigurations).toBeDefined();
+      expect(client.wallets.getBalances).toBeDefined();
+      expect(client.wallets.getGasEstimates).toBeDefined();
+      expect(client.wallets.checkGasRequirements).toBeDefined();
+      expect(client.wallets.checkWithdrawalCapability).toBeDefined();
+      expect(client.wallets.revoke).toBeDefined();
+    });
+
+    it('should have withdrawal methods', () => {
+      expect(client.withdrawals.create).toBeDefined();
+      expect(client.withdrawals.list).toBeDefined();
+      expect(client.withdrawals.get).toBeDefined();
+      expect(client.withdrawals.cancel).toBeDefined();
+      expect(client.withdrawals.process).toBeDefined();
+      expect(client.withdrawals.validateGas).toBeDefined();
+      expect(client.withdrawals.getGasEstimates).toBeDefined();
+      expect(client.withdrawals.checkCapability).toBeDefined();
     });
 
     it('should have security methods', () => {
@@ -164,6 +216,14 @@ describe('FidduPay SDK - Core Functionality', () => {
     it('should have sandbox methods', () => {
       expect(client.sandbox.simulatePayment).toBeDefined();
     });
+
+    it('should have contact methods', () => {
+      expect(client.contact.submit).toBeDefined();
+    });
+
+    it('should have transaction methods', () => {
+      expect(client.transactions.list).toBeDefined();
+    });
   });
 
   it('should validate sandbox simulation request', () => {
@@ -190,29 +250,21 @@ describe('FidduPay SDK - Core Functionality', () => {
         const request = {
           crypto_type: 'ETH',
           merchant_address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-          requested_amount: '0.05',
-          customer_pays_fee: true
+          requested_amount: '0.05'
         };
         expect(request.crypto_type).toBe('ETH');
         expect(request.requested_amount).toBe('0.05');
-        expect(request.customer_pays_fee).toBe(true);
       }).not.toThrow();
     });
 
-    it('should support fee toggle in address-only payments', () => {
-      const customerPaysRequest = {
-        crypto_type: 'USDT_ETH',
-        merchant_address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-        requested_amount: '100.00',
-        customer_pays_fee: true
-      };
+    it('should support fee toggle via updateFeeSetting', () => {
+      // Fee toggle is a separate operation via payments.updateFeeSetting,
+      // not a field on CreateAddressOnlyPaymentRequest
+      expect(client.payments.updateFeeSetting).toBeDefined();
+      expect(client.payments.getFeeSetting).toBeDefined();
 
-      const merchantPaysRequest = {
-        crypto_type: 'USDT_ETH',
-        merchant_address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-        requested_amount: '100.00',
-        customer_pays_fee: false
-      };
+      const customerPaysRequest = { customer_pays_fee: true };
+      const merchantPaysRequest = { customer_pays_fee: false };
 
       expect(customerPaysRequest.customer_pays_fee).toBe(true);
       expect(merchantPaysRequest.customer_pays_fee).toBe(false);
@@ -227,14 +279,27 @@ describe('FidduPay SDK - Core Functionality', () => {
       }).not.toThrow();
     });
 
-    it('should support evm auto-generation flag', () => {
+    it('should support wallet generation mode', () => {
       expect(() => {
         const request = {
           crypto_type: 'ETH',
-          mode: 'generate' as const,
-          enable_all_evm: true
+          mode: 'generate' as const
         };
-        expect(request.enable_all_evm).toBe(true);
+        expect(request.mode).toBe('generate');
+        expect(request.crypto_type).toBe('ETH');
+      }).not.toThrow();
+    });
+
+    it('should support wallet address mode', () => {
+      expect(() => {
+        const request = {
+          crypto_type: 'ETH',
+          mode: 'address' as const,
+          address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+          is_active: true
+        };
+        expect(request.mode).toBe('address');
+        expect(request.address).toBeDefined();
       }).not.toThrow();
     });
   });
@@ -255,7 +320,7 @@ describe('FidduPay SDK - Core Functionality', () => {
     it('should support all crypto types', () => {
       const cryptoTypes: CryptoType[] = [
         'SOL', 'ETH', 'BNB', 'MATIC', 'ARB',
-        'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'
+        'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL', 'BTC'
       ];
 
       cryptoTypes.forEach(crypto => {
@@ -311,6 +376,57 @@ describe('FidduPay SDK - Core Functionality', () => {
     });
   });
 
+  describe('Invoice Operations', () => {
+    it('should support itemized invoice creation', () => {
+      expect(() => {
+        const request = {
+          customer_email: 'customer@example.com',
+          customer_name: 'John Doe',
+          currency: 'USD',
+          items: [
+            {
+              description: 'Service A',
+              quantity: 1,
+              unit_price: '100.00',
+              amount: '100.00'
+            },
+            {
+              description: 'Service B',
+              quantity: 2,
+              unit_price: '25.00',
+              amount: '50.00'
+            }
+          ]
+        };
+        expect(request.items).toHaveLength(2);
+        expect(request.items[0].description).toBe('Service A');
+      }).not.toThrow();
+    });
+  });
+
+  describe('Customer Operations', () => {
+    it('should support customer registration with names', () => {
+      expect(() => {
+        const request = {
+          email: 'customer@example.com',
+          first_name: 'John',
+          last_name: 'Doe'
+        };
+        expect(request.first_name).toBe('John');
+      }).not.toThrow();
+    });
+
+    it('should support updating customer permissions', () => {
+      expect(() => {
+        const request = {
+          can_withdraw: true,
+          withdrawal_limit: '1000.00'
+        };
+        expect(request.withdrawal_limit).toBe('1000.00');
+      }).not.toThrow();
+    });
+  });
+
   describe('SDK Exports and Compatibility', () => {
     it('should export FidduPay as default', () => {
       expect(FidduPay).toBeDefined();
@@ -362,8 +478,7 @@ describe('FidduPay SDK - Core Functionality', () => {
 
     it('should have different instances for different clients', () => {
       const client2 = new FidduPay({
-        apiKey: 'sk_sandbox_different_client',
-        environment: 'sandbox'
+        apiKey: 'sk_sandbox_different_client'
       });
 
       expect(client.payments).not.toBe(client2.payments);

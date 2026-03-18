@@ -25,7 +25,7 @@ export class Wallets {
     crypto_type: string;
     mode: 'address' | 'generate';
     address?: string;
-    enable_all_evm?: boolean;
+    is_active?: boolean;
   }, options?: RequestOptions): Promise<any> {
     return this.client.request('POST', '/api/v1/merchants/wallets', data);
   }
@@ -35,7 +35,7 @@ export class Wallets {
    * @deprecated Use setup with mode 'generate' instead
    */
   async generate(data: { crypto_type: string }, options?: RequestOptions): Promise<any> {
-    return this.client.request('POST', '/api/v1/merchants/wallets/generate', data);
+    return this.setup({ crypto_type: data.crypto_type, mode: 'generate' }, options);
   }
 
 
@@ -46,8 +46,9 @@ export class Wallets {
   async configureAddress(data: {
     crypto_type: string;
     address: string;
+    is_active?: boolean;
   }, options?: RequestOptions): Promise<any> {
-    return this.client.request('POST', '/api/v1/merchants/wallets/configure-address', data);
+    return this.setup({ crypto_type: data.crypto_type, mode: 'address', address: data.address, is_active: data.is_active }, options);
   }
 
 
@@ -61,23 +62,15 @@ export class Wallets {
   /**
    * Check gas requirements (alias for gasCheck with parameters)
    */
-  async checkGasRequirements(params?: {
-    crypto_type?: string;
-    amount?: number;
+  async checkGasRequirements(params: {
+    crypto_type: string;
+    amount: number;
   }, options?: RequestOptions): Promise<any> {
     const queryParams = new URLSearchParams();
-    if (params?.crypto_type) queryParams.append('crypto_type', params.crypto_type);
-    if (params?.amount) queryParams.append('amount', params.amount.toString());
+    queryParams.append('crypto_type', params.crypto_type);
+    queryParams.append('amount', params.amount.toString());
 
-    const url = `/api/v1/merchants/wallets/gas-check${queryParams.toString() ? `?${queryParams.toString()}` : '?crypto_type=ETH&amount=1.0'}`;
-    return this.client.request('GET', url);
-  }
-
-  /**
-   * Check wallet gas status
-   */
-  async gasCheck(options?: RequestOptions): Promise<any> {
-    return this.client.request('GET', '/api/v1/merchants/wallets/gas-check');
+    return this.client.request('GET', `/api/v1/merchants/wallets/gas-check?${queryParams.toString()}`);
   }
 
   /**

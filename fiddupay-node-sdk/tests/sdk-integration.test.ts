@@ -7,7 +7,6 @@ describe('FidduPay SDK - Integration Test Suite', () => {
   beforeAll(() => {
     client = new FidduPay({
       apiKey: 'sk_sandbox_integration_key',
-      environment: 'sandbox',
       timeout: 30000
     });
   });
@@ -38,7 +37,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
       }).not.toThrow();
 
       expect(() => {
-        new FidduPay({ apiKey: 'sk_live_valid_key' });
+        new FidduPay({ apiKey: 'live_valid_key' });
       }).not.toThrow();
     });
   });
@@ -51,13 +50,29 @@ describe('FidduPay SDK - Integration Test Suite', () => {
       expect(typeof client.payments.createAddressOnly).toBe('function');
     });
 
+    it('should have all invoice methods available', () => {
+      expect(typeof client.invoices.create).toBe('function');
+      expect(typeof client.invoices.retrieve).toBe('function');
+      expect(typeof client.invoices.list).toBe('function');
+    });
+
+    it('should have all customer methods available', () => {
+      expect(typeof client.customers.register).toBe('function');
+      expect(typeof client.customers.createWallets).toBe('function');
+      expect(typeof client.customers.getBalances).toBe('function');
+    });
+
     it('should have all merchant methods available', () => {
       expect(typeof client.merchants.register).toBe('function');
+      expect(typeof client.merchants.login).toBe('function');
       expect(typeof client.merchants.rotateApiKey).toBe('function');
       expect(typeof client.merchants.switchEnvironment).toBe('function');
       expect(typeof client.merchants.getBalance).toBe('function');
       expect(typeof client.merchants.updateSettings).toBe('function');
       expect(typeof client.merchants.getSettings).toBe('function');
+      expect(typeof client.merchants.getSupportedCurrencies).toBe('function');
+      expect(typeof client.merchants.getPricing).toBe('function');
+      expect(typeof client.merchants.getSystemStatus).toBe('function');
     });
 
     it('should have all refund methods available', () => {
@@ -69,7 +84,6 @@ describe('FidduPay SDK - Integration Test Suite', () => {
     it('should have all wallet methods available', () => {
       expect(typeof client.wallets.setup).toBe('function');
       expect(typeof client.wallets.checkGasRequirements).toBe('function');
-      expect(typeof client.wallets.gasCheck).toBe('function');
       expect(typeof client.wallets.revoke).toBe('function');
     });
 
@@ -103,16 +117,14 @@ describe('FidduPay SDK - Integration Test Suite', () => {
   });
 
   describe('Configuration Validation', () => {
-    it('should handle different environment settings', () => {
+    it('should handle API key configuration', () => {
       const sandboxClient = new FidduPay({
-        apiKey: 'sk_sandbox_sandbox',
-        environment: 'sandbox'
+        apiKey: 'sk_sandbox_sandbox'
       });
       expect(sandboxClient).toBeInstanceOf(FidduPay);
 
       const prodClient = new FidduPay({
-        apiKey: 'live_production_key',
-        environment: 'production'
+        apiKey: 'sk_live_production_key'
       });
       expect(prodClient).toBeInstanceOf(FidduPay);
     });
@@ -156,7 +168,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
 
   describe('Type Safety', () => {
     it('should enforce correct crypto types', () => {
-      const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL'];
+      const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL', 'BTC'];
 
       validCryptoTypes.forEach(cryptoType => {
         expect(() => {
@@ -165,14 +177,13 @@ describe('FidduPay SDK - Integration Test Suite', () => {
             crypto_type: cryptoType as any,
             description: 'Test payment'
           };
-          // This should not throw a validation error for valid crypto types
           expect(paymentData.crypto_type).toBe(cryptoType);
         }).not.toThrow();
       });
     });
 
     it('should enforce correct payment status types', () => {
-      const validStatuses = ['PENDING', 'CONFIRMING', 'CONFIRMED', 'FAILED', 'EXPIRED'];
+      const validStatuses = ['PENDING', 'CONFIRMING', 'CONFIRMED', 'FAILED', 'EXPIRED', 'REFUNDED', 'SELECTION_REQUIRED'];
 
       validStatuses.forEach(status => {
         expect(validStatuses).toContain(status);
@@ -191,7 +202,13 @@ describe('FidduPay SDK - Integration Test Suite', () => {
         'security',
         'withdrawals',
         'sandbox',
-        'webhooks'
+        'webhooks',
+        'invoices',
+        'customers',
+        'balances',
+        'auditLogs',
+        'contact',
+        'transactions'
       ];
 
       expectedResources.forEach(resource => {
@@ -201,7 +218,12 @@ describe('FidduPay SDK - Integration Test Suite', () => {
     });
 
     it('should provide comprehensive payment operations', () => {
-      const paymentMethods = ['create', 'retrieve', 'list', 'createAddressOnly'];
+      const paymentMethods = [
+        'create', 'retrieve', 'list', 'cancel', 'verify', 'finalizeSelection', 
+        'createAddressOnly', 'retrieveAddressOnly', 
+        'listAddressOnlyCurrencies', 'getAddressOnlyStats', 'getAddressOnlyHealth', 
+        'updateFeeSetting', 'getFeeSetting'
+      ];
 
       paymentMethods.forEach(method => {
         expect(client.payments).toHaveProperty(method);
@@ -210,7 +232,12 @@ describe('FidduPay SDK - Integration Test Suite', () => {
     });
 
     it('should provide comprehensive merchant operations', () => {
-      const merchantMethods = ['register', 'rotateApiKey', 'switchEnvironment', 'getBalance', 'updateSettings'];
+      const merchantMethods = [
+        'register', 'login', 'retrieve', 'getStatus', 'switchEnvironment', 'generateApiKey', 
+        'rotateApiKey', 'getFeeSetting', 'updateSettings', 'getSettings', 
+        'sendTestWebhook', 'getIpWhitelist', 'getBalance', 'getAuditLogs', 'getBalanceHistory',
+        'getSupportedCurrencies', 'getPricing', 'getSystemStatus'
+      ];
 
       merchantMethods.forEach(method => {
         expect(client.merchants).toHaveProperty(method);
@@ -218,12 +245,121 @@ describe('FidduPay SDK - Integration Test Suite', () => {
       });
     });
 
+    it('should provide comprehensive refund operations', () => {
+      const refundMethods = ['create', 'retrieve', 'list', 'complete'];
+      refundMethods.forEach(method => {
+        expect(client.refunds).toHaveProperty(method);
+        expect(typeof client.refunds[method as keyof typeof client.refunds]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive invoice operations', () => {
+      const invoiceMethods = ['create', 'retrieve', 'list'];
+      invoiceMethods.forEach(method => {
+        expect(client.invoices).toHaveProperty(method);
+        expect(typeof client.invoices[method as keyof typeof client.invoices]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive customer operations', () => {
+      const customerMethods = [
+        'register', 'list', 'getBalances', 'getWallets', 'createWallets', 
+        'updateStatus', 'updatePermissions', 'withdraw', 'sweep', 'deactivate', 
+        'getTransactions', 'getDepositAddress', 'payMerchant'
+      ];
+      customerMethods.forEach(method => {
+        expect(client.customers).toHaveProperty(method);
+        expect(typeof client.customers[method as keyof typeof client.customers]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive wallet operations', () => {
+      const walletMethods = [
+        'setup', 'generate', 'configureAddress', 'getConfigurations', 'getBalances', 'revoke', 
+        'checkGasRequirements', 'getGasEstimates', 'checkWithdrawalCapability'
+      ];
+      walletMethods.forEach(method => {
+        expect(client.wallets).toHaveProperty(method);
+        expect(typeof client.wallets[method as keyof typeof client.wallets]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive withdrawal operations', () => {
+      const withdrawalMethods = [
+        'create', 'list', 'get', 'cancel', 'process', 
+        'validateGas', 'getGasEstimates', 'checkCapability'
+      ];
+      withdrawalMethods.forEach(method => {
+        expect(client.withdrawals).toHaveProperty(method);
+        expect(typeof client.withdrawals[method as keyof typeof client.withdrawals]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive security operations', () => {
+      const securityMethods = [
+        'getEvents', 'getAlerts', 'acknowledgeAlert', 'getBalanceAlerts', 
+        'resolveBalanceAlert', 'checkGasBalances', 'getSettings', 'updateSettings', 
+        'toggleWalletLock', 'toggleCustomerWalletLock'
+      ];
+      securityMethods.forEach(method => {
+        expect(client.security).toHaveProperty(method);
+        expect(typeof client.security[method as keyof typeof client.security]).toBe('function');
+      });
+    });
+
     it('should provide webhook utilities', () => {
       const webhookMethods = ['verifySignature', 'constructEvent', 'generateSignature'];
-
       webhookMethods.forEach(method => {
         expect(client.webhooks).toHaveProperty(method);
         expect(typeof client.webhooks[method as keyof typeof client.webhooks]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive analytics operations', () => {
+      const analyticsMethods = ['retrieve', 'export'];
+      analyticsMethods.forEach(method => {
+        expect(client.analytics).toHaveProperty(method);
+        expect(typeof client.analytics[method as keyof typeof client.analytics]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive balances operations', () => {
+      const balanceMethods = ['get', 'getHistory'];
+      balanceMethods.forEach(method => {
+        expect(client.balances).toHaveProperty(method);
+        expect(typeof client.balances[method as keyof typeof client.balances]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive audit log operations', () => {
+      const auditMethods = ['list'];
+      auditMethods.forEach(method => {
+        expect(client.auditLogs).toHaveProperty(method);
+        expect(typeof client.auditLogs[method as keyof typeof client.auditLogs]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive sandbox operations', () => {
+      const sandboxMethods = ['simulatePayment'];
+      sandboxMethods.forEach(method => {
+        expect(client.sandbox).toHaveProperty(method);
+        expect(typeof client.sandbox[method as keyof typeof client.sandbox]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive contact operations', () => {
+      const contactMethods = ['submit'];
+      contactMethods.forEach(method => {
+        expect(client.contact).toHaveProperty(method);
+        expect(typeof client.contact[method as keyof typeof client.contact]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive transactions operations', () => {
+      const txnMethods = ['list'];
+      txnMethods.forEach(method => {
+        expect(client.transactions).toHaveProperty(method);
+        expect(typeof client.transactions[method as keyof typeof client.transactions]).toBe('function');
       });
     });
   });
@@ -235,7 +371,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
         payment_id: 'pay_test_123',
         status: 'PENDING',
         amount_usd: '100.00',
-        crypto_amount: '0.05',
+        amount: '0.05',
         crypto_type: 'ETH',
         deposit_address: '0x123...',
         created_at: new Date().toISOString(),

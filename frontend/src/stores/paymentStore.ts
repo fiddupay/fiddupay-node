@@ -92,10 +92,10 @@ export const usePaymentStore = create<PaymentState & PaymentActions>((set: any, 
   getPayment: async (id: string) => {
     try {
       set({ loading: true, error: null })
-      const payment = await paymentAPI.getStatus(id)
+      const payment = await paymentAPI.get(id)
       
       set({
-        currentPayment: payment,
+        currentPayment: payment.data,
         loading: false,
       })
     } catch (error: any) {

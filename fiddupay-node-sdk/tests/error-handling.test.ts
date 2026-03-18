@@ -115,30 +115,6 @@ describe('Error Handling', () => {
       }).toThrow('Invalid API key format');
     });
 
-    it('should throw validation error for invalid environment', () => {
-      expect(() => {
-        new FidduPay({
-          apiKey: 'sk_sandbox_1234567890',
-          environment: 'invalid' as any
-        });
-      }).toThrow('Environment must be either "sandbox" or "production"');
-    });
-
-    it('should throw validation error for mismatched API key and environment', () => {
-      expect(() => {
-        new FidduPay({
-          apiKey: 'sk_sandbox_1234567890',
-          environment: 'production'
-        });
-      }).toThrow('Production environment requires API key starting with "live_"');
-
-      expect(() => {
-        new FidduPay({
-          apiKey: 'live_1234567890',
-          environment: 'sandbox'
-        });
-      }).toThrow('Sandbox environment requires API key starting with "sk_"');
-    });
 
     it('should throw validation error for invalid timeout', () => {
       expect(() => {
@@ -172,7 +148,7 @@ describe('Error Handling', () => {
       }).toThrow('Max retries must be between 0 and 10');
     });
 
-    it('should auto-detect environment from API key', () => {
+    it('should create instance using API key only', () => {
       const sandboxClient = new FidduPay({ apiKey: 'sk_sandbox_1234567890' });
       expect(sandboxClient).toBeInstanceOf(FidduPay);
 
@@ -183,7 +159,6 @@ describe('Error Handling', () => {
     it('should accept valid configuration', () => {
       const client = new FidduPay({
         apiKey: 'sk_sandbox_1234567890',
-        environment: 'sandbox',
         timeout: 5000,
         maxRetries: 3
       });

@@ -1,5 +1,5 @@
 import { HttpClient } from '../client';
-import { Balance, Merchant, MerchantProfile, RequestOptions, UnifiedSettingsRequest } from '../types';
+import { Balance, LoginRequest, LoginResponse, Merchant, MerchantProfile, RequestOptions, UnifiedSettingsRequest } from '../types';
 
 export class Merchants {
   constructor(private client: HttpClient) { }
@@ -13,6 +13,13 @@ export class Merchants {
     password: string;
   }): Promise<{ user: MerchantProfile; dashboard_token: string }> {
     return this.client.request('POST', '/api/v1/merchants/register', data);
+  }
+
+  /**
+   * Login merchant (public endpoint - no auth required)
+   */
+  async login(data: LoginRequest): Promise<LoginResponse> {
+    return this.client.request('POST', '/api/v1/merchants/login', data);
   }
 
   /**
@@ -132,5 +139,31 @@ export class Merchants {
     const query = queryParams.toString();
     const path = query ? `/api/v1/merchants/balance/history?${query}` : '/api/v1/merchants/balance/history';
     return this.client.request('GET', path);
+  }
+
+  // ============================================================================
+  // Public Endpoints (no auth required)
+  // ============================================================================
+
+  /**
+   * Get supported currencies (public endpoint)
+   */
+  async getSupportedCurrencies(merchantId?: number): Promise<{ currency_groups: any; description: string }> {
+    const query = merchantId ? `?merchant_id=${merchantId}` : '';
+    return this.client.request('GET', `/api/v1/currencies/supported${query}`);
+  }
+
+  /**
+   * Get pricing information (public endpoint)
+   */
+  async getPricing(): Promise<any> {
+    return this.client.request('GET', '/api/v1/pricing');
+  }
+
+  /**
+   * Get system status (public endpoint)
+   */
+  async getSystemStatus(): Promise<any> {
+    return this.client.request('GET', '/api/v1/status');
   }
 }

@@ -1,4 +1,4 @@
-# FidduPay API Reference v2.4.9
+# FidduPay API Reference v2.5.0
 
 ## Base URL
 - **Sandbox**: `http://localhost:8080`
@@ -85,14 +85,31 @@ Content-Type: application/json
 
 {
   "email": "merchant@example.com",
-  "password": "secure_password"
+  "password": "secure_password",
+  "two_factor_code": "123456",
+  "remember_me": true
 }
 ```
+Returns `{ user: MerchantProfile, dashboard_token: string }`.
 
 ### Get Supported Currencies
 ```http
 GET /api/v1/currencies/supported
+GET /api/v1/currencies/supported?merchant_id=123
 ```
+Returns `{ currency_groups: {...}, description: string }`.
+
+### Get Pricing
+```http
+GET /api/v1/pricing
+```
+Returns transaction fees, supported networks, features, and volume limits.
+
+### Cancel Payment (Public)
+```http
+POST /pay/{payment_id}/cancel
+```
+Public endpoint to cancel a payment in `PENDING` or `SELECTION_REQUIRED` status.
 
 ## Merchant Endpoints (Auth Required)
 
@@ -134,7 +151,7 @@ Content-Type: application/json
 {
   "webhook_url": "https://your-site.com/webhook",
   "redirect_url": "https://your-site.com/success",
-  "webhook_format": "json", // or "form"
+  "webhook_format": "json", // or "discord", "slack"
   "settlement_mode": "forwarding",
   "customer_pays_fee": true,
   "fee_percentage": 1.5,
@@ -235,10 +252,32 @@ Authorization: Bearer {api_key}
 POST /api/v1/merchants/payments/{payment_id}/verify
 Authorization: Bearer {api_key}
 ```
+### Cancel Payment
+```http
+POST /api/v1/merchants/payments/{payment_id}/cancel
+Authorization: Bearer {api_key}
+```
 
+### Finalize Currency Selection
+```http
+POST /api/v1/merchants/payments/{payment_id}/select
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "crypto_type": "SOL"
+}
+```
+Used when `amount_usd` was provided without `crypto_type` during creation.
+
+### Unified Transaction Feed
+```http
+GET /api/v1/merchants/transactions
+Authorization: Bearer {api_key}
+```
 Returns a chronological feed combining payments, refunds, and withdrawals.
 
-## Address-Only Endpoints (WORK IN PROGRESS)
+## Address-Only Endpoints
 > [!IMPORTANT]
 > This feature is currently in active development. Endpoints are experimental and for testing purposes only. Forwarding mode is not yet fully production-ready.
 
@@ -273,11 +312,28 @@ GET /api/v1/merchants/address-only/stats
 Authorization: Bearer {api_key}
 ```
 
+### Get Address-Only Health
 ```http
-GET /api/v1/merchants/transactions
+GET /api/v1/merchants/address-only/health
 Authorization: Bearer {api_key}
 ```
-Returns a chronological feed combining payments, refunds, and withdrawals.
+
+### Get Address-Only Fee Setting
+```http
+GET /api/v1/merchants/address-only/fee-setting
+Authorization: Bearer {api_key}
+```
+
+### Update Address-Only Fee Setting
+```http
+PUT /api/v1/merchants/address-only/fee-setting
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "customer_pays_fee": true
+}
+```
 
 ## Refund Endpoints
 
@@ -297,6 +353,12 @@ Content-Type: application/json
 ### Get Refund
 ```http
 GET /api/v1/merchants/refunds/{refund_id}
+Authorization: Bearer {api_key}
+```
+
+### List Refunds
+```http
+GET /api/v1/merchants/refunds
 Authorization: Bearer {api_key}
 ```
 
@@ -357,12 +419,6 @@ Authorization: Bearer {api_key}
 ```
 
 ## Sandbox Endpoints
-
-### Enable Sandbox
-```http
-POST /api/v1/merchants/sandbox/enable
-Authorization: Bearer {api_key}
-```
 
 ### Simulate Payment
 ```http
@@ -613,8 +669,7 @@ Content-Type: application/json
   "crypto_type": "SOL",
   "mode": "generate", // or "address"
   "address": "external_address_if_mode_is_address",
-  "is_active": true,
-  "enable_all_evm": true
+  "is_active": true
 }
 ```
 **Recommended**: Use this single endpoint for all wallet onboarding methods.
@@ -761,26 +816,6 @@ GET /api/v1/merchants/fee-setting
 Authorization: Bearer {api_key}
 ```
 
-## Advanced Wallet & Withdrawal Endpoints
-
-### Check Withdrawal Capability
-```http
-GET /api/v1/merchants/wallets/withdrawal-capability/{crypto_type}
-Authorization: Bearer {api_key}
-```
-
-### Check Gas Requirements
-```http
-GET /api/v1/merchants/wallets/gas-check
-Authorization: Bearer {api_key}
-```
-
-### Get Gas Estimates
-```http
-GET /api/v1/merchants/wallets/gas-estimates
-Authorization: Bearer {api_key}
-```
-
 ## Error Codes
 
 | Code | Description |
@@ -816,22 +851,28 @@ FidduPay sends webhook notifications for payment events:
 ### Webhook Payload
 ```json
 {
-  "event": "payment.confirmed",
-  "payment_id": "payment_123",
-  "amount": "100.00",
-  "currency": "USD",
+  "event_type": "payment.confirmed",
+  "payment_id": "pay_abc123",
+  "merchant_id": 123,
+  "status": "CONFIRMED",
+  "amount": "2.5",
   "crypto_type": "SOL",
-  "status": "confirmed",
-  "timestamp": "2024-01-01T12:00:00Z"
+  "transaction_hash": "5xK9...",
+  "timestamp": 1710729600
 }
 ```
 
 ### Webhook Events
-- `payment.created`
-- `payment.confirmed`
-- `payment.failed`
-- `refund.created`
-- `refund.completed`
-- `withdrawal.created`
-- `withdrawal.completed`
-- `withdrawal.failed`
+- `payment.confirmed` — Payment has been confirmed on-chain
+- `payment.expired` — Payment expired without confirmation
+- `refund.completed` — Refund has been processed and sent
+
+### Supported Webhook Formats
+- `standard` — JSON payload with HMAC-SHA256 signature
+- `discord` — Discord embed format
+- `slack` — Slack message format
+
+### Webhook Signature Verification
+Webhooks include a `signature` header in the format: `t={timestamp},v1={hmac_signature}`
+
+Verify by computing `HMAC-SHA256(signing_secret, "{timestamp}.{payload_json}")`.

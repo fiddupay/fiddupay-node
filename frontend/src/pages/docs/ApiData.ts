@@ -379,11 +379,13 @@ export const API_DATA: DocSection[] = [
                 body: [
                     { name: 'external_id', type: 'string', required: true, description: 'Your internal user ID' },
                     { name: 'email', type: 'string', required: false, description: 'Customer email' },
+                    { name: 'first_name', type: 'string', required: false, description: 'Customer legal first name' },
+                    { name: 'last_name', type: 'string', required: false, description: 'Customer legal last name' },
                     { name: 'metadata', type: 'object', required: false, description: 'Custom mapping data' }
                 ],
                 request: {
-                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/customers \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "external_id": "user_1234",\n    "email": "cust@example.com"\n  }\'',
-                    node: 'const customer = await fiddupay.customers.register({\n  external_id: "user_1234",\n  email: "cust@example.com"\n});'
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/customers \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "external_id": "user_1234",\n    "email": "cust@example.com",\n    "first_name": "John",\n    "last_name": "Doe"\n  }\'',
+                    node: 'const customer = await fiddupay.customers.register({\n  external_id: "user_1234",\n  email: "cust@example.com",\n  first_name: "John",\n  last_name: "Doe"\n});'
                 },
                 response: JSON.stringify({
                     id: "mc_789",
@@ -498,7 +500,7 @@ export const API_DATA: DocSection[] = [
                 description: 'Configure granular withdrawal permissions and transaction limits for a customer.',
                 body: [
                     { name: 'can_withdraw', type: 'boolean', required: false, description: 'Allow/block customer withdrawals' },
-                    { name: 'daily_limit_usd', type: 'string', required: false, description: 'Custom daily volume limit' }
+                    { name: 'withdrawal_limit', type: 'string', required: false, description: 'Custom volume allowance limit' }
                 ],
                 request: {
                     curl: 'curl -X PATCH https://api.fiddupay.com/api/v1/merchants/customers/user_1234/permissions \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"can_withdraw": false}\'',
@@ -993,9 +995,16 @@ export const API_DATA: DocSection[] = [
                 path: '/api/v1/merchants/invoices',
                 title: 'Create Invoice',
                 description: 'Generate a new invoice linking an external transaction or payment requirement.',
+                body: [
+                    { name: 'items', type: 'array', required: true, description: 'Array of invoice items: {description, quantity, unit_price, amount}' },
+                    { name: 'customer_email', type: 'string', required: false, description: 'Email address of client' },
+                    { name: 'customer_name', type: 'string', required: false, description: 'Full name of recipient' },
+                    { name: 'tax', type: 'string', required: false, description: 'Tax override value' },
+                    { name: 'due_date', type: 'string', required: false, description: 'YYYY-MM-DD completion date' }
+                ],
                 request: {
-                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/invoices \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"amount": "50.0", "customer_email": "hello@fiddupay.com"}\'',
-                    node: 'const invoice = await fiddupay.invoices.create({ amount: "50.0", customer_email: "hello@fiddupay.com" });'
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/invoices \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "customer_email": "hello@fiddupay.com",\n    "items": [\n      {"description": "Consulting", "quantity": 1, "unit_price": "50.0", "amount": "50.0"}\n    ]\n  }\'',
+                    node: 'const invoice = await fiddupay.invoices.create({\n  customer_email: "hello@fiddupay.com",\n  items: [\n    { description: "Consulting", quantity: 1, unit_price: "50.0", amount: "50.0" }\n  ]\n});'
                 },
                 response: JSON.stringify({
                     id: "inv_123",

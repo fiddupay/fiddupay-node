@@ -1,159 +1,112 @@
 # Complete SDK Method Index
 
-## AnalyticsResource
+## Analytics (`fiddupay.analytics`)
+- `fiddupay.analytics.retrieve()`
+- `fiddupay.analytics.export()`
 
-- `client.analyticsresource.retrieve()`
-- `client.analyticsresource.export()`
+## AuditLogs (`fiddupay.auditLogs`)
+- `fiddupay.auditLogs.list()`
 
-## Balances
+## Balances (`fiddupay.balances`)
+- `fiddupay.balances.get()`
+- `fiddupay.balances.getHistory()`
 
-- `client.balances.get()`
+## Contact (`fiddupay.contact`)
+- `fiddupay.contact.submit()`
 
-## Contact
+## Customers (`fiddupay.customers`)
+- `fiddupay.customers.register()`
+- `fiddupay.customers.list()`
+- `fiddupay.customers.getBalances()`
+- `fiddupay.customers.getWallets()`
+- `fiddupay.customers.createWallets()` (Provision Wallets)
+- `fiddupay.customers.updateStatus()`
+- `fiddupay.customers.updatePermissions()`
+- `fiddupay.customers.withdraw()`
+- `fiddupay.customers.sweep()`
+- `fiddupay.customers.deactivate()`
+- `fiddupay.customers.getTransactions()`
+- `fiddupay.customers.getDepositAddress()`
+- `fiddupay.customers.payMerchant()`
 
-- `client.contact.submit()`
+## Invoices (`fiddupay.invoices`)
+- `fiddupay.invoices.create()`
+- `fiddupay.invoices.list()`
+- `fiddupay.invoices.retrieve()`
 
-## Customers
+## Merchants (`fiddupay.merchants`)
+- `fiddupay.merchants.register()`
+- `fiddupay.merchants.retrieve()` (Profile)
+- `fiddupay.merchants.getStatus()`
+- `fiddupay.merchants.switchEnvironment()`
+- `fiddupay.merchants.generateApiKey()`
+- `fiddupay.merchants.rotateApiKey()`
+- `fiddupay.merchants.getFeeSetting()`
+- `fiddupay.merchants.updateSettings()`
+- `fiddupay.merchants.getSettings()`
+- `fiddupay.merchants.sendTestWebhook()`
+- `fiddupay.merchants.getIpWhitelist()`
+- `fiddupay.merchants.getBalance()`
+- `fiddupay.merchants.getAuditLogs()`
+- `fiddupay.merchants.getBalanceHistory()`
 
-- `client.customers.register()`
-- `client.customers.getBalances()`
-- `client.customers.list()`
-- `client.customers.withdraw()`
-- `client.customers.sweep()`
-- `client.customers.deactivate()`
-- `client.customers.getTransactions()`
-- `client.customers.updateStatus()`
-- `client.customers.updatePermissions()`
-- `client.customers.getDepositAddress()`
-- `client.customers.payMerchant()`
+## Payments (`fiddupay.payments`)
+- `fiddupay.payments.create()`
+- `fiddupay.payments.list()`
+- `fiddupay.payments.retrieve()`
+- `fiddupay.payments.cancel()`
+- `fiddupay.payments.verify()`
+- `fiddupay.payments.finalizeSelection()`
+- `fiddupay.payments.getAnalytics()`
+- `fiddupay.payments.createAddressOnly()`
+- `fiddupay.payments.retrieveAddressOnly()`
+- `fiddupay.payments.listAddressOnlyCurrencies()`
+- `fiddupay.payments.getAddressOnlyStats()`
+- `fiddupay.payments.getAddressOnlyHealth()`
+- `fiddupay.payments.updateFeeSetting()`
+- `fiddupay.payments.getFeeSetting()`
 
-## InvoicesResource
+## Refunds (`fiddupay.refunds`)
+- `fiddupay.refunds.create()`
+- `fiddupay.refunds.list()`
+- `fiddupay.refunds.retrieve()`
+- `fiddupay.refunds.complete()`
 
-- `client.invoicesresource.create()`
-- `client.invoicesresource.list()`
-- `client.invoicesresource.retrieve()`
+## Sandbox (`fiddupay.sandbox`)
+- `fiddupay.sandbox.simulatePayment()`
 
-## Merchants
+## Security (`fiddupay.security`)
+- `fiddupay.security.getEvents()`
+- `fiddupay.security.getAlerts()`
+- `fiddupay.security.acknowledgeAlert()`
+- `fiddupay.security.getBalanceAlerts()`
+- `fiddupay.security.resolveBalanceAlert()`
+- `fiddupay.security.checkGasBalances()`
+- `fiddupay.security.getSettings()`
+- `fiddupay.security.toggleWalletLock()`
+- `fiddupay.security.toggleCustomerWalletLock()`
 
-- `client.merchants.register()`
-- `client.merchants.retrieve()`
-- `client.merchants.getStatus()`
-- `client.merchants.switchEnvironment()`
-- `client.merchants.generateApiKey()`
-- `client.merchants.rotateApiKey()`
-- `client.merchants.getFeeSetting()`
-- `client.merchants.updateSettings()`
-- `client.merchants.getSettings()`
-- `client.merchants.sendTestWebhook()`
-- `client.merchants.getBalance()`
-- `client.merchants.getAuditLogs()`
-- `client.merchants.getBalanceHistory()`
+## Transactions (`fiddupay.transactions`)
+- `fiddupay.transactions.list()`
 
-## Payments
+## Wallets (`fiddupay.wallets`)
+- `fiddupay.wallets.setup()`
+- `fiddupay.wallets.getConfigurations()`
+- `fiddupay.wallets.getBalances()`
+- `fiddupay.wallets.revoke()`
+- `fiddupay.wallets.checkGasRequirements()`
+- `fiddupay.wallets.getGasEstimates()`
+- `fiddupay.wallets.checkWithdrawalCapability()`
 
-- `client.payments.create()`
-- `client.payments.finalizeSelection()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.retrieve()`
-- `client.payments.if()`
-- `client.payments.verify()`
-- `client.payments.if()`
-- `client.payments.list()`
-- `client.payments.cancel()`
-- `client.payments.if()`
-- `client.payments.createAddressOnly()`
-- `client.payments.retrieveAddressOnly()`
-- `client.payments.if()`
-- `client.payments.listAddressOnlyCurrencies()`
-- `client.payments.getAddressOnlyStats()`
-- `client.payments.getAddressOnlyHealth()`
-- `client.payments.updateFeeSetting()`
-- `client.payments.if()`
-- `client.payments.getFeeSetting()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.if()`
-- `client.payments.getAnalytics()`
+## Withdrawals (`fiddupay.withdrawals`)
+- `fiddupay.withdrawals.create()`
+- `fiddupay.withdrawals.list()`
+- `fiddupay.withdrawals.get()`
+- `fiddupay.withdrawals.cancel()`
+- `fiddupay.withdrawals.process()`
+- `fiddupay.withdrawals.validateGas()`
+- `fiddupay.withdrawals.getGasEstimates()`
+- `fiddupay.withdrawals.checkCapability()`
 
-## Refunds
-
-- `client.refunds.create()`
-- `client.refunds.retrieve()`
-- `client.refunds.if()`
-- `client.refunds.complete()`
-- `client.refunds.if()`
-- `client.refunds.if()`
-- `client.refunds.list()`
-- `client.refunds.if()`
-- `client.refunds.if()`
-- `client.refunds.if()`
-
-## Sandbox
-
-- `client.sandbox.simulatePayment()`
-
-## Security
-
-- `client.security.getEvents()`
-- `client.security.getAlerts()`
-- `client.security.getSettings()`
-- `client.security.updateSettings()`
-- `client.security.checkGasBalances()`
-- `client.security.getBalanceAlerts()`
-- `client.security.acknowledgeAlert()`
-- `client.security.resolveBalanceAlert()`
-- `client.security.toggleWalletLock()`
-- `client.security.toggleCustomerWalletLock()`
-
-## Transactions
-
-- `client.transactions.list()`
-
-## Wallets
-
-- `client.wallets.getConfigurations()`
-- `client.wallets.getBalances()`
-- `client.wallets.setup()`
-- `client.wallets.generate()`
-- `client.wallets.configureAddress()`
-- `client.wallets.getGasEstimates()`
-- `client.wallets.checkGasRequirements()`
-- `client.wallets.gasCheck()`
-- `client.wallets.checkWithdrawalCapability()`
-- `client.wallets.revoke()`
-
-## Webhooks
-
-- `client.webhooks.catch()`
-- `client.webhooks.if()`
-- `client.webhooks.if()`
-- `client.webhooks.catch()`
-- `client.webhooks.if()`
-- `client.webhooks.if()`
-- `client.webhooks.if()`
-- `client.webhooks.if()`
-
-## Withdrawals
-
-- `client.withdrawals.create()`
-- `client.withdrawals.list()`
-- `client.withdrawals.get()`
-- `client.withdrawals.cancel()`
-- `client.withdrawals.process()`
-- `client.withdrawals.validateGas()`
-- `client.withdrawals.getGasEstimates()`
-- `client.withdrawals.checkCapability()`
-
+## Webhooks (`Webhooks`)
+- `Webhooks.constructEvent()` (Static Utility)
