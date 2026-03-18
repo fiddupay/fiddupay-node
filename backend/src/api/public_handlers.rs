@@ -46,11 +46,18 @@ pub async fn get_supported_currencies(
     let mut currency_groups = std::collections::HashMap::new();
     
     for (crypto_type, group, network, icon_url) in currencies {
+        // Parse into CryptoType to fetch price
+        let price = match crypto_type.parse::<crate::payment::models::CryptoType>() {
+            Ok(ct) => state.price_service.get_price(ct).await.unwrap_or(1.0),
+            Err(_) => 1.0,
+        };
+
         currency_groups.entry(group).or_insert_with(Vec::new).push(json!({
             "crypto_type": crypto_type,
             "network": network,
             "icon_url": icon_url,
-            "confirmations": state.currency_service.get_required_confirmations(crypto_type)
+            "confirmations": state.currency_service.get_required_confirmations(crypto_type),
+            "price_usd": price
         }));
     }
     

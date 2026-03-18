@@ -175,17 +175,17 @@ export const API_DATA: DocSection[] = [
                 method: 'POST',
                 path: '/api/v1/merchants/payments',
                 title: 'Create Payment',
-                description: 'Initialize a new multi-chain payment request. (Forbidden in Forwarding mode)',
+                description: 'Initialize a new payment request. For fixed single-currency links, providing `.amount` is mandatory. For multi-currency checkout links, provide `.amount_usd` instead.',
                 body: [
-                    { name: 'amount_usd', type: 'string', required: false, description: 'USD amount (e.g. "99.99")' },
-                    { name: 'amount', type: 'string', required: false, description: 'Crypto amount (e.g. "0.5")' },
-                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, BTC, USDT_ETH, USDT_SPL, etc.' },
+                    { name: 'amount', type: 'string', required: false, description: 'Required for all fixed single-currency links (e.g. SOL, USDT)' },
+                    { name: 'amount_usd', type: 'string', required: false, description: 'Required for multi-currency checkout links only (where crypto_type is omitted)' },
+                    { name: 'crypto_type', type: 'string', required: false, description: 'SOL, BTC, USDT_ETH, USDT_SPL, etc. (Omit for multi-currency link)' },
                     { name: 'webhook_url', type: 'string', required: false, description: 'Override default webhook' },
                     { name: 'expiration_minutes', type: 'integer', required: false, description: 'Defaults to 20 mins' }
                 ],
                 request: {
-                    curl: '# USDT (Stablecoin) -> MUST use amount_usd\ncurl -X POST https://api.fiddupay.com/api/v1/merchants/payments \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"amount_usd": "100.00", "crypto_type": "USDT_ETH"}\'\n\n# SOL/ETH (Volatile) -> MUST use amount\ncurl -X POST https://api.fiddupay.com/api/v1/merchants/payments \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"amount": "2.5", "crypto_type": "SOL"}\'',
-                    node: '// USDT -> amount_usd\nconst p1 = await fiddupay.payments.create({ amount_usd: "100.00", crypto_type: "USDT_ETH" });\n\n// SOL -> amount\nconst p2 = await fiddupay.payments.create({ amount: "2.5", crypto_type: "SOL" });'
+                    curl: '# Create Fixed Currency Payment (Supports any coin including USDT)\ncurl -X POST https://api.fiddupay.com/api/v1/merchants/payments \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"amount": "100.00", "crypto_type": "USDT_ETH"}\'\n\n# Create Multi-currency Checkout link\ncurl -X POST https://api.fiddupay.com/api/v1/merchants/payments \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"amount_usd": "100.00"}\'',
+                    node: '// Create Fixed Currency Payment\nconst p1 = await fiddupay.payments.create({ amount: "100.00", crypto_type: "USDT_ETH" });\n\n// Create Multi-currency Checkout\nconst p2 = await fiddupay.payments.create({ amount_usd: "100.00" });'
                 },
                 response: JSON.stringify({
                     payment_id: "pay_123",

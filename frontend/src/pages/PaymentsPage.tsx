@@ -81,6 +81,42 @@ const PaymentsPage: React.FC = () => {
     }
   }, [user?.settlement_mode, paymentType]);
 
+  // Auto-calculate values for conversion
+  useEffect(() => {
+    const selectedCrypto = supportedCryptos.find(c => c.crypto_type === newPayment.crypto_type);
+    const price = selectedCrypto?.price_usd || 1.0;
+
+    if (newPayment.is_invoice) {
+      // Invoice Mode: amount_usd is primary (calculated from items)
+      if (!newPayment.crypto_type.startsWith('USDT')) {
+        const usd = parseFloat(newPayment.amount_usd) || 0;
+        const cryptoAmt = usd > 0 && price > 0 ? (usd / price).toFixed(6) : '';
+        if (newPayment.amount !== cryptoAmt) {
+          setNewPayment(prev => ({ ...prev, amount: cryptoAmt }));
+        }
+      } else {
+         if (newPayment.amount !== newPayment.amount_usd) {
+           setNewPayment(prev => ({ ...prev, amount: prev.amount_usd }));
+         }
+      }
+    } else {
+      // Standard Mode: amount (crypto) is primary (typed directly into amount input)
+      const isStable = newPayment.crypto_type.startsWith('USDT');
+      const cryptoAmt = parseFloat(newPayment.amount) || 0;
+      
+      if (isStable) {
+         if (newPayment.amount_usd !== newPayment.amount) {
+           setNewPayment(prev => ({ ...prev, amount_usd: prev.amount }));
+         }
+      } else {
+         const usdVal = cryptoAmt > 0 && price > 0 ? (cryptoAmt * price).toFixed(2) : '';
+         if (newPayment.amount_usd !== usdVal) {
+           setNewPayment(prev => ({ ...prev, amount_usd: usdVal }));
+         }
+      }
+    }
+  }, [newPayment.amount, newPayment.amount_usd, newPayment.crypto_type, newPayment.is_invoice, supportedCryptos]);
+
   const loadSupportedCurrencies = async () => {
     try {
       const response = await publicAPI.getSupportedCurrencies(user?.id)
@@ -182,8 +218,7 @@ const PaymentsPage: React.FC = () => {
         showToast('Address-only payment created successfully!', 'success')
       } else {
         const payment = await paymentAPI.create({
-          amount_usd: isStable ? newPayment.amount_usd : undefined,
-          amount: !isStable ? newPayment.amount : undefined,
+          amount: newPayment.amount,
           crypto_type: newPayment.crypto_type,
           description: newPayment.description || undefined,
           is_invoice: newPayment.is_invoice,
@@ -695,34 +730,23 @@ const PaymentsPage: React.FC = () => {
                 </div>
 
                 <div className={styles.inputGroup}>
-                  {newPayment.crypto_type.startsWith('USDT') ? (
-                    <>
-                      <label htmlFor="amount">Amount (USD)</label>
-                      <input
-                        type="number"
-                        id="amount"
-                        step="0.01"
-                        min="0.01"
-                        value={newPayment.amount_usd}
-                        onChange={(e) => setNewPayment(prev => ({ ...prev, amount_usd: e.target.value }))}
-                        placeholder="100.00"
-                        required
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <label htmlFor="amount">Amount ({newPayment.crypto_type.split('_')[0]})</label>
-                      <input
-                        type="number"
-                        id="amount"
-                        step="0.000001"
-                        min="0.000001"
-                        value={newPayment.amount}
-                        onChange={(e) => setNewPayment(prev => ({ ...prev, amount: e.target.value }))}
-                        placeholder="2.5"
-                        required
-                      />
-                    </>
+                  <label htmlFor="amount">Amount ({newPayment.crypto_type ? newPayment.crypto_type.split('_')[0] : 'Crypto'})</label>
+                  <input
+                    type="number"
+                    id="amount"
+                    step="0.000001"
+                    min="0.000001"
+                    value={newPayment.amount}
+                    onChange={(e) => setNewPayment(prev => ({ ...prev, amount: e.target.value }))}
+                    placeholder="1.0"
+                    required={!newPayment.is_invoice}
+                    readOnly={newPayment.is_invoice}
+                    style={newPayment.is_invoice ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
+                  />
+                  {!newPayment.crypto_type.startsWith('USDT') && (
+                    <small style={{ marginTop: '4px', color: '#64748b', display: 'block', fontSize: '0.875rem' }}>
+                      ≈ ${newPayment.amount_usd || '0.00'} USD
+                    </small>
                   )}
                 </div>
 

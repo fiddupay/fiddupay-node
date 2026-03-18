@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - **Comprehensive Audit Logs**: Back-end support for tracking 20+ administrative actions (Customer registration, sweeps, payouts, setting tweaks, invoice triggers).
+
+### Changed
+- **Unified Payment Creation**: `.amount` is now strictly required for all fixed single-currency creations (including USDT), while `.amount_usd` is reserved solely for multi-currency links.
+- **Currencies List Enrichment**: Supported currencies natively feature a `.price_usd` fallback evaluation rate per row.
 - **Merchant Login**: New `merchants.login()` method with `LoginRequest`/`LoginResponse` types
 - **Public Endpoints**: Added `merchants.getSupportedCurrencies()`, `merchants.getPricing()`, `merchants.getSystemStatus()`
 - **Postman Collection**: Added 14 missing endpoints (Cancel Payment, List Refunds, Address-Only Stats/Health/Fee Setting, Wallet Balances, Revoke Wallet, Process Withdrawal, Pricing, Contact Form)

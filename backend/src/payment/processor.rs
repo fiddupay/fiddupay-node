@@ -94,43 +94,26 @@ impl PaymentProcessor {
                 .get_wallet_address(merchant_id, crypto_type)
                 .await?;
 
-            // Calculate amounts based on the enforced rules (Stable = USD, Volatile = Crypto)
-            let (crypto_amount, amount_usd, fee_amount_crypto, fee_amount_usd) = if crypto_type.as_str() == "USDT" {
-                // USDT: amount_usd is enforced as input
-                let usd_amount = request.amount_usd.unwrap_or(Decimal::ZERO);
-                let fee_amount_usd = FeeCalculator::calculate_fee_usd(usd_amount, fee_percentage);
-                let total_amount_usd = if customer_pays_fee {
-                    FeeCalculator::calculate_total_with_fee(usd_amount, fee_amount_usd)
-                } else {
-                    usd_amount
-                };
+            // Calculate amounts based on the required amount input
+            let crypto_amt = request.amount.unwrap_or(Decimal::ZERO); // Validation ensures it exists
 
-                // For USDT, 1:1 conversion and total_amount_usd is the crypto_amount
-                (total_amount_usd, total_amount_usd, fee_amount_usd, fee_amount_usd)
+            let (base_amount_usd, price_decimal) = if crypto_type.as_str() == "USDT" {
+                (crypto_amt, Decimal::ONE) // 1:1
             } else {
-                // Volatile: amount (crypto) is enforced as input
-                let crypto_amt = request.amount.unwrap_or(Decimal::ZERO);
-                
-                // Fetch price to calculate USD value
-                let crypto_price = self.price_service
-                    .get_price(crypto_type)
-                    .await
+                let crypto_price = self.price_service.get_price(crypto_type).await
                     .map_err(|e| ServiceError::Internal(format!("Failed to fetch price: {}", e)))?;
-                
-                let crypto_price_decimal = Decimal::from_f64_retain(crypto_price)
+                let price_decimal = Decimal::from_f64_retain(crypto_price)
                     .ok_or_else(|| ServiceError::Internal("Invalid price conversion".to_string()))?;
-                
-                let base_amount_usd = crypto_amt * crypto_price_decimal;
-                let fee_amount_usd = FeeCalculator::calculate_fee_usd(base_amount_usd, fee_percentage);
-                let fee_crypto = fee_amount_usd / crypto_price_decimal;
+                (crypto_amt * price_decimal, price_decimal)
+            };
 
-                let (final_crypto, final_usd) = if customer_pays_fee {
-                    (crypto_amt + fee_crypto, base_amount_usd + fee_amount_usd)
-                } else {
-                    (crypto_amt, base_amount_usd)
-                };
+            let fee_amount_usd = FeeCalculator::calculate_fee_usd(base_amount_usd, fee_percentage);
+            let fee_crypto = fee_amount_usd / price_decimal;
 
-                (final_crypto, final_usd, fee_crypto, fee_amount_usd)
+            let (final_crypto, final_usd) = if customer_pays_fee {
+                (crypto_amt + fee_crypto, base_amount_usd + fee_amount_usd)
+            } else {
+                (crypto_amt, base_amount_usd)
             };
 
             let network = if is_sandbox {
@@ -154,7 +137,7 @@ impl PaymentProcessor {
                 crypto_type.network()
             };
 
-            (Some(crypto_amount), amount_usd, Some(fee_amount_crypto), Some(fee_amount_usd), Some(wallet), PaymentStatus::Pending, Some(network.to_string()))
+            (Some(final_crypto), final_usd, Some(fee_crypto), Some(fee_amount_usd), Some(wallet), PaymentStatus::Pending, Some(network.to_string()))
         } else {
             // Case B: No crypto type provided - multi-currency selection mode
             let amount_usd = request.amount_usd.ok_or_else(|| ServiceError::ValidationError("amount_usd is required for multi-currency selection".to_string()))?;

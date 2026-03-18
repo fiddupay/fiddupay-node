@@ -1679,7 +1679,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount_usd\": \"100.0\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Fixed currency\"\n}"
+              "raw": "{\n  \"amount\": \"100.0\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Fixed currency\"\n}"
             }
           }
         },

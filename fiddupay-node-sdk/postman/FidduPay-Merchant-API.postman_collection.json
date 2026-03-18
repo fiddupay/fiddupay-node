@@ -1065,7 +1065,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount_usd\": \"100.0\",\n  \"crypto_type\": \"USDT_ETH\",\n  \"description\": \"Stablecoin payment (Uses amount_usd)\"\n}"
+              "raw": "{\n  \"amount\": \"100.0\",\n  \"crypto_type\": \"USDT_ETH\",\n  \"description\": \"Fixed currency payment\"\n}"
             }
           }
         },

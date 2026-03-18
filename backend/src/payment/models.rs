@@ -295,40 +295,28 @@ pub struct InvoiceItem {
 
 impl CreatePaymentRequest {
     pub fn validate(&self) -> Result<(), String> {
-        // Enforce input field separation based on currency type
         if let Some(ct) = self.crypto_type {
-            if ct.as_str() == "USDT" {
-                // Stablecoins MUST use amount_usd
-                if self.amount_usd.is_none() {
-                    return Err("USDT payments require 'amount_usd'".to_string());
-                }
-                if self.amount.is_some() {
-                    return Err("USDT payments should use 'amount_usd', not 'amount'".to_string());
-                }
-                if self.amount_usd.unwrap() <= Decimal::ZERO {
-                    return Err("Amount USD must be positive".to_string());
-                }
-            } else {
-                // Volatile Cryptos MUST use amount
-                if self.amount.is_none() {
-                    return Err(format!("{} payments require 'amount'", ct));
-                }
-                if self.amount_usd.is_some() {
-                    return Err(format!("{} payments should use 'amount', not 'amount_usd'", ct));
-                }
-                if self.amount.unwrap() <= Decimal::ZERO {
+            // Fixed currency links MUST provide amount
+            if self.amount.is_none() {
+                return Err(format!("{} payments require 'amount'", ct));
+            }
+            if let Some(amt) = self.amount {
+                if amt <= Decimal::ZERO {
                     return Err("Amount must be positive".to_string());
                 }
             }
         } else {
-            // Multi-currency checkout MUST use amount_usd
+            // Multi-currency checkout links MUST provide amount_usd
             if self.amount_usd.is_none() {
-                return Err("Multi-currency checkout requires 'amount_usd'".to_string());
+                return Err("Multi-currency checkout links require 'amount_usd'".to_string());
             }
-            if self.amount_usd.unwrap() <= Decimal::ZERO {
-                return Err("Amount USD must be positive".to_string());
+            if let Some(amt_usd) = self.amount_usd {
+                if amt_usd <= Decimal::ZERO {
+                    return Err("Amount USD must be positive".to_string());
+                }
             }
         }
+
         Ok(())
     }
 }
