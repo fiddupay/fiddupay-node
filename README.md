@@ -132,7 +132,7 @@ To sync specific code changes strictly to their respective GitHub repositories u
 To sync code changes to the standalone SDK repository without creating a release tag:
 
 ```bash
-./scripts/push-sdk.sh main
+bash ./scripts/push-sdk.sh main
 ```
 
 To sync code AND push a version tag manually (triggering the automated pipeline):
