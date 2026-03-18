@@ -234,10 +234,22 @@ pub async fn process_withdrawal(
     let processor = WithdrawalProcessor::new(state.db_pool.clone(), state.config.clone());
     
     match processor.process_withdrawal(&withdrawal_id).await {
-        Ok(result) => (StatusCode::OK, Json(json!({
-            "withdrawal": result,
-            "message": "Withdrawal processed successfully"
-        }))).into_response(),
+        Ok(result) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "withdrawal_processing",
+                Some(&format!("Processed withdrawal {}", withdrawal_id)),
+                Some(json!({
+                    "withdrawal_id": withdrawal_id
+                }))
+            ).await;
+
+            (StatusCode::OK, Json(json!({
+                "withdrawal": result,
+                "message": "Withdrawal processed successfully"
+            }))).into_response()
+        },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
             "error": e.to_string()
         }))).into_response(),

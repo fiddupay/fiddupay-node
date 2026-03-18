@@ -3,7 +3,8 @@ use crate::error::ServiceError;
 use crate::middleware::auth::MerchantContext;
 use crate::payment::models::CryptoType;
 use crate::services::address_only_service::{AddressOnlyService, AddressOnlyPayment};
-use axum::{extract::Query, response::Json, Extension};
+use axum::{extract::{Query, State}, response::Json, Extension};
+use crate::api::state::AppState;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
@@ -42,6 +43,7 @@ pub struct UpdateFeeSettingRequest {
 
 /// Create address-only payment request (native currencies only)
 pub async fn create_address_only_payment(
+    State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
     Extension(address_service): Extension<AddressOnlyService>,
     Json(request): Json<CreateAddressOnlyPaymentRequest>,
@@ -63,8 +65,8 @@ pub async fn create_address_only_payment(
         .await?;
 
     let response = AddressOnlyPaymentResponse {
-        payment_id: payment.payment_id,
-        gateway_deposit_address: payment.gateway_deposit_address,
+        payment_id: payment.payment_id.clone(),
+        gateway_deposit_address: payment.gateway_deposit_address.clone(),
         requested_amount: payment.requested_amount,
         customer_amount: payment.customer_amount,
         processing_fee: payment.processing_fee,
@@ -87,6 +89,18 @@ pub async fn create_address_only_payment(
             "SOL".to_string(),
         ],
     };
+
+    // Log audit event
+    let _ = state.audit_service.log_event(
+        context.merchant_id,
+        "address_only_payment_creation",
+        Some(&format!("Created address-only payment request {}", response.payment_id)),
+        Some(serde_json::json!({
+            "payment_id": response.payment_id,
+            "crypto_type": request.crypto_type.to_string(),
+            "requested_amount": request.requested_amount
+        }))
+    ).await;
 
     Ok(Json(response))
 }
@@ -134,12 +148,23 @@ pub async fn get_address_only_stats(
 
 /// Update merchant fee payment setting
 pub async fn update_fee_setting(
+    State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
     Extension(address_service): Extension<AddressOnlyService>,
     Json(request): Json<UpdateFeeSettingRequest>,
 ) -> Result<Json<serde_json::Value>, ServiceError> {
     // Update merchant fee setting in database
     address_service.update_merchant_fee_setting(context.merchant_id, request.customer_pays_fee).await?;
+
+    // Log audit event
+    let _ = state.audit_service.log_event(
+        context.merchant_id,
+        "address_only_fee_setting_update",
+        Some(&format!("Updated address-only fee setting: customer_pays_fee={}", request.customer_pays_fee)),
+        Some(serde_json::json!({
+            "customer_pays_fee": request.customer_pays_fee
+        }))
+    ).await;
 
     Ok(Json(serde_json::json!({
         "success": true,

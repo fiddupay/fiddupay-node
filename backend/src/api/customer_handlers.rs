@@ -23,12 +23,26 @@ pub async fn register_customer(
 ) -> impl IntoResponse {
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
-    match service.register_customer(context.merchant_id, req, context.sandbox_mode).await {
-        Ok((customer, wallets)) => (StatusCode::CREATED, Json(json!({
-            "customer": customer,
-            "wallets": wallets,
-            "message": "Customer registered successfully with auto-provisioned wallets"
-        }))).into_response(),
+    match service.register_customer(context.merchant_id, req.clone(), context.sandbox_mode).await {
+        Ok((customer, wallets)) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "customer_registration",
+                Some(&format!("Registered customer {}", customer.external_id)),
+                Some(json!({
+                    "external_id": customer.external_id,
+                    "email": customer.email,
+                    "sandbox_mode": context.sandbox_mode
+                }))
+            ).await;
+
+            (StatusCode::CREATED, Json(json!({
+                "customer": customer,
+                "wallets": wallets,
+                "message": "Customer registered successfully with auto-provisioned wallets"
+            }))).into_response()
+        },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
             "error": e.to_string()
         }))).into_response(),
@@ -43,8 +57,19 @@ pub async fn provision_customer_wallets(
 ) -> impl IntoResponse {
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
-    match service.provision_wallets(context.merchant_id, &external_id, req.networks.unwrap_or_default(), context.sandbox_mode).await {
+    match service.provision_wallets(context.merchant_id, &external_id, req.networks.clone().unwrap_or_default(), context.sandbox_mode).await {
         Ok(wallets) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "customer_wallet_provision",
+                Some(&format!("Provisioned wallets for customer {}", external_id)),
+                Some(json!({
+                    "external_id": external_id,
+                    "networks": req.networks
+                }))
+            ).await;
+
             let response_wallets: Vec<_> = wallets.iter().map(|w| json!({
                 "crypto_type": w.crypto_type,
                 "network": w.network,
@@ -166,10 +191,25 @@ pub async fn pay_merchant(
         req.description.as_deref(),
         context.sandbox_mode,
     ).await {
-        Ok(transaction) => (StatusCode::OK, Json(json!({
-            "transaction": transaction,
-            "message": "Payment initiated. On-chain transaction will be processed."
-        }))).into_response(),
+        Ok(transaction) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "customer_pay_merchant",
+                Some(&format!("Customer {} paid merchant", external_id)),
+                Some(json!({
+                    "external_id": external_id,
+                    "amount": req.amount,
+                    "crypto_type": req.crypto_type,
+                    "reference_id": req.reference_id
+                }))
+            ).await;
+
+            (StatusCode::OK, Json(json!({
+                "transaction": transaction,
+                "message": "Payment initiated. On-chain transaction will be processed."
+            }))).into_response()
+        },
         Err(e) => {
             let status = match e {
                 crate::error::ServiceError::InsufficientFunds(_) => StatusCode::PAYMENT_REQUIRED,
@@ -193,10 +233,23 @@ pub async fn update_customer_status(
     match service.update_customer_status(
         context.merchant_id, &external_id, &req.status, req.reason.as_deref(), context.sandbox_mode
     ).await {
-        Ok(customer) => (StatusCode::OK, Json(json!({
-            "customer": customer,
-            "message": format!("Customer status updated to '{}'", req.status)
-        }))).into_response(),
+        Ok(customer) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "customer_status_update",
+                Some(&format!("Updated status for customer {} to {}", external_id, req.status)),
+                Some(json!({
+                    "external_id": external_id,
+                    "status": req.status
+                }))
+            ).await;
+
+            (StatusCode::OK, Json(json!({
+                "customer": customer,
+                "message": format!("Customer status updated to '{}'", req.status)
+            }))).into_response()
+        },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
             "error": e.to_string()
         }))).into_response(),
@@ -218,10 +271,24 @@ pub async fn update_customer_permissions(
     match service.update_customer_permissions(
         context.merchant_id, &external_id, req.can_withdraw, withdrawal_limit, context.sandbox_mode
     ).await {
-        Ok(customer) => (StatusCode::OK, Json(json!({
-            "customer": customer,
-            "message": "Customer permissions updated"
-        }))).into_response(),
+        Ok(customer) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "customer_permissions_update",
+                Some(&format!("Updated permissions for customer {}", external_id)),
+                Some(json!({
+                    "external_id": external_id,
+                    "can_withdraw": req.can_withdraw,
+                    "withdrawal_limit": req.withdrawal_limit
+                }))
+            ).await;
+
+            (StatusCode::OK, Json(json!({
+                "customer": customer,
+                "message": "Customer permissions updated"
+            }))).into_response()
+        },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
             "error": e.to_string()
         }))).into_response(),
@@ -243,10 +310,24 @@ pub async fn sweep_customer_wallet(
         req.amount,
         context.sandbox_mode
     ).await {
-        Ok(swept_amount) => (StatusCode::OK, Json(json!({
-            "swept_amount": swept_amount,
-            "message": "Funds swept successfully to merchant master balance"
-        }))).into_response(),
+        Ok(swept_amount) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "customer_wallet_sweep",
+                Some(&format!("Swept {} from customer {} wallet", req.crypto_type, external_id)),
+                Some(json!({
+                    "external_id": external_id,
+                    "crypto_type": req.crypto_type,
+                    "amount": swept_amount
+                }))
+            ).await;
+
+            (StatusCode::OK, Json(json!({
+                "swept_amount": swept_amount,
+                "message": "Funds swept successfully to merchant master balance"
+            }))).into_response()
+        },
         Err(e) => {
             let status = match e {
                 crate::error::ServiceError::InsufficientFunds(_) => StatusCode::PAYMENT_REQUIRED,
@@ -304,10 +385,25 @@ pub async fn withdraw_from_customer(
         &req.destination_address,
         context.sandbox_mode
     ).await {
-        Ok(withdrawal) => (StatusCode::OK, Json(json!({
-            "withdrawal": withdrawal,
-            "message": "Withdrawal requested successfully"
-        }))).into_response(),
+        Ok(withdrawal) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "customer_withdrawal",
+                Some(&format!("Withdrew {} {} from customer {}", req.amount, req.crypto_type, external_id)),
+                Some(json!({
+                    "external_id": external_id,
+                    "crypto_type": req.crypto_type,
+                    "amount": req.amount,
+                    "destination_address": req.destination_address
+                }))
+            ).await;
+
+            (StatusCode::OK, Json(json!({
+                "withdrawal": withdrawal,
+                "message": "Withdrawal requested successfully"
+            }))).into_response()
+        },
         Err(e) => {
             let status = match e {
                 crate::error::ServiceError::InsufficientFunds(_) => StatusCode::PAYMENT_REQUIRED,
@@ -328,9 +424,21 @@ pub async fn deactivate_customer(
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
     match service.deactivate_customer(context.merchant_id, &external_id, context.sandbox_mode).await {
-        Ok(_) => (StatusCode::OK, Json(json!({
-            "message": "Customer deactivated successfully"
-        }))).into_response(),
+        Ok(_) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "customer_deactivation",
+                Some(&format!("Deactivated customer {}", external_id)),
+                Some(json!({
+                    "external_id": external_id
+                }))
+            ).await;
+
+            (StatusCode::OK, Json(json!({
+                "message": "Customer deactivated successfully"
+            }))).into_response()
+        },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
             "error": e.to_string()
         }))).into_response(),

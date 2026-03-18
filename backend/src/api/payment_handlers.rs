@@ -35,8 +35,21 @@ pub async fn create_payment(
         ).into_response();
     }
 
-    match state.payment_service.create_payment(context.merchant_id, req).await {
-        Ok(response) => (StatusCode::CREATED, Json(response)).into_response(),
+    match state.payment_service.create_payment(context.merchant_id, req.clone()).await {
+        Ok(response) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "payment_creation",
+                Some(&format!("Created payment request {}", response.payment_id)),
+                Some(json!({
+                    "payment_id": response.payment_id,
+                    "amount_usd": response.amount_usd
+                }))
+            ).await;
+
+            (StatusCode::CREATED, Json(response)).into_response()
+        },
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -58,7 +71,17 @@ pub async fn cancel_payment(
     Path(payment_id): Path<String>,
 ) -> impl IntoResponse {
     match state.payment_service.cancel_payment(context.merchant_id, &payment_id).await {
-        Ok(_) => (StatusCode::OK, Json(json!({"status": "success", "message": "Payment cancelled"}))).into_response(),
+        Ok(_) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "payment_cancellation",
+                Some(&format!("Cancelled payment request {}", payment_id)),
+                Some(json!({"payment_id": payment_id}))
+            ).await;
+
+            (StatusCode::OK, Json(json!({"status": "success", "message": "Payment cancelled"}))).into_response()
+        },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -75,7 +98,21 @@ pub async fn verify_payment(
     Json(req): Json<VerifyPaymentRequest>,
 ) -> impl IntoResponse {
     match state.payment_service.verify_payment(&payment_id, &req.transaction_hash, context.merchant_id).await {
-        Ok(confirmed) => (StatusCode::OK, Json(json!({"confirmed": confirmed}))).into_response(),
+        Ok(confirmed) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "payment_verification",
+                Some(&format!("Triggered verification for payment {}. Confirmed: {}", payment_id, confirmed)),
+                Some(json!({
+                    "payment_id": payment_id,
+                    "transaction_hash": req.transaction_hash,
+                    "confirmed": confirmed
+                }))
+            ).await;
+
+            (StatusCode::OK, Json(json!({"confirmed": confirmed}))).into_response()
+        },
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -216,8 +253,20 @@ pub async fn simulate_payment(
     Path(payment_id): Path<String>,
     Json(req): Json<SimulatePaymentRequest>,
 ) -> impl IntoResponse {
-    match state.sandbox_service.simulate_confirmation(&payment_id, context.merchant_id, req.success, req.transaction_hash, req.from_address).await {
+    match state.sandbox_service.simulate_confirmation(&payment_id, context.merchant_id, req.success, req.transaction_hash.clone(), req.from_address.clone()).await {
         Ok(_) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "payment_simulation",
+                Some(&format!("Simulated payment {} (success: {})", payment_id, req.success)),
+                Some(json!({
+                    "payment_id": payment_id,
+                    "success": req.success,
+                    "transaction_hash": req.transaction_hash
+                }))
+            ).await;
+
             if req.success {
                 (StatusCode::OK, Json(json!({"success": true, "message": "Payment simulated successfully"}))).into_response()
             } else {
@@ -584,6 +633,17 @@ pub async fn finalize_payment_selection(
     .await {
         return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
     }
+
+    // Log audit event
+    let _ = state.audit_service.log_event(
+        payment_record.merchant_id,
+        "payment_selection_finalized",
+        Some(&format!("Finalized currency selection for payment {}", payment_record.payment_id)),
+        Some(json!({
+            "payment_id": payment_record.payment_id,
+            "crypto_type": crypto_type.to_string()
+        }))
+    ).await;
 
     (StatusCode::OK, Json(json!({"message": "Selection finalized", "crypto_type": crypto_type.to_string()}))).into_response()
 }

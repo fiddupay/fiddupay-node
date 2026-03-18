@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [2.5.0] - 2026-03-18
 
 ### Added
+- **Comprehensive Audit Logs**: Back-end support for tracking 20+ administrative actions (Customer registration, sweeps, payouts, setting tweaks, invoice triggers).
 - **Merchant Login**: New `merchants.login()` method with `LoginRequest`/`LoginResponse` types
 - **Public Endpoints**: Added `merchants.getSupportedCurrencies()`, `merchants.getPricing()`, `merchants.getSystemStatus()`
 - **Postman Collection**: Added 14 missing endpoints (Cancel Payment, List Refunds, Address-Only Stats/Health/Fee Setting, Wallet Balances, Revoke Wallet, Process Withdrawal, Pricing, Contact Form)

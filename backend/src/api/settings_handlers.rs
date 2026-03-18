@@ -503,6 +503,14 @@ pub async fn send_test_webhook(
          return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
     }
 
+    // Log audit event
+    let _ = state.audit_service.log_event(
+        context.merchant_id,
+        "test_webhook_trigger",
+        Some("Triggered test webhook delivery"),
+        None
+    ).await;
+
     (StatusCode::OK, Json(json!({
         "status": "success",
         "message": "Test webhook queued for delivery"
@@ -566,8 +574,21 @@ pub async fn create_invoice(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<crate::services::invoice_service::CreateInvoiceRequest>,
 ) -> impl IntoResponse {
-    match state.invoice_service.create_invoice(context.merchant_id, req).await {
-        Ok(invoice) => (StatusCode::CREATED, Json(invoice)).into_response(),
+    match state.invoice_service.create_invoice(context.merchant_id, req.clone()).await {
+        Ok(invoice) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "invoice_creation",
+                Some(&format!("Created invoice {}", invoice.invoice_id)),
+                Some(json!({
+                    "invoice_id": invoice.invoice_id,
+                    "amount_usd": invoice.amount_usd
+                }))
+            ).await;
+
+            (StatusCode::CREATED, Json(invoice)).into_response()
+        },
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
