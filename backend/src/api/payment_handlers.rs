@@ -35,7 +35,7 @@ pub async fn create_payment(
         ).into_response();
     }
 
-    match state.payment_service.create_payment(context.merchant_id, req.clone()).await {
+    match state.payment_service.create_payment(context.merchant_id, req).await {
         Ok(response) => {
             // Log audit event
             let _ = state.audit_service.log_event(

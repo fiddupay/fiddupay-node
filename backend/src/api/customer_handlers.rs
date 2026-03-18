@@ -23,7 +23,7 @@ pub async fn register_customer(
 ) -> impl IntoResponse {
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
-    match service.register_customer(context.merchant_id, req.clone(), context.sandbox_mode).await {
+    match service.register_customer(context.merchant_id, req, context.sandbox_mode).await {
         Ok((customer, wallets)) => {
             // Log audit event
             let _ = state.audit_service.log_event(

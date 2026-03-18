@@ -574,7 +574,7 @@ pub async fn create_invoice(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<crate::services::invoice_service::CreateInvoiceRequest>,
 ) -> impl IntoResponse {
-    match state.invoice_service.create_invoice(context.merchant_id, req.clone()).await {
+    match state.invoice_service.create_invoice(context.merchant_id, req).await {
         Ok(invoice) => {
             // Log audit event
             let _ = state.audit_service.log_event(
@@ -583,7 +583,7 @@ pub async fn create_invoice(
                 Some(&format!("Created invoice {}", invoice.invoice_id)),
                 Some(json!({
                     "invoice_id": invoice.invoice_id,
-                    "amount_usd": invoice.amount_usd
+                    "amount": invoice.total
                 }))
             ).await;
 
