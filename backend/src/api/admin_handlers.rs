@@ -661,8 +661,6 @@ pub async fn resolve_failed_refund(
     if !reason.contains("[REFUND FAILED]") {
         return (StatusCode::BAD_REQUEST, Json(json!({"error": "This withdrawal does not have a failed automatic refund locked status"}))).into_response();
     }
-        return (StatusCode::BAD_REQUEST, Json(json!({"error": "This withdrawal does not have a failed automatic refund locked status"}))).into_response();
-    }
 
     // 2. Lookup if there is a customer_id for this withdrawal Reference
     let customer_id: Option<i64> = sqlx::query_scalar::<_, i64>(
