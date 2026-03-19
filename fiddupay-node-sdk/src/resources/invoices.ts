@@ -14,9 +14,16 @@ export class InvoicesResource {
   /**
    * List invoices with optional limit
    */
-  async list(params?: { limit?: number }, options?: RequestOptions): Promise<Invoice[]> {
+  async list(params?: { limit?: number; [key: string]: any }, options?: RequestOptions): Promise<Invoice[]> {
     const queryParams = new URLSearchParams();
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      }
+    }
     const query = queryParams.toString();
     const path = query ? `/api/v1/merchants/invoices?${query}` : '/api/v1/merchants/invoices';
     return this.client.request<Invoice[]>('GET', path);

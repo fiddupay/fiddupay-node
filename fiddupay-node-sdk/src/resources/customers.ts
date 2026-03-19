@@ -12,7 +12,8 @@ import {
     CustomerTransaction,
     CustomerStatusRequest,
     CustomerPermissionsRequest,
-    CustomerWalletsResponse
+    CustomerWalletsResponse,
+    CustomerWallet
 } from '../types';
 
 /**
@@ -28,7 +29,7 @@ export class Customers {
      * Register a new customer in the gateway.
      * This is required before provisioning wallets.
      */
-    async register(data: CreateCustomerRequest, options?: RequestOptions): Promise<{ customer: MerchantCustomer; message: string }> {
+    async register(data: CreateCustomerRequest, options?: RequestOptions): Promise<{ customer: MerchantCustomer; wallets: CustomerWallet[]; message: string }> {
         return this.client.post('/api/v1/merchants/customers', data, options);
     }
 
@@ -66,8 +67,13 @@ export class Customers {
     }> {
         const queryParams = new URLSearchParams();
 
-        if (params?.limit) queryParams.append('limit', params.limit.toString());
-        if (params?.offset) queryParams.append('offset', params.offset.toString());
+        if (params) {
+            for (const [key, value] of Object.entries(params)) {
+                if (value !== undefined && value !== null) {
+                    queryParams.append(key, value.toString());
+                }
+            }
+        }
 
         const query = queryParams.toString();
         const path = query ? `/api/v1/merchants/customers?${query}` : '/api/v1/merchants/customers';
@@ -115,8 +121,14 @@ export class Customers {
         external_id: string;
     }> {
         const queryParams = new URLSearchParams();
-        if (params?.limit) queryParams.append('limit', params.limit.toString());
-        if (params?.offset) queryParams.append('offset', params.offset.toString());
+
+        if (params) {
+            for (const [key, value] of Object.entries(params)) {
+                if (value !== undefined && value !== null) {
+                    queryParams.append(key, value.toString());
+                }
+            }
+        }
         
         const path = `/api/v1/merchants/customers/${externalId}/transactions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
         return this.client.get<{

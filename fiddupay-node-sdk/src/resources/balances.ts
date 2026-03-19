@@ -21,15 +21,19 @@ export class Balances {
   /**
    * Get balance history
    */
-  async getHistory(params?: ListBalanceHistoryParams): Promise<PaginatedResponse<BalanceHistory>> {
+  async getHistory(params?: ListBalanceHistoryParams): Promise<BalanceHistory> {
     const queryParams = new URLSearchParams();
 
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.offset) queryParams.append('offset', params.offset.toString());
-    if (params?.crypto_type) queryParams.append('crypto_type', params.crypto_type);
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      }
+    }
 
     const url = `/api/v1/merchants/balance/history${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    return this.client.request<PaginatedResponse<BalanceHistory>>('GET', url);
+    return this.client.request<BalanceHistory>('GET', url);
   }
 }
 
@@ -39,16 +43,18 @@ export class AuditLogs {
   /**
    * Get audit logs
    */
-  async list(params?: ListAuditLogsParams): Promise<PaginatedResponse<AuditLog>> {
+  async list(params?: ListAuditLogsParams): Promise<AuditLog[]> {
     const queryParams = new URLSearchParams();
 
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.offset) queryParams.append('offset', params.offset.toString());
-    if (params?.action) queryParams.append('action', params.action);
-    if (params?.start_date) queryParams.append('start_date', params.start_date);
-    if (params?.end_date) queryParams.append('end_date', params.end_date);
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      }
+    }
 
     const url = `/api/v1/merchants/audit-logs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    return this.client.request<PaginatedResponse<AuditLog>>('GET', url);
+    return this.client.request<AuditLog[]>('GET', url);
   }
 }

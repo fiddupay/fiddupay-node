@@ -68,10 +68,13 @@ export class Payments {
   async list(params?: ListPaymentsRequest, options?: RequestOptions): Promise<ListPaymentsResponse> {
     const queryParams = new URLSearchParams();
 
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.offset) queryParams.append('offset', params.offset.toString());
-    if (params?.status) queryParams.append('status', params.status);
-    if (params?.crypto_type) queryParams.append('crypto_type', params.crypto_type);
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      }
+    }
 
     const query = queryParams.toString();
     const path = query ? `/api/v1/merchants/payments?${query}` : '/api/v1/merchants/payments';

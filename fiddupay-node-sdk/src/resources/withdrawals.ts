@@ -22,10 +22,13 @@ export class Withdrawals {
   async list(params?: ListWithdrawalsParams): Promise<Withdrawal[]> {
     const queryParams = new URLSearchParams();
 
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.offset) queryParams.append('offset', params.offset.toString());
-    if (params?.status) queryParams.append('status', params.status);
-    if (params?.crypto_type) queryParams.append('crypto_type', params.crypto_type);
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      }
+    }
 
     const url = `/api/v1/merchants/withdrawals${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.client.request<Withdrawal[]>('GET', url);

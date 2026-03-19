@@ -59,6 +59,15 @@ export interface CreatePaymentRequest {
   expires_in?: number; // seconds, alternative to expiration_minutes
   webhook_url?: string;
   partial_payments_enabled?: boolean;
+
+  // Invoice-specific fields (Supported by backend)
+  is_invoice?: boolean;
+  customer_name?: string;
+  customer_email?: string;
+  items?: InvoiceItem[];
+  tax?: string;
+  due_date?: string;
+  notes?: string;
 }
 
 export interface SelectionRequest {
@@ -107,6 +116,25 @@ export interface Payment {
   sandbox_mode?: boolean;
   partial_payments?: Record<string, any>;
 }
+/**
+ * Address-Only Mode Types
+ */
+export interface CreateAddressOnlyPaymentRequest {
+  crypto_type: CryptoType;
+  merchant_address: string;
+  requested_amount: string;
+}
+
+export interface AddressOnlyPaymentResponse {
+  payment_id: string;
+  gateway_deposit_address: string;
+  requested_amount: string;
+  customer_amount: string;
+  processing_fee: string;
+  customer_pays_fee: boolean;
+  customer_instructions: string;
+  supported_currencies: string[];
+}
 
 export interface AddressOnlyPayment {
   payment_id: string;
@@ -145,10 +173,14 @@ export interface AddressOnlyHealthStatus {
 }
 
 export interface ListPaymentsRequest {
-  limit?: number;
-  offset?: number;
+  page?: number;
+  page_size?: number;
   status?: PaymentStatus;
   crypto_type?: CryptoType;
+  blockchain?: string;
+  from_date?: string;
+  to_date?: string;
+  [key: string]: any;
 }
 
 export interface PaginationInfo {
@@ -186,7 +218,6 @@ export interface Refund {
 export interface AnalyticsQuery {
   from_date?: string;
   to_date?: string;
-  granularity?: 'day' | 'week' | 'month';
   status?: string;
   blockchain?: string;
   format?: 'csv' | 'json' | 'xlsx';
@@ -225,26 +256,28 @@ export interface WebhookEvent {
   created_at: string;
 }
 
+export interface TimeSeriesPoint {
+  date: string;
+  volume_usd: string;
+  count: number;
+}
+
+export interface BlockchainStats {
+  volume_usd: string;
+  payment_count: number;
+  average_value: string;
+}
+
 export interface Analytics {
-  period: {
-    start_date: string;
-    end_date: string;
-    granularity: 'day' | 'week' | 'month';
-  };
-  summary: {
-    total_payments: number;
-    total_volume_usd: string;
-    successful_payments: number;
-    failed_payments: number;
-    success_rate: number;
-    average_payment_usd: string;
-  };
-  data: Array<{
-    date: string;
-    payments: number;
-    volume_usd: string;
-    success_rate: number;
-  }>;
+  total_volume_usd: string;
+  successful_payments: number;
+  failed_payments: number;
+  pending_payments: number;
+  total_payments: number;
+  total_fees_paid: string;
+  average_transaction_value: string;
+  by_blockchain: Record<string, BlockchainStats>;
+  payment_trends: TimeSeriesPoint[];
 }
 
 export interface RequestOptions {
@@ -348,6 +381,7 @@ export interface Withdrawal {
   withdrawal_id: string;
   crypto_type: CryptoType;
   amount: string;
+  amount_usd: string; // Added to match backend
   destination_address: string;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
   fee: string;
@@ -367,6 +401,7 @@ export interface ListWithdrawalsParams {
   offset?: number;
   status?: string;
   crypto_type?: CryptoType;
+  [key: string]: any;
 }
 
 // Security Types
@@ -420,6 +455,7 @@ export interface UpdateSecuritySettingsRequest {
 
 export interface SetLockRequest {
   locked: boolean;
+  password?: string; // Required by backend for verification
 }
 
 export interface ListSecurityEventsParams {
@@ -436,55 +472,52 @@ export interface ListSecurityAlertsParams {
 
 // Balance Types
 export interface BalanceEntry {
+  merchant_id: number;
   crypto_type: CryptoType;
-  total: string;
-  available: string;
-  reserved: string;
-  total_usd: string;
-  available_usd: string;
-  reserved_usd: string;
+  available_balance: string;
+  reserved_balance: string;
+  total_balance: string;
+  available_balance_usd: string;
+  reserved_balance_usd: string;
+  total_balance_usd: string;
+  last_updated?: string;
 }
 
-export interface Balance {
+export type Balance = BalanceEntry[];
+
+export interface BalanceTrendPoint {
+  date: string;
   total_usd: string;
-  available_usd: string;
-  reserved_usd: string;
-  balances: BalanceEntry[];
+  balances: Record<string, string>; // crypto_type -> amount
 }
 
 export interface BalanceHistory {
-  transaction_id: string;
-  crypto_type: CryptoType;
-  amount: string;
-  type: 'credit' | 'debit';
-  description: string;
-  created_at: string;
+  points: BalanceTrendPoint[];
 }
 
 export interface ListBalanceHistoryParams {
   limit?: number;
-  offset?: number;
-  crypto_type?: CryptoType;
+  [key: string]: any;
 }
 
-// Audit Log Types
 export interface AuditLog {
-  log_id: string;
-  action: string;
-  resource_type: string;
-  resource_id: string;
-  details: Record<string, any>;
+  id: number;
+  merchant_id?: number;
+  action_type: string;
+  entity_type?: string;
+  entity_id?: string;
   ip_address?: string;
   user_agent?: string;
+  details?: Record<string, any>;
   created_at: string;
 }
 
 export interface ListAuditLogsParams {
+  from?: string;
+  to?: string;
+  action_type?: string;
   limit?: number;
-  offset?: number;
-  action?: string;
-  start_date?: string;
-  end_date?: string;
+  [key: string]: any;
 }
 
 // Sandbox Types
@@ -520,6 +553,7 @@ export interface CreateInvoiceRequest {
 }
 
 export interface Invoice {
+  id: number;
   invoice_id: string;
   merchant_id: number;
   customer_email?: string;
@@ -550,6 +584,7 @@ export interface PaginatedResponse<T> {
 export interface ListCustomersParams {
   limit?: number;
   offset?: number;
+  [key: string]: any;
 }
 
 export interface CustomerWithdrawalRequest {
@@ -598,9 +633,13 @@ export interface CustomerBalance {
   merchant_id: number;
   crypto_type: string;
   available_balance: string;
+  available_balance_usd?: string; // Added to match backend
   locked_balance: string;
+  locked_balance_usd?: string; // Added to match backend
   total_balance: string;
+  total_balance_usd?: string; // Added to match backend
   last_updated_at: string;
+  sandbox_mode?: boolean; // Added to match backend
 }
 
 export interface CustomerBalanceResponse {
@@ -625,12 +664,18 @@ export interface CustomerTransaction {
   id: number;
   customer_id: number;
   merchant_id: number;
+  type: string; // WITHDRAWAL, MERCHANT_PAYMENT, SWEEP
   crypto_type: string;
   amount: string;
-  amount_usd: string;
-  tx_hash: string;
+  fee: string;
   status: string;
+  destination_address?: string;
+  transaction_hash?: string;
+  reference_id?: string;
+  description?: string;
   created_at: string;
+  updated_at: string;
+  sandbox_mode: boolean;
 }
 
 export interface CustomerStatusRequest {
@@ -641,6 +686,68 @@ export interface CustomerStatusRequest {
 export interface CustomerPermissionsRequest {
   can_withdraw?: boolean;
   withdrawal_limit?: string;
+}
+
+/**
+ * Public Endpoint Types
+ */
+export interface SupportedCurrencyItem {
+  crypto_type: string;
+  network: string;
+  icon_url?: string;
+  confirmations: number;
+  price_usd: number;
+}
+
+export interface SupportedCurrenciesResponse {
+  currency_groups: Record<string, SupportedCurrencyItem[]>;
+  description: string;
+}
+
+export interface PricingResponse {
+  transaction_fee_percentage: string;
+  daily_volume_limit_non_kyc_usd: string;
+  supported_networks: number;
+  supported_cryptocurrencies: string[];
+  features: {
+    instant_settlements: boolean;
+    real_time_notifications: boolean;
+    webhook_support: boolean;
+    sandbox_testing: boolean;
+    api_access: boolean;
+    dashboard_analytics: boolean;
+  };
+  limits: {
+    kyc_verified: {
+      daily_volume_limit: string;
+      transaction_limit: string;
+    };
+    non_kyc: {
+      daily_volume_limit: string;
+      transaction_limit: string;
+    };
+  };
+}
+
+export interface ServiceStatus {
+  name: string;
+  description: string;
+  status: string;
+  response_time?: number;
+  last_check: string;
+}
+
+export interface UptimeStats {
+  thirty_days: number;
+  ninety_days: number;
+  one_year: number;
+}
+
+export interface SystemStatus {
+  overall_status: string;
+  services: ServiceStatus[];
+  uptime_stats: UptimeStats;
+  last_updated: string;
 }
 
 /**

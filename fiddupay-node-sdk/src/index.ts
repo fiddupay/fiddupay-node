@@ -15,6 +15,8 @@ import { Customers } from './resources/customers';
 import { Sandbox } from './resources/sandbox';
 import { Contact } from './resources/contact';
 import { Transactions } from './resources/transactions';
+import { Public } from './resources/public';
+import { AddressOnly } from './resources/address_only';
 
 export class FidduPayClient {
   private client: HttpClient;
@@ -34,6 +36,8 @@ export class FidduPayClient {
   public readonly sandbox: Sandbox;
   public readonly contact: Contact;
   public readonly transactions: Transactions;
+  public readonly public: Public;
+  public readonly addressOnly: AddressOnly;
 
   constructor(config: FidduPayConfig) {
     this.validateConfig(config);
@@ -55,6 +59,8 @@ export class FidduPayClient {
     this.sandbox = new Sandbox(this.client);
     this.contact = new Contact(this.client);
     this.transactions = new Transactions(this.client);
+    this.public = new Public(this.client);
+    this.addressOnly = new AddressOnly(this.client);
   }
 
   private validateConfig(config: FidduPayConfig): void {
@@ -86,6 +92,7 @@ export class FidduPayClient {
 export * from './types';
 export * from './errors';
 export { Webhooks } from './resources/webhooks';
+export { Public } from './resources/public';
 
 // Backward compatibility alias
 export { FidduPayClient as FidduPay };
