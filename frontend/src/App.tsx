@@ -26,16 +26,28 @@ import CookiesPage from '@/pages/CookiesPage'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import '@/styles/globals.css'
 
-// Lazy load pages for better performance
-const DashboardPage = React.lazy(() => import('@/pages/DashboardPage'))
-const PaymentsPage = React.lazy(() => import('@/pages/PaymentsPage'))
-const WalletsPage = React.lazy(() => import('@/pages/WalletsPage'))
-const BalancePage = React.lazy(() => import('@/pages/BalancePage'))
-const WithdrawalsPage = React.lazy(() => import('@/pages/WithdrawalsPage'))
+// Helper for lazy loading with automatic retry on chunk load failure (e.g., during redeployment)
+function lazyWithRetry(componentImport: () => Promise<any>) {
+  return React.lazy(() =>
+    componentImport().catch((error) => {
+      console.error("Chunk load failed, reloading dynamic import...", error);
+      window.location.reload();
+      return new Promise(() => {}); // Stop execution while reloading
+    })
+  );
+}
 
-const ReportsPage = React.lazy(() => import('@/pages/ReportsPage'))
-const SettingsPage = React.lazy(() => import('@/pages/SettingsPage'))
-const MerchantCustomersPage = React.lazy(() => import('@/pages/MerchantCustomersPage'))
+// Lazy load pages for better performance
+const DashboardPage = lazyWithRetry(() => import('@/pages/DashboardPage'))
+const PaymentsPage = lazyWithRetry(() => import('@/pages/PaymentsPage'))
+const WalletsPage = lazyWithRetry(() => import('@/pages/WalletsPage'))
+const BalancePage = lazyWithRetry(() => import('@/pages/BalancePage'))
+const WithdrawalsPage = lazyWithRetry(() => import('@/pages/WithdrawalsPage'))
+
+const ReportsPage = lazyWithRetry(() => import('@/pages/ReportsPage'))
+const SettingsPage = lazyWithRetry(() => import('@/pages/SettingsPage'))
+const MerchantCustomersPage = lazyWithRetry(() => import('@/pages/MerchantCustomersPage'))
+
 
 const App: React.FC = () => {
   const { loadUser, loading } = useAuthStore()

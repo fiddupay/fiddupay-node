@@ -212,13 +212,14 @@ impl MerchantService {
         // Mirror merchant_wallets (managed / imported)
         sqlx::query(
             r#"
-            INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key)
-            SELECT merchant_id, crypto_type, network, address, is_active, $1, encrypted_private_key
+            INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key, wallet_mode)
+            SELECT merchant_id, crypto_type, network, address, is_active, $1, encrypted_private_key, wallet_mode
             FROM merchant_wallets
             WHERE merchant_id = $2 AND sandbox_mode = $3 AND address != ''
             ON CONFLICT (merchant_id, crypto_type, sandbox_mode) DO NOTHING
             "#
         )
+
         .bind(target_sandbox)
         .bind(merchant_id)
         .bind(source_sandbox)
