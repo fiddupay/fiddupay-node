@@ -10,6 +10,7 @@
       "jest"
     ],
     "outDir": "./dist",
+    "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -21,8 +22,7 @@
     "resolveJsonModule": true
   },
   "include": [
-    "src/**/*",
-    "tests/**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
