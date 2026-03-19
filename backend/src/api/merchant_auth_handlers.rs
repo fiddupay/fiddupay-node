@@ -147,7 +147,7 @@ pub async fn register_merchant(
             };
             
             // Log registration and trace
-            state.audit_service.log_event(
+            let _ = state.audit_service.log_event(
                 response.merchant_id,
                 "registration",
                 Some("Successfully registered new merchant"),
@@ -280,7 +280,7 @@ pub async fn login_merchant(
                 };
 
                 // Log login and trace
-                state.audit_service.log_event(
+                let _ = state.audit_service.log_event(
                     m_id,
                     "login",
                     Some("Successfully logged in via dashboard"),

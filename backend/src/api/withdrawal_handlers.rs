@@ -57,7 +57,7 @@ pub async fn create_withdrawal(
             }
 
             // Log withdrawal creation and trace
-            state.audit_service.log_event(
+            let _ = state.audit_service.log_event(
                 context.merchant_id,
                 "withdrawal_creation",
                 Some(&format!("Created withdrawal request for {}{}", withdrawal.amount, withdrawal.crypto_type)),
@@ -113,7 +113,7 @@ pub async fn cancel_withdrawal(
     match state.withdrawal_service.cancel_withdrawal(context.merchant_id, &withdrawal_id).await {
         Ok(_) => {
             // Log withdrawal cancellation and trace
-            state.audit_service.log_event(
+            let _ = state.audit_service.log_event(
                 context.merchant_id,
                 "withdrawal_cancellation",
                 Some(&format!("Cancelled withdrawal {}", withdrawal_id)),

@@ -666,7 +666,7 @@ impl MerchantService {
         .await?;
 
         // Log wallet address change
-        self.audit_service.log_event(
+        let _ = self.audit_service.log_event(
             merchant_id,
             "wallet_address_update",
             Some(&format!("Updated {} wallet address", crypto_type_str)),
@@ -788,7 +788,7 @@ impl MerchantService {
         .await?;
 
         // Log settlement mode update
-        self.audit_service.log_event(
+        let _ = self.audit_service.log_event(
             merchant_id,
             "settlement_mode_update",
             Some(&format!("Updated settlement mode to {}", mode)),

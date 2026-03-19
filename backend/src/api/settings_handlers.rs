@@ -244,7 +244,7 @@ pub async fn switch_environment(
                 response["api_key"] = json!(api_key);
             }
             // Log switch and trace
-            state.audit_service.log_event(
+            let _ = state.audit_service.log_event(
                 context.merchant_id,
                 "environment_switch",
                 Some(&format!("Switched to {}", if req.to_live { "live" } else { "sandbox" })),
@@ -271,7 +271,7 @@ pub async fn generate_api_key(
     match state.merchant_service.generate_and_store_api_key_with_expiry(context.merchant_id, req.is_live, None).await {
         Ok(api_key) => {
             // Log key generation and trace
-            state.audit_service.log_event(
+            let _ = state.audit_service.log_event(
                 context.merchant_id,
                 "api_key_generation",
                 Some(&format!("Generated new {} API key", if req.is_live { "live" } else { "test" })),
@@ -313,7 +313,7 @@ pub async fn rotate_api_key(
         Ok(new_api_key) => {
             // Log key rotation and trace
             let is_live = new_api_key.starts_with("sk_live_");
-            state.audit_service.log_event(
+            let _ = state.audit_service.log_event(
                 context.merchant_id,
                 "api_key_rotation",
                 Some(&format!("Rotated {} API key", if is_live { "live" } else { "test" })),
@@ -414,7 +414,7 @@ pub async fn update_merchant_settings(
     }
 
     // Log settings update and trace
-    state.audit_service.log_event(
+    let _ = state.audit_service.log_event(
         context.merchant_id,
         "settings_update",
         Some("Updated merchant profile settings"),
@@ -668,7 +668,7 @@ pub async fn toggle_wallet_lock(
     match state.merchant_service.set_wallet_lock(context.merchant_id, req.locked).await {
         Ok(_) => {
             // Log lock toggle and trace
-            state.audit_service.log_event(
+            let _ = state.audit_service.log_event(
                 context.merchant_id,
                 "wallet_lock_toggle",
                 Some(&format!("Merchant wallets {}", if req.locked { "locked" } else { "unlocked" })),
@@ -723,7 +723,7 @@ pub async fn toggle_customer_wallet_lock(
     match state.merchant_service.set_customer_wallet_lock(context.merchant_id, req.locked).await {
         Ok(_) => {
             // Log lock toggle and trace
-            state.audit_service.log_event(
+            let _ = state.audit_service.log_event(
                 context.merchant_id,
                 "customer_wallet_lock_toggle",
                 Some(&format!("Customer wallets {}", if req.locked { "locked" } else { "unlocked" })),

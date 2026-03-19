@@ -709,7 +709,7 @@ pub struct GasValidationResult {
 }
 
 impl GasValidationResult {
-    pub fn Sufficient() -> Self {
+    pub fn sufficient() -> Self {
         Self {
             valid: true,
             message: "Sufficient".to_string(),

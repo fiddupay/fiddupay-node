@@ -148,7 +148,7 @@ pub async fn create_refund(
     match state.refund_service.create_refund(context.merchant_id, req.payment_id, req.amount, req.reason).await {
         Ok(response) => {
             // Log refund creation and trace
-            state.audit_service.log_event(
+            let _ = state.audit_service.log_event(
                 context.merchant_id,
                 "refund_creation",
                 Some(&format!("Created refund for payment {}", response.payment_id)),
@@ -190,7 +190,7 @@ pub async fn complete_refund(
     match state.refund_service.complete_refund(refund_id.clone(), req.transaction_hash.clone()).await {
         Ok(_) => {
             // Log refund completion and trace
-            state.audit_service.log_event(
+            let _ = state.audit_service.log_event(
                 context.merchant_id,
                 "refund_completion",
                 Some(&format!("Completed refund {}", refund_id)),

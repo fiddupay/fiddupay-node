@@ -103,7 +103,7 @@ pub async fn delete_wallet(
     match result {
         Ok(_) => {
             // Log wallet deletion and trace
-            state.audit_service.log_event(
+            let _ = state.audit_service.log_event(
                 context.merchant_id,
                 "wallet_deletion",
                 Some(&format!("Removed wallet configuration for {}", crypto_type)),
@@ -307,7 +307,7 @@ pub async fn setup_wallet(
                     ).await {
                         Ok(config) => {
                             // Log forwarding setup and trace
-                            state.audit_service.log_event(
+                            let _ = state.audit_service.log_event(
                                 context.merchant_id,
                                 "wallet_setup_forwarding",
                                 Some(&format!("Configured {} forwarding address", req.crypto_type)),
@@ -336,7 +336,7 @@ pub async fn setup_wallet(
                     match wallet_service.configure_address_only(context.merchant_id, sandbox_mode, configure_request).await {
                         Ok(config) => {
                             // Log address-only setup and trace
-                            state.audit_service.log_event(
+                            let _ = state.audit_service.log_event(
                                 context.merchant_id,
                                 "wallet_setup_address_only",
                                 Some(&format!("Configured {} address-only wallet", req.crypto_type)),
@@ -385,7 +385,7 @@ pub async fn setup_wallet(
                     };
 
                     // Log wallet generation and trace
-                    state.audit_service.log_event(
+                    let _ = state.audit_service.log_event(
                         context.merchant_id,
                         "wallet_generation",
                         Some(&format!("Generated new {} wallet ({})", req.crypto_type, if is_managed { "managed" } else { "user-managed" })),
