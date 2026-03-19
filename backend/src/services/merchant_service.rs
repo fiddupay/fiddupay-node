@@ -252,8 +252,9 @@ impl MerchantService {
                    kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
                    role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
                    country, applicant_role, business_country, business_license_number, 
-                   business_certificate_url, terms_accepted 
+                   business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked 
             FROM merchants WHERE id = $1
+
             "#
 
         )
