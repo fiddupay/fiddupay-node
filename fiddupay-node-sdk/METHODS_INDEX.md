@@ -1,5 +1,14 @@
 # Complete SDK Method Index
 
+## AddressOnly (`fiddupay.addressOnly`)
+- `fiddupay.addressOnly.create()`
+- `fiddupay.addressOnly.retrieve()`
+- `fiddupay.addressOnly.listCurrencies()`
+- `fiddupay.addressOnly.getStats()`
+- `fiddupay.addressOnly.getHealth()`
+- `fiddupay.addressOnly.getFeeSetting()`
+- `fiddupay.addressOnly.setFeeSetting()`
+
 ## Analytics (`fiddupay.analytics`)
 - `fiddupay.analytics.retrieve()`
 - `fiddupay.analytics.export()`
@@ -57,14 +66,6 @@
 - `fiddupay.payments.cancel()`
 - `fiddupay.payments.verify()`
 - `fiddupay.payments.finalizeSelection()`
-- `fiddupay.payments.getAnalytics()`
-- `fiddupay.payments.createAddressOnly()`
-- `fiddupay.payments.retrieveAddressOnly()`
-- `fiddupay.payments.listAddressOnlyCurrencies()`
-- `fiddupay.payments.getAddressOnlyStats()`
-- `fiddupay.payments.getAddressOnlyHealth()`
-- `fiddupay.payments.updateFeeSetting()`
-- `fiddupay.payments.getFeeSetting()`
 
 ## Refunds (`fiddupay.refunds`)
 - `fiddupay.refunds.create()`

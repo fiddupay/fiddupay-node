@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.5.1
+# FidduPay Node.js SDK v2.5.2
 
-[![version](https://img.shields.io/badge/version-v2.5.1-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.5.2-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -115,7 +115,8 @@ const payment = await client.payments.retrieve('pay_123');
 
 ```typescript
 const payments = await client.payments.list({
-  limit: 10,
+  page: 1,
+  page_size: 10,
   status: 'completed'
 });
 ```
@@ -394,7 +395,8 @@ Grouped by `client.*` resource modules for reference:
 | Module | Methods |
 | :--- | :--- |
 | **`merchants`** | `register()`, `retrieve()`, `getStatus()`, `switchEnvironment()`, `generateApiKey()`, `rotateApiKey()`, `getFeeSetting()`, `updateSettings()`, `getSettings()`, `sendTestWebhook()`, `getIpWhitelist()`, `getBalance()`, `getAuditLogs()`, `getBalanceHistory()` |
-| **`payments`** | `create()`, `retrieve()`, `list()`, `cancel()`, `verify()`, `finalizeSelection()`, `createAddressOnly()`, `retrieveAddressOnly()`, `listAddressOnlyCurrencies()`, `getAddressOnlyStats()`, `getAddressOnlyHealth()`, `getAnalytics()`, `updateFeeSetting()`, `getFeeSetting()` |
+| **`payments`** | `create()`, `retrieve()`, `list()`, `cancel()`, `verify()`, `finalizeSelection()`, `getAnalytics()`, `updateFeeSetting()`, `getFeeSetting()` |
+| **`addressOnly`** | `create()`, `retrieve()`, `listCurrencies()`, `getStats()`, `getHealth()`, `getFeeSetting()`, `setFeeSetting()` |
 | **`wallets`** | `setup()`, `getConfigurations()`, `getBalances()`, `getGasEstimates()`, `checkGasRequirements()`, `gasCheck()`, `checkWithdrawalCapability()`, `revoke()` |
 | **`balances`** | `get()`, `getHistory()` |
 | **`auditLogs`** | `list()` |

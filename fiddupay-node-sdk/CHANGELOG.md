@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.5.2] - 2026-03-19
+
+### Added
+- **AddressOnly Resource**: Dedicated module for Forwarding-mode payment management (`create()`, `retrieve()`, `listCurrencies()`, `getStats()`, `getHealth()`, `getFeeSetting()`, `setFeeSetting()`).
+
+### Changed
+- **Type Alignment**: Updated `ListPaymentsRequest` from `limit`/`offset` to standard `page`/`page_size` pagination filters to strictly match backend structure.
+- **Field Consistency**: Renamed `tx_hash` to `transaction_hash` in `CustomerTransaction` schemas.
+
+### Fixed
+- **Filter Stripping**: Patched list resources resolving dictionary stripping on payment analytics list queries.
+
 ## [2.5.0] - 2026-03-18
 
 ### Added
