@@ -50,7 +50,7 @@ pub async fn create_payment(
 
             (StatusCode::CREATED, Json(response)).into_response()
         },
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -61,7 +61,7 @@ pub async fn get_payment(
 ) -> impl IntoResponse {
     match state.payment_service.get_payment(&payment_id, context.merchant_id).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
-        Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -82,7 +82,7 @@ pub async fn cancel_payment(
 
             (StatusCode::OK, Json(json!({"status": "success", "message": "Payment cancelled"}))).into_response()
         },
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -113,7 +113,7 @@ pub async fn verify_payment(
 
             (StatusCode::OK, Json(json!({"confirmed": confirmed}))).into_response()
         },
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -125,7 +125,7 @@ pub async fn list_payments(
     filters.is_sandbox = Some(context.sandbox_mode);
     match state.payment_service.list_payments(context.merchant_id, filters).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -162,7 +162,7 @@ pub async fn create_refund(
 
             (StatusCode::CREATED, Json(response)).into_response()
         },
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -172,7 +172,7 @@ pub async fn get_refund(
 ) -> impl IntoResponse {
     match state.refund_service.get_refund(refund_id).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
-        Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": "Refund not found"}))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -203,7 +203,7 @@ pub async fn complete_refund(
 
             (StatusCode::OK, Json(json!({"success": true}))).into_response()
         },
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -232,7 +232,7 @@ pub async fn list_refunds(
             "total": total,
             "has_more": (offset + limit) < total
         }))).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -273,7 +273,7 @@ pub async fn simulate_payment(
                 (StatusCode::OK, Json(json!({"success": true, "message": "Payment simulation failed as requested"}))).into_response()
             }
         },
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -527,10 +527,7 @@ pub async fn payment_status(
             ).into_response()
         },
         Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
-        Err(e) => {
-            let error_msg = e.to_string();
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": error_msg}))).into_response()
-        },
+        Err(e) => e.into_response(),
     }
 }
 
@@ -561,7 +558,7 @@ pub async fn finalize_payment_selection(
     let payment_link = match payment_link_res {
         Ok(Some(link)) => link,
         Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment link not found"}))).into_response(),
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     };
 
     let pl_payment_id: i64 = payment_link.get("payment_id");
@@ -586,7 +583,7 @@ pub async fn finalize_payment_selection(
     let payment_record = match payment_record_res {
         Ok(Some(p)) => p,
         Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment record not found"}))).into_response(),
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     };
 
     if payment_record.status != "SELECTION_REQUIRED" {
@@ -599,13 +596,13 @@ pub async fn finalize_payment_selection(
     
     let to_address = match state.merchant_service.get_wallet_address(merchant_id, crypto_type).await {
         Ok(addr) => addr,
-        Err(e) => return (StatusCode::BAD_REQUEST, Json(json!({"error": format!("Failed to get/generate merchant wallet: {}", e)}))).into_response(),
+        Err(e) => e.into_response(),
     };
 
     let price_service = state.price_service.clone();
     let price = match price_service.get_price(crypto_type).await {
         Ok(p) => p,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Price fetch failed: {}", e)}))).into_response(),
+        Err(e) => e.into_response(),
     };
     use rust_decimal::prelude::FromPrimitive;
     let price_decimal = Decimal::from_f64(price).unwrap_or(Decimal::ONE);
@@ -631,7 +628,7 @@ pub async fn finalize_payment_selection(
     .bind(payment_record.id)
     .execute(&pool)
     .await {
-        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
+        return e.into_response();
     }
 
     // Log audit event
@@ -701,7 +698,7 @@ pub async fn verify_payment_trigger(
             (StatusCode::ACCEPTED, Json(json!({"status": "verification_started"}))).into_response()
         },
         Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 

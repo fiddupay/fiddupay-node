@@ -56,7 +56,14 @@ pub async fn ip_whitelist_middleware(
         }
 
         // Check if request IP is in whitelist
-        let request_ip = addr.ip().to_string();
+        let headers = request.headers();
+        let request_ip = headers.get("x-forwarded-for")
+            .or_else(|| headers.get("x-real-ip"))
+            .and_then(|h| h.to_str().ok())
+            .and_then(|h| h.split(',').next())
+            .map(|ip| ip.trim().to_string())
+            .unwrap_or_else(|| addr.ip().to_string());
+            
         let is_whitelisted = whitelist.iter().any(|entry| {
             use sqlx::Row;
             let ip: String = entry.get("ip_address");

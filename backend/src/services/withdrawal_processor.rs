@@ -19,16 +19,18 @@ impl WithdrawalProcessor {
     pub async fn process_withdrawal(&self, withdrawal_id: &str) -> Result<(), ServiceError> {
         tracing::info!("Starting processing for withdrawal: {}", withdrawal_id);
         
-        // 1. Fetch the withdrawal details
+        // 1. Fetch the withdrawal with FOR UPDATE lock inside a transaction
+        let mut tx = self.db_pool.begin().await?;
+        
         let withdrawal = sqlx::query(
             r#"
             SELECT id, withdrawal_id, merchant_id, crypto_type, amount, destination_address, status, sandbox_mode
             FROM withdrawals 
-            WHERE withdrawal_id = $1
+            WHERE withdrawal_id = $1 FOR UPDATE
             "#
         )
         .bind(withdrawal_id)
-        .fetch_optional(&self.db_pool)
+        .fetch_optional(&mut *tx)
         .await?
         .ok_or_else(|| ServiceError::NotFound("Withdrawal not found".to_string()))?;
 
@@ -39,15 +41,24 @@ impl WithdrawalProcessor {
         let wd_destination_address: String = withdrawal.get("destination_address");
         let wd_sandbox_mode: bool = withdrawal.get("sandbox_mode");
 
+        if wd_status != "PENDING" {
+            tracing::warn!("Withdrawal {} requested for processing but has status {}", withdrawal_id, wd_status);
+            return Err(ServiceError::ValidationError("Withdrawal already processed or processing".to_string()));
+        }
+
+        // Atomically set state to PROCESSING to lock it against concurrent handlers
+        sqlx::query("UPDATE withdrawals SET status = 'PROCESSING', updated_at = NOW() WHERE withdrawal_id = $1")
+            .bind(withdrawal_id)
+            .execute(&mut *tx)
+            .await?;
+
+        // COMMIT state lock before slow on-chain call
+        tx.commit().await?;
+
         tracing::debug!(
             "Withdrawal {}: merchant={}, crypto={}, amount={}, sandbox={}", 
             withdrawal_id, wd_merchant_id, wd_crypto_type, wd_amount, wd_sandbox_mode
         );
-
-        if wd_status != "PENDING" {
-            tracing::warn!("Withdrawal {} requested for processing but has status {}", withdrawal_id, wd_status);
-            return Err(ServiceError::ValidationError("Withdrawal already processed".to_string()));
-        }
 
         // 2. Fetch the merchant's managed wallet for this crypto type
         let wallet = sqlx::query(
@@ -93,15 +104,42 @@ impl WithdrawalProcessor {
             Err(e) => {
                 // If it fails on-chain, reject the withdrawal with the error
                 tracing::error!("Withdrawal {} on-chain submission FAILED: {}", withdrawal_id, e);
+                let mut error_msg = e.to_string();
                 
-                // REFUND the merchant's ledger balance (Requirement: Ledger Security)
-                if let Err(refund_err) = self.refund_withdrawal_balance(wd_merchant_id, &wd_crypto_type, wd_amount, wd_sandbox_mode).await {
-                    tracing::error!("CRITICAL: Failed to refund balance for failed withdrawal {}: {}", withdrawal_id, refund_err);
+                // Lookup IF this withdrawal belongs to a Customer Transaction
+                let customer_id: Option<i64> = sqlx::query_scalar::<_, i64>(
+                    "SELECT customer_id FROM customer_transactions WHERE reference_id = $1"
+                )
+                .bind(withdrawal_id)
+                .fetch_optional(&self.db_pool)
+                .await
+                .unwrap_or(None);
+
+                if let Some(c_id) = customer_id {
+                    // REFUND Customer Ledger (inverse of lock: lock -, avail +)
+                    if let Err(refund_err) = self.refund_customer_balance(c_id, &wd_crypto_type, wd_amount, wd_sandbox_mode).await {
+                        tracing::error!("CRITICAL: Automatic customer refund FAILED for withdrawal {}: {}. Manual intervention required.", withdrawal_id, refund_err);
+                        error_msg = format!("{} [REFUND FAILED - Manual Intervention Required]", error_msg);
+                    } else {
+                        tracing::info!("Refunded {} {} to customer {} ledger after failed withdrawal", wd_amount, &wd_crypto_type, c_id);
+                    }
+
+                    // Set customer transaction failure status
+                    let _ = sqlx::query("UPDATE customer_transactions SET status = 'FAILED' WHERE reference_id = $1")
+                        .bind(withdrawal_id)
+                        .execute(&self.db_pool)
+                        .await;
                 } else {
-                    tracing::info!("Refunded {} {} to merchant {} ledger after failed withdrawal", wd_amount, wd_crypto_type, wd_merchant_id);
+                    // Merchant ledger refund fallback
+                    if let Err(refund_err) = self.refund_withdrawal_balance(wd_merchant_id, &wd_crypto_type, wd_amount, wd_sandbox_mode).await {
+                        tracing::error!("CRITICAL: Failed to refund balance for failed withdrawal {}: {}", withdrawal_id, refund_err);
+                        error_msg = format!("{} [REFUND FAILED - Manual Intervention Required]", error_msg);
+                    } else {
+                        tracing::info!("Refunded {} {} to merchant {} ledger after failed withdrawal", wd_amount, wd_crypto_type, wd_merchant_id);
+                    }
                 }
 
-                self.reject_withdrawal(withdrawal_id, &e.to_string()).await?;
+                self.reject_withdrawal(withdrawal_id, &error_msg).await?;
                 return Err(e);
             }
         };
@@ -140,6 +178,30 @@ impl WithdrawalProcessor {
         )
         .bind(amount)
         .bind(merchant_id)
+        .bind(crypto_type)
+        .bind(sandbox_mode)
+        .execute(&self.db_pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn refund_customer_balance(
+        &self, 
+        customer_id: i64, 
+        crypto_type: &str, 
+        amount: Decimal,
+        sandbox_mode: bool
+    ) -> Result<(), ServiceError> {
+        sqlx::query(
+            r#"
+            UPDATE merchant_customer_balances 
+            SET available_balance = available_balance + $1, locked_balance = locked_balance - $1, last_updated_at = NOW()
+            WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
+            "#
+        )
+        .bind(amount)
+        .bind(customer_id)
         .bind(crypto_type)
         .bind(sandbox_mode)
         .execute(&self.db_pool)

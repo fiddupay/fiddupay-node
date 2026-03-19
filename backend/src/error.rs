@@ -160,6 +160,7 @@ impl IntoResponse for ServiceError {
                 msg.as_str(),
             ),
             ServiceError::Database(err) => {
+                tracing::error!("Database Error during Response: {:?}", err);
                 let msg = err.to_string();
                 if msg.contains("unique constraint") || msg.contains("already exists") {
                     (StatusCode::CONFLICT, "ALREADY_EXISTS", "Resource already exists")
@@ -167,11 +168,14 @@ impl IntoResponse for ServiceError {
                     (StatusCode::INTERNAL_SERVER_ERROR, "DATABASE_ERROR", "Internal server error")
                 }
             },
-            ServiceError::DatabaseError(_) | ServiceError::Json(_) | ServiceError::Internal(_) | ServiceError::InternalError(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "INTERNAL_SERVER_ERROR",
-                "Internal server error",
-            ),
+            ServiceError::DatabaseError(ref msg) | ServiceError::Internal(ref msg) | ServiceError::InternalError(ref msg) => {
+                tracing::error!("Internal Error during Response: {}", msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "Internal server error")
+            },
+            ServiceError::Json(err) => {
+                tracing::error!("JSON Error during Response: {:?}", err);
+                (StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "Internal server error")
+            },
             ServiceError::InsufficientFunds(ref msg) => (
                 StatusCode::PAYMENT_REQUIRED,
                 "INSUFFICIENT_FUNDS",

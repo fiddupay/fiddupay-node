@@ -19,6 +19,15 @@ pub struct AdminContext {
     pub permissions: Vec<String>,
 }
 
+/// Admin JWT Claims
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct AdminClaims {
+    pub sub: String, // admin_id
+    pub exp: usize,
+    pub iat: usize,
+    pub role: Option<String>,
+}
+
 /// Extract session token from Authorization header or Cookie
 fn extract_session_token(headers: &HeaderMap) -> Option<String> {
     // Try Authorization header first
@@ -72,11 +81,22 @@ pub async fn admin_auth_middleware(
         }
     };
 
-    // Parse session token (format: admin_session_{id})
-    let admin_id = if session_token.starts_with("admin_session_") {
-        session_token[14..].parse::<i64>().ok()
-    } else {
-        None
+    // Verify JWT Session Token
+    use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+    
+    let secret = &state.config.jwt_secret;
+    let decoding_key = DecodingKey::from_secret(secret.as_bytes());
+    let mut validation = Validation::new(Algorithm::HS256);
+    // Admins might not strictly need the default duration if not specified
+    
+    let admin_id = match decode::<AdminClaims>(&session_token, &decoding_key, &validation) {
+        Ok(token_data) => {
+            token_data.claims.sub.parse::<i64>().ok()
+        },
+        Err(e) => {
+            tracing::warn!("Admin JWT validation failed: {:?}", e);
+            None
+        }
     };
 
     if let Some(id) = admin_id {

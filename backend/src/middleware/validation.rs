@@ -191,18 +191,13 @@ fn is_private_or_localhost(host: &str) -> bool {
     if let Ok(ip) = host.parse::<IpAddr>() {
         match ip {
             IpAddr::V4(ipv4) => {
-                let octets = ipv4.octets();
-                // Private IPv4 ranges
-                matches!(octets[0], 10) ||
-                (octets[0] == 172 && (16..=31).contains(&octets[1])) ||
-                (octets[0] == 192 && octets[1] == 168) ||
-                octets[0] == 127 // Loopback
+                ipv4.is_private() || ipv4.is_loopback() || ipv4.is_link_local() || ipv4.is_unspecified()
             }
             IpAddr::V6(ipv6) => {
-                // Private IPv6 ranges and loopback
+                // Adjust to standard methods where available, keeping fallback compatibility
                 ipv6.is_loopback() || 
-                ipv6.segments()[0] == 0xfc00 || // Unique local
-                ipv6.segments()[0] == 0xfd00    // Unique local
+                ipv6.segments()[0] & 0xfe00 == 0xfc00 || // Unique local (fc00::/7)
+                (ipv6.segments()[0] & 0xffc0) == 0xfe80  // Link-local (fe80::/10)
             }
         }
     } else {

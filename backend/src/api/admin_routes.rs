@@ -52,6 +52,7 @@ pub fn create_admin_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/admin/withdrawals", get(admin_handlers::get_all_withdrawals))
         .route("/api/v1/admin/withdrawals/:withdrawal_id/approve", post(admin_handlers::approve_withdrawal))
         .route("/api/v1/admin/withdrawals/:withdrawal_id/reject", post(admin_handlers::reject_withdrawal))
+        .route("/api/v1/admin/withdrawals/:withdrawal_id/resolve-failed-refund", post(admin_handlers::resolve_failed_refund))
         
         // Admin Analytics & Reporting
         .route("/api/v1/admin/analytics/platform", get(admin_handlers::get_platform_analytics))

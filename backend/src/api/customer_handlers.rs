@@ -43,9 +43,7 @@ pub async fn register_customer(
                 "message": "Customer registered successfully with auto-provisioned wallets"
             }))).into_response()
         },
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -83,9 +81,7 @@ pub async fn provision_customer_wallets(
                 "message": "Customer wallets provisioned successfully across requested networks"
             }))).into_response()
         },
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -97,13 +93,31 @@ pub async fn get_customer_balances(
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
     match service.get_customer_balances(context.merchant_id, &external_id, context.sandbox_mode).await {
-        Ok(balances) => (StatusCode::OK, Json(json!({
-            "external_id": external_id,
-            "balances": balances
-        }))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Ok(balances) => {
+            let mut response_balances = vec![];
+            for b in balances {
+                let price = state.price_service.get_price(&b.crypto_type).await.unwrap_or(rust_decimal::Decimal::ZERO);
+                response_balances.push(json!({
+                    "id": b.id,
+                    "customer_id": b.customer_id,
+                    "merchant_id": b.merchant_id,
+                    "crypto_type": b.crypto_type,
+                    "available_balance": b.available_balance,
+                    "available_balance_usd": b.available_balance * price,
+                    "locked_balance": b.locked_balance,
+                    "locked_balance_usd": b.locked_balance * price,
+                    "total_balance": b.total_balance,
+                    "total_balance_usd": b.total_balance * price,
+                    "last_updated_at": b.last_updated_at,
+                    "sandbox_mode": b.sandbox_mode,
+                }));
+            }
+            (StatusCode::OK, Json(json!({
+                "external_id": external_id,
+                "balances": response_balances
+            }))).into_response()
+        },
+        Err(e) => e.into_response(),
     }
 }
 
@@ -119,9 +133,7 @@ pub async fn get_customer_wallets(
             "external_id": external_id,
             "wallets": wallets
         }))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -138,9 +150,7 @@ pub async fn get_deposit_address(
             "crypto_type": crypto_type,
             "deposit_address": address
         }))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -168,9 +178,7 @@ pub async fn get_customer_transactions(
             "limit": limit,
             "offset": offset
         }))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -210,15 +218,7 @@ pub async fn pay_merchant(
                 "message": "Payment initiated. On-chain transaction will be processed."
             }))).into_response()
         },
-        Err(e) => {
-            let status = match e {
-                crate::error::ServiceError::InsufficientFunds(_) => StatusCode::PAYMENT_REQUIRED,
-                _ => StatusCode::BAD_REQUEST,
-            };
-            (status, Json(json!({
-                "error": e.to_string()
-            }))).into_response()
-        },
+        Err(e) => e.into_response(),
     }
 }
 
@@ -250,9 +250,7 @@ pub async fn update_customer_status(
                 "message": format!("Customer status updated to '{}'", req.status)
             }))).into_response()
         },
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -328,15 +326,7 @@ pub async fn sweep_customer_wallet(
                 "message": "Funds swept successfully to merchant master balance"
             }))).into_response()
         },
-        Err(e) => {
-            let status = match e {
-                crate::error::ServiceError::InsufficientFunds(_) => StatusCode::PAYMENT_REQUIRED,
-                _ => StatusCode::BAD_REQUEST,
-            };
-            (status, Json(json!({
-                "error": e.to_string()
-            }))).into_response()
-        },
+        Err(e) => e.into_response(),
     }
 }
 
@@ -363,9 +353,7 @@ pub async fn list_customers(
             "offset": offset,
             "has_more": (offset + customers.len() as i64) < total
         }))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -404,15 +392,7 @@ pub async fn withdraw_from_customer(
                 "message": "Withdrawal requested successfully"
             }))).into_response()
         },
-        Err(e) => {
-            let status = match e {
-                crate::error::ServiceError::InsufficientFunds(_) => StatusCode::PAYMENT_REQUIRED,
-                _ => StatusCode::BAD_REQUEST,
-            };
-            (status, Json(json!({
-                "error": e.to_string()
-            }))).into_response()
-        },
+        Err(e) => e.into_response(),
     }
 }
 
@@ -439,8 +419,6 @@ pub async fn deactivate_customer(
                 "message": "Customer deactivated successfully"
             }))).into_response()
         },
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Err(e) => e.into_response(),
     }
 }

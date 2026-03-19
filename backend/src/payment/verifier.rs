@@ -405,16 +405,19 @@ impl PaymentVerifier {
         payment_id: i64,
         merchant_id: i64,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut tx = self.db_pool.begin().await?;
+
         // Fetch payment to get fee information and sandbox_mode (Requirement 6.3)
         let payment_row = sqlx::query(
             r#"
             SELECT payment_id as public_id, fee_amount, fee_amount_usd, fee_percentage, amount, amount_usd, crypto_type, sandbox_mode, transaction_hash
             FROM payment_transactions
             WHERE id = $1
+            FOR UPDATE
             "#
         )
         .bind(payment_id)
-        .fetch_one(&self.db_pool)
+        .fetch_one(&mut *tx)
         .await?;
         
         use sqlx::Row;
@@ -450,7 +453,7 @@ impl PaymentVerifier {
         )
         .bind(Utc::now())
         .bind(payment_id)
-        .execute(&self.db_pool)
+        .execute(&mut *tx)
         .await?;
 
         // Credit merchant balance (net amount = payment amount - platform fee)
@@ -461,7 +464,7 @@ impl PaymentVerifier {
         let sandbox_mode = payment.sandbox_mode;
 
         if net_amount > Decimal::ZERO {
-            match sqlx::query(
+            sqlx::query(
                 r#"
                 INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
                 VALUES ($1, $2, $3, 0, NOW(), $4)
@@ -475,24 +478,17 @@ impl PaymentVerifier {
             .bind(&crypto_type_str)
             .bind(net_amount)
             .bind(sandbox_mode)
-            .execute(&self.db_pool)
-            .await {
-                Ok(_) => {
-                    info!(
-                        "💰 Merchant {} balance credited: {} {} (gross: {}, fee: {}, sandbox: {})",
-                        merchant_id, net_amount, crypto_type_str, gross_amount, fee_amount, sandbox_mode
-                    );
-                }
-                Err(e) => {
-                    error!(
-                        "❌ Failed to credit balance for merchant {} payment {}: {}",
-                        merchant_id, payment_id, e
-                    );
-                    // Don't fail the whole confirmation — the payment IS confirmed,
-                    // balance can be reconciled later via refresh_balances_from_blockchain
-                }
-            }
+            .execute(&mut *tx)
+            .await?;
+
+            info!(
+                "💰 Merchant {} balance credited: {} {} (gross: {}, fee: {}, sandbox: {})",
+                merchant_id, net_amount, crypto_type_str, gross_amount, fee_amount, sandbox_mode
+            );
         }
+
+        // Commit transaction BEFORE triggering side-effects like webhooks
+        tx.commit().await?;
 
         // Log fee recording for audit trail (Requirement 6.3)
         info!(

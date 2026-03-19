@@ -107,10 +107,25 @@ pub async fn admin_login(
     let admin_db_id: i32 = admin_user.get("id");
     let admin_username: String = admin_user.get("username");
     let admin_role: Option<String> = admin_user.try_get("role").ok();
-    // Generate Session Token (Simple version - production should use JWT)
+    // Generate JWT Token
+    use jsonwebtoken::{encode, EncodingKey, Header};
+    use crate::middleware::admin_auth::AdminClaims;
+    
+    let secret = &state.config.jwt_secret;
+    let exp = chrono::Utc::now() + chrono::Duration::hours(24);
+    
+    let claims = AdminClaims {
+        sub: admin_db_id.to_string(),
+        exp: exp.timestamp() as usize,
+        iat: chrono::Utc::now().timestamp() as usize,
+        role: admin_role.clone(),
+    };
+    
+    let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(secret.as_bytes())).unwrap_or_else(|_| "".to_string());
+
     Json(json!({
         "success": true,
-        "session_token": format!("admin_session_{}", admin_db_id),
+        "session_token": token,
         "user": {
             "id": admin_db_id,
             "username": admin_username,
@@ -601,6 +616,124 @@ pub async fn reject_withdrawal(
         "withdrawal_id": withdrawal_id,
         "status": "rejected",
         "message": "Withdrawal rejected by admin"
+    })).into_response()
+}
+
+/// Resolve manual refunds for items frozen in [REFUND FAILED] lockout
+pub async fn resolve_failed_refund(
+    State(state): State<AppState>,
+    Extension(context): Extension<AdminContext>,
+    Path(withdrawal_id): Path<String>,
+) -> impl IntoResponse {
+    if let Err(response) = verify_admin_access(&state, &context).await {
+        return response.into_response();
+    }
+
+    // 1. Fetch withdrawal details
+    let withdrawal = sqlx::query!(
+        "SELECT merchant_id, crypto_type, amount, sandbox_mode, status, transaction_hash, rejection_reason FROM withdrawals WHERE withdrawal_id = $1",
+        withdrawal_id
+    )
+    .fetch_optional(&state.db_pool)
+    .await;
+
+    let wd = match withdrawal {
+        Ok(Some(w)) => w,
+        Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Withdrawal not found"}))).into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    };
+
+    // 1.3 Double Payout Safeguard (On-Chain Check)
+    if wd.status == "COMPLETED" || wd.transaction_hash.is_some() {
+        return (StatusCode::BAD_REQUEST, Json(json!({"error": "This withdrawal was already completed or has a TX hash on-chain. Refund locked as safeguard to prevent double-spending"}))).into_response();
+    }
+
+    // 1.5 Double Refund Safeguard (Off-Chain Check)
+    let reason = wd.rejection_reason.clone().unwrap_or_default();
+    if !reason.contains("[REFUND FAILED]") {
+        return (StatusCode::BAD_REQUEST, Json(json!({"error": "This withdrawal does not have a failed automatic refund locked status"}))).into_response();
+    }
+
+    // 2. Lookup if there is a customer_id for this withdrawal Reference
+    let customer_id: Option<i64> = sqlx::query_scalar::<_, i64>(
+        "SELECT customer_id FROM customer_transactions WHERE reference_id = $1"
+    )
+    .bind(&withdrawal_id)
+    .fetch_optional(&state.db_pool)
+    .await
+    .unwrap_or(None);
+
+    let mut tx = match state.db_pool.begin().await {
+        Ok(t) => t,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    };
+
+    if let Some(c_id) = customer_id {
+        // Customer Refund Retry (inverse of lock buffer)
+        let res = sqlx::query(
+            "UPDATE merchant_customer_balances SET available_balance = available_balance + $1, locked_balance = locked_balance - $1 WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
+        )
+        .bind(wd.amount)
+        .bind(c_id)
+        .bind(&wd.crypto_type)
+        .bind(wd.sandbox_mode)
+        .execute(&mut *tx)
+        .await;
+
+        if let Err(e) = res {
+             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Customer refund query failed: {}", e)}))).into_response();
+        }
+    } else {
+        // Merchant Refund Retry
+        let res = sqlx::query(
+            "UPDATE merchant_balances SET available_balance = available_balance + $1 WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
+        )
+        .bind(wd.amount)
+        .bind(wd.merchant_id)
+        .bind(&wd.crypto_type)
+        .bind(wd.sandbox_mode)
+        .execute(&mut *tx)
+        .await;
+
+        if let Err(e) = res {
+             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Merchant refund query failed: {}", e)}))).into_response();
+        }
+    }
+
+    // 3. Clear [REFUND FAILED] tag from rejection reason
+    let clean_reason = reason.replace("[REFUND FAILED - Manual Intervention Required]", "[REFUND PROCESSED BY ADMIN]");
+    let _ = sqlx::query(
+        "UPDATE withdrawals SET rejection_reason = $1, updated_at = NOW() WHERE withdrawal_id = $2"
+    )
+    .bind(clean_reason)
+    .bind(&withdrawal_id)
+    .execute(&mut *tx)
+    .await;
+
+    // 4. Record Admin Audit Log
+    let _ = sqlx::query(
+        "INSERT INTO audit_logs (merchant_id, action_type, entity_type, entity_id, details, created_at) VALUES (NULL, $1, $2, $3, $4, NOW())"
+    )
+    .bind("admin.resolve_failed_refund")
+    .bind("withdrawal")
+    .bind(&withdrawal_id)
+    .bind(json!({
+        "admin_id": context.admin_id,
+        "amount": wd.amount,
+        "crypto_type": wd.crypto_type,
+        "status": "success"
+    }))
+    .execute(&mut *tx)
+    .await;
+
+    if tx.commit().await.is_err() {
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Failed to commit transaction"}))).into_response();
+    }
+
+    Json(json!({
+        "status": "success",
+        "message": "Manual refund resolved successfully by admin",
+        "withdrawal_id": withdrawal_id
     })).into_response()
 }
 

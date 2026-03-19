@@ -34,6 +34,21 @@ pub enum PaymentServiceError {
     PaymentAlreadyConfirmed,
 }
 
+impl axum::response::IntoResponse for PaymentServiceError {
+    fn into_response(self) -> axum::response::Response {
+        let service_err = match self {
+            PaymentServiceError::DatabaseError(e) => ServiceError::Database(e),
+            PaymentServiceError::PaymentNotFound => ServiceError::PaymentNotFound,
+            PaymentServiceError::ServiceError(e) => e,
+            PaymentServiceError::InvalidFilters(msg) => ServiceError::ValidationError(msg),
+            PaymentServiceError::VerificationError(msg) => ServiceError::ValidationError(msg),
+            PaymentServiceError::PaymentExpired => ServiceError::ValidationError("Payment has expired".to_string()),
+            PaymentServiceError::PaymentAlreadyConfirmed => ServiceError::ValidationError("Payment already confirmed".to_string()),
+        };
+        service_err.into_response()
+    }
+}
+
 pub struct PaymentService {
     db_pool: PgPool,
     processor: PaymentProcessor,

@@ -10,6 +10,7 @@ use crate::payment::models::CryptoType;
 use crate::utils::keygen::KeyGenerator;
 use crate::utils::encryption::Encryption;
 use sqlx::{PgPool, Row};
+use serde_json::json;
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
@@ -132,6 +133,17 @@ impl MerchantCustomerService {
                 tracing::warn!("Auto-provision wallets failed for customer {}: {}", customer.external_id, e);
                 vec![]
             });
+
+        let audit_details = serde_json::json!({
+            "external_id": req.external_id,
+            "email": mask_email(&req.email)
+        });
+        let _ = sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
+            .bind(merchant_id)
+            .bind("customer.registered")
+            .bind(&audit_details)
+            .execute(&self.db_pool)
+            .await;
 
         Ok((customer, wallets))
     }
@@ -613,6 +625,20 @@ impl MerchantCustomerService {
         .execute(&mut *tx)
         .await?;
 
+        let audit_details = serde_json::json!({
+            "customer_external_id": external_id,
+            "amount": amount_str,
+            "crypto_type": crypto_type_str,
+            "destination_address": mask_address(destination_address),
+            "withdrawal_id": withdrawal_id
+        });
+        sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
+            .bind(merchant_id)
+            .bind("customer.withdrawal")
+            .bind(&audit_details)
+            .execute(&mut *tx)
+            .await?;
+
         tx.commit().await?;
 
         Ok(withdrawal)
@@ -664,14 +690,16 @@ impl MerchantCustomerService {
         let merchant_address = merchant_wallet_address
             .ok_or_else(|| ServiceError::ValidationError(format!("Merchant has no active wallet for {}", crypto_type_str)))?;
 
-        // 4. Check customer balance
+        // 4. Check customer balance (locked for update in transaction)
+        let mut tx = self.db_pool.begin().await?;
+
         let balance = sqlx::query_as::<_, MerchantCustomerBalance>(
-            "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at, sandbox_mode FROM merchant_customer_balances WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
+            "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at, sandbox_mode FROM merchant_customer_balances WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 FOR UPDATE"
         )
         .bind(customer.id)
         .bind(crypto_type_str)
         .bind(sandbox_mode)
-        .fetch_optional(&self.db_pool)
+        .fetch_optional(&mut *tx)
         .await?;
 
         match balance {
@@ -679,15 +707,31 @@ impl MerchantCustomerService {
             _ => return Err(ServiceError::InsufficientFunds(crypto_type_str.to_string())),
         }
 
-        // 5. Lock customer funds and create transaction record
-        let mut tx = self.db_pool.begin().await?;
+        // 5. Deduct customer funds and credit merchant off-chain instantly
 
         sqlx::query(
-            "UPDATE merchant_customer_balances SET available_balance = available_balance - $1, locked_balance = locked_balance + $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
+            "UPDATE merchant_customer_balances SET available_balance = available_balance - $1, total_balance = total_balance - $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
         )
         .bind(amount)
         .bind(customer.id)
         .bind(crypto_type_str)
+        .bind(sandbox_mode)
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query(
+            r#"
+            INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
+            VALUES ($1, $2, $3, 0, NOW(), $4)
+            ON CONFLICT (merchant_id, crypto_type, sandbox_mode) 
+            DO UPDATE SET 
+                available_balance = merchant_balances.available_balance + $3,
+                last_updated = NOW()
+            "#
+        )
+        .bind(merchant_id)
+        .bind(crypto_type_str)
+        .bind(amount)
         .bind(sandbox_mode)
         .execute(&mut *tx)
         .await?;
@@ -698,7 +742,7 @@ impl MerchantCustomerService {
         let customer_tx = sqlx::query_as::<_, CustomerTransaction>(
             r#"
             INSERT INTO customer_transactions (customer_id, merchant_id, type, crypto_type, amount, fee, status, destination_address, reference_id, description, sandbox_mode)
-            VALUES ($1, $2, 'MERCHANT_PAYMENT', $3, $4, 0, 'PENDING', $5, $6, $7, $8)
+            VALUES ($1, $2, 'MERCHANT_PAYMENT', $3, $4, 0, 'COMPLETED', $5, $6, $7, $8)
             RETURNING id, customer_id, merchant_id, type, crypto_type, amount, fee, status,
                       destination_address, transaction_hash, reference_id, description,
                       created_at, updated_at, sandbox_mode
@@ -715,29 +759,21 @@ impl MerchantCustomerService {
         .fetch_one(&mut *tx)
         .await?;
 
-        tx.commit().await?;
+        let audit_details = serde_json::json!({
+            "customer_external_id": external_id,
+            "amount": amount_str,
+            "crypto_type": crypto_type_str,
+            "reference_id": reference_id.unwrap_or(""),
+            "description": description.unwrap_or("")
+        });
+        sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
+            .bind(merchant_id)
+            .bind("customer.payment")
+            .bind(&audit_details)
+            .execute(&mut *tx)
+            .await?;
 
-        // 6. The actual on-chain transaction will be processed by the withdrawal processor
-        //    (same infrastructure as regular withdrawals). We create a withdrawal record
-        //    pointing to the merchant's wallet address.
-        let wd_id = format!("cp_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
-        let _wd = sqlx::query(
-            r#"
-            INSERT INTO withdrawals (
-                withdrawal_id, merchant_id, crypto_type, amount, destination_address,
-                status, fee, net_amount, created_at, updated_at, sandbox_mode
-            )
-            VALUES ($1, $2, $3, $4, $5, 'PENDING', 0, $4, NOW(), NOW(), $6)
-            "#
-        )
-        .bind(&wd_id)
-        .bind(merchant_id)
-        .bind(crypto_type_str)
-        .bind(amount)
-        .bind(&merchant_address)
-        .bind(sandbox_mode)
-        .execute(&self.db_pool)
-        .await?;
+        tx.commit().await?;
 
         Ok(customer_tx)
     }
@@ -824,6 +860,18 @@ impl MerchantCustomerService {
         .execute(&mut *tx)
         .await?;
 
+        let audit_details = serde_json::json!({
+            "customer_external_id": external_id,
+            "amount": amount.to_string(),
+            "crypto_type": crypto_type_str
+        });
+        sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
+            .bind(merchant_id)
+            .bind("customer.sweep")
+            .bind(&audit_details)
+            .execute(&mut *tx)
+            .await?;
+
         tx.commit().await?;
 
         Ok(amount)
@@ -864,6 +912,18 @@ impl MerchantCustomerService {
         .await
         .map_err(|_| ServiceError::ValidationError(format!("Customer {} not found", external_id)))?;
 
+        let audit_details = serde_json::json!({
+            "customer_external_id": external_id,
+            "status": status,
+            "reason": reason.unwrap_or("")
+        });
+        let _ = sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
+            .bind(merchant_id)
+            .bind("customer.status_updated")
+            .bind(&audit_details)
+            .execute(&self.db_pool)
+            .await;
+
         Ok(customer)
     }
 
@@ -894,6 +954,18 @@ impl MerchantCustomerService {
         .await
         .map_err(|_| ServiceError::ValidationError(format!("Customer {} not found", external_id)))?;
 
+        let audit_details = serde_json::json!({
+            "customer_external_id": external_id,
+            "can_withdraw": can_withdraw,
+            "withdrawal_limit": withdrawal_limit.map(|l| l.to_string())
+        });
+        let _ = sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
+            .bind(merchant_id)
+            .bind("customer.permissions_updated")
+            .bind(&audit_details)
+            .execute(&self.db_pool)
+            .await;
+
         Ok(customer)
     }
 
@@ -914,9 +986,39 @@ impl MerchantCustomerService {
         .await;
 
         match res {
-            Ok(r) if r.rows_affected() > 0 => Ok(()),
+            Ok(r) if r.rows_affected() > 0 => {
+                let audit_details = serde_json::json!({ "customer_external_id": external_id });
+                let _ = sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
+                    .bind(merchant_id)
+                    .bind("customer.deactivated")
+                    .bind(&audit_details)
+                    .execute(&self.db_pool)
+                    .await;
+                Ok(())
+            },
             Ok(_) => Err(ServiceError::ValidationError(format!("Customer {} not found", external_id))),
             Err(e) => Err(ServiceError::DatabaseError(e.to_string())),
         }
+    }
+}
+
+fn mask_email(email: &str) -> String {
+    if let Some(pos) = email.find('@') {
+        let (name, domain) = email.split_at(pos);
+        if name.len() > 6 {
+            format!("{}...{}{}", &name[..3], &name[name.len()-3..], domain)
+        } else {
+            format!("***{}", domain)
+        }
+    } else {
+        email.to_string()
+    }
+}
+
+fn mask_address(addr: &str) -> String {
+    if addr.len() > 10 {
+        format!("{}...{}", &addr[..6], &addr[addr.len()-4..])
+    } else {
+        addr.to_string()
     }
 }

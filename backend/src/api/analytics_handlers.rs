@@ -8,6 +8,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
 };
+use rust_decimal::Decimal;
+use serde_json::json;
 use serde::Deserialize;
 use serde_json::json;
 
@@ -204,7 +206,25 @@ pub async fn get_balance(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     match state.balance_service.get_all_balances(context.merchant_id, context.sandbox_mode).await {
-        Ok(balance) => (StatusCode::OK, Json(balance)).into_response(),
+        Ok(balance) => {
+            let mut response_balances = vec![];
+            for b in balance {
+                let price = state.price_service.get_price(&b.crypto_type).await.unwrap_or(rust_decimal::Decimal::ZERO);
+                response_balances.push(json!({
+                    "id": b.id,
+                    "merchant_id": b.merchant_id,
+                    "crypto_type": b.crypto_type,
+                    "available_balance": b.available_balance,
+                    "available_balance_usd": b.available_balance * price,
+                    "reserved_balance": b.reserved_balance,
+                    "reserved_balance_usd": b.reserved_balance * price,
+                    "total_balance": b.total_balance,
+                    "total_balance_usd": b.total_balance * price,
+                    "last_updated": b.last_updated,
+                }));
+            }
+            (StatusCode::OK, Json(response_balances)).into_response()
+        },
         Err(e) => {
             tracing::error!("Failed to get balances: {:?}", e);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response()
