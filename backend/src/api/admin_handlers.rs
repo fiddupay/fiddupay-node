@@ -1061,6 +1061,54 @@ pub async fn get_system_logs(
     })).into_response()
 }
 
+#[derive(Deserialize)]
+pub struct AdminAuditLogQueryParams {
+    pub from: Option<String>,
+    pub to: Option<String>,
+    pub action_type: Option<String>,
+    pub limit: Option<i64>,
+    pub scope: Option<String>, // "merchant", "admin", "all"
+    pub merchant_id: Option<i64>, // if scope == "merchant"
+}
+
+/// Get aggregated audit logs (Super Admin view)
+pub async fn get_admin_audit_logs(
+    State(state): State<AppState>,
+    Extension(context): Extension<AdminContext>,
+    Query(params): Query<AdminAuditLogQueryParams>,
+) -> impl IntoResponse {
+    if let Err(response) = verify_admin_access(&state, &context).await {
+        return response.into_response();
+    }
+
+    use crate::services::audit_service::{AuditScope, AuditLogQuery};
+
+    let scope_str = params.scope.as_deref().unwrap_or("all");
+    let scope = match scope_str {
+        "merchant" => {
+            if let Some(id) = params.merchant_id {
+                AuditScope::Merchant(id)
+            } else {
+                return (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "merchant_id is required for merchant scope"}))).into_response();
+            }
+        }
+        "admin" => AuditScope::Admin,
+        _ => AuditScope::All,
+    };
+
+    let query = AuditLogQuery {
+        from: params.from.and_then(|s| s.parse().ok()),
+        to: params.to.and_then(|s| s.parse().ok()),
+        action_type: params.action_type,
+        limit: params.limit,
+    };
+
+    match state.audit_service.get_logs(scope, query).await {
+        Ok(logs) => (StatusCode::OK, Json(logs)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
 /// Create system backup
 pub async fn create_system_backup(
     State(state): State<AppState>,

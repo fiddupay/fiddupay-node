@@ -192,7 +192,8 @@ pub async fn get_audit_logs(
         limit: params.limit,
     };
     
-    match state.audit_service.get_logs(context.merchant_id, query).await {
+    use crate::services::audit_service::AuditScope;
+    match state.audit_service.get_logs(AuditScope::Merchant(context.merchant_id), query).await {
         Ok(logs) => (StatusCode::OK, Json(logs)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }

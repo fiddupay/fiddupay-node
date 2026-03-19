@@ -1,8 +1,15 @@
-use sqlx::PgPool;
+use sqlx::{PgPool, QueryBuilder};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use crate::error::ServiceError;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AuditScope {
+    Merchant(i64),
+    Admin, // WHERE merchant_id IS NULL
+    All,   // No merchant_id filter
+}
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct AuditLog {
@@ -51,48 +58,43 @@ impl AuditService {
         Ok(())
     }
 
-    pub async fn get_logs(&self, merchant_id: i64, query: AuditLogQuery) -> Result<Vec<AuditLog>, ServiceError> {
+    pub async fn get_logs(&self, scope: AuditScope, query: AuditLogQuery) -> Result<Vec<AuditLog>, ServiceError> {
         let limit = query.limit.unwrap_or(100).min(1000);
         
-        let logs = if let Some(action_type) = query.action_type {
-            sqlx::query_as::<_, AuditLog>(
-                r#"
-                SELECT id, merchant_id, action_type, ip_address, details, created_at
-                FROM audit_logs
-                WHERE merchant_id = $1
-                  AND action_type = $2
-                  AND ($3::timestamptz IS NULL OR created_at >= $3)
-                  AND ($4::timestamptz IS NULL OR created_at <= $4)
-                ORDER BY created_at DESC
-                LIMIT $5
-                "#
-            )
-            .bind(merchant_id)
-            .bind(&action_type)
-            .bind(query.from)
-            .bind(query.to)
-            .bind(limit)
-            .fetch_all(&self.pool)
-            .await?
-        } else {
-            sqlx::query_as::<_, AuditLog>(
-                r#"
-                SELECT id, merchant_id, action_type, ip_address, details, created_at
-                FROM audit_logs
-                WHERE merchant_id = $1
-                  AND ($2::timestamptz IS NULL OR created_at >= $2)
-                  AND ($3::timestamptz IS NULL OR created_at <= $3)
-                ORDER BY created_at DESC
-                LIMIT $4
-                "#
-            )
-            .bind(merchant_id)
-            .bind(query.from)
-            .bind(query.to)
-            .bind(limit)
-            .fetch_all(&self.pool)
-            .await?
-        };
+        let mut builder: QueryBuilder<'_, sqlx::Postgres> = QueryBuilder::new(
+            "SELECT id, merchant_id, action_type, ip_address, details, created_at FROM audit_logs WHERE 1=1"
+        );
+
+        match scope {
+            AuditScope::Merchant(id) => {
+                builder.push(" AND merchant_id = ");
+                builder.push_bind(id);
+            }
+            AuditScope::Admin => {
+                builder.push(" AND merchant_id IS NULL");
+            }
+            AuditScope::All => {} // No filter
+        }
+
+        if let Some(action_type) = query.action_type {
+            builder.push(" AND action_type = ");
+            builder.push_bind(action_type);
+        }
+
+        if let Some(from) = query.from {
+            builder.push(" AND created_at >= ");
+            builder.push_bind(from);
+        }
+
+        if let Some(to) = query.to {
+            builder.push(" AND created_at <= ");
+            builder.push_bind(to);
+        }
+
+        builder.push(" ORDER BY created_at DESC LIMIT ");
+        builder.push_bind(limit);
+
+        let logs = builder.build_query_as::<AuditLog>().fetch_all(&self.pool).await?;
 
         Ok(logs)
     }

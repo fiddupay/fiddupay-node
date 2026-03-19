@@ -59,6 +59,7 @@ pub fn create_admin_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/admin/analytics/revenue", get(admin_handlers::get_revenue_analytics))
         .route("/api/v1/admin/reports/transactions", get(admin_handlers::get_transaction_reports))
         .route("/api/v1/admin/reports/merchants", get(admin_handlers::get_merchant_reports))
+        .route("/api/v1/admin/audit-logs", get(admin_handlers::get_admin_audit_logs))
         
         // Admin Wallet Management (unified view with query params)
         .route("/api/v1/admin/wallets", get(admin_handlers::get_all_wallets))
