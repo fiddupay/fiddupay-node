@@ -10,6 +10,7 @@ Complete guide for merchants to integrate FidduPay cryptocurrency payment gatewa
 - **KYC Verified Merchants**: No daily volume limits
 - **Reset**: Daily limits reset at midnight UTC
 - **Tracking**: Real-time volume tracking across all transaction types
+- **v2.5.0 Update**: Full Codebase Security Audit & Transaction Safety Patches (Atomic Settlements, Anti-Double-Send Guards, and advanced SSRF network shields).
 - **v2.4.6 Update**: Introduced Extended Wallet Security Locks (Toggle Master/Customer), Customer Permissions, Manual Deposit Address retrieval, internal Customer-to-Merchant payments, and Balance History tracking.
 
 
@@ -100,7 +101,7 @@ curl -X PUT https://api.fiddupay.com/api/v1/merchants/webhook \
   }'
 ```
 
-### 5. Wallet Security Locks (v2.4.6)
+### 5. Wallet Security Locks (v2.5.0)
 Protect your wallets from unauthorized activity by toggling security locks.
 
 **Toggle Master Wallet Lock:**
@@ -745,7 +746,7 @@ curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_123456/dea
   -H "Authorization: Bearer your_api_key"
 ```
 
-### 3.5 Customer Pay Merchant (v2.4.6)
+### 3.5 Customer Pay Merchant (v2.5.0)
 Charge a customer directly from their sub-account balance.
 
 ```bash
@@ -759,7 +760,7 @@ curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_123456/pay
   }'
 ```
 
-### 3.6 Update Permissions (v2.4.6)
+### 3.6 Update Permissions (v2.5.0)
 Manage what customers can do with their sub-accounts.
 
 ```bash
@@ -772,7 +773,7 @@ curl -X PATCH https://api.fiddupay.com/api/v1/merchants/customers/user_123456/pe
   }'
 ```
 
-### 3.7 Get Specific Deposit Address (v2.4.6)
+### 3.7 Get Specific Deposit Address (v2.5.0)
 Retrieve the exact deposit address for a specific cryptocurrency.
 
 ```bash
@@ -857,7 +858,7 @@ Balance Structure:
 GET /api/v1/merchants/balance
 Authorization: Bearer live_your_api_key_here
 
-### 4.2 Balance History (v2.4.6)
+### 4.2 Balance History (v2.5.0)
 Track how your balance changes over time.
 
 ```bash

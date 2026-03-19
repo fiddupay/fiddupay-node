@@ -1,5 +1,17 @@
 # FidduPay Backend Changelog
 
+## [2.5.0] - 2026-03-19
+
+### Added
+- **Super Admin Manual Refund Resolution**: Added endpoint (`resolve-failed-refund`) to manually settle discrepancy nodes via transactional isolation.
+- **Advanced Reverse Proxy IP Extraction**: Secure extraction support for `X-Forwarded-For` chains inside IP whitelisting.
+
+### Fixed
+- **Double-Send Risk on Concurrent Withdrawals**: Integrated full database rows safety with deterministic `FOR UPDATE` lockout queues before initiating on-chain iterations.
+- **Concurrent Race Ledger Drainage Prevention**: Enforced locking on internal thresholds to prevent double core credits on high frequency triggers.
+- **Atomic Merchant Ledger Settlements**: Wrapped confirmation cycles inside guaranteed integrated database transaction scopes.
+- **Strict SSRF Diagnostics validation**: Centralised network checks around standard library memory models preventing local address pivots.
+
 ## [2.4.4] - 2026-02-26
 
 ### Added

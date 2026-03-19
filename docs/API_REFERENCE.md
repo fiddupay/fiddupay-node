@@ -1,4 +1,4 @@
-# FidduPay API Reference v2.4.6
+# FidduPay API Reference v2.5.0
 
 Official technical specification for the FidduPay cryptocurrency payment gateway API.
 
@@ -18,22 +18,28 @@ All requests must include a Bearer token in the `Authorization` header:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/v1/merchants/profile` | Get merchant profile & KYC status |
+| GET | `/api/v1/merchants/status` | Get merchant readiness / health |
 | GET | `/api/v1/merchants/balance` | Get current account balance |
-| GET | `/api/v1/merchants/balance/history` | Get balance change history (v2.4.6) |
+| GET | `/api/v1/merchants/balance/history` | Get balance change history (v2.5.0) |
 | PATCH | `/api/v1/merchants/settings` | Update unified merchant settings |
+| POST | `/api/v1/merchants/api-keys/generate` | Generate secret API key |
 | POST | `/api/v1/merchants/api-keys/rotate` | Rotate secret API key |
+| POST | `/api/v1/merchants/webhook/test` | Trigger a test webhook event |
+| POST | `/api/v1/merchants/environment/switch` | Switch environment (Sandbox <-> Live) |
 
-### Security & Monitoring (v2.4.6)
+### Security & Monitoring (v2.5.0)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/merchants/security/lock-master` | Toggle master wallet lock |
-| POST | `/api/v1/merchants/security/lock-customers` | Toggle customer wallet lock |
+| GET | `/api/v1/merchants/security/settings` | Get merchant security specs |
+| POST | `/api/v1/merchants/security/wallets/lock` | Toggle master wallet lock |
+| POST | `/api/v1/merchants/security/customers/wallets/lock` | Toggle customer wallet lock |
 | GET | `/api/v1/merchants/security/alerts` | Get security alerts |
 | POST | `/api/v1/merchants/security/alerts/:id/acknowledge` | Acknowledge a security alert |
 | GET | `/api/v1/merchants/security/events` | List security-related events |
 | GET | `/api/v1/merchants/security/gas-check` | Check gas levels for all wallets |
+| GET | `/api/v1/merchants/ip-whitelist` | List allowed IP CIDRs |
 
-### Customer Management (v2.4.6)
+### Customer Management (v2.5.0)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/v1/merchants/customers` | Register a new customer |
@@ -41,23 +47,58 @@ All requests must include a Bearer token in the `Authorization` header:
 | POST | `/api/v1/merchants/customers/:external_id/wallets` | Provision customer wallets |
 | GET | `/api/v1/merchants/customers/:external_id/balances` | Get customer wallet balances |
 | POST | `/api/v1/merchants/customers/:external_id/sweep` | Sweep funds to master balance |
-| POST | `/api/v1/merchants/customers/:external_id/pay-merchant` | internal payment from customer to merchant |
+| POST | `/api/v1/merchants/customers/:external_id/pay-merchant` | Internal payment from customer to merchant |
 | PATCH | `/api/v1/merchants/customers/:external_id/permissions` | Update customer permissions |
 | GET | `/api/v1/merchants/customers/:external_id/deposit-address/:crypto` | Get specific deposit address |
 | GET | `/api/v1/merchants/customers/:external_id/transactions` | List customer transactions |
+| PATCH | `/api/v1/merchants/customers/:external_id/status` | Update customer active status |
+| POST | `/api/v1/merchants/customers/:external_id/deactivate` | Deactivate customer deposits |
 
 ### Payment Operations
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/v1/merchants/payments` | Create a new payment |
-| GET | `/api/v1/merchants/payments/:id` | Retrieve payment details |
 | GET | `/api/v1/merchants/payments` | List payments with filtering |
+| GET | `/api/v1/merchants/payments/:id` | Retrieve payment details |
 | POST | `/api/v1/merchants/payments/:id/cancel` | Cancel a pending payment |
-| POST | `/api/v1/merchants/sandbox/payments/:id/simulate` | Simulate payment (Sandbox only) |
+| POST | `/api/v1/merchants/payments/:id/verify` | Manually trigger on-chain verification |
+| POST | `/api/v1/merchants/payments/:id/select` | Finalize asset selection on multi-checkout |
+
+### Refund Management
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/merchants/refunds` | Create a refund |
+| GET | `/api/v1/merchants/refunds` | List all refunds |
+| GET | `/api/v1/merchants/refunds/:id` | Get refund details |
+| POST | `/api/v1/merchants/refunds/:id/complete`| Complete/Approve a refund |
+
+### Withdrawal Management
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/merchants/withdrawals` | Create a withdrawal request |
+| GET | `/api/v1/merchants/withdrawals` | List withdrawals |
+| GET | `/api/v1/merchants/withdrawals/:id` | Get withdrawal details |
+| POST | `/api/v1/merchants/withdrawals/:id/cancel` | Cancel a withdrawal |
+| POST | `/api/v1/merchants/withdrawals/:id/process`| Process withdrawal on-chain |
+
+### Invoice Management
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/merchants/invoices` | Create a new invoice |
+| GET | `/api/v1/merchants/invoices` | List invoices with filtering |
+| GET | `/api/v1/merchants/invoices/:invoice_id` | Get invoice details |
+
+### Analytics & Audit Logs
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/merchants/analytics` | Get general volume/stats summary |
+| GET | `/api/v1/merchants/analytics/export` | Export analytics data (CSV) |
+| GET | `/api/v1/merchants/transactions` | List unified transactions history |
+| GET | `/api/v1/merchants/audit-logs` | Retrieve merchant activity audit logs |
 
 ### Address-Only Operations (WIP - Experimental)
 > [!WARNING]
-> Address-Only Mode (Forwarding Mode) is currently in **Beta / Work In Progress**. Endpoints in this section are subject to change and should not be used in critical production flows yet.
+> Address-Only Mode (Forwarding Mode) is currently in **Beta**. Endpoints in this section are subject to change and should not be used in critical production flows yet.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -68,8 +109,10 @@ All requests must include a Bearer token in the `Authorization` header:
 | GET | `/api/v1/merchants/address-only/fee-setting` | Get current fee payment setting |
 | PUT | `/api/v1/merchants/address-only/fee-setting` | Update who pays the fee |
 
+---
+
 ## Error Responses (Mode Enforcement)
-Starting with v2.4.6, the gateway strictly enforces settlement modes:
+Starting with v2.5.0, the gateway strictly enforces settlement modes & fully atomic transactional integrity:
 - **403 Forbidden**: "Standard payments are not available in Forwarding mode."
 - **403 Forbidden**: "Address-Only payments are not available in Managed mode."
 - **Unified EVM Wallet**: All EVM networks (ETH, BSC, Polygon, Arbitrum) share a single private key and address. Updating one syncs them all.
