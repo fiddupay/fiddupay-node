@@ -96,8 +96,9 @@ pub async fn get_customer_balances(
         Ok(balances) => {
             let mut response_balances = vec![];
             for b in balances {
-                let crypto_type_enum = b.crypto_type.parse::<crate::payment::models::CryptoType>().unwrap_or(crate::payment::models::CryptoType::USDT_ETH);
+                let crypto_type_enum = b.crypto_type.parse::<crate::payment::models::CryptoType>().unwrap_or(crate::payment::models::CryptoType::UsdtEth);
                 let price = state.price_service.get_price(crypto_type_enum).await.unwrap_or(0.0);
+
                 use rust_decimal::prelude::FromPrimitive;
                 let price_dec = rust_decimal::Decimal::from_f64(price).unwrap_or(rust_decimal::Decimal::ZERO);
                 

@@ -13,6 +13,8 @@ use axum::{
 };
 use serde_json::json;
 use serde::{Deserialize, Serialize};
+use sqlx::Row;
+
 
 #[derive(Deserialize)]
 pub struct AdminQuery {
@@ -727,10 +729,11 @@ pub async fn resolve_failed_refund(
     .bind(&withdrawal_id)
     .bind(json!({
         "admin_id": context.admin_id,
-        "amount": wd.amount,
-        "crypto_type": wd.crypto_type,
+        "amount": wd_amount,
+        "crypto_type": wd_crypto_type,
         "status": "success"
     }))
+
     .execute(&mut *tx)
     .await;
 

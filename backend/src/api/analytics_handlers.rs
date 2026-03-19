@@ -11,7 +11,8 @@ use axum::{
 use rust_decimal::Decimal;
 use serde_json::json;
 use serde::Deserialize;
-use serde_json::json;
+
+
 
 // ============================================================================
 // Analytics
@@ -214,9 +215,9 @@ pub async fn get_balance(
                 let price_dec = rust_decimal::Decimal::from_f64(price).unwrap_or(rust_decimal::Decimal::ZERO);
                 
                 response_balances.push(json!({
-                    "id": b.id,
-                    "merchant_id": b.merchant_id,
+                    "merchant_id": context.merchant_id,
                     "crypto_type": b.crypto_type.to_string(),
+
                     "available_balance": b.available_balance,
                     "available_balance_usd": b.available_balance * price_dec,
                     "reserved_balance": b.reserved_balance,
