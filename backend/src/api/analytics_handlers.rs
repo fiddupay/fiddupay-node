@@ -208,18 +208,21 @@ pub async fn get_balance(
     match state.balance_service.get_all_balances(context.merchant_id, context.sandbox_mode).await {
         Ok(balance) => {
             let mut response_balances = vec![];
-            for b in balance {
-                let price = state.price_service.get_price(&b.crypto_type).await.unwrap_or(rust_decimal::Decimal::ZERO);
+            for b in balance.balances {
+                let price = state.price_service.get_price(b.crypto_type).await.unwrap_or(0.0);
+                use rust_decimal::prelude::FromPrimitive;
+                let price_dec = rust_decimal::Decimal::from_f64(price).unwrap_or(rust_decimal::Decimal::ZERO);
+                
                 response_balances.push(json!({
                     "id": b.id,
                     "merchant_id": b.merchant_id,
-                    "crypto_type": b.crypto_type,
+                    "crypto_type": b.crypto_type.to_string(),
                     "available_balance": b.available_balance,
-                    "available_balance_usd": b.available_balance * price,
+                    "available_balance_usd": b.available_balance * price_dec,
                     "reserved_balance": b.reserved_balance,
-                    "reserved_balance_usd": b.reserved_balance * price,
+                    "reserved_balance_usd": b.reserved_balance * price_dec,
                     "total_balance": b.total_balance,
-                    "total_balance_usd": b.total_balance * price,
+                    "total_balance_usd": b.total_balance * price_dec,
                     "last_updated": b.last_updated,
                 }));
             }

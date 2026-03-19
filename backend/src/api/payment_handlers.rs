@@ -527,7 +527,7 @@ pub async fn payment_status(
             ).into_response()
         },
         Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
-        Err(e) => e.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
 
@@ -558,7 +558,7 @@ pub async fn finalize_payment_selection(
     let payment_link = match payment_link_res {
         Ok(Some(link)) => link,
         Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment link not found"}))).into_response(),
-        Err(e) => e.into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     };
 
     let pl_payment_id: i64 = payment_link.get("payment_id");
@@ -583,7 +583,7 @@ pub async fn finalize_payment_selection(
     let payment_record = match payment_record_res {
         Ok(Some(p)) => p,
         Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment record not found"}))).into_response(),
-        Err(e) => e.into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     };
 
     if payment_record.status != "SELECTION_REQUIRED" {
@@ -596,13 +596,13 @@ pub async fn finalize_payment_selection(
     
     let to_address = match state.merchant_service.get_wallet_address(merchant_id, crypto_type).await {
         Ok(addr) => addr,
-        Err(e) => e.into_response(),
+        Err(e) => return e.into_response(),
     };
 
     let price_service = state.price_service.clone();
     let price = match price_service.get_price(crypto_type).await {
         Ok(p) => p,
-        Err(e) => e.into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e}))).into_response(),
     };
     use rust_decimal::prelude::FromPrimitive;
     let price_decimal = Decimal::from_f64(price).unwrap_or(Decimal::ONE);
@@ -628,7 +628,7 @@ pub async fn finalize_payment_selection(
     .bind(payment_record.id)
     .execute(&pool)
     .await {
-        return e.into_response();
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
     }
 
     // Log audit event
@@ -698,7 +698,7 @@ pub async fn verify_payment_trigger(
             (StatusCode::ACCEPTED, Json(json!({"status": "verification_started"}))).into_response()
         },
         Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
-        Err(e) => e.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
 

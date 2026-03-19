@@ -136,7 +136,7 @@ impl MerchantCustomerService {
 
         let audit_details = serde_json::json!({
             "external_id": req.external_id,
-            "email": mask_email(&req.email)
+            "email": req.email.as_ref().map(|e| mask_email(e))
         });
         let _ = sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
             .bind(merchant_id)

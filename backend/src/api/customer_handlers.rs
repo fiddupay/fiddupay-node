@@ -96,18 +96,22 @@ pub async fn get_customer_balances(
         Ok(balances) => {
             let mut response_balances = vec![];
             for b in balances {
-                let price = state.price_service.get_price(&b.crypto_type).await.unwrap_or(rust_decimal::Decimal::ZERO);
+                let crypto_type_enum = b.crypto_type.parse::<crate::payment::models::CryptoType>().unwrap_or(crate::payment::models::CryptoType::USDT_ETH);
+                let price = state.price_service.get_price(crypto_type_enum).await.unwrap_or(0.0);
+                use rust_decimal::prelude::FromPrimitive;
+                let price_dec = rust_decimal::Decimal::from_f64(price).unwrap_or(rust_decimal::Decimal::ZERO);
+                
                 response_balances.push(json!({
                     "id": b.id,
                     "customer_id": b.customer_id,
                     "merchant_id": b.merchant_id,
                     "crypto_type": b.crypto_type,
                     "available_balance": b.available_balance,
-                    "available_balance_usd": b.available_balance * price,
+                    "available_balance_usd": b.available_balance * price_dec,
                     "locked_balance": b.locked_balance,
-                    "locked_balance_usd": b.locked_balance * price,
+                    "locked_balance_usd": b.locked_balance * price_dec,
                     "total_balance": b.total_balance,
-                    "total_balance_usd": b.total_balance * price,
+                    "total_balance_usd": b.total_balance * price_dec,
                     "last_updated_at": b.last_updated_at,
                     "sandbox_mode": b.sandbox_mode,
                 }));

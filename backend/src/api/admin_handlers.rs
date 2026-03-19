@@ -630,10 +630,10 @@ pub async fn resolve_failed_refund(
     }
 
     // 1. Fetch withdrawal details
-    let withdrawal = sqlx::query!(
-        "SELECT merchant_id, crypto_type, amount, sandbox_mode, status, transaction_hash, rejection_reason FROM withdrawals WHERE withdrawal_id = $1",
-        withdrawal_id
+    let withdrawal = sqlx::query(
+        "SELECT merchant_id, crypto_type, amount, sandbox_mode, status, transaction_hash, rejection_reason FROM withdrawals WHERE withdrawal_id = $1"
     )
+    .bind(&withdrawal_id)
     .fetch_optional(&state.db_pool)
     .await;
 
@@ -643,14 +643,24 @@ pub async fn resolve_failed_refund(
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     };
 
+    let wd_status: String = wd.get("status");
+    let wd_tx_hash: Option<String> = wd.get("transaction_hash");
+    let wd_reason: Option<String> = wd.get("rejection_reason");
+    let wd_amount: rust_decimal::Decimal = wd.get("amount");
+    let wd_merchant_id: i64 = wd.get("merchant_id");
+    let wd_crypto_type: String = wd.get("crypto_type");
+    let wd_sandbox_mode: bool = wd.get("sandbox_mode");
+
     // 1.3 Double Payout Safeguard (On-Chain Check)
-    if wd.status == "COMPLETED" || wd.transaction_hash.is_some() {
+    if wd_status == "COMPLETED" || wd_tx_hash.is_some() {
         return (StatusCode::BAD_REQUEST, Json(json!({"error": "This withdrawal was already completed or has a TX hash on-chain. Refund locked as safeguard to prevent double-spending"}))).into_response();
     }
 
     // 1.5 Double Refund Safeguard (Off-Chain Check)
-    let reason = wd.rejection_reason.clone().unwrap_or_default();
+    let reason = wd_reason.unwrap_or_default();
     if !reason.contains("[REFUND FAILED]") {
+        return (StatusCode::BAD_REQUEST, Json(json!({"error": "This withdrawal does not have a failed automatic refund locked status"}))).into_response();
+    }
         return (StatusCode::BAD_REQUEST, Json(json!({"error": "This withdrawal does not have a failed automatic refund locked status"}))).into_response();
     }
 
@@ -673,10 +683,10 @@ pub async fn resolve_failed_refund(
         let res = sqlx::query(
             "UPDATE merchant_customer_balances SET available_balance = available_balance + $1, locked_balance = locked_balance - $1 WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
         )
-        .bind(wd.amount)
+        .bind(wd_amount)
         .bind(c_id)
-        .bind(&wd.crypto_type)
-        .bind(wd.sandbox_mode)
+        .bind(&wd_crypto_type)
+        .bind(wd_sandbox_mode)
         .execute(&mut *tx)
         .await;
 
@@ -688,10 +698,10 @@ pub async fn resolve_failed_refund(
         let res = sqlx::query(
             "UPDATE merchant_balances SET available_balance = available_balance + $1 WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
         )
-        .bind(wd.amount)
-        .bind(wd.merchant_id)
-        .bind(&wd.crypto_type)
-        .bind(wd.sandbox_mode)
+        .bind(wd_amount)
+        .bind(wd_merchant_id)
+        .bind(&wd_crypto_type)
+        .bind(wd_sandbox_mode)
         .execute(&mut *tx)
         .await;
 
