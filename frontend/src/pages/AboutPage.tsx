@@ -25,7 +25,7 @@ const AboutPage: React.FC = () => {
                 secure, fast, and reliable crypto payment processing.
               </p>
               <p>
-                Our platform supports payments across 5 major blockchain networks,
+                Our platform supports payments across 6 major blockchain networks,
                 ensuring your customers can pay with their preferred cryptocurrency
                 while you receive the security and reliability you need.
               </p>
@@ -54,7 +54,7 @@ const AboutPage: React.FC = () => {
               <div className={styles.statLabel}>Security Score</div>
             </div>
             <div className={styles.statCard}>
-              <div className={styles.statNumber}>5</div>
+              <div className={styles.statNumber}>6</div>
               <div className={styles.statLabel}>Blockchain Networks</div>
             </div>
             <div className={styles.statCard}>

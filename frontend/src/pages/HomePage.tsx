@@ -12,11 +12,11 @@ const HomePage: React.FC = () => {
             <div className={`${styles.heroText} animate-slide-in-left`}>
               <h1 className={styles.heroTitle}>
                 Accept Crypto Payments
-                <span className={styles.highlight}> Across 5 Networks</span>
+                <span className={styles.highlight}> Across 6 Networks</span>
               </h1>
               <p className={styles.heroDescription}>
-                Modern payment gateway supporting SOL, ETH, BNB, MATIC, ARB, and USDT across
-                Ethereum, BSC, Polygon, Arbitrum, and Solana networks with automatic forwarding.
+                Modern payment gateway supporting BTC, SOL, ETH, BNB, MATIC, ARB, and USDT across
+                Bitcoin, Ethereum, BSC, Polygon, Arbitrum, and Solana networks with automatic forwarding.
               </p>
               <div className={styles.heroActions}>
                 <Link to="/login" className={`${styles.primaryBtn} hover-lift`}>
@@ -53,9 +53,16 @@ const HomePage: React.FC = () => {
       <section className={styles.cryptoSection}>
         <div className={styles.container}>
           <h2 className={styles.sectionTitle}>Supported Cryptocurrencies</h2>
-          <p className={styles.sectionSubtitle}>Accept payments in multiple cryptocurrencies across 5 major blockchain networks</p>
+          <p className={styles.sectionSubtitle}>Accept payments in multiple cryptocurrencies across 6 major blockchain networks</p>
 
           <div className={styles.cryptoShowcase}>
+            <div className={styles.cryptoItem}>
+              <div className={styles.cryptoIcon}>
+                <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/btc.png" alt="Bitcoin" className={styles.cryptoImg} />
+              </div>
+              <h3>Bitcoin</h3>
+              <p>Store of Value</p>
+            </div>
             <div className={styles.cryptoItem}>
               <div className={styles.cryptoIcon}>
                 <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png" alt="Solana" className={styles.cryptoImg} />
@@ -153,10 +160,10 @@ const HomePage: React.FC = () => {
               </div>
               <div className={styles.featureContent}>
                 <h3>Multi-Network Support</h3>
-                <p>Accept payments across 5 major blockchain networks with unified management</p>
+                <p>Accept payments across 6 major blockchain networks with unified management</p>
                 <ul className={styles.featureList}>
-                  <li>5 blockchain networks</li>
-                  <li>10 cryptocurrencies</li>
+                  <li>6 blockchain networks</li>
+                  <li>12 cryptocurrencies</li>
                   <li>Unified dashboard</li>
                 </ul>
               </div>
@@ -252,7 +259,7 @@ const HomePage: React.FC = () => {
                   <span className={styles.faqToggle}>+</span>
                 </div>
                 <div className={styles.faqAnswer}>
-                  <p>We support SOL, ETH, BNB, MATIC, ARB, and USDT across Ethereum, BSC, Polygon, Arbitrum, and Solana networks.</p>
+                  <p>We support BTC, SOL, ETH, BNB, MATIC, ARB, and USDT across Bitcoin, Ethereum, BSC, Polygon, Arbitrum, and Solana networks.</p>
                 </div>
               </div>
               <div className={styles.faqItem}>

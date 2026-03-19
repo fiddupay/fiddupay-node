@@ -13,7 +13,7 @@ const LandingPage: React.FC = () => {
     {
       icon: MdSpeed,
       title: 'Global Settlement',
-      description: 'High-speed settlement across Solana, Ethereum, BSC, Polygon, and Arbitrum protocols.'
+      description: 'High-speed settlement across Bitcoin, Solana, Ethereum, BSC, Polygon, and Arbitrum protocols.'
     },
     {
       icon: MdAccountBalance,
@@ -52,7 +52,7 @@ const LandingPage: React.FC = () => {
           </h1>
           <p className={styles.heroSubtitle}>
             The global settlement layer for modern digital commerce. Securely accept and route
-            cryptocurrency payments across 5 major blockchains with institutional precision.
+            cryptocurrency payments across 6 major blockchains with institutional precision.
           </p>
           <div className={styles.heroActions}>
             <Link to="/register" className={styles.primaryBtn}>
@@ -68,7 +68,7 @@ const LandingPage: React.FC = () => {
               <span className={styles.statLabel}>Security Audit Info</span>
             </div>
             <div className={styles.stat}>
-              <span className={styles.statNumber}>5</span>
+              <span className={styles.statNumber}>6</span>
               <span className={styles.statLabel}>Active Protocols</span>
             </div>
             <div className={styles.stat}>
@@ -102,6 +102,10 @@ const LandingPage: React.FC = () => {
         <div className={styles.sectionContent}>
           <h2 className={styles.sectionTitle}>Multi-Protocol Support</h2>
           <div className={styles.currencyGrid}>
+            <div className={styles.currencyCard}>
+              <span className={styles.currencySymbol}>BTC</span>
+              <span className={styles.currencyName}>Bitcoin</span>
+            </div>
             <div className={styles.currencyCard}>
               <span className={styles.currencySymbol}>SOL</span>
               <span className={styles.currencyName}>Solana</span>

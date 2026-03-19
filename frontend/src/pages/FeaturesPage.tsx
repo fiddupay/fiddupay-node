@@ -32,11 +32,11 @@ const FeaturesPage: React.FC = () => {
                 <i className="fas fa-network-wired"></i>
               </div>
               <h3>Multi-Network Support</h3>
-              <p>Accept payments across 5 major blockchain networks with unified management and consistent experience.</p>
+              <p>Accept payments across 6 major blockchain networks with unified management and consistent experience.</p>
               <ul>
-                <li>Solana, Ethereum, BSC</li>
+                <li>Bitcoin, Solana, Ethereum, BSC</li>
                 <li>Polygon, Arbitrum networks</li>
-                <li>10 cryptocurrency options</li>
+                <li>12 cryptocurrency options</li>
               </ul>
             </div>
 
