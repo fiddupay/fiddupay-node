@@ -781,6 +781,17 @@ impl PaymentVerifier {
             return Ok(false);
         }
 
+        // Fetch merchant's dynamic fee percentage
+        let fee_percentage = sqlx::query_scalar::<_, Decimal>(
+            "SELECT fee_percentage FROM merchants WHERE id = $1"
+        )
+        .bind(merchant_id)
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        let fee_amount = blockchain_tx.amount * (fee_percentage / Decimal::from(100));
+        let net_amount = blockchain_tx.amount - fee_amount;
+
         // 3. Credit merchant balance atomically AND Record Payment record
         let mut tx = self.db_pool.begin().await?;
 
@@ -794,7 +805,7 @@ impl PaymentVerifier {
                 status, expires_at, fee_percentage, fee_amount, fee_amount_usd, network,
                 required_confirmations, confirmations, block_number, transaction_hash, description, sandbox_mode, created_at
             )
-            VALUES ($1, $2, $3, $4, $4, $5, $6, 'CONFIRMED', NOW() + INTERVAL '1 hour', 0, 0, 0, $3, 1, 1, $7, $8, 'Static wallet deposit', $9, NOW())
+            VALUES ($1, $2, $3, $4, $4, $5, $6, 'CONFIRMED', NOW() + INTERVAL '1 hour', $7, $8, $8, $3, 1, 1, $9, $10, 'Static wallet deposit', $11, NOW())
             RETURNING id
             "#
         )
@@ -804,13 +815,15 @@ impl PaymentVerifier {
         .bind(blockchain_tx.amount)
         .bind(&blockchain_tx.to_address)
         .bind(&blockchain_tx.from_address)
+        .bind(fee_percentage)
+        .bind(fee_amount)
         .bind(blockchain_tx.block_number.map(|n| n as i64))
         .bind(transaction_hash)
         .bind(sandbox_mode)
         .fetch_one(&mut *tx)
         .await?;
 
-        // 4. Update merchant balance
+        // 4. Update merchant balance with NET amount (amount - fee)
         sqlx::query(
             r#"
             INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
@@ -823,7 +836,7 @@ impl PaymentVerifier {
         )
         .bind(merchant_id)
         .bind(crypto_str)
-        .bind(blockchain_tx.amount)
+        .bind(net_amount)
         .bind(sandbox_mode)
         .execute(&mut *tx)
         .await?;

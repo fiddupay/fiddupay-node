@@ -475,7 +475,7 @@ impl SolanaMonitor {
                 }
                 Err(e) => {
                     error!("Solana WebSocket error: {}", e);
-                    break;
+                    return Err(e.into());
                 }
                 _ => {}
             }
