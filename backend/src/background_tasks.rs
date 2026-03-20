@@ -437,17 +437,17 @@ impl BackgroundTasks {
                 FROM payment_transactions 
                 WHERE status IN ('PENDING', 'CONFIRMING')
                   AND to_address IS NOT NULL
-                  AND sandbox_mode = $2
+                  AND sandbox_mode = $1
                   AND (network ILIKE '%solana%' OR crypto_type ILIKE '%sol%')
                 UNION
                 SELECT DISTINCT address as to_address
                 FROM merchant_customer_wallets
-                WHERE sandbox_mode = $2
+                WHERE sandbox_mode = $1
                   AND (crypto_type ILIKE '%sol%')
                 UNION
                 SELECT DISTINCT address as to_address
                 FROM merchant_wallets
-                WHERE sandbox_mode = $2 AND is_active = true
+                WHERE sandbox_mode = $1 AND is_active = true
                   AND (crypto_type ILIKE '%sol%')
                 "#
             )
