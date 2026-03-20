@@ -421,6 +421,43 @@ impl BackgroundTasks {
         }
 
         Ok(())
+    }    async fn fetch_solana_addresses(pool: &sqlx::PgPool, sandbox_mode: bool) -> Vec<String> {
+        let addresses_res = sqlx::query(
+            r#"
+            SELECT DISTINCT to_address 
+            FROM payment_transactions 
+            WHERE status IN ('PENDING', 'CONFIRMING')
+              AND to_address IS NOT NULL
+              AND sandbox_mode = $1
+              AND (network ILIKE '%solana%' OR crypto_type ILIKE '%sol%')
+            UNION
+            SELECT DISTINCT address as to_address
+            FROM merchant_customer_wallets
+            WHERE sandbox_mode = $1
+              AND (crypto_type ILIKE '%sol%')
+            UNION
+            SELECT DISTINCT address as to_address
+            FROM merchant_wallets
+            WHERE sandbox_mode = $1 AND is_active = true
+              AND (crypto_type ILIKE '%sol%')
+            "#
+        )
+        .bind(sandbox_mode)
+        .fetch_all(pool)
+        .await;
+
+        match addresses_res {
+            Ok(rows) => {
+                use sqlx::Row;
+                rows.into_iter()
+                    .filter_map(|r| r.get::<Option<String>, _>("to_address"))
+                    .collect()
+            }
+            Err(e) => {
+                error!("Failed to fetch pending Solana addresses: {}", e);
+                Vec::new()
+            }
+        }
     }
 
     /// Run Solana real-time monitor (WebSocket logsSubscribe)
@@ -430,50 +467,30 @@ impl BackgroundTasks {
         
         loop {
             // Get all unique addresses for pending Solana payments
-            // We search for both native SOL and SPL tokens
-            let addresses_res = sqlx::query(
-                r#"
-                SELECT DISTINCT to_address 
-                FROM payment_transactions 
-                WHERE status IN ('PENDING', 'CONFIRMING')
-                  AND to_address IS NOT NULL
-                  AND sandbox_mode = $1
-                  AND (network ILIKE '%solana%' OR crypto_type ILIKE '%sol%')
-                UNION
-                SELECT DISTINCT address as to_address
-                FROM merchant_customer_wallets
-                WHERE sandbox_mode = $1
-                  AND (crypto_type ILIKE '%sol%')
-                UNION
-                SELECT DISTINCT address as to_address
-                FROM merchant_wallets
-                WHERE sandbox_mode = $1 AND is_active = true
-                  AND (crypto_type ILIKE '%sol%')
-                "#
-            )
-            .bind(sandbox_mode)
-            .fetch_all(&self.db_pool)
-            .await;
-
-            let addresses = match addresses_res {
-                Ok(rows) => {
-                    use sqlx::Row;
-                    rows.into_iter()
-                        .filter_map(|r| r.get::<Option<String>, _>("to_address"))
-                        .collect::<Vec<String>>()
-                }
-                Err(e) => {
-                    error!("Failed to fetch pending Solana addresses: {}", e);
-                    tokio::time::sleep(Duration::from_secs(30)).await;
-                    continue;
-                }
-            };
-
+            let addresses = Self::fetch_solana_addresses(&self.db_pool, sandbox_mode).await;
             if addresses.is_empty() {
                 // No pending payments, wait and check again later
                 tokio::time::sleep(Duration::from_secs(5)).await;
                 continue;
             }
+
+            let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+            let db_clone = self.db_pool.clone();
+            let sandbox_clone = sandbox_mode;
+            let mut known = addresses.iter().cloned().collect::<std::collections::HashSet<String>>();
+
+            tokio::spawn(async move {
+                loop {
+                    tokio::time::sleep(Duration::from_secs(10)).await;
+                    let current = BackgroundTasks::fetch_solana_addresses(&db_clone, sandbox_clone).await;
+                    for a in current {
+                        if !known.contains(&a) {
+                            known.insert(a.clone());
+                            let _ = tx.send(a);
+                        }
+                    }
+                }
+            });
 
             info!("Monitoring {} active Solana {} addresses via WebSocket", addresses.len(), cluster_name);
 
@@ -575,7 +592,7 @@ impl BackgroundTasks {
             });
 
             // Start listening (this block is long-running)
-            if let Err(e) = monitor.listen_for_signatures(addresses, callback).await {
+            if let Err(e) = monitor.listen_for_signatures(addresses, rx, callback).await {
                 error!("Solana WebSocket monitor crashed: {}. Reconnecting in 10s...", e);
                 tokio::time::sleep(Duration::from_secs(10)).await;
             }

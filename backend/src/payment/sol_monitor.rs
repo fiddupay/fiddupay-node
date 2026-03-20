@@ -408,6 +408,7 @@ impl SolanaMonitor {
     pub async fn listen_for_signatures(
         &self,
         addresses: Vec<String>,
+        mut new_addresses_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
         callback: Arc<dyn Fn(String, String) + Send + Sync>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("🔌 Connecting to Solana WebSocket: {}", self.ws_url);
@@ -416,6 +417,7 @@ impl SolanaMonitor {
         let (mut write, mut read) = ws_stream.split();
 
         let mut subscription_map = std::collections::HashMap::new();
+        let mut next_request_id = (addresses.len() + 1) as u64;
 
         // Subscribe to logs for each address
         for (i, address) in addresses.iter().enumerate() {
@@ -438,46 +440,91 @@ impl SolanaMonitor {
 
         let mut active_subscriptions = std::collections::HashMap::new();
 
-        // Handle incoming messages
-        while let Some(message) = read.next().await {
-            match message {
-                Ok(Message::Text(text)) => {
-                    let v: serde_json::Value = serde_json::from_str(&text)?;
-                    
-                    // 1. Check if it's a response to a subscription request
-                    if let Some(id) = v["id"].as_u64() {
-                        if let Some(address) = subscription_map.remove(&id) {
-                            if let Some(sub_id) = v["result"].as_u64() {
-                                active_subscriptions.insert(sub_id, address.clone());
-                                info!("📡 Active subscription ID {} for address {}", sub_id, address);
-                            }
-                        }
-                    }
+        // Interval for periodic database refresh (e.g. 5 minutes)
+        // This forces the loop to re-fetch from the DB and register new addresses
+        let mut refresh_interval = tokio::time::interval(std::time::Duration::from_secs(300));
+        refresh_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        
+        let mut first_tick = true;
 
-                    // 2. Check if it's a notification
-                    if v["method"] == "logsNotification" {
-                        if let Some(sub_id) = v["params"]["subscription"].as_u64() {
-                            if let Some(address) = active_subscriptions.get(&sub_id) {
-                                if let Some(signature) = v["params"]["result"]["value"]["signature"].as_str() {
-                                    let err = &v["params"]["result"]["value"]["err"];
-                                    if err.is_null() {
-                                        info!("🚀 Solana WebSocket: New transaction for {}: {}", address, signature);
-                                        callback(signature.to_string(), address.clone());
+        // Handle incoming messages
+        loop {
+            tokio::select! {
+                Some(new_addr) = new_addresses_rx.recv() => {
+                    let request_id = next_request_id;
+                    next_request_id += 1;
+                    
+                    let subscribe_msg = serde_json::json!({
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "method": "logsSubscribe",
+                        "params": [
+                            { "mentions": [new_addr] },
+                            { "commitment": "confirmed" }
+                        ]
+                    });
+                    if let Err(e) = write.send(Message::Text(subscribe_msg.to_string())).await {
+                        warn!("Failed to send dynamic subscription for {}: {}", new_addr, e);
+                        continue;
+                    }
+                    subscription_map.insert(request_id, new_addr.clone());
+                    info!("✅ Dynamic Subscription request sent for: {}", new_addr);
+                }
+                _ = refresh_interval.tick() => {
+                    // Skip first tick trigger since it fires immediately
+                     if first_tick {
+                         first_tick = false;
+                         continue;
+                     }
+                    info!("Solana WebSocket monitor: Periodic address list refresh starting...");
+                    break; // Breaks loop to let background_tasks re-query database
+                }
+                message = read.next() => {
+                    let message = match message {
+                        Some(m) => m,
+                        None => break, // Stream closed
+                    };
+
+                    match message {
+                        Ok(Message::Text(text)) => {
+                            let v: serde_json::Value = serde_json::from_str(&text)?;
+                            
+                            // 1. Check if it's a response to a subscription request
+                            if let Some(id) = v["id"].as_u64() {
+                                if let Some(address) = subscription_map.remove(&id) {
+                                    if let Some(sub_id) = v["result"].as_u64() {
+                                        active_subscriptions.insert(sub_id, address.clone());
+                                        info!("📡 Active subscription ID {} for address {}", sub_id, address);
+                                    }
+                                }
+                            }
+
+                            // 2. Check if it's a notification
+                            if v["method"] == "logsNotification" {
+                                if let Some(sub_id) = v["params"]["subscription"].as_u64() {
+                                    if let Some(address) = active_subscriptions.get(&sub_id) {
+                                        if let Some(signature) = v["params"]["result"]["value"]["signature"].as_str() {
+                                            let err = &v["params"]["result"]["value"]["err"];
+                                            if err.is_null() {
+                                                info!("🚀 Solana WebSocket: New transaction for {}: {}", address, signature);
+                                                callback(signature.to_string(), address.clone());
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
+                        Ok(Message::Close(_)) => {
+                            warn!("Solana WebSocket closed");
+                            break;
+                        }
+                        Err(e) => {
+                            error!("Solana WebSocket error: {}", e);
+                            return Err(e.into());
+                        }
+                        _ => {}
                     }
                 }
-                Ok(Message::Close(_)) => {
-                    warn!("Solana WebSocket closed");
-                    break;
-                }
-                Err(e) => {
-                    error!("Solana WebSocket error: {}", e);
-                    return Err(e.into());
-                }
-                _ => {}
             }
         }
 
