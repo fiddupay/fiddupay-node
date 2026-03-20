@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - **AddressOnly Resource**: Dedicated module for Forwarding-mode payment management (`create()`, `retrieve()`, `listCurrencies()`, `getStats()`, `getHealth()`, `getFeeSetting()`, `setFeeSetting()`).
+- **Static Wallet Deposits**: Real-time background monitoring on provisioned customer and merchant addresses (Webhooks: `customer.deposit`, `merchant.deposit`).
 
 ### Changed
 - **Type Alignment**: Updated `ListPaymentsRequest` from `limit`/`offset` to standard `page`/`page_size` pagination filters to strictly match backend structure.
