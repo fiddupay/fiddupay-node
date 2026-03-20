@@ -62,8 +62,8 @@ impl PaymentService {
         let webhook_service = WebhookService::new(db_pool.clone(), webhook_signing_key.to_string());
         
         Self {
-            processor: PaymentProcessor::new(db_pool.clone(), payment_page_base_url.to_string(), price_service, invoice_service.clone(), audit_service, config.clone()),
-            verifier: PaymentVerifier::new(db_pool.clone(), webhook_service, config.clone()),
+            processor: PaymentProcessor::new(db_pool.clone(), payment_page_base_url.to_string(), price_service.clone(), invoice_service.clone(), audit_service, config.clone()),
+            verifier: PaymentVerifier::new(db_pool.clone(), webhook_service, price_service, config.clone()),
             db_pool,
             invoice_service,
             config,
