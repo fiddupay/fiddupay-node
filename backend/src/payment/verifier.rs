@@ -794,7 +794,7 @@ impl PaymentVerifier {
                 status, expires_at, fee_percentage, fee_amount, fee_amount_usd, network,
                 required_confirmations, confirmations, block_number, transaction_hash, description, sandbox_mode, created_at
             )
-            VALUES ($1, $2, $3, $4, 0, $5, $6, 'CONFIRMED', NOW() + INTERVAL '1 hour', 0, 0, 0, $3, 1, 1, $7, $8, 'Static wallet deposit', $9, NOW())
+            VALUES ($1, $2, $3, $4, $4, $5, $6, 'CONFIRMED', NOW() + INTERVAL '1 hour', 0, 0, 0, $3, 1, 1, $7, $8, 'Static wallet deposit', $9, NOW())
             RETURNING id
             "#
         )
