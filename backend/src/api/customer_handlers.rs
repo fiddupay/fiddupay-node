@@ -55,7 +55,7 @@ pub async fn provision_customer_wallets(
 ) -> impl IntoResponse {
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
-    match service.provision_wallets(context.merchant_id, &external_id, req.networks.clone().unwrap_or_default(), context.sandbox_mode).await {
+    match service.provision_wallets(context.merchant_id, &external_id, req.networks.clone().unwrap_or_default(), context.sandbox_mode, false).await {
         Ok(wallets) => {
             // Log audit event
             let _ = state.audit_service.log_event(

@@ -624,4 +624,234 @@ impl PaymentVerifier {
 
         Ok(is_complete)
     }
+
+    /// Verify and credit a static deposit for a customer
+    pub async fn verify_customer_deposit(
+        &self,
+        customer_id: i64,
+        transaction_hash: &str,
+        merchant_id: i64,
+        crypto_str: &str,
+        sandbox_mode: bool,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        info!("Verifying static deposit for customer {} with hash {}", customer_id, transaction_hash);
+
+        // 1. Check if transaction hash is already used for customer_transactions (Idempotency)
+        let existing_tx = sqlx::query_scalar::<_, i64>(
+            "SELECT id FROM customer_transactions WHERE transaction_hash = $1 LIMIT 1"
+        )
+        .bind(transaction_hash)
+        .fetch_optional(&self.db_pool)
+        .await?;
+
+        if existing_tx.is_some() {
+            info!("Transaction hash {} already processed for customer", transaction_hash);
+            return Ok(true);
+        }
+
+        // 2. Fetch blockchain details
+        let crypto_type = CryptoType::from_string(crypto_str)?;
+        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), sandbox_mode);
+        let blockchain_tx = monitor.get_transaction_details(transaction_hash).await?;
+
+        if !blockchain_tx.success {
+            warn!("Transaction {} failed on blockchain", transaction_hash);
+            return Ok(false);
+        }
+
+        // 3. Fetch customer wallet to confirm address match
+        let customer_wallet_address = sqlx::query_scalar::<_, String>(
+            "SELECT address FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
+        )
+        .bind(customer_id)
+        .bind(crypto_str)
+        .bind(sandbox_mode)
+        .fetch_optional(&self.db_pool)
+        .await?
+        .ok_or("Customer wallet not found")?;
+
+        let addresses_match = if crypto_str.to_lowercase().contains("sol") {
+            blockchain_tx.to_address.trim() == customer_wallet_address.trim()
+        } else {
+            blockchain_tx.to_address.trim().to_lowercase() == customer_wallet_address.trim().to_lowercase()
+        };
+
+        if !addresses_match {
+            warn!("Address mismatch for static deposit {}: expected {}, got {}", transaction_hash, customer_wallet_address, blockchain_tx.to_address);
+            return Err("Recipient address mismatch".into());
+        }
+
+        // 4. Credit ledger atomically
+        let mut tx = self.db_pool.begin().await?;
+
+        // Update balance
+        sqlx::query(
+            r#"
+            UPDATE merchant_customer_balances 
+             SET available_balance = available_balance + $1, 
+                 total_balance = total_balance + $1, 
+                 last_updated_at = NOW() 
+             WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
+            "#
+        )
+        .bind(blockchain_tx.amount)
+        .bind(customer_id)
+        .bind(crypto_str)
+        .bind(sandbox_mode)
+        .execute(&mut *tx)
+        .await?;
+
+        // Record Ledger transaction
+        sqlx::query(
+            r#"
+            INSERT INTO customer_transactions (
+                customer_id, merchant_id, type, crypto_type, amount, fee, status, 
+                destination_address, transaction_hash, description, sandbox_mode
+            )
+            VALUES ($1, $2, 'DEPOSIT', $3, $4, 0, 'COMPLETED', $5, $6, 'Static wallet deposit', $7)
+            "#
+        )
+        .bind(customer_id)
+        .bind(merchant_id)
+        .bind(crypto_str)
+        .bind(blockchain_tx.amount)
+        .bind(&customer_wallet_address)
+        .bind(transaction_hash)
+        .bind(sandbox_mode)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        info!("💰 Static deposit confirmed for customer {}: {} {}", customer_id, blockchain_tx.amount, crypto_str);
+
+        // 5. Trigger Webhook
+        let webhook_payload = crate::models::webhook::WebhookPayload {
+            event_type: "customer.deposit".to_string(),
+            payment_id: format!("dep_{}", transaction_hash), // Synthetic Payment ID for webhook conformity
+            merchant_id,
+            status: PaymentStatus::Confirmed,
+            amount: blockchain_tx.amount,
+            crypto_type: crypto_str.to_string(),
+            transaction_hash: Some(transaction_hash.to_string()),
+            timestamp: Utc::now().timestamp(),
+        };
+
+        if let Err(e) = self.webhook_service.queue_webhook(
+            merchant_id,
+            None, 
+            webhook_payload
+        ).await {
+            warn!("Failed to queue webhook for static deposit {}: {}", transaction_hash, e);
+        }
+
+        Ok(true)
+    }
+
+    /// Verify and credit a static deposit for a merchant
+    pub async fn verify_merchant_deposit(
+        &self,
+        merchant_id: i64,
+        transaction_hash: &str,
+        crypto_str: &str,
+        sandbox_mode: bool,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        info!("Verifying static deposit for merchant {} with hash {}", merchant_id, transaction_hash);
+
+        // 1. Check if transaction hash is already used in payment_transactions (Idempotency)
+        let existing_tx = sqlx::query_scalar::<_, i64>(
+            "SELECT id FROM payment_transactions WHERE transaction_hash = $1 LIMIT 1"
+        )
+        .bind(transaction_hash)
+        .fetch_optional(&self.db_pool)
+        .await?;
+
+        if existing_tx.is_some() {
+            info!("Transaction hash {} already processed for merchant", transaction_hash);
+            return Ok(true);
+        }
+
+        // 2. Fetch blockchain details
+        let crypto_type = CryptoType::from_string(crypto_str)?;
+        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), sandbox_mode);
+        let blockchain_tx = monitor.get_transaction_details(transaction_hash).await?;
+
+        if !blockchain_tx.success {
+            warn!("Transaction {} failed on blockchain", transaction_hash);
+            return Ok(false);
+        }
+
+        // 3. Credit merchant balance atomically AND Record Payment record
+        let mut tx = self.db_pool.begin().await?;
+
+        // Generate synthetic row in payment_transactions to represent the deposit for accounting
+        let payment_id_str = format!("merchant_dep_{}", transaction_hash);
+        
+        let payment_id: i64 = sqlx::query_scalar(
+            r#"
+            INSERT INTO payment_transactions (
+                payment_id, merchant_id, crypto_type, amount, amount_usd, to_address, from_address,
+                status, expires_at, fee_percentage, fee_amount, fee_amount_usd, network,
+                required_confirmations, confirmations, block_number, transaction_hash, description, sandbox_mode, created_at
+            )
+            VALUES ($1, $2, $3, $4, 0, $5, $6, 'CONFIRMED', NOW() + INTERVAL '1 hour', 0, 0, 0, $3, 1, 1, $7, $8, 'Static wallet deposit', $9, NOW())
+            RETURNING id
+            "#
+        )
+        .bind(&payment_id_str)
+        .bind(merchant_id)
+        .bind(crypto_str)
+        .bind(blockchain_tx.amount)
+        .bind(&blockchain_tx.to_address)
+        .bind(&blockchain_tx.from_address)
+        .bind(blockchain_tx.block_number.map(|n| n as i64))
+        .bind(transaction_hash)
+        .bind(sandbox_mode)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        // 4. Update merchant balance
+        sqlx::query(
+            r#"
+            INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
+            VALUES ($1, $2, $3, 0, NOW(), $4)
+            ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
+            DO UPDATE SET
+                available_balance = merchant_balances.available_balance + $3,
+                last_updated = NOW()
+            "#
+        )
+        .bind(merchant_id)
+        .bind(crypto_str)
+        .bind(blockchain_tx.amount)
+        .bind(sandbox_mode)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        info!("💰 Static deposit confirmed for merchant {}: {} {}", merchant_id, blockchain_tx.amount, crypto_str);
+
+        // 5. Trigger Webhook
+        let webhook_payload = crate::models::webhook::WebhookPayload {
+            event_type: "merchant.deposit".to_string(),
+            payment_id: payment_id_str,
+            merchant_id,
+            status: PaymentStatus::Confirmed,
+            amount: blockchain_tx.amount,
+            crypto_type: crypto_str.to_string(),
+            transaction_hash: Some(transaction_hash.to_string()),
+            timestamp: Utc::now().timestamp(),
+        };
+
+        if let Err(e) = self.webhook_service.queue_webhook(
+            merchant_id,
+            Some(payment_id), 
+            webhook_payload
+        ).await {
+            warn!("Failed to queue webhook for static merchant deposit {}: {}", transaction_hash, e);
+        }
+
+        Ok(true)
+    }
 }

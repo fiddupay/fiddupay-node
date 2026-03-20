@@ -437,8 +437,18 @@ impl BackgroundTasks {
                 FROM payment_transactions 
                 WHERE status IN ('PENDING', 'CONFIRMING')
                   AND to_address IS NOT NULL
-                  AND sandbox_mode = $1
+                  AND sandbox_mode = $2
                   AND (network ILIKE '%solana%' OR crypto_type ILIKE '%sol%')
+                UNION
+                SELECT DISTINCT address as to_address
+                FROM merchant_customer_wallets
+                WHERE sandbox_mode = $2
+                  AND (crypto_type ILIKE '%sol%')
+                UNION
+                SELECT DISTINCT address as to_address
+                FROM merchant_wallets
+                WHERE sandbox_mode = $2 AND is_active = true
+                  AND (crypto_type ILIKE '%sol%')
                 "#
             )
             .bind(sandbox_mode)
@@ -502,7 +512,52 @@ impl BackgroundTasks {
                         Ok(rows) => {
                             use sqlx::Row;
                             if rows.is_empty() {
-                                warn!("WebSocket detected transaction for {} but found no pending payments in DB", addr_clone);
+                                // Check if this is a static customer address
+                                let customer_wallet_res = sqlx::query(
+                                    "SELECT customer_id, merchant_id, crypto_type FROM merchant_customer_wallets WHERE address = $1 AND sandbox_mode = $2"
+                                )
+                                .bind(&addr_clone)
+                                .bind(sandbox_mode)
+                                .fetch_optional(&db)
+                                .await;
+
+                                match customer_wallet_res {
+                                    Ok(Some(wallet)) => {
+                                        let c_id: i64 = wallet.get("customer_id");
+                                        let m_id: i64 = wallet.get("merchant_id");
+                                        let crypto_str: String = wallet.get("crypto_type");
+                                        info!("WebSocket detected static deposit for customer {} on address {}", c_id, addr_clone);
+                                        if let Err(e) = v.verify_customer_deposit(c_id, &signature, m_id, &crypto_str, sandbox_mode).await {
+                                            error!("Static deposit verification failed for customer {}: {}", c_id, e);
+                                        }
+                                    },
+                                    Ok(None) => {
+                                        // Check if this is a static merchant address
+                                        let merchant_wallet_res = sqlx::query(
+                                            "SELECT merchant_id, crypto_type FROM merchant_wallets WHERE address = $1 AND sandbox_mode = $2 AND is_active = true"
+                                        )
+                                        .bind(&addr_clone)
+                                        .bind(sandbox_mode)
+                                        .fetch_optional(&db)
+                                        .await;
+
+                                        match merchant_wallet_res {
+                                            Ok(Some(m_wallet)) => {
+                                                let m_id: i64 = m_wallet.get("merchant_id");
+                                                let crypto_str: String = m_wallet.get("crypto_type");
+                                                info!("WebSocket detected static deposit for merchant {} on address {}", m_id, addr_clone);
+                                                if let Err(e) = v.verify_merchant_deposit(m_id, &signature, &crypto_str, sandbox_mode).await {
+                                                    error!("Static deposit verification failed for merchant {}: {}", m_id, e);
+                                                }
+                                            },
+                                            Ok(None) => {
+                                                warn!("WebSocket detected transaction for {} but found no pending payments, customer, or merchant wallets in DB", addr_clone);
+                                            },
+                                            Err(e) => error!("Failed to query merchant wallet for address {}: {}", addr_clone, e),
+                                        }
+                                    },
+                                    Err(e) => error!("Failed to query customer wallet for address {}: {}", addr_clone, e),
+                                }
                                 return;
                             }
                             for row in rows {

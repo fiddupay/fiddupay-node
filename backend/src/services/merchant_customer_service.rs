@@ -128,7 +128,7 @@ impl MerchantCustomerService {
         .await?;
 
         // Auto-provision wallets using merchant's supported networks
-        let wallets = self.provision_wallets(merchant_id, &customer.external_id, vec![], sandbox_mode).await
+        let wallets = self.provision_wallets(merchant_id, &customer.external_id, vec![], sandbox_mode, true).await
             .unwrap_or_else(|e| {
                 tracing::warn!("Auto-provision wallets failed for customer {}: {}", customer.external_id, e);
                 vec![]
@@ -155,6 +155,7 @@ impl MerchantCustomerService {
         external_id: &str,
         networks: Vec<String>,
         sandbox_mode: bool,
+        bypass_lock: bool,
     ) -> Result<Vec<MerchantCustomerWallet>, ServiceError> {
         let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
 
@@ -198,7 +199,7 @@ impl MerchantCustomerService {
                         let wallet = self.save_customer_wallet(
                             customer.id, merchant_id, crypto,
                             keypair.address.clone(), encrypted_key.clone(),
-                            sandbox_mode,
+                            sandbox_mode, bypass_lock,
                         ).await?;
                         wallets.push(wallet);
                     }
@@ -218,7 +219,7 @@ impl MerchantCustomerService {
                         let wallet = self.save_customer_wallet(
                             customer.id, merchant_id, crypto,
                             keypair.address.clone(), encrypted_key.clone(),
-                            sandbox_mode,
+                            sandbox_mode, bypass_lock,
                         ).await?;
                         wallets.push(wallet);
                     }
@@ -235,7 +236,7 @@ impl MerchantCustomerService {
                     let wallet = self.save_customer_wallet(
                         customer.id, merchant_id, CryptoType::Btc,
                         keypair.address.clone(), encrypted_key.clone(),
-                        sandbox_mode,
+                        sandbox_mode, bypass_lock,
                     ).await?;
                     wallets.push(wallet);
                 },
@@ -254,6 +255,7 @@ impl MerchantCustomerService {
         address: String,
         encrypted_key: String,
         sandbox_mode: bool,
+        bypass_lock: bool,
     ) -> Result<MerchantCustomerWallet, ServiceError> {
         let network = crypto_type.network().to_string();
         let crypto_str = crypto_type.to_string();
@@ -293,7 +295,7 @@ impl MerchantCustomerService {
         .await
         .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
-        if current_wallet.is_none() && has_existing_wallets && customer_wallets_locked {
+        if current_wallet.is_none() && has_existing_wallets && customer_wallets_locked && !bypass_lock {
             tracing::warn!("Blocked new currency provisioning for existing customer {} (customer wallets locked)", customer_id);
             return Err(ServiceError::BadRequest(
                 "Customer wallets are locked. Please unlock in settings to provision new currencies for this user.".to_string()
