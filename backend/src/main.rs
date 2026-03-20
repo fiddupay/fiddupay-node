@@ -92,6 +92,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let background_tasks = Arc::new(BackgroundTasks::new(
         db_pool.clone(),
         config.clone(),
+        app_state.price_service.clone(),
     ));
     background_tasks.start();
     tracing::info!(" Background tasks started");

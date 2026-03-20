@@ -16,14 +16,16 @@ use crate::services::webhook_service::WebhookService;
 pub struct PaymentVerifier {
     db_pool: PgPool,
     webhook_service: WebhookService,
+    price_service: std::sync::Arc<crate::services::price_service::PriceService>,
     config: crate::config::Config,
 }
 
 impl PaymentVerifier {
-    pub fn new(db_pool: PgPool, webhook_service: WebhookService, config: crate::config::Config) -> Self {
+    pub fn new(db_pool: PgPool, webhook_service: WebhookService, price_service: std::sync::Arc<crate::services::price_service::PriceService>, config: crate::config::Config) -> Self {
         Self {
             db_pool,
             webhook_service,
+            price_service,
             config,
         }
     }
@@ -728,7 +730,7 @@ impl PaymentVerifier {
         // 5. Trigger Webhook
         let webhook_payload = crate::models::webhook::WebhookPayload {
             event_type: "customer.deposit".to_string(),
-            payment_id: format!("dep_{}", transaction_hash), // Synthetic Payment ID for webhook conformity
+            payment_id: format!("dep_c_{}_{}", Utc::now().timestamp_millis(), &transaction_hash[0..10]), // Synthetic Payment ID for webhook conformity
             merchant_id,
             status: PaymentStatus::Confirmed,
             amount: blockchain_tx.amount,
@@ -789,14 +791,20 @@ impl PaymentVerifier {
         .fetch_one(&self.db_pool)
         .await?;
 
+        // Calculate USD amounts using PriceService
+        let crypto_price = self.price_service.get_price(crypto_type.clone()).await.unwrap_or(1.0);
+        let price_decimal = Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE);
+        let amount_usd = (blockchain_tx.amount * price_decimal).round_dp(2);
+
         let fee_amount = blockchain_tx.amount * (fee_percentage / Decimal::from(100));
+        let fee_amount_usd = (fee_amount * price_decimal).round_dp(2);
         let net_amount = blockchain_tx.amount - fee_amount;
 
         // 3. Credit merchant balance atomically AND Record Payment record
         let mut tx = self.db_pool.begin().await?;
 
-        // Generate synthetic row in payment_transactions to represent the deposit for accounting
-        let payment_id_str = format!("dep_m_{}", transaction_hash);
+        // Generate synthetic row in payment_transactions with a short ID to prevent UI modal overflow
+        let payment_id_str = format!("dep_m_{}_{}", Utc::now().timestamp_millis(), &transaction_hash[0..10]);
         
         let payment_id: i64 = sqlx::query_scalar(
             r#"
@@ -805,7 +813,7 @@ impl PaymentVerifier {
                 status, expires_at, fee_percentage, fee_amount, fee_amount_usd, network,
                 required_confirmations, confirmations, block_number, transaction_hash, description, sandbox_mode, created_at
             )
-            VALUES ($1, $2, $3, $4, $4, $5, $6, 'CONFIRMED', NOW() + INTERVAL '1 hour', $7, $8, $8, $3, 1, 1, $9, $10, 'Static wallet deposit', $11, NOW())
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'CONFIRMED', NOW() + INTERVAL '1 hour', $8, $9, $10, $3, 1, 1, $11, $12, 'Static wallet deposit', $13, NOW())
             RETURNING id
             "#
         )
@@ -813,10 +821,12 @@ impl PaymentVerifier {
         .bind(merchant_id)
         .bind(crypto_str)
         .bind(blockchain_tx.amount)
+        .bind(amount_usd)
         .bind(&blockchain_tx.to_address)
         .bind(&blockchain_tx.from_address)
         .bind(fee_percentage)
         .bind(fee_amount)
+        .bind(fee_amount_usd)
         .bind(blockchain_tx.block_number.map(|n| n as i64))
         .bind(transaction_hash)
         .bind(sandbox_mode)

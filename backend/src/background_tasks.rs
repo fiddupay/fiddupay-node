@@ -39,15 +39,17 @@ pub struct BackgroundTasks {
     db_pool: PgPool,
     webhook_service: Arc<WebhookService>,
     config: crate::config::Config,
+    price_service: Arc<crate::services::price_service::PriceService>,
 }
 
 impl BackgroundTasks {
-    pub fn new(db_pool: PgPool, config: crate::config::Config) -> Self {
+    pub fn new(db_pool: PgPool, config: crate::config::Config, price_service: Arc<crate::services::price_service::PriceService>) -> Self {
         let webhook_service = Arc::new(WebhookService::new(db_pool.clone(), config.webhook_signing_key.clone()));
         Self {
             db_pool,
             webhook_service,
             config,
+            price_service,
         }
     }
 
@@ -505,6 +507,7 @@ impl BackgroundTasks {
             let verifier = Arc::new(PaymentVerifier::new(
                 self.db_pool.clone(),
                 (*self.webhook_service).clone(),
+                self.price_service.clone(),
                 self.config.clone()
             ));
 
