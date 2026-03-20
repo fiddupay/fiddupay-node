@@ -176,14 +176,35 @@ use sqlx::Row;
                 let tx_hash_display = payload.transaction_hash.as_deref().unwrap_or("Pending/Unknown");
                 
                 let (color, title, body_text) = match payload.event_type.as_str() {
-                    "payment.confirmed" => (
-                        5763719, // Green
-                        "✅ Payment Confirmed",
-                        format!(
-                            "**Amount:** `{} {}`\n**Payment ID:** `{}`\n**Tx Hash:** `{}`\n\n**[View Payment Page]({})**", 
-                            payload.amount, payload.crypto_type, payload.payment_id, tx_hash_display, payment_link
+                    "payment.confirmed" | "merchant.deposit" | "customer.deposit" => {
+                        let explorer_link = if payload.crypto_type.to_lowercase().contains("sol") {
+                            format!("\n**[View on Explorer](https://explorer.solana.com/tx/{})**", tx_hash_display)
+                        } else {
+                            format!("\n**[View on Explorer](https://etherscan.io/tx/{})**", tx_hash_display)
+                        };
+                        
+                        let is_deposit = payload.event_type.contains("deposit");
+                        let view_link = if is_deposit {
+                            String::new()
+                        } else {
+                            format!("\n\n**[View Payment Page]({})**", payment_link)
+                        };
+
+                        (
+                            5763719, // Green
+                            if payload.event_type == "merchant.deposit" {
+                                "💰 Merchant Deposit"
+                            } else if payload.event_type == "customer.deposit" {
+                                "💰 Customer Deposit"
+                            } else {
+                                "✅ Payment Confirmed"
+                            },
+                            format!(
+                                "**Amount:** `{} {}`\n**Payment ID:** `{}`\n**Tx Hash:** `{}`{}{}", 
+                                payload.amount, payload.crypto_type, payload.payment_id, tx_hash_display, explorer_link, view_link
+                            )
                         )
-                    ),
+                    },
                     "payment.expired" => (
                         15548997, // Red
                         "❌ Payment Expired",
