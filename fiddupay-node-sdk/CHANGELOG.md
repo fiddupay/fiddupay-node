@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.5.2] - 2026-03-19
+## [2.5.3] - 2026-03-19
 
 ### Added
 - **AddressOnly Resource**: Dedicated module for Forwarding-mode payment management (`create()`, `retrieve()`, `listCurrencies()`, `getStats()`, `getHealth()`, `getFeeSetting()`, `setFeeSetting()`).
