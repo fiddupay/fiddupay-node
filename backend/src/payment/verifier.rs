@@ -785,7 +785,7 @@ impl PaymentVerifier {
         let mut tx = self.db_pool.begin().await?;
 
         // Generate synthetic row in payment_transactions to represent the deposit for accounting
-        let payment_id_str = format!("merchant_dep_{}", transaction_hash);
+        let payment_id_str = format!("dep_m_{}", transaction_hash);
         
         let payment_id: i64 = sqlx::query_scalar(
             r#"
