@@ -165,9 +165,10 @@ impl MerchantCustomerService {
         let mut networks = networks;
         if networks.is_empty() {
              let merchant_networks: Vec<String> = sqlx::query_scalar::<_, String>(
-                 "SELECT DISTINCT network FROM merchant_currencies WHERE merchant_id = $1"
+                 "SELECT DISTINCT network FROM merchant_wallets WHERE merchant_id = $1 AND sandbox_mode = $2 AND is_active = true"
              )
              .bind(merchant_id)
+             .bind(sandbox_mode)
              .fetch_all(&self.db_pool)
              .await?;
              

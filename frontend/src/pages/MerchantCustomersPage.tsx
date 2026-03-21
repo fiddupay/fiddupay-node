@@ -75,6 +75,7 @@ const MerchantCustomersPage: React.FC = () => {
     const [sweepCryptoType, setSweepCryptoType] = useState('USDT')
     const [sweepAmount, setSweepAmount] = useState('')
     const [sweeping, setSweeping] = useState(false)
+    const [provisioning, setProvisioning] = useState(false)
 
     // Status update states
     const [statusUpdating, setStatusUpdating] = useState(false)
@@ -241,6 +242,24 @@ const MerchantCustomersPage: React.FC = () => {
             showToast(error.response?.data?.error || error.message || 'Failed to sweep funds', 'error')
         } finally {
             setSweeping(false)
+        }
+    }
+
+    const handleProvisionWallets = async () => {
+        if (!selectedCustomer) return;
+        try {
+            setProvisioning(true)
+            await customerAPI.createWallets(selectedCustomer.external_id, { networks: [] })
+            showToast('Wallets provisioned successfully', 'success')
+            const walletRes = await customerAPI.getWallets(selectedCustomer.external_id)
+            setCustomerWallets(walletRes.data?.wallets || [])
+            // Also refresh balances
+            const balRes = await customerAPI.getBalances(selectedCustomer.external_id)
+            setCustomerBalances(balRes.data?.balances)
+        } catch (error: any) {
+            showToast(error.response?.data?.error || 'Failed to provision wallets', 'error')
+        } finally {
+            setProvisioning(false)
         }
     }
 
@@ -585,6 +604,14 @@ const MerchantCustomersPage: React.FC = () => {
                                                     <div style={{ textAlign: 'center', padding: '2rem 1rem', background: '#f8fafc', borderRadius: '12px', color: '#94a3b8' }}>
                                                         <i className="fas fa-wallet" style={{ fontSize: '1.5rem', marginBottom: '0.5rem', display: 'block' }}></i>
                                                         <p style={{ margin: 0, fontSize: '0.85rem' }}>No wallets provisioned yet</p>
+                                                        <button 
+                                                            onClick={handleProvisionWallets} 
+                                                            style={{ marginTop: '1rem', padding: '0.5rem 1.25rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }} 
+                                                            disabled={provisioning}
+                                                        >
+                                                            {provisioning ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-magic"></i>}
+                                                            {provisioning ? 'Provisioning...' : 'Provision Wallets'}
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
