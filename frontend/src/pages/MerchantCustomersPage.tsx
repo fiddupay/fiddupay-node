@@ -490,7 +490,7 @@ const MerchantCustomersPage: React.FC = () => {
                     <div className={styles.drawer} onClick={e => e.stopPropagation()}>
                         <div className={styles.drawerHeader}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <h2><i className="fas fa-id-badge" style={{ color: '#2563eb' }}></i> {selectedCustomer.external_id}</h2>
+                                <h2><i className="fas fa-id-badge" style={{ color: '#2563eb' }}></i> {selectedCustomer.first_name || selectedCustomer.last_name ? `${selectedCustomer.first_name || ''} ${selectedCustomer.last_name || ''}`.trim() : selectedCustomer.external_id}</h2>
                                 {(() => {
                                     const st = getStatusStyle(selectedCustomer.status || 'active')
                                     return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, color: st.color, background: st.bg }}>
