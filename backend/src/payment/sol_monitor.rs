@@ -38,9 +38,16 @@ struct RpcRequest {
 }
 
 #[derive(Debug, Deserialize)]
+struct RpcError {
+    code: i64,
+    message: String,
+}
+
+#[derive(Debug, Deserialize)]
 struct RpcResponse<T> {
     jsonrpc: String,
-    result: T,
+    result: Option<T>,
+    error: Option<RpcError>,
     id: u64,
 }
 
@@ -170,7 +177,13 @@ impl SolanaMonitor {
                 error!("Solana RPC getSignaturesForAddress JSON error: {}", e);
                 e
             })?;
-        let signatures = rpc_response.result;
+
+        if let Some(err) = rpc_response.error {
+            error!("Solana RPC getSignaturesForAddress error {}: {}", err.code, err.message);
+            return Err(format!("RPC Error: {}", err.message).into());
+        }
+
+        let signatures = rpc_response.result.unwrap_or_default();
 
         let mut blockchain_txs = Vec::new();
 
@@ -242,7 +255,12 @@ impl SolanaMonitor {
                 }
             };
 
-            if let Some(res) = rpc_response.result {
+            if let Some(err) = rpc_response.error {
+                error!("Solana RPC getTransaction error for {}: {}: {}", signature, err.code, err.message);
+                return Err(format!("RPC Error: {}", err.message).into());
+            }
+
+            if let Some(Some(res)) = rpc_response.result {
                 tx_result = Some(res);
                 break;
             }
@@ -401,7 +419,13 @@ impl SolanaMonitor {
                 error!("Solana RPC getSlot JSON error: {}", e);
                 e
             })?;
-        Ok(rpc_response.result)
+
+        if let Some(err) = rpc_response.error {
+            error!("Solana RPC getSlot error {}: {}", err.code, err.message);
+            return Err(format!("RPC Error: {}", err.message).into());
+        }
+
+        Ok(rpc_response.result.unwrap_or(0))
     }
 
     /// Listen for new transactions using WebSockets (Requirement: Push-based)
