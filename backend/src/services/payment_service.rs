@@ -58,12 +58,12 @@ pub struct PaymentService {
 }
 
 impl PaymentService {
-    pub fn new(db_pool: PgPool, payment_page_base_url: &str, price_service: Arc<PriceService>, invoice_service: Arc<InvoiceService>, audit_service: Arc<crate::services::audit_service::AuditService>, webhook_signing_key: &str, config: crate::config::Config) -> Self {
+    pub fn new(db_pool: PgPool, payment_page_base_url: &str, price_service: Arc<PriceService>, invoice_service: Arc<InvoiceService>, audit_service: Arc<crate::services::audit_service::AuditService>, webhook_signing_key: &str, config: crate::config::Config, redis_client: redis::Client) -> Self {
         let webhook_service = WebhookService::new(db_pool.clone(), webhook_signing_key.to_string());
         
         Self {
             processor: PaymentProcessor::new(db_pool.clone(), payment_page_base_url.to_string(), price_service.clone(), invoice_service.clone(), audit_service, config.clone()),
-            verifier: PaymentVerifier::new(db_pool.clone(), webhook_service, price_service, config.clone()),
+            verifier: PaymentVerifier::new(db_pool.clone(), webhook_service, price_service, config.clone(), redis_client),
             db_pool,
             invoice_service,
             config,

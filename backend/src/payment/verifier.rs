@@ -18,15 +18,23 @@ pub struct PaymentVerifier {
     webhook_service: WebhookService,
     price_service: std::sync::Arc<crate::services::price_service::PriceService>,
     config: crate::config::Config,
+    redis_client: redis::Client,
 }
 
 impl PaymentVerifier {
-    pub fn new(db_pool: PgPool, webhook_service: WebhookService, price_service: std::sync::Arc<crate::services::price_service::PriceService>, config: crate::config::Config) -> Self {
+    pub fn new(
+        db_pool: PgPool, 
+        webhook_service: WebhookService, 
+        price_service: std::sync::Arc<crate::services::price_service::PriceService>, 
+        config: crate::config::Config,
+        redis_client: redis::Client,
+    ) -> Self {
         Self {
             db_pool,
             webhook_service,
             price_service,
             config,
+            redis_client,
         }
     }
 
@@ -727,6 +735,22 @@ impl PaymentVerifier {
 
         info!("💰 Static deposit confirmed for customer {}: {} {}", customer_id, blockchain_tx.amount, crypto_str);
 
+        // Publish to Redis for Merchant Dashboard Toast Notification (Customer Activity)
+        if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
+            let notification = serde_json::json!({
+                "event": "customer.deposit",
+                "amount": blockchain_tx.amount,
+                "crypto_type": crypto_str,
+                "transaction_hash": transaction_hash
+            });
+            let channel = format!("merchant_notifications:{}", merchant_id);
+            let _: redis::RedisResult<()> = redis::cmd("PUBLISH")
+                .arg(&channel)
+                .arg(notification.to_string())
+                .query_async(&mut publish_conn)
+                .await;
+        }
+
         // 5. Trigger Webhook
         let webhook_payload = crate::models::webhook::WebhookPayload {
             event_type: "customer.deposit".to_string(),
@@ -854,6 +878,23 @@ impl PaymentVerifier {
         tx.commit().await?;
 
         info!("💰 Static deposit confirmed for merchant {}: {} {}", merchant_id, blockchain_tx.amount, crypto_str);
+
+        // Publish to Redis for Merchant Dashboard Toast Notification
+        if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
+            let notification = serde_json::json!({
+                "event": "merchant.deposit",
+                "amount": blockchain_tx.amount,
+                "amount_usd": amount_usd,
+                "crypto_type": crypto_str,
+                "transaction_hash": transaction_hash
+            });
+            let channel = format!("merchant_notifications:{}", merchant_id);
+            let _: redis::RedisResult<()> = redis::cmd("PUBLISH")
+                .arg(&channel)
+                .arg(notification.to_string())
+                .query_async(&mut publish_conn)
+                .await;
+        }
 
         // 5. Trigger Webhook
         let webhook_payload = crate::models::webhook::WebhookPayload {

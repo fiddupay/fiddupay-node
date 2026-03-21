@@ -1,7 +1,7 @@
 // Merchant Routes
 // All merchant-specific API endpoints with API key authentication
 
-use crate::api::{merchant_handlers, wallet_management, security_monitoring, address_only};
+use crate::api::{merchant_handlers, wallet_management, security_monitoring, address_only, merchant_ws};
 use crate::middleware::auth;
 use axum::{
     middleware as axum_middleware,
@@ -12,6 +12,9 @@ use crate::api::state::AppState;
 
 pub fn create_merchant_router(state: AppState) -> Router<AppState> {
     Router::new()
+        // Dashboard Notifications WebSocket
+        .route("/api/v1/merchants/ws", get(merchant_ws::merchant_ws_handler))
+        
         // Merchant profile management
         .route("/api/v1/merchants/profile", get(merchant_handlers::get_merchant_profile))
         .route("/api/v1/merchants/status", get(merchant_handlers::get_merchant_readiness))

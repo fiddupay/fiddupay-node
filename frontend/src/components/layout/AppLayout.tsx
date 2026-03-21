@@ -3,6 +3,7 @@ import { Outlet, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import { LiveDropToast } from './LiveDropToast'
 import LoadingSpinner from '../ui/LoadingSpinner'
 import styles from '@/styles/components/layout/AppLayout.module.css'
 
@@ -27,6 +28,7 @@ const AppLayout: React.FC = () => {
 
   return (
     <div className={styles.layout}>
+      <LiveDropToast />
       <Sidebar isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
       
       {isMobileMenuOpen && (

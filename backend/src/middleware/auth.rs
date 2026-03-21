@@ -54,23 +54,32 @@ fn extract_api_key(headers: &HeaderMap) -> Option<String> {
 pub async fn auth_middleware(
     State(state): State<AppState>,
     headers: HeaderMap,
+    uri: axum::http::Uri,
     mut request: Request,
     next: Next,
 ) -> Result<Response, impl IntoResponse> {
     
-    // Extract API key from header
+    // Extract query token for WebSocket authenticity
+    let query_token = uri.query().and_then(|q| {
+         q.split('&')
+          .find(|s| s.starts_with("token="))
+          .map(|s| s[6..].to_string())
+    });
+
+    // Extract API key from header, fallback to query parameter
     let api_key = match extract_api_key(&headers) {
-        Some(key) => {
-            key
-        },
-        None => {
-            return Err((
-                StatusCode::UNAUTHORIZED,
-                axum::Json(json!({
-                    "error": "Missing or invalid Authorization header",
-                    "message": "Expected format: Authorization: Bearer <api_key>"
-                }))
-            ));
+        Some(key) => key,
+        None => match query_token {
+            Some(token) => token,
+            None => {
+                return Err((
+                    StatusCode::UNAUTHORIZED,
+                    axum::Json(json!({
+                        "error": "Missing or invalid Authorization header",
+                        "message": "Expected format: Authorization: Bearer <api_key> or URL ?token=<api_key>"
+                    }))
+                ));
+            }
         }
     };
 

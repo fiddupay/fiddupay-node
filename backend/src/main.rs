@@ -93,6 +93,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         db_pool.clone(),
         config.clone(),
         app_state.price_service.clone(),
+        app_state.redis_client.clone(),
     ));
     background_tasks.start();
     tracing::info!(" Background tasks started");
