@@ -469,11 +469,13 @@ impl SolanaMonitor {
                 Ok(txs) => {
                     info!(" Found {} historical transactions for {}. Triggering verification backfill...", txs.len(), addr);
                     for tx in txs {
-                        callback(addr.clone(), tx.hash.clone());
+                        callback(tx.hash.clone(), addr.clone());
                     }
                 }
                 Err(e) => warn!("Solana history catch-up backfill failed for {}: {}", addr, e),
             }
+            // Throttle requests to avoid RPC Rate Limiting (429) on free nodes
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         }
         // --- END CATCH-UP BACKFILL ---
 
@@ -515,7 +517,7 @@ impl SolanaMonitor {
                     match self.get_transactions_to_address(&addr_clone, 5, None).await {
                         Ok(txs) => {
                             for tx in txs {
-                                cb_clone(addr_clone.clone(), tx.hash.clone());
+                                cb_clone(tx.hash.clone(), addr_clone.clone());
                             }
                         }
                         Err(e) => warn!("Solana dynamic catch-up backfill failed for {}: {}", addr_clone, e),
