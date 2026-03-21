@@ -465,7 +465,8 @@ impl SolanaMonitor {
         // --- START CATCH-UP BACKFILL ---
         info!("⏳ Performing Solana history backfill catch-up for {} address(es)...", addresses.len());
         for addr in &addresses {
-            match self.get_transactions_to_address(addr, 10, None).await {
+            let min_ts = Utc::now() - chrono::Duration::minutes(10);
+            match self.get_transactions_to_address(addr, 10, Some(min_ts)).await {
                 Ok(txs) => {
                     info!(" Found {} historical transactions for {}. Triggering verification backfill...", txs.len(), addr);
                     for tx in txs {
@@ -514,7 +515,8 @@ impl SolanaMonitor {
                     // --- START DYNAMIC CATCH-UP ---
                     let addr_clone = new_addr.clone();
                     let cb_clone = callback.clone();
-                    match self.get_transactions_to_address(&addr_clone, 5, None).await {
+                    let min_ts = Utc::now() - chrono::Duration::minutes(10);
+                    match self.get_transactions_to_address(&addr_clone, 5, Some(min_ts)).await {
                         Ok(txs) => {
                             for tx in txs {
                                 cb_clone(tx.hash.clone(), addr_clone.clone());
@@ -596,7 +598,8 @@ impl SolanaMonitor {
         let mut known_txs = std::collections::HashSet::new();
 
         loop {
-            match self.get_transactions_to_address(address, 50, None).await {
+            let min_ts = Utc::now() - chrono::Duration::minutes(10);
+            match self.get_transactions_to_address(address, 50, Some(min_ts)).await {
                 Ok(transactions) => {
                     for tx in transactions {
                         if !known_txs.contains(&tx.hash) {
