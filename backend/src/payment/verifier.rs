@@ -807,6 +807,28 @@ impl PaymentVerifier {
             return Ok(false);
         }
 
+        // 3. Fetch merchant static wallet to confirm address match (Withdrawal trigger protection)
+        let expected_address = sqlx::query_scalar::<_, String>(
+            "SELECT address FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND is_active = true"
+        )
+        .bind(merchant_id)
+        .bind(crypto_str)
+        .bind(sandbox_mode)
+        .fetch_optional(&self.db_pool)
+        .await?
+        .ok_or("Merchant static wallet not found")?;
+
+        let addresses_match = if crypto_str.to_lowercase().contains("sol") {
+            blockchain_tx.to_address.trim() == expected_address.trim()
+        } else {
+            blockchain_tx.to_address.trim().to_lowercase() == expected_address.trim().to_lowercase()
+        };
+
+        if !addresses_match {
+            warn!("Address mismatch for merchant static deposit {}: expected {}, got {} as destination!", transaction_hash, expected_address, blockchain_tx.to_address);
+            return Ok(false); // Gracefully skip withdrawals
+        }
+
         // Fetch merchant's dynamic fee percentage
         let fee_percentage = sqlx::query_scalar::<_, Decimal>(
             "SELECT fee_percentage FROM merchants WHERE id = $1"

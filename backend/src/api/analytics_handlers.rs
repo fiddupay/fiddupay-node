@@ -210,25 +210,45 @@ pub async fn get_balance(
     match state.balance_service.get_all_balances(context.merchant_id, context.sandbox_mode).await {
         Ok(balance) => {
             let mut response_balances = vec![];
+            use rust_decimal::Decimal;
+            let mut total_usd = Decimal::ZERO;
+            let mut available_usd = Decimal::ZERO;
+            let mut reserved_usd = Decimal::ZERO;
+
             for b in balance.balances {
                 let price = state.price_service.get_price(b.crypto_type).await.unwrap_or(0.0);
                 use rust_decimal::prelude::FromPrimitive;
-                let price_dec = rust_decimal::Decimal::from_f64(price).unwrap_or(rust_decimal::Decimal::ZERO);
+                let price_dec = Decimal::from_f64(price).unwrap_or(Decimal::ZERO);
                 
-                response_balances.push(json!({
-                    "merchant_id": context.merchant_id,
-                    "crypto_type": b.crypto_type.to_string(),
+                let cur_avail_usd = b.available_balance * price_dec;
+                let cur_res_avail_usd = b.reserved_balance * price_dec;
+                let cur_total_usd = b.total_balance * price_dec;
 
+                available_usd += cur_avail_usd;
+                reserved_usd += cur_res_avail_usd;
+                total_usd += cur_total_usd;
+
+                response_balances.push(json!({
+                    "crypto_type": b.crypto_type.to_string(),
                     "available_balance": b.available_balance,
-                    "available_balance_usd": b.available_balance * price_dec,
+                    "available_usd": cur_avail_usd,
                     "reserved_balance": b.reserved_balance,
-                    "reserved_balance_usd": b.reserved_balance * price_dec,
+                    "reserved_usd": cur_res_avail_usd,
                     "total_balance": b.total_balance,
-                    "total_balance_usd": b.total_balance * price_dec,
+                    "total_usd": cur_total_usd,
+                    "balance_usd": cur_total_usd, // Frontend looks for balance_usd on rows
                     "last_updated": b.last_updated,
                 }));
             }
-            (StatusCode::OK, Json(response_balances)).into_response()
+            
+            let response_obj = json!({
+                "total_usd": total_usd,
+                "available_usd": available_usd,
+                "reserved_usd": reserved_usd,
+                "balances": response_balances
+            });
+
+            (StatusCode::OK, Json(response_obj)).into_response()
         },
         Err(e) => {
             tracing::error!("Failed to get balances: {:?}", e);

@@ -438,6 +438,21 @@ impl SolanaMonitor {
             info!("✅ Subscription request sent for: {}", address);
         }
 
+        // --- START CATCH-UP BACKFILL ---
+        info!("⏳ Performing Solana history backfill catch-up for {} address(es)...", addresses.len());
+        for addr in &addresses {
+            match self.get_transactions_to_address(addr, 10, None).await {
+                Ok(txs) => {
+                    info!(" Found {} historical transactions for {}. Triggering verification backfill...", txs.len(), addr);
+                    for tx in txs {
+                        callback(addr.clone(), tx.hash.clone());
+                    }
+                }
+                Err(e) => warn!("Solana history catch-up backfill failed for {}: {}", addr, e),
+            }
+        }
+        // --- END CATCH-UP BACKFILL ---
+
         let mut active_subscriptions = std::collections::HashMap::new();
 
         // Interval for periodic database refresh (e.g. 5 minutes)
@@ -469,6 +484,19 @@ impl SolanaMonitor {
                     }
                     subscription_map.insert(request_id, new_addr.clone());
                     info!("✅ Dynamic Subscription request sent for: {}", new_addr);
+
+                    // --- START DYNAMIC CATCH-UP ---
+                    let addr_clone = new_addr.clone();
+                    let cb_clone = callback.clone();
+                    match self.get_transactions_to_address(&addr_clone, 5, None).await {
+                        Ok(txs) => {
+                            for tx in txs {
+                                cb_clone(addr_clone.clone(), tx.hash.clone());
+                            }
+                        }
+                        Err(e) => warn!("Solana dynamic catch-up backfill failed for {}: {}", addr_clone, e),
+                    }
+                    // --- END DYNAMIC CATCH-UP ---
                 }
                 _ = refresh_interval.tick() => {
                     // Skip first tick trigger since it fires immediately

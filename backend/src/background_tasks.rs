@@ -604,8 +604,8 @@ impl BackgroundTasks {
 
             // Start listening (this block is long-running)
             if let Err(e) = monitor.listen_for_signatures(addresses, rx, callback).await {
-                error!("Solana WebSocket monitor crashed: {}. Reconnecting in 10s...", e);
-                tokio::time::sleep(Duration::from_secs(10)).await;
+                error!("Solana WebSocket monitor crashed: {}. Reconnecting in 2s...", e);
+                tokio::time::sleep(Duration::from_secs(2)).await;
             }
         }
     }
