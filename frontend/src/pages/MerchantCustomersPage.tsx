@@ -114,8 +114,10 @@ const MerchantCustomersPage: React.FC = () => {
                 setCustomers(res.data.customers)
             }
         } catch (error: any) {
-            showToast(error.response?.data?.error || error.message || 'Failed to list customers', 'error')
-        } finally {
+            const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to list customers';
+            showToast(errMsg, 'error')
+        }
+ finally {
             setLoading(false)
         }
     }
@@ -161,8 +163,10 @@ const MerchantCustomersPage: React.FC = () => {
             setNewCustomer({ external_id: '', email: '', first_name: '', last_name: '' })
             fetchCustomers()
         } catch (error: any) {
-            showToast(error.response?.data?.error || error.message || 'Failed to register customer', 'error')
-        } finally {
+            const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to register customer';
+            showToast(errMsg, 'error')
+        }
+ finally {
             setSubmitting(false)
         }
     }
@@ -203,8 +207,10 @@ const MerchantCustomersPage: React.FC = () => {
             setShowStatusModal(null)
             setStatusReason('')
         } catch (error: any) {
-            showToast(error.response?.data?.error || 'Failed to update status', 'error')
-        } finally {
+            const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to update status';
+            showToast(errMsg, 'error')
+        }
+ finally {
             setStatusUpdating(false)
         }
     }
@@ -221,8 +227,10 @@ const MerchantCustomersPage: React.FC = () => {
             }
             showToast(`Withdrawals ${!selectedCustomer.can_withdraw ? 'enabled' : 'disabled'}`, 'success')
         } catch (error: any) {
-            showToast(error.response?.data?.error || 'Failed to update permissions', 'error')
-        } finally {
+            const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to update permissions';
+            showToast(errMsg, 'error')
+        }
+ finally {
             setPermUpdating(false)
         }
     }
@@ -239,8 +247,10 @@ const MerchantCustomersPage: React.FC = () => {
             const balRes = await customerAPI.getBalances(selectedCustomer.external_id)
             setCustomerBalances(balRes.data?.balances)
         } catch (error: any) {
-            showToast(error.response?.data?.error || error.message || 'Failed to sweep funds', 'error')
-        } finally {
+            const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to sweep funds';
+            showToast(errMsg, 'error')
+        }
+ finally {
             setSweeping(false)
         }
     }
@@ -257,8 +267,10 @@ const MerchantCustomersPage: React.FC = () => {
             const balRes = await customerAPI.getBalances(selectedCustomer.external_id)
             setCustomerBalances(balRes.data?.balances)
         } catch (error: any) {
-            showToast(error.response?.data?.error || 'Failed to provision wallets', 'error')
-        } finally {
+            const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to provision wallets';
+            showToast(errMsg, 'error')
+        }
+ finally {
             setProvisioning(false)
         }
     }
