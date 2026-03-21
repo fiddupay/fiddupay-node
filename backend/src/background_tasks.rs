@@ -579,7 +579,7 @@ impl BackgroundTasks {
                                                 }
                                             },
                                             Ok(None) => {
-                                                warn!("WebSocket detected transaction for {} but found no pending payments, customer, or merchant wallets in DB", addr_clone);
+                                                warn!("WebSocket detected transaction on {} (Signature: {}) but found no pending payments, customer, or merchant wallets in DB", addr_clone, signature);
                                             },
                                             Err(e) => error!("Failed to query merchant wallet for address {}: {}", addr_clone, e),
                                         }
