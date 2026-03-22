@@ -482,13 +482,6 @@ impl SolanaMonitor {
 
         let mut active_subscriptions = std::collections::HashMap::new();
 
-        // Interval for periodic database refresh (e.g. 5 minutes)
-        // This forces the loop to re-fetch from the DB and register new addresses
-        let mut refresh_interval = tokio::time::interval(std::time::Duration::from_secs(300));
-        refresh_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-        
-        let mut first_tick = true;
-
         // Handle incoming messages
         loop {
             tokio::select! {
@@ -525,15 +518,6 @@ impl SolanaMonitor {
                         Err(e) => warn!("Solana dynamic catch-up backfill failed for {}: {}", addr_clone, e),
                     }
                     // --- END DYNAMIC CATCH-UP ---
-                }
-                _ = refresh_interval.tick() => {
-                    // Skip first tick trigger since it fires immediately
-                     if first_tick {
-                         first_tick = false;
-                         continue;
-                     }
-                    info!("Solana WebSocket monitor: Periodic address list refresh starting...");
-                    break; // Breaks loop to let background_tasks re-query database
                 }
                 message = read.next() => {
                     let message = match message {
