@@ -122,7 +122,7 @@ impl BlockchainMonitor for BtcMonitor {
         let mut transactions = Vec::new();
         for tx_data in data.iter().take(limit) {
             if let Some(txid) = tx_data.get("txid").and_then(|v| v.as_str()) {
-                match self.get_transaction_details(txid).await {
+                match self.get_transaction_details(txid, Some(address)).await {
                     Ok(tx) => {
                         if let Some(min_ts) = min_timestamp {
                              if let Some(ts) = tx.timestamp {

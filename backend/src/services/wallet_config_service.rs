@@ -153,7 +153,7 @@ impl WalletConfigService {
         let sisters = match crypto_type {
             CryptoType::Sol | CryptoType::WSol | CryptoType::UsdtSpl => vec!["SOL", "WSOL", "USDT_SPL"],
             CryptoType::Eth | CryptoType::UsdtEth => vec!["ETH", "USDT_ETH"],
-            CryptoType::Bnb | CryptoType::UsdtBep20 => vec!["BNB", "USDT_BEP20"],
+            CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 => vec!["BNB", "USDT_BEP20", "BUSD_BEP20"],
             CryptoType::Matic | CryptoType::UsdtPolygon => vec!["MATIC", "USDT_POLYGON"],
             CryptoType::Arb | CryptoType::UsdtArbitrum => vec!["ARB", "USDT_ARBITRUM"],
             CryptoType::Btc => vec!["BTC"],
@@ -440,7 +440,7 @@ impl WalletConfigService {
         let sisters = match crypto_type {
             CryptoType::Sol | CryptoType::WSol | CryptoType::UsdtSpl => vec!["SOL", "WSOL", "USDT_SPL"],
             CryptoType::Eth | CryptoType::UsdtEth => vec!["ETH", "USDT_ETH"],
-            CryptoType::Bnb | CryptoType::UsdtBep20 => vec!["BNB", "USDT_BEP20"],
+            CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 => vec!["BNB", "USDT_BEP20", "BUSD_BEP20"],
             CryptoType::Matic | CryptoType::UsdtPolygon => vec!["MATIC", "USDT_POLYGON"],
             CryptoType::Arb | CryptoType::UsdtArbitrum => vec!["ARB", "USDT_ARBITRUM"],
             CryptoType::Btc => vec!["BTC"],
@@ -558,7 +558,7 @@ impl WalletConfigService {
         let sisters = match crypto_type {
             CryptoType::Sol | CryptoType::WSol | CryptoType::UsdtSpl => vec!["SOL", "WSOL", "USDT_SPL"],
             CryptoType::Eth | CryptoType::UsdtEth => vec!["ETH", "USDT_ETH"],
-            CryptoType::Bnb | CryptoType::UsdtBep20 => vec!["BNB", "USDT_BEP20"],
+            CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 => vec!["BNB", "USDT_BEP20", "BUSD_BEP20"],
             CryptoType::Matic | CryptoType::UsdtPolygon => vec!["MATIC", "USDT_POLYGON"],
             CryptoType::Arb | CryptoType::UsdtArbitrum => vec!["ARB", "USDT_ARBITRUM"],
             CryptoType::Btc => vec!["BTC"],
@@ -690,7 +690,7 @@ fn is_evm(crypto_type: &CryptoType) -> bool {
     matches!(
         crypto_type,
         CryptoType::Eth | CryptoType::UsdtEth |
-        CryptoType::Bnb | CryptoType::UsdtBep20 |
+        CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 |
         CryptoType::Matic | CryptoType::UsdtPolygon |
         CryptoType::Arb | CryptoType::UsdtArbitrum
     )

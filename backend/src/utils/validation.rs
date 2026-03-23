@@ -22,7 +22,7 @@ pub fn validate_wallet_address(
                 ));
             }
         }
-        CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon | CryptoType::UsdtEth | CryptoType::Eth | CryptoType::Arb | CryptoType::Matic | CryptoType::Bnb => {
+        CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon | CryptoType::UsdtEth | CryptoType::Eth | CryptoType::Arb | CryptoType::Matic | CryptoType::Bnb | CryptoType::BusdBep20 => {
             // EVM addresses start with 0x and have 40 hex characters
             if !address.starts_with("0x") {
                 return Err(ServiceError::ValidationError(

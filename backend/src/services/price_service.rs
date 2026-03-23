@@ -142,7 +142,7 @@ impl PriceService {
             CryptoType::Bnb => self.fetch_bnb_price().await,
             CryptoType::Btc => self.fetch_btc_price().await,
             // USDT tokens are pegged to $1.00.
-            CryptoType::UsdtSpl | CryptoType::UsdtBep20 | CryptoType::UsdtEth | CryptoType::UsdtPolygon | CryptoType::UsdtArbitrum => {
+            CryptoType::UsdtSpl | CryptoType::UsdtBep20 | CryptoType::UsdtEth | CryptoType::UsdtPolygon | CryptoType::UsdtArbitrum | CryptoType::BusdBep20 => {
                 Ok(1.0)
             }
         }

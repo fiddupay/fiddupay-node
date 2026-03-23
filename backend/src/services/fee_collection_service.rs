@@ -281,7 +281,7 @@ impl FeeCollectionService {
         match crypto_type {
             CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => "SOLANA",
             CryptoType::Eth | CryptoType::UsdtEth => "ETHEREUM",
-            CryptoType::Bnb | CryptoType::UsdtBep20 => "BSC",
+            CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 => "BSC",
             CryptoType::Matic | CryptoType::UsdtPolygon => "POLYGON",
             CryptoType::Arb | CryptoType::UsdtArbitrum => "ARBITRUM",
             CryptoType::Btc => "BITCOIN",
