@@ -1,4 +1,4 @@
-# FidduPay Node.js SDK Guide v2.4.6
+# FidduPay Node.js SDK Guide v2.5.5
 
 **Official Node.js SDK for FidduPay Cryptocurrency Payment Gateway**
 
@@ -299,6 +299,18 @@ await client.customers.payMerchant('user_123', {
 await client.customers.updatePermissions('user_123', {
   can_withdraw: true,
   withdrawal_limit: '1000'
+});
+
+// NEW in v2.5.5: Bulk Wallet Provisioning
+
+// Regenerate wallets for specific customers
+await fiddupay.customers.bulkProvision({
+  customer_ids: ['user_123', 'user_456', 'user_789']
+});
+
+// Regenerate wallets for ALL customers at once
+await fiddupay.customers.bulkProvision({
+  all_customers: true
 });
 ```
 
@@ -643,7 +655,7 @@ examples/
 
 ---
 
-**Document Version**: 2.4.6
-**Last Updated**: March 12, 2026
+**Document Version**: 2.5.5
+**Last Updated**: March 24, 2026
 **Next Review**: June 1, 2026  
 **Owner**: TechyTro Software - FidduPay SDK Team

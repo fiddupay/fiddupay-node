@@ -2,7 +2,7 @@
   "info": {
     "name": "FidduPay Merchant API SDK",
     "description": "Official Merchant API documentation for FidduPay Node.js SDK users.",
-    "version": "2.5.0",
+    "version": "2.5.5",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -456,6 +456,98 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"amount\": \"1.5\",\n  \"destination_address\": \"8xH9...\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Customer Wallets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "wallets"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bulk Provision Wallets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/bulk-provision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "bulk-provision"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_ids\": [\"user_1234\", \"user_5678\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "Bulk Provision All Customers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/bulk-provision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "bulk-provision"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"all_customers\": true\n}"
             }
           }
         }
@@ -2460,6 +2552,39 @@
                 "security",
                 "settings"
               ]
+            }
+          }
+        },
+        {
+          "name": "Update Security Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "settings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enable_notifications\": true,\n  \"alert_thresholds\": {\n    \"low_balance\": \"10.0\",\n    \"failed_transactions\": 5\n  }\n}"
             }
           }
         },

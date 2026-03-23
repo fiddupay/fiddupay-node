@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.5.3
+# FidduPay Node.js SDK v2.5.5
 
-[![version](https://img.shields.io/badge/version-v2.5.3-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.5.5-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -249,7 +249,6 @@ const invoices = await client.invoices.list();
 // Retrieve invoice details
 const invoiceDetails = await client.invoices.retrieve(invoice.invoice_id);
 ```
-```
 
 ## Withdrawal Operations
 
@@ -305,7 +304,20 @@ await client.customers.payMerchant('user_123', {
 await client.customers.sweep('user_123', {
   crypto_type: 'USDT'
 });
-```
+
+// Get customer wallets
+const wallets = await client.customers.getWallets('user_123');
+console.log('Wallets:', wallets);
+
+// NEW in v2.5.5: Bulk provision wallets for selected customers
+await client.customers.bulkProvision({
+  customer_ids: ['user_123', 'user_456']
+});
+
+// NEW in v2.5.5: Bulk provision wallets for ALL customers
+await client.customers.bulkProvision({
+  all_customers: true
+});
 ```
 
 ## Analytics
@@ -333,7 +345,6 @@ const exportData = await client.analytics.export({
 const feed = await client.transactions.list({
   limit: 20
 });
-```
 ```
 
 ## Error Handling
@@ -376,7 +387,7 @@ try {
 - **Polygon** - MATIC + USDT
 - **Arbitrum** - ARB + USDT
 
-**Total: 11 cryptocurrency options across 6 blockchains**
+**Total: 12 cryptocurrency options across 6 blockchains**
 
 ## Postman Documentation
 
@@ -400,7 +411,7 @@ Grouped by `client.*` resource modules for reference:
 | **`wallets`** | `setup()`, `getConfigurations()`, `getBalances()`, `getGasEstimates()`, `checkGasRequirements()`, `gasCheck()`, `checkWithdrawalCapability()`, `revoke()` |
 | **`balances`** | `get()`, `getHistory()` |
 | **`auditLogs`** | `list()` |
-| **`customers`** | `register()`, `createWallets()`, `getBalances()`, `list()`, `withdraw()`, `sweep()`, `deactivate()`, `getTransactions()`, `updateStatus()`, `updatePermissions()`, `getDepositAddress()`, `payMerchant()` |
+| **`customers`** | `register()`, `createWallets()`, `getWallets()`, `getBalances()`, `list()`, `withdraw()`, `sweep()`, `deactivate()`, `getTransactions()`, `updateStatus()`, `updatePermissions()`, `getDepositAddress()`, `payMerchant()`, `bulkProvision()` |
 | **`withdrawals`** | `create()`, `list()`, `get()`, `cancel()` |
 | **`refunds`** | `create()`, `list()`, `retrieve()`, `complete()` |
 | **`invoices`** | `create()`, `list()`, `retrieve()` |

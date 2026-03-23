@@ -3,6 +3,8 @@ import {
     MerchantCustomer,
     CreateCustomerRequest,
     ProvisionWalletRequest,
+    BulkProvisionRequest,
+    BulkProvisionResponse,
     CustomerBalanceResponse,
     CustomerWithdrawalRequest,
     CustomerSweepRequest,
@@ -173,5 +175,20 @@ export class Customers {
         description?: string;
     }, options?: RequestOptions): Promise<{ transaction: any; message: string }> {
         return this.client.post(`/api/v1/merchants/customers/${externalId}/pay-merchant`, data, options);
+    }
+
+    /**
+     * Bulk provision (or regenerate) wallets for multiple customers at once.
+     * 
+     * Pass `customer_ids` to target specific customers, or set `all_customers: true`
+     * to provision wallets for every registered customer under this merchant.
+     * 
+     * Each customer receives one shared key per network family:
+     * - 1 key for all EVM chains (ETH, BSC, Polygon, Arbitrum)
+     * - 1 key for Solana
+     * - 1 key for Bitcoin
+     */
+    async bulkProvision(data: BulkProvisionRequest, options?: RequestOptions): Promise<BulkProvisionResponse> {
+        return this.client.post('/api/v1/merchants/customers/bulk-provision', data, options);
     }
 }

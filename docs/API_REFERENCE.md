@@ -1,4 +1,4 @@
-# FidduPay API Reference v2.5.0
+# FidduPay API Reference v2.5.5
 
 Official technical specification for the FidduPay cryptocurrency payment gateway API.
 
@@ -20,33 +20,41 @@ All requests must include a Bearer token in the `Authorization` header:
 | GET | `/api/v1/merchants/profile` | Get merchant profile & KYC status |
 | GET | `/api/v1/merchants/status` | Get merchant readiness / health |
 | GET | `/api/v1/merchants/balance` | Get current account balance |
-| GET | `/api/v1/merchants/balance/history` | Get balance change history (v2.5.0) |
+| GET | `/api/v1/merchants/balance/history` | Get balance change history |
+| GET | `/api/v1/merchants/settings` | Get all merchant settings |
 | PATCH | `/api/v1/merchants/settings` | Update unified merchant settings |
+| GET | `/api/v1/merchants/fee-setting` | Get fee payment configuration |
 | POST | `/api/v1/merchants/api-keys/generate` | Generate secret API key |
 | POST | `/api/v1/merchants/api-keys/rotate` | Rotate secret API key |
 | POST | `/api/v1/merchants/webhook/test` | Trigger a test webhook event |
 | POST | `/api/v1/merchants/environment/switch` | Switch environment (Sandbox <-> Live) |
 
-### Security & Monitoring (v2.5.0)
+### Security & Monitoring
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/v1/merchants/security/settings` | Get merchant security specs |
+| PUT | `/api/v1/merchants/security/settings` | Update merchant security settings |
 | POST | `/api/v1/merchants/security/wallets/lock` | Toggle master wallet lock |
 | POST | `/api/v1/merchants/security/customers/wallets/lock` | Toggle customer wallet lock |
 | GET | `/api/v1/merchants/security/alerts` | Get security alerts |
 | POST | `/api/v1/merchants/security/alerts/:id/acknowledge` | Acknowledge a security alert |
 | GET | `/api/v1/merchants/security/events` | List security-related events |
+| GET | `/api/v1/merchants/security/balance-alerts` | List low-balance alerts |
+| POST | `/api/v1/merchants/security/balance-alerts/:id/resolve` | Resolve a balance alert |
 | GET | `/api/v1/merchants/security/gas-check` | Check gas levels for all wallets |
 | GET | `/api/v1/merchants/ip-whitelist` | List allowed IP CIDRs |
 
-### Customer Management (v2.5.0)
+### Customer Management
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/v1/merchants/customers` | Register a new customer |
 | GET | `/api/v1/merchants/customers` | List all registered customers |
+| POST | `/api/v1/merchants/customers/bulk-provision` | **Bulk provision wallets** (v2.5.5) |
 | POST | `/api/v1/merchants/customers/:external_id/wallets` | Provision customer wallets |
+| GET | `/api/v1/merchants/customers/:external_id/wallets` | Get customer wallets |
 | GET | `/api/v1/merchants/customers/:external_id/balances` | Get customer wallet balances |
 | POST | `/api/v1/merchants/customers/:external_id/sweep` | Sweep funds to master balance |
+| POST | `/api/v1/merchants/customers/:external_id/withdraw` | Withdraw from customer wallet |
 | POST | `/api/v1/merchants/customers/:external_id/pay-merchant` | Internal payment from customer to merchant |
 | PATCH | `/api/v1/merchants/customers/:external_id/permissions` | Update customer permissions |
 | GET | `/api/v1/merchants/customers/:external_id/deposit-address/:crypto` | Get specific deposit address |
@@ -71,6 +79,17 @@ All requests must include a Bearer token in the `Authorization` header:
 | GET | `/api/v1/merchants/refunds` | List all refunds |
 | GET | `/api/v1/merchants/refunds/:id` | Get refund details |
 | POST | `/api/v1/merchants/refunds/:id/complete`| Complete/Approve a refund |
+
+### Wallet Management
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/merchants/wallets` | Unified wallet setup (generate/import/address) |
+| GET | `/api/v1/merchants/wallets` | Get wallet configurations |
+| GET | `/api/v1/merchants/wallets/balances` | Get on-chain wallet balances |
+| DELETE | `/api/v1/merchants/wallets/:crypto_type` | Revoke a wallet |
+| GET | `/api/v1/merchants/wallets/gas-check` | Check gas requirements |
+| GET | `/api/v1/merchants/wallets/gas-estimates` | Get gas fee estimates |
+| GET | `/api/v1/merchants/wallets/withdrawal-capability/:crypto` | Check withdrawal capability |
 
 ### Withdrawal Management
 | Method | Endpoint | Description |

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.5.5] - 2026-03-24
+
+### Added
+- **Bulk Wallet Provisioning**: New `customers.bulkProvision()` method to regenerate or create wallets for multiple customers in a single call.
+  - Pass `customer_ids` for selective provisioning, or `all_customers: true` for all registered customers.
+  - Each customer receives 1 shared key per network family (EVM, Solana, Bitcoin).
+- **New Types**: Added `BulkProvisionRequest` and `BulkProvisionResponse` interfaces.
+
 ## [2.5.4] - 2026-03-23
 
 ### Added

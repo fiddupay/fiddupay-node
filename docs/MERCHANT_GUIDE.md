@@ -787,6 +787,34 @@ The `metadata` field is a flexible JSON object for internal mapping. Recommended
 - **preferences**: Store user-specific gateway settings.
 - **tags**: categorise users for internal reporting.
 
+### 3.8 Bulk Wallet Provisioning (v2.5.5)
+Regenerate or create wallets for multiple customers in a single API call.
+
+**Provision specific customers:**
+```bash
+curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/bulk-provision \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_ids": ["user_123456", "user_789012"]
+  }'
+```
+
+**Provision ALL customers:**
+```bash
+curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/bulk-provision \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "all_customers": true
+  }'
+```
+
+Each customer receives one shared key per network family:
+- 1 key for all EVM chains (ETH, BSC, Polygon, Arbitrum)
+- 1 key for Solana
+- 1 key for Bitcoin
+
 ---
 
 ## 4. INVOICE MANAGEMENT

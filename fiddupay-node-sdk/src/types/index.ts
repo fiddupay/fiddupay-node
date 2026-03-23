@@ -627,6 +627,19 @@ export interface ProvisionWalletRequest {
   networks: ('evm' | 'solana')[];
 }
 
+export interface BulkProvisionRequest {
+  /** Array of customer external_ids to provision wallets for. Omit if using all_customers. */
+  customer_ids?: string[];
+  /** Set to true to provision wallets for ALL customers. Overrides customer_ids. */
+  all_customers?: boolean;
+}
+
+export interface BulkProvisionResponse {
+  success_count: number;
+  failed_count: number;
+  message: string;
+}
+
 export interface CustomerBalance {
   id: number;
   customer_id: number;
