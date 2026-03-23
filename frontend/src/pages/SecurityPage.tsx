@@ -14,7 +14,20 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/contexts/ToastContext'
 import { SecurityEvent, SecurityAlert } from '@/types'
 import styles from '@/styles/pages/SecurityPage.module.css'
-import { format } from 'date-fns'
+
+const formatDate = (dateString: string) => {
+    try {
+        return new Date(dateString).toLocaleString(undefined, { 
+            month: 'short', 
+            day: '2-digit', 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+        })
+    } catch (e) {
+        return dateString
+    }
+}
 
 type TabType = 'alerts' | 'events' | 'config'
 
@@ -151,7 +164,7 @@ const SecurityPage: React.FC = () => {
                                             <h4>{alert.type.replace(/_/g, ' ')}</h4>
                                             <p>{alert.message}</p>
                                             <span className={styles.alertTime}>
-                                                {format(new Date(alert.created_at), 'MMM dd, HH:mm:ss')}
+                                                {formatDate(alert.created_at)}
                                             </span>
                                         </div>
                                     </div>
@@ -192,7 +205,7 @@ const SecurityPage: React.FC = () => {
                                         </td>
                                         <td>{event.description}</td>
                                         <td><code className="bg-gray-100 px-1 rounded text-xs">{event.ip_address}</code></td>
-                                        <td>{format(new Date(event.created_at), 'MMM dd, HH:mm:ss')}</td>
+                                        <td>{formatDate(event.created_at)}</td>
                                     </tr>
                                 ))}
                             </tbody>
