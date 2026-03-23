@@ -69,6 +69,8 @@ export const merchantAPI = {
     ip_whitelist?: string[];
     sandbox_mode?: boolean;
     rotate_webhook_secret?: boolean;
+    low_balance_alerts_enabled?: boolean;
+    low_balance_threshold_usd?: string;
   }) => api.patch('/api/v1/merchants/settings', data),
   sendTestWebhook: () => api.post('/api/v1/merchants/webhook/test'),
   getReadinessStatus: () => api.get('/api/v1/merchants/status'),

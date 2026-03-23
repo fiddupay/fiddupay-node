@@ -1,127 +1,265 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { 
+    MdNotificationsActive, 
+    MdHistory, 
+    MdSettings, 
+    MdCheckCircle, 
+    MdWarning, 
+    MdError, 
+    MdInfo,
+    MdRefresh
+} from 'react-icons/md'
+import { securityAPI, merchantAPI } from '@/services/apiService'
+import { useAuthStore } from '@/stores/authStore'
+import { useToast } from '@/contexts/ToastContext'
+import { SecurityEvent, SecurityAlert } from '@/types'
 import styles from '@/styles/pages/SecurityPage.module.css'
+import { format } from 'date-fns'
+
+type TabType = 'alerts' | 'events' | 'config'
 
 const SecurityPage: React.FC = () => {
-  return (
-    <div className={styles.securityPage}>
-      <div className={styles.container}>
-        {/* Hero Section */}
-        <section className={styles.hero}>
-          <div className={styles.heroContent}>
-            <h1>Enterprise-Grade Security</h1>
-            <p>Your funds and data are protected by military-grade security measures and industry-leading protocols.</p>
-          </div>
-        </section>
+    const { user, loadUser } = useAuthStore()
+    const { showToast } = useToast()
+    const [activeTab, setActiveTab] = useState<TabType>('alerts')
+    const [loading, setLoading] = useState(false)
+    const [alerts, setAlerts] = useState<SecurityAlert[]>([])
+    const [events, setEvents] = useState<SecurityEvent[]>([])
+    
+    // Risk Config State
+    const [lowBalanceEnabled, setLowBalanceEnabled] = useState(false)
+    const [thresholdUsd, setThresholdUsd] = useState('50.00')
 
-        {/* Security Features Grid */}
-        <section className={styles.features}>
-          <div className={styles.featuresGrid}>
-            <div className={styles.featureCard}>
-              <div className={styles.featureIcon}>
-                <i className="fas fa-shield-alt"></i>
-              </div>
-              <h3>Advanced Encryption</h3>
-              <p>AES-256 encryption for all sensitive data with end-to-end protection for transactions and user information.</p>
+    useEffect(() => {
+        fetchData()
+    }, [activeTab])
+
+    useEffect(() => {
+        if (user) {
+            setLowBalanceEnabled(user.low_balance_alerts_enabled || false)
+            setThresholdUsd(user.low_balance_threshold_usd || '50.00')
+        }
+    }, [user])
+
+    const fetchData = async () => {
+        try {
+            setLoading(true)
+            if (activeTab === 'alerts') {
+                const res = await securityAPI.getAlerts()
+                setAlerts(res.data || [])
+            } else if (activeTab === 'events') {
+                const res = await securityAPI.getEvents({ limit: 50 })
+                setEvents(res.data || [])
+            }
+        } catch (error) {
+            console.error('Failed to fetch security data', error)
+            showToast('Failed to load security data', 'error')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleAcknowledgeAlert = async (alertId: string) => {
+        try {
+            await securityAPI.acknowledgeAlert(alertId)
+            setAlerts(prev => prev.filter(a => a.id !== alertId))
+            showToast('Alert acknowledged', 'success')
+        } catch (error) {
+            showToast('Failed to acknowledge alert', 'error')
+        }
+    }
+
+    const handleUpdateRiskConfig = async () => {
+        try {
+            setLoading(true)
+            await merchantAPI.updateSettings({
+                low_balance_alerts_enabled: lowBalanceEnabled,
+                low_balance_threshold_usd: thresholdUsd
+            })
+            await loadUser(true)
+            showToast('Risk configuration updated', 'success')
+        } catch (error) {
+            showToast('Failed to update configuration', 'error')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const getSeverityStyle = (severity: string) => {
+        switch (severity.toLowerCase()) {
+            case 'critical': return styles.severityCritical
+            case 'high': return styles.severityHigh
+            case 'medium': return styles.severityMedium
+            case 'low': return styles.severityLow
+            default: return ''
+        }
+    }
+
+    const getAlertIcon = (severity: string) => {
+        switch (severity.toLowerCase()) {
+            case 'critical': return <MdError color="#b91c1c" />
+            case 'high': return <MdWarning color="#ea580c" />
+            case 'medium': return <MdInfo color="#ca8a04" />
+            default: return <MdInfo color="#1e40af" />
+        }
+    }
+
+    return (
+        <div className={styles.securityPage}>
+            <header className={styles.header}>
+                <h1>Security Hub</h1>
+                <p>Monitor real-time security events and manage system alerts.</p>
+            </header>
+
+            <div className={styles.tabs}>
+                <button 
+                    className={`${styles.tabBtn} ${activeTab === 'alerts' ? styles.activeTab : ''}`}
+                    onClick={() => setActiveTab('alerts')}
+                >
+                    <MdNotificationsActive /> Active Alerts
+                </button>
+                <button 
+                    className={`${styles.tabBtn} ${activeTab === 'events' ? styles.activeTab : ''}`}
+                    onClick={() => setActiveTab('events')}
+                >
+                    <MdHistory /> Security Events
+                </button>
+                <button 
+                    className={`${styles.tabBtn} ${activeTab === 'config' ? styles.activeTab : ''}`}
+                    onClick={() => setActiveTab('config')}
+                >
+                    <MdSettings /> Risk Configuration
+                </button>
             </div>
 
-            <div className={styles.featureCard}>
-              <div className={styles.featureIcon}>
-                <i className="fas fa-lock"></i>
-              </div>
-              <h3>Multi-Signature Wallets</h3>
-              <p>All funds are secured in multi-signature wallets requiring multiple approvals for any transaction.</p>
-            </div>
+            <div className={styles.content}>
+                {activeTab === 'alerts' && (
+                    <div className={styles.alertsList}>
+                        {loading ? (
+                             <div className={styles.emptyState}><MdRefresh className="animate-spin text-2xl" /> Loading alerts...</div>
+                        ) : alerts.length > 0 ? (
+                            alerts.map(alert => (
+                                <div key={alert.id} className={styles.alertCard}>
+                                    <div className={styles.alertInfo}>
+                                        <div className={`${styles.alertIcon} ${getSeverityStyle(alert.severity)}`}>
+                                            {getAlertIcon(alert.severity)}
+                                        </div>
+                                        <div className={styles.alertText}>
+                                            <span className={`${styles.badge} ${getSeverityStyle(alert.severity)}`}>
+                                                {alert.severity}
+                                            </span>
+                                            <h4>{alert.type.replace(/_/g, ' ')}</h4>
+                                            <p>{alert.message}</p>
+                                            <span className={styles.alertTime}>
+                                                {format(new Date(alert.created_at), 'MMM dd, HH:mm:ss')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        className={styles.actionBtn}
+                                        onClick={() => handleAcknowledgeAlert(alert.id)}
+                                    >
+                                        Acknowledge
+                                    </button>
+                                </div>
+                            ))
+                        ) : (
+                            <div className={styles.emptyState}>
+                                <MdCheckCircle className={styles.emptyIcon} color="#10b981" />
+                                <h3>No active alerts</h3>
+                                <p>Everything looks secure. There are no pending security alerts.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
 
-            <div className={styles.featureCard}>
-              <div className={styles.featureIcon}>
-                <i className="fas fa-eye"></i>
-              </div>
-              <h3>Real-Time Monitoring</h3>
-              <p>24/7 threat detection and monitoring systems protect against suspicious activities and attacks.</p>
-            </div>
+                {activeTab === 'events' && (
+                    <div className={styles.tableContainer}>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>Description</th>
+                                    <th>IP Address</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {events.map(event => (
+                                    <tr key={event.id}>
+                                        <td>
+                                            <span className="font-semibold">{event.action_type.replace(/_/g, ' ')}</span>
+                                        </td>
+                                        <td>{event.description}</td>
+                                        <td><code className="bg-gray-100 px-1 rounded text-xs">{event.ip_address}</code></td>
+                                        <td>{format(new Date(event.created_at), 'MMM dd, HH:mm:ss')}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {!loading && events.length === 0 && (
+                            <div className={styles.emptyState}>No security events found.</div>
+                        )}
+                    </div>
+                )}
 
-            <div className={styles.featureCard}>
-              <div className={styles.featureIcon}>
-                <i className="fas fa-server"></i>
-              </div>
-              <h3>Secure Infrastructure</h3>
-              <p>Enterprise-grade infrastructure with redundant systems and automated backups for maximum reliability.</p>
-            </div>
+                {activeTab === 'config' && (
+                    <div className={styles.settingsSection}>
+                        <div className={styles.formGroup}>
+                            <label className="flex items-center justify-between pointer-cursor">
+                                <div>
+                                    <h4 className="m-0">Low Balance Notifications</h4>
+                                    <p className="text-xs text-slate-500 m-0 font-normal">Receive an alert when your available balance drops below a threshold.</p>
+                                </div>
+                                <div className="ml-4">
+                                    <input 
+                                        type="checkbox" 
+                                        className="w-5 h-5 accent-blue-600"
+                                        checked={lowBalanceEnabled}
+                                        onChange={(e) => setLowBalanceEnabled(e.target.checked)}
+                                    />
+                                </div>
+                            </label>
+                        </div>
 
-            <div className={styles.featureCard}>
-              <div className={styles.featureIcon}>
-                <i className="fas fa-user-shield"></i>
-              </div>
-              <h3>Two-Factor Authentication</h3>
-              <p>Mandatory 2FA for all accounts with support for authenticator apps and hardware keys.</p>
-            </div>
+                        <div className={styles.formGroup}>
+                            <label>Notification Threshold (USD)</label>
+                            <div className={styles.inputWrapper}>
+                                <div className={styles.inputWithPrefix}>
+                                    <span className={styles.prefix}>$</span>
+                                    <input 
+                                        type="number" 
+                                        className={styles.input}
+                                        value={thresholdUsd}
+                                        onChange={(e) => setThresholdUsd(e.target.value)}
+                                        placeholder="50.00"
+                                    />
+                                </div>
+                                <button 
+                                    className={styles.saveBtn}
+                                    onClick={handleUpdateRiskConfig}
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Saving...' : 'Save Settings'}
+                                </button>
+                            </div>
+                        </div>
 
-            <div className={styles.featureCard}>
-              <div className={styles.featureIcon}>
-                <i className="fas fa-chart-line"></i>
-              </div>
-              <h3>Rate Limiting</h3>
-              <p>Advanced rate limiting and DDoS protection prevent abuse and ensure system availability.</p>
+                        <div className="mt-8 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                            <h5 className="text-blue-800 font-semibold mb-2 flex items-center gap-2">
+                                <MdInfo /> Proactive Security
+                            </h5>
+                            <ul className="text-sm text-blue-700 space-y-2 mb-0">
+                                <li>Automatic IP blacklisting for repeated failed login attempts.</li>
+                                <li>Session revocation when security credentials (API keys) are rotated.</li>
+                                <li>Webhook signature verification for all inbound notifications.</li>
+                            </ul>
+                        </div>
+                    </div>
+                )}
             </div>
-          </div>
-        </section>
-
-        {/* Compliance Section */}
-        <section className={styles.compliance}>
-          <h2>Security Standards & Compliance</h2>
-          <div className={styles.complianceGrid}>
-            <div className={styles.complianceItem}>
-              <h3>ISO 27001</h3>
-              <p>Information Security Management System certification</p>
-            </div>
-            <div className={styles.complianceItem}>
-              <h3>SOC 2 Type II</h3>
-              <p>Independently audited security controls and procedures</p>
-            </div>
-            <div className={styles.complianceItem}>
-              <h3>OWASP Top 10</h3>
-              <p>Protection against all major web application vulnerabilities</p>
-            </div>
-            <div className={styles.complianceItem}>
-              <h3>NIST Framework</h3>
-              <p>Cybersecurity framework implementation and compliance</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Security Measures */}
-        <section className={styles.measures}>
-          <h2>Additional Security Measures</h2>
-          <div className={styles.measuresList}>
-            <div className={styles.measure}>
-              <i className="fas fa-check-circle"></i>
-              <span>Regular security audits by third-party firms</span>
-            </div>
-            <div className={styles.measure}>
-              <i className="fas fa-check-circle"></i>
-              <span>Penetration testing and vulnerability assessments</span>
-            </div>
-            <div className={styles.measure}>
-              <i className="fas fa-check-circle"></i>
-              <span>Employee security training and background checks</span>
-            </div>
-            <div className={styles.measure}>
-              <i className="fas fa-check-circle"></i>
-              <span>Incident response and disaster recovery plans</span>
-            </div>
-            <div className={styles.measure}>
-              <i className="fas fa-check-circle"></i>
-              <span>Regular security updates and patch management</span>
-            </div>
-            <div className={styles.measure}>
-              <i className="fas fa-check-circle"></i>
-              <span>Comprehensive logging and audit trails</span>
-            </div>
-          </div>
-        </section>
-      </div>
-    </div>
-  )
+        </div>
+    )
 }
 
 export default SecurityPage

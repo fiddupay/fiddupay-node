@@ -16,7 +16,43 @@ export interface User {
   api_key?: string
   wallets_locked: boolean
   customer_wallets_locked: boolean
+  ip_whitelist?: string[]
+  low_balance_alerts_enabled?: boolean
+  low_balance_threshold_usd?: string
 }
+
+export interface SecurityEvent {
+  id: string
+  merchant_id: string
+  action_type: string
+  description: string
+  ip_address: string
+  user_agent?: string
+  created_at: string
+}
+
+export interface SecurityAlert {
+  id: string
+  merchant_id: string
+  type: string
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  message: string
+  is_acknowledged: boolean
+  acknowledged_at?: string
+  created_at: string
+}
+
+export interface BalanceAlert {
+  id: string
+  merchant_id: string
+  crypto_type: string
+  current_balance: string
+  threshold_balance: string
+  status: 'PENDING' | 'RESOLVED'
+  resolved_at?: string
+  created_at: string
+}
+
 
 export interface LoginCredentials {
   email: string

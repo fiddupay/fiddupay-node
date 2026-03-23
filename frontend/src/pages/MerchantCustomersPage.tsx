@@ -66,7 +66,7 @@ const MerchantCustomersPage: React.FC = () => {
     // Drawer States
     const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false)
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
-    const [drawerTab, setDrawerTab] = useState<'overview' | 'transactions' | 'permissions'>('overview')
+    const [drawerTab, setDrawerTab] = useState<'overview' | 'transactions' | 'permissions' | 'actions'>('overview')
     
     // Form States
     const [newCustomer, setNewCustomer] = useState({ external_id: '', email: '', first_name: '', last_name: '' })
@@ -79,6 +79,15 @@ const MerchantCustomersPage: React.FC = () => {
     const [sweepAmount, setSweepAmount] = useState('')
     const [sweeping, setSweeping] = useState(false)
     const [provisioning, setProvisioning] = useState(false)
+
+    // Financial Actions State
+    const [withdrawAmount, setWithdrawAmount] = useState('')
+    const [withdrawCryptoType, setWithdrawCryptoType] = useState('USDT')
+    const [withdrawAddress, setWithdrawAddress] = useState('')
+    const [withdrawing, setWithdrawing] = useState(false)
+    const [payMerchantAmount, setPayMerchantAmount] = useState('')
+    const [payMerchantCryptoType, setPayMerchantCryptoType] = useState('USDT')
+    const [payingMerchant, setPayingMerchant] = useState(false)
 
     // Status update states
     const [statusUpdating, setStatusUpdating] = useState(false)
@@ -102,6 +111,12 @@ const MerchantCustomersPage: React.FC = () => {
                 setSupportedCurrencies(flattened)
                 if (flattened.length > 0 && !sweepCryptoType) {
                     setSweepCryptoType(flattened[0].crypto_type)
+                }
+                if (flattened.length > 0 && !withdrawCryptoType) {
+                    setWithdrawCryptoType(flattened[0].crypto_type)
+                }
+                if (flattened.length > 0 && !payMerchantCryptoType) {
+                    setPayMerchantCryptoType(flattened[0].crypto_type)
                 }
             }
         } catch (err) {
@@ -174,19 +189,13 @@ const MerchantCustomersPage: React.FC = () => {
         }
     }
 
-    const openCustomerDetails = async (customer: Customer) => {
-        setSelectedCustomer(customer)
+    const fetchCustomerDetails = async (externalId: string) => {
         setDetailsLoading(true)
-        setDrawerTab('overview')
-        setCustomerWallets([])
-        setCustomerBalances(null)
-        setCustomerTransactions([])
-
         try {
             const [walletRes, balRes, txRes] = await Promise.allSettled([
-                customerAPI.getWallets(customer.external_id),
-                customerAPI.getBalances(customer.external_id),
-                customerAPI.getTransactions(customer.external_id, { limit: 20 }),
+                customerAPI.getWallets(externalId),
+                customerAPI.getBalances(externalId),
+                customerAPI.getTransactions(externalId, { limit: 20 }),
             ])
             if (walletRes.status === 'fulfilled') setCustomerWallets(walletRes.value.data?.wallets || [])
             if (balRes.status === 'fulfilled') setCustomerBalances(balRes.value.data?.balances)
@@ -194,6 +203,15 @@ const MerchantCustomersPage: React.FC = () => {
         } catch { /* silent */ } finally {
             setDetailsLoading(false)
         }
+    }
+
+    const openCustomerDetails = async (customer: Customer) => {
+        setSelectedCustomer(customer)
+        setDrawerTab('overview')
+        setCustomerWallets([])
+        setCustomerBalances(null)
+        setCustomerTransactions([])
+        fetchCustomerDetails(customer.external_id)
     }
 
     const handleStatusUpdate = async (newStatus: string) => {
@@ -262,19 +280,55 @@ const MerchantCustomersPage: React.FC = () => {
         if (!selectedCustomer) return;
         try {
             setProvisioning(true)
-            await customerAPI.createWallets(selectedCustomer.external_id, { networks: [] })
+            await customerAPI.createWallets(selectedCustomer.external_id, { networks: ['EVM', 'SOLANA', 'BITCOIN'] })
             showToast('Wallets provisioned successfully', 'success')
-            const walletRes = await customerAPI.getWallets(selectedCustomer.external_id)
-            setCustomerWallets(walletRes.data?.wallets || [])
-            // Also refresh balances
-            const balRes = await customerAPI.getBalances(selectedCustomer.external_id)
-            setCustomerBalances(balRes.data?.balances)
+            fetchCustomerDetails(selectedCustomer.external_id)
         } catch (error: any) {
             const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to provision wallets';
             showToast(errMsg, 'error')
         }
  finally {
             setProvisioning(false)
+        }
+    }
+
+    const handleCustomerWithdraw = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!selectedCustomer || !withdrawAmount || !withdrawAddress) return
+        try {
+            setWithdrawing(true)
+            await customerAPI.withdraw(selectedCustomer.external_id, {
+                crypto_type: withdrawCryptoType,
+                amount: withdrawAmount,
+                destination_address: withdrawAddress
+            })
+            showToast('Withdrawal initiated successfully', 'success')
+            setWithdrawAmount('')
+            setWithdrawAddress('')
+            fetchCustomerDetails(selectedCustomer.external_id)
+        } catch (error: any) {
+            showToast(error.response?.data?.error || 'Failed to initiate withdrawal', 'error')
+        } finally {
+            setWithdrawing(false)
+        }
+    }
+
+    const handlePayMerchant = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!selectedCustomer || !payMerchantAmount) return
+        try {
+            setPayingMerchant(true)
+            await customerAPI.payMerchant(selectedCustomer.external_id, {
+                crypto_type: payMerchantCryptoType,
+                amount: payMerchantAmount
+            })
+            showToast('Payment to merchant successful', 'success')
+            setPayMerchantAmount('')
+            fetchCustomerDetails(selectedCustomer.external_id)
+        } catch (error: any) {
+            showToast(error.response?.data?.error || 'Failed to process payment', 'error')
+        } finally {
+            setPayingMerchant(false)
         }
     }
 
@@ -598,8 +652,8 @@ const MerchantCustomersPage: React.FC = () => {
                         </div>
 
                         {/* Drawer Tabs */}
-                        <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', padding: '0 2rem' }}>
-                            {(['overview', 'transactions', 'permissions'] as const).map(tab => (
+                        <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', padding: '0 2rem', overflowX: 'auto' }}>
+                            {(['overview', 'transactions', 'permissions', 'actions'] as const).map(tab => (
                                 <button 
                                     key={tab}
                                     onClick={() => setDrawerTab(tab)}
@@ -608,12 +662,14 @@ const MerchantCustomersPage: React.FC = () => {
                                         fontWeight: 600, fontSize: '0.875rem', color: drawerTab === tab ? '#2563eb' : '#94a3b8',
                                         borderBottom: drawerTab === tab ? '2px solid #2563eb' : '2px solid transparent',
                                         marginBottom: '-2px', transition: 'all 0.2s', textTransform: 'capitalize',
+                                        whiteSpace: 'nowrap'
                                     }}
                                 >
                                     {tab === 'overview' && <i className="fas fa-wallet" style={{ marginRight: '0.4rem' }}></i>}
                                     {tab === 'transactions' && <i className="fas fa-exchange-alt" style={{ marginRight: '0.4rem' }}></i>}
                                     {tab === 'permissions' && <i className="fas fa-shield-alt" style={{ marginRight: '0.4rem' }}></i>}
-                                    {tab}
+                                    {tab === 'actions' && <i className="fas fa-hand-holding-usd" style={{ marginRight: '0.4rem' }}></i>}
+                                    {tab === 'actions' ? 'Financial Actions' : tab}
                                 </button>
                             ))}
                         </div>
@@ -858,6 +914,122 @@ const MerchantCustomersPage: React.FC = () => {
                                                 )}
                                             </div>
                                         </>
+                                    )}
+
+                                    {/* ================ ACTIONS TAB ================ */}
+                                    {drawerTab === 'actions' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                                            {/* Withdraw Funds */}
+                                            <div className={styles.drawerSection}>
+                                                <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                                    <i className="fas fa-external-link-alt" style={{ color: '#ef4444' }}></i>
+                                                    Withdraw Customer Funds
+                                                </h3>
+                                                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>
+                                                    Manually withdraw funds from this customer's dedicated wallet to an external destination.
+                                                </p>
+                                                
+                                                <form onSubmit={handleCustomerWithdraw} style={{ background: '#fff', border: '1px solid #e2e8f0', padding: '1.5rem', borderRadius: '12px' }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                                        <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                                            <label>Asset</label>
+                                                            <select 
+                                                                className={styles.inputStyle} 
+                                                                value={withdrawCryptoType}
+                                                                onChange={e => setWithdrawCryptoType(e.target.value)}
+                                                            >
+                                                                {supportedCurrencies.map((c, idx) => (
+                                                                    <option key={idx} value={c.crypto_type}>{c.crypto_type}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                                            <label>Amount</label>
+                                                            <input 
+                                                                className={styles.inputStyle} 
+                                                                type="number" 
+                                                                step="any" 
+                                                                placeholder="0.00"
+                                                                value={withdrawAmount}
+                                                                onChange={e => setWithdrawAmount(e.target.value)}
+                                                                required
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className={styles.formGroup}>
+                                                        <label>Destination Address</label>
+                                                        <input 
+                                                            className={styles.inputStyle} 
+                                                            placeholder="Paste external wallet address here"
+                                                            value={withdrawAddress}
+                                                            onChange={e => setWithdrawAddress(e.target.value)}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <button 
+                                                        type="submit"
+                                                        className={styles.addBtn} 
+                                                        style={{ width: '100%', background: '#ef4444' }}
+                                                        disabled={withdrawing || !selectedCustomer.can_withdraw}
+                                                    >
+                                                        {withdrawing ? <i className="fas fa-spinner fa-spin"></i> : 'Execute Withdrawal'}
+                                                    </button>
+                                                    {!selectedCustomer.can_withdraw && (
+                                                        <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.5rem', textAlign: 'center' }}>
+                                                            Withdrawals are currently disabled for this customer.
+                                                        </p>
+                                                    )}
+                                                </form>
+                                            </div>
+
+                                            {/* Pay Merchant */}
+                                            <div className={styles.drawerSection}>
+                                                <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                                    <i className="fas fa-university" style={{ color: '#10b981' }}></i>
+                                                    Move to Merchant Balance (Pay Merchant)
+                                                </h3>
+                                                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>
+                                                    Transfer funds from the customer's wallet to your main merchant account immediately.
+                                                </p>
+
+                                                <form onSubmit={handlePayMerchant} style={{ background: '#fff', border: '1px solid #e2e8f0', padding: '1.5rem', borderRadius: '12px' }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                                        <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                                            <label>Asset</label>
+                                                            <select 
+                                                                className={styles.inputStyle}
+                                                                value={payMerchantCryptoType}
+                                                                onChange={e => setPayMerchantCryptoType(e.target.value)}
+                                                            >
+                                                                {supportedCurrencies.map((c, idx) => (
+                                                                    <option key={idx} value={c.crypto_type}>{c.crypto_type}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                                                            <label>Amount</label>
+                                                            <input 
+                                                                className={styles.inputStyle} 
+                                                                type="number" 
+                                                                step="any" 
+                                                                placeholder="0.00"
+                                                                value={payMerchantAmount}
+                                                                onChange={e => setPayMerchantAmount(e.target.value)}
+                                                                required
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <button 
+                                                        type="submit"
+                                                        className={styles.addBtn} 
+                                                        style={{ width: '100%', background: '#10b981' }}
+                                                        disabled={payingMerchant}
+                                                    >
+                                                        {payingMerchant ? <i className="fas fa-spinner fa-spin"></i> : 'Transfer to Merchant Balance'}
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
                                     )}
                                 </>
                             )}

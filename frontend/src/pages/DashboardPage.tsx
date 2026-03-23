@@ -9,8 +9,9 @@ import {
   Area
 } from 'recharts'
 import { useAuthStore } from '@/stores/authStore'
-import { merchantAPI, paymentAPI } from '@/services/apiService'
-import { Balance } from '../types'
+import { merchantAPI, paymentAPI, securityAPI } from '@/services/apiService'
+import { Balance, SecurityAlert } from '../types'
+import { MdWarning, MdArrowForward } from 'react-icons/md'
 import styles from '@/styles/pages/DashboardPage.module.css'
 
 interface AnalyticsData {
@@ -33,6 +34,7 @@ const DashboardPage: React.FC = () => {
   const { user } = useAuthStore()
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [balance, setBalance] = useState<Balance | null>(null)
+  const [alerts, setAlerts] = useState<SecurityAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [dailyVolumeUsed, setDailyVolumeUsed] = useState(0)
   const [dateRange, setDateRange] = useState(() => {
@@ -64,15 +66,17 @@ const DashboardPage: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      const [analyticsData, balanceData] = await Promise.all([
+      const [analyticsData, balanceData, alertsData] = await Promise.all([
         merchantAPI.getAnalytics({
           from_date: new Date(dateRange.from_date).toISOString(),
           to_date: new Date(dateRange.to_date + 'T23:59:59Z').toISOString()
         }),
-        merchantAPI.getBalance()
+        merchantAPI.getBalance(),
+        securityAPI.getAlerts()
       ])
       setAnalytics(analyticsData.data)
       setBalance(balanceData.data)
+      setAlerts(alertsData.data || [])
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
     } finally {
@@ -133,6 +137,21 @@ const DashboardPage: React.FC = () => {
         </div>
       ) : (
         <>
+          {alerts.length > 0 && (
+            <div className={styles.securityBanner}>
+              <div className={styles.bannerIcon}>
+                <MdWarning color="#ef4444" size={24} />
+              </div>
+              <div className={styles.bannerContent}>
+                <h3>Action Required: {alerts.length} Security Alerts</h3>
+                <p>Potential unauthorized access or system warnings detected. Please review your security logs immediately.</p>
+              </div>
+              <button className={styles.bannerBtn} onClick={() => window.location.href='/security'}>
+                Go to Security Hub <MdArrowForward />
+              </button>
+            </div>
+          )}
+
           {/* Stats Row */}
           <div className={styles.statsGrid}>
             <div className={styles.statCard}>

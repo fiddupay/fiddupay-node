@@ -47,6 +47,8 @@ const SettingsPage: React.FC = () => {
     const [showSecret, setShowSecret] = useState(false)
     const [signingSecret, setSigningSecret] = useState('••••••••••••••••••••••••••••••••')
     const [showRotateSecretConfirm, setShowRotateSecretConfirm] = useState(false)
+    const [ipWhitelist, setIpWhitelist] = useState<string[]>([])
+    const [newIp, setNewIp] = useState('')
     const [passwordConfirm, setPasswordConfirm] = useState<{
         show: boolean;
         target: 'wallet' | 'customer' | null;
@@ -92,6 +94,7 @@ const SettingsPage: React.FC = () => {
             }))
 
             setWebhookFormat(format)
+            setIpWhitelist(user.ip_whitelist || [])
         }
     }, [user]) // Removed user?.sandbox_mode from deps to rely on the full user object check
 
@@ -119,6 +122,24 @@ const SettingsPage: React.FC = () => {
         } catch (error) {
             console.error('Failed to fetch settings', error)
         }
+    }
+
+    const handleAddIp = async () => {
+        if (!newIp) return
+        if (ipWhitelist.includes(newIp)) {
+            showToast('IP already in whitelist', 'warning')
+            return
+        }
+        const updated = [...ipWhitelist, newIp]
+        await handleUpdateSettings({ ip_whitelist: updated })
+        setIpWhitelist(updated)
+        setNewIp('')
+    }
+
+    const handleRemoveIp = async (ip: string) => {
+        const updated = ipWhitelist.filter(i => i !== ip)
+        await handleUpdateSettings({ ip_whitelist: updated })
+        setIpWhitelist(updated)
     }
 
     const handleUpdateSettings = async (updates: any) => {
@@ -529,12 +550,58 @@ const SettingsPage: React.FC = () => {
                                         onClick={handleUpdateRedirect}
                                         disabled={loading || !redirectUrl}
                                     >
-                                        {loading ? 'Saving...' : 'Update URL'}
                                     </button>
                                 </div>
                             </div>
                         </div>
+
+
+                        <div className={styles.ipWhitelistSection}>
+                            <h3>IP Whitelist Protection</h3>
+                            <p>Restrict API and Dashboard access to specific IP addresses. If empty, all IPs are allowed.</p>
+
+                            <div className={styles.ipList}>
+                                {ipWhitelist.length > 0 ? (
+                                    ipWhitelist.map(ip => (
+                                        <div key={ip} className={styles.ipItem}>
+                                            <span className={styles.ipAddress}>{ip}</span>
+                                            <button 
+                                                className={styles.removeIpBtn}
+                                                onClick={() => handleRemoveIp(ip)}
+                                                disabled={loading}
+                                                title="Remove IP"
+                                            >
+                                                <MdClose size={18} />
+                                            </button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div style={{ padding: '16px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', color: '#64748b', fontSize: '13px' }}>
+                                        No IP restrictions active.
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className={styles.addIpForm}>
+                                <input 
+                                    type="text"
+                                    className={styles.urlInput}
+                                    placeholder="e.g. 192.168.1.1 or 203.0.113.0/24"
+                                    value={newIp}
+                                    onChange={(e) => setNewIp(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddIp()}
+                                />
+                                <button 
+                                    className={styles.addIpBtn} 
+                                    onClick={handleAddIp}
+                                    disabled={loading || !newIp}
+                                >
+                                    <i className="fas fa-plus"></i> Add IP
+                                </button>
+                            </div>
+                        </div>
                     </section>
+
                 )}
 
                 {activeTab === 'webhooks' && (
