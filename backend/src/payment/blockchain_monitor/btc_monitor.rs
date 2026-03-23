@@ -35,6 +35,7 @@ impl BlockchainMonitor for BtcMonitor {
     async fn get_transaction_details(
         &self,
         tx_hash: &str,
+        target_address: Option<&str>,
     ) -> Result<BlockchainTransaction, Box<dyn std::error::Error + Send + Sync>> {
         info!(" Fetching {} transaction: {}", self.network_name, tx_hash);
 
@@ -48,10 +49,6 @@ impl BlockchainMonitor for BtcMonitor {
         let block_height = status.get("block_height").and_then(|v| v.as_u64());
         let timestamp_secs = status.get("block_time").and_then(|v| v.as_i64());
 
-        // Find output to get amount and to_address (simplified for demonstration)
-        // In reality, BTC has multiple inputs and outputs. We look for a relevant output.
-        // For a payment gateway, we usually know the to_address.
-        
         let mut from_address = "unknown".to_string();
         let mut to_address = "unknown".to_string();
         let mut amount = Decimal::ZERO;
@@ -72,13 +69,19 @@ impl BlockchainMonitor for BtcMonitor {
                     .and_then(|a| a.as_str())
                     .unwrap_or("");
                 
-                // We typically filter by the address we are monitoring
-                // For now, we take the first output as a placeholder or sum them
                 if !addr.is_empty() {
-                    to_address = addr.to_string();
-                    let satoshis = out.get("value").and_then(|v| v.as_u64()).unwrap_or(0);
-                    amount = Decimal::from(satoshis) / Decimal::from(100_000_000u64);
-                    break; 
+                    let matches = if let Some(target) = target_address {
+                        addr == target
+                    } else {
+                        true // Fallback to first if no target
+                    };
+
+                    if matches {
+                        to_address = addr.to_string();
+                        let satoshis = out.get("value").and_then(|v| v.as_u64()).unwrap_or(0);
+                        amount = Decimal::from(satoshis) / Decimal::from(100_000_000u64);
+                        break; 
+                    }
                 }
             }
         }

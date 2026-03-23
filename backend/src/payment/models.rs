@@ -63,6 +63,8 @@ pub enum CryptoType {
     WSol,             // Wrapped SOL (SPL token)
     #[serde(rename = "BTC")]
     Btc,              // Bitcoin native
+    #[serde(rename = "BUSD_BEP20")]
+    BusdBep20,        // BUSD on Binance Smart Chain (BEP20)
 }
 
 impl std::fmt::Display for CryptoType {
@@ -80,6 +82,7 @@ impl std::fmt::Display for CryptoType {
             CryptoType::UsdtArbitrum => write!(f, "USDT_ARBITRUM"),
             CryptoType::WSol => write!(f, "WSOL"),
             CryptoType::Btc => write!(f, "BTC"),
+            CryptoType::BusdBep20 => write!(f, "BUSD_BEP20"),
         }
     }
 }
@@ -101,6 +104,7 @@ impl FromStr for CryptoType {
             "BNB" => Ok(CryptoType::Bnb),
             "WSOL" => Ok(CryptoType::WSol),
             "BTC" => Ok(CryptoType::Btc),
+            "BUSD_BEP20" => Ok(CryptoType::BusdBep20),
             _ => Err(format!("Unknown crypto type: {}", s)),
         }
     }
@@ -123,6 +127,7 @@ impl CryptoType {
             "USDT_ARB" | "USDT_ARBITRUM" => Ok(CryptoType::UsdtArbitrum),
             "WSOL" => Ok(CryptoType::WSol),
             "BTC" => Ok(CryptoType::Btc),
+            "BUSD_BEP20" | "BUSD_BSC" => Ok(CryptoType::BusdBep20),
             unknown => {
                 tracing::warn!("Unknown crypto type string: '{}', rejecting", unknown);
                 Err(crate::error::ServiceError::ValidationError(
@@ -146,6 +151,7 @@ impl CryptoType {
             CryptoType::Bnb => "BNB",
             CryptoType::WSol => "WSOL",
             CryptoType::Btc => "BTC",
+            CryptoType::BusdBep20 => "BUSD",
         }
     }
 
@@ -163,6 +169,7 @@ impl CryptoType {
             CryptoType::Bnb => "BEP20",
             CryptoType::WSol => "SOLANA",
             CryptoType::Btc => "BITCOIN",
+            CryptoType::BusdBep20 => "BEP20",
         }
     }
 
@@ -190,6 +197,7 @@ impl CryptoType {
             CryptoType::Bnb => 15,           // BSC: configurable via CONFIRMATION_BLOCKS_BSC
             CryptoType::WSol => 32,          // Solana SPL: configurable via CONFIRMATION_BLOCKS_SOL
             CryptoType::Btc => 2,            // Bitcoin: 2 confirmations for safety
+            CryptoType::BusdBep20 => 15,     // BSC: 15 confirmations
         }
     }
 
@@ -201,6 +209,7 @@ impl CryptoType {
             CryptoType::UsdtPolygon | CryptoType::Matic => config.confirmation_blocks_polygon,
             CryptoType::UsdtEth | CryptoType::Eth => config.confirmation_blocks_eth,
             CryptoType::Btc => config.confirmation_blocks_btc,
+            CryptoType::BusdBep20 => config.confirmation_blocks_bsc,
         }
     }
 
@@ -212,6 +221,7 @@ impl CryptoType {
             CryptoType::UsdtPolygon | CryptoType::Matic => &config.polygon_rpc_url,
             CryptoType::UsdtEth | CryptoType::Eth => &config.ethereum_rpc_url,
             CryptoType::Btc => &config.bitcoin_rpc_url,
+            CryptoType::BusdBep20 => &config.bsc_rpc_url,
         }
     }
 
@@ -227,6 +237,7 @@ impl CryptoType {
             CryptoType::UsdtPolygon => CryptoType::Matic,
             CryptoType::UsdtArbitrum => CryptoType::Arb,
             CryptoType::WSol => CryptoType::Sol,
+            CryptoType::BusdBep20 => CryptoType::Bnb,
             _ => *self, // Already native
         }
     }
@@ -241,8 +252,19 @@ impl CryptoType {
             CryptoType::UsdtPolygon => Some("0xc2132D05D31c914a87C6611C10748AEb04B58e8F"),
             CryptoType::UsdtArbitrum => Some("0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9"),
             CryptoType::WSol => Some("So11111111111111111111111111111111111111112"),
+            CryptoType::BusdBep20 => Some("0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56"),
             // Native currencies don't use token contracts
             _ => None,
+        }
+    }
+
+    pub fn decimals(&self) -> u32 {
+        match self {
+            CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => 9,
+            CryptoType::Eth | CryptoType::Bnb | CryptoType::Matic | CryptoType::Arb => 18,
+            CryptoType::UsdtBep20 | CryptoType::BusdBep20 => 18,
+            CryptoType::UsdtEth | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon => 6,
+            CryptoType::Btc => 8,
         }
     }
 }

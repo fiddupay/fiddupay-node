@@ -185,7 +185,7 @@ impl PaymentVerifier {
 
         // Fetch transaction from blockchain (Requirement 3.1)
         let blockchain_tx = monitor
-            .get_transaction_details(transaction_hash)
+            .get_transaction_details(transaction_hash, payment.to_address.as_deref())
             .await
             .map_err(|e| {
                 error!("[VERIFY-HEARTBEAT] Payment {} | ERROR: Blockchain fetch failed: {}", payment_id, e);
@@ -659,17 +659,7 @@ impl PaymentVerifier {
             return Ok(true);
         }
 
-        // 2. Fetch blockchain details
-        let crypto_type = CryptoType::from_string(crypto_str)?;
-        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), sandbox_mode);
-        let blockchain_tx = monitor.get_transaction_details(transaction_hash).await?;
-
-        if !blockchain_tx.success {
-            warn!("Transaction {} failed on blockchain", transaction_hash);
-            return Ok(false);
-        }
-
-        // 3. Fetch customer wallet to confirm address match
+        // 2. Fetch customer wallet first to confirm address match
         let customer_wallet_address = sqlx::query_scalar::<_, String>(
             "SELECT address FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
@@ -679,6 +669,16 @@ impl PaymentVerifier {
         .fetch_optional(&self.db_pool)
         .await?
         .ok_or("Customer wallet not found")?;
+
+        // 3. Fetch blockchain details
+        let crypto_type = CryptoType::from_string(crypto_str)?;
+        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), sandbox_mode);
+        let blockchain_tx = monitor.get_transaction_details(transaction_hash, Some(&customer_wallet_address)).await?;
+
+        if !blockchain_tx.success {
+            warn!("Transaction {} failed on blockchain", transaction_hash);
+            return Ok(false);
+        }
 
         let addresses_match = if crypto_str.to_lowercase().contains("sol") {
             blockchain_tx.to_address.trim() == customer_wallet_address.trim()
@@ -797,17 +797,7 @@ impl PaymentVerifier {
             return Ok(true);
         }
 
-        // 2. Fetch blockchain details
-        let crypto_type = CryptoType::from_string(crypto_str)?;
-        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), sandbox_mode);
-        let blockchain_tx = monitor.get_transaction_details(transaction_hash).await?;
-
-        if !blockchain_tx.success {
-            warn!("Transaction {} failed on blockchain", transaction_hash);
-            return Ok(false);
-        }
-
-        // 3. Fetch merchant static wallet to confirm address match (Withdrawal trigger protection)
+        // 2. Fetch merchant static wallet to confirm address match (Withdrawal trigger protection)
         let expected_address = sqlx::query_scalar::<_, String>(
             "SELECT address FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND is_active = true"
         )
@@ -817,6 +807,16 @@ impl PaymentVerifier {
         .fetch_optional(&self.db_pool)
         .await?
         .ok_or("Merchant static wallet not found")?;
+
+        // 3. Fetch blockchain details
+        let crypto_type = CryptoType::from_string(crypto_str)?;
+        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), sandbox_mode);
+        let blockchain_tx = monitor.get_transaction_details(transaction_hash, Some(&expected_address)).await?;
+
+        if !blockchain_tx.success {
+            warn!("Transaction {} failed on blockchain", transaction_hash);
+            return Ok(false);
+        }
 
         let addresses_match = if crypto_str.to_lowercase().contains("sol") {
             blockchain_tx.to_address.trim() == expected_address.trim()

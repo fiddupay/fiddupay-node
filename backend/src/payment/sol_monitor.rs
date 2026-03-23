@@ -645,6 +645,7 @@ impl BlockchainMonitor for SolanaMonitor {
     async fn get_transaction_details(
         &self,
         tx_hash: &str,
+        _target_address: Option<&str>,
     ) -> Result<BlockchainTransaction, Box<dyn std::error::Error + Send + Sync>> {
         self.get_transaction_details(tx_hash).await
     }

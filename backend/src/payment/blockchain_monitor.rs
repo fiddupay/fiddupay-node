@@ -18,6 +18,7 @@ pub trait BlockchainMonitor: Send + Sync {
     async fn get_transaction_details(
         &self,
         tx_hash: &str,
+        target_address: Option<&str>,
     ) -> Result<BlockchainTransaction, Box<dyn std::error::Error + Send + Sync>>;
 
     /// Get recent transactions for an address
@@ -40,46 +41,51 @@ pub struct EvmMonitor {
     api_key: Option<String>,
     chain_name: &'static str,
     decimals: u32, // Token decimals (18 for most ERC20)
+    token_address: Option<String>, // ERC20 token address if monitoring tokens
 }
 
 impl EvmMonitor {
-    pub fn new_bsc(config: &crate::config::Config, is_sandbox: bool) -> Self {
+    pub fn new_bsc(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
         Self {
             client: Client::new(),
             api_url: if is_sandbox { config.bscscan_testnet_api_url.clone() } else { config.bscscan_api_url.clone() },
             api_key: config.etherscan_api_key.clone(),
             chain_name: if is_sandbox { "BSC Testnet" } else { "BSC" },
-            decimals: 18, // USDT on BSC has 18 decimals
+            decimals,
+            token_address,
         }
     }
 
-    pub fn new_arbitrum(config: &crate::config::Config, is_sandbox: bool) -> Self {
+    pub fn new_arbitrum(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
         Self {
             client: Client::new(),
             api_url: if is_sandbox { config.arbiscan_sepolia_api_url.clone() } else { config.arbiscan_api_url.clone() },
             api_key: config.etherscan_api_key.clone(),
             chain_name: if is_sandbox { "Arbitrum Sepolia" } else { "Arbitrum" },
-            decimals: 6, // USDT on Arbitrum has 6 decimals
+            decimals,
+            token_address,
         }
     }
 
-    pub fn new_polygon(config: &crate::config::Config, is_sandbox: bool) -> Self {
+    pub fn new_polygon(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
         Self {
             client: Client::new(),
             api_url: if is_sandbox { config.polygonscan_mumbai_api_url.clone() } else { config.polygonscan_api_url.clone() },
             api_key: config.etherscan_api_key.clone(),
             chain_name: if is_sandbox { "Polygon Mumbai" } else { "Polygon" },
-            decimals: 6, // USDT on Polygon has 6 decimals
+            decimals,
+            token_address,
         }
     }
 
-    pub fn new_ethereum(config: &crate::config::Config, is_sandbox: bool) -> Self {
+    pub fn new_ethereum(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
         Self {
             client: Client::new(),
             api_url: if is_sandbox { config.etherscan_sepolia_api_url.clone() } else { config.etherscan_api_url.clone() },
             api_key: config.etherscan_api_key.clone(),
             chain_name: if is_sandbox { "Ethereum Sepolia" } else { "Ethereum" },
-            decimals: 6, // USDT on Ethereum has 6 decimals
+            decimals,
+            token_address,
         }
     }
 }
@@ -89,6 +95,7 @@ impl BlockchainMonitor for EvmMonitor {
     async fn get_transaction_details(
         &self,
         tx_hash: &str,
+        _target_address: Option<&str>,
     ) -> Result<BlockchainTransaction, Box<dyn std::error::Error + Send + Sync>> {
         info!(" Fetching {} transaction: {}", self.chain_name, tx_hash);
 
@@ -113,12 +120,14 @@ impl BlockchainMonitor for EvmMonitor {
             return Err("Transaction not found".into());
         }
 
+        use crate::utils::api_keys::ApiKeyGenerator; // If needed, otherwise string manipulation
+
         let from_address = result.get("from")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
 
-        let to_address = result.get("to")
+        let mut to_address = result.get("to")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
@@ -127,11 +136,39 @@ impl BlockchainMonitor for EvmMonitor {
             .and_then(|v| v.as_str())
             .unwrap_or("0x0");
 
-        // Convert hex value to decimal
-        let value_u128 = u128::from_str_radix(value_hex.trim_start_matches("0x"), 16)
-            .unwrap_or(0);
+        let input = result.get("input")
+            .and_then(|v| v.as_str())
+            .unwrap_or("0x");
 
-        let amount = Decimal::from(value_u128) / Decimal::from(10u64.pow(self.decimals));
+        let mut amount = Decimal::ZERO;
+
+        // Check if this is an ERC20 token transfer
+        if let Some(ref token) = self.token_address {
+            // Verify 'to' is the contract address
+            if to_address.trim().to_lowercase() == token.trim().to_lowercase() {
+                if input.starts_with("0x") && input.len() >= 138 {
+                    let sig = &input[2..10];
+                    if sig == "a9059cbb" { // transfer(address,uint256)
+                        let recipient_hex = &input[34..74]; // skip 2 (0x) + 8 (sig) + 24 (padding)
+                        let amount_hex = &input[74..138];
+                        
+                        if let Ok(value_u128) = u128::from_str_radix(amount_hex, 16) {
+                            amount = Decimal::from(value_u128) / Decimal::from(10u64.pow(self.decimals));
+                            to_address = format!("0x{}", recipient_hex);
+                            info!("Parsed ERC20 Transfer: to={}, amount={}", to_address, amount);
+                        }
+                    }
+                }
+            } else {
+                 warn!("EVM ERC20 monitor expects to_address to be contract {}, got {}", token, to_address);
+            }
+        } else {
+            // Native currency transfer
+            // Convert hex value to decimal
+            let value_u128 = u128::from_str_radix(value_hex.trim_start_matches("0x"), 16)
+                .unwrap_or(0);
+            amount = Decimal::from(value_u128) / Decimal::from(10u64.pow(self.decimals));
+        }
 
         // Get transaction receipt for confirmation status
         let block_number = result.get("blockNumber")
@@ -185,10 +222,15 @@ impl BlockchainMonitor for EvmMonitor {
         info!(" Fetching {} transactions for address: {}", self.chain_name, address);
 
         // Build API request URL for transaction list
+        let action = if self.token_address.is_some() { "tokentx" } else { "txlist" };
         let mut url = format!(
-            "{}?module=account&action=txlist&address={}&startblock=0&endblock=99999999&page=1&offset={}&sort=desc",
-            self.api_url, address, limit
+            "{}?module=account&action={}&address={}&startblock=0&endblock=99999999&page=1&offset={}&sort=desc",
+            self.api_url, action, address, limit
         );
+
+        if let Some(ref token) = self.token_address {
+            url.push_str(&format!("&contractaddress={}", token));
+        }
 
         if let Some(ref key) = self.api_key {
             url.push_str(&format!("&apikey={}", key));
@@ -220,8 +262,8 @@ impl BlockchainMonitor for EvmMonitor {
                 }
             }
 
-            // Get full transaction details
-            match self.get_transaction_details(&hash).await {
+            // Get full transaction details, passing the address as target to help verifier if needed
+            match self.get_transaction_details(&hash, Some(address)).await {
                 Ok(blockchain_tx) => transactions.push(blockchain_tx),
                 Err(e) => warn!("Failed to get transaction {}: {}", hash, e),
             }
@@ -325,6 +367,9 @@ impl EvmMonitor {
 
 /// Factory function to create appropriate blockchain monitor
 pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::Config, is_sandbox: bool) -> Box<dyn BlockchainMonitor> {
+    let token_address = crypto_type.token_address().map(|s| s.to_string());
+    let decimals = crypto_type.decimals();
+    
     match crypto_type.network() {
         "SOLANA" | "SOLANA_SPL" => {
             let rpc_url = if is_sandbox {
@@ -336,10 +381,10 @@ pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::C
             Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, rpc_url, expected_mint))
         },
         "BITCOIN" => Box::new(self::btc_monitor::BtcMonitor::new(is_sandbox)),
-        "ETHEREUM" => Box::new(EvmMonitor::new_ethereum(&config, is_sandbox)),
-        "BEP20" => Box::new(EvmMonitor::new_bsc(&config, is_sandbox)),
-        "POLYGON" => Box::new(EvmMonitor::new_polygon(&config, is_sandbox)),
-        "ARBITRUM" => Box::new(EvmMonitor::new_arbitrum(&config, is_sandbox)),
+        "ETHEREUM" => Box::new(EvmMonitor::new_ethereum(&config, is_sandbox, token_address, decimals)),
+        "BEP20" => Box::new(EvmMonitor::new_bsc(&config, is_sandbox, token_address, decimals)),
+        "POLYGON" => Box::new(EvmMonitor::new_polygon(&config, is_sandbox, token_address, decimals)),
+        "ARBITRUM" => Box::new(EvmMonitor::new_arbitrum(&config, is_sandbox, token_address, decimals)),
         _ => {
              // Default to Solana for unknown types (fallback)
             let rpc_url = if is_sandbox {
