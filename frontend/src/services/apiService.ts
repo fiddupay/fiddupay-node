@@ -165,6 +165,7 @@ export const customerAPI = {
   create: (data: { external_id: string; email?: string; first_name?: string; last_name?: string }) => api.post('/api/v1/merchants/customers', data),
   getWallets: (externalId: string) => api.get(`/api/v1/merchants/customers/${externalId}/wallets`),
   createWallets: (externalId: string, data: { networks: string[] }) => api.post(`/api/v1/merchants/customers/${externalId}/wallets`, data),
+  bulkProvisionWallets: (data: { customer_ids?: string[], all_customers: boolean }) => api.post('/api/v1/merchants/customers/bulk-provision', data),
   getBalances: (externalId: string) => api.get(`/api/v1/merchants/customers/${externalId}/balances`),
   getDepositAddress: (externalId: string, cryptoType: string) => api.get(`/api/v1/merchants/customers/${externalId}/deposit-address/${cryptoType}`),
   getTransactions: (externalId: string, params?: any) => api.get(`/api/v1/merchants/customers/${externalId}/transactions`, { params }),

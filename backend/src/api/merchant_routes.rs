@@ -81,6 +81,7 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         
         // Customer management (Sub-Account Designated Wallets)
         .route("/api/v1/merchants/customers", get(crate::api::customer_handlers::list_customers).post(crate::api::customer_handlers::register_customer))
+        .route("/api/v1/merchants/customers/bulk-provision", post(crate::api::customer_handlers::bulk_provision_customer_wallets))
         .route("/api/v1/merchants/customers/:external_id/wallets", get(crate::api::customer_handlers::get_customer_wallets).post(crate::api::customer_handlers::provision_customer_wallets))
         .route("/api/v1/merchants/customers/:external_id/balances", get(crate::api::customer_handlers::get_customer_balances))
         .route("/api/v1/merchants/customers/:external_id/deposit-address/:crypto_type", get(crate::api::customer_handlers::get_deposit_address))

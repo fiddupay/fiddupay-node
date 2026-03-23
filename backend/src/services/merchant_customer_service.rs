@@ -248,6 +248,55 @@ impl MerchantCustomerService {
         Ok(wallets)
     }
 
+    /// Bulk provision or regenerate wallets for multiple customers
+    pub async fn bulk_provision_wallets(
+        &self,
+        merchant_id: i64,
+        customer_ids: Option<Vec<String>>,
+        all_customers: bool,
+        sandbox_mode: bool,
+    ) -> Result<usize, ServiceError> {
+        let external_ids: Vec<String> = if all_customers {
+            sqlx::query_scalar::<_, String>(
+                "SELECT external_id FROM merchant_customers WHERE merchant_id = $1 AND sandbox_mode = $2"
+            )
+            .bind(merchant_id)
+            .bind(sandbox_mode)
+            .fetch_all(&self.db_pool)
+            .await?
+        } else if let Some(ids) = customer_ids {
+            // Verify that all requested IDs belong to this merchant
+            let mut valid_ids = Vec::new();
+            for ext_id in ids {
+                 let exists = sqlx::query_scalar::<_, bool>(
+                     "SELECT EXISTS(SELECT 1 FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2 AND sandbox_mode = $3)"
+                 )
+                 .bind(merchant_id)
+                 .bind(&ext_id)
+                 .bind(sandbox_mode)
+                 .fetch_one(&self.db_pool)
+                 .await?;
+                 
+                 if exists {
+                     valid_ids.push(ext_id);
+                 }
+            }
+            valid_ids
+        } else {
+            return Err(ServiceError::BadRequest("Must provide customer_ids or set all_customers to true".to_string()));
+        };
+
+        let mut success_count = 0;
+        for ext_id in external_ids {
+            match self.provision_wallets(merchant_id, &ext_id, vec![], sandbox_mode, true).await {
+                Ok(_) => success_count += 1,
+                Err(e) => tracing::warn!("Bulk provision failed for customer {}: {}", ext_id, e),
+            }
+        }
+
+        Ok(success_count)
+    }
+
     async fn save_customer_wallet(
         &self,
         customer_id: i64,

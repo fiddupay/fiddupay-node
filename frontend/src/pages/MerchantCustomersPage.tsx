@@ -59,6 +59,7 @@ const MerchantCustomersPage: React.FC = () => {
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState<string>('all')
+    const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([])
 
     // Drawer States
     const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false)
@@ -275,6 +276,24 @@ const MerchantCustomersPage: React.FC = () => {
         }
     }
 
+    const handleBulkProvision = async (isAll: boolean = false) => {
+        if (!isAll && selectedCustomerIds.length === 0) return;
+        try {
+            setProvisioning(true)
+            await customerAPI.bulkProvisionWallets({ 
+                customer_ids: isAll ? undefined : selectedCustomerIds, 
+                all_customers: isAll 
+            })
+            showToast(`Wallets regenerated successfully for ${isAll ? 'all' : selectedCustomerIds.length} customers`, 'success')
+            if (!isAll) setSelectedCustomerIds([])
+        } catch (error: any) {
+            const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to bulk regenerate wallets';
+            showToast(errMsg, 'error')
+        } finally {
+            setProvisioning(false)
+        }
+    }
+
     const getInitials = (c: Customer) => {
         if (c.first_name && c.last_name) return `${c.first_name[0]}${c.last_name[0]}`.toUpperCase()
         return c.external_id.substring(0, 2).toUpperCase()
@@ -366,10 +385,26 @@ const MerchantCustomersPage: React.FC = () => {
 
             <div className={styles.contentCard}>
                 <div className={styles.tableHeader}>
-                    <h2>Registered Entities</h2>
-                    <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>
-                        {filteredCustomers.length} results found
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <h2>Registered Entities</h2>
+                        <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>
+                            {filteredCustomers.length} results found
+                        </span>
+                    </div>
+                    {(selectedCustomerIds.length > 0 || filteredCustomers.length > 0) && (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            {selectedCustomerIds.length > 0 && (
+                                <button className={styles.actionBtn} style={{ background: '#3b82f6', color: 'white', padding: '0.5rem 1rem' }} onClick={() => handleBulkProvision(false)} disabled={provisioning}>
+                                    <i className={provisioning ? "fas fa-spinner fa-spin mr-2" : "fas fa-sync-alt mr-2"}></i>
+                                    Regenerate {selectedCustomerIds.length} Selected
+                                </button>
+                            )}
+                            <button className={styles.actionBtn} style={{ background: '#f59e0b', color: 'white', padding: '0.5rem 1rem' }} onClick={() => handleBulkProvision(true)} disabled={provisioning}>
+                                <i className={provisioning ? "fas fa-spinner fa-spin mr-2" : "fas fa-magic mr-2"}></i>
+                                Regenerate All
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {loading ? (
@@ -386,6 +421,19 @@ const MerchantCustomersPage: React.FC = () => {
                         <table className={styles.table}>
                             <thead>
                                 <tr>
+                                    <th style={{ width: '40px' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={filteredCustomers.length > 0 && selectedCustomerIds.length === filteredCustomers.length}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedCustomerIds(filteredCustomers.map(c => c.external_id))
+                                                } else {
+                                                    setSelectedCustomerIds([])
+                                                }
+                                            }}
+                                        />
+                                    </th>
                                     <th>Customer Identity</th>
                                     <th>External ID</th>
                                     <th>Status</th>
@@ -401,9 +449,21 @@ const MerchantCustomersPage: React.FC = () => {
                                     <tr 
                                         key={c.id} 
                                         className={styles.customerRow}
-                                        onClick={() => openCustomerDetails(c)}
                                     >
-                                        <td>
+                                        <td onClick={(e) => e.stopPropagation()}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedCustomerIds.includes(c.external_id)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedCustomerIds([...selectedCustomerIds, c.external_id])
+                                                    } else {
+                                                        setSelectedCustomerIds(selectedCustomerIds.filter(id => id !== c.external_id))
+                                                    }
+                                                }}
+                                            />
+                                        </td>
+                                        <td onClick={() => openCustomerDetails(c)}>
                                             <div className={styles.customerInfo}>
                                                 <div className={styles.avatar}>{getInitials(c)}</div>
                                                 <div className={styles.customerMeta}>

@@ -481,10 +481,16 @@ impl SolanaMonitor {
         // --- END CATCH-UP BACKFILL ---
 
         let mut active_subscriptions = std::collections::HashMap::new();
+        let mut ping_interval = tokio::time::interval(std::time::Duration::from_secs(10));
 
         // Handle incoming messages
         loop {
             tokio::select! {
+                _ = ping_interval.tick() => {
+                    if let Err(e) = write.send(Message::Ping(Default::default())).await {
+                        warn!("Failed to send Solana WS ping: {}", e);
+                    }
+                }
                 Some(new_addr) = new_addresses_rx.recv() => {
                     let request_id = next_request_id;
                     next_request_id += 1;

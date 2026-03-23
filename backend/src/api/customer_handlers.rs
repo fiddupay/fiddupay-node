@@ -85,6 +85,47 @@ pub async fn provision_customer_wallets(
     }
 }
 
+#[derive(serde::Deserialize)]
+pub struct BulkProvisionRequest {
+    pub customer_ids: Option<Vec<String>>,
+    pub all_customers: bool,
+}
+
+pub async fn bulk_provision_customer_wallets(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<BulkProvisionRequest>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(state.db_pool.clone());
+    
+    match service.bulk_provision_wallets(
+        context.merchant_id,
+        req.customer_ids.clone(),
+        req.all_customers,
+        context.sandbox_mode
+    ).await {
+        Ok(count) => {
+            // Log audit event
+            let _ = state.audit_service.log_event(
+                context.merchant_id,
+                "customer_bulk_wallet_provision",
+                Some(&format!("Bulk provisioned wallets for {} customers", count)),
+                Some(json!({
+                    "customer_ids": req.customer_ids,
+                    "all_customers": req.all_customers,
+                    "count_success": count
+                }))
+            ).await;
+
+            (StatusCode::OK, Json(json!({
+                "count": count,
+                "message": format!("Successfully provisioned or regenerated wallets for {} customers", count)
+            }))).into_response()
+        },
+        Err(e) => e.into_response(),
+    }
+}
+
 pub async fn get_customer_balances(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
