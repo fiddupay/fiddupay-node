@@ -180,7 +180,7 @@ impl MerchantCustomerService {
         for network_type in networks {
             let normalized = network_type.to_uppercase();
             match normalized.as_str() {
-                "EVM" | "ETH" | "ERC20" | "BSC" | "BEP20" | "POLYGON" | "MATIC" | "ARB" | "ARBITRUM" | "NATIVE" => {
+                "EVM" | "ETH" | "ERC20" | "BSC" | "BEP20" | "POLYGON" | "MATIC" | "ARB" | "ARBITRUM" | "NATIVE" | "ETHEREUM" => {
                     if wallets.iter().any(|w| w.network == "Ethereum") {
                         continue;
                     }
@@ -191,7 +191,7 @@ impl MerchantCustomerService {
 
                     let evm_cryptos = vec![
                         CryptoType::Eth, CryptoType::UsdtEth,
-                        CryptoType::Bnb, CryptoType::UsdtBep20,
+                        CryptoType::Bnb, CryptoType::UsdtBep20, CryptoType::BusdBep20,
                         CryptoType::Matic, CryptoType::UsdtPolygon,
                         CryptoType::Arb, CryptoType::UsdtArbitrum,
                     ];
