@@ -511,13 +511,16 @@
 /* Wallet Item Revamp - Premium Look */
 .walletItem {
     background: white;
-    padding: 1.5rem;
-    border-radius: 20px;
+    padding: 1rem;
+    border-radius: 12px;
     border: 1px solid var(--fiddu-border);
-    margin-bottom: 1.25rem;
+    margin-bottom: 0.75rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
 .walletItem::before {
@@ -531,8 +534,8 @@
 }
 
 .walletItem:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
     border-color: var(--network-color, var(--fiddu-primary));
 }
 
@@ -540,61 +543,62 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.25rem;
+    margin-bottom: 0;
 }
 
 .walletMainInfo {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 .assetIcon {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     background: #f1f5f9;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 1rem;
     color: var(--network-color, var(--fiddu-text-primary));
 }
 
 .walletType {
-    font-weight: 800;
-    font-size: 1.1rem;
+    font-weight: 700;
+    font-size: 0.95rem;
     color: var(--fiddu-text-primary);
     display: flex;
-    flex-direction: column;
+    align-items: baseline;
+    gap: 0.4rem;
 }
 
 .walletType sub {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--fiddu-text-secondary);
     font-weight: 500;
-    margin-top: 0.2rem;
+    margin-top: 0;
 }
 
 .walletNetwork {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 800;
     color: white;
     background: var(--network-color, var(--fiddu-primary));
-    padding: 0.3rem 0.75rem;
-    border-radius: 8px;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .addressBox {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
     background: #f8fafc;
-    padding: 1rem 1.25rem;
-    border-radius: 14px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
     border: 1px dashed var(--fiddu-border);
     transition: all 0.2s;
 }
@@ -607,20 +611,20 @@
 
 .addressText {
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     color: var(--fiddu-text-secondary);
     word-break: break-all;
     flex: 1;
 }
 
 .copyBtn {
-    border: 1.5px solid var(--fiddu-border);
-    background: white;
+    border: none;
+    background: transparent;
     color: var(--fiddu-text-secondary);
     cursor: pointer;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -630,8 +634,6 @@
 .copyBtn:hover {
     background: var(--fiddu-primary);
     color: white;
-    border-color: var(--fiddu-primary);
-    transform: scale(1.1);
 }
 
 /* Network Specific Themes via style attribute or custom classes */

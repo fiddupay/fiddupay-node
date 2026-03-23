@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { customerAPI, publicAPI } from '@/services/apiService'
 import styles from '@/styles/pages/MerchantCustomersPage.module.css'
 import { useToast } from '@/contexts/ToastContext'
+import { SiEthereum, SiBinance, SiTether, SiBitcoin } from 'react-icons/si'
+import { FaSun, FaDrawPolygon, FaWallet } from 'react-icons/fa'
 
 interface Customer {
     id: string;
@@ -449,6 +451,7 @@ const MerchantCustomersPage: React.FC = () => {
                                     <tr 
                                         key={c.id} 
                                         className={styles.customerRow}
+                                        onClick={() => openCustomerDetails(c)}
                                     >
                                         <td onClick={(e) => e.stopPropagation()}>
                                             <input 
@@ -463,7 +466,7 @@ const MerchantCustomersPage: React.FC = () => {
                                                 }}
                                             />
                                         </td>
-                                        <td onClick={() => openCustomerDetails(c)}>
+                                        <td>
                                             <div className={styles.customerInfo}>
                                                 <div className={styles.avatar}>{getInitials(c)}</div>
                                                 <div className={styles.customerMeta}>
@@ -637,19 +640,23 @@ const MerchantCustomersPage: React.FC = () => {
                                                                                              w.network.toLowerCase().includes('arbitrum') ? 'arb' :
                                                                                              w.network.toLowerCase().includes('bitcoin') ? 'btc' : '';
                                                                             
-                                                                            const assetIcon = w.crypto_type.toLowerCase().includes('usdt') ? 'fa-dollar-sign' :
-                                                                                             w.crypto_type.toLowerCase().includes('eth') ? 'fa-ethereum' :
-                                                                                             w.crypto_type.toLowerCase().includes('sol') ? 'fa-sun' :
-                                                                                             w.crypto_type.toLowerCase().includes('bnb') ? 'fa-coins' :
-                                                                                             w.crypto_type.toLowerCase().includes('btc') ? 'fa-bitcoin' :
-                                                                                             w.crypto_type.toLowerCase().includes('matic') ? 'fa-polygon' : 'fa-wallet';
+                                                                            const getReactIcon = (code: string) => {
+                                                                                const c = code.toLowerCase();
+                                                                                if (c.includes('usdt') || c.includes('usdc')) return <SiTether />;
+                                                                                if (c.includes('eth')) return <SiEthereum />;
+                                                                                if (c.includes('sol')) return <FaSun />;
+                                                                                if (c.includes('bnb') || c.includes('busd')) return <SiBinance />;
+                                                                                if (c.includes('btc')) return <SiBitcoin />;
+                                                                                if (c.includes('matic') || c.includes('polygon')) return <FaDrawPolygon />;
+                                                                                return <FaWallet />;
+                                                                            };
 
                                                                             return (
                                                                                 <div key={idx} className={`${styles.walletItem} ${styles[networkKey]}`}>
                                                                                     <div className={styles.walletHeader}>
                                                                                         <div className={styles.walletMainInfo}>
                                                                                             <div className={styles.assetIcon}>
-                                                                                                <i className={`fab ${assetIcon}`}></i>
+                                                                                                {getReactIcon(w.crypto_type)}
                                                                                             </div>
                                                                                             <span className={styles.walletType}>
                                                                                                 {w.crypto_type}
