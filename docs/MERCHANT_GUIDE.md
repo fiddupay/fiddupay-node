@@ -1228,7 +1228,7 @@ Proposed UI:
 **Implementation:**
 ```sql
 -- Add to merchants table
-ALTER TABLE merchants ADD COLUMN accepted_currencies JSONB DEFAULT '["SOL", "USDT_SPL", "USDT_BEP20", "USDT_ARBITRUM", "USDT_POLYGON"]';
+ALTER TABLE merchants ADD COLUMN accepted_currencies JSONB DEFAULT '["SOL", "USDT_SPL", "USDT_BEP20", "USDT_ARBITRUM", "USDT_POLYGON", "BUSD_BEP20"]';
 
 -- Query
 SELECT accepted_currencies FROM merchants WHERE id = 1;

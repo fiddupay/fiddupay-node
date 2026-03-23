@@ -346,7 +346,7 @@ interface Payment {
   metadata?: Record<string, any>;
 }
 
-type CryptoType = 'SOL' | 'ETH' | 'USDT_ETH' | 'USDT_BEP20' | 'USDT_POLYGON' | 'USDT_ARBITRUM' | 'USDT_SPL';
+type CryptoType = 'SOL' | 'ETH' | 'USDT_ETH' | 'USDT_BEP20' | 'USDT_POLYGON' | 'USDT_ARBITRUM' | 'USDT_SPL' | 'BUSD_BEP20';
 type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED';
 ```
 

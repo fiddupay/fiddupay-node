@@ -39,6 +39,7 @@ const NETWORK_LABELS: Record<string, { name: string, sandbox: string }> = {
     WSOL: { name: 'Wrapped SOL', sandbox: 'Devnet WSOL' },
     USDT_ETH: { name: 'Ethereum ERC20', sandbox: 'Sepolia ERC20' },
     USDT_BEP20: { name: 'BSC BEP20', sandbox: 'BSC Testnet BEP20' },
+    BUSD_BEP20: { name: 'BUSD BEP20', sandbox: 'BSC Testnet BUSD' },
     USDT_POLYGON: { name: 'Polygon', sandbox: 'Mumbai' },
     USDT_ARBITRUM: { name: 'Arbitrum', sandbox: 'Arbitrum Sepolia' },
     BTC: { name: 'Bitcoin', sandbox: 'BTC Testnet' },

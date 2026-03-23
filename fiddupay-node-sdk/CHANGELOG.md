@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.5.4] - 2026-03-23
+
+### Added
+- **BUSD_BEP20 Support**: Added `BUSD_BEP20` to `CryptoType` types and payment validation to enable BUSD payments on Binance Smart Chain.
+
 ## [2.5.3] - 2026-03-19
 
 ### Added
