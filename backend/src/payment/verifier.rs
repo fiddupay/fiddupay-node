@@ -724,6 +724,26 @@ impl PaymentVerifier {
             return Err("Recipient address mismatch".into());
         }
 
+        // 3.5. Mint Check (Requirement 3.2 extension)
+        let expected_token = crypto_type.token_address();
+        if let Some(expected_addr) = expected_token {
+            match &blockchain_tx.token_mint {
+                Some(actual_mint) => {
+                    if actual_mint.trim().to_lowercase() != expected_addr.trim().to_lowercase() {
+                        warn!("[VERIFY-CUSTOMER-DEPOSIT] FAILED: Token mismatch: expected {}, got {}", expected_addr, actual_mint);
+                        return Ok(false);
+                    }
+                },
+                None => {
+                    warn!("[VERIFY-CUSTOMER-DEPOSIT] FAILED: Expected token {}, but transaction is native", expected_addr);
+                    return Ok(false);
+                }
+            }
+        } else if blockchain_tx.token_mint.is_some() {
+            warn!("[VERIFY-CUSTOMER-DEPOSIT] FAILED: Expected native payment, but transaction is token transfer");
+            return Ok(false);
+        }
+
         // 4. Credit ledger atomically
         let mut tx = self.db_pool.begin().await?;
 
@@ -860,6 +880,26 @@ impl PaymentVerifier {
         if !addresses_match {
             warn!("Address mismatch for merchant static deposit {}: expected {}, got {} as destination!", transaction_hash, expected_address, blockchain_tx.to_address);
             return Ok(false); // Gracefully skip withdrawals
+        }
+
+        // 3.5. Mint Check (Requirement 3.2 extension)
+        let expected_token = crypto_type.token_address();
+        if let Some(expected_addr) = expected_token {
+            match &blockchain_tx.token_mint {
+                Some(actual_mint) => {
+                    if actual_mint.trim().to_lowercase() != expected_addr.trim().to_lowercase() {
+                        warn!("[VERIFY-MERCHANT-DEPOSIT] FAILED: Token mismatch: expected {}, got {}", expected_addr, actual_mint);
+                        return Ok(false);
+                    }
+                },
+                None => {
+                    warn!("[VERIFY-MERCHANT-DEPOSIT] FAILED: Expected token {}, but transaction is native", expected_addr);
+                    return Ok(false);
+                }
+            }
+        } else if blockchain_tx.token_mint.is_some() {
+            warn!("[VERIFY-MERCHANT-DEPOSIT] FAILED: Expected native payment, but transaction is token transfer");
+            return Ok(false);
         }
 
         // Fetch merchant's dynamic fee percentage

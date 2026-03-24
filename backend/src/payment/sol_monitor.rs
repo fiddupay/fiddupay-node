@@ -118,6 +118,7 @@ struct TransactionMeta {
     postTokenBalances: Vec<TokenBalanceInfo>,
 }
 
+#[derive(Debug, Clone)]
 pub struct SolanaMonitor {
     client: Client,
     rpc_url: String,
@@ -598,7 +599,7 @@ impl SolanaMonitor {
                     let addr_clone = new_owner.clone();
                     let cb_clone = callback.clone();
                     let min_ts = Utc::now() - chrono::Duration::minutes(10);
-                    let monitor_clone = self.clone(); // Error: self is &self, need Arc or something?
+                    let monitor_clone = self.clone();
                     // Actually, self is already captured by the loop, and this is a loop branch.
                     match self.get_transactions_to_address(&addr_clone, 5, Some(min_ts)).await {
                         Ok(txs) => {
