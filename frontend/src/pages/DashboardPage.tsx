@@ -8,6 +8,7 @@ import {
   AreaChart,
   Area
 } from 'recharts'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI, paymentAPI, securityAPI } from '@/services/apiService'
 import { Balance, SecurityAlert } from '../types'
@@ -32,6 +33,7 @@ interface AnalyticsData {
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [balance, setBalance] = useState<Balance | null>(null)
   const [alerts, setAlerts] = useState<SecurityAlert[]>([])
@@ -143,10 +145,10 @@ const DashboardPage: React.FC = () => {
                 <MdWarning color="#f59e0b" size={24} />
               </div>
               <div className={styles.bannerContent}>
-                <h3 style={{ color: '#92400e' }}>Security setup required: 4-Digit PIN</h3>
+                <h3 style={{ color: '#92400e' }}>Security setup required: Transaction PIN</h3>
                 <p>A Transaction PIN is mandatory for all withdrawals and fund movements. Set your PIN now to enable financial actions.</p>
               </div>
-              <button className={styles.bannerBtn} style={{ background: '#f59e0b' }} onClick={() => window.location.href='/settings?tab=security'}>
+              <button className={styles.bannerBtn} style={{ background: '#f59e0b' }} onClick={() => navigate('/app/settings?tab=security')}>
                 Setup PIN <MdArrowForward />
               </button>
             </div>
@@ -161,7 +163,7 @@ const DashboardPage: React.FC = () => {
                 <h3>Action Required: {alerts.length} Security Alerts</h3>
                 <p>Potential unauthorized access or system warnings detected. Please review your security logs immediately.</p>
               </div>
-              <button className={styles.bannerBtn} onClick={() => window.location.href='/security'}>
+              <button className={styles.bannerBtn} onClick={() => navigate('/security')}>
                 Go to Security Hub <MdArrowForward />
               </button>
             </div>

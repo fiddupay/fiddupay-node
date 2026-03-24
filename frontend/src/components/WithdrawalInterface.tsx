@@ -238,7 +238,7 @@ export default function WithdrawalInterface() {
                   maxLength={4}
                   value={pin}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPin(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Enter 4-digit PIN"
+                  placeholder="Enter Merchant Transaction PIN"
                 />
               </div>
               <div>

@@ -78,6 +78,8 @@ pub struct MerchantProfile {
     pub kyc_verified: bool,
     pub sandbox_mode: bool,
     pub settlement_mode: String,
+    pub has_transaction_pin: bool,
+    pub pin_setup_at: Option<String>,
 }
 
 // ============================================================================
@@ -142,6 +144,8 @@ pub async fn register_merchant(
                     kyc_verified: false,
                     sandbox_mode: true,
                     settlement_mode: "managed".to_string(),
+                    has_transaction_pin: false,
+                    pin_setup_at: None,
                 },
                 dashboard_token: token,
             };
@@ -167,7 +171,7 @@ pub async fn login_merchant(
 ) -> impl IntoResponse {
     // Query the database for the user
     let merchant_query = sqlx::query(
-        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role::text as role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked FROM merchants WHERE email = $1 AND is_active = true"
+        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role::text as role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at FROM merchants WHERE email = $1 AND is_active = true"
     )
     .bind(&req.email)
     .fetch_optional(&state.db_pool)
@@ -192,6 +196,8 @@ pub async fn login_merchant(
             let m_test_api_key_hash: Option<String> = merchant.get("test_api_key_hash");
             let m_password_hash: Option<String> = merchant.get("password_hash");
             let m_daily_limit_usd: Option<Decimal> = merchant.get("daily_limit_usd");
+            let m_transaction_pin_hash: Option<String> = merchant.get("transaction_pin_hash");
+            let m_pin_setup_at: Option<chrono::DateTime<chrono::Utc>> = merchant.get("pin_setup_at");
             
             // Check if password_hash exists (it might be NULL for old users or API-only users)
             let hash_to_check = m_password_hash.as_ref().ok_or_else(|| {
@@ -301,6 +307,8 @@ pub async fn login_merchant(
                         kyc_verified: m_kyc_verified,
                         sandbox_mode: m_sandbox_mode,
                         settlement_mode: m_settlement_mode,
+                        has_transaction_pin: m_transaction_pin_hash.is_some(),
+                        pin_setup_at: m_pin_setup_at.map(|d| d.to_rfc3339()),
                     },
                     dashboard_token: token,
                 }

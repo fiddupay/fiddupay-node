@@ -257,7 +257,7 @@ const MerchantCustomersPage: React.FC = () => {
     const handleSweep = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!selectedCustomer || !sweepCryptoType || !sweepAmount || !sweepPin) {
-            showToast('Please fill all fields including 4-digit PIN', 'warning')
+            showToast('Please fill all fields including Merchant Transaction PIN', 'warning')
             return
         }
 
@@ -299,7 +299,7 @@ const MerchantCustomersPage: React.FC = () => {
     const handleCustomerWithdraw = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!selectedCustomer || !withdrawAmount || !withdrawAddress || !withdrawPin) {
-            showToast('Please fill all fields including 4-digit PIN', 'warning')
+            showToast('Please fill all fields including Merchant Transaction PIN', 'warning')
             return
         }
         try {
@@ -804,7 +804,7 @@ const MerchantCustomersPage: React.FC = () => {
                                                         <input className={styles.inputStyle} style={{ padding: '0.75rem 1rem' }} type="number" step="any" placeholder="0.00" value={sweepAmount} onChange={e => setSweepAmount(e.target.value)} />
                                                     </div>
                                                     <div className={styles.formGroup} style={{ marginBottom: '1rem' }}>
-                                                        <label>Confirm 4-Digit PIN</label>
+                                                        <label>Merchant Transaction PIN</label>
                                                         <input 
                                                             className={styles.inputStyle} 
                                                             type="password"

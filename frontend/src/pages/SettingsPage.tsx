@@ -855,7 +855,7 @@ const SettingsPage: React.FC = () => {
                         <div className={styles.formCard} style={{ marginTop: '24px', maxWidth: '400px' }}>
                             <form onSubmit={handleSetPin}>
                                 <div className={styles.formGroup}>
-                                    <label>{user?.has_transaction_pin ? 'Update Transaction PIN' : 'Set New 4-Digit PIN'}</label>
+                                    <label>{user?.has_transaction_pin ? 'Update Transaction PIN' : 'Set Merchant Transaction PIN'}</label>
                                     <input 
                                         type="password"
                                         className={styles.inputStyle}
@@ -889,7 +889,7 @@ const SettingsPage: React.FC = () => {
                                     style={{ width: '100%', marginTop: '12px', background: '#2563eb' }}
                                     disabled={settingPin || pin.length !== 4}
                                 >
-                                    {settingPin ? <i className="fas fa-spinner fa-spin"></i> : (user?.has_transaction_pin ? 'Update PIN' : 'Set PIN')}
+                                    {settingPin ? <i className="fas fa-spinner fa-spin"></i> : (user?.has_transaction_pin ? 'Update Merchant PIN' : 'Set Merchant PIN')}
                                 </button>
                             </form>
                         </div>

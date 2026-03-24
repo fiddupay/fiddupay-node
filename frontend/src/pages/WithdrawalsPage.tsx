@@ -459,7 +459,7 @@ const WithdrawalsPage: React.FC = () => {
                                     maxLength={4}
                                     value={transactionPin}
                                     onChange={e => setTransactionPin(e.target.value.replace(/\D/g, ''))}
-                                    placeholder="4-digit PIN"
+                                    placeholder="Merchant Transaction PIN"
                                     style={{
                                         width: '100%',
                                         padding: '0.75rem',
