@@ -6,32 +6,38 @@ use rust_decimal::Decimal;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     dotenv().ok();
-    let config = Config::from_env();
+    let config = Config::from_env()?;
     
     // The provided hash is on Mainnet
     let rpc_url = Some(config.solana_rpc_url.clone());
-    // Use the official USDT mint for testing
-    let monitor = SolanaMonitor::new(&config, rpc_url, Some("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB".to_string()));
+    // Use the official USDT mint confirmed by the user
+    let usdt_mint = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB".to_string();
+    let monitor = SolanaMonitor::new(&config, rpc_url, Some(usdt_mint.clone()));
     
     let hash = "4jCt18y8JC2UrxkQA6HYPDzKcj7deqNYKBupACSJ2Da8yJNc1vZusT8kYUKogDjmZrHPSMz5NNYAg8zbuwFgYY67";
     
-    println!("🔍 Fetching details for Solana USDT transaction: {}", hash);
+    println!("🔍 VERIFICATION: Fetching transaction {} for USDT mint {}", hash, usdt_mint);
     
     let tx = monitor.get_transaction_details(hash).await?;
     
-    println!("✅ Transaction detected!");
+    println!("✅ Transaction parsed!");
     println!("   Hash: {}", tx.hash);
     println!("   From: {}", tx.from_address);
-    println!("   To (Owner parsed): {}", tx.to_address);
-    println!("   Amount: {} USDT", tx.amount);
-    println!("   Success: {}", tx.success);
-    println!("   Confirmations: {}", tx.confirmations);
+    println!("   To (Recipient): {}", tx.to_address);
+    println!("   Amount: {} tokens", tx.amount);
+    println!("   Detected Mint: {:?}", tx.token_mint);
     
     if tx.amount > Decimal::ZERO {
-        println!("\n✨ SUCCESS: SPL Token amount correctly parsed!");
-        println!("   The 'to_address' should be the OWNER of the ATA: {}", tx.to_address);
+        println!("\n✨ SUCCESS: Detected a valid transfer!");
+        if let Some(mint) = &tx.token_mint {
+            if mint == &usdt_mint {
+                println!("   CONFIRMED: Mint matches the expected USDT address.");
+            } else {
+                println!("   WARNING: Mint mismatch! Expected {}, got {}", usdt_mint, mint);
+            }
+        }
     } else {
-        println!("\n❌ FAILED: Amount is zero. Check mint address and parsing logic.");
+        println!("\n❌ FAILED: No token transfer detected for the specified mint.");
     }
 
     Ok(())

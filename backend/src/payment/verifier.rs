@@ -351,6 +351,39 @@ impl PaymentVerifier {
             return Ok(false);
         }
 
+        // Check token mint/address (Requirement 3.2 extension: Token validation)
+        let crypto_type_str = payment.crypto_type.as_ref().ok_or("Crypto type missing")?;
+        let crypto_type = CryptoType::from_string(crypto_type_str)?;
+        let expected_token = crypto_type.token_address();
+
+        if let Some(expected_addr) = expected_token {
+            match &blockchain_tx.token_mint {
+                Some(actual_mint) => {
+                    // Normalize and compare
+                    let actual_norm = actual_mint.trim().to_lowercase();
+                    let expected_norm = expected_addr.trim().to_lowercase();
+                    
+                    if actual_norm != expected_norm {
+                        warn!("[VERIFY-VALIDATION] Payment {} | FAILED: Token mismatch: expected {}, got {}", 
+                            payment.payment_id, expected_addr, actual_mint);
+                        return Ok(false);
+                    }
+                },
+                None => {
+                    warn!("[VERIFY-VALIDATION] Payment {} | FAILED: Expected token {}, but transaction is native", 
+                        payment.payment_id, expected_addr);
+                    return Ok(false);
+                }
+            }
+        } else {
+            // Expected native payment - ensure blockchain_tx has no token_mint
+            if blockchain_tx.token_mint.is_some() {
+                warn!("[VERIFY-VALIDATION] Payment {} | FAILED: Expected native payment, but transaction is token transfer", 
+                    payment.payment_id);
+                return Ok(false);
+            }
+        }
+
         // Check recipient address matches merchant's wallet (Requirement 3.3)
         let payment_to_address = payment.to_address.as_ref().ok_or("Merchant address missing")?;
         

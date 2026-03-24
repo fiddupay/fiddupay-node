@@ -443,4 +443,5 @@ pub struct BlockchainTransaction {
     pub block_number: Option<u64>,
     pub timestamp: Option<DateTime<Utc>>,
     pub success: bool,
+    pub token_mint: Option<String>,
 }

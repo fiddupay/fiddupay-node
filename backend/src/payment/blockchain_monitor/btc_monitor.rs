@@ -104,6 +104,7 @@ impl BlockchainMonitor for BtcMonitor {
             block_number: block_height,
             timestamp: Some(timestamp),
             success: confirmed,
+            token_mint: None,
         })
     }
 

@@ -318,11 +318,12 @@ impl SolanaMonitor {
         //      → Use the token account OWNER as to_address, and the token amount
         //   2. Otherwise → Native SOL transfer
         //      → Use lamport balance diffs (preBalances/postBalances)
-        let (to_address, amount) = if let Some(ref meta) = tx_result.meta {
+        let (to_address, amount, token_mint) = if let Some(ref meta) = tx_result.meta {
             // --- SPL Token Transfer Detection ---
             if !meta.postTokenBalances.is_empty() {
                 // Find the token account that received tokens by comparing pre vs post
                 let mut best_recipient_owner: Option<String> = None;
+                let mut best_mint: Option<String> = None;
                 let mut best_amount = Decimal::ZERO;
 
                 for post_tb in &meta.postTokenBalances {
@@ -358,29 +359,32 @@ impl SolanaMonitor {
                             best_amount = token_amount;
                             // Use the OWNER of the token account — this is the merchant wallet
                             best_recipient_owner = post_tb.owner.clone();
+                            best_mint = post_tb.mint.clone();
                         }
                     }
                 }
 
                 if let Some(owner) = best_recipient_owner {
-                    info!("[SOL-MONITOR] SPL token transfer detected: {} tokens to owner {}", best_amount, owner);
-                    (owner, best_amount)
+                    info!("[SOL-MONITOR] SPL token transfer detected: {} (mint: {:?}) to owner {}", best_amount, best_mint, owner);
+                    (owner, best_amount, best_mint)
                 } else if self.expected_mint.is_none() {
                     // Fall back to SOL diff only if we aren't looking for a specific token
-                    Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.accountKeys)
+                    let (addr, amt) = Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.accountKeys);
+                    (addr, amt, None)
                 } else {
                     // We expected a token but didn't find a matching increase
-                    (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO)
+                    (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO, None)
                 }
             } else if self.expected_mint.is_none() {
                 // --- Native SOL Transfer ---
-                Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.accountKeys)
+                let (addr, amt) = Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.accountKeys);
+                (addr, amt, None)
             } else {
                 // Not an SPL transfer and we were expecting one
-                (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO)
+                (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO, None)
             }
         } else {
-            (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO)
+            (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO, None)
         };
 
         // Get sender address (the account that paid for the transaction or the first account)
@@ -421,6 +425,7 @@ impl SolanaMonitor {
                 0
             ),
             success,
+            token_mint,
         })
     }
 

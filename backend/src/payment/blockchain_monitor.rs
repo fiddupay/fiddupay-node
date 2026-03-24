@@ -210,6 +210,7 @@ impl BlockchainMonitor for EvmMonitor {
             block_number,
             timestamp: Some(timestamp),
             success,
+            token_mint: self.token_address.clone(),
         })
     }
 
