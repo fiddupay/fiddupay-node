@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use validator::Validate;
 use rust_decimal::Decimal;
+use crate::error::ServiceError;
 use sqlx::Row;
 
 use crate::middleware::validation::validate_webhook_url;
