@@ -710,7 +710,7 @@ impl MerchantCustomerService {
         let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
         
         // Normalize crypto type
-        let crypto_enum = CryptoType::from_string(crypto_type_str);
+        let crypto_enum = CryptoType::from_string(crypto_type_str)?;
         if crypto_enum == CryptoType::Eth && crypto_type_str.to_uppercase() != "ETH" && crypto_type_str.to_uppercase() != "ETHEREUM" {
              // Basic validation since from_string defaults to Pending
              if !crypto_type_str.to_uppercase().contains("ETH") {
@@ -851,7 +851,7 @@ impl MerchantCustomerService {
     ) -> Result<Decimal, ServiceError> {
         let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
 
-        let crypto_enum = CryptoType::from_string(crypto_type_str);
+        let crypto_enum = CryptoType::from_string(crypto_type_str)?;
         let normalized_crypto = crypto_enum.to_string();
 
         let balance_record = sqlx::query_as::<_, MerchantCustomerBalance>(
