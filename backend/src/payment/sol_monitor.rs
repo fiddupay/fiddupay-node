@@ -499,7 +499,7 @@ impl SolanaMonitor {
             for token in &tokens_to_monitor {
                 if let Some(mint) = token.token_address() {
                     if let Some(ata) = Self::get_ata_address(&address, mint) {
-                        if ata != address {
+                        if ata != *address {
                             owner_map.insert(ata.clone(), address.clone());
                             initial_monitor_addresses.push(ata);
                         }
