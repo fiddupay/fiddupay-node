@@ -135,6 +135,20 @@ pub async fn list_unified_transactions(
             created_at
         FROM withdrawals
         WHERE merchant_id = $1 AND sandbox_mode = $2)
+
+        UNION ALL
+        
+        (SELECT 
+            LOWER(type) as txn_type,
+            id::text as id,
+            amount::text as crypto_amount,
+            '0' as usd_amount,
+            crypto_type,
+            status,
+            transaction_hash,
+            created_at
+        FROM customer_transactions
+        WHERE merchant_id = $1 AND sandbox_mode = $2)
         
         ORDER BY created_at DESC
         LIMIT $3

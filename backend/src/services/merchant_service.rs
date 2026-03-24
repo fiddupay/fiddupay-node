@@ -130,7 +130,7 @@ impl MerchantService {
             VALUES ($1, $2, 'PENDING', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT', $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, TRUE, TRUE)
             RETURNING id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url,
                       first_name, last_name, gender, phone_number, country, applicant_role, business_country, business_license_number, business_certificate_url, terms_accepted,
-                      wallets_locked, customer_wallets_locked
+                      wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at
             "#
         )
         .bind(&email)
@@ -253,7 +253,8 @@ impl MerchantService {
                    kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
                    role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
                    country, applicant_role, business_country, business_license_number, 
-                   business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked 
+                   business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked, 
+                   transaction_pin_hash, pin_setup_at 
             FROM merchants WHERE id = $1
 
             "#
@@ -310,7 +311,8 @@ impl MerchantService {
                    kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
                    role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
                    country, applicant_role, business_country, business_license_number, 
-                   business_certificate_url, terms_accepted 
+                   business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked,
+                   transaction_pin_hash, pin_setup_at 
             FROM merchants WHERE id = $1
             "#
 
@@ -444,7 +446,8 @@ impl MerchantService {
                                    kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
                                    role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
                                    country, applicant_role, business_country, business_license_number, 
-                                   business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked 
+                                   business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked,
+                                   transaction_pin_hash, pin_setup_at 
                             FROM merchants 
                             WHERE id = $1 AND is_active = true
                             "#

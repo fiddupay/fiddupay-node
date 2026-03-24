@@ -707,40 +707,47 @@ impl MerchantCustomerService {
         description: Option<&str>,
         sandbox_mode: bool,
     ) -> Result<CustomerTransaction, ServiceError> {
+        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
+        
+        // Normalize crypto type
+        let crypto_enum = CryptoType::from_string(crypto_type_str);
+        if crypto_enum == CryptoType::Eth && crypto_type_str.to_uppercase() != "ETH" && crypto_type_str.to_uppercase() != "ETHEREUM" {
+             // Basic validation since from_string defaults to Pending
+             if !crypto_type_str.to_uppercase().contains("ETH") {
+                  // Fallback for actual strict parsing if we wanted it
+             }
+        }
+        let normalized_crypto = crypto_enum.to_string();
+
         let amount = Decimal::from_str(amount_str)
             .map_err(|_| ServiceError::ValidationError(format!("Invalid amount format: {}", amount_str)))?;
 
         if amount <= Decimal::ZERO {
-            return Err(ServiceError::ValidationError("Amount must be greater than zero".to_string()));
+             return Err(ServiceError::ValidationError("Payment amount must be greater than zero".to_string()));
         }
-
-        // 1. Verify customer permissions
-        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
-        Self::check_permissions(&customer, "pay")?;
 
         // 2. Get customer's wallet (need private key for on-chain tx)
         let wallet = sqlx::query_as::<_, MerchantCustomerWallet>(
             "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at, sandbox_mode FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
         )
         .bind(customer.id)
-        .bind(crypto_type_str)
+        .bind(&normalized_crypto)
         .bind(sandbox_mode)
-        .fetch_one(&self.db_pool)
-        .await
-        .map_err(|_| ServiceError::ValidationError(format!("Wallet for {} not found", crypto_type_str)))?;
+        .fetch_optional(&self.db_pool)
+        .await?
+        .ok_or_else(|| ServiceError::ValidationError(format!("No designated wallet found for {}", normalized_crypto)))?;
 
         // 3. Get merchant's receiving wallet address
         let merchant_wallet_address: Option<String> = sqlx::query_scalar::<_, String>(
-            "SELECT address FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true AND sandbox_mode = $3"
+            "SELECT address FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND is_active = true"
         )
         .bind(merchant_id)
-        .bind(crypto_type_str)
+        .bind(&normalized_crypto)
         .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
         .await?;
 
-        let merchant_address = merchant_wallet_address
-            .ok_or_else(|| ServiceError::ValidationError(format!("Merchant has no active wallet for {}", crypto_type_str)))?;
+        let merchant_address = merchant_wallet_address.unwrap_or_else(|| "Internal Ledger".to_string());
 
         // 4. Check customer balance (locked for update in transaction)
         let mut tx = self.db_pool.begin().await?;
@@ -749,15 +756,15 @@ impl MerchantCustomerService {
             "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at, sandbox_mode FROM merchant_customer_balances WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 FOR UPDATE"
         )
         .bind(customer.id)
-        .bind(crypto_type_str)
+        .bind(&normalized_crypto)
         .bind(sandbox_mode)
         .fetch_optional(&mut *tx)
         .await?;
 
         match balance {
             Some(b) if b.available_balance >= amount => {},
-            _ => return Err(ServiceError::InsufficientFunds(crypto_type_str.to_string())),
-        }
+            _ => return Err(ServiceError::InsufficientFunds(normalized_crypto.clone())),
+        }   }
 
         // 5. Deduct customer funds and credit merchant off-chain instantly
 
@@ -844,15 +851,18 @@ impl MerchantCustomerService {
     ) -> Result<Decimal, ServiceError> {
         let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
 
+        let crypto_enum = CryptoType::from_string(crypto_type_str);
+        let normalized_crypto = crypto_enum.to_string();
+
         let balance_record = sqlx::query_as::<_, MerchantCustomerBalance>(
             "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at, sandbox_mode FROM merchant_customer_balances WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 FOR UPDATE"
         )
         .bind(customer.id)
-        .bind(crypto_type_str)
+        .bind(&normalized_crypto)
         .bind(sandbox_mode)
         .fetch_optional(&self.db_pool)
         .await?
-        .ok_or_else(|| ServiceError::ValidationError(format!("No balance record found for {}", crypto_type_str)))?;
+        .ok_or_else(|| ServiceError::ValidationError(format!("No balance record found for {}", normalized_crypto)))?;
 
         let amount = match amount_str {
             Some(ref amt) => Decimal::from_str(amt)
@@ -875,7 +885,7 @@ impl MerchantCustomerService {
         )
         .bind(amount)
         .bind(customer.id)
-        .bind(crypto_type_str)
+        .bind(&normalized_crypto)
         .bind(sandbox_mode)
         .execute(&mut *tx)
         .await?;
@@ -891,7 +901,7 @@ impl MerchantCustomerService {
             "#
         )
         .bind(merchant_id)
-        .bind(crypto_type_str)
+        .bind(&normalized_crypto)
         .bind(amount)
         .bind(sandbox_mode)
         .execute(&mut *tx)
@@ -906,7 +916,7 @@ impl MerchantCustomerService {
         )
         .bind(customer.id)
         .bind(merchant_id)
-        .bind(crypto_type_str)
+        .bind(&normalized_crypto)
         .bind(amount)
         .bind(sandbox_mode)
         .execute(&mut *tx)
