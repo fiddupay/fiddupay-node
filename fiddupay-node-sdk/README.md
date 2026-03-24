@@ -166,6 +166,18 @@ app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, re
       case 'payment.failed':
         console.log('Payment failed:', event.data);
         break;
+      case 'merchant.deposit':
+        console.log('Merchant static deposit confirmed:', event.data);
+        break;
+      case 'customer.deposit':
+        console.log('Customer static deposit confirmed:', event.data);
+        break;
+      case 'address_only_payment_status':
+        console.log('Address-only payment status update:', event.data);
+        break;
+      case 'webhook.test':
+        console.log('Test webhook successful:', event.data);
+        break;
       case 'wallet.low_balance':
           console.log('Low gas wallet balance:', event.data);
           break;
@@ -205,6 +217,11 @@ await client.wallets.setup({
 // Wallet Security locks (New in v2.4.6)
 await client.security.toggleWalletLock(true); // Lock master wallets
 await client.security.toggleCustomerWalletLock(true); // Lock customer wallets
+
+// PIN Management (New in v2.5.6)
+await client.security.setTransactionPin('1234'); // Set a new PIN
+const isPinValid = await client.security.verifyTransactionPin('1234'); // Verify PIN
+
 
 ```
 
@@ -427,7 +444,7 @@ Grouped by `client.*` resource modules for reference:
 | **`invoices`** | `create()`, `list()`, `retrieve()` |
 | **`transactions`** | `list()` |
 | **`analytics`** | `retrieve()`, `export()` |
-| **`security`** | `getEvents()`, `getAlerts()`, `getSettings()`, `updateSettings()`, `checkGasBalances()`, `getBalanceAlerts()`, `acknowledgeAlert()`, `resolveBalanceAlert()`, `toggleWalletLock()`, `toggleCustomerWalletLock()` |
+| **`security`** | `getEvents()`, `getAlerts()`, `getSettings()`, `updateSettings()`, `checkGasBalances()`, `getBalanceAlerts()`, `acknowledgeAlert()`, `resolveBalanceAlert()`, `toggleWalletLock()`, `toggleCustomerWalletLock()`, `setTransactionPin()`, `verifyTransactionPin()` |
 
 ## Contributing
 

@@ -7,7 +7,11 @@ export type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 
 export type WebhookEventType =
   | 'payment.confirmed'
   | 'payment.expired'
-  | 'refund.completed';
+  | 'refund.completed'
+  | 'merchant.deposit'
+  | 'customer.deposit'
+  | 'address_only_payment_status'
+  | 'webhook.test';
 
 export interface FidduPayConfig {
   apiKey: string;

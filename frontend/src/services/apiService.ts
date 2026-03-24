@@ -73,8 +73,8 @@ export const merchantAPI = {
     low_balance_threshold_usd?: string;
     transaction_pin?: string;
   }) => api.patch('/api/v1/merchants/settings', data),
-  setTransactionPin: (pin: string) => api.post('/api/v1/merchants/security/pin', { pin }),
-  verifyTransactionPin: (pin: string) => api.post('/api/v1/merchants/security/pin/verify', { pin }),
+  setTransactionPin: (pin: string) => api.post('/api/v1/merchants/security/transaction-pin', { pin }),
+  verifyTransactionPin: (pin: string) => api.post('/api/v1/merchants/security/transaction-pin/verify', { pin }),
   sendTestWebhook: () => api.post('/api/v1/merchants/webhook/test'),
   getReadinessStatus: () => api.get('/api/v1/merchants/status'),
   getAuditLogs: (params?: { limit?: number; from?: string; to?: string; action_type?: string }) => {

@@ -100,7 +100,11 @@ export class Webhooks {
     const validTypes: WebhookEventType[] = [
       'payment.confirmed',
       'payment.expired', 
-      'refund.completed'
+      'refund.completed',
+      'merchant.deposit',
+      'customer.deposit',
+      'address_only_payment_status',
+      'webhook.test'
     ];
 
     if (!validTypes.includes(event.type as WebhookEventType)) {

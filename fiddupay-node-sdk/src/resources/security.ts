@@ -76,4 +76,18 @@ export class Security {
   async toggleCustomerWalletLock(locked: boolean, password: string, options?: RequestOptions): Promise<{ status: string; locked: boolean }> {
     return this.client.post('/api/v1/merchants/security/customers/wallets/lock', { locked, password }, options);
   }
+
+  /**
+   * Set or update the merchant's 4-digit Transaction PIN
+   */
+  async setTransactionPin(pin: string, options?: RequestOptions): Promise<any> {
+    return this.client.post('/api/v1/merchants/security/transaction-pin', { pin }, options);
+  }
+
+  /**
+   * Verify the merchant's Transaction PIN
+   */
+  async verifyTransactionPin(pin: string, options?: RequestOptions): Promise<any> {
+    return this.client.post('/api/v1/merchants/security/transaction-pin/verify', { pin }, options);
+  }
 }
