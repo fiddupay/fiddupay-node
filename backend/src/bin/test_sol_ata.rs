@@ -6,7 +6,7 @@ use rust_decimal::Decimal;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     dotenv().ok();
-    let config = Config::from_env()?;
+    let config = Config::from_env().map_err(|e| e.to_string())?;
     
     // The provided hash is on Mainnet
     let rpc_url = Some(config.solana_rpc_url.clone());
