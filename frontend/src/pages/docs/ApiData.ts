@@ -1043,5 +1043,103 @@ export const API_DATA: DocSection[] = [
                 }, null, 2)
             }
         ]
+    },
+    {
+        id: 'webhooks',
+        title: 'Webhooks',
+        description: 'FidduPay sends real-time event notifications to your server via HTTP POST requests. Every event is wrapped in a structured envelope with a unique ID, type, and timestamp. You should verify the `X-Signature` header on every delivery using your webhook signing secret.',
+        endpoints: [
+            {
+                id: 'webhook-event-format',
+                method: 'POST',
+                path: 'POST https://your-server.com/webhook',
+                title: 'Event Envelope Format',
+                description: 'All webhook deliveries share the same envelope structure regardless of event type. The `type` field determines which event occurred. The `data` object contains event-specific payload fields.\n\n### Supported Event Types\n- `payment.confirmed` — A payment was confirmed on-chain\n- `payment.expired` — A payment window closed without a confirmed deposit\n- `refund.completed` — A refund was successfully processed\n- `merchant.deposit` — Funds were credited to your merchant balance\n- `customer.deposit` — A customer sub-account received a deposit\n- `address_only_payment_status` — An address-only payment status changed\n- `webhook.test` — Triggered by the "Test Webhook" button in settings',
+                request: {
+                    curl: `# FidduPay delivers to your server:
+POST https://your-server.com/webhook
+Content-Type: application/json
+X-Signature: t=1743004800,v1=abc123...
+
+{
+  "id": "evt_5f9a2c3b4",
+  "type": "payment.confirmed",
+  "created_at": "2026-03-24T15:00:00Z",
+  "data": {
+    "payment_id": "pay_5f9a2c3b4",
+    "status": "CONFIRMED",
+    "amount": "150.00",
+    "crypto_type": "SOL",
+    "transaction_hash": "3xKp..."
+  }
+}`,
+                    node: `import { FidduPay, Webhooks } from '@fiddupay/fiddupay-node';
+
+// Express example
+app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  const sig = req.headers['x-signature'];
+  let event;
+
+  try {
+    event = Webhooks.constructEvent(req.body, sig, process.env.WEBHOOK_SECRET);
+  } catch (err) {
+    return res.status(400).send('Invalid signature');
+  }
+
+  switch (event.type) {
+    case 'payment.confirmed':
+      console.log('Payment confirmed:', event.data.payment_id);
+      break;
+    case 'payment.expired':
+      console.log('Payment expired:', event.data.payment_id);
+      break;
+    case 'refund.completed':
+      console.log('Refund done:', event.data.refund_id);
+      break;
+  }
+
+  res.json({ received: true });
+});`
+                },
+                response: JSON.stringify({
+                    id: "evt_5f9a2c3b4",
+                    type: "payment.confirmed",
+                    created_at: "2026-03-24T15:00:00Z",
+                    data: {
+                        payment_id: "pay_5f9a2c3b4",
+                        status: "CONFIRMED",
+                        amount: "150.00",
+                        crypto_type: "SOL",
+                        transaction_hash: "3xKp..."
+                    }
+                }, null, 2)
+            },
+            {
+                id: 'webhook-signature',
+                method: 'GET',
+                path: 'Header: X-Signature',
+                title: 'Signature Verification',
+                description: 'The `X-Signature` header contains `t=<unix_timestamp>,v1=<hmac_hex>`. To verify:\n1. Extract `t` and `v1` from the header\n2. Construct the signed string: `t.<raw_request_body>`\n3. Compute `HMAC-SHA256(signed_string, WEBHOOK_SECRET)`\n4. Compare with `v1` using a constant-time comparison\n\nReject any requests where the timestamp is older than 5 minutes.',
+                request: {
+                    curl: `# Verify manually:
+t=1743004800
+v1=abc123...
+
+signed_string="\${t}.\${raw_body}"
+computed=$(echo -n "$signed_string" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET")
+# Compare computed with v1`,
+                    node: `// The SDK handles this automatically:
+const event = Webhooks.constructEvent(
+  req.body,               // raw Buffer or string
+  req.headers['x-signature'],
+  process.env.WEBHOOK_SECRET
+  // Optional: 4th arg = tolerance in seconds (default 300)
+);`
+                },
+                response: JSON.stringify({
+                    received: true
+                }, null, 2)
+            }
+        ]
     }
 ];

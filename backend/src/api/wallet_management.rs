@@ -9,6 +9,7 @@ use crate::services::wallet_config_service::{
 };
 use crate::services::withdrawal_processor::WithdrawalProcessor;
 use crate::payment::models::CryptoType;
+use crate::error::ServiceError;
 use axum::{
     extract::{State, Path, Query},
     http::StatusCode,
@@ -78,9 +79,7 @@ pub async fn get_wallets(
             "wallets": configs,
             "supported_networks": ["ethereum", "bsc", "polygon", "arbitrum", "solana"]
         }))).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
 
@@ -115,9 +114,7 @@ pub async fn delete_wallet(
                 "message": "Wallet configuration removed successfully"
             }))).into_response()
         },
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Err(e) => ServiceError::BadRequest(e.to_string()).into_response(),
     }
 }
 
@@ -157,9 +154,7 @@ pub async fn check_gas_requirements(
             
             (StatusCode::OK, Json(response)).into_response()
         }
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Err(e) => ServiceError::BadRequest(e.to_string()).into_response(),
     }
 }
 
@@ -182,9 +177,7 @@ pub async fn get_gas_estimates(
             });
             (StatusCode::OK, Json(response)).into_response()
         }
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
-            "error": format!("Failed to fetch gas estimates: {}", e)
-        }))).into_response(),
+        Err(e) => ServiceError::Internal(format!("Failed to fetch gas estimates: {}", e)).into_response(),
     }
 }
 
@@ -215,9 +208,7 @@ pub async fn check_withdrawal_capability(
                 "message": message
             }))).into_response()
         }
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
 
@@ -250,9 +241,7 @@ pub async fn process_withdrawal(
                 "message": "Withdrawal processed successfully"
             }))).into_response()
         },
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({
-            "error": e.to_string()
-        }))).into_response(),
+        Err(e) => ServiceError::BadRequest(e.to_string()).into_response(),
     }
 }
 
@@ -294,9 +283,7 @@ pub async fn setup_wallet(
                 if settlement_mode == "forwarding" {
                     let crypto_type = match CryptoType::from_string(&req.crypto_type) {
                         Ok(ct) => ct,
-                        Err(e) => return (StatusCode::BAD_REQUEST, Json(json!({
-                            "error": format!("{}", e)
-                        }))).into_response(),
+                        Err(e) => return ServiceError::BadRequest(format!("{}", e)).into_response(),
                     };
                     match wallet_service.set_forwarding_address(
                         context.merchant_id,
@@ -354,11 +341,11 @@ pub async fn setup_wallet(
                                 "message": "Address-only wallet configured successfully."
                             }))).into_response()
                         },
-                        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+                        Err(e) => ServiceError::BadRequest(e.to_string()).into_response(),
                     }
                 }
             } else {
-                (StatusCode::BAD_REQUEST, Json(json!({"error": "Address is required for mode 'address'"}))).into_response()
+                ServiceError::BadRequest("Address is required for mode 'address'".to_string()).into_response()
             }
         },
         "generate" => {
@@ -403,10 +390,10 @@ pub async fn setup_wallet(
                         "message": msg
                     }))).into_response()
                 }
-                Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+                Err(e) => ServiceError::BadRequest(e.to_string()).into_response(),
             }
         },
-        _ => (StatusCode::BAD_REQUEST, Json(json!({"error": "Invalid mode. Use 'address' or 'generate'."}))).into_response(),
+        _ => ServiceError::BadRequest("Invalid mode. Use 'address' or 'generate'.".to_string()).into_response(),
     }
 }
 
@@ -511,9 +498,7 @@ pub async fn get_wallet_balances(
         }
         Err(e) => {
             tracing::error!("Failed to get wallet balances: {:?}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
-                "error": format!("Failed to get wallet balances: {}", e)
-            }))).into_response()
+            ServiceError::Internal(format!("Failed to get wallet balances: {}", e)).into_response()
         }
     }
 }

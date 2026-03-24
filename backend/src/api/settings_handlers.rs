@@ -43,10 +43,10 @@ pub async fn get_merchant_profile(
     .fetch_optional(&state.db_pool)
     .await {
         Ok(Some(m)) => m,
-        Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Merchant not found"}))).into_response(),
+        Ok(None) => return ServiceError::MerchantNotFound.into_response(),
         Err(e) => {
             eprintln!("Profile DB Error (Main Query): {:?}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Database error: {}", e)}))).into_response();
+            return ServiceError::Database(e).into_response();
         }
     };
 
@@ -143,7 +143,7 @@ pub async fn get_merchant_readiness(
     
     let merchant = match merchant_res {
         Ok(m) => m,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => return ServiceError::Database(e).into_response(),
     };
 
     let m_sandbox_mode: bool = merchant.get("sandbox_mode");
@@ -259,7 +259,7 @@ pub async fn switch_environment(
 
             (StatusCode::OK, Json(response)).into_response()
         },
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
 
@@ -286,7 +286,7 @@ pub async fn generate_api_key(
 
             (StatusCode::OK, Json(json!({"api_key": api_key}))).into_response()
         },
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("{}", e)}))).into_response(),
+        Err(e) => ServiceError::Internal(format!("{}", e)).into_response(),
     }
 }
 
@@ -305,10 +305,7 @@ pub async fn rotate_api_key(
             Some(Json(payload)) => {
                 state.merchant_service.rotate_api_key_by_env(context.merchant_id, payload.is_live).await
             },
-            None => return (StatusCode::BAD_REQUEST, Json(json!({
-                "error": "Missing parameters",
-                "message": "Dashboard rotation requires 'is_live' parameter"
-            }))).into_response()
+            None => return ServiceError::BadRequest("Dashboard rotation requires 'is_live' parameter".to_string()).into_response()
         }
     } else {
         state.merchant_service.rotate_api_key(context.merchant_id, &context.api_key).await
@@ -368,7 +365,7 @@ pub async fn update_merchant_settings(
             req.sandbox_mode,
             req.redirect_url.clone(),
         ).await {
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
+            return ServiceError::Internal(e.to_string()).into_response();
         }
     }
 
@@ -382,7 +379,7 @@ pub async fn update_merchant_settings(
         .bind(context.merchant_id)
         .execute(&state.db_pool)
         .await {
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
+            return ServiceError::Database(e).into_response();
         }
     }
 
@@ -393,14 +390,14 @@ pub async fn update_merchant_settings(
             req.webhook_url.clone(),
             req.webhook_format.clone()
         ).await {
-            return (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response();
+            return e.into_response();
         }
     }
 
     // 4. Update IP Whitelist if provided
     if let Some(ips) = req.ip_whitelist.clone() {
         if let Err(e) = state.ip_whitelist_service.set_whitelist(context.merchant_id, ips).await {
-            return (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response();
+            return ServiceError::BadRequest(e.to_string()).into_response();
         }
     }
 
@@ -414,7 +411,7 @@ pub async fn update_merchant_settings(
         .bind(context.merchant_id)
         .execute(&state.db_pool)
         .await {
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
+            return ServiceError::Database(e).into_response();
         }
     }
 
@@ -449,7 +446,7 @@ pub async fn get_merchant_settings(
     .fetch_one(&state.db_pool)
     .await {
         Ok(m) => m,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => return ServiceError::Database(e).into_response(),
     };
 
     // 2. Get webhook config
@@ -505,7 +502,7 @@ pub async fn send_test_webhook(
     };
 
     if let Err(e) = state.webhook_service.queue_webhook(merchant_id, None, payload).await {
-         return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
+         return ServiceError::Internal(e.to_string()).into_response();
     }
 
     // Log audit event
@@ -532,7 +529,7 @@ pub async fn get_ip_whitelist(
 ) -> impl IntoResponse {
     match state.ip_whitelist_service.get_whitelist(context.merchant_id).await {
         Ok(ips) => (StatusCode::OK, Json(json!({"ip_addresses": ips}))).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
 
@@ -562,10 +559,10 @@ pub async fn get_fee_setting(
 
     match merchant_res {
         Ok(Some(m)) => (StatusCode::OK, Json(m)).into_response(),
-        Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Merchant not found"}))).into_response(),
+        Ok(None) => ServiceError::MerchantNotFound.into_response(),
         Err(e) => {
             tracing::error!("Failed to fetch merchant fees for merchant {}: {:?}", context.merchant_id, e);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Database error: {}", e)}))).into_response()
+            ServiceError::Database(e).into_response()
         }
     }
 }
@@ -594,7 +591,7 @@ pub async fn create_invoice(
 
             (StatusCode::CREATED, Json(invoice)).into_response()
         },
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
 
@@ -606,7 +603,7 @@ pub async fn list_invoices(
     let limit = params.get("limit").and_then(|l| l.parse().ok()).unwrap_or(50);
     match state.invoice_service.list_invoices(context.merchant_id, limit).await {
         Ok(invoices) => (StatusCode::OK, Json(invoices)).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
 
@@ -617,7 +614,7 @@ pub async fn get_invoice(
 ) -> impl IntoResponse {
     match state.invoice_service.get_invoice(context.merchant_id, &invoice_id).await {
         Ok(invoice) => (StatusCode::OK, Json(invoice)).into_response(),
-        Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
 
@@ -639,7 +636,7 @@ pub async fn toggle_wallet_lock(
     // 1. Verify password if provided (required for security)
     let password = match req.password {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({"error": "Password required for this action"}))).into_response(),
+        None => return ServiceError::BadRequest("Password required for this action".to_string()).into_response(),
     };
 
     // 2. Fetch password hash
@@ -650,23 +647,23 @@ pub async fn toggle_wallet_lock(
     .fetch_one(&state.db_pool)
     .await {
         Ok(h) => h,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Database error: {}", e)}))).into_response(),
+        Err(e) => return ServiceError::Database(e).into_response(),
     };
 
     let hash_str = match password_hash {
         Some(h) => h,
-        None => return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Account does not have a password configured"}))).into_response(),
+        None => return ServiceError::Unauthorized("Account does not have a password configured".to_string()).into_response(),
     };
 
     // 3. Verify password
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
     let parsed_hash = match PasswordHash::new(&hash_str) {
         Ok(h) => h,
-        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Invalid stored password format"}))).into_response(),
+        Err(_) => return ServiceError::Internal("Invalid stored password format".to_string()).into_response(),
     };
 
     if Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_err() {
-        return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid password"}))).into_response();
+        return ServiceError::Unauthorized("Invalid password".to_string()).into_response();
     }
 
     // 4. Proceed with lock toggle
@@ -683,7 +680,7 @@ pub async fn toggle_wallet_lock(
 
             (StatusCode::OK, Json(json!({"status": "success", "locked": req.locked}))).into_response()
         },
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
 
@@ -695,7 +692,7 @@ pub async fn toggle_customer_wallet_lock(
     // 1. Verify password if provided
     let password = match req.password {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({"error": "Password required for this action"}))).into_response(),
+        None => return ServiceError::BadRequest("Password required for this action".to_string()).into_response(),
     };
 
     // 2. Fetch password hash
@@ -706,23 +703,23 @@ pub async fn toggle_customer_wallet_lock(
     .fetch_one(&state.db_pool)
     .await {
         Ok(h) => h,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Database error: {}", e)}))).into_response(),
+        Err(e) => return ServiceError::Database(e).into_response(),
     };
 
     let hash_str = match password_hash {
         Some(h) => h,
-        None => return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Account does not have a password configured"}))).into_response(),
+        None => return ServiceError::Unauthorized("Account does not have a password configured".to_string()).into_response(),
     };
 
     // 3. Verify password
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
     let parsed_hash = match PasswordHash::new(&hash_str) {
         Ok(h) => h,
-        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Invalid stored password format"}))).into_response(),
+        Err(_) => return ServiceError::Internal("Invalid stored password format".to_string()).into_response(),
     };
 
     if Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_err() {
-        return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid password"}))).into_response();
+        return ServiceError::Unauthorized("Invalid password".to_string()).into_response();
     }
 
     match state.merchant_service.set_customer_wallet_lock(context.merchant_id, req.locked).await {
@@ -738,7 +735,7 @@ pub async fn toggle_customer_wallet_lock(
 
             (StatusCode::OK, Json(json!({"status": "success", "locked": req.locked}))).into_response()
         },
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
 
@@ -758,7 +755,7 @@ pub async fn set_transaction_pin(
 ) -> impl IntoResponse {
     // 1. Validate PIN format (4 digits)
     if req.pin.len() != 4 || !req.pin.chars().all(|c| c.is_ascii_digit()) {
-        return (StatusCode::BAD_REQUEST, Json(json!({"error": "PIN must be 4 digits"}))).into_response();
+        return ServiceError::BadRequest("PIN must be 4 digits".to_string()).into_response();
     }
 
     // 2. Hash PIN
@@ -768,7 +765,7 @@ pub async fn set_transaction_pin(
     let salt = SaltString::generate(&mut OsRng);
     let pin_hash = match argon2.hash_password(req.pin.as_bytes(), &salt) {
         Ok(h) => h.to_string(),
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Hashing error: {}", e)}))).into_response(),
+        Err(e) => return ServiceError::Internal(format!("Hashing error: {}", e)).into_response(),
     };
 
     // 3. Update database
@@ -779,7 +776,7 @@ pub async fn set_transaction_pin(
     .bind(context.merchant_id)
     .execute(&state.db_pool)
     .await {
-        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Database error: {}", e)}))).into_response();
+        return ServiceError::Database(e).into_response();
     }
 
     // 4. Log event
@@ -811,26 +808,23 @@ pub async fn verify_transaction_pin(
     .fetch_one(&state.db_pool)
     .await {
         Ok(h) => h,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Database error: {}", e)}))).into_response(),
+        Err(e) => return ServiceError::Database(e).into_response(),
     };
 
     let hash_str = match pin_hash {
         Some(h) => h,
-        None => return (StatusCode::NOT_FOUND, Json(json!({
-            "error": "Transaction PIN not configured",
-            "code": "PIN_NOT_SET"
-        }))).into_response(),
+        None => return ServiceError::BadRequest("Transaction PIN not configured".to_string()).into_response(),
     };
 
     // 2. Verify PIN
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
     let parsed_hash = match PasswordHash::new(&hash_str) {
         Ok(h) => h,
-        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Invalid stored PIN format"}))).into_response(),
+        Err(_) => return ServiceError::Internal("Invalid stored PIN format".to_string()).into_response(),
     };
 
     if Argon2::default().verify_password(req.pin.as_bytes(), &parsed_hash).is_err() {
-        return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid PIN"}))).into_response();
+        return ServiceError::Unauthorized("Invalid PIN".to_string()).into_response();
     }
 
     (StatusCode::OK, Json(json!({"status": "success", "message": "PIN verified"}))).into_response()

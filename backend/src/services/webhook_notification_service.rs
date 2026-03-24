@@ -6,6 +6,7 @@ use crate::services::address_only_service::{AddressOnlyPayment, AddressOnlyStatu
 use reqwest::Client;
 use serde_json::json;
 use sqlx::{PgPool, Row};
+use uuid::Uuid;
 
 pub struct WebhookNotificationService {
     client: Client,
@@ -26,8 +27,7 @@ impl WebhookNotificationService {
         payment: &AddressOnlyPayment,
         webhook_url: &str,
     ) -> Result<(), ServiceError> {
-        let payload = json!({
-            "event": "address_only_payment_status",
+        let data = json!({
             "payment_id": payment.payment_id,
             "merchant_id": payment.merchant_id,
             "status": payment.status,
@@ -39,7 +39,13 @@ impl WebhookNotificationService {
             "customer_pays_fee": payment.customer_amount > payment.requested_amount,
             "gateway_deposit_address": payment.gateway_deposit_address,
             "merchant_destination_address": payment.merchant_destination_address,
-            "timestamp": chrono::Utc::now().to_rfc3339()
+        });
+
+        let payload = json!({
+            "id": format!("evt_{}", Uuid::new_v4().simple()),
+            "type": "address_only_payment_status",
+            "data": data,
+            "created_at": chrono::Utc::now().to_rfc3339()
         });
 
         let response = self.client

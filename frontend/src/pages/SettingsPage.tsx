@@ -791,12 +791,16 @@ const SettingsPage: React.FC = () => {
                                         <span className={styles.payloadLabel}>Example Payload JSON:</span>
                                         <pre className={styles.payloadPre}>
                                             {`{
-  "event_type": "payment.confirmed",
-  "payment_id": "pay_5f9a2c3b4",
-  "status": "CONFIRMED",
-  "amount": "150.00",
-  "crypto_type": "SOL",
-  "timestamp": 1707172800
+  "id": "evt_5f9a2c3b4",
+  "type": "payment.confirmed",
+  "created_at": "2026-03-24T15:00:00Z",
+  "data": {
+    "payment_id": "pay_5f9a2c3b4",
+    "status": "CONFIRMED",
+    "amount": "150.00",
+    "crypto_type": "SOL",
+    "transaction_hash": "3xKp..."
+  }
 }`}
                                         </pre>
                                     </>

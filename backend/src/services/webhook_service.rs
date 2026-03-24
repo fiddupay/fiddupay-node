@@ -243,8 +243,13 @@ use sqlx::Row;
                 };
                 serde_json::json!({ "text": text })
             } else {
-                serde_json::to_value(&payload)
-                    .map_err(|e| ServiceError::Internal(format!("Failed to serialize payload: {}", e)))?
+                // Wrap in a structured event for SDK compatibility
+                serde_json::json!({
+                    "id": format!("evt_{}", uuid::Uuid::new_v4().simple()),
+                    "type": payload.event_type,
+                    "data": payload,
+                    "created_at": chrono::Utc::now().to_rfc3339(),
+                })
             };
 
             // Queue notification for background delivery
