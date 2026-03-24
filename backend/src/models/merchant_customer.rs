@@ -65,6 +65,7 @@ pub struct CustomerTransaction {
     pub tx_type: String, // WITHDRAWAL, MERCHANT_PAYMENT, SWEEP
     pub crypto_type: String,
     pub amount: Decimal,
+    pub amount_usd: Decimal,
     pub fee: Decimal,
     pub status: String,
     pub destination_address: Option<String>,

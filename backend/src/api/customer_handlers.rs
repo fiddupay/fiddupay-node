@@ -223,13 +223,23 @@ pub async fn get_customer_transactions(
     let offset = params.offset.unwrap_or(0);
 
     match service.get_customer_transactions(context.merchant_id, &external_id, limit, offset, context.sandbox_mode).await {
-        Ok((transactions, total)) => (StatusCode::OK, Json(json!({
-            "external_id": external_id,
-            "transactions": transactions,
-            "total": total,
-            "limit": limit,
-            "offset": offset
-        }))).into_response(),
+        Ok((mut transactions, total)) => {
+            for tx in &mut transactions {
+                if let Ok(ct) = crate::payment::models::CryptoType::from_string(&tx.crypto_type) {
+                    let price = state.price_service.get_price(ct).await.unwrap_or(0.0);
+                    let price_dec = rust_decimal::Decimal::from_f64_retain(price).unwrap_or(rust_decimal::Decimal::ZERO);
+                    tx.amount_usd = (tx.amount * price_dec).round_dp(2);
+                }
+            }
+
+            (StatusCode::OK, Json(json!({
+                "external_id": external_id,
+                "transactions": transactions,
+                "total": total,
+                "limit": limit,
+                "offset": offset
+            }))).into_response()
+        },
         Err(e) => e.into_response(),
     }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { withdrawalAPI, walletAPI } from '@/services/apiService'
+import { withdrawalAPI, walletAPI, publicAPI } from '@/services/apiService'
 import styles from '@/styles/pages/WithdrawalsPage.module.css'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuthStore } from '@/stores/authStore'
@@ -44,15 +44,30 @@ const WithdrawalsPage: React.FC = () => {
     const [showConfirm, setShowConfirm] = useState(false)
     const [balanceError, setBalanceError] = useState<string | null>(null)
     const [transactionPin, setTransactionPin] = useState('')
+    const [supportedCurrencies, setSupportedCurrencies] = useState<any[]>([])
 
     useEffect(() => {
         fetchData()
+        fetchPrices()
 
         const interval = setInterval(() => {
             fetchWithdrawalsBackground()
+            fetchPrices()
         }, 15000)
         return () => clearInterval(interval)
     }, [user?.sandbox_mode])
+
+    const fetchPrices = async () => {
+        try {
+            const res = await publicAPI.getSupportedCurrencies()
+            if (res.data?.currency_groups) {
+                const flattened = Object.values(res.data.currency_groups).flat() as any[]
+                setSupportedCurrencies(flattened)
+            }
+        } catch (err) {
+            console.error('Failed to fetch prices', err)
+        }
+    }
 
     const fetchWithdrawalsBackground = async () => {
         try {
@@ -303,6 +318,11 @@ const WithdrawalsPage: React.FC = () => {
                                     />
                                     <button type="button" className={styles.maxBtn} onClick={handleMaxAmount}>MAX</button>
                                 </div>
+                                {amount && !isNaN(parseFloat(amount)) && (
+                                    <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#059669', fontWeight: 600 }}>
+                                        ≈ ${ (parseFloat(amount) * (supportedCurrencies.find(c => c.crypto_type === selectedCrypto)?.price_usd || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } USD
+                                    </p>
+                                )}
                             </div>
 
                             {/* Fee Display */}

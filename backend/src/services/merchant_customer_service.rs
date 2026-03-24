@@ -523,7 +523,7 @@ impl MerchantCustomerService {
 
         let transactions = sqlx::query_as::<_, CustomerTransaction>(
             r#"
-            SELECT id, customer_id, merchant_id, type, crypto_type, amount, fee, status,
+            SELECT id, customer_id, merchant_id, type, crypto_type, amount, CAST(0 AS DECIMAL) as amount_usd, fee, status,
                    destination_address, transaction_hash, reference_id, description,
                    created_at, updated_at, sandbox_mode
             FROM customer_transactions

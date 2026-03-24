@@ -39,6 +39,7 @@ interface CustomerTx {
     reference_id?: string;
     description?: string;
     created_at: string;
+    amount_usd?: string;
 }
 
 const STATUS_STYLES: Record<string, { color: string; bg: string; icon: string; label: string }> = {
@@ -771,7 +772,10 @@ const MerchantCustomersPage: React.FC = () => {
                                                         {customerBalances.map((b: any, i: number) => (
                                                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#f8fafc', borderRadius: '10px', fontSize: '0.9rem' }}>
                                                                 <span style={{ fontWeight: 600, color: '#334155' }}>{b.crypto_type}</span>
-                                                                <span style={{ fontWeight: 700, color: '#059669' }}>{parseFloat(b.available_balance || '0').toFixed(6)}</span>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                                                    <span style={{ fontWeight: 700, color: '#059669' }}>{parseFloat(b.available_balance || '0').toFixed(6)}</span>
+                                                                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>≈ ${parseFloat((b as any).available_balance_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -844,12 +848,17 @@ const MerchantCustomersPage: React.FC = () => {
                                                                     </span>
                                                                 </div>
                                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                                                                     <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0f172a' }}>
                                                                         {parseFloat(tx.amount).toFixed(6)} {tx.crypto_type}
                                                                     </span>
-                                                                    <span style={{ padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 600, color: tx.status === 'COMPLETED' ? '#059669' : '#d97706', background: tx.status === 'COMPLETED' ? '#d1fae5' : '#fef3c7' }}>
-                                                                        {tx.status}
+                                                                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                                                        ≈ ${parseFloat(tx.amount_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                                                                     </span>
+                                                                </div>
+                                                                <span style={{ padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 600, color: tx.status === 'COMPLETED' ? '#059669' : '#d97706', background: tx.status === 'COMPLETED' ? '#d1fae5' : '#fef3c7' }}>
+                                                                    {tx.status}
+                                                                </span>
                                                                 </div>
                                                                 {tx.description && <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>{tx.description}</p>}
                                                                 {tx.transaction_hash && (
