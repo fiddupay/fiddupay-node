@@ -112,6 +112,7 @@ export interface Payment {
   fee_amount?: string;
   fee_amount_usd?: string;
   webhook_url?: string;
+  customer_external_id?: string;
   partial_payments_enabled?: boolean;
   total_paid?: string;
   remaining_balance?: string;
@@ -687,6 +688,7 @@ export interface CustomerTransaction {
   type: string; // WITHDRAWAL, MERCHANT_PAYMENT, SWEEP
   crypto_type: string;
   amount: string;
+  amount_usd: string;
   fee: string;
   status: string;
   destination_address?: string;

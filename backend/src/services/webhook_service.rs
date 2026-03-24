@@ -190,6 +190,12 @@ use sqlx::Row;
                             format!("\n\n**[View Payment Page]({})**", payment_link)
                         };
 
+                        let customer_info = if let Some(ref ext_id) = payload.customer_external_id {
+                            format!("\n**Customer:** `{}`", ext_id)
+                        } else {
+                            String::new()
+                        };
+
                         (
                             5763719, // Green
                             if payload.event_type == "merchant.deposit" {
@@ -200,8 +206,8 @@ use sqlx::Row;
                                 "✅ Payment Confirmed"
                             },
                             format!(
-                                "**Amount:** `{} {}`\n**Payment ID:** `{}`\n**Tx Hash:** `{}`{}{}", 
-                                payload.amount, payload.crypto_type, payload.payment_id, tx_hash_display, explorer_link, view_link
+                                "**Amount:** `{} {}`\n**Payment ID:** `{}`\n**Tx Hash:** `{}`{}{}{}", 
+                                payload.amount, payload.crypto_type, payload.payment_id, tx_hash_display, customer_info, explorer_link, view_link
                             )
                         )
                     },
@@ -236,9 +242,12 @@ use sqlx::Row;
                 })
             } else if config_payload_format == "slack" {
                 let text = match payload.event_type.as_str() {
-                    "payment.confirmed" => format!("✅ *Payment Confirmed*\nID: `{}`\nAmount: `{} {}`", 
-                        payload.payment_id, payload.amount, payload.crypto_type),
+                    "payment.confirmed" => format!("✅ *Payment Confirmed*\nID: `{}`\nAmount: `{} {}`{}", 
+                        payload.payment_id, payload.amount, payload.crypto_type,
+                        payload.customer_external_id.as_ref().map(|id| format!("\nCustomer: `{}`", id)).unwrap_or_default()),
                     "payment.expired" => format!("❌ *Payment Expired*\nID: `{}`", payload.payment_id),
+                    "customer.deposit" => format!("💰 *Customer Deposit*\nID: `{}`\nAmount: `{} {}`\nCustomer: `{}`", 
+                        payload.payment_id, payload.amount, payload.crypto_type, payload.customer_external_id.as_deref().unwrap_or("Unknown")),
                     _ => format!("🔔 *Webhook Alert*: `{}` for payment `{}`", payload.event_type, payload.payment_id),
                 };
                 serde_json::json!({ "text": text })

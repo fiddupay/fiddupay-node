@@ -1,6 +1,13 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+ 
+## [2.5.7] - 2026-03-24
+ 
+### Added
+- **Webhook Identification**: Added `customer_external_id` to `Payment` type to support customer identification in static deposit webhooks.
+- **Enhanced Transaction History**: Added `amount_usd` to `CustomerTransaction` type to match backend financial reporting improvements.
+- **Improved Notifications**: Discord and Slack alerts now include `customer_external_id` for customer deposits.
 
 ## [2.5.6] - 2026-03-24
 
