@@ -180,8 +180,9 @@ impl MerchantCustomerService {
         for network_type in networks {
             let normalized = network_type.to_uppercase();
             match normalized.as_str() {
-                "EVM" | "ETH" | "ERC20" | "BSC" | "BEP20" | "POLYGON" | "MATIC" | "ARB" | "ARBITRUM" | "NATIVE" | "ETHEREUM" => {
-                    if wallets.iter().any(|w| w.network == "Ethereum") {
+                "EVM" | "ETH" | "ERC20" | "BSC" | "BEP20" | "POLYGON" | "MATIC" | "ARB" | "ARBITRUM" | "NATIVE" | "ETHEREUM" | 
+                "USDT_ETH" | "USDT_BEP20" | "BUSD_BEP20" | "USDT_POLYGON" | "USDT_ARBITRUM" | "BNB" => {
+                    if wallets.iter().any(|w| w.network.to_uppercase() == "ETHEREUM") {
                         continue;
                     }
                     
@@ -205,8 +206,8 @@ impl MerchantCustomerService {
                         wallets.push(wallet);
                     }
                 },
-                "SOLANA" | "SOL" | "SPL" => {
-                    if wallets.iter().any(|w| w.network == "Solana") {
+                "SOLANA" | "SOL" | "SPL" | "SOLANA_SPL" | "SOLANA_MAINNET" | "SOLANA_DEVNET" | "USDT_SPL" | "WSOL" => {
+                    if wallets.iter().any(|w| w.network.to_uppercase() == "SOLANA") {
                         continue;
                     }
 
@@ -225,8 +226,8 @@ impl MerchantCustomerService {
                         wallets.push(wallet);
                     }
                 },
-                "BITCOIN" | "BTC" => {
-                    if wallets.iter().any(|w| w.network == "Bitcoin") {
+                "BITCOIN" | "BTC" | "BITCOIN_MAINNET" | "BITCOIN_TESTNET" => {
+                    if wallets.iter().any(|w| w.network.to_uppercase() == "BITCOIN") {
                         continue;
                     }
 

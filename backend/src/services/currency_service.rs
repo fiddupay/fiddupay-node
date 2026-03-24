@@ -20,18 +20,18 @@ impl CurrencyService {
     pub async fn get_supported_currencies(&self) -> Vec<(&'static str, &'static str, &'static str, &'static str)> {
         vec![
             // (crypto_type, currency_group, network_name, icon_url)
-            ("USDT_ETH", "USDT", "Ethereum (ERC-20)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
-            ("USDT_BEP20", "USDT", "Binance Smart Chain (BEP-20)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
-            ("USDT_POLYGON", "USDT", "Polygon (MATIC)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
-            ("USDT_ARBITRUM", "USDT", "Arbitrum One", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
-            ("USDT_SPL", "USDT", "Solana (SPL)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
-            ("ETH", "ETH", "Ethereum", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/eth.png"),
-            ("ARB", "ARB", "Arbitrum One", "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png"),
-            ("SOL", "SOL", "Solana (SPL)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
-            ("WSOL", "SOL", "Solana (SPL)", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
-            ("MATIC", "MATIC", "Polygon", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/matic.png"),
-            ("BNB", "BNB", "Binance Smart Chain", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/bnb.png"),
-            ("BTC", "BTC", "Bitcoin", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/btc.png"),
+            ("USDT_ETH", "USDT", "ETHEREUM", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
+            ("USDT_BEP20", "USDT", "BEP20", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
+            ("USDT_POLYGON", "USDT", "POLYGON", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
+            ("USDT_ARBITRUM", "USDT", "ARBITRUM", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
+            ("USDT_SPL", "USDT", "SOLANA", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
+            ("ETH", "ETH", "ETHEREUM", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/eth.png"),
+            ("ARB", "ARB", "ARBITRUM", "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png"),
+            ("SOL", "SOL", "SOLANA", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
+            ("WSOL", "SOL", "SOLANA", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
+            ("MATIC", "MATIC", "POLYGON", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/matic.png"),
+            ("BNB", "BNB", "BEP20", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/bnb.png"),
+            ("BTC", "BTC", "BITCOIN", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/btc.png"),
         ]
     }
 
@@ -50,13 +50,13 @@ impl CurrencyService {
 
     pub fn get_network_name(&self, crypto_type: &str) -> &'static str {
         match crypto_type {
-            "USDT_ETH" | "ETH" => "Ethereum (ERC-20)",
-            "USDT_BEP20" | "USDT_BSC" | "BNB" => "Binance Smart Chain (BEP-20)",
-            "USDT_POLYGON" | "MATIC" => "Polygon (MATIC)",
-            "USDT_ARBITRUM" | "ARB" => "Arbitrum One",
-            "USDT_SPL" | "SOL" | "WSOL" => "Solana (SPL)",
-            "BTC" => "Bitcoin",
-            _ => "Unknown Network",
+            "USDT_ETH" | "ETH" => "ETHEREUM",
+            "USDT_BEP20" | "USDT_BSC" | "BNB" | "BUSD_BEP20" => "BEP20",
+            "USDT_POLYGON" | "MATIC" => "POLYGON",
+            "USDT_ARBITRUM" | "ARB" => "ARBITRUM",
+            "USDT_SPL" | "SOL" | "WSOL" => "SOLANA",
+            "BTC" => "BITCOIN",
+            _ => "UNKNOWN",
         }
     }
 
