@@ -325,10 +325,14 @@ export interface MerchantWalletBalance {
   address: string;
   is_active: boolean;
   available_balance: string;
+  available_balance_usd?: string;
   reserved_balance: string;
+  reserved_balance_usd?: string;
   total_balance: string;
+  total_balance_usd?: string;
   transaction_count: number;
   total_volume_crypto: string;
+  total_volume_usd?: string;
 }
 
 export interface GenerateWalletRequest {
@@ -621,6 +625,7 @@ export interface MerchantCustomer {
   withdrawal_limit?: string;
   created_at: string;
   updated_at: string;
+  sandbox_mode?: boolean;
 }
 
 export interface CreateCustomerRequest {

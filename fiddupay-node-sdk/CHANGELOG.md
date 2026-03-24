@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 ## [2.5.7] - 2026-03-24
  
 ### Added
+- **USD Balances**: Added `available_balance_usd`, `reserved_balance_usd`, `total_balance_usd`, and `total_volume_usd` to `MerchantWalletBalance` to support real-time financial reporting.
+- **Enhanced Customer Profiles**: Added `sandbox_mode` to `MerchantCustomer` type for better environment tracking.
+- **Improved Transaction Data**: Added `amount_usd` to `CustomerTransaction` and `customer_external_id` to `Payment` for better accounting and identification.
+ 
+### Changed
+- **Security Alignment**: Updated `CreateWithdrawalRequest`, `CustomerWithdrawalRequest`, and `CustomerSweepRequest` to include mandatory `pin` field (Merchant's Transaction PIN).
+ 
+### Removed
+- **Customer PIN Infrastructure**: Removed `transaction_pin_hash` and `pin_setup_at` from `MerchantCustomer` type. Customer-side PIN management has been completely removed.
+- **Internal Payment PIN**: Removed `pin` from `CustomerPayMerchantRequest` as it is not required for internal merchant payments.
 - **Webhook Identification**: Added `customer_external_id` to `Payment` type to support customer identification in static deposit webhooks.
 - **Enhanced Transaction History**: Added `amount_usd` to `CustomerTransaction` type to match backend financial reporting improvements.
 - **Improved Notifications**: Discord and Slack alerts now include `customer_external_id` for customer deposits.

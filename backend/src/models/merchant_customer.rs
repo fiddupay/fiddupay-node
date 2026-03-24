@@ -23,8 +23,6 @@ pub struct MerchantCustomer {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub sandbox_mode: bool,
-    pub transaction_pin_hash: Option<String>,
-    pub pin_setup_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
