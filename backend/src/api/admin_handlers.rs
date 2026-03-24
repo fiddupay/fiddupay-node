@@ -14,6 +14,7 @@ use axum::{
 use serde_json::json;
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
+use tracing::info;
 
 
 #[derive(Deserialize)]
@@ -393,6 +394,7 @@ pub async fn update_merchant_fee(
             }
         })).into_response(),
         Err(e) => {
+            use tracing::info;
             tracing::error!("Failed to update merchant fee: {:?}", e);
             (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response()
         }

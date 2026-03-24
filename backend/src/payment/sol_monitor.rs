@@ -490,7 +490,7 @@ impl SolanaMonitor {
         let mut initial_monitor_addresses = Vec::new();
         let tokens_to_monitor = vec![CryptoType::UsdtSpl, CryptoType::WSol];
 
-        for address in addresses {
+        for address in &addresses {
             // Always monitor the owner address (for native SOL)
             owner_map.insert(address.clone(), address.clone());
             initial_monitor_addresses.push(address.clone());

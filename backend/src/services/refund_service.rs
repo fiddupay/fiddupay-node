@@ -227,6 +227,7 @@ impl RefundService {
             amount: pay_amount,
             crypto_type: pay_crypto_type,
             transaction_hash: Some(transaction_hash),
+            customer_external_id: None,
             timestamp: Utc::now().timestamp(),
         };
 

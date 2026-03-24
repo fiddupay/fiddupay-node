@@ -499,6 +499,7 @@ pub async fn send_test_webhook(
         amount: rust_decimal::Decimal::new(100, 2), // 1.00
         crypto_type: "SOL".to_string(),
         transaction_hash: Some("test_hash_abc123".to_string()),
+        customer_external_id: None,
         timestamp: chrono::Utc::now().timestamp(),
     };
 
