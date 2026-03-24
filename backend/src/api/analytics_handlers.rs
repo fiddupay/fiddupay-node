@@ -163,18 +163,37 @@ pub async fn list_unified_transactions(
     {
         Ok(rows) => {
             use sqlx::Row;
-            let txns: Vec<serde_json::Value> = rows.into_iter().map(|row| {
-                json!({
-                    "type": row.get::<String, _>("txn_type"),
+            let mut txns: Vec<serde_json::Value> = vec![];
+            
+            for row in rows {
+                let txn_type = row.get::<String, _>("txn_type");
+                let crypto_type_str = row.get::<String, _>("crypto_type");
+                let crypto_amount_str = row.get::<String, _>("crypto_amount");
+                let mut usd_amount_str = row.get::<String, _>("usd_amount");
+
+                // If it's a customer transaction with missing USD value, calculate it
+                if (txn_type == "withdrawal" || txn_type == "merchant_payment" || txn_type == "sweep") && usd_amount_str == "0" {
+                    if let Ok(crypto_type) = crate::payment::models::CryptoType::from_string(&crypto_type_str) {
+                        if let Ok(price) = state.price_service.get_price(crypto_type).await {
+                            if let Ok(amount) = crypto_amount_str.parse::<rust_decimal::Decimal>() {
+                                let usd_val = (amount * rust_decimal::Decimal::from_f64(price).unwrap_or(rust_decimal::Decimal::ZERO)).round_dp(2);
+                                usd_amount_str = usd_val.to_string();
+                            }
+                        }
+                    }
+                }
+
+                txns.push(json!({
+                    "type": txn_type,
                     "id": row.get::<String, _>("id"),
-                    "crypto_amount": row.get::<String, _>("crypto_amount"),
-                    "usd_amount": row.get::<String, _>("usd_amount"),
-                    "crypto_type": row.get::<String, _>("crypto_type"),
+                    "crypto_amount": crypto_amount_str,
+                    "usd_amount": usd_amount_str,
+                    "crypto_type": crypto_type_str,
                     "status": row.get::<String, _>("status"),
                     "transaction_hash": row.get::<Option<String>, _>("transaction_hash"),
                     "created_at": row.get::<chrono::DateTime<chrono::Utc>, _>("created_at").to_rfc3339()
-                })
-            }).collect();
+                }));
+            }
             
             (StatusCode::OK, Json(json!({"transactions": txns}))).into_response()
         },

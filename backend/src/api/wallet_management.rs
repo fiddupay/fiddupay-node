@@ -480,17 +480,39 @@ pub async fn get_wallet_balances(
                 "get_wallet_balances: merchant_id={} returned {} wallets (is_forwarding={})",
                 context.merchant_id, wallets.len(), is_forwarding
             );
-            let wallet_data: Vec<serde_json::Value> = wallets.iter().map(|w| json!({
-                "crypto_type": w.crypto_type,
-                "network": w.network,
-                "address": w.address,
-                "is_active": w.is_active,
-                "available_balance": w.available_balance.to_string(),
-                "reserved_balance": w.reserved_balance.to_string(),
-                "total_balance": w.total_balance.to_string(),
-                "transaction_count": w.transaction_count,
-                "total_volume_crypto": w.total_volume_crypto.to_string()
-            })).collect();
+            
+            let mut wallet_data: Vec<serde_json::Value> = vec![];
+            
+            for w in wallets {
+                let price = if let Ok(crypto_type) = crate::payment::models::CryptoType::from_string(&w.crypto_type) {
+                    state.price_service.get_price(crypto_type).await.unwrap_or(0.0)
+                } else {
+                    0.0
+                };
+                
+                let price_dec = Decimal::from_f64(price).unwrap_or(Decimal::ZERO);
+                let available_usd = (w.available_balance * price_dec).round_dp(2);
+                let reserved_usd = (w.reserved_balance * price_dec).round_dp(2);
+                let total_usd = (w.total_balance * price_dec).round_dp(2);
+                let total_volume_usd = (w.total_volume_crypto * price_dec).round_dp(2);
+
+                wallet_data.push(json!({
+                    "crypto_type": w.crypto_type,
+                    "network": w.network,
+                    "address": w.address,
+                    "is_active": w.is_active,
+                    "available_balance": w.available_balance.to_string(),
+                    "available_usd": available_usd.to_string(),
+                    "reserved_balance": w.reserved_balance.to_string(),
+                    "reserved_usd": reserved_usd.to_string(),
+                    "total_balance": w.total_balance.to_string(),
+                    "total_usd": total_usd.to_string(),
+                    "balance_usd": total_usd.to_string(), // Frontend legacy compatibility
+                    "transaction_count": w.transaction_count,
+                    "total_volume_crypto": w.total_volume_crypto.to_string(),
+                    "total_volume_usd": total_volume_usd.to_string()
+                }));
+            }
 
             (StatusCode::OK, Json(json!({
                 "wallets": wallet_data
