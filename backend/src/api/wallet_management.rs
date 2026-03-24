@@ -490,7 +490,7 @@ pub async fn get_wallet_balances(
                     0.0
                 };
                 
-                let price_dec = Decimal::from_f64(price).unwrap_or(Decimal::ZERO);
+                let price_dec = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
                 let available_usd = (w.available_balance * price_dec).round_dp(2);
                 let reserved_usd = (w.reserved_balance * price_dec).round_dp(2);
                 let total_usd = (w.total_balance * price_dec).round_dp(2);

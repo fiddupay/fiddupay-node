@@ -176,7 +176,7 @@ pub async fn list_unified_transactions(
                     if let Ok(crypto_type) = crate::payment::models::CryptoType::from_string(&crypto_type_str) {
                         if let Ok(price) = state.price_service.get_price(crypto_type).await {
                             if let Ok(amount) = crypto_amount_str.parse::<rust_decimal::Decimal>() {
-                                let usd_val = (amount * rust_decimal::Decimal::from_f64(price).unwrap_or(rust_decimal::Decimal::ZERO)).round_dp(2);
+                                let usd_val = (amount * rust_decimal::Decimal::from_f64_retain(price).unwrap_or(rust_decimal::Decimal::ZERO)).round_dp(2);
                                 usd_amount_str = usd_val.to_string();
                             }
                         }
