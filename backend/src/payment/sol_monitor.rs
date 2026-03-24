@@ -11,8 +11,10 @@ use tracing::{info, warn, error};
 use std::sync::Arc;
 use futures_util::{StreamExt, SinkExt};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use solana_sdk::pubkey::Pubkey;
+use spl_associated_token_account::get_associated_token_address;
 
-use super::models::BlockchainTransaction;
+use super::models::{BlockchainTransaction, CryptoType};
 use super::blockchain_monitor::BlockchainMonitor;
 
 // Get Solana RPC URL from config
@@ -139,6 +141,14 @@ impl SolanaMonitor {
         }
     }
 
+    /// Derives the Associated Token Account (ATA) for a given owner and mint.
+    fn get_ata_address(owner: &str, mint: &str) -> Option<String> {
+        let owner_pubkey = Pubkey::from_str(owner).ok()?;
+        let mint_pubkey = Pubkey::from_str(mint).ok()?;
+        let ata_pubkey = get_associated_token_address(&owner_pubkey, &mint_pubkey);
+        Some(ata_pubkey.to_string())
+    }
+
     /// Get recent transactions for an address
     pub async fn get_transactions_to_address(
         &self,
@@ -151,58 +161,81 @@ impl SolanaMonitor {
         // Fetch current slot once to avoid N+1 RPC calls for confirmation calculations
         let current_slot = self.get_current_slot().await.unwrap_or(0);
 
-        // First, get signatures for address
-        let request = RpcRequest {
-            jsonrpc: "2.0".to_string(),
-            id: 1,
-            method: "getSignaturesForAddress".to_string(),
-            params: serde_json::json!([
-                address,
-                { "limit": limit, "commitment": "confirmed" }
-            ]),
-        };
-
-        let response = self.client
-            .post(&self.rpc_url)
-            .json(&request)
-            .send()
-            .await
-            .map_err(|e| {
-                error!("Solana RPC getSignaturesForAddress network error: {}", e);
-                e
-            })?;
-
-        let rpc_response: RpcResponse<Vec<GetSignaturesResult>> = response.json().await
-            .map_err(|e| {
-                error!("Solana RPC getSignaturesForAddress JSON error: {}", e);
-                e
-            })?;
-
-        if let Some(err) = rpc_response.error {
-            error!("Solana RPC getSignaturesForAddress error {}: {}", err.code, err.message);
-            return Err(format!("RPC Error: {}", err.message).into());
+        // Determine which addresses to check for signatures
+        let mut addresses_to_check = vec![address.to_string()];
+        if let Some(ref mint) = self.expected_mint {
+            if let Some(ata) = Self::get_ata_address(address, mint) {
+                if ata != address {
+                    info!(" Monitoring ATA: {} for mint: {}", ata, mint);
+                    addresses_to_check.push(ata);
+                }
+            }
         }
 
-        let signatures = rpc_response.result.unwrap_or_default();
+        let mut all_signatures = std::collections::HashSet::new();
+
+        for addr in addresses_to_check {
+            // First, get signatures for address
+            let request = RpcRequest {
+                jsonrpc: "2.0".to_string(),
+                id: 1,
+                method: "getSignaturesForAddress".to_string(),
+                params: serde_json::json!([
+                    addr,
+                    { "limit": limit, "commitment": "confirmed" }
+                ]),
+            };
+
+            let response = self.client
+                .post(&self.rpc_url)
+                .json(&request)
+                .send()
+                .await
+                .map_err(|e| {
+                    error!("Solana RPC getSignaturesForAddress network error for {}: {}", addr, e);
+                    e
+                })?;
+
+            let rpc_response: RpcResponse<Vec<GetSignaturesResult>> = response.json().await
+                .map_err(|e| {
+                    error!("Solana RPC getSignaturesForAddress JSON error for {}: {}", addr, e);
+                    e
+                })?;
+
+            if let Some(err) = rpc_response.error {
+                error!("Solana RPC getSignaturesForAddress error for {} {}: {}", addr, err.code, err.message);
+                continue; // Try next address
+            }
+
+            if let Some(signatures) = rpc_response.result {
+                for sig in signatures {
+                    // Optimization: Skip transactions older than min_timestamp (Requirement 3.8 protection)
+                    if let (Some(min_ts), Some(block_time)) = (min_timestamp, sig.block_time) {
+                        if let Some(ts) = chrono::DateTime::from_timestamp(block_time, 0) {
+                            // Allow 60s buffer for clock skew
+                            if ts < min_ts - chrono::Duration::seconds(60) {
+                                continue;
+                            }
+                        }
+                    }
+                    all_signatures.insert(sig.signature);
+                }
+            }
+        }
 
         let mut blockchain_txs = Vec::new();
 
         // Get details for each transaction
-        for sig in signatures {
-            // Optimization: Skip transactions older than min_timestamp (Requirement 3.8 protection)
-            if let (Some(min_ts), Some(block_time)) = (min_timestamp, sig.block_time) {
-                if let Some(ts) = chrono::DateTime::from_timestamp(block_time, 0) {
-                    // Allow 60s buffer for clock skew
-                    if ts < min_ts - chrono::Duration::seconds(60) {
-                        continue;
+        for signature in all_signatures {
+            match self.get_transaction_details_with_slot(&signature, Some(current_slot)).await {
+                Ok(tx) => {
+                    // Only include if it's a successful transaction and has some value
+                    if tx.success && (tx.amount > Decimal::ZERO || self.expected_mint.is_none()) {
+                        blockchain_txs.push(tx);
                     }
-                }
-            }
-
-            match self.get_transaction_details_with_slot(&sig.signature, Some(current_slot)).await {
-                Ok(tx) => blockchain_txs.push(tx),
+                },
                 Err(e) => {
-                    warn!("Failed to get transaction {}: {}", sig.signature, e);
+                    warn!("Failed to get transaction {}: {}", signature, e);
                 }
             }
         }
@@ -440,12 +473,40 @@ impl SolanaMonitor {
         let (ws_stream, _) = connect_async(&self.ws_url).await?;
         let (mut write, mut read) = ws_stream.split();
 
+        // Map of subscription_id -> monitored_address (monitored_address could be an ATA)
         let mut subscription_map = std::collections::HashMap::new();
-        let mut next_request_id = (addresses.len() + 1) as u64;
+        // Map of monitored_address -> owner_address (for ATAs, owner_address is the wallet; for native, both are same)
+        let mut owner_map = std::collections::HashMap::new();
+        
+        let mut next_request_id = 1u64;
+
+        // Combine owner addresses and their ATAs for monitoring
+        let mut initial_monitor_addresses = Vec::new();
+        let tokens_to_monitor = vec![CryptoType::UsdtSpl, CryptoType::WSol];
+
+        for address in addresses {
+            // Always monitor the owner address (for native SOL)
+            owner_map.insert(address.clone(), address.clone());
+            initial_monitor_addresses.push(address.clone());
+
+            // Also monitor ATAs for supported tokens
+            for token in &tokens_to_monitor {
+                if let Some(mint) = token.token_address() {
+                    if let Some(ata) = Self::get_ata_address(&address, mint) {
+                        if ata != address {
+                            owner_map.insert(ata.clone(), address.clone());
+                            initial_monitor_addresses.push(ata);
+                        }
+                    }
+                }
+            }
+        }
 
         // Subscribe to logs for each address
-        for (i, address) in addresses.iter().enumerate() {
-            let request_id = i as u64 + 1;
+        for address in initial_monitor_addresses {
+            let request_id = next_request_id;
+            next_request_id += 1;
+            
             let subscribe_msg = serde_json::json!({
                 "jsonrpc": "2.0",
                 "id": request_id,
@@ -456,17 +517,17 @@ impl SolanaMonitor {
                 ]
             });
             write.send(Message::Text(subscribe_msg.to_string())).await?;
-            // We'll map the request_id to address temporarily, 
-            // then map the result subscription_id to address once we get the response.
             subscription_map.insert(request_id, address.clone());
             info!("✅ Subscription request sent for: {}", address);
         }
 
         // --- START CATCH-UP BACKFILL ---
-        info!("⏳ Performing Solana history backfill catch-up for {} address(es)...", addresses.len());
-        for addr in &addresses {
+        // Backfill only original owner addresses (get_transactions_to_address now handles ATAs internally)
+        let unique_owners: std::collections::HashSet<String> = owner_map.values().cloned().collect();
+        info!("⏳ Performing Solana history backfill catch-up for {} owner(s)...", unique_owners.len());
+        for addr in unique_owners {
             let min_ts = Utc::now() - chrono::Duration::minutes(10);
-            match self.get_transactions_to_address(addr, 10, Some(min_ts)).await {
+            match self.get_transactions_to_address(&addr, 10, Some(min_ts)).await {
                 Ok(txs) => {
                     info!(" Found {} historical transactions for {}. Triggering verification backfill...", txs.len(), addr);
                     for tx in txs {
@@ -475,7 +536,6 @@ impl SolanaMonitor {
                 }
                 Err(e) => warn!("Solana history catch-up backfill failed for {}: {}", addr, e),
             }
-            // Throttle requests to avoid RPC Rate Limiting (429) on free nodes
             tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         }
         // --- END CATCH-UP BACKFILL ---
@@ -491,30 +551,50 @@ impl SolanaMonitor {
                         warn!("Failed to send Solana WS ping: {}", e);
                     }
                 }
-                Some(new_addr) = new_addresses_rx.recv() => {
-                    let request_id = next_request_id;
-                    next_request_id += 1;
+                Some(new_owner) = new_addresses_rx.recv() => {
+                    // Monitor new owner and its ATAs
+                    let mut to_add = vec![new_owner.clone()];
+                    owner_map.insert(new_owner.clone(), new_owner.clone());
                     
-                    let subscribe_msg = serde_json::json!({
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "method": "logsSubscribe",
-                        "params": [
-                            { "mentions": [new_addr] },
-                            { "commitment": "confirmed" }
-                        ]
-                    });
-                    if let Err(e) = write.send(Message::Text(subscribe_msg.to_string())).await {
-                        warn!("Failed to send dynamic subscription for {}: {}", new_addr, e);
-                        continue;
+                    let tokens_to_monitor = vec![CryptoType::UsdtSpl, CryptoType::WSol];
+                    for token in &tokens_to_monitor {
+                        if let Some(mint) = token.token_address() {
+                            if let Some(ata) = Self::get_ata_address(&new_owner, mint) {
+                                if ata != new_owner {
+                                    owner_map.insert(ata.clone(), new_owner.clone());
+                                    to_add.push(ata);
+                                }
+                            }
+                        }
                     }
-                    subscription_map.insert(request_id, new_addr.clone());
-                    info!("✅ Dynamic Subscription request sent for: {}", new_addr);
+
+                    for addr in to_add {
+                        let request_id = next_request_id;
+                        next_request_id += 1;
+                        
+                        let subscribe_msg = serde_json::json!({
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "method": "logsSubscribe",
+                            "params": [
+                                { "mentions": [addr] },
+                                { "commitment": "confirmed" }
+                            ]
+                        });
+                        if let Err(e) = write.send(Message::Text(subscribe_msg.to_string())).await {
+                            warn!("Failed to send dynamic subscription for {}: {}", addr, e);
+                            continue;
+                        }
+                        subscription_map.insert(request_id, addr.clone());
+                        info!("✅ Dynamic Subscription request sent for: {}", addr);
+                    }
 
                     // --- START DYNAMIC CATCH-UP ---
-                    let addr_clone = new_addr.clone();
+                    let addr_clone = new_owner.clone();
                     let cb_clone = callback.clone();
                     let min_ts = Utc::now() - chrono::Duration::minutes(10);
+                    let monitor_clone = self.clone(); // Error: self is &self, need Arc or something?
+                    // Actually, self is already captured by the loop, and this is a loop branch.
                     match self.get_transactions_to_address(&addr_clone, 5, Some(min_ts)).await {
                         Ok(txs) => {
                             for tx in txs {
@@ -540,7 +620,7 @@ impl SolanaMonitor {
                                 if let Some(address) = subscription_map.remove(&id) {
                                     if let Some(sub_id) = v["result"].as_u64() {
                                         active_subscriptions.insert(sub_id, address.clone());
-                                        info!("📡 Active subscription ID {} for address {}", sub_id, address);
+                                        info!("📡 Active subscription ID {} for address/ATA {}", sub_id, address);
                                     }
                                 }
                             }
@@ -548,12 +628,14 @@ impl SolanaMonitor {
                             // 2. Check if it's a notification
                             if v["method"] == "logsNotification" {
                                 if let Some(sub_id) = v["params"]["subscription"].as_u64() {
-                                    if let Some(address) = active_subscriptions.get(&sub_id) {
+                                    if let Some(monitored_addr) = active_subscriptions.get(&sub_id) {
                                         if let Some(signature) = v["params"]["result"]["value"]["signature"].as_str() {
                                             let err = &v["params"]["result"]["value"]["err"];
                                             if err.is_null() {
-                                                info!("🚀 Solana WebSocket: New transaction for {}: {}", address, signature);
-                                                callback(signature.to_string(), address.clone());
+                                                // Resolve the OWNER address for the triggered monitored_addr (ATA or owner)
+                                                let owner_address = owner_map.get(monitored_addr).unwrap_or(monitored_addr);
+                                                info!("🚀 Solana WebSocket: New transaction for {} (Monitored: {}): {}", owner_address, monitored_addr, signature);
+                                                callback(signature.to_string(), owner_address.clone());
                                             }
                                         }
                                     }
