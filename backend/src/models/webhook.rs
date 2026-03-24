@@ -18,6 +18,7 @@ pub struct WebhookPayload {
     pub amount: Decimal,
     pub crypto_type: String,
     pub transaction_hash: Option<String>,
+    pub customer_external_id: Option<String>,
     pub timestamp: i64,
 }
 

@@ -23,25 +23,19 @@ pub struct MerchantContext {
 /// 
 /// Expected format: "Bearer <api_key>"
 fn extract_api_key(headers: &HeaderMap) -> Option<String> {
-    let api_key = headers
+    headers
         .get("authorization")
         .and_then(|value| value.to_str().ok())
         .and_then(|auth| {
             if auth.starts_with("Bearer ") {
                 Some(auth[7..].to_string())
             } else {
+                if !auth.is_empty() {
+                    tracing::warn!("Malformed Authorization header: {}", auth);
+                }
                 None
             }
-        });
-    
-    if api_key.is_none() {
-        if let Some(auth) = headers.get("authorization").and_then(|v| v.to_str().ok()) {
-            tracing::warn!("Malformed Authorization header: {}", auth);
-        } else {
-            tracing::warn!("Missing Authorization header");
-        }
-    }
-    api_key
+        })
 }
 
 /// Authentication middleware
@@ -72,6 +66,7 @@ pub async fn auth_middleware(
         None => match query_token {
             Some(token) => token,
             None => {
+                tracing::warn!("Missing or invalid Authorization header and no query token provided");
                 return Err((
                     StatusCode::UNAUTHORIZED,
                     axum::Json(json!({

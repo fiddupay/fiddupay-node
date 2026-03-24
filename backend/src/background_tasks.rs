@@ -197,6 +197,7 @@ impl BackgroundTasks {
                         amount: payment.amount.unwrap_or_default(),
                         crypto_type: payment.crypto_type.unwrap_or_else(|| "UNKNOWN".to_string()),
                         transaction_hash: None,
+                        customer_external_id: None,
                         timestamp: Utc::now().timestamp(),
                     };
 

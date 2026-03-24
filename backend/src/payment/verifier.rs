@@ -553,6 +553,7 @@ impl PaymentVerifier {
             amount: payment.amount.unwrap_or_default(),
             crypto_type: payment.crypto_type.unwrap_or_else(|| "UNKNOWN".to_string()),
             transaction_hash: payment.transaction_hash.clone(),
+            customer_external_id: None,
             timestamp: chrono::Utc::now().timestamp(),
         };
         
@@ -839,6 +840,15 @@ impl PaymentVerifier {
                 .await;
         }
 
+        // Fetch customer external_id for webhook identification
+        let customer_external_id = sqlx::query_scalar::<_, String>(
+            "SELECT external_id FROM merchant_customers WHERE id = $1"
+        )
+        .bind(customer_id)
+        .fetch_optional(&self.db_pool)
+        .await?
+        .unwrap_or_else(|| "unknown".to_string());
+
         // 5. Trigger Webhook
         let webhook_payload = crate::models::webhook::WebhookPayload {
             event_type: "customer.deposit".to_string(),
@@ -848,6 +858,7 @@ impl PaymentVerifier {
             amount: actual_amount,
             crypto_type: final_crypto_str.clone(),
             transaction_hash: Some(transaction_hash.to_string()),
+            customer_external_id: Some(customer_external_id),
             timestamp: Utc::now().timestamp(),
         };
 
@@ -1055,6 +1066,7 @@ impl PaymentVerifier {
             amount: actual_amount,
             crypto_type: final_crypto_str.to_string(),
             transaction_hash: Some(transaction_hash.to_string()),
+            customer_external_id: None,
             timestamp: Utc::now().timestamp(),
         };
 
