@@ -764,7 +764,7 @@ impl MerchantCustomerService {
         match balance {
             Some(b) if b.available_balance >= amount => {},
             _ => return Err(ServiceError::InsufficientFunds(normalized_crypto.clone())),
-        }   }
+        }
 
         // 5. Deduct customer funds and credit merchant off-chain instantly
 
