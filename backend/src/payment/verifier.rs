@@ -724,25 +724,45 @@ impl PaymentVerifier {
             return Err("Recipient address mismatch".into());
         }
 
-        // 3.5. Mint Check (Requirement 3.2 extension)
-        let expected_token = crypto_type.token_address();
-        if let Some(expected_addr) = expected_token {
-            match &blockchain_tx.token_mint {
-                Some(actual_mint) => {
-                    if actual_mint.trim().to_lowercase() != expected_addr.trim().to_lowercase() {
-                        warn!("[VERIFY-CUSTOMER-DEPOSIT] FAILED: Token mismatch: expected {}, got {}", expected_addr, actual_mint);
-                        return Ok(false);
-                    }
-                },
-                None => {
-                    warn!("[VERIFY-CUSTOMER-DEPOSIT] FAILED: Expected token {}, but transaction is native", expected_addr);
-                    return Ok(false);
-                }
+        // 3.5. Dynamic Asset Detection & Mint Check
+        let (actual_crypto, actual_amount) = if let Some(mint) = &blockchain_tx.token_mint {
+            // It's a token transfer - resolve the CryptoType
+            let detected = CryptoType::from_mint(crypto_type.network(), mint)
+                .ok_or_else(|| format!("Unsupported token mint: {} on network {}", mint, crypto_type.network()))?;
+            (detected, blockchain_tx.amount)
+        } else {
+            // It's a native transfer
+            let native = crypto_type.get_native_currency();
+            (native, blockchain_tx.amount)
+        };
+
+        // If the detected crypto differs from the original 'crypto_str' (e.g., USDT sent to a SOL address)
+        // we must verify the customer actually has a configured wallet for this target crypto at this address.
+        let (final_crypto_type, final_crypto_str) = if actual_crypto.to_string() != crypto_str {
+            let actual_crypto_str = actual_crypto.to_string();
+            info!("[VERIFY-CUSTOMER-DEPOSIT] Detected different asset: {} (monitored as {}). checking wallet...", 
+                actual_crypto_str, crypto_str);
+
+            let has_wallet = sqlx::query_scalar::<_, i64>(
+                "SELECT id FROM merchant_customer_wallets 
+                 WHERE customer_id = $1 AND crypto_type = $2 AND address = $3 AND sandbox_mode = $4"
+            )
+            .bind(customer_id)
+            .bind(&actual_crypto_str)
+            .bind(&customer_wallet_address)
+            .bind(sandbox_mode)
+            .fetch_optional(&self.db_pool)
+            .await?;
+
+            if has_wallet.is_none() {
+                warn!("[VERIFY-CUSTOMER-DEPOSIT] FAILED: Customer {} does not have a {} wallet on address {}", 
+                    customer_id, actual_crypto_str, customer_wallet_address);
+                return Ok(false);
             }
-        } else if blockchain_tx.token_mint.is_some() {
-            warn!("[VERIFY-CUSTOMER-DEPOSIT] FAILED: Expected native payment, but transaction is token transfer");
-            return Ok(false);
-        }
+            (actual_crypto, actual_crypto_str)
+        } else {
+            (actual_crypto, crypto_str.to_string())
+        };
 
         // 4. Credit ledger atomically
         let mut tx = self.db_pool.begin().await?;
@@ -757,9 +777,9 @@ impl PaymentVerifier {
              WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
             "#
         )
-        .bind(blockchain_tx.amount)
+        .bind(actual_amount)
         .bind(customer_id)
-        .bind(crypto_str)
+        .bind(&final_crypto_str)
         .bind(sandbox_mode)
         .execute(&mut *tx)
         .await?;
@@ -776,8 +796,8 @@ impl PaymentVerifier {
         )
         .bind(customer_id)
         .bind(merchant_id)
-        .bind(crypto_str)
-        .bind(blockchain_tx.amount)
+        .bind(&final_crypto_str)
+        .bind(actual_amount)
         .bind(&customer_wallet_address)
         .bind(transaction_hash)
         .bind(sandbox_mode)
@@ -786,14 +806,14 @@ impl PaymentVerifier {
 
         tx.commit().await?;
 
-        info!("💰 Static deposit confirmed for customer {}: {} {}", customer_id, blockchain_tx.amount, crypto_str);
+        info!("💰 Static deposit confirmed for customer {}: {} {}", customer_id, actual_amount, final_crypto_str);
 
         // Publish to Redis for Merchant Dashboard Toast Notification (Customer Activity)
         if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
             let notification = serde_json::json!({
                 "event": "customer.deposit",
-                "amount": blockchain_tx.amount,
-                "crypto_type": crypto_str,
+                "amount": actual_amount,
+                "crypto_type": final_crypto_str,
                 "transaction_hash": transaction_hash
             });
             let channel = format!("merchant_notifications:{}", merchant_id);
@@ -810,8 +830,8 @@ impl PaymentVerifier {
             payment_id: format!("dep_c_{}_{}", Utc::now().timestamp_millis(), &transaction_hash[0..10]), // Synthetic Payment ID for webhook conformity
             merchant_id,
             status: PaymentStatus::Confirmed,
-            amount: blockchain_tx.amount,
-            crypto_type: crypto_str.to_string(),
+            amount: actual_amount,
+            crypto_type: final_crypto_str.clone(),
             transaction_hash: Some(transaction_hash.to_string()),
             timestamp: Utc::now().timestamp(),
         };
@@ -882,25 +902,45 @@ impl PaymentVerifier {
             return Ok(false); // Gracefully skip withdrawals
         }
 
-        // 3.5. Mint Check (Requirement 3.2 extension)
-        let expected_token = crypto_type.token_address();
-        if let Some(expected_addr) = expected_token {
-            match &blockchain_tx.token_mint {
-                Some(actual_mint) => {
-                    if actual_mint.trim().to_lowercase() != expected_addr.trim().to_lowercase() {
-                        warn!("[VERIFY-MERCHANT-DEPOSIT] FAILED: Token mismatch: expected {}, got {}", expected_addr, actual_mint);
-                        return Ok(false);
-                    }
-                },
-                None => {
-                    warn!("[VERIFY-MERCHANT-DEPOSIT] FAILED: Expected token {}, but transaction is native", expected_addr);
-                    return Ok(false);
-                }
+        // 3.5. Dynamic Asset Detection & Mint Check
+        let (actual_crypto, actual_amount) = if let Some(mint) = &blockchain_tx.token_mint {
+            // It's a token transfer - resolve the CryptoType
+            let detected = CryptoType::from_mint(crypto_type.network(), mint)
+                .ok_or_else(|| format!("Unsupported token mint: {} on network {}", mint, crypto_type.network()))?;
+            (detected, blockchain_tx.amount)
+        } else {
+            // It's a native transfer
+            let native = crypto_type.get_native_currency();
+            (native, blockchain_tx.amount)
+        };
+
+        // If the detected crypto differs from the original 'crypto_str' (e.g., USDT sent to a SOL address)
+        // we must verify the merchant actually has a configured wallet for this target crypto at this address.
+        let (final_crypto_type, final_crypto_str) = if actual_crypto.to_string() != crypto_str {
+            let actual_crypto_str = actual_crypto.to_string();
+            info!("[VERIFY-MERCHANT-DEPOSIT] Detected different asset: {} (monitored as {}). checking wallet...", 
+                actual_crypto_str, crypto_str);
+
+            let has_wallet = sqlx::query_scalar::<_, i64>(
+                "SELECT id FROM merchant_wallets 
+                 WHERE merchant_id = $1 AND crypto_type = $2 AND address = $3 AND sandbox_mode = $4 AND is_active = true"
+            )
+            .bind(merchant_id)
+            .bind(&actual_crypto_str)
+            .bind(&expected_address)
+            .bind(sandbox_mode)
+            .fetch_optional(&self.db_pool)
+            .await?;
+
+            if has_wallet.is_none() {
+                warn!("[VERIFY-MERCHANT-DEPOSIT] FAILED: Merchant {} does not have a {} wallet on address {}", 
+                    merchant_id, actual_crypto_str, expected_address);
+                return Ok(false);
             }
-        } else if blockchain_tx.token_mint.is_some() {
-            warn!("[VERIFY-MERCHANT-DEPOSIT] FAILED: Expected native payment, but transaction is token transfer");
-            return Ok(false);
-        }
+            (actual_crypto, actual_crypto_str)
+        } else {
+            (actual_crypto, crypto_str.to_string())
+        };
 
         // Fetch merchant's dynamic fee percentage
         let fee_percentage = sqlx::query_scalar::<_, Decimal>(
@@ -911,13 +951,13 @@ impl PaymentVerifier {
         .await?;
 
         // Calculate USD amounts using PriceService
-        let crypto_price = self.price_service.get_price(crypto_type.clone()).await.unwrap_or(1.0);
+        let crypto_price = self.price_service.get_price(final_crypto_type.clone()).await.unwrap_or(1.0);
         let price_decimal = Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE);
-        let amount_usd = (blockchain_tx.amount * price_decimal).round_dp(2);
+        let amount_usd = (actual_amount * price_decimal).round_dp(2);
 
-        let fee_amount = blockchain_tx.amount * (fee_percentage / Decimal::from(100));
+        let fee_amount = actual_amount * (fee_percentage / Decimal::from(100));
         let fee_amount_usd = (fee_amount * price_decimal).round_dp(2);
-        let net_amount = blockchain_tx.amount - fee_amount;
+        let net_amount = actual_amount - fee_amount;
 
         // 3. Credit merchant balance atomically AND Record Payment record
         let mut tx = self.db_pool.begin().await?;
@@ -938,8 +978,8 @@ impl PaymentVerifier {
         )
         .bind(&payment_id_str)
         .bind(merchant_id)
-        .bind(crypto_str)
-        .bind(blockchain_tx.amount)
+        .bind(&final_crypto_str)
+        .bind(actual_amount)
         .bind(amount_usd)
         .bind(&blockchain_tx.to_address)
         .bind(&blockchain_tx.from_address)
@@ -964,7 +1004,7 @@ impl PaymentVerifier {
             "#
         )
         .bind(merchant_id)
-        .bind(crypto_str)
+        .bind(&final_crypto_str)
         .bind(net_amount)
         .bind(sandbox_mode)
         .execute(&mut *tx)
@@ -972,15 +1012,15 @@ impl PaymentVerifier {
 
         tx.commit().await?;
 
-        info!("💰 Static deposit confirmed for merchant {}: {} {}", merchant_id, blockchain_tx.amount, crypto_str);
+        info!("💰 Static deposit confirmed for merchant {}: {} {}", merchant_id, actual_amount, final_crypto_str);
 
         // Publish to Redis for Merchant Dashboard Toast Notification
         if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
             let notification = serde_json::json!({
                 "event": "merchant.deposit",
-                "amount": blockchain_tx.amount,
+                "amount": actual_amount,
                 "amount_usd": amount_usd,
-                "crypto_type": crypto_str,
+                "crypto_type": final_crypto_str,
                 "transaction_hash": transaction_hash
             });
             let channel = format!("merchant_notifications:{}", merchant_id);
@@ -997,8 +1037,8 @@ impl PaymentVerifier {
             payment_id: payment_id_str,
             merchant_id,
             status: PaymentStatus::Confirmed,
-            amount: blockchain_tx.amount,
-            crypto_type: crypto_str.to_string(),
+            amount: actual_amount,
+            crypto_type: final_crypto_str.to_string(),
             transaction_hash: Some(transaction_hash.to_string()),
             timestamp: Utc::now().timestamp(),
         };

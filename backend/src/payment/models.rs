@@ -267,6 +267,39 @@ impl CryptoType {
             CryptoType::Btc => 8,
         }
     }
+
+    /// Resolve a token address to a CryptoType based on the network name.
+    /// Returns None for native currencies or unknown tokens.
+    pub fn from_mint(network: &str, mint_address: &str) -> Option<Self> {
+        let net = network.to_uppercase();
+        let addr = mint_address.trim().to_lowercase();
+        
+        match net.as_str() {
+            "SOLANA" => match mint_address.trim() { // Solana is case-sensitive
+                "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" => Some(CryptoType::UsdtSpl),
+                "So11111111111111111111111111111111111111112" => Some(CryptoType::WSol),
+                _ => None,
+            },
+            "ETHEREUM" => match addr.as_str() {
+                "0xdac17f958d2ee523a2206206994597c13d831ec7" => Some(CryptoType::UsdtEth),
+                _ => None,
+            },
+            "BEP20" | "BSC" => match addr.as_str() {
+                "0x55d398326f99059ff775485246999027b3197955" => Some(CryptoType::UsdtBep20),
+                "0xe9e7cea3dedca5984780bafc599bd69add087d56" => Some(CryptoType::BusdBep20),
+                _ => None,
+            },
+            "POLYGON" => match addr.as_str() {
+                "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" => Some(CryptoType::UsdtPolygon),
+                _ => None,
+            },
+            "ARBITRUM" => match addr.as_str() {
+                "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9" => Some(CryptoType::UsdtArbitrum),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
 }
 
 /// Payment creation request
