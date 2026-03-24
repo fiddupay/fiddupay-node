@@ -47,6 +47,7 @@ pub fn create_admin_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/admin/payments/:payment_id", get(admin_handlers::get_payment_details))
         .route("/api/v1/admin/payments/:payment_id/force-confirm", post(admin_handlers::force_confirm_payment))
         .route("/api/v1/admin/payments/:payment_id/force-fail", post(admin_handlers::force_fail_payment))
+        .route("/api/v1/admin/transactions/reverify", post(admin_handlers::reverify_transaction))
         
         // Admin Withdrawal Management
         .route("/api/v1/admin/withdrawals", get(admin_handlers::get_all_withdrawals))

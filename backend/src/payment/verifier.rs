@@ -764,6 +764,17 @@ impl PaymentVerifier {
             (actual_crypto, crypto_str.to_string())
         };
 
+        // Fetch merchant's dynamic fee percentage
+        let fee_percentage = sqlx::query_scalar::<_, Decimal>(
+            "SELECT fee_percentage FROM merchants WHERE id = $1"
+        )
+        .bind(merchant_id)
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        let fee_amount = (actual_amount * (fee_percentage / Decimal::from(100))).round_dp(8);
+        let net_amount = actual_amount - fee_amount;
+
         // 4. Credit ledger atomically
         let mut tx = self.db_pool.begin().await?;
 
@@ -777,7 +788,7 @@ impl PaymentVerifier {
              WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
             "#
         )
-        .bind(actual_amount)
+        .bind(net_amount)
         .bind(customer_id)
         .bind(&final_crypto_str)
         .bind(sandbox_mode)
@@ -791,13 +802,14 @@ impl PaymentVerifier {
                 customer_id, merchant_id, type, crypto_type, amount, fee, status, 
                 destination_address, transaction_hash, description, sandbox_mode
             )
-            VALUES ($1, $2, 'DEPOSIT', $3, $4, 0, 'COMPLETED', $5, $6, 'Static wallet deposit', $7)
+            VALUES ($1, $2, 'DEPOSIT', $3, $4, $5, 'COMPLETED', $6, $7, 'Static wallet deposit', $8)
             "#
         )
         .bind(customer_id)
         .bind(merchant_id)
         .bind(&final_crypto_str)
         .bind(actual_amount)
+        .bind(fee_amount)
         .bind(&customer_wallet_address)
         .bind(transaction_hash)
         .bind(sandbox_mode)
@@ -806,13 +818,16 @@ impl PaymentVerifier {
 
         tx.commit().await?;
 
-        info!("💰 Static deposit confirmed for customer {}: {} {}", customer_id, actual_amount, final_crypto_str);
+        info!("💰 Static deposit confirmed for customer {}: {} {} (Fee: {} {})", 
+            customer_id, net_amount, final_crypto_str, fee_amount, final_crypto_str);
 
         // Publish to Redis for Merchant Dashboard Toast Notification (Customer Activity)
         if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
             let notification = serde_json::json!({
                 "event": "customer.deposit",
                 "amount": actual_amount,
+                "net_amount": net_amount,
+                "fee_amount": fee_amount,
                 "crypto_type": final_crypto_str,
                 "transaction_hash": transaction_hash
             });
