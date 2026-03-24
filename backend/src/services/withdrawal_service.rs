@@ -15,6 +15,7 @@ pub struct WithdrawalRequest {
     pub crypto_type: String,
     pub amount: Decimal,
     pub destination_address: String,
+    pub pin: String,
 }
 
 pub struct WithdrawalService {

@@ -137,6 +137,21 @@ const DashboardPage: React.FC = () => {
         </div>
       ) : (
         <>
+          {!user?.has_transaction_pin && (
+            <div className={`${styles.securityBanner} ${styles.pinBanner}`} style={{ borderLeftColor: '#f59e0b', marginBottom: '16px' }}>
+              <div className={styles.bannerIcon} style={{ background: '#fef3c7' }}>
+                <MdWarning color="#f59e0b" size={24} />
+              </div>
+              <div className={styles.bannerContent}>
+                <h3 style={{ color: '#92400e' }}>Security setup required: 4-Digit PIN</h3>
+                <p>A Transaction PIN is mandatory for all withdrawals and fund movements. Set your PIN now to enable financial actions.</p>
+              </div>
+              <button className={styles.bannerBtn} style={{ background: '#f59e0b' }} onClick={() => window.location.href='/settings?tab=security'}>
+                Setup PIN <MdArrowForward />
+              </button>
+            </div>
+          )}
+
           {alerts.length > 0 && (
             <div className={styles.securityBanner}>
               <div className={styles.bannerIcon}>

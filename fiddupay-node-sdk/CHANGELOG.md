@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.5.6] - 2026-03-24
+
+### Changed
+- **Merchant-as-Custodian Security**: Transitioned to a unified security model where all high-risk operations (Withdraw, Sweep, PayMerchant) are authorized by the **Merchant's Transaction PIN**. 
+- **Customer Security**: Removed all customer-side PIN management. Customers are no longer required to set or enter PINs for any operations.
+- **Type Safety**: Mandated `pin` (Merchant's Transaction PIN) in `CustomerWithdrawalRequest`, `CustomerSweepRequest`, `CustomerPayMerchantRequest`, and `CreateWithdrawalRequest`.
+
 ## [2.5.5] - 2026-03-24
 
 ### Added

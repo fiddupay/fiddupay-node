@@ -23,6 +23,8 @@ pub struct MerchantCustomer {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub sandbox_mode: bool,
+    pub transaction_pin_hash: Option<String>,
+    pub pin_setup_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -97,12 +99,14 @@ pub struct CustomerWithdrawalRequest {
     pub crypto_type: String,
     pub amount: String,
     pub destination_address: String,
+    pub pin: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SweepCustomerRequest {
     pub crypto_type: String,
     pub amount: Option<String>,
+    pub pin: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

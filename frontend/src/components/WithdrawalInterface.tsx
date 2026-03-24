@@ -51,6 +51,7 @@ export default function WithdrawalInterface() {
   const [amount, setAmount] = useState<string>('');
   const [toAddress, setToAddress] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+  const [pin, setPin] = useState<string>('');
   const [gasValidation, setGasValidation] = useState<GasValidation | null>(null);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -88,7 +89,7 @@ export default function WithdrawalInterface() {
   };
 
   const handleWithdrawal = async () => {
-    if (!selectedCrypto || !amount || !toAddress) {
+    if (!selectedCrypto || !amount || !toAddress || !pin) {
       setError('Please fill all required fields');
       return;
     }
@@ -107,7 +108,8 @@ export default function WithdrawalInterface() {
         crypto_type: selectedCrypto,
         amount: parseFloat(amount),
         to_address: toAddress,
-        description: 'Manual withdrawal'
+        description: 'Manual withdrawal',
+        pin: pin
       })
 
       // Process withdrawal
@@ -118,6 +120,7 @@ export default function WithdrawalInterface() {
       setAmount('')
       setToAddress('')
       setPassword('')
+      setPin('')
       loadBalances()
     } catch (err) {
       setError('Network error occurred')
@@ -224,24 +227,37 @@ export default function WithdrawalInterface() {
             </Alert>
           )}
 
-          {/* Password for Processing */}
+          {/* Password and PIN for Processing */}
           {gasValidation?.can_withdraw && (
-            <div>
-              <Label htmlFor="password">Wallet Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                placeholder="Enter your wallet encryption password"
-              />
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="pin">Merchant Transaction PIN</Label>
+                <Input
+                  id="pin"
+                  type="password"
+                  maxLength={4}
+                  value={pin}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPin(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Enter 4-digit PIN"
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Wallet Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                  placeholder="Enter your wallet encryption password"
+                />
+              </div>
             </div>
           )}
 
           {/* Submit Button */}
           <Button
             onClick={handleWithdrawal}
-            disabled={loading || processing || !gasValidation?.can_withdraw || !password}
+            disabled={loading || processing || !gasValidation?.can_withdraw || !password || pin.length !== 4}
             className="w-full"
           >
             {processing ? (

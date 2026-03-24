@@ -38,6 +38,8 @@ pub struct Merchant {
     pub terms_accepted: bool,
     pub wallets_locked: bool,
     pub customer_wallets_locked: bool,
+    pub transaction_pin_hash: Option<String>,
+    pub pin_setup_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]

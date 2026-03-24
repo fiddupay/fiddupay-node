@@ -5,6 +5,7 @@ use crate::error::ServiceError;
 use crate::models::merchant::{Merchant, MerchantRegistrationResponse, MerchantWallet};
 use crate::payment::models::CryptoType;
 use crate::utils::api_keys::ApiKeyGenerator;
+use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
 use chrono::Utc;
 use nanoid::nanoid;
 use rust_decimal::Decimal;
@@ -868,6 +869,34 @@ impl MerchantService {
         .execute(&self.db_pool)
         .await?;
         
+        Ok(())
+    }
+
+    /// Verify a merchant's transaction PIN
+    pub async fn verify_transaction_pin(
+        &self,
+        merchant_id: i64,
+        pin: &str,
+    ) -> Result<(), ServiceError> {
+        let pin_hash: Option<String> = sqlx::query_scalar::<_, Option<String>>(
+            "SELECT transaction_pin_hash FROM merchants WHERE id = $1"
+        )
+        .bind(merchant_id)
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+
+        let hash_str = pin_hash.ok_or_else(|| {
+            ServiceError::ValidationError("Transaction PIN not set. Please set it in Settings.".to_string())
+        })?;
+
+        let parsed_hash = PasswordHash::new(&hash_str)
+            .map_err(|_| ServiceError::InternalError("Invalid stored PIN format".to_string()))?;
+
+        if Argon2::default().verify_password(pin.as_bytes(), &parsed_hash).is_err() {
+            return Err(ServiceError::ValidationError("Invalid transaction PIN".to_string()));
+        }
+
         Ok(())
     }
 }

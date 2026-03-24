@@ -33,7 +33,8 @@ pub async fn get_merchant_profile(
         r#"
         SELECT id, business_name, email, sandbox_mode, settlement_mode, 
                kyc_verified, daily_limit_usd, created_at, redirect_url,
-               test_api_key_hash, live_api_key_hash, wallets_locked, customer_wallets_locked
+               test_api_key_hash, live_api_key_hash, wallets_locked, customer_wallets_locked,
+               transaction_pin_hash, pin_setup_at
         FROM merchants
         WHERE id = $1
         "#
@@ -78,6 +79,8 @@ pub async fn get_merchant_profile(
     let m_redirect_url: Option<String> = merchant.get("redirect_url");
     let m_wallets_locked: bool = merchant.get("wallets_locked");
     let m_customer_wallets_locked: bool = merchant.get("customer_wallets_locked");
+    let m_transaction_pin_hash: Option<String> = merchant.get("transaction_pin_hash");
+    let m_pin_setup_at: Option<chrono::DateTime<chrono::Utc>> = merchant.get("pin_setup_at");
 
     let display_key = if context.api_key == "DASHBOARD_SESSION" {
         let hash_opt = if m_sandbox_mode { &m_test_api_key_hash } else { &m_live_api_key_hash };
@@ -107,7 +110,9 @@ pub async fn get_merchant_profile(
         "kyc_verified": m_kyc_verified,
         "daily_limit_usd": m_daily_limit_usd.map(|d: Decimal| d.to_string()),
         "created_at": m_created_at.to_rfc3339(),
-        "two_factor_enabled": false
+        "two_factor_enabled": false,
+        "has_transaction_pin": m_transaction_pin_hash.is_some(),
+        "pin_setup_at": m_pin_setup_at.map(|d| d.to_rfc3339())
     });
     
     // 4. Calculate daily volume remaining
@@ -735,4 +740,98 @@ pub async fn toggle_customer_wallet_lock(
         },
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
+}
+
+// ============================================================================
+// Transaction PIN Management
+// ============================================================================
+
+#[derive(serde::Deserialize)]
+pub struct SetTransactionPinRequest {
+    pub pin: String,
+}
+
+pub async fn set_transaction_pin(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<SetTransactionPinRequest>,
+) -> impl IntoResponse {
+    // 1. Validate PIN format (4 digits)
+    if req.pin.len() != 4 || !req.pin.chars().all(|c| c.is_ascii_digit()) {
+        return (StatusCode::BAD_REQUEST, Json(json!({"error": "PIN must be 4 digits"}))).into_response();
+    }
+
+    // 2. Hash PIN
+    use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+    use rand::rngs::OsRng;
+    let argon2 = Argon2::default();
+    let salt = SaltString::generate(&mut OsRng);
+    let pin_hash = match argon2.hash_password(req.pin.as_bytes(), &salt) {
+        Ok(h) => h.to_string(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Hashing error: {}", e)}))).into_response(),
+    };
+
+    // 3. Update database
+    if let Err(e) = sqlx::query(
+        "UPDATE merchants SET transaction_pin_hash = $1, pin_setup_at = NOW(), updated_at = NOW() WHERE id = $2"
+    )
+    .bind(pin_hash)
+    .bind(context.merchant_id)
+    .execute(&state.db_pool)
+    .await {
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Database error: {}", e)}))).into_response();
+    }
+
+    // 4. Log event
+    let _ = state.audit_service.log_event(
+        context.merchant_id,
+        "transaction_pin_set",
+        Some("Merchant set transaction PIN"),
+        None
+    ).await;
+
+    (StatusCode::OK, Json(json!({"status": "success", "message": "Transaction PIN set successfully"}))).into_response()
+}
+
+#[derive(serde::Deserialize)]
+pub struct VerifyTransactionPinRequest {
+    pub pin: String,
+}
+
+pub async fn verify_transaction_pin(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<VerifyTransactionPinRequest>,
+) -> impl IntoResponse {
+    // 1. Fetch PIN hash
+    let pin_hash: Option<String> = match sqlx::query_scalar::<_, Option<String>>(
+        "SELECT transaction_pin_hash FROM merchants WHERE id = $1"
+    )
+    .bind(context.merchant_id)
+    .fetch_one(&state.db_pool)
+    .await {
+        Ok(h) => h,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Database error: {}", e)}))).into_response(),
+    };
+
+    let hash_str = match pin_hash {
+        Some(h) => h,
+        None => return (StatusCode::NOT_FOUND, Json(json!({
+            "error": "Transaction PIN not configured",
+            "code": "PIN_NOT_SET"
+        }))).into_response(),
+    };
+
+    // 2. Verify PIN
+    use argon2::{Argon2, PasswordHash, PasswordVerifier};
+    let parsed_hash = match PasswordHash::new(&hash_str) {
+        Ok(h) => h,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Invalid stored PIN format"}))).into_response(),
+    };
+
+    if Argon2::default().verify_password(req.pin.as_bytes(), &parsed_hash).is_err() {
+        return (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid PIN"}))).into_response();
+    }
+
+    (StatusCode::OK, Json(json!({"status": "success", "message": "PIN verified"}))).into_response()
 }

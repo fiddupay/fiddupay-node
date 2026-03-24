@@ -99,6 +99,14 @@
     background: var(--fiddu-bg-primary);
 }
 
+.formCard {
+    background: var(--fiddu-bg-primary);
+    border: 1px solid var(--fiddu-border);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
 .modeCard:hover {
     border-color: var(--fiddu-brand-primary);
     background-color: var(--fiddu-bg-secondary);

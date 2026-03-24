@@ -20,6 +20,11 @@ pub async fn create_withdrawal(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<crate::services::withdrawal_service::WithdrawalRequest>,
 ) -> impl IntoResponse {
+    // 0. Verify Transaction PIN (Merchant)
+    if let Err(e) = state.merchant_service.verify_transaction_pin(context.merchant_id, &req.pin).await {
+        return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error": e.to_string()}))).into_response();
+    }
+
     // 1. Enforce settlement mode (Requirement: Managed mode only for manual withdrawals)
     if context.settlement_mode != "managed" {
         return (

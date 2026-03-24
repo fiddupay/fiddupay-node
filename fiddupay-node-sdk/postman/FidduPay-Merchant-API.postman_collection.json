@@ -2,7 +2,7 @@
   "info": {
     "name": "FidduPay Merchant API SDK",
     "description": "Official Merchant API documentation for FidduPay Node.js SDK users.",
-    "version": "2.5.5",
+    "version": "2.5.6",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -240,7 +240,176 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"USDT\",\n  \"amount\": \"10.0\"\n}"
+              "raw": "{\n  \"crypto_type\": \"USDT\",\n  \"amount\": \"10.0\",\n  \"pin\": \"1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Withdraw Funds",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/withdraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "withdraw"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"USDT\",\n  \"amount\": \"5.0\",\n  \"destination_address\": \"0x123...\",\n  \"pin\": \"1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Pay Merchant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/pay-merchant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "pay-merchant"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"USDT\",\n  \"amount\": \"1.5\",\n  \"description\": \"Internal fee\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Bulk Provision Wallets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/bulk-provision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "bulk-provision"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_ids\": [\"user_1234\"],\n  \"all_customers\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Customer Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"suspended\",\n  \"reason\": \"Investigation\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Customer Permissions",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "permissions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"can_withdraw\": true,\n  \"withdrawal_limit\": \"500.0\"\n}"
             }
           }
         },
@@ -455,7 +624,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"amount\": \"1.5\",\n  \"destination_address\": \"8xH9...\"\n}"
+              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"amount\": \"1.5\",\n  \"destination_address\": \"8xH9...\",\n  \"pin\": \"1234\"\n}"
             }
           }
         },
@@ -1975,7 +2144,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"amount\": \"1.0\",\n  \"destination_address\": \"...\"\n}"
+              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"amount\": \"1.0\",\n  \"destination_address\": \"...\",\n  \"pin\": \"1234\"\n}"
             }
           }
         },

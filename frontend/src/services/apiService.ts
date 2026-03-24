@@ -71,7 +71,10 @@ export const merchantAPI = {
     rotate_webhook_secret?: boolean;
     low_balance_alerts_enabled?: boolean;
     low_balance_threshold_usd?: string;
+    transaction_pin?: string;
   }) => api.patch('/api/v1/merchants/settings', data),
+  setTransactionPin: (pin: string) => api.post('/api/v1/merchants/security/pin', { pin }),
+  verifyTransactionPin: (pin: string) => api.post('/api/v1/merchants/security/pin/verify', { pin }),
   sendTestWebhook: () => api.post('/api/v1/merchants/webhook/test'),
   getReadinessStatus: () => api.get('/api/v1/merchants/status'),
   getAuditLogs: (params?: { limit?: number; from?: string; to?: string; action_type?: string }) => {
@@ -119,7 +122,7 @@ export const refundAPI = {
 }
 
 export const withdrawalAPI = {
-  create: (data: { crypto_type: string; amount: string | number; to_address?: string; destination_address?: string; description?: string }) => api.post('/api/v1/merchants/withdrawals', data),
+  create: (data: { crypto_type: string; amount: string | number; to_address?: string; destination_address?: string; description?: string; pin: string }) => api.post('/api/v1/merchants/withdrawals', data),
   get: (id: string) => api.get(`/api/v1/merchants/withdrawals/${id}`),
   cancel: (id: string) => api.post(`/api/v1/merchants/withdrawals/${id}/cancel`),
   process: (id: string, password: string) => api.post(`/api/v1/merchants/withdrawals/${id}/process`, { encryption_password: password }),
@@ -174,8 +177,8 @@ export const customerAPI = {
   payMerchant: (externalId: string, data: { crypto_type: string; amount: string; reference_id?: string; description?: string }) => api.post(`/api/v1/merchants/customers/${externalId}/pay-merchant`, data),
   updateStatus: (externalId: string, data: { status: string; reason?: string }) => api.patch(`/api/v1/merchants/customers/${externalId}/status`, data),
   updatePermissions: (externalId: string, data: { can_withdraw?: boolean; withdrawal_limit?: string }) => api.patch(`/api/v1/merchants/customers/${externalId}/permissions`, data),
-  withdraw: (externalId: string, data: { crypto_type: string; amount: string; destination_address: string }) => api.post(`/api/v1/merchants/customers/${externalId}/withdraw`, data),
-  sweep: (externalId: string, data: { crypto_type: string; amount: string }) => api.post(`/api/v1/merchants/customers/${externalId}/sweep`, data),
+  withdraw: (externalId: string, data: { crypto_type: string; amount: string; destination_address: string; pin?: string }) => api.post(`/api/v1/merchants/customers/${externalId}/withdraw`, data),
+  sweep: (externalId: string, data: { crypto_type: string; amount: string; pin?: string }) => api.post(`/api/v1/merchants/customers/${externalId}/sweep`, data),
   deactivate: (externalId: string) => api.post(`/api/v1/merchants/customers/${externalId}/deactivate`),
 }
 

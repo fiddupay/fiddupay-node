@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.5.5
+# FidduPay Node.js SDK v2.5.6
 
-[![version](https://img.shields.io/badge/version-v2.5.5-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.5.6-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -257,7 +257,8 @@ const invoiceDetails = await client.invoices.retrieve(invoice.invoice_id);
 const withdrawal = await client.withdrawals.create({
   amount: '50.0',
   crypto_type: 'SOL',
-  destination_address: '8xH9...'
+  destination_address: '8xH9...',
+  pin: '1234' // Merchant's 4-digit Transaction PIN
 });
 
 // List withdrawals
@@ -293,16 +294,25 @@ await client.customers.updatePermissions('user_123', {
 const addrObj = await client.customers.getDepositAddress('user_123', 'SOL');
 console.log('Deposit address:', addrObj.address);
 
-// Pay merchant from sub-account balance
+// Pay merchant from sub-account balance (Customer Initiated Workflow)
 await client.customers.payMerchant('user_123', {
   crypto_type: 'SOL',
   amount: '1.0',
   reference_id: 'order_123'
 });
 
-// Sweep funds to master wallet
+// Sweep funds to master wallet (Requires Merchant PIN)
 await client.customers.sweep('user_123', {
-  crypto_type: 'USDT'
+  crypto_type: 'USDT',
+  pin: '1234' // Merchant's 4-digit Transaction PIN
+});
+
+// Withdraw from customer wallet to external address (Requires Merchant PIN)
+await client.customers.withdraw('user_123', {
+  crypto_type: 'ETH',
+  amount: '0.05',
+  destination_address: '0xabc...',
+  pin: '1234' // Merchant's 4-digit Transaction PIN
 });
 
 // Get customer wallets

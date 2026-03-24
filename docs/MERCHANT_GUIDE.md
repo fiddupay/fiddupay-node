@@ -11,6 +11,8 @@ Complete guide for merchants to integrate FidduPay cryptocurrency payment gatewa
 - **Reset**: Daily limits reset at midnight UTC
 - **Tracking**: Real-time volume tracking across all transaction types
 - **v2.5.0 Update**: Full Codebase Security Audit & Transaction Safety Patches (Atomic Settlements, Anti-Double-Send Guards, and advanced SSRF network shields).
+
+- **v2.5.0 Update**: Merchant Transaction PIN Security, Merchant-as-Custodian logic for customer operations, and removal of customer-scoped PIN management.
 - **v2.4.6 Update**: Introduced Extended Wallet Security Locks (Toggle Master/Customer), Customer Permissions, Manual Deposit Address retrieval, internal Customer-to-Merchant payments, and Balance History tracking.
 
 
@@ -695,7 +697,7 @@ PENDING > CONFIRMING > CONFIRMED
 Manage individual customer profiles with dedicated deposit wallets. This allows you to track balances per user and automate fund sweeps.
 
 ### 3.1 Register a Customer
-Assign your internal user ID to a FidduPay customer profile.
+Assign your internal user ID to a FidduPay customer profile. **Note: Customer PINs are no longer required or supported; merchants authorize customer actions using the Merchant Transaction PIN.**
 
 ```bash
 curl -X POST https://api.fiddupay.com/api/v1/merchants/customers \
@@ -734,7 +736,8 @@ curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_123456/swe
   -H "Content-Type: application/json" \
   -d '{
     "crypto_type": "USDT",
-    "amount": "50.00"
+    "amount": "50.00",
+    "pin": "1234"
   }'
 ```
 

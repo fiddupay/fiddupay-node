@@ -11,7 +11,8 @@ Transform FidduPay from a merchant-only crypto payment gateway into a comprehens
 ###  What We Have (Business/Merchant Tier)
 - **Core Infrastructure**: Rust backend with 5 blockchain networks
 - **Security**: 10/10 security score, SOC 2 compliance
-- [x] **v2.4.4** (Current): On-demand managed wallets, Multi-currency checkout, Unified settings, and Full SDK Parity.
+- [x] **v2.5.0** (Current): Merchant Transaction PIN Security, Merchant-as-Custodian logic for customer operations, JSX/UI restoration, and Documentation sync.
+- [x] **v2.4.4**: On-demand managed wallets, Multi-currency checkout, Unified settings, and Full SDK Parity.
 - [x] **v2.4.0**: Merchant API Standardization, Invoice Management, and Documentation Audit.
 - **Merchant Tools**: Dashboard, analytics, webhook integrations
 - **Pricing Model**: 0.75% transaction fee, no hidden costs
@@ -314,7 +315,7 @@ Transform FidduPay from a merchant-only crypto payment gateway into a comprehens
 
 ---
 
-**Document Version**: 2.4.4  
-**Last Updated**: February 4, 2026  
+**Document Version**: 2.5.0  
+**Last Updated**: March 24, 2026  
 **Next Review**: April 1, 2026  
 **Owner**: TechyTro Software - FidduPay Team

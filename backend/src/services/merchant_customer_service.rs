@@ -14,7 +14,7 @@ use serde_json::json;
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
-const CUSTOMER_COLS: &str = "id, merchant_id, external_id, email, first_name, last_name, metadata, is_active, status, status_reason, can_withdraw, withdrawal_limit, created_at, updated_at, sandbox_mode";
+const CUSTOMER_COLS: &str = "id, merchant_id, external_id, email, first_name, last_name, metadata, is_active, status, status_reason, can_withdraw, withdrawal_limit, created_at, updated_at, sandbox_mode, transaction_pin_hash, pin_setup_at";
 
 pub struct MerchantCustomerService {
     db_pool: PgPool,

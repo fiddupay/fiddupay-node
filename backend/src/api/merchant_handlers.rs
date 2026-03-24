@@ -25,6 +25,8 @@ pub use crate::api::settings_handlers::{
     create_invoice,
     list_invoices,
     get_invoice,
+    set_transaction_pin,
+    verify_transaction_pin,
 };
 
 // Payment handlers

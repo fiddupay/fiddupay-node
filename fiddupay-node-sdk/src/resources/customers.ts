@@ -15,7 +15,8 @@ import {
     CustomerStatusRequest,
     CustomerPermissionsRequest,
     CustomerWalletsResponse,
-    CustomerWallet
+    CustomerWallet,
+    CustomerPayMerchantRequest
 } from '../types';
 
 /**
@@ -168,12 +169,7 @@ export class Customers {
      * Initiate an internal payment from a customer's designated wallet balance to the merchant's master balance.
      * This is useful for charging users for services on your platform.
      */
-    async payMerchant(externalId: string, data: {
-        crypto_type: string;
-        amount: string;
-        reference_id?: string;
-        description?: string;
-    }, options?: RequestOptions): Promise<{ transaction: any; message: string }> {
+    async payMerchant(externalId: string, data: CustomerPayMerchantRequest, options?: RequestOptions): Promise<{ transaction: any; message: string }> {
         return this.client.post(`/api/v1/merchants/customers/${externalId}/pay-merchant`, data, options);
     }
 

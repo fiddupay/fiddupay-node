@@ -43,6 +43,7 @@ const WithdrawalsPage: React.FC = () => {
     const [amount, setAmount] = useState('')
     const [showConfirm, setShowConfirm] = useState(false)
     const [balanceError, setBalanceError] = useState<string | null>(null)
+    const [transactionPin, setTransactionPin] = useState('')
 
     useEffect(() => {
         fetchData()
@@ -154,12 +155,14 @@ const WithdrawalsPage: React.FC = () => {
             await withdrawalAPI.create({
                 crypto_type: selectedCrypto,
                 amount: amount,
-                destination_address: destinationAddress.trim()
+                destination_address: destinationAddress.trim(),
+                pin: transactionPin
             })
             showToast('Withdrawal submitted successfully!', 'success')
             setShowConfirm(false)
             setDestinationAddress('')
             setAmount('')
+            setTransactionPin('')
             await fetchData()
         } catch (error: any) {
             showToast(error.response?.data?.error || 'Failed to create withdrawal', 'error')
@@ -446,14 +449,41 @@ const WithdrawalsPage: React.FC = () => {
                                     color: '#374151'
                                 }}>{destinationAddress}</span>
                             </div>
+
+                            <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '0.5rem' }}>
+                                    Merchant Transaction PIN
+                                </label>
+                                <input
+                                    type="password"
+                                    maxLength={4}
+                                    value={transactionPin}
+                                    onChange={e => setTransactionPin(e.target.value.replace(/\D/g, ''))}
+                                    placeholder="4-digit PIN"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        borderRadius: '0.5rem',
+                                        border: '1px solid #d1d5db',
+                                        textAlign: 'center',
+                                        fontSize: '1.25rem',
+                                        letterSpacing: '0.5rem',
+                                        fontWeight: 700
+                                    }}
+                                />
+                            </div>
                         </div>
                         <div className={styles.confirmWarning}>
                             <i className="fas fa-exclamation-triangle"></i>
                             <p>Please verify the destination address carefully. Transactions cannot be reversed.</p>
                         </div>
                         <div className={styles.modalActions}>
-                            <button className={styles.cancelBtn} onClick={() => setShowConfirm(false)}>Cancel</button>
-                            <button className={styles.confirmBtn} onClick={confirmWithdrawal} disabled={submitting}>
+                            <button className={styles.cancelBtn} onClick={() => { setShowConfirm(false); setTransactionPin(''); }}>Cancel</button>
+                            <button 
+                                className={styles.confirmBtn} 
+                                onClick={confirmWithdrawal} 
+                                disabled={submitting || transactionPin.length !== 4}
+                            >
                                 {submitting ? 'Processing...' : 'Confirm & Send'}
                             </button>
                         </div>

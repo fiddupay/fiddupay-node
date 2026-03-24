@@ -77,6 +77,7 @@ const MerchantCustomersPage: React.FC = () => {
     const [customerTransactions, setCustomerTransactions] = useState<CustomerTx[]>([])
     const [sweepCryptoType, setSweepCryptoType] = useState('USDT')
     const [sweepAmount, setSweepAmount] = useState('')
+    const [sweepPin, setSweepPin] = useState('')
     const [sweeping, setSweeping] = useState(false)
     const [provisioning, setProvisioning] = useState(false)
 
@@ -84,6 +85,7 @@ const MerchantCustomersPage: React.FC = () => {
     const [withdrawAmount, setWithdrawAmount] = useState('')
     const [withdrawCryptoType, setWithdrawCryptoType] = useState('USDT')
     const [withdrawAddress, setWithdrawAddress] = useState('')
+    const [withdrawPin, setWithdrawPin] = useState('')
     const [withdrawing, setWithdrawing] = useState(false)
     const [payMerchantAmount, setPayMerchantAmount] = useState('')
     const [payMerchantCryptoType, setPayMerchantCryptoType] = useState('USDT')
@@ -134,8 +136,7 @@ const MerchantCustomersPage: React.FC = () => {
         } catch (error: any) {
             const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to list customers';
             showToast(errMsg, 'error')
-        }
- finally {
+        } finally {
             setLoading(false)
         }
     }
@@ -183,8 +184,7 @@ const MerchantCustomersPage: React.FC = () => {
         } catch (error: any) {
             const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to register customer';
             showToast(errMsg, 'error')
-        }
- finally {
+        } finally {
             setSubmitting(false)
         }
     }
@@ -230,8 +230,7 @@ const MerchantCustomersPage: React.FC = () => {
         } catch (error: any) {
             const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to update status';
             showToast(errMsg, 'error')
-        }
- finally {
+        } finally {
             setStatusUpdating(false)
         }
     }
@@ -250,28 +249,34 @@ const MerchantCustomersPage: React.FC = () => {
         } catch (error: any) {
             const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to update permissions';
             showToast(errMsg, 'error')
-        }
- finally {
+        } finally {
             setPermUpdating(false)
         }
     }
 
     const handleSweep = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!selectedCustomer || !sweepCryptoType || !sweepAmount) return;
+        if (!selectedCustomer || !sweepCryptoType || !sweepAmount || !sweepPin) {
+            showToast('Please fill all fields including 4-digit PIN', 'warning')
+            return
+        }
 
         try {
             setSweeping(true)
-            await customerAPI.sweep(selectedCustomer.external_id, { crypto_type: sweepCryptoType, amount: sweepAmount })
+            await customerAPI.sweep(selectedCustomer.external_id, { 
+                crypto_type: sweepCryptoType, 
+                amount: sweepAmount,
+                pin: sweepPin
+            })
             showToast(`Successfully swept ${sweepAmount} ${sweepCryptoType}`, 'success')
             setSweepAmount('')
+            setSweepPin('')
             const balRes = await customerAPI.getBalances(selectedCustomer.external_id)
             setCustomerBalances(balRes.data?.balances)
         } catch (error: any) {
             const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to sweep funds';
             showToast(errMsg, 'error')
-        }
- finally {
+        } finally {
             setSweeping(false)
         }
     }
@@ -286,25 +291,29 @@ const MerchantCustomersPage: React.FC = () => {
         } catch (error: any) {
             const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to provision wallets';
             showToast(errMsg, 'error')
-        }
- finally {
+        } finally {
             setProvisioning(false)
         }
     }
 
     const handleCustomerWithdraw = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!selectedCustomer || !withdrawAmount || !withdrawAddress) return
+        if (!selectedCustomer || !withdrawAmount || !withdrawAddress || !withdrawPin) {
+            showToast('Please fill all fields including 4-digit PIN', 'warning')
+            return
+        }
         try {
             setWithdrawing(true)
             await customerAPI.withdraw(selectedCustomer.external_id, {
                 crypto_type: withdrawCryptoType,
                 amount: withdrawAmount,
-                destination_address: withdrawAddress
+                destination_address: withdrawAddress,
+                pin: withdrawPin
             })
             showToast('Withdrawal initiated successfully', 'success')
             setWithdrawAmount('')
             setWithdrawAddress('')
+            setWithdrawPin('')
             fetchCustomerDetails(selectedCustomer.external_id)
         } catch (error: any) {
             showToast(error.response?.data?.error || 'Failed to initiate withdrawal', 'error')
@@ -315,7 +324,10 @@ const MerchantCustomersPage: React.FC = () => {
 
     const handlePayMerchant = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!selectedCustomer || !payMerchantAmount) return
+        if (!selectedCustomer || !payMerchantAmount) {
+            showToast('Please fill all required fields', 'warning')
+            return
+        }
         try {
             setPayingMerchant(true)
             await customerAPI.payMerchant(selectedCustomer.external_id, {
@@ -791,8 +803,22 @@ const MerchantCustomersPage: React.FC = () => {
                                                         <label>Amount</label>
                                                         <input className={styles.inputStyle} style={{ padding: '0.75rem 1rem' }} type="number" step="any" placeholder="0.00" value={sweepAmount} onChange={e => setSweepAmount(e.target.value)} />
                                                     </div>
-                                                    <button className={styles.actionBtn} disabled={sweeping || !selectedCustomer.is_active}>
-                                                        {sweeping ? <i className="fas fa-spinner fa-spin"></i> : 'Sweep'}
+                                                    <div className={styles.formGroup} style={{ marginBottom: '1rem' }}>
+                                                        <label>Confirm 4-Digit PIN</label>
+                                                        <input 
+                                                            className={styles.inputStyle} 
+                                                            type="password"
+                                                            maxLength={4}
+                                                            pattern="\d*"
+                                                            style={{ padding: '0.75rem 1rem', letterSpacing: '0.5rem', textAlign: 'center' }}
+                                                            placeholder="••••"
+                                                            value={sweepPin}
+                                                            onChange={e => setSweepPin(e.target.value.replace(/\D/g, ''))}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <button className={styles.actionBtn} style={{ width: '100%' }} disabled={sweeping || !selectedCustomer.is_active}>
+                                                        {sweeping ? <i className="fas fa-spinner fa-spin"></i> : 'Sweep Funds'}
                                                     </button>
                                                 </form>
                                             </div>
@@ -963,6 +989,20 @@ const MerchantCustomersPage: React.FC = () => {
                                                             placeholder="Paste external wallet address here"
                                                             value={withdrawAddress}
                                                             onChange={e => setWithdrawAddress(e.target.value)}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className={styles.formGroup}>
+                                                        <label>Merchant Transaction PIN</label>
+                                                        <input 
+                                                            className={styles.inputStyle} 
+                                                            type="password"
+                                                            maxLength={4}
+                                                            pattern="\d*"
+                                                            style={{ letterSpacing: '0.5rem', textAlign: 'center' }}
+                                                            placeholder="••••"
+                                                            value={withdrawPin}
+                                                            onChange={e => setWithdrawPin(e.target.value.replace(/\D/g, ''))}
                                                             required
                                                         />
                                                     </div>

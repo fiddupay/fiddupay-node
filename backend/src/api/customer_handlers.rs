@@ -15,6 +15,9 @@ use axum::{
     Json, Extension,
 };
 use serde_json::json;
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
+
+// Helper removed, now using state.merchant_service.verify_transaction_pin
 
 pub async fn register_customer(
     State(state): State<AppState>,
@@ -234,6 +237,7 @@ pub async fn pay_merchant(
     Path(external_id): Path<String>,
     Json(req): Json<PayMerchantRequest>,
 ) -> impl IntoResponse {
+
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
     match service.pay_merchant(
@@ -345,6 +349,11 @@ pub async fn sweep_customer_wallet(
     Path(external_id): Path<String>,
     Json(req): Json<crate::models::merchant_customer::SweepCustomerRequest>,
 ) -> impl IntoResponse {
+    // 1. Verify Transaction PIN (Merchant)
+    if let Err(e) = state.merchant_service.verify_transaction_pin(context.merchant_id, &req.pin).await {
+        return e.into_response();
+    }
+
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
     match service.sweep_customer_wallet(
@@ -409,6 +418,11 @@ pub async fn withdraw_from_customer(
     Path(external_id): Path<String>,
     Json(req): Json<crate::models::merchant_customer::CustomerWithdrawalRequest>,
 ) -> impl IntoResponse {
+    // 1. Verify Transaction PIN (Merchant)
+    if let Err(e) = state.merchant_service.verify_transaction_pin(context.merchant_id, &req.pin).await {
+        return e.into_response();
+    }
+
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
     match service.withdraw_from_customer(

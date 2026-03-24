@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "FidduPay Complete API v2.4.4",
+    "name": "FidduPay Complete API v2.5.6",
     "description": "Complete API collection for FidduPay cryptocurrency payment gateway. Supports 10 cryptocurrencies across 5 major blockchains with enterprise-grade security and comprehensive admin functionality.",
-    "version": "2.4.4",
+    "version": "2.5.6",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -315,6 +315,265 @@
                 "admin",
                 "merchants",
                 "123"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Customers",
+      "item": [
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_id\": \"user_1234\",\n  \"email\": \"customer@example.com\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"metadata\": {\n    \"tier\": \"gold\",\n    \"internal_id\": 8877\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "List Customers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers?limit=50&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Provision Wallets (Auto)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "wallets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"networks\": []\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Customer Balances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/balances",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "balances"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sweep Funds",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/sweep",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "sweep"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"USDT\",\n  \"amount\": \"10.0\",\n  \"pin\": \"1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Withdraw Funds",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/withdraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "withdraw"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"USDT\",\n  \"amount\": \"5.0\",\n  \"destination_address\": \"0x123...\",\n  \"pin\": \"1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Pay Merchant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/pay-merchant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "pay-merchant"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"USDT\",\n  \"amount\": \"1.5\",\n  \"description\": \"Internal fee\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Deactivate Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/deactivate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "deactivate"
               ]
             }
           }
@@ -2097,7 +2356,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"amount\": \"1.0\",\n  \"destination_address\": \"...\"\n}"
+              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"amount\": \"1.0\",\n  \"destination_address\": \"...\",\n  \"pin\": \"1234\"\n}"
             }
           }
         },

@@ -371,6 +371,7 @@ export interface CreateWithdrawalRequest {
   crypto_type: CryptoType;
   amount: string;
   destination_address: string;
+  pin: string;
 }
 
 export interface ProcessWithdrawalRequest {
@@ -591,11 +592,13 @@ export interface CustomerWithdrawalRequest {
   crypto_type: CryptoType;
   amount: string;
   destination_address: string;
+  pin: string;
 }
 
 export interface CustomerSweepRequest {
   crypto_type: CryptoType;
   amount?: string;
+  pin: string;
 }
 
 export interface MerchantCustomer {

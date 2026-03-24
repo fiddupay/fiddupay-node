@@ -487,6 +487,11 @@
     animation: slideDown 0.3s ease-out;
 }
 
+.pinBanner {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
 .bannerIcon {
     flex-shrink: 0;
     display: flex;

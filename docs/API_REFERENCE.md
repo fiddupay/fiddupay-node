@@ -1,4 +1,6 @@
-# FidduPay API Reference v2.5.5
+# FidduPay API Reference v2.5.6
+> [!IMPORTANT]
+> **Security Model (v2.5.6)**: All high-risk operations including Merchant Withdrawals and Customer-scoped actions (`/sweep` and `/withdraw`) now require the **Merchant's Transaction PIN** in the request body. Customer-specific PINs have been deprecated and removed. Note: `/pay-merchant` is customer-initiated and does not require a PIN in this model.
 
 Official technical specification for the FidduPay cryptocurrency payment gateway API.
 
