@@ -146,6 +146,35 @@ impl PaymentService {
             .map_err(|e| PaymentServiceError::VerificationError(e.to_string()))
     }
 
+    /// Verify a customer static deposit
+    pub async fn verify_customer_deposit(
+        &self,
+        customer_id: i64,
+        tx_hash: &str,
+        merchant_id: i64,
+        crypto_type: &str,
+        is_sandbox: bool,
+    ) -> Result<bool, PaymentServiceError> {
+        self.verifier
+            .verify_customer_deposit(customer_id, tx_hash, merchant_id, crypto_type, is_sandbox)
+            .await
+            .map_err(|e| PaymentServiceError::VerificationError(e.to_string()))
+    }
+
+    /// Verify a merchant static deposit
+    pub async fn verify_merchant_deposit(
+        &self,
+        merchant_id: i64,
+        tx_hash: &str,
+        crypto_type: &str,
+        is_sandbox: bool,
+    ) -> Result<bool, PaymentServiceError> {
+        self.verifier
+            .verify_merchant_deposit(merchant_id, tx_hash, crypto_type, is_sandbox)
+            .await
+            .map_err(|e| PaymentServiceError::VerificationError(e.to_string()))
+    }
+
     /// Get a single payment by payment ID
     /// 
     /// # Arguments

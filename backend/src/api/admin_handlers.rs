@@ -590,24 +590,24 @@ pub async fn reverify_transaction(
 
     info!("[ADMIN-REVERIFY] Manual re-verification requested by {} for hash: {}", context.admin_id, req.hash);
 
-    let result = if req.tx_type == "customer" {
+    let result: Result<bool, crate::services::payment_service::PaymentServiceError> = if req.tx_type == "customer" {
         // Need merchant_id for customer deposits
-        let merchant_id = sqlx::query_scalar::<_, i64>(
+        let merchant_id_res = sqlx::query_scalar::<_, i64>(
             "SELECT merchant_id FROM merchant_customers WHERE id = $1"
         )
         .bind(req.id)
         .fetch_optional(&state.db_pool)
         .await;
 
-        match merchant_id {
+        match merchant_id_res {
             Ok(Some(m_id)) => {
-                state.payment_verifier.verify_customer_deposit(req.id, &req.hash, m_id, &req.crypto_type, req.sandbox_mode).await
+                state.payment_service.verify_customer_deposit(req.id, &req.hash, m_id, &req.crypto_type, req.sandbox_mode).await
             },
             Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Customer not found"}))).into_response(),
             Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
         }
     } else {
-        state.payment_verifier.verify_merchant_deposit(req.id, &req.hash, &req.crypto_type, req.sandbox_mode).await
+        state.payment_service.verify_merchant_deposit(req.id, &req.hash, &req.crypto_type, req.sandbox_mode).await
     };
 
     match result {

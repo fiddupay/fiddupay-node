@@ -509,7 +509,10 @@ impl SolanaMonitor {
         }
 
         // Subscribe to logs for each address
-        for address in initial_monitor_addresses {
+        let mut wallet_count = 0;
+        let mut ata_count = 0;
+        
+        for address in &initial_monitor_addresses {
             let request_id = next_request_id;
             next_request_id += 1;
             
@@ -524,8 +527,14 @@ impl SolanaMonitor {
             });
             write.send(Message::Text(subscribe_msg.to_string())).await?;
             subscription_map.insert(request_id, address.clone());
-            info!("✅ Subscription request sent for: {}", address);
+            
+            if addresses.contains(address) {
+                wallet_count += 1;
+            } else {
+                ata_count += 1;
+            }
         }
+        info!("✅ Solana WS: Sent {} wallet and {} ATA subscription requests (Total: {})", wallet_count, ata_count, initial_monitor_addresses.len());
 
         // --- START CATCH-UP BACKFILL ---
         // Backfill only original owner addresses (get_transactions_to_address now handles ATAs internally)
@@ -574,7 +583,7 @@ impl SolanaMonitor {
                         }
                     }
 
-                    for addr in to_add {
+                    for addr in &to_add {
                         let request_id = next_request_id;
                         next_request_id += 1;
                         
@@ -592,8 +601,8 @@ impl SolanaMonitor {
                             continue;
                         }
                         subscription_map.insert(request_id, addr.clone());
-                        info!("✅ Dynamic Subscription request sent for: {}", addr);
                     }
+                    info!("✅ Solana WS: Sent dynamic subscriptions for wallet {} + {} ATAs", new_owner, to_add.len() - 1);
 
                     // --- START DYNAMIC CATCH-UP ---
                     let addr_clone = new_owner.clone();
@@ -626,7 +635,7 @@ impl SolanaMonitor {
                                 if let Some(address) = subscription_map.remove(&id) {
                                     if let Some(sub_id) = v["result"].as_u64() {
                                         active_subscriptions.insert(sub_id, address.clone());
-                                        info!("📡 Active subscription ID {} for address/ATA {}", sub_id, address);
+                                        // info!("📡 Active subscription ID {} for address/ATA {}", sub_id, address);
                                     }
                                 }
                             }
