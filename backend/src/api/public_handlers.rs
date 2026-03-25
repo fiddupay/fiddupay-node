@@ -123,7 +123,7 @@ pub async fn submit_contact_form(
             }))).into_response()
         },
         Err(e) => {
-            eprintln!("Failed to save contact message: {:?}", e);
+            tracing::error!(error = ?e, "Failed to save contact message");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
                 "error": "Failed to process contact form"
             }))).into_response()

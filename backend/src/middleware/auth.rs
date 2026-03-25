@@ -31,7 +31,7 @@ fn extract_api_key(headers: &HeaderMap) -> Option<String> {
                 Some(auth[7..].to_string())
             } else {
                 if !auth.is_empty() {
-                    tracing::warn!("Malformed Authorization header: {}", auth);
+                    tracing::warn!("Malformed Authorization header format");
                 }
                 None
             }

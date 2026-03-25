@@ -143,9 +143,9 @@ impl WebhookService {
             info!("Webhook delivered successfully to {}: {}", url, status_code);
             Ok((status_code, response_body))
         } else {
-            warn!("Webhook delivery failed to {}: {} - {}", url, status_code, response_body);
+            warn!("Webhook delivery failed to {}: {}", url, status_code);
             Err(ServiceError::WebhookDeliveryFailed(
-                format!("HTTP {} - {}", status_code, response_body)
+                format!("HTTP {}", status_code)
             ))
         }
     }

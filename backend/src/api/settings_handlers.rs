@@ -46,7 +46,7 @@ pub async fn get_merchant_profile(
         Ok(Some(m)) => m,
         Ok(None) => return ServiceError::MerchantNotFound.into_response(),
         Err(e) => {
-            eprintln!("Profile DB Error (Main Query): {:?}", e);
+            tracing::error!(error = ?e, "Failed to fetch merchant profile");
             return ServiceError::Database(e).into_response();
         }
     };
@@ -61,7 +61,7 @@ pub async fn get_merchant_profile(
         Ok(Some(cfg)) => (Some(cfg.get::<String, _>("url")), Some(cfg.get::<String, _>("payload_format"))),
         Ok(None) => (None, None),
         Err(e) => {
-            eprintln!("Profile DB Error (Webhook Fetch): {:?}", e);
+            tracing::warn!(error = ?e, "Failed to fetch webhook configuration");
             (None, None) // Non-critical failure
         }
     };
@@ -476,7 +476,6 @@ pub async fn get_merchant_settings(
     (StatusCode::OK, Json(json!({
         "webhook_url": webhook_config.as_ref().map(|c| c.get::<String, _>("url")),
         "webhook_format": webhook_config.as_ref().map(|c| c.get::<String, _>("payload_format")),
-        "webhook_signing_secret": webhook_config.as_ref().map(|c| c.get::<String, _>("signing_secret")),
         "settlement_mode": m_settlement_mode,
         "customer_pays_fee": m_customer_pays_fee,
         "sandbox_mode": m_sandbox_mode,
