@@ -253,6 +253,15 @@ pub async fn pay_merchant(
 
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
+    tracing::debug!(
+        external_id = %external_id,
+        merchant_id = %context.merchant_id,
+        crypto_type = %req.crypto_type,
+        amount = %req.amount,
+        sandbox_mode = %context.sandbox_mode,
+        "Processing customer pay merchant request"
+    );
+
     match service.pay_merchant(
         context.merchant_id,
         &external_id,
@@ -263,6 +272,13 @@ pub async fn pay_merchant(
         context.sandbox_mode,
     ).await {
         Ok(transaction) => {
+            tracing::info!(
+                external_id = %external_id,
+                transaction_id = %transaction.id,
+                amount = %transaction.amount,
+                "Customer payment to merchant successful"
+            );
+            
             // Log audit event
             let _ = state.audit_service.log_event(
                 context.merchant_id,
@@ -281,7 +297,15 @@ pub async fn pay_merchant(
                 "message": "Payment initiated. On-chain transaction will be processed."
             }))).into_response()
         },
-        Err(e) => e.into_response(),
+        Err(e) => {
+            tracing::error!(
+                external_id = %external_id,
+                merchant_id = %context.merchant_id,
+                error = ?e,
+                "Customer pay merchant failed"
+            );
+            e.into_response()
+        }
     }
 }
 

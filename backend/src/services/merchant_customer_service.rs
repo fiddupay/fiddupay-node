@@ -774,7 +774,7 @@ impl MerchantCustomerService {
         )
         .bind(amount)
         .bind(customer.id)
-        .bind(crypto_type_str)
+        .bind(&normalized_crypto)
         .bind(sandbox_mode)
         .execute(&mut *tx)
         .await?;
@@ -790,7 +790,7 @@ impl MerchantCustomerService {
             "#
         )
         .bind(merchant_id)
-        .bind(crypto_type_str)
+        .bind(&normalized_crypto)
         .bind(amount)
         .bind(sandbox_mode)
         .execute(&mut *tx)
@@ -810,7 +810,7 @@ impl MerchantCustomerService {
         )
         .bind(customer.id)
         .bind(merchant_id)
-        .bind(crypto_type_str)
+        .bind(&normalized_crypto)
         .bind(amount)
         .bind(&merchant_address)
         .bind(&tx_ref)
