@@ -34,7 +34,7 @@ It handles merchant authentication, payment generation, blockchain verification,
    ```
 4. Reverify a transaction:
    ```bash
-   curl -X POST http://localhost:3000/api/v1/admin/transactions/reverify \
+   curl -X POST https://fiddupay.com/api/v1/admin/transactions/reverify \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer <YOUR_ADMIN_TOKEN>" \
       -d '{
