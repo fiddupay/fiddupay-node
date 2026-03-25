@@ -640,12 +640,12 @@ impl MerchantCustomerService {
         let withdrawal = sqlx::query_as::<_, crate::models::withdrawal::Withdrawal>(
             r#"
             INSERT INTO withdrawals (
-                withdrawal_id, merchant_id, crypto_type, amount, destination_address,
+                withdrawal_id, merchant_id, crypto_type, amount, amount_usd, destination_address,
                 status, fee, net_amount, created_at, updated_at, sandbox_mode
             )
-            VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7, NOW(), NOW(), $8)
+            VALUES ($1, $2, $3, $4, 0, $5, 'PENDING', $6, $7, NOW(), NOW(), $8)
             RETURNING id, withdrawal_id, merchant_id, crypto_type, 
-                     amount, destination_address, status, fee, net_amount, transaction_hash,
+                     amount, amount_usd, destination_address, status, fee, net_amount, transaction_hash,
                      rejection_reason, requires_approval, approved_by, approved_at, 
                      completed_at, created_at, updated_at
             "#
