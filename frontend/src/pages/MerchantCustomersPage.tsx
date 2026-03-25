@@ -433,8 +433,13 @@ const MerchantCustomersPage: React.FC = () => {
       setWithdrawPin("");
       fetchCustomerDetails(selectedCustomer.external_id);
     } catch (error: any) {
-      const errMsg = typeof error.response?.data?.error === 'string' ? error.response.data.error : error.response?.data?.error?.message || error.message || 'Failed to initiate withdrawal';
-      showToast(errMsg, 'error');
+      const errMsg =
+        typeof error.response?.data?.error === "string"
+          ? error.response.data.error
+          : error.response?.data?.error?.message ||
+            error.message ||
+            "Failed to initiate withdrawal";
+      showToast(errMsg, "error");
     } finally {
       setWithdrawing(false);
     }
