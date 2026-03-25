@@ -800,7 +800,7 @@ impl PaymentVerifier {
         sqlx::query(
             r#"
             INSERT INTO customer_transactions (
-                customer_id, merchant_id, type, crypto_type, amount, amount_usd, fee, status, 
+                customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status, 
                 destination_address, transaction_hash, description, sandbox_mode
             )
             VALUES ($1, $2, 'DEPOSIT', $3, $4, 0, $5, 'COMPLETED', $6, $7, 'Static wallet deposit', $8)

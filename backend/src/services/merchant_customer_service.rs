@@ -523,7 +523,7 @@ impl MerchantCustomerService {
 
         let transactions = sqlx::query_as::<_, CustomerTransaction>(
             r#"
-            SELECT id, customer_id, merchant_id, type as tx_type, crypto_type, amount, amount_usd, fee, status,
+            SELECT id, customer_id, merchant_id, "type" as tx_type, crypto_type, amount, amount_usd, fee, status,
                    destination_address, transaction_hash, reference_id, description,
                    created_at, updated_at, sandbox_mode
             FROM customer_transactions
@@ -664,7 +664,7 @@ impl MerchantCustomerService {
         // Record in customer_transactions ledger
         sqlx::query(
             r#"
-            INSERT INTO customer_transactions (customer_id, merchant_id, type, crypto_type, amount, amount_usd, fee, status, destination_address, reference_id, description, sandbox_mode)
+            INSERT INTO customer_transactions (customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status, destination_address, reference_id, description, sandbox_mode)
             VALUES ($1, $2, 'WITHDRAWAL', $3, $4, 0, 0, 'PENDING', $5, $6, 'Withdrawal to external address', $7)
             "#
         )
@@ -801,9 +801,9 @@ impl MerchantCustomerService {
 
         let customer_tx = sqlx::query_as::<_, CustomerTransaction>(
             r#"
-            INSERT INTO customer_transactions (customer_id, merchant_id, type, crypto_type, amount, amount_usd, fee, status, destination_address, reference_id, description, sandbox_mode)
+            INSERT INTO customer_transactions (customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status, destination_address, reference_id, description, sandbox_mode)
             VALUES ($1, $2, 'MERCHANT_PAYMENT', $3, $4, 0, 0, 'COMPLETED', $5, $6, $7, $8)
-            RETURNING id, customer_id, merchant_id, type as tx_type, crypto_type, amount, amount_usd, fee, status,
+            RETURNING id, customer_id, merchant_id, "type" as tx_type, crypto_type, amount, amount_usd, fee, status,
                       destination_address, transaction_hash, reference_id, description,
                       created_at, updated_at, sandbox_mode
             "#
@@ -911,7 +911,7 @@ impl MerchantCustomerService {
         // Record in customer_transactions
         sqlx::query(
             r#"
-            INSERT INTO customer_transactions (customer_id, merchant_id, type, crypto_type, amount, amount_usd, fee, status, description, sandbox_mode)
+            INSERT INTO customer_transactions (customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status, description, sandbox_mode)
             VALUES ($1, $2, 'SWEEP', $3, $4, 0, 0, 'COMPLETED', 'Funds swept to merchant balance', $5)
             "#
         )
