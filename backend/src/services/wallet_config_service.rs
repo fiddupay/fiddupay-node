@@ -97,11 +97,10 @@ impl WalletConfigService {
                 sqlx::query(
                     r#"
                     INSERT INTO merchant_wallet_history (
-                        merchant_id, owner_type, crypto_type, network, 
-                        old_address, new_address, wallet_mode, 
-                        encrypted_private_key, is_active, reason
+                        merchant_id, crypto_type, network, 
+                        old_address, new_address, changed_by, reason
                     )
-                    VALUES ($1, 'merchant', $2, $3, $4, $5, $6, $7, $8, $9)
+                    VALUES ($1, $2, $3, $4, $5, 'merchant', $6)
                     "#
                 )
                 .bind(merchant_id)
@@ -109,9 +108,6 @@ impl WalletConfigService {
                 .bind(&network)
                 .bind(&current_address)
                 .bind(&address)
-                .bind(current_mode.as_deref().unwrap_or("address_only"))
-                .bind(&current_key)
-                .bind(current_active)
                 .bind("Updated via wallet management")
                 .execute(&self.db_pool)
                 .await
@@ -189,11 +185,10 @@ impl WalletConfigService {
                     sqlx::query(
                         r#"
                         INSERT INTO merchant_wallet_history (
-                            merchant_id, owner_type, crypto_type, network, 
-                            old_address, new_address, wallet_mode, 
-                            encrypted_private_key, is_active, reason
+                            merchant_id, crypto_type, network, 
+                            old_address, new_address, changed_by, reason
                         )
-                        VALUES ($1, 'merchant', $2, $3, $4, $5, $6, $7, $8, $9)
+                        VALUES ($1, $2, $3, $4, $5, 'merchant', $6)
                         "#
                     )
                     .bind(merchant_id)
@@ -201,9 +196,6 @@ impl WalletConfigService {
                     .bind(&network)
                     .bind(&current_address)
                     .bind(&address)
-                    .bind(current_mode.as_deref().unwrap_or("address_only"))
-                    .bind(&current_key)
-                    .bind(current_active)
                     .bind("Sister wallet updated")
                     .execute(&self.db_pool)
                     .await
@@ -407,19 +399,16 @@ impl WalletConfigService {
                 sqlx::query(
                     r#"
                     INSERT INTO merchant_wallet_history (
-                        merchant_id, owner_type, crypto_type, network, 
-                        old_address, new_address, wallet_mode, 
-                        encrypted_private_key, is_active, reason
+                        merchant_id, crypto_type, network, 
+                        old_address, new_address, changed_by, reason
                     )
-                    VALUES ($1, 'merchant', $2, $3, $4, '', $5, $6, true, $7)
+                    VALUES ($1, $2, $3, $4, '', 'merchant', $5)
                     "#
                 )
                 .bind(merchant_id)
                 .bind(&crypto_type_str)
                 .bind(&network)
                 .bind(&current_address)
-                .bind(current_mode.as_deref().unwrap_or("address_only"))
-                .bind(&current_key)
                 .bind("Deleted via dashboard")
                 .execute(&self.db_pool)
                 .await
@@ -517,10 +506,10 @@ impl WalletConfigService {
                 sqlx::query(
                     r#"
                     INSERT INTO merchant_wallet_history (
-                        merchant_id, owner_type, crypto_type, network, 
-                        old_address, new_address, wallet_mode, reason
+                        merchant_id, crypto_type, network, 
+                        old_address, new_address, changed_by, reason
                     )
-                    VALUES ($1, 'merchant', $2, $3, $4, $5, 'forwarding', $6)
+                    VALUES ($1, $2, $3, $4, $5, 'merchant', $6)
                     "#
                 )
                 .bind(merchant_id)
@@ -642,10 +631,10 @@ impl WalletConfigService {
                 sqlx::query(
                     r#"
                     INSERT INTO merchant_wallet_history (
-                        merchant_id, owner_type, crypto_type, network, 
-                        old_address, new_address, wallet_mode, reason
+                        merchant_id, crypto_type, network, 
+                        old_address, new_address, changed_by, reason
                     )
-                    VALUES ($1, 'merchant', $2, $3, $4, '', 'forwarding', $5)
+                    VALUES ($1, $2, $3, $4, '', 'merchant', $5)
                     "#
                 )
                 .bind(merchant_id)
