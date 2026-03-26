@@ -1,7 +1,28 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
- 
+
+## [2.5.8] - 2026-03-26
+
+### Added
+- **Non-Custodial Sweep Architecture**: `customers.sweep()` now accepts a `sweep_mode` field to control which assets are swept from the customer sub-wallet to the merchant's Master Wallet.
+  - `ALL` — sweep every asset with a positive locked balance.
+  - `NATIVE_ONLY` — sweep only native coins (ETH, BNB, SOL, BTC, etc.).
+  - `STABLE_ONLY` — sweep only stablecoins (USDT variants, BUSD, etc.).
+  - `SPECIFIC` — sweep one or more explicit `crypto_types`; supports an optional `amount` cap.
+- **Ledger-Based Gas Management**: EVM sweeps no longer require a separate on-chain native balance check. The system evaluates gas via a mathematical "unallocated dust" formula (`on-chain balance − customer DB balance − platform fee DB balance`) and deducts the actual consumed gas from the merchant's native ledger post-sweep.
+- **Stealth Auto-Funder**: If the merchant's native ledger balance for a customer sub-wallet is insufficient to cover the estimated gas, the platform automatically funds the sub-wallet from the merchant's Master Wallet. This transaction is **invisible** to end-customers — no webhook fires and no balance change appears in the customer transaction feed.
+
+### Changed
+- **`CustomerSweepRequest`**: Updated type signature — replaced `crypto_type: string` + `amount` with `sweep_mode`, optional `crypto_types?: string[]`, and optional `amount`.
+- **Postman Merchant Collection**: Updated "Sweep Funds" body to the new `sweep_mode` schema. Replaced the two deprecated "Withdraw" entries with practical Sweep mode examples.
+
+### Removed
+- **`customers.withdraw()`**: The custodial on-chain withdrawal endpoint has been removed. All fund movement from customer sub-wallets to on-chain destinations must now go through `customers.sweep()` targeting the merchant's own Master Wallet (non-custodial model).
+- **`CustomerWithdrawalRequest`** type: Removed from `types/index.ts`.
+
+---
+
 ## [2.5.7] - 2026-03-24
  
 ### Added

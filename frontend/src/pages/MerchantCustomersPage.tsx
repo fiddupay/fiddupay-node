@@ -114,6 +114,7 @@ const MerchantCustomersPage: React.FC = () => {
   const [customerTransactions, setCustomerTransactions] = useState<
     CustomerTx[]
   >([]);
+  const [sweepMode, setSweepMode] = useState<"ALL" | "NATIVE_ONLY" | "STABLE_ONLY" | "SPECIFIC">("ALL");
   const [sweepCryptoType, setSweepCryptoType] = useState("USDT");
   const [sweepAmount, setSweepAmount] = useState("");
   const [sweepPin, setSweepPin] = useState("");
@@ -121,11 +122,6 @@ const MerchantCustomersPage: React.FC = () => {
   const [provisioning, setProvisioning] = useState(false);
 
   // Financial Actions State
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawCryptoType, setWithdrawCryptoType] = useState("USDT");
-  const [withdrawAddress, setWithdrawAddress] = useState("");
-  const [withdrawPin, setWithdrawPin] = useState("");
-  const [withdrawing, setWithdrawing] = useState(false);
   const [payMerchantAmount, setPayMerchantAmount] = useState("");
   const [payMerchantCryptoType, setPayMerchantCryptoType] = useState("USDT");
   const [payingMerchant, setPayingMerchant] = useState(false);
@@ -154,9 +150,6 @@ const MerchantCustomersPage: React.FC = () => {
         setSupportedCurrencies(flattened);
         if (flattened.length > 0 && !sweepCryptoType) {
           setSweepCryptoType(flattened[0].crypto_type);
-        }
-        if (flattened.length > 0 && !withdrawCryptoType) {
-          setWithdrawCryptoType(flattened[0].crypto_type);
         }
         if (flattened.length > 0 && !payMerchantCryptoType) {
           setPayMerchantCryptoType(flattened[0].crypto_type);
@@ -345,9 +338,17 @@ const MerchantCustomersPage: React.FC = () => {
 
   const handleSweep = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCustomer || !sweepCryptoType || !sweepAmount || !sweepPin) {
+    if (!selectedCustomer || !sweepPin) {
       showToast(
-        "Please fill all fields including Merchant Transaction PIN",
+        "Please enter your Merchant Transaction PIN",
+        "warning",
+      );
+      return;
+    }
+
+    if (sweepMode === "SPECIFIC" && !sweepCryptoType) {
+      showToast(
+        "Please select a specific asset to sweep",
         "warning",
       );
       return;
@@ -356,20 +357,18 @@ const MerchantCustomersPage: React.FC = () => {
     try {
       setSweeping(true);
       await customerAPI.sweep(selectedCustomer.external_id, {
-        crypto_type: sweepCryptoType,
-        amount: sweepAmount,
+        sweep_mode: sweepMode,
+        crypto_types: sweepMode === "SPECIFIC" ? [sweepCryptoType] : undefined,
+        amount: sweepAmount ? sweepAmount : undefined,
         pin: sweepPin,
       });
       showToast(
-        `Successfully swept ${sweepAmount} ${sweepCryptoType}`,
+        "Sweep operation initiated successfully",
         "success",
       );
       setSweepAmount("");
       setSweepPin("");
-      const balRes = await customerAPI.getBalances(
-        selectedCustomer.external_id,
-      );
-      setCustomerBalances(balRes.data?.balances);
+      fetchCustomerDetails(selectedCustomer.external_id);
     } catch (error: any) {
       const errMsg =
         typeof error.response?.data?.error === "string"
@@ -402,46 +401,6 @@ const MerchantCustomersPage: React.FC = () => {
       showToast(errMsg, "error");
     } finally {
       setProvisioning(false);
-    }
-  };
-
-  const handleCustomerWithdraw = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (
-      !selectedCustomer ||
-      !withdrawAmount ||
-      !withdrawAddress ||
-      !withdrawPin
-    ) {
-      showToast(
-        "Please fill all fields including Merchant Transaction PIN",
-        "warning",
-      );
-      return;
-    }
-    try {
-      setWithdrawing(true);
-      await customerAPI.withdraw(selectedCustomer.external_id, {
-        crypto_type: withdrawCryptoType,
-        amount: withdrawAmount,
-        destination_address: withdrawAddress,
-        pin: withdrawPin,
-      });
-      showToast("Withdrawal initiated successfully", "success");
-      setWithdrawAmount("");
-      setWithdrawAddress("");
-      setWithdrawPin("");
-      fetchCustomerDetails(selectedCustomer.external_id);
-    } catch (error: any) {
-      const errMsg =
-        typeof error.response?.data?.error === "string"
-          ? error.response.data.error
-          : error.response?.data?.error?.message ||
-            error.message ||
-            "Failed to initiate withdrawal";
-      showToast(errMsg, "error");
-    } finally {
-      setWithdrawing(false);
     }
   };
 
@@ -1798,7 +1757,7 @@ const MerchantCustomersPage: React.FC = () => {
                         gap: "2rem",
                       }}
                     >
-                      {/* Withdraw Funds */}
+                      {/* Sweep Customer Wallet */}
                       <div className={styles.drawerSection}>
                         <h3
                           style={{
@@ -1809,10 +1768,10 @@ const MerchantCustomersPage: React.FC = () => {
                           }}
                         >
                           <i
-                            className="fas fa-external-link-alt"
-                            style={{ color: "#ef4444" }}
+                            className="fas fa-broom"
+                            style={{ color: "#2563eb" }}
                           ></i>
-                          Withdraw Customer Funds
+                          Sweep Sub-Wallet Balances
                         </h3>
                         <p
                           style={{
@@ -1821,12 +1780,12 @@ const MerchantCustomersPage: React.FC = () => {
                             marginBottom: "1.5rem",
                           }}
                         >
-                          Manually withdraw funds from this customer's dedicated
-                          wallet to an external destination.
+                          Sweep funds internally to your merchant Master Wallet. Gas fees 
+                          are seamlessly deducted directly from your ledger balance.
                         </p>
 
                         <form
-                          onSubmit={handleCustomerWithdraw}
+                          onSubmit={handleSweep}
                           style={{
                             background: "#fff",
                             border: "1px solid #e2e8f0",
@@ -1846,51 +1805,63 @@ const MerchantCustomersPage: React.FC = () => {
                               className={styles.formGroup}
                               style={{ marginBottom: 0 }}
                             >
-                              <label>Asset</label>
+                              <label>Sweep Mode</label>
                               <select
                                 className={styles.inputStyle}
-                                value={withdrawCryptoType}
+                                value={sweepMode}
                                 onChange={(e) =>
-                                  setWithdrawCryptoType(e.target.value)
+                                  setSweepMode(e.target.value as any)
                                 }
                               >
-                                {supportedCurrencies.map((c, idx) => (
-                                  <option key={idx} value={c.crypto_type}>
-                                    {c.crypto_type}
-                                  </option>
-                                ))}
+                                <option value="ALL">Sweep All Assets</option>
+                                <option value="NATIVE_ONLY">Native Coins Only</option>
+                                <option value="STABLE_ONLY">Stablecoins Only</option>
+                                <option value="SPECIFIC">Specific Asset</option>
                               </select>
                             </div>
-                            <div
-                              className={styles.formGroup}
-                              style={{ marginBottom: 0 }}
-                            >
-                              <label>Amount</label>
-                              <input
-                                className={styles.inputStyle}
-                                type="number"
-                                step="any"
-                                placeholder="0.00"
-                                value={withdrawAmount}
-                                onChange={(e) =>
-                                  setWithdrawAmount(e.target.value)
-                                }
-                                required
-                              />
-                            </div>
+                            
+                            {sweepMode === "SPECIFIC" && (
+                              <div
+                                className={styles.formGroup}
+                                style={{ marginBottom: 0 }}
+                              >
+                                <label>Target Asset</label>
+                                <select
+                                  className={styles.inputStyle}
+                                  value={sweepCryptoType}
+                                  onChange={(e) =>
+                                    setSweepCryptoType(e.target.value)
+                                  }
+                                >
+                                  {supportedCurrencies.map((c, idx) => (
+                                    <option key={idx} value={c.crypto_type}>
+                                      {c.crypto_type}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+
+                            {sweepMode === "SPECIFIC" && (
+                              <div
+                                className={styles.formGroup}
+                                style={{ marginBottom: 0 }}
+                              >
+                                <label>Amount (Optional)</label>
+                                <input
+                                  className={styles.inputStyle}
+                                  type="number"
+                                  step="any"
+                                  placeholder="Leave blank for MAX"
+                                  value={sweepAmount}
+                                  onChange={(e) =>
+                                    setSweepAmount(e.target.value)
+                                  }
+                                />
+                              </div>
+                            )}
                           </div>
-                          <div className={styles.formGroup}>
-                            <label>Destination Address</label>
-                            <input
-                              className={styles.inputStyle}
-                              placeholder="Paste external wallet address here"
-                              value={withdrawAddress}
-                              onChange={(e) =>
-                                setWithdrawAddress(e.target.value)
-                              }
-                              required
-                            />
-                          </div>
+                          
                           <div className={styles.formGroup}>
                             <label>Merchant Transaction PIN</label>
                             <input
@@ -1903,42 +1874,41 @@ const MerchantCustomersPage: React.FC = () => {
                                 textAlign: "center",
                               }}
                               placeholder="••••"
-                              value={withdrawPin}
+                              value={sweepPin}
                               onChange={(e) =>
-                                setWithdrawPin(
+                                setSweepPin(
                                   e.target.value.replace(/\D/g, ""),
                                 )
                               }
                               required
                             />
                           </div>
+                          
                           <button
                             type="submit"
                             className={styles.addBtn}
-                            style={{ width: "100%", background: "#ef4444" }}
-                            disabled={
-                              withdrawing || !selectedCustomer.can_withdraw
-                            }
+                            style={{ width: "100%", background: "#2563eb" }}
+                            disabled={sweeping}
                           >
-                            {withdrawing ? (
+                            {sweeping ? (
                               <i className="fas fa-spinner fa-spin"></i>
                             ) : (
-                              "Execute Withdrawal"
+                              "Execute Sweep"
                             )}
                           </button>
-                          {!selectedCustomer.can_withdraw && (
-                            <p
-                              style={{
-                                color: "#ef4444",
-                                fontSize: "0.75rem",
-                                marginTop: "0.5rem",
-                                textAlign: "center",
-                              }}
-                            >
-                              Withdrawals are currently disabled for this
-                              customer.
-                            </p>
-                          )}
+                          
+                          <p
+                            style={{
+                              color: "#64748b",
+                              fontSize: "0.75rem",
+                              marginTop: "0.75rem",
+                              textAlign: "center",
+                            }}
+                          >
+                            <i className="fas fa-info-circle" style={{ marginRight: '0.25rem' }}></i>
+                            Required gas limits will be discounted by any native 
+                            dust already present in the sub-wallet.
+                          </p>
                         </form>
                       </div>
 

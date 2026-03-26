@@ -28,8 +28,22 @@ export class FidduPayClient {
   public readonly invoices: InvoicesResource;
   public readonly webhooks = Webhooks;
   public readonly wallets: Wallets;
+  /**
+   * Merchant's own withdrawal operations (withdraw from merchant main balance
+   * to an external destination). This is *not* related to customer sub-wallets.
+   * To move funds from a customer sub-wallet use `customers.sweep()` instead.
+   */
   public readonly withdrawals: Withdrawals;
   public readonly security: Security;
+  /**
+   * Customer sub-account management.
+   *
+   * Key operations:
+   *  - `payMerchant()` — locks customer funds into the merchant's reserved balance
+   *  - `sweep(sweep_mode)` — sweeps locked funds to the merchant's Master Wallet
+   *    on-chain. Replaces the removed `withdraw()` method (v2.5.8+).
+   *  - Available sweep modes: `ALL` | `NATIVE_ONLY` | `STABLE_ONLY` | `SPECIFIC`
+   */
   public readonly customers: Customers;
   public readonly balances: Balances;
   public readonly auditLogs: AuditLogs;

@@ -103,7 +103,8 @@ pub struct CustomerWithdrawalRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SweepCustomerRequest {
-    pub crypto_type: String,
+    pub sweep_mode: String,
+    pub crypto_types: Option<Vec<String>>,
     pub amount: Option<String>,
     pub pin: String,
 }

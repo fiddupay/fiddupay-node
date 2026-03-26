@@ -31,12 +31,15 @@
 - `fiddupay.customers.createWallets()` (Provision Wallets)
 - `fiddupay.customers.updateStatus()`
 - `fiddupay.customers.updatePermissions()`
-- `fiddupay.customers.withdraw()`
-- `fiddupay.customers.sweep()`
-- `fiddupay.customers.deactivate()`
-- `fiddupay.customers.getTransactions()`
+- `fiddupay.customers.sweep({ sweep_mode: 'ALL' })` — sweep all assets to Master Wallet *(replaces deprecated `withdraw()`)*
+- `fiddupay.customers.sweep({ sweep_mode: 'NATIVE_ONLY' })` — sweep native coins only (ETH, BNB, SOL…)
+- `fiddupay.customers.sweep({ sweep_mode: 'STABLE_ONLY' })` — sweep stablecoins only (USDT…)
+- `fiddupay.customers.sweep({ sweep_mode: 'SPECIFIC', crypto_types: [...] })` — sweep a specific asset
+- `fiddupay.customers.payMerchant()` — lock customer funds into merchant reserved balance
 - `fiddupay.customers.getDepositAddress()`
-- `fiddupay.customers.payMerchant()`
+- `fiddupay.customers.getTransactions()`
+- `fiddupay.customers.deactivate()`
+- `fiddupay.customers.bulkProvision()` — provision wallets for multiple customers at once
 
 ## Invoices (`fiddupay.invoices`)
 - `fiddupay.invoices.create()`

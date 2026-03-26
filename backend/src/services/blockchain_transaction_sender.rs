@@ -471,6 +471,57 @@ impl BlockchainTransactionSender {
         }
     }
 
+    /// Query the actual on-chain native balance of an address
+    pub async fn get_native_balance(
+        &self,
+        crypto_type: CryptoType,
+        address: &str,
+        sandbox_mode: bool,
+    ) -> Result<U256, ServiceError> {
+        let is_solana = crypto_type.network() == "SOLANA";
+        
+        if is_solana {
+            use solana_client::nonblocking::rpc_client::RpcClient;
+            use std::str::FromStr;
+            use solana_sdk::pubkey::Pubkey;
+            
+            let rpc_url = if sandbox_mode {
+                self.config.solana_devnet_rpc_url.clone()
+            } else {
+                self.config.solana_rpc_url.clone()
+            };
+            let rpc_client = RpcClient::new(rpc_url);
+            
+            let to_pubkey = Pubkey::from_str(address)
+                .map_err(|_| ServiceError::ValidationError("Invalid Solana address".to_string()))?;
+                
+            let balance = rpc_client.get_balance(&to_pubkey)
+                .await
+                .map_err(|e| ServiceError::Internal(format!("Failed to get Solana balance: {}", e)))?;
+                
+            Ok(U256::from(balance))
+        } else {
+            let (rpc_url, _) = match (crypto_type.clone(), sandbox_mode) {
+                (CryptoType::Eth | CryptoType::UsdtEth, false) => (&self.config.ethereum_rpc_url, self.config.ethereum_chain_id),
+                (CryptoType::Eth | CryptoType::UsdtEth, true) => (&self.config.ethereum_sepolia_rpc_url, self.config.ethereum_sepolia_chain_id),
+                (CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20, false) => (&self.config.bsc_rpc_url, self.config.bsc_chain_id),
+                (CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20, true) => (&self.config.bsc_testnet_rpc_url, self.config.bsc_testnet_chain_id),
+                (CryptoType::Matic | CryptoType::UsdtPolygon, false) => (&self.config.polygon_rpc_url, self.config.polygon_chain_id),
+                (CryptoType::Matic | CryptoType::UsdtPolygon, true) => (&self.config.polygon_mumbai_rpc_url, self.config.polygon_mumbai_chain_id),
+                (CryptoType::Arb | CryptoType::UsdtArbitrum, false) => (&self.config.arbitrum_rpc_url, self.config.arbitrum_chain_id),
+                (CryptoType::Arb | CryptoType::UsdtArbitrum, true) => (&self.config.arbitrum_sepolia_rpc_url, self.config.arbitrum_sepolia_chain_id),
+                _ => return Err(ServiceError::ValidationError("Unsupported network for balance query".to_string())),
+            };
+
+            let transport = Http::new(rpc_url).map_err(|e| ServiceError::Internal(format!("Failed to connect to EVM: {}", e)))?;
+            let web3 = Web3::new(transport);
+            
+            let addr: Address = address.parse().map_err(|_| ServiceError::ValidationError("Invalid EVM address".to_string()))?;
+            let balance = web3.eth().balance(addr, None).await.map_err(|e| ServiceError::Internal(format!("Failed EVM balance: {}", e)))?;
+            Ok(balance)
+        }
+    }
+
     /// Get current gas price for an EVM network
     pub async fn get_current_gas_price(
         &self,

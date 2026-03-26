@@ -581,121 +581,7 @@ impl MerchantCustomerService {
     // Transaction Operations (with permission checks)
     // =========================================================================
 
-    pub async fn withdraw_from_customer(
-        &self,
-        merchant_id: i64,
-        external_id: &str,
-        crypto_type_str: &str,
-        amount_str: &str,
-        destination_address: &str,
-        sandbox_mode: bool,
-    ) -> Result<crate::models::withdrawal::Withdrawal, ServiceError> {
-        let amount = Decimal::from_str(amount_str)
-            .map_err(|_| ServiceError::ValidationError(format!("Invalid amount format: {}", amount_str)))?;
 
-        // 1. Verify customer and check permissions
-        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
-        Self::check_withdrawal_permissions(&customer, amount)?;
-
-        // 2. Fetch wallet
-        let _wallet = sqlx::query_as::<_, MerchantCustomerWallet>(
-            "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at, sandbox_mode FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
-        )
-        .bind(customer.id)
-        .bind(crypto_type_str)
-        .bind(sandbox_mode)
-        .fetch_one(&self.db_pool)
-        .await
-        .map_err(|_| ServiceError::ValidationError(format!("Wallet for {} not found for this customer", crypto_type_str)))?;
-
-        // 3. Check Balance
-        let balance = sqlx::query_as::<_, MerchantCustomerBalance>(
-            "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at, sandbox_mode FROM merchant_customer_balances WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
-        )
-        .bind(customer.id)
-        .bind(crypto_type_str)
-        .bind(sandbox_mode)
-        .fetch_optional(&self.db_pool)
-        .await?;
-
-        match balance {
-            Some(b) if b.available_balance >= amount => {},
-            _ => return Err(ServiceError::InsufficientFunds(crypto_type_str.to_string())),
-        }
-
-        // 4. Lock funds and create withdrawal record
-        let mut tx = self.db_pool.begin().await?;
-
-        sqlx::query(
-            "UPDATE merchant_customer_balances SET available_balance = available_balance - $1, locked_balance = locked_balance + $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
-        )
-        .bind(amount)
-        .bind(customer.id)
-        .bind(crypto_type_str)
-        .bind(sandbox_mode)
-        .execute(&mut *tx)
-        .await?;
-
-        let withdrawal_id = format!("wd_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
-        let withdrawal = sqlx::query_as::<_, crate::models::withdrawal::Withdrawal>(
-            r#"
-            INSERT INTO withdrawals (
-                withdrawal_id, merchant_id, crypto_type, amount, amount_usd, destination_address,
-                status, fee, net_amount, created_at, updated_at, sandbox_mode
-            )
-            VALUES ($1, $2, $3, $4, 0, $5, 'PENDING', $6, $7, NOW(), NOW(), $8)
-            RETURNING id, withdrawal_id, merchant_id, crypto_type, 
-                     amount, amount_usd, destination_address, status, fee, net_amount, transaction_hash,
-                     rejection_reason, requires_approval, approved_by, approved_at, 
-                     completed_at, created_at, updated_at
-            "#
-        )
-        .bind(&withdrawal_id)
-        .bind(merchant_id)
-        .bind(crypto_type_str)
-        .bind(amount)
-        .bind(destination_address)
-        .bind(Decimal::ZERO)
-        .bind(amount)
-        .bind(sandbox_mode)
-        .fetch_one(&mut *tx)
-        .await?;
-
-        // Record in customer_transactions ledger
-        sqlx::query(
-            r#"
-            INSERT INTO customer_transactions (customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status, destination_address, reference_id, description, sandbox_mode)
-            VALUES ($1, $2, 'WITHDRAWAL', $3, $4, 0, 0, 'PENDING', $5, $6, 'Withdrawal to external address', $7)
-            "#
-        )
-        .bind(customer.id)
-        .bind(merchant_id)
-        .bind(crypto_type_str)
-        .bind(amount)
-        .bind(destination_address)
-        .bind(&withdrawal_id)
-        .bind(sandbox_mode)
-        .execute(&mut *tx)
-        .await?;
-
-        let audit_details = serde_json::json!({
-            "customer_external_id": external_id,
-            "amount": amount_str,
-            "crypto_type": crypto_type_str,
-            "destination_address": mask_address(destination_address),
-            "withdrawal_id": withdrawal_id
-        });
-        sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
-            .bind(merchant_id)
-            .bind("customer.withdrawal")
-            .bind(&audit_details)
-            .execute(&mut *tx)
-            .await?;
-
-        tx.commit().await?;
-
-        Ok(withdrawal)
-    }
 
     /// Customer pays merchant — real on-chain transaction
     pub async fn pay_merchant(
@@ -770,7 +656,7 @@ impl MerchantCustomerService {
         // 5. Deduct customer funds and credit merchant off-chain instantly
 
         sqlx::query(
-            "UPDATE merchant_customer_balances SET available_balance = available_balance - $1, total_balance = total_balance - $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
+            "UPDATE merchant_customer_balances SET available_balance = available_balance - $1, locked_balance = locked_balance + $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
         )
         .bind(amount)
         .bind(customer.id)
@@ -782,10 +668,10 @@ impl MerchantCustomerService {
         sqlx::query(
             r#"
             INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
-            VALUES ($1, $2, $3, 0, NOW(), $4)
+            VALUES ($1, $2, 0, $3, NOW(), $4)
             ON CONFLICT (merchant_id, crypto_type, sandbox_mode) 
             DO UPDATE SET 
-                available_balance = merchant_balances.available_balance + $3,
+                reserved_balance = merchant_balances.reserved_balance + $3,
                 last_updated = NOW()
             "#
         )
@@ -846,98 +732,285 @@ impl MerchantCustomerService {
         &self,
         merchant_id: i64,
         external_id: &str,
-        crypto_type_str: &str,
-        amount_str: Option<String>,
+        req: crate::models::merchant_customer::SweepCustomerRequest,
         sandbox_mode: bool,
-    ) -> Result<Decimal, ServiceError> {
+        config: &crate::config::Config,
+    ) -> Result<Vec<(String, Decimal)>, ServiceError> {
         let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
 
-        let crypto_enum = CryptoType::from_string(crypto_type_str)?;
-        let normalized_crypto = crypto_enum.to_string();
+        let mut target_cryptos: Vec<String> = Vec::new();
+        let mode_str = req.sweep_mode.to_uppercase();
+        
+        if mode_str == "SPECIFIC" {
+            if let Some(types) = &req.crypto_types {
+                target_cryptos = types.clone();
+            } else {
+                return Err(ServiceError::ValidationError("Must specify crypto_types if sweep_mode is SPECIFIC".to_string()));
+            }
+        }
 
-        let balance_record = sqlx::query_as::<_, MerchantCustomerBalance>(
-            "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at, sandbox_mode FROM merchant_customer_balances WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 FOR UPDATE"
+        let locked_balances = sqlx::query_as::<_, MerchantCustomerBalance>(
+            "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at, sandbox_mode FROM merchant_customer_balances WHERE customer_id = $1 AND locked_balance > 0 AND sandbox_mode = $2 FOR UPDATE"
         )
         .bind(customer.id)
-        .bind(&normalized_crypto)
         .bind(sandbox_mode)
-        .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or_else(|| ServiceError::ValidationError(format!("No balance record found for {}", normalized_crypto)))?;
+        .fetch_all(&self.db_pool)
+        .await?;
 
-        let amount = match amount_str {
-            Some(ref amt) => Decimal::from_str(amt)
-                .map_err(|_| ServiceError::ValidationError(format!("Invalid amount format: {}", amt)))?,
-            None => balance_record.available_balance,
-        };
-
-        if amount <= Decimal::ZERO {
-             return Err(ServiceError::ValidationError("Amount to sweep must be greater than zero".to_string()));
+        if locked_balances.is_empty() {
+             return Err(ServiceError::ValidationError("No locked funds available to sweep".to_string()));
         }
 
-        if balance_record.available_balance < amount {
-            return Err(ServiceError::InsufficientFunds(crypto_type_str.to_string()));
+        let mut balances_to_sweep = Vec::new();
+        for b in locked_balances {
+            let crypto_enum = CryptoType::from_string(&b.crypto_type).unwrap_or(CryptoType::Eth);
+            
+            let is_stablecoin = matches!(
+                crypto_enum, 
+                CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtSpl | 
+                CryptoType::UsdtPolygon | CryptoType::UsdtEth | CryptoType::BusdBep20
+            );
+
+            let should_sweep = match mode_str.as_str() {
+                "ALL" => true,
+                "NATIVE_ONLY" => crypto_enum.is_native_currency(),
+                "STABLE_ONLY" => is_stablecoin,
+                _ => target_cryptos.iter().any(|c| {
+                    CryptoType::from_string(c).map(|ct| ct.to_string()).unwrap_or_default() == crypto_enum.to_string()
+                }),
+            };
+            
+            if should_sweep {
+                balances_to_sweep.push(b);
+            }
+        }
+        
+        if balances_to_sweep.is_empty() {
+            return Err(ServiceError::ValidationError("No matching funds available to sweep for the requested criteria".to_string()));
         }
 
+        let mut swept_results = Vec::new();
         let mut tx = self.db_pool.begin().await?;
 
-        sqlx::query(
-            "UPDATE merchant_customer_balances SET available_balance = available_balance - $1, total_balance = total_balance - $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
-        )
-        .bind(amount)
-        .bind(customer.id)
-        .bind(&normalized_crypto)
-        .bind(sandbox_mode)
-        .execute(&mut *tx)
-        .await?;
+        for balance_record in balances_to_sweep {
+            let amount = if mode_str == "SPECIFIC" && target_cryptos.len() == 1 {
+                if let Some(ref amt_str) = req.amount {
+                    Decimal::from_str(amt_str).unwrap_or(balance_record.locked_balance)
+                } else {
+                    balance_record.locked_balance
+                }
+            } else {
+                balance_record.locked_balance
+            };
+            
+            if amount <= Decimal::ZERO || balance_record.locked_balance < amount {
+                continue;
+            }
 
-        sqlx::query(
-            r#"
-            INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
-            VALUES ($1, $2, $3, 0, NOW(), $4)
-            ON CONFLICT (merchant_id, crypto_type, sandbox_mode) 
-            DO UPDATE SET 
-                available_balance = merchant_balances.available_balance + $3,
-                last_updated = NOW()
-            "#
-        )
-        .bind(merchant_id)
-        .bind(&normalized_crypto)
-        .bind(amount)
-        .bind(sandbox_mode)
-        .execute(&mut *tx)
-        .await?;
+            let normalized_crypto = balance_record.crypto_type.clone();
+            let crypto_enum = CryptoType::from_string(&normalized_crypto).unwrap_or(CryptoType::Eth);
+            
+            let mut fee_to_save = Decimal::ZERO;
 
-        // Record in customer_transactions
-        sqlx::query(
-            r#"
-            INSERT INTO customer_transactions (customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status, description, sandbox_mode)
-            VALUES ($1, $2, 'SWEEP', $3, $4, 0, 0, 'COMPLETED', 'Funds swept to merchant balance', $5)
-            "#
-        )
-        .bind(customer.id)
-        .bind(merchant_id)
-        .bind(&normalized_crypto)
-        .bind(amount)
-        .bind(sandbox_mode)
-        .execute(&mut *tx)
-        .await?;
+            if !crypto_enum.is_native_currency() {
+                let native_currency = match crypto_enum {
+                    CryptoType::UsdtEth => "ETH",
+                    CryptoType::UsdtBep20 | CryptoType::BusdBep20 => "BNB",
+                    CryptoType::UsdtPolygon => "MATIC",
+                    CryptoType::UsdtArbitrum => "ARB",
+                    CryptoType::UsdtSpl => "SOL",
+                    _ => "ETH",
+                };
 
-        let audit_details = serde_json::json!({
-            "customer_external_id": external_id,
-            "amount": amount.to_string(),
-            "crypto_type": crypto_type_str
-        });
-        sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
-            .bind(merchant_id)
-            .bind("customer.sweep")
-            .bind(&audit_details)
+                let sender = crate::services::blockchain_transaction_sender::BlockchainTransactionSender::new(config.clone());
+                let gas_price = sender.get_current_gas_price(crypto_enum.clone(), sandbox_mode).await.unwrap_or(web3::types::U256::from(50_000_000_000u64));
+                let estimated_gas_limit = sender.estimate_gas(crypto_enum.clone(), "", "", amount).await.unwrap_or(web3::types::U256::from(65000));
+                let required_native_u128 = (gas_price * estimated_gas_limit).as_u128();
+                
+                let divisor = if native_currency == "SOL" { 1_000_000_000f64 } else { 1_000_000_000_000_000_000f64 };
+                let mut required_gas_dec = Decimal::from_f64_retain(required_native_u128 as f64 / divisor).unwrap_or(Decimal::new(25, 4));
+                required_gas_dec.rescale(6);
+                
+                let customer_wallet_address: String = sqlx::query_scalar(
+                    "SELECT address FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 LIMIT 1"
+                )
+                .bind(customer.id)
+                .bind(&normalized_crypto)
+                .bind(sandbox_mode)
+                .fetch_optional(&mut *tx)
+                .await?
+                .unwrap_or_default();
+
+                let native_enum = CryptoType::from_string(native_currency).unwrap_or(CryptoType::Eth);
+                let onchain_native_balance = sender.get_native_balance(&customer_wallet_address, native_enum, sandbox_mode).await.unwrap_or(Decimal::ZERO);
+
+                // 1. Calculate Merchant/Customer balances assigned to this sub-wallet
+                let db_customer_native: Decimal = sqlx::query_scalar(
+                    r#"
+                    SELECT COALESCE(SUM(available_balance + locked_balance + reserved_balance), 0)
+                    FROM merchant_customer_balances 
+                    WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3
+                    "#
+                )
+                .bind(customer.id)
+                .bind(native_currency)
+                .bind(sandbox_mode)
+                .fetch_optional(&mut *tx)
+                .await?
+                .unwrap_or(Decimal::ZERO);
+
+                // 2. Calculate Platform Fee assigned to this sub-wallet waiting to be swept
+                let db_platform_fee: Decimal = sqlx::query_scalar(
+                    r#"
+                    SELECT COALESCE(SUM(fee_amount), 0)
+                    FROM payment_transactions 
+                    WHERE to_address = $1 AND crypto_type = $2 AND fee_collected = FALSE AND sandbox_mode = $3
+                    "#
+                )
+                .bind(&customer_wallet_address)
+                .bind(native_currency)
+                .bind(sandbox_mode)
+                .fetch_optional(&mut *tx)
+                .await?
+                .unwrap_or(Decimal::ZERO);
+
+                let total_expected_db = db_customer_native + db_platform_fee;
+
+                // 3. Subtract Expected DB assets from Physical Assets to find Unallocated Gas Dust
+                let unallocated_dust = if onchain_native_balance > total_expected_db {
+                    onchain_native_balance - total_expected_db
+                } else {
+                    Decimal::ZERO
+                };
+
+                let mut gas_to_deduct = required_gas_dec;
+                if unallocated_dust >= required_gas_dec {
+                    gas_to_deduct = Decimal::ZERO;
+                    tracing::info!("Sweep gas fully covered by unallocated dust {} {} for customer {}", unallocated_dust, native_currency, customer.id);
+                } else if unallocated_dust > Decimal::ZERO {
+                    gas_to_deduct = required_gas_dec - unallocated_dust;
+                    tracing::info!("Sweep gas partially covered. Total: {}, Dust: {}, Deficit: {} {}", required_gas_dec, unallocated_dust, gas_to_deduct, native_currency);
+                } else {
+                    tracing::info!("No gas dust available. Charging full estimate {} {}", gas_to_deduct, native_currency);
+                }
+
+                fee_to_save = gas_to_deduct;
+
+                if gas_to_deduct > Decimal::ZERO {
+                    let merchant_native_balance: Decimal = sqlx::query_scalar(
+                        "SELECT available_balance FROM merchant_balances WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
+                    )
+                    .bind(merchant_id)
+                    .bind(native_currency)
+                    .bind(sandbox_mode)
+                    .fetch_optional(&mut *tx)
+                    .await?
+                    .unwrap_or(Decimal::ZERO);
+
+                    if merchant_native_balance < gas_to_deduct {
+                        tx.rollback().await?;
+                        return Err(ServiceError::ValidationError(format!("You need an equivalent amount of {} in your balance to cover the {} gas deficit. Total required: {}, Unallocated Dust: {}.", native_currency, gas_to_deduct, required_gas_dec, unallocated_dust)));
+                    }
+
+                    sqlx::query(
+                        "UPDATE merchant_balances SET available_balance = available_balance - $1, total_balance = total_balance - $1 WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
+                    )
+                    .bind(gas_to_deduct)
+                    .bind(merchant_id)
+                    .bind(native_currency)
+                    .bind(sandbox_mode)
+                    .execute(&mut *tx)
+                    .await?;
+                }
+            }
+
+            sqlx::query(
+                "UPDATE merchant_customer_balances SET locked_balance = locked_balance - $1, total_balance = total_balance - $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
+            )
+            .bind(amount)
+            .bind(customer.id)
+            .bind(&normalized_crypto)
+            .bind(sandbox_mode)
             .execute(&mut *tx)
             .await?;
 
+            sqlx::query(
+                r#"
+                UPDATE merchant_balances SET reserved_balance = reserved_balance - $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
+                "#
+            )
+            .bind(amount)
+            .bind(merchant_id)
+            .bind(&normalized_crypto)
+            .bind(sandbox_mode)
+            .execute(&mut *tx)
+            .await?;
+
+            let merchant_wallet_address: Option<String> = sqlx::query_scalar::<_, String>(
+                "SELECT address FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND is_active = true"
+            )
+            .bind(merchant_id)
+            .bind(&normalized_crypto)
+            .bind(sandbox_mode)
+            .fetch_optional(&mut *tx)
+            .await?;
+
+            let merchant_address = merchant_wallet_address.unwrap_or_else(|| "Internal Ledger".to_string());
+
+            let withdrawal_id = format!("swp_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
+            sqlx::query(
+                r#"
+                INSERT INTO withdrawals (
+                    withdrawal_id, merchant_id, crypto_type, amount, amount_usd, destination_address,
+                    status, fee, net_amount, created_at, updated_at, sandbox_mode
+                )
+                VALUES ($1, $2, $3, $4, 0, $5, 'PENDING', $6, $4, NOW(), NOW(), $7)
+                "#
+            )
+            .bind(&withdrawal_id)
+            .bind(merchant_id)
+            .bind(&normalized_crypto)
+            .bind(amount)
+            .bind(&merchant_address)
+            .bind(fee_to_save)
+            .bind(sandbox_mode)
+            .execute(&mut *tx)
+            .await?;
+
+            // Record in customer_transactions
+            sqlx::query(
+                r#"
+                INSERT INTO customer_transactions (customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status, description, sandbox_mode)
+                VALUES ($1, $2, 'SWEEP', $3, $4, 0, 0, 'COMPLETED', 'Funds swept to merchant external wallet', $5)
+                "#
+            )
+            .bind(customer.id)
+            .bind(merchant_id)
+            .bind(&normalized_crypto)
+            .bind(amount)
+            .bind(sandbox_mode)
+            .execute(&mut *tx)
+            .await?;
+
+            let audit_details = serde_json::json!({
+                "customer_external_id": external_id,
+                "amount": amount.to_string(),
+                "crypto_type": &normalized_crypto,
+                "withdrawal_id": withdrawal_id
+            });
+            sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
+                .bind(merchant_id)
+                .bind("customer.sweep")
+                .bind(&audit_details)
+                .execute(&mut *tx)
+                .await?;
+
+            swept_results.push((normalized_crypto, amount));
+        }
+
         tx.commit().await?;
 
-        Ok(amount)
+        Ok(swept_results)
     }
 
     // =========================================================================

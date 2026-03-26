@@ -60,26 +60,114 @@ impl WithdrawalProcessor {
             withdrawal_id, wd_merchant_id, wd_crypto_type, wd_amount, wd_sandbox_mode
         );
 
-        // 2. Fetch the merchant's managed wallet for this crypto type
-        let wallet = sqlx::query(
-            r#"
-            SELECT encrypted_private_key 
-            FROM merchant_wallets 
-            WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND address != ''
-            "#
+        // 2. Determine Source Wallet
+        let customer_tx = sqlx::query(
+            "SELECT customer_id FROM customer_transactions WHERE reference_id = $1"
         )
-        .bind(wd_merchant_id)
-        .bind(&wd_crypto_type)
-        .bind(wd_sandbox_mode)
-        .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or_else(|| ServiceError::NotFound("Merchant wallet not found or not configured".to_string()))?;
+        .bind(withdrawal_id)
+        .fetch_optional(&mut *tx)
+        .await?;
 
-        let encrypted_key: Option<String> = wallet.get("encrypted_private_key");
-        let encrypted_key = encrypted_key
-            .ok_or_else(|| ServiceError::ValidationError("Managed wallet has no private key available".to_string()))?;
+        let mut wd_fee = Decimal::ZERO;
+        if let Some(fee_val) = withdrawal.try_get::<Decimal, _>("fee").ok() {
+            wd_fee = fee_val;
+        }
+
+        let is_sweep = customer_tx.is_some();
+        let encrypted_key_opt: Option<String>;
+        let source_address: String;
 
         let crypto_type_enum = CryptoType::from_string(&wd_crypto_type)?;
+        let sender = BlockchainTransactionSender::new(self.config.clone());
+
+        if let Some(c_row) = customer_tx {
+            // Sweep from Customer Wallet
+            let customer_id: i64 = c_row.get("customer_id");
+            let c_wallet = sqlx::query(
+                r#"
+                SELECT address, encrypted_private_key 
+                FROM merchant_customer_wallets 
+                WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND address != ''
+                "#
+            )
+            .bind(customer_id)
+            .bind(&wd_crypto_type)
+            .bind(wd_sandbox_mode)
+            .fetch_optional(&self.db_pool)
+            .await?
+            .ok_or_else(|| ServiceError::NotFound("Customer wallet not found for sweep".to_string()))?;
+            
+            encrypted_key_opt = c_wallet.get("encrypted_private_key");
+            source_address = c_wallet.get("address");
+
+            // GAS AUTO-FUNDING LOGIC (Using Merchant's Master Wallet)
+            if !crypto_type_enum.is_native_currency() && wd_fee > Decimal::ZERO {
+                let native_crypto_str = match crypto_type_enum {
+                    CryptoType::UsdtEth => "ETH",
+                    CryptoType::UsdtBep20 | CryptoType::BusdBep20 => "BNB",
+                    CryptoType::UsdtPolygon => "MATIC",
+                    CryptoType::UsdtArbitrum => "ARB",
+                    CryptoType::UsdtSpl => "SOL",
+                    _ => &wd_crypto_type,
+                };
+
+                tracing::info!("Gas Auto-fund initiated for sweep {}, funding exactly {} {} from MERCHANT'S master wallet", withdrawal_id, wd_fee, native_crypto_str);
+
+                let merchant_master_wallet = sqlx::query(
+                    r#"
+                    SELECT encrypted_private_key, address 
+                    FROM merchant_wallets 
+                    WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND is_active = true
+                    "#
+                )
+                .bind(wd_merchant_id)
+                .bind(native_crypto_str)
+                .bind(wd_sandbox_mode)
+                .fetch_optional(&self.db_pool)
+                .await?;
+
+                if let Some(mw) = merchant_master_wallet {
+                    if let Some(m_enc) = mw.get::<Option<String>, _>("encrypted_private_key") {
+                        if let Ok(encryption) = Encryption::new() {
+                            if let Ok(m_priv) = encryption.decrypt(&m_enc) {
+                                let native_enum = CryptoType::from_string(native_crypto_str).unwrap_or(CryptoType::Eth);
+                                
+                                match sender.send_transaction(native_enum, &m_priv, &source_address, wd_fee, None, wd_sandbox_mode).await {
+                                    Ok(gas_tx) => {
+                                        tracing::info!("Merchant Gas funded successfully, tx: {}. Waiting 15s...", gas_tx);
+                                        tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
+                                    },
+                                    Err(e) => tracing::error!("Merchant Auto-fund failed securely: {}", e),
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    tracing::warn!("Merchant {} has no {} master wallet configured for auto-funding sweep {}", wd_merchant_id, native_crypto_str, withdrawal_id);
+                }
+            }
+        } else {
+            // Standard Merchant Withdrawal
+            let m_wallet = sqlx::query(
+                r#"
+                SELECT address, encrypted_private_key 
+                FROM merchant_wallets 
+                WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND address != ''
+                "#
+            )
+            .bind(wd_merchant_id)
+            .bind(&wd_crypto_type)
+            .bind(wd_sandbox_mode)
+            .fetch_optional(&self.db_pool)
+            .await?
+            .ok_or_else(|| ServiceError::NotFound("Merchant wallet not found or not configured".to_string()))?;
+            
+            encrypted_key_opt = m_wallet.get("encrypted_private_key");
+            source_address = m_wallet.get("address");
+        }
+
+        let encrypted_key = encrypted_key_opt
+            .ok_or_else(|| ServiceError::ValidationError("Source wallet has no private key available".to_string()))?;
 
         // 3. Decrypt the private key
         let encryption = Encryption::new().map_err(|e| ServiceError::Internal(e))?;

@@ -718,6 +718,26 @@ impl PaymentVerifier {
             return Err("Recipient address mismatch".into());
         }
 
+        // 3.1 Silent Ignore for Merchant Auto-Funding (Gas Station)
+        // If this deposit came from the Merchant's own Master Wallet, it's an internal gas fund for a sweep.
+        // It should NOT be credited to the customer's balance, nor trigger webhooks.
+        let is_from_master = sqlx::query_scalar::<_, i64>(
+            r#"
+            SELECT id FROM merchant_wallets 
+            WHERE merchant_id = $1 AND lower(address) = lower($2) AND sandbox_mode = $3 AND is_active = true
+            "#
+        )
+        .bind(merchant_id)
+        .bind(blockchain_tx.from_address.trim())
+        .bind(sandbox_mode)
+        .fetch_optional(&self.db_pool)
+        .await?;
+
+        if is_from_master.is_some() {
+            tracing::info!("[VERIFIER] Silently ignoring internal gas auto-fund deposit {} from Merchant {}", transaction_hash, merchant_id);
+            return Ok(true); // Return success so the scanner marks it processed and ignores it forever
+        }
+
         // 3.5. Dynamic Asset Detection & Mint Check
         let (actual_crypto, actual_amount) = if let Some(mint) = &blockchain_tx.token_mint {
             // It's a token transfer - resolve the CryptoType

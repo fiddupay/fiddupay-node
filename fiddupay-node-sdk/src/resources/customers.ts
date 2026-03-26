@@ -6,7 +6,6 @@ import {
     BulkProvisionRequest,
     BulkProvisionResponse,
     CustomerBalanceResponse,
-    CustomerWithdrawalRequest,
     CustomerSweepRequest,
     ListCustomersParams,
     PaginatedResponse,
@@ -91,15 +90,9 @@ export class Customers {
     }
 
     /**
-     * Withdraw funds directly from a customer's designated wallet balance.
-     */
-    async withdraw(externalId: string, data: CustomerWithdrawalRequest, options?: RequestOptions): Promise<{ withdrawal: any; message: string }> {
-        return this.client.post(`/api/v1/merchants/customers/${externalId}/withdraw`, data, options);
-    }
-
-    /**
      * Sweep funds from a user's sub-account balance directly into the merchant's master balance.
-     * If amount is omitted, sweeps the entire available balance.
+     * The system automatically calculates and securely auto-funds the required blockchain gas fee 
+     * from the Merchant's Master Wallet ledger, making it invisible to the customer.
      */
     async sweep(externalId: string, data: CustomerSweepRequest, options?: RequestOptions): Promise<{ swept_amount: string; message: string }> {
         return this.client.post(`/api/v1/merchants/customers/${externalId}/sweep`, data, options);

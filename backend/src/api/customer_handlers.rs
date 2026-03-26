@@ -391,31 +391,41 @@ pub async fn sweep_customer_wallet(
         return e.into_response();
     }
 
+    let req_mode = req.sweep_mode.clone();
+    let req_types = req.crypto_types.clone();
+
     let service = MerchantCustomerService::new(state.db_pool.clone());
     
     match service.sweep_customer_wallet(
         context.merchant_id, 
         &external_id, 
-        &req.crypto_type, 
-        req.amount,
-        context.sandbox_mode
+        req,
+        context.sandbox_mode,
+        &state.config
     ).await {
-        Ok(swept_amount) => {
+        Ok(swept_results) => {
             // Log audit event
+            let sweeps_json: Vec<_> = swept_results.iter().map(|(ct, amt)| json!({"crypto_type": ct, "amount": amt})).collect();
             let _ = state.audit_service.log_event(
                 context.merchant_id,
                 "customer_wallet_sweep",
-                Some(&format!("Swept {} from customer {} wallet", req.crypto_type, external_id)),
+                Some(&format!("Swept funds from customer {} wallet using {} mode", external_id, req_mode)),
                 Some(json!({
                     "external_id": external_id,
-                    "crypto_type": req.crypto_type,
-                    "amount": swept_amount
+                    "sweep_mode": req_mode,
+                    "crypto_types": req_types,
+                    "sweeps": sweeps_json
                 }))
             ).await;
 
+            let response_sweeps: Vec<_> = swept_results.into_iter().map(|(ct, amt)| json!({
+                "crypto_type": ct,
+                "amount": amt
+            })).collect();
+
             (StatusCode::OK, Json(json!({
-                "swept_amount": swept_amount,
-                "message": "Funds swept successfully to merchant master balance"
+                "sweeps": response_sweeps,
+                "message": "Funds swept successfully to merchant external wallet"
             }))).into_response()
         },
         Err(e) => e.into_response(),
@@ -449,49 +459,6 @@ pub async fn list_customers(
     }
 }
 
-pub async fn withdraw_from_customer(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
-    Path(external_id): Path<String>,
-    Json(req): Json<crate::models::merchant_customer::CustomerWithdrawalRequest>,
-) -> impl IntoResponse {
-    // 1. Verify Transaction PIN (Merchant)
-    if let Err(e) = state.merchant_service.verify_transaction_pin(context.merchant_id, &req.pin).await {
-        return e.into_response();
-    }
-
-    let service = MerchantCustomerService::new(state.db_pool.clone());
-    
-    match service.withdraw_from_customer(
-        context.merchant_id,
-        &external_id,
-        &req.crypto_type,
-        &req.amount,
-        &req.destination_address,
-        context.sandbox_mode
-    ).await {
-        Ok(withdrawal) => {
-            // Log audit event
-            let _ = state.audit_service.log_event(
-                context.merchant_id,
-                "customer_withdrawal",
-                Some(&format!("Withdrew {} {} from customer {}", req.amount, req.crypto_type, external_id)),
-                Some(json!({
-                    "external_id": external_id,
-                    "crypto_type": req.crypto_type,
-                    "amount": req.amount,
-                    "destination_address": req.destination_address
-                }))
-            ).await;
-
-            (StatusCode::OK, Json(json!({
-                "withdrawal": withdrawal,
-                "message": "Withdrawal requested successfully"
-            }))).into_response()
-        },
-        Err(e) => e.into_response(),
-    }
-}
 
 pub async fn deactivate_customer(
     State(state): State<AppState>,

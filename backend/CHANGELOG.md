@@ -1,5 +1,19 @@
 # FidduPay Backend Changelog
 
+## [2.5.8] - 2026-03-26
+
+### Added
+- **Non-Custodial Sweep Architecture** (`merchant_customer_service.rs`): Replaced the flat `sweep_customer_wallet` call with a multi-asset sweep engine driven by `SweepMode` (`ALL`, `NATIVE_ONLY`, `STABLE_ONLY`, `SPECIFIC`).
+- **Ledger-Based Gas Verification**: Before any EVM sweep, the system queries the exact gas estimate from the chain, then checks the customer's unallocated native "dust" in the database. Formula: `on-chain balance − customer DB balance − platform fee DB balance = reusable dust`. If dust ≥ estimated gas, no funding is needed.
+- **Stealth Auto-Funder** (`withdrawal_processor.rs`): If reusable dust is insufficient, the merchant's Master Wallet silently pre-funds the customer sub-wallet with the required native gas. These `GAS_FEE` ledger entries are excluded from the customer transaction feed and do not trigger any webhooks — fully invisible to end-customers.
+- **Unallocated Dust Tracking**: Actual on-chain gas consumed post-sweep is reconciled back to the merchant's native ledger, preventing overcharging. The leftover is preserved for future sweeps.
+
+### Removed
+- **`POST /api/v1/merchants/customers/:id/withdraw`**: Custodial withdrawal endpoint removed to prevent unauthorized fund movement. Merchants must use `POST .../sweep` with appropriate `sweep_mode`.
+
+### Security
+- Eliminated the risk of a merchant draining a customer wallet to an arbitrary external destination. All sweep operations move funds exclusively to the merchant's own pre-configured Master Wallet.
+
 ## [2.5.0] - 2026-03-19
 
 ### Added

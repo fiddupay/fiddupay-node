@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.5.6
+# FidduPay Node.js SDK v2.5.8
 
-[![version](https://img.shields.io/badge/version-v2.5.6-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.5.8-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -311,25 +311,37 @@ await client.customers.updatePermissions('user_123', {
 const addrObj = await client.customers.getDepositAddress('user_123', 'SOL');
 console.log('Deposit address:', addrObj.address);
 
-// Pay merchant from sub-account balance (Customer Initiated Workflow)
+// Lock funds into merchant reserved balance (Customer Initiated Workflow)
 await client.customers.payMerchant('user_123', {
   crypto_type: 'SOL',
   amount: '1.0',
   reference_id: 'order_123'
 });
 
-// Sweep funds to master wallet (Requires Merchant PIN)
+// Sweep ALL assets to your Master Wallet (Non-Custodial)
 await client.customers.sweep('user_123', {
-  crypto_type: 'USDT',
+  sweep_mode: 'ALL',
   pin: '1234' // Merchant's 4-digit Transaction PIN
 });
 
-// Withdraw from customer wallet to external address (Requires Merchant PIN)
-await client.customers.withdraw('user_123', {
-  crypto_type: 'ETH',
-  amount: '0.05',
-  destination_address: '0xabc...',
-  pin: '1234' // Merchant's 4-digit Transaction PIN
+// Sweep only stablecoins
+await client.customers.sweep('user_123', {
+  sweep_mode: 'STABLE_ONLY',
+  pin: '1234'
+});
+
+// Sweep only native coins (ETH, BNB, SOL, etc.)
+await client.customers.sweep('user_123', {
+  sweep_mode: 'NATIVE_ONLY',
+  pin: '1234'
+});
+
+// Sweep a specific asset (optionally cap the amount)
+await client.customers.sweep('user_123', {
+  sweep_mode: 'SPECIFIC',
+  crypto_types: ['USDT_ETH'],
+  amount: '50.0',   // optional, omit to sweep max
+  pin: '1234'
 });
 
 // Get customer wallets
@@ -346,6 +358,15 @@ await client.customers.bulkProvision({
   all_customers: true
 });
 ```
+
+> **Non-Custodial Sweep Architecture (v2.5.8+)**
+>
+> `sweep()` replaces the deprecated `withdraw()`. Funds stay locked in the
+> customer sub-wallet until the merchant explicitly triggers a sweep to their
+> own Master Wallet. Gas fees for EVM sweeps are **auto-funded from the
+> merchant's native ledger** — customers never see gas-funding transactions.
+
+
 
 ## Analytics
 
@@ -438,7 +459,7 @@ Grouped by `client.*` resource modules for reference:
 | **`wallets`** | `setup()`, `getConfigurations()`, `getBalances()`, `getGasEstimates()`, `checkGasRequirements()`, `gasCheck()`, `checkWithdrawalCapability()`, `revoke()` |
 | **`balances`** | `get()`, `getHistory()` |
 | **`auditLogs`** | `list()` |
-| **`customers`** | `register()`, `createWallets()`, `getWallets()`, `getBalances()`, `list()`, `withdraw()`, `sweep()`, `deactivate()`, `getTransactions()`, `updateStatus()`, `updatePermissions()`, `getDepositAddress()`, `payMerchant()`, `bulkProvision()` |
+| **`customers`** | `register()`, `createWallets()`, `getWallets()`, `getBalances()`, `list()`, `sweep(sweep_mode)`, `deactivate()`, `getTransactions()`, `updateStatus()`, `updatePermissions()`, `getDepositAddress()`, `payMerchant()`, `bulkProvision()` |
 | **`withdrawals`** | `create()`, `list()`, `get()`, `cancel()` |
 | **`refunds`** | `create()`, `list()`, `retrieve()`, `complete()` |
 | **`invoices`** | `create()`, `list()`, `retrieve()` |

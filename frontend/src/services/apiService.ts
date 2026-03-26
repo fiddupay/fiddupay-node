@@ -177,8 +177,7 @@ export const customerAPI = {
   payMerchant: (externalId: string, data: { crypto_type: string; amount: string; reference_id?: string; description?: string }) => api.post(`/api/v1/merchants/customers/${externalId}/pay-merchant`, data),
   updateStatus: (externalId: string, data: { status: string; reason?: string }) => api.patch(`/api/v1/merchants/customers/${externalId}/status`, data),
   updatePermissions: (externalId: string, data: { can_withdraw?: boolean; withdrawal_limit?: string }) => api.patch(`/api/v1/merchants/customers/${externalId}/permissions`, data),
-  withdraw: (externalId: string, data: { crypto_type: string; amount: string; destination_address: string; pin?: string }) => api.post(`/api/v1/merchants/customers/${externalId}/withdraw`, data),
-  sweep: (externalId: string, data: { crypto_type: string; amount: string; pin?: string }) => api.post(`/api/v1/merchants/customers/${externalId}/sweep`, data),
+  sweep: (externalId: string, data: { sweep_mode: string; crypto_types?: string[]; amount?: string; pin: string }) => api.post(`/api/v1/merchants/customers/${externalId}/sweep`, data),
   deactivate: (externalId: string) => api.post(`/api/v1/merchants/customers/${externalId}/deactivate`),
 }
 

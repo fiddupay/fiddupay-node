@@ -597,15 +597,9 @@ export interface ListCustomersParams {
   [key: string]: any;
 }
 
-export interface CustomerWithdrawalRequest {
-  crypto_type: CryptoType;
-  amount: string;
-  destination_address: string;
-  pin: string;
-}
-
 export interface CustomerSweepRequest {
-  crypto_type: CryptoType;
+  sweep_mode: 'ALL' | 'NATIVE_ONLY' | 'STABLE_ONLY' | 'SPECIFIC';
+  crypto_types?: CryptoType[];
   amount?: string;
   pin: string;
 }

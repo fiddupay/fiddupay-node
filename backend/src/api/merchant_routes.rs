@@ -91,7 +91,6 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/merchants/customers/:external_id/pay-merchant", post(crate::api::customer_handlers::pay_merchant))
         .route("/api/v1/merchants/customers/:external_id/status", patch(crate::api::customer_handlers::update_customer_status))
         .route("/api/v1/merchants/customers/:external_id/permissions", patch(crate::api::customer_handlers::update_customer_permissions))
-        .route("/api/v1/merchants/customers/:external_id/withdraw", post(crate::api::customer_handlers::withdraw_from_customer))
         .route("/api/v1/merchants/customers/:external_id/sweep", post(crate::api::customer_handlers::sweep_customer_wallet))
         .route("/api/v1/merchants/customers/:external_id/deactivate", post(crate::api::customer_handlers::deactivate_customer))
         

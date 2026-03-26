@@ -2,7 +2,7 @@
   "info": {
     "name": "FidduPay Merchant API SDK",
     "description": "Official Merchant API documentation for FidduPay Node.js SDK users.",
-    "version": "2.5.6",
+    "version": "2.5.8",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -240,12 +240,14 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"USDT\",\n  \"amount\": \"10.0\",\n  \"pin\": \"1234\"\n}"
-            }
+              "raw": "{\n  \"sweep_mode\": \"ALL\",\n  \"pin\": \"1234\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sweeps ALL locked assets from the customer sub-wallet to your Master Wallet. Gas fees are automatically deducted from your native ledger balance. For EVM, the system auto-funds gas dust internally — customers never see gas transactions.\n\nSweep modes:\n- ALL (default): sweeps every asset\n- NATIVE_ONLY: sweeps only native coins (ETH, BNB, SOL…)\n- STABLE_ONLY: sweeps only stablecoins (USDT, BUSD…)\n- SPECIFIC: sweeps a single crypto_type (requires crypto_types array)"
           }
         },
         {
-          "name": "Withdraw Funds",
+          "name": "Sweep Funds (Specific Asset)",
           "request": {
             "method": "POST",
             "header": [
@@ -259,7 +261,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/withdraw",
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/sweep",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -269,13 +271,15 @@
                 "merchants",
                 "customers",
                 "user_1234",
-                "withdraw"
+                "sweep"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"USDT\",\n  \"amount\": \"5.0\",\n  \"destination_address\": \"0x123...\",\n  \"pin\": \"1234\"\n}"
-            }
+              "raw": "{\n  \"sweep_mode\": \"SPECIFIC\",\n  \"crypto_types\": [\"USDT_ETH\"],\n  \"amount\": \"50.0\",\n  \"pin\": \"1234\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sweep a specific asset from the customer sub-wallet. Omit 'amount' to sweep the maximum available locked balance."
           }
         },
         {
@@ -595,7 +599,7 @@
           }
         },
         {
-          "name": "Withdraw from Customer",
+          "name": "Sweep Funds (Stablecoins Only)",
           "request": {
             "method": "POST",
             "header": [
@@ -609,7 +613,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/withdraw",
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/sweep",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -619,13 +623,15 @@
                 "merchants",
                 "customers",
                 "user_1234",
-                "withdraw"
+                "sweep"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"amount\": \"1.5\",\n  \"destination_address\": \"8xH9...\",\n  \"pin\": \"1234\"\n}"
-            }
+              "raw": "{\n  \"sweep_mode\": \"STABLE_ONLY\",\n  \"pin\": \"1234\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sweep only stablecoin balances (USDT, BUSD, etc.) locked by the customer to your Master Wallet. This non-custodial sweep deducts gas fees from your merchant native ledger — no external transfers visible to the customer."
           }
         },
         {
