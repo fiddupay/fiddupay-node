@@ -176,6 +176,15 @@ impl WithdrawalProcessor {
         tracing::info!("Blockchain submission started for withdrawal {} to address {}", withdrawal_id, wd_destination_address);
 
         // 4. Send the transaction on-chain
+        if wd_destination_address == "Internal Ledger" {
+            tracing::info!("Withdrawal {} is an Internal Ledger movement. Marking as COMPLETED without on-chain tx.", withdrawal_id);
+            sqlx::query("UPDATE withdrawals SET status = 'COMPLETED', updated_at = NOW() WHERE withdrawal_id = $1")
+                .bind(withdrawal_id)
+                .execute(&self.db_pool)
+                .await?;
+            return Ok(());
+        }
+
         let sender = BlockchainTransactionSender::new(self.config.clone());
         let tx_hash = match sender.send_transaction(
             crypto_type_enum,

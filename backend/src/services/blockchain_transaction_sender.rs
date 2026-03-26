@@ -465,9 +465,17 @@ impl BlockchainTransactionSender {
         _to: &str,
         _amount: Decimal,
     ) -> Result<U256, ServiceError> {
-        match crypto_type {
-            CryptoType::Sol => Ok(U256::from(5000)), // Base fee in lamports
-            _ => Ok(U256::from(21000)), // Standard gas limit for EVM
+        match crypto_type.network() {
+            "SOLANA" => Ok(U256::from(1)), // Solana uses flat fees, treat limit as 1 signature
+            "BITCOIN" => Ok(U256::from(1)), // Bitcoin fees handled differently, but treat as 1 unit for generic scaling
+            _ => {
+                // EVM Networks
+                if crypto_type.is_native_currency() {
+                    Ok(U256::from(21000)) // Standard ETH transfer
+                } else {
+                    Ok(U256::from(65000)) // Standard ERC20/Token transfer
+                }
+            }
         }
     }
 
@@ -537,7 +545,12 @@ impl BlockchainTransactionSender {
             (CryptoType::Matic, true) => (&self.config.polygon_mumbai_rpc_url, self.config.polygon_mumbai_chain_id),
             (CryptoType::Arb, false) => (&self.config.arbitrum_rpc_url, self.config.arbitrum_chain_id),
             (CryptoType::Arb, true) => (&self.config.arbitrum_sepolia_rpc_url, self.config.arbitrum_sepolia_chain_id),
-            _ => return Err(ServiceError::ValidationError("Unsupported or non-EVM network for gas query".to_string())),
+            (CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol, _) => {
+                // For Solana, return the base fee (5000 lamports) as the "price"
+                // This ensures generic (price * limit) logic works: 5000 * 1 = 5000 lamports
+                return Ok(U256::from(5000));
+            },
+            _ => return Err(ServiceError::ValidationError(format!("Gas price query not implemented for network: {}", crypto_type.network()))),
         };
 
         let transport = Http::new(rpc_url)

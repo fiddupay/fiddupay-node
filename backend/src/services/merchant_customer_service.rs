@@ -1027,25 +1027,26 @@ impl MerchantCustomerService {
                     withdrawal_id, merchant_id, crypto_type, amount, amount_usd, destination_address,
                     status, fee, net_amount, created_at, updated_at, sandbox_mode
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', $7, $4, NOW(), NOW(), $8)
+                VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', $7, $8, NOW(), NOW(), $9)
                 "#
             )
-            .bind(&withdrawal_id)
-            .bind(merchant_id)
-            .bind(&normalized_crypto)
-            .bind(amount)
-            .bind(amount_usd)
-            .bind(&merchant_address)
-            .bind(fee_to_save)
-            .bind(sandbox_mode)
+            .bind(&withdrawal_id)           // $1
+            .bind(merchant_id)              // $2
+            .bind(&normalized_crypto)       // $3
+            .bind(amount + fee_to_save)     // $4 (Gross Amount)
+            .bind(amount_usd)               // $5
+            .bind(&merchant_address)        // $6
+            .bind(fee_to_save)              // $7
+            .bind(amount)                   // $8 (Net Amount - what merchant receives)
+            .bind(sandbox_mode)             // $9
             .execute(&mut *tx)
             .await?;
 
             // Record in customer_transactions
             sqlx::query(
                 r#"
-                INSERT INTO customer_transactions (customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status, description, sandbox_mode)
-                VALUES ($1, $2, 'SWEEP', $3, $4, $5, 0, 'COMPLETED', 'Funds swept to merchant external wallet', $6)
+                INSERT INTO customer_transactions (customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status, reference_id, description, sandbox_mode)
+                VALUES ($1, $2, 'SWEEP', $3, $4, $5, 0, 'COMPLETED', $6, 'Funds swept to merchant external wallet', $7)
                 "#
             )
             .bind(customer.id)
@@ -1053,7 +1054,8 @@ impl MerchantCustomerService {
             .bind(&normalized_crypto)
             .bind(amount)
             .bind(amount_usd)
-            .bind(sandbox_mode)
+            .bind(&withdrawal_id)           // $6 (reference_id)
+            .bind(sandbox_mode)             // $7
             .execute(&mut *tx)
             .await?;
 
