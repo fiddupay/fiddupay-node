@@ -567,9 +567,9 @@ impl PaymentVerifier {
             "payment_id": payment.public_id.clone(),
         });
         
-        if let Ok(mut redis_conn) = self.redis_client.get_async_connection().await {
+        if let Ok(mut redis_conn) = self.redis_client.get_multiplexed_async_connection().await {
             use redis::AsyncCommands;
-            let _: Result<(), _> = redis_conn.publish(channel_name, notification.to_string()).await;
+            let _: Result<(), _> = redis_conn.publish::<_, _, ()>(channel_name, notification.to_string()).await;
         }
 
         // Platform fee will be collected by the smart fee sweeping background job

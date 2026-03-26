@@ -230,6 +230,7 @@ pub async fn login_merchant(
                     state.db_pool.clone(),
                     state.config.clone(),
                     state.audit_service.clone(),
+                    state.volume_tracking_service.clone(),
                 );
 
                 let remaining_volume: Decimal = merchant_service.get_daily_volume_remaining(

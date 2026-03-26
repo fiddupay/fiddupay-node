@@ -65,6 +65,7 @@ impl AppState {
         let invoice_service = Arc::new(InvoiceService::new(db_pool.clone()));
         let balance_service = Arc::new(BalanceService::new(db_pool.clone(), price_service.clone()));
 
+        let audit_service = Arc::new(AuditService::new(db_pool.clone()));
         let volume_tracking_service = Arc::new(VolumeTrackingService::new(db_pool.clone()));
         let merchant_service = Arc::new(MerchantService::new(db_pool.clone(), config.clone(), audit_service.clone(), volume_tracking_service.clone()));
         

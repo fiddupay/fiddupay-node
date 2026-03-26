@@ -693,7 +693,8 @@ impl MerchantCustomerService {
         let tx_desc = description.unwrap_or("Payment to merchant").to_string();
 
         // Calculate USD amount
-        let price = self.price_service.get_price(normalized_crypto.clone()).await.unwrap_or(0.0);
+        let ct_enum = crate::payment::models::CryptoType::from_string(&normalized_crypto).unwrap_or(crate::payment::models::CryptoType::Bnb);
+        let price = self.price_service.get_price(ct_enum).await.unwrap_or(0.0);
         let amount_usd = (amount * Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO)).round_dp(2);
 
         let customer_tx = sqlx::query_as::<_, CustomerTransaction>(
