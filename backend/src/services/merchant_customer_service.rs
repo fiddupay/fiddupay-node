@@ -17,13 +17,19 @@ use std::str::FromStr;
 
 const CUSTOMER_COLS: &str = "id, merchant_id, external_id, email, first_name, last_name, metadata, is_active, status, status_reason, can_withdraw, withdrawal_limit, created_at, updated_at, sandbox_mode";
 
+use std::sync::Arc;
+use crate::services::price_service::PriceService;
+use crate::services::volume_tracking_service::VolumeTrackingService;
+
 pub struct MerchantCustomerService {
     db_pool: PgPool,
+    price_service: Arc<PriceService>,
+    volume_tracking: Arc<VolumeTrackingService>,
 }
 
 impl MerchantCustomerService {
-    pub fn new(db_pool: PgPool) -> Self {
-        Self { db_pool }
+    pub fn new(db_pool: PgPool, price_service: Arc<PriceService>, volume_tracking: Arc<VolumeTrackingService>) -> Self {
+        Self { db_pool, price_service, volume_tracking }
     }
 
     // =========================================================================
@@ -686,10 +692,14 @@ impl MerchantCustomerService {
         let tx_ref = reference_id.unwrap_or("").to_string();
         let tx_desc = description.unwrap_or("Payment to merchant").to_string();
 
+        // Calculate USD amount
+        let price = self.price_service.get_price(normalized_crypto.clone()).await.unwrap_or(0.0);
+        let amount_usd = (amount * Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO)).round_dp(2);
+
         let customer_tx = sqlx::query_as::<_, CustomerTransaction>(
             r#"
             INSERT INTO customer_transactions (customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status, destination_address, reference_id, description, sandbox_mode)
-            VALUES ($1, $2, 'MERCHANT_PAYMENT', $3, $4, 0, 0, 'COMPLETED', $5, $6, $7, $8)
+            VALUES ($1, $2, 'MERCHANT_PAYMENT', $3, $4, $5, 0, 'COMPLETED', $6, $7, $8, $9)
             RETURNING id, customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status,
                       destination_address, transaction_hash, reference_id, description,
                       created_at, updated_at, sandbox_mode
@@ -699,6 +709,7 @@ impl MerchantCustomerService {
         .bind(merchant_id)
         .bind(&normalized_crypto)
         .bind(amount)
+        .bind(amount_usd)
         .bind(&merchant_address)
         .bind(&tx_ref)
         .bind(&tx_desc)
@@ -790,10 +801,62 @@ impl MerchantCustomerService {
             return Err(ServiceError::ValidationError("No matching funds available to sweep for the requested criteria".to_string()));
         }
 
+        // Calculate total USD volume for this sweep and check limits
+        let mut total_sweep_usd = Decimal::ZERO;
+        let mut sweep_item_details = Vec::new();
+        
+        for b in &balances_to_sweep {
+            let amount = if mode_str == "SPECIFIC" && target_cryptos.len() == 1 {
+                if let Some(ref amt_str) = req.amount {
+                    Decimal::from_str(amt_str).unwrap_or(b.locked_balance)
+                } else {
+                    b.locked_balance
+                }
+            } else {
+                b.locked_balance
+            };
+            
+            if amount <= Decimal::ZERO || b.locked_balance < amount {
+                continue;
+            }
+
+            let c_type = CryptoType::from_string(&b.crypto_type).unwrap_or(CryptoType::Eth);
+            let price = self.price_service.get_price(c_type).await.unwrap_or(0.0);
+            let item_usd = (amount * Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO)).round_dp(2);
+            
+            total_sweep_usd += item_usd;
+            sweep_item_details.push((b.id, amount, item_usd));
+        }
+
+        // Fetch merchant KYC status and limit
+        let merchant_row = sqlx::query("SELECT kyc_verified, daily_limit_usd FROM merchants WHERE id = $1")
+            .bind(merchant_id)
+            .fetch_one(&self.db_pool)
+            .await?;
+        
+        let kyc_verified: bool = merchant_row.get("kyc_verified");
+        let daily_limit_usd: Option<Decimal> = merchant_row.get("daily_limit_usd");
+
+        if !kyc_verified {
+            let limit = daily_limit_usd.unwrap_or(config.daily_volume_limit_non_kyc_usd);
+            let remaining = self.volume_tracking.get_remaining_daily_volume(merchant_id, limit, kyc_verified).await?.unwrap_or(Decimal::ZERO);
+            
+            if total_sweep_usd > remaining {
+                return Err(ServiceError::Forbidden(format!(
+                    "Daily volume limit exceeded. This sweep would cost ${}, but you only have ${} remaining today. Please complete KYC to remove this limit.",
+                    total_sweep_usd, remaining
+                )));
+            }
+        }
+
         let mut swept_results = Vec::new();
         let mut tx = self.db_pool.begin().await?;
 
         for balance_record in balances_to_sweep {
+            // Find the pre-calculated USD amount for this record
+            let item_detail = sweep_item_details.iter().find(|(id, _, _)| *id == balance_record.id);
+            let amount_usd = item_detail.map(|(_, _, usd)| *usd).unwrap_or(Decimal::ZERO);
+
             let amount = if mode_str == "SPECIFIC" && target_cryptos.len() == 1 {
                 if let Some(ref amt_str) = req.amount {
                     Decimal::from_str(amt_str).unwrap_or(balance_record.locked_balance)
@@ -971,13 +1034,14 @@ impl MerchantCustomerService {
                     withdrawal_id, merchant_id, crypto_type, amount, amount_usd, destination_address,
                     status, fee, net_amount, created_at, updated_at, sandbox_mode
                 )
-                VALUES ($1, $2, $3, $4, 0, $5, 'PENDING', $6, $4, NOW(), NOW(), $7)
+                VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', $7, $4, NOW(), NOW(), $8)
                 "#
             )
             .bind(&withdrawal_id)
             .bind(merchant_id)
             .bind(&normalized_crypto)
             .bind(amount)
+            .bind(amount_usd)
             .bind(&merchant_address)
             .bind(fee_to_save)
             .bind(sandbox_mode)
@@ -988,13 +1052,14 @@ impl MerchantCustomerService {
             sqlx::query(
                 r#"
                 INSERT INTO customer_transactions (customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status, description, sandbox_mode)
-                VALUES ($1, $2, 'SWEEP', $3, $4, 0, 0, 'COMPLETED', 'Funds swept to merchant external wallet', $5)
+                VALUES ($1, $2, 'SWEEP', $3, $4, $5, 0, 'COMPLETED', 'Funds swept to merchant external wallet', $6)
                 "#
             )
             .bind(customer.id)
             .bind(merchant_id)
             .bind(&normalized_crypto)
             .bind(amount)
+            .bind(amount_usd)
             .bind(sandbox_mode)
             .execute(&mut *tx)
             .await?;

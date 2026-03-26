@@ -4,6 +4,7 @@
 use crate::config::Config;
 use crate::services::{
     analytics_service::AnalyticsService,
+    merchant_customer_service::MerchantCustomerService,
     merchant_service::MerchantService,
     payment_service::PaymentService,
     refund_service::RefundService,
@@ -30,6 +31,7 @@ pub struct AppState {
     pub db_pool: PgPool,
     pub config: Config,
     pub merchant_service: Arc<MerchantService>,
+    pub merchant_customer_service: Arc<MerchantCustomerService>,
     pub payment_service: Arc<PaymentService>,
     pub refund_service: Arc<RefundService>,
     pub analytics_service: Arc<AnalyticsService>,
@@ -63,12 +65,18 @@ impl AppState {
         let invoice_service = Arc::new(InvoiceService::new(db_pool.clone()));
         let balance_service = Arc::new(BalanceService::new(db_pool.clone(), price_service.clone()));
 
-        let audit_service = Arc::new(AuditService::new(db_pool.clone()));
-        let merchant_service = Arc::new(MerchantService::new(db_pool.clone(), config.clone(), audit_service.clone()));
+        let volume_tracking_service = Arc::new(VolumeTrackingService::new(db_pool.clone()));
+        let merchant_service = Arc::new(MerchantService::new(db_pool.clone(), config.clone(), audit_service.clone(), volume_tracking_service.clone()));
+        
+        let merchant_customer_service = Arc::new(crate::services::merchant_customer_service::MerchantCustomerService::new(
+            db_pool.clone(),
+            price_service.clone(),
+            volume_tracking_service.clone(),
+        ));
 
         Self {
             merchant_service,
-            payment_service: Arc::new(PaymentService::new(db_pool.clone(), &config.payment_page_base_url, price_service.clone(), invoice_service.clone(), audit_service.clone(), &config.webhook_signing_key, config.clone(), redis_client.clone())),
+            payment_service: Arc::new(PaymentService::new(db_pool.clone(), &config.payment_page_base_url, price_service.clone(), invoice_service.clone(), audit_service.clone(), &config.webhook_signing_key, config.clone(), redis_client.clone(), volume_tracking_service.clone())),
             refund_service: Arc::new(RefundService::new(db_pool.clone(), webhook_service.clone())),
             analytics_service: Arc::new(AnalyticsService::new(db_pool.clone(), price_service.clone())),
             sandbox_service: Arc::new(SandboxService::new(db_pool.clone(), config.clone())),
@@ -77,11 +85,12 @@ impl AppState {
             ip_whitelist_service: Arc::new(IpWhitelistService::new(db_pool.clone())),
             audit_service,
             balance_service: balance_service.clone(),
-            withdrawal_service: Arc::new(WithdrawalService::new(db_pool.clone(), price_service.clone())),
+            withdrawal_service: Arc::new(WithdrawalService::new(db_pool.clone(), price_service.clone(), volume_tracking_service.clone(), config.clone())),
             wallet_config_service: Arc::new(WalletConfigService::new(db_pool.clone())),
             currency_service: Arc::new(CurrencyService::new(db_pool.clone())),
             price_service,
-            volume_tracking_service: Arc::new(VolumeTrackingService::new(db_pool.clone())),
+            volume_tracking_service,
+            merchant_customer_service,
             invoice_service,
             p2p_service: Arc::new(P2pService::new(db_pool.clone())),
             config,

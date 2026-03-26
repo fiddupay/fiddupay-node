@@ -2,8 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { customerAPI, publicAPI } from "@/services/apiService";
 import styles from "@/styles/pages/MerchantCustomersPage.module.css";
 import { useToast } from "@/contexts/ToastContext";
-import { SiEthereum, SiBinance, SiTether, SiBitcoin } from "react-icons/si";
-import { FaSun, FaDrawPolygon, FaWallet } from "react-icons/fa";
+import { FaWallet } from "react-icons/fa";
 
 interface Customer {
   id: string;
@@ -99,6 +98,7 @@ const MerchantCustomersPage: React.FC = () => {
   const [drawerTab, setDrawerTab] = useState<
     "overview" | "transactions" | "permissions" | "actions"
   >("overview");
+  const [expandedAsset, setExpandedAsset] = useState<string | null>(null);
 
   // Form States
   const [newCustomer, setNewCustomer] = useState({
@@ -1034,147 +1034,28 @@ const MerchantCustomersPage: React.FC = () => {
                   {/* =================== OVERVIEW TAB =================== */}
                   {drawerTab === "overview" && (
                     <>
-                      {/* Wallets */}
+                      {/* Portfolio Section */}
                       <div className={styles.drawerSection}>
-                        <h3>
-                          <i
-                            className="fas fa-wallet"
-                            style={{ color: "#2563eb" }}
-                          ></i>{" "}
-                          Dedicated Wallets
-                        </h3>
-                        {customerWallets.length > 0 ? (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "0.75rem",
-                            }}
-                          >
-                            {customerWallets.map((w, idx) => {
-                              const networkKey = w.network
-                                .toLowerCase()
-                                .includes("ethereum")
-                                ? "eth"
-                                : w.network.toLowerCase().includes("bep20")
-                                  ? "bsc"
-                                  : w.network.toLowerCase().includes("bsc")
-                                    ? "bsc"
-                                    : w.network.toLowerCase().includes("solana")
-                                      ? "sol"
-                                      : w.network
-                                            .toLowerCase()
-                                            .includes("polygon")
-                                        ? "poly"
-                                        : w.network
-                                              .toLowerCase()
-                                              .includes("arbitrum")
-                                          ? "arb"
-                                          : w.network
-                                                .toLowerCase()
-                                                .includes("bitcoin")
-                                            ? "btc"
-                                            : "";
-
-                              const getReactIcon = (code: string) => {
-                                const c = code.toLowerCase();
-                                if (c.includes("usdt") || c.includes("usdc"))
-                                  return <SiTether />;
-                                if (c.includes("eth")) return <SiEthereum />;
-                                if (c.includes("sol")) return <FaSun />;
-                                if (c.includes("bnb") || c.includes("busd"))
-                                  return <SiBinance />;
-                                if (c.includes("btc")) return <SiBitcoin />;
-                                if (
-                                  c.includes("matic") ||
-                                  c.includes("polygon")
-                                )
-                                  return <FaDrawPolygon />;
-                                return <FaWallet />;
-                              };
-
-                              return (
-                                <div
-                                  key={idx}
-                                  className={`${styles.walletItem} ${styles[networkKey]}`}
-                                >
-                                  <div className={styles.walletHeader}>
-                                    <div className={styles.walletMainInfo}>
-                                      <div className={styles.assetIcon}>
-                                        {getReactIcon(w.crypto_type)}
-                                      </div>
-                                      <span className={styles.walletType}>
-                                        {w.crypto_type}
-                                        <sub>
-                                          {w.crypto_type.includes("USDT")
-                                            ? "Stablecoin"
-                                            : "Native Token"}
-                                        </sub>
-                                      </span>
-                                    </div>
-                                    <span className={styles.walletNetwork}>
-                                      {w.network}
-                                    </span>
-                                  </div>
-                                  <div className={styles.addressBox}>
-                                    <span className={styles.addressText}>
-                                      {w.address}
-                                    </span>
-                                    <button
-                                      className={styles.copyBtn}
-                                      title="Copy Address"
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(
-                                          w.address,
-                                        );
-                                        showToast("Address copied!", "success");
-                                      }}
-                                    >
-                                      <i className="far fa-copy"></i>
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div
-                            style={{
-                              textAlign: "center",
-                              padding: "2rem 1rem",
-                              background: "#f8fafc",
-                              borderRadius: "12px",
-                              color: "#94a3b8",
-                            }}
-                          >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: "1.5rem",
+                          }}
+                        >
+                          <h3 style={{ margin: 0 }}>
                             <i
                               className="fas fa-wallet"
-                              style={{
-                                fontSize: "1.5rem",
-                                marginBottom: "0.5rem",
-                                display: "block",
-                              }}
-                            ></i>
-                            <p style={{ margin: 0, fontSize: "0.85rem" }}>
-                              No wallets provisioned yet
-                            </p>
+                              style={{ color: "#2563eb" }}
+                            ></i>{" "}
+                            Portfolio
+                          </h3>
+                          {customerWallets.length === 0 && (
                             <button
                               onClick={handleProvisionWallets}
-                              style={{
-                                marginTop: "1rem",
-                                padding: "0.5rem 1.25rem",
-                                background: "#2563eb",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "8px",
-                                cursor: "pointer",
-                                fontWeight: 600,
-                                fontSize: "0.85rem",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "0.5rem",
-                                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                              }}
+                              className={styles.provisionBtn}
+                              style={{ width: "auto", padding: "0.5rem 1rem" }}
                               disabled={provisioning}
                             >
                               {provisioning ? (
@@ -1182,98 +1063,132 @@ const MerchantCustomersPage: React.FC = () => {
                               ) : (
                                 <i className="fas fa-magic"></i>
                               )}
-                              {provisioning
-                                ? "Provisioning..."
-                                : "Provision Wallets"}
+                              Provision All
                             </button>
-                          </div>
-                        )}
+                          )}
+                        </div>
+
+                        <div className={styles.portfolioList}>
+                          {supportedCurrencies.length > 0 ? (
+                            supportedCurrencies.map((asset: any) => {
+                              const balance = customerBalances?.find(
+                                (b: any) =>
+                                  b.crypto_type === asset.crypto_type,
+                              );
+                              const wallet = customerWallets.find(
+                                (w: any) =>
+                                  w.crypto_type === asset.crypto_type,
+                              );
+                              const isExpanded =
+                                expandedAsset === asset.crypto_type;
+
+                              return (
+                                <div
+                                  key={asset.crypto_type}
+                                  className={`${styles.portfolioItem} ${isExpanded ? styles.expanded : ""}`}
+                                  onClick={() =>
+                                    setExpandedAsset(
+                                      isExpanded ? null : asset.crypto_type,
+                                    )
+                                  }
+                                >
+                                  <div className={styles.portfolioMain}>
+                                    <div className={styles.assetInfoGroup}>
+                                      <div className={styles.assetIconSmall}>
+                                        {asset.icon_url ? (
+                                          <img
+                                            src={asset.icon_url}
+                                            alt={asset.crypto_type}
+                                          />
+                                        ) : (
+                                          <FaWallet />
+                                        )}
+                                      </div>
+                                      <div className={styles.assetMetaGroup}>
+                                        <span className={styles.assetCode}>
+                                          {asset.crypto_type}
+                                        </span>
+                                        <span
+                                          className={styles.assetNetworkName}
+                                        >
+                                          {asset.network}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div className={styles.assetBalanceGroup}>
+                                      <span className={styles.balanceValue}>
+                                        {parseFloat(
+                                          balance?.available_balance || "0",
+                                        ).toFixed(6)}
+                                      </span>
+                                      <span className={styles.usdValue}>
+                                        ≈ $
+                                        {parseFloat(
+                                          balance?.available_balance_usd || "0",
+                                        ).toLocaleString(undefined, {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2,
+                                        })}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {isExpanded && (
+                                    <div
+                                      className={styles.expandedDetails}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {wallet ? (
+                                        <div className={styles.addressContainer}>
+                                          <label>Deposit Address</label>
+                                          <div className={styles.addressRow}>
+                                            <code className={styles.addressCode}>
+                                              {wallet.address}
+                                            </code>
+                                            <button
+                                              className={styles.miniCopyBtn}
+                                              onClick={() => {
+                                                navigator.clipboard.writeText(
+                                                  wallet.address,
+                                                );
+                                                showToast(
+                                                  "Address copied!",
+                                                  "success",
+                                                );
+                                              }}
+                                            >
+                                              <i className="far fa-copy"></i>
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontSize: '0.85rem' }}>
+                                          <p>No dedicated wallet for this asset yet.</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className={styles.loadingOverlay}>
+                              <i className="fas fa-circle-notch fa-spin"></i>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Balances & Sweep */}
+                      {/* Sweep Section */}
                       <div className={styles.drawerSection}>
                         <h3>
                           <i
                             className="fas fa-coins"
                             style={{ color: "#f59e0b" }}
                           ></i>{" "}
-                          Asset Balances & Sweep
+                          Sweep Assets
                         </h3>
-                        {customerBalances &&
-                        Array.isArray(customerBalances) &&
-                        customerBalances.length > 0 ? (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "0.5rem",
-                              marginBottom: "1.5rem",
-                            }}
-                          >
-                            {customerBalances.map((b: any, i: number) => (
-                              <div
-                                key={i}
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  padding: "0.75rem 1rem",
-                                  background: "#f8fafc",
-                                  borderRadius: "10px",
-                                  fontSize: "0.9rem",
-                                }}
-                              >
-                                <span
-                                  style={{ fontWeight: 600, color: "#334155" }}
-                                >
-                                  {b.crypto_type}
-                                </span>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "flex-end",
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      fontWeight: 700,
-                                      color: "#059669",
-                                    }}
-                                  >
-                                    {parseFloat(
-                                      b.available_balance || "0",
-                                    ).toFixed(6)}
-                                  </span>
-                                  <span
-                                    style={{
-                                      fontSize: "0.75rem",
-                                      color: "#94a3b8",
-                                    }}
-                                  >
-                                    ≈ $
-                                    {parseFloat(
-                                      (b as any).available_balance_usd || "0",
-                                    ).toLocaleString(undefined, {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2,
-                                    })}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p
-                            style={{
-                              fontSize: "0.85rem",
-                              color: "#94a3b8",
-                              marginBottom: "1.5rem",
-                            }}
-                          >
-                            No balances found
-                          </p>
-                        )}
-
                         <form
                           className={styles.sweepForm}
                           onSubmit={handleSweep}

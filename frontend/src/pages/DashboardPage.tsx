@@ -471,26 +471,17 @@ const RecentActivityList: React.FC = () => {
             </div>
             <div className={styles.activityRight}>
               {(() => {
-                const isStablecoin = activity.crypto_type?.toUpperCase().includes('USDT')
                 const sign = (activity.type === 'withdrawal' || activity.type === 'refund') ? '-' : ''
                 const parts = activity.crypto_type?.split('_') || ['', '']
                 const coin = parts[0]
                 const cryptoAmt = parseFloat(activity.crypto_amount || activity.usd_amount).toFixed(6)
 
-                if (isStablecoin) {
-                  return (
-                    <>
-                      <span className={styles.activityAmount}>{sign}{cryptoAmt} {coin}</span>
-                    </>
-                  )
-                } else {
-                  return (
-                    <>
-                      <span className={styles.activityAmount}>{sign}${parseFloat(activity.usd_amount).toFixed(2)}</span>
-                      <span className={styles.activityCrypto}>{sign}{cryptoAmt} {coin}</span>
-                    </>
-                  )
-                }
+                return (
+                  <>
+                    <span className={styles.activityAmount}>{sign}${parseFloat(activity.usd_amount).toFixed(2)}</span>
+                    <span className={styles.activityCrypto}>{sign}{cryptoAmt} {coin}</span>
+                  </>
+                )
               })()}
             </div>
           </div>

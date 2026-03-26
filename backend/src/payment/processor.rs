@@ -21,17 +21,19 @@ pub struct PaymentProcessor {
     invoice_service: Arc<InvoiceService>,
     audit_service: Arc<crate::services::audit_service::AuditService>,
     config: crate::config::Config,
+    volume_tracking: Arc<crate::services::volume_tracking_service::VolumeTrackingService>,
 }
 
 impl PaymentProcessor {
-    pub fn new(db_pool: PgPool, _payment_page_base_url: String, price_service: Arc<PriceService>, invoice_service: Arc<InvoiceService>, audit_service: Arc<crate::services::audit_service::AuditService>, config: crate::config::Config) -> Self {
+    pub fn new(db_pool: PgPool, _payment_page_base_url: String, price_service: Arc<PriceService>, invoice_service: Arc<InvoiceService>, audit_service: Arc<crate::services::audit_service::AuditService>, config: crate::config::Config, volume_tracking: Arc<crate::services::volume_tracking_service::VolumeTrackingService>) -> Self {
         Self {
             db_pool: db_pool.clone(),
             price_service,
-            merchant_service: MerchantService::new(db_pool, config.clone(), audit_service.clone()),
+            merchant_service: MerchantService::new(db_pool, config.clone(), audit_service.clone(), volume_tracking.clone()),
             invoice_service,
             audit_service,
             config,
+            volume_tracking,
         }
     }
 

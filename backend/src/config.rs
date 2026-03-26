@@ -352,7 +352,7 @@ impl Config {
 
             // Daily Volume Limits
             daily_volume_limit_non_kyc_usd: env::var("DAILY_VOLUME_LIMIT_NON_KYC_USD")
-                .unwrap_or_else(|_| "1000.00".to_string())
+                .unwrap_or_else(|_| "100000.00".to_string())
                 .parse()?,
 
             // Merchant Settings
@@ -388,7 +388,7 @@ impl Config {
                 .unwrap_or_else(|_| "false".to_string()) // Hardened: Default to false
                 .parse()?,
             withdrawal_auto_approval_limit_usd: env::var("WITHDRAWAL_AUTO_APPROVAL_LIMIT_USD")
-                .unwrap_or_else(|_| "1000.00".to_string())
+                .unwrap_or_else(|_| "100000.00".to_string())
                 .parse()?,
 
             // Feature Flags
@@ -702,7 +702,7 @@ impl Default for Config {
             payment_cleanup_interval_hours: 24,
             payment_page_base_url: "https://pay.fiddupay.com".to_string(),
             default_fee_percentage: rust_decimal::Decimal::new(75, 4), // 0.0075 = 0.75%
-            daily_volume_limit_non_kyc_usd: rust_decimal::Decimal::new(100000, 2), // 1000.00
+            daily_volume_limit_non_kyc_usd: rust_decimal::Decimal::new(10000000, 2), // 100,000.00
             merchant_registration_enabled: true,
             merchant_email_verification_required: true,
             merchant_kyc_required: false,
@@ -712,7 +712,7 @@ impl Default for Config {
             webhook_retry_delay_seconds: 5,
             webhook_signature_required: true,
             withdrawal_enabled: true,
-            withdrawal_auto_approval_limit_usd: rust_decimal::Decimal::new(100000, 2), // 1000.00
+            withdrawal_auto_approval_limit_usd: rust_decimal::Decimal::new(10000000, 2), // 100,000.00
             two_factor_enabled: false,
             deposit_address_enabled: true,
             invoice_enabled: true,

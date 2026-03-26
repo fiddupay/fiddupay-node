@@ -95,7 +95,7 @@ const WithdrawalsPage: React.FC = () => {
         const up = cryptoType.toUpperCase()
         if (up.includes('SOL')) return `https://solscan.io/tx/${hash}${isSandbox ? '?cluster=devnet' : ''}`
         if (up.includes('ETH')) return `https://${isSandbox ? 'sepolia.' : ''}etherscan.io/tx/${hash}`
-        if (up.includes('BEP20') || up.includes('BNB') || up.includes('BSC')) return `https://${isSandbox ? 'testnet.' : ''}bscscan.com/tx/${hash}`
+        if (up.includes('BINANCE') || up.includes('BNB') || up.includes('BSC')) return `https://${isSandbox ? 'testnet.' : ''}bscscan.com/tx/${hash}`
         if (up.includes('MATIC') || up.includes('POLYGON')) return `https://${isSandbox ? 'mumbai.' : ''}polygonscan.com/tx/${hash}`
         if (up.includes('ARB')) return `https://${isSandbox ? 'sepolia.' : ''}arbiscan.io/tx/${hash}`
         if (up.includes('BTC')) return `https://www.blockchain.com/btc${isSandbox ? '-testnet' : ''}/tx/${hash}`

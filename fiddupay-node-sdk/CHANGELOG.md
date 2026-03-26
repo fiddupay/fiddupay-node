@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [2.5.8] - 2026-03-26
 
+### Changed
+- **Network Rebranding**: Standardized network label for Binance Smart Chain from `BEP20`/`BSC` to **`BINANCE`**. This affects all currency lists and transaction network data returned by the API.
+- **Asset Support**: Added explicit support for **`BUSD_BEP20`** (Binance Network).
+- **USD Visibility**: Ensured `amount_usd` data is correctly populated and visible for all transaction types, including stablecoins.
+
 ### Added
 - **Non-Custodial Sweep Architecture**: `customers.sweep()` now accepts a `sweep_mode` field to control which assets are swept from the customer sub-wallet to the merchant's Master Wallet.
   - `ALL` — sweep every asset with a positive locked balance.

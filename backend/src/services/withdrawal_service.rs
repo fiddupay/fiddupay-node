@@ -9,6 +9,8 @@ use crate::services::price_service::PriceService;
 use crate::payment::models::CryptoType;
 use std::sync::Arc;
 use rust_decimal::prelude::FromPrimitive;
+use crate::services::volume_tracking_service::VolumeTrackingService;
+use crate::config::Config;
 
 #[derive(Debug, Deserialize)]
 pub struct WithdrawalRequest {
@@ -21,11 +23,13 @@ pub struct WithdrawalRequest {
 pub struct WithdrawalService {
     db_pool: PgPool,
     price_service: Arc<PriceService>,
+    volume_tracking: Arc<VolumeTrackingService>,
+    config: Config,
 }
 
 impl WithdrawalService {
-    pub fn new(db_pool: PgPool, price_service: Arc<PriceService>) -> Self {
-        Self { db_pool, price_service }
+    pub fn new(db_pool: PgPool, price_service: Arc<PriceService>, volume_tracking: Arc<VolumeTrackingService>, config: Config) -> Self {
+        Self { db_pool, price_service, volume_tracking, config }
     }
 
     pub async fn create_withdrawal(
@@ -43,6 +47,26 @@ impl WithdrawalService {
         let amount_usd = amount_usd.round_dp(2);
 
         let mut tx = self.db_pool.begin().await?;
+
+        // 0. Fetch Merchant KYC status and limit
+        let merchant_row = sqlx::query("SELECT kyc_verified, daily_limit_usd FROM merchants WHERE id = $1")
+            .bind(merchant_id)
+            .fetch_one(&mut *tx)
+            .await?;
+        let kyc_verified: bool = merchant_row.get("kyc_verified");
+        let daily_limit_usd: Option<Decimal> = merchant_row.get("daily_limit_usd");
+
+        if !kyc_verified {
+            let limit = daily_limit_usd.unwrap_or(self.config.daily_volume_limit_non_kyc_usd);
+            let remaining = self.volume_tracking.get_remaining_daily_volume(merchant_id, limit, kyc_verified).await?.unwrap_or(Decimal::ZERO);
+            
+            if amount_usd > remaining {
+                return Err(ServiceError::Forbidden(format!(
+                    "Daily volume limit exceeded. Requested: ${}, Remaining: ${}. Please complete KYC to remove this limit.",
+                    amount_usd, remaining
+                )));
+            }
+        }
 
         // 1. Lock and check merchant balance (Requirement: Ledger Security)
         let balance_row = sqlx::query(

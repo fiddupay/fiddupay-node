@@ -10,16 +10,19 @@ use chrono::Utc;
 use nanoid::nanoid;
 use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
+use std::sync::Arc;
+use crate::services::volume_tracking_service::VolumeTrackingService;
 
 pub struct MerchantService {
     db_pool: PgPool,
     config: crate::config::Config,
-    audit_service: std::sync::Arc<crate::services::audit_service::AuditService>,
+    audit_service: Arc<crate::services::audit_service::AuditService>,
+    volume_tracking: Arc<VolumeTrackingService>,
 }
 
 impl MerchantService {
-    pub fn new(db_pool: PgPool, config: crate::config::Config, audit_service: std::sync::Arc<crate::services::audit_service::AuditService>) -> Self {
-        Self { db_pool, config, audit_service }
+    pub fn new(db_pool: PgPool, config: crate::config::Config, audit_service: Arc<crate::services::audit_service::AuditService>, volume_tracking: Arc<VolumeTrackingService>) -> Self {
+        Self { db_pool, config, audit_service, volume_tracking }
     }
 
     /// Validate a wallet address for a specific crypto type
@@ -66,30 +69,10 @@ impl MerchantService {
         kyc_verified: bool,
         daily_limit_usd: Option<Decimal>,
     ) -> Result<Decimal, ServiceError> {
-        if kyc_verified {
-            return Ok(Decimal::ZERO);
-        }
-
-        let today_start = Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
-        
-        let daily_volume: Option<Decimal> = match sqlx::query_scalar::<_, Option<Decimal>>(
-            "SELECT SUM(amount_usd) FROM payment_transactions WHERE merchant_id = $1 AND created_at >= $2 AND status = 'CONFIRMED'"
-        )
-        .bind(merchant_id)
-        .bind(today_start)
-        .fetch_one(&self.db_pool)
-        .await {
-            Ok(v) => v,
-            Err(e) => {
-                eprintln!("Volume calculation DB error: {:?}", e);
-                None
-            }
-        };
-
         let limit = daily_limit_usd.unwrap_or(self.config.daily_volume_limit_non_kyc_usd);
-        let settled_volume = daily_volume.unwrap_or(Decimal::ZERO);
-        
-        Ok((limit - settled_volume).max(Decimal::ZERO))
+        self.volume_tracking.get_remaining_daily_volume(merchant_id, limit, kyc_verified).await?
+            .ok_or(ServiceError::ValidationError("KYC verified merchants have no daily volume limit".to_string()))
+            .or(Ok(Decimal::ZERO)) // Handle the None case gracefully
     }
 
     /// Generate API key with proper prefix (single source of truth)

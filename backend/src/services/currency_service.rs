@@ -21,7 +21,7 @@ impl CurrencyService {
         vec![
             // (crypto_type, currency_group, network_name, icon_url)
             ("USDT_ETH", "USDT", "ETHEREUM", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
-            ("USDT_BEP20", "USDT", "BEP20", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
+            ("USDT_BEP20", "USDT", "BINANCE", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
             ("USDT_POLYGON", "USDT", "POLYGON", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
             ("USDT_ARBITRUM", "USDT", "ARBITRUM", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
             ("USDT_SPL", "USDT", "SOLANA", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
@@ -30,7 +30,8 @@ impl CurrencyService {
             ("SOL", "SOL", "SOLANA", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
             ("WSOL", "SOL", "SOLANA", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png"),
             ("MATIC", "MATIC", "POLYGON", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/matic.png"),
-            ("BNB", "BNB", "BEP20", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/bnb.png"),
+            ("BNB", "BNB", "BINANCE", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/bnb.png"),
+            ("BUSD_BEP20", "BUSD", "BINANCE", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/busd.png"),
             ("BTC", "BTC", "BITCOIN", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/btc.png"),
         ]
     }
@@ -43,6 +44,7 @@ impl CurrencyService {
             "SOL" => vec!["SOL", "WSOL"],
             "MATIC" => vec!["MATIC"],
             "BNB" => vec!["BNB"],
+            "BUSD" => vec!["BUSD_BEP20"],
             "BTC" => vec!["BTC"],
             _ => vec![],
         }
@@ -51,7 +53,7 @@ impl CurrencyService {
     pub fn get_network_name(&self, crypto_type: &str) -> &'static str {
         match crypto_type {
             "USDT_ETH" | "ETH" => "ETHEREUM",
-            "USDT_BEP20" | "USDT_BSC" | "BNB" | "BUSD_BEP20" => "BEP20",
+            "USDT_BEP20" | "USDT_BSC" | "BNB" | "BUSD_BEP20" => "BINANCE",
             "USDT_POLYGON" | "MATIC" => "POLYGON",
             "USDT_ARBITRUM" | "ARB" => "ARBITRUM",
             "USDT_SPL" | "SOL" | "WSOL" => "SOLANA",

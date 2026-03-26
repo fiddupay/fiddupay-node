@@ -431,7 +431,6 @@ impl PaymentVerifier {
     }
 
     /// Mark payment as confirmed and trigger webhooks
-    /// 
     /// # Requirements
     /// * 3.7: Update payment status to completed when confirmed
     /// * 4.2: Send webhook notification when payment status changes to confirmed
@@ -558,6 +557,21 @@ impl PaymentVerifier {
             warn!("Failed to queue webhook for payment {}: {}", payment_id, e);
         }
 
+        // 4. Publish to Redis for real-time dashboard notification (LiveDropToast)
+        let channel_name = format!("merchant_notifications:{}", merchant_id);
+        let notification = json!({
+            "event": "customer.deposit",
+            "amount": payment.amount.unwrap_or_default().to_string(),
+            "amount_usd": payment.amount_usd.to_string(),
+            "crypto_type": payment.crypto_type.clone().unwrap_or_else(|| "UNKNOWN".to_string()),
+            "payment_id": payment.public_id.clone(),
+        });
+        
+        if let Ok(mut redis_conn) = self.redis_client.get_async_connection().await {
+            use redis::AsyncCommands;
+            let _: Result<(), _> = redis_conn.publish(channel_name, notification.to_string()).await;
+        }
+
         // Platform fee will be collected by the smart fee sweeping background job
         // based on accumulated thresholds and admin settings.
         // The old immediate FeeCollectionService call has been removed.
@@ -625,7 +639,7 @@ impl PaymentVerifier {
                 remaining_balance = remaining_balance - $1,
                 expires_at = expires_at + INTERVAL '15 minutes'
             WHERE id = $2
-            RETURNING amount, total_paid, remaining_balance
+            RETURNING amount, total_paid, remaining_balance, merchant_id, crypto_type, amount_usd, public_id
             "#
         )
         .bind(amount)
@@ -636,6 +650,10 @@ impl PaymentVerifier {
         use sqlx::Row;
         let payment_amount: Option<Decimal> = payment_row.get("amount");
         let total_paid: Option<Decimal> = payment_row.get("total_paid");
+        let merchant_id: i64 = payment_row.get("merchant_id");
+        let crypto_type_str: String = payment_row.get("crypto_type");
+        let p_amount_usd: Decimal = payment_row.get("amount_usd");
+        let public_id: String = payment_row.get("public_id");
 
         // Check if payment is now complete
         let is_complete = if let (Some(amt), Some(paid)) = (payment_amount, total_paid) {
@@ -658,6 +676,24 @@ impl PaymentVerifier {
 
         info!(" Partial payment recorded for payment {}: {} (total: {:?}/{:?})", 
             payment_id, amount, total_paid, payment_amount);
+
+        // Publish to Redis for real-time dashboard notification
+        if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
+            let notification = serde_json::json!({
+                "event": "customer.deposit",
+                "amount": amount.to_string(),
+                "amount_usd": amount_usd.to_string(),
+                "crypto_type": crypto_type_str,
+                "payment_id": public_id,
+                "is_partial": true
+            });
+            let channel = format!("merchant_notifications:{}", merchant_id);
+            let _: redis::RedisResult<()> = redis::cmd("PUBLISH")
+                .arg(&channel)
+                .arg(notification.to_string())
+                .query_async(&mut publish_conn)
+                .await;
+        }
 
         Ok(is_complete)
     }
@@ -809,6 +845,10 @@ impl PaymentVerifier {
         .execute(&mut *tx)
         .await?;
 
+        // Calculate USD amount for ledger
+        let crypto_price = self.price_service.get_price(final_crypto_type.clone()).await.unwrap_or(1.0);
+        let amount_usd = (actual_amount * Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE)).round_dp(2);
+
         // Record Ledger transaction
         sqlx::query(
             r#"
@@ -816,13 +856,14 @@ impl PaymentVerifier {
                 customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status, 
                 destination_address, transaction_hash, description, sandbox_mode
             )
-            VALUES ($1, $2, 'DEPOSIT', $3, $4, 0, $5, 'COMPLETED', $6, $7, 'Static wallet deposit', $8)
+            VALUES ($1, $2, 'DEPOSIT', $3, $4, $5, $6, 'COMPLETED', $7, $8, 'Static wallet deposit', $9)
             "#
         )
         .bind(customer_id)
         .bind(merchant_id)
         .bind(&final_crypto_str)
         .bind(actual_amount)
+        .bind(amount_usd)
         .bind(fee_amount)
         .bind(&customer_wallet_address)
         .bind(transaction_hash)

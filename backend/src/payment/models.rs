@@ -157,7 +157,7 @@ impl CryptoType {
 
     pub fn network(&self) -> &'static str {
         match self {
-            CryptoType::UsdtBep20 => "BEP20",
+            CryptoType::UsdtBep20 => "BINANCE",
             CryptoType::UsdtArbitrum => "ARBITRUM",
             CryptoType::UsdtSpl => "SOLANA",
             CryptoType::UsdtPolygon => "POLYGON",
@@ -166,10 +166,10 @@ impl CryptoType {
             CryptoType::Eth => "ETHEREUM",
             CryptoType::Arb => "ARBITRUM",
             CryptoType::Matic => "POLYGON",
-            CryptoType::Bnb => "BEP20",
+            CryptoType::Bnb => "BINANCE",
             CryptoType::WSol => "SOLANA",
             CryptoType::Btc => "BITCOIN",
-            CryptoType::BusdBep20 => "BEP20",
+            CryptoType::BusdBep20 => "BINANCE",
         }
     }
 

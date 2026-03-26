@@ -13,14 +13,29 @@ impl VolumeTrackingService {
         Self { db_pool }
     }
 
-    /// Get total daily volume (deposits + withdrawals) for a merchant
+    /// Get total daily volume (deposits + withdrawals + sweeps) for a merchant
     pub async fn get_daily_volume(&self, merchant_id: i64, date: NaiveDate) -> Result<Decimal, ServiceError> {
         let start_of_day = date.and_hms_opt(0, 0, 0).unwrap().and_utc();
-        let end_of_day = date.and_hms_opt(23, 59, 59).unwrap().and_utc();
 
-        // For now, return zero as a placeholder until we have actual payment/withdrawal tables
-        // In a real implementation, this would query the actual tables
-        Ok(Decimal::ZERO)
+        // 1. Sum up all confirmed payments (Inflow)
+        let payments_volume: Option<Decimal> = sqlx::query_scalar(
+            "SELECT SUM(amount_usd) FROM payment_transactions WHERE merchant_id = $1 AND created_at >= $2 AND status = 'CONFIRMED'"
+        )
+        .bind(merchant_id)
+        .bind(start_of_day)
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        // 2. Sum up all non-rejected withdrawals (Outflow - includes Sweeps)
+        let withdrawals_volume: Option<Decimal> = sqlx::query_scalar(
+            "SELECT SUM(amount_usd) FROM withdrawals WHERE merchant_id = $1 AND created_at >= $2 AND status != 'REJECTED' AND status != 'CANCELLED'"
+        )
+        .bind(merchant_id)
+        .bind(start_of_day)
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        Ok(payments_volume.unwrap_or(Decimal::ZERO) + withdrawals_volume.unwrap_or(Decimal::ZERO))
     }
 
     /// Check if a merchant can process a transaction without exceeding daily volume limit
