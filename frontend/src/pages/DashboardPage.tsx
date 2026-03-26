@@ -58,8 +58,7 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     if (user?.daily_volume_remaining) {
       const remaining = parseFloat(user.daily_volume_remaining)
-      const systemDefaultLimit = user.kyc_verified ? 0 : 1000
-      const limit = user.daily_limit_usd ? parseFloat(user.daily_limit_usd) : systemDefaultLimit
+      const limit = user.daily_limit_usd ? parseFloat(user.daily_limit_usd) : (user.kyc_verified ? 0 : 0)
       const used = limit > 0 ? limit - remaining : 0
       setDailyVolumeUsed(used)
     }
@@ -388,13 +387,13 @@ const DashboardPage: React.FC = () => {
                     style={{
                       width: `${user.daily_limit_usd && parseFloat(user.daily_limit_usd) > 0
                         ? ((parseFloat(user.daily_limit_usd) - parseFloat(user.daily_volume_remaining)) / parseFloat(user.daily_limit_usd)) * 100
-                        : ((1000 - parseFloat(user.daily_volume_remaining)) / 1000) * 100}%`
+                        : 0}%`
                     }}
                   />
                 </div>
                 <div className={styles.volumeProgressLabels}>
                   <span>${dailyVolumeUsed.toFixed(2)} used</span>
-                  <span>${user.daily_limit_usd ? parseFloat(user.daily_limit_usd).toLocaleString() : '1,000.00'} limit</span>
+                  <span>${user.daily_limit_usd ? parseFloat(user.daily_limit_usd).toLocaleString() : 'N/A'} limit</span>
                 </div>
               </div>
             </div>

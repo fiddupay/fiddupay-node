@@ -138,36 +138,54 @@ pub async fn get_customer_balances(
     
     match service.get_customer_balances(context.merchant_id, &external_id, context.sandbox_mode).await {
         Ok(balances) => {
+            use std::collections::HashMap;
             use futures::future::join_all;
-            let balance_tasks = balances.into_iter().map(|b| {
-                let price_service = state.price_service.clone();
+
+            // 1. Gather all unique crypto types
+            let mut unique_cryptos = std::collections::HashSet::new();
+            for b in &balances {
+                unique_cryptos.insert(b.crypto_type.clone());
+            }
+
+            // 2. Fetch required prices in parallel once
+            let mut price_map = HashMap::new();
+            let price_tasks = unique_cryptos.into_iter().map(|ct_str| {
+                let state = state.clone();
                 async move {
-                    let crypto_type_enum = match crate::payment::models::CryptoType::from_string(&b.crypto_type) {
-                        Ok(ct) => ct,
-                        Err(_) => return None,
-                    };
-                    let price = price_service.get_price(crypto_type_enum).await.unwrap_or(0.0);
-                    let price_dec = rust_decimal::Decimal::from_f64_retain(price).unwrap_or(rust_decimal::Decimal::ZERO);
-                    
-                    Some(json!({
-                        "id": b.id,
-                        "customer_id": b.customer_id,
-                        "merchant_id": b.merchant_id,
-                        "crypto_type": b.crypto_type,
-                        "available_balance": b.available_balance,
-                        "available_balance_usd": (b.available_balance * price_dec).round_dp(2),
-                        "locked_balance": b.locked_balance,
-                        "locked_balance_usd": (b.locked_balance * price_dec).round_dp(2),
-                        "total_balance": b.total_balance,
-                        "total_balance_usd": (b.total_balance * price_dec).round_dp(2),
-                        "last_updated_at": b.last_updated_at,
-                        "sandbox_mode": b.sandbox_mode,
-                    }))
+                    if let Ok(ct_enum) = crate::payment::models::CryptoType::from_string(&ct_str) {
+                        let price = state.price_service.get_price(ct_enum).await.unwrap_or(0.0);
+                        Some((ct_str, price))
+                    } else {
+                        None
+                    }
                 }
             });
+            
+            let price_results = join_all(price_tasks).await;
+            for res in price_results.into_iter().flatten() {
+                price_map.insert(res.0, res.1);
+            }
 
-            let results = join_all(balance_tasks).await;
-            let response_balances: Vec<_> = results.into_iter().flatten().collect();
+            // 3. Process balances using pre-fetched prices
+            let response_balances: Vec<_> = balances.into_iter().map(|b| {
+                let price = price_map.get(&b.crypto_type).copied().unwrap_or(0.0);
+                let price_dec = rust_decimal::Decimal::from_f64_retain(price).unwrap_or(rust_decimal::Decimal::ZERO);
+                
+                json!({
+                    "id": b.id,
+                    "customer_id": b.customer_id,
+                    "merchant_id": b.merchant_id,
+                    "crypto_type": b.crypto_type,
+                    "available_balance": b.available_balance,
+                    "available_balance_usd": (b.available_balance * price_dec).round_dp(2),
+                    "locked_balance": b.locked_balance,
+                    "locked_balance_usd": (b.locked_balance * price_dec).round_dp(2),
+                    "total_balance": b.total_balance,
+                    "total_balance_usd": (b.total_balance * price_dec).round_dp(2),
+                    "last_updated_at": b.last_updated_at,
+                    "sandbox_mode": b.sandbox_mode,
+                })
+            }).collect();
 
             (StatusCode::OK, Json(json!({
                 "external_id": external_id,
@@ -228,21 +246,42 @@ pub async fn get_customer_transactions(
     let offset = params.offset.unwrap_or(0);
 
     match service.get_customer_transactions(context.merchant_id, &external_id, limit, offset, context.sandbox_mode).await {
-        Ok((mut transactions, total)) => {
+        Ok((transactions, total)) => {
+            use std::collections::HashMap;
             use futures::future::join_all;
-            let tx_tasks = transactions.into_iter().map(|mut tx| {
-                let price_service = state.price_service.clone();
+
+            // 1. Gather all unique crypto types
+            let mut unique_cryptos = std::collections::HashSet::new();
+            for tx in &transactions {
+                unique_cryptos.insert(tx.crypto_type.clone());
+            }
+
+            // 2. Fetch required prices in parallel once
+            let mut price_map = HashMap::new();
+            let price_tasks = unique_cryptos.into_iter().map(|ct_str| {
+                let state = state.clone();
                 async move {
-                    if let Ok(ct) = crate::payment::models::CryptoType::from_string(&tx.crypto_type) {
-                        let price = price_service.get_price(ct).await.unwrap_or(0.0);
-                        let price_dec = rust_decimal::Decimal::from_f64_retain(price).unwrap_or(rust_decimal::Decimal::ZERO);
-                        tx.amount_usd = (tx.amount * price_dec).round_dp(2);
+                    if let Ok(ct_enum) = crate::payment::models::CryptoType::from_string(&ct_str) {
+                        let price = state.price_service.get_price(ct_enum).await.unwrap_or(0.0);
+                        Some((ct_str, price))
+                    } else {
+                        None
                     }
-                    tx
                 }
             });
+            
+            let price_results = join_all(price_tasks).await;
+            for res in price_results.into_iter().flatten() {
+                price_map.insert(res.0, res.1);
+            }
 
-            let response_transactions: Vec<_> = join_all(tx_tasks).await;
+            // 3. Process transactions using pre-fetched prices
+            let response_transactions: Vec<_> = transactions.into_iter().map(|mut tx| {
+                let price = price_map.get(&tx.crypto_type).copied().unwrap_or(0.0);
+                let price_dec = rust_decimal::Decimal::from_f64_retain(price).unwrap_or(rust_decimal::Decimal::ZERO);
+                tx.amount_usd = (tx.amount * price_dec).round_dp(2);
+                tx
+            }).collect();
 
             (StatusCode::OK, Json(json!({
                 "external_id": external_id,

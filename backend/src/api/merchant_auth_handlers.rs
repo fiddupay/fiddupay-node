@@ -139,7 +139,7 @@ pub async fn register_merchant(
                     api_key: response.api_key, // Return the REAL key once on registration
                     created_at: chrono::Utc::now().to_rfc3339(),
                     two_factor_enabled: false,
-                    daily_limit_usd: None,
+                    daily_limit_usd: Some(state.config.daily_volume_limit_non_kyc_usd.to_string()),
                     daily_volume_remaining: state.config.daily_volume_limit_non_kyc_usd.to_string(),
                     kyc_verified: false,
                     sandbox_mode: true,
@@ -303,7 +303,9 @@ pub async fn login_merchant(
                         api_key: display_key,
                         created_at: m_created_at.to_rfc3339(),
                         two_factor_enabled: false,
-                        daily_limit_usd: m_daily_limit_usd.map(|d: Decimal| d.to_string()),
+                        daily_limit_usd: m_daily_limit_usd
+                            .or(if !m_kyc_verified { Some(state.config.daily_volume_limit_non_kyc_usd) } else { None })
+                            .map(|d: Decimal| d.to_string()),
                         daily_volume_remaining: remaining_volume.to_string(),
                         kyc_verified: m_kyc_verified,
                         sandbox_mode: m_sandbox_mode,

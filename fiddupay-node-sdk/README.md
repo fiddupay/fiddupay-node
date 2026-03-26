@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.5.8
+# FidduPay Node.js SDK v2.5.9
 
-[![version](https://img.shields.io/badge/version-v2.5.8-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.5.9-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -9,7 +9,7 @@ Official Node.js SDK for the FidduPay cryptocurrency payment gateway platform wi
 
 ## Daily Volume Limits
 
-- **Non-KYC Merchants**: $1,000 USD daily volume limit (combined deposits + withdrawals)
+- **Non-KYC Merchants**: $100,000 USD daily volume limit (combined deposits + withdrawals)
 - **KYC Verified Merchants**: No daily volume limits
 - **Reset**: Daily limits reset at midnight UTC
 - **Tracking**: Real-time volume tracking across all transaction types
@@ -431,7 +431,7 @@ try {
 - **Bitcoin** - BTC (SegWit)
 - **Solana** - SOL + USDT (SPL)
 - **Ethereum** - ETH + USDT (ERC-20)
-- **Binance Smart Chain** - BNB + USDT (BEP-20)
+- **Binance Smart Chain** - BNB + USDT (BINANCE) + BUSD (BINANCE)
 - **Polygon** - MATIC + USDT
 - **Arbitrum** - ARB + USDT
 

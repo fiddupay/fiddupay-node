@@ -130,6 +130,10 @@ const LandingPage: React.FC = () => {
               <span className={styles.currencySymbol}>USDT</span>
               <span className={styles.currencyName}>Multi-Chain</span>
             </div>
+            <div className={styles.currencyCard}>
+              <span className={styles.currencySymbol}>BUSD</span>
+              <span className={styles.currencyName}>Binance USD</span>
+            </div>
           </div>
         </div>
       </section>

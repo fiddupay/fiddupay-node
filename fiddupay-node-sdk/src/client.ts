@@ -23,7 +23,7 @@ export class HttpClient {
       timeout: config.timeout || 30000,
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'FidduPay-Node/1.0.0'
+        'User-Agent': '@fiddupay/fiddupay-node/2.5.9'
       },
       // Security configurations
       maxRedirects: 0, // Prevent redirect attacks

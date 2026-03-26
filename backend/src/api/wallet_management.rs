@@ -476,50 +476,64 @@ pub async fn get_wallet_balances(
 
     match result {
         Ok(wallets) => {
-            tracing::info!(
-                "get_wallet_balances: merchant_id={} returned {} wallets (is_forwarding={})",
-                context.merchant_id, wallets.len(), is_forwarding
-            );
-            
+            use std::collections::HashMap;
             use futures::future::join_all;
-            let wallet_tasks = wallets.into_iter().map(|w| {
-                let price_service = state.price_service.clone();
-                async move {
-                    let price = if let Ok(crypto_type) = crate::payment::models::CryptoType::from_string(&w.crypto_type) {
-                        price_service.get_price(crypto_type).await.unwrap_or(0.0)
-                    } else {
-                        0.0
-                    };
-                    
-                    let price_dec = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
-                    let available_usd: Decimal = (w.available_balance * price_dec).round_dp(2);
-                    let reserved_usd: Decimal = (w.reserved_balance * price_dec).round_dp(2);
-                    let total_usd: Decimal = (w.total_balance * price_dec).round_dp(2);
-                    let total_volume_usd: Decimal = (w.total_volume_crypto * price_dec).round_dp(2);
 
-                    json!({
-                        "crypto_type": w.crypto_type,
-                        "network": w.network,
-                        "address": w.address,
-                        "is_active": w.is_active,
-                        "available_balance": w.available_balance.to_string(),
-                        "available_usd": available_usd.to_string(),
-                        "reserved_balance": w.reserved_balance.to_string(),
-                        "reserved_usd": reserved_usd.to_string(),
-                        "total_balance": w.total_balance.to_string(),
-                        "total_usd": total_usd.to_string(),
-                        "balance_usd": total_usd.to_string(), // Frontend legacy compatibility
-                        "transaction_count": w.transaction_count,
-                        "total_volume_crypto": w.total_volume_crypto.to_string(),
-                        "total_volume_usd": total_volume_usd.to_string()
-                    })
+            // 1. Gather all unique crypto types
+            let mut unique_cryptos = std::collections::HashSet::new();
+            for w in &wallets {
+                unique_cryptos.insert(w.crypto_type.clone());
+            }
+
+            // 2. Fetch required prices in parallel once
+            let mut price_map = HashMap::new();
+            let price_tasks = unique_cryptos.into_iter().map(|ct_str| {
+                let state = state.clone();
+                async move {
+                    if let Ok(ct_enum) = crate::payment::models::CryptoType::from_string(&ct_str) {
+                        let price = state.price_service.get_price(ct_enum).await.unwrap_or(0.0);
+                        Some((ct_str, price))
+                    } else {
+                        None
+                    }
                 }
             });
+            
+            let price_results = join_all(price_tasks).await;
+            for res in price_results.into_iter().flatten() {
+                price_map.insert(res.0, res.1);
+            }
 
-            let wallet_data = join_all(wallet_tasks).await;
+            // 3. Process wallets using pre-fetched prices
+            let response_wallets: Vec<_> = wallets.into_iter().map(|w| {
+                let price = price_map.get(&w.crypto_type).copied().unwrap_or(0.0);
+                let price_dec = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
+                
+                let total_usd = (w.total_balance * price_dec).round_dp(2);
+                let available_usd = (w.available_balance * price_dec).round_dp(2);
+                let reserved_usd = (w.reserved_balance * price_dec).round_dp(2);
+                let total_volume_usd = (w.total_volume_crypto * price_dec).round_dp(2);
+
+                json!({
+                    "crypto_type": w.crypto_type,
+                    "network": w.network,
+                    "address": w.address,
+                    "is_active": w.is_active,
+                    "available_balance": w.available_balance.to_string(),
+                    "available_usd": available_usd.to_string(),
+                    "reserved_balance": w.reserved_balance.to_string(),
+                    "reserved_usd": reserved_usd.to_string(),
+                    "total_balance": w.total_balance.to_string(),
+                    "total_usd": total_usd.to_string(),
+                    "balance_usd": total_usd.to_string(), // Frontend legacy compatibility
+                    "transaction_count": w.transaction_count,
+                    "total_volume_crypto": w.total_volume_crypto.to_string(),
+                    "total_volume_usd": total_volume_usd.to_string()
+                })
+            }).collect();
 
             (StatusCode::OK, Json(json!({
-                "wallets": wallet_data
+                "wallets": response_wallets
             }))).into_response()
         }
         Err(e) => {

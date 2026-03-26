@@ -109,7 +109,9 @@ pub async fn get_merchant_profile(
         "sandbox_mode": m_sandbox_mode,
         "settlement_mode": m_settlement_mode,
         "kyc_verified": m_kyc_verified,
-        "daily_limit_usd": m_daily_limit_usd.map(|d: Decimal| d.to_string()),
+        "daily_limit_usd": m_daily_limit_usd
+            .or(if !m_kyc_verified { Some(state.config.daily_volume_limit_non_kyc_usd) } else { None })
+            .map(|d: Decimal| d.to_string()),
         "created_at": m_created_at.to_rfc3339(),
         "two_factor_enabled": false,
         "has_transaction_pin": m_transaction_pin_hash.is_some(),

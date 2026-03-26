@@ -38,7 +38,7 @@ describe('FidduPay SDK - Core Functionality', () => {
 
       const allCryptoTypes: CryptoType[] = [
         'SOL', 'ETH', 'BNB', 'MATIC', 'ARB',
-        'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL', 'BTC'
+        'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL', 'BTC', 'BUSD_BEP20'
       ];
 
       allCryptoTypes.forEach(token => {
@@ -320,7 +320,7 @@ describe('FidduPay SDK - Core Functionality', () => {
     it('should support all crypto types', () => {
       const cryptoTypes: CryptoType[] = [
         'SOL', 'ETH', 'BNB', 'MATIC', 'ARB',
-        'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL', 'BTC'
+        'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL', 'BTC', 'BUSD_BEP20'
       ];
 
       cryptoTypes.forEach(crypto => {
