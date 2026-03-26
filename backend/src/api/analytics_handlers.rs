@@ -161,43 +161,48 @@ pub async fn list_unified_transactions(
         .fetch_all(&state.db_pool)
         .await
     {
-        Ok(rows) => {
-            use sqlx::Row;
-            let mut txns: Vec<serde_json::Value> = vec![];
-            
-            for row in rows {
-                let txn_type = row.get::<String, _>("txn_type");
-                let crypto_type_str = row.get::<String, _>("crypto_type");
-                let crypto_amount_str = row.get::<String, _>("crypto_amount");
-                let mut usd_amount_str = row.get::<String, _>("usd_amount");
+            use futures::future::join_all;
+            let tx_tasks = rows.into_iter().map(|row| {
+                let state = state.clone();
+                async move {
+                    let txn_type = row.get::<String, _>("txn_type");
+                    let crypto_id = row.get::<String, _>("id");
+                    let crypto_amount_str = row.get::<String, _>("crypto_amount");
+                    let mut usd_amount_str = row.get::<String, _>("usd_amount");
+                    let crypto_type_str = row.get::<String, _>("crypto_type");
+                    let status = row.get::<String, _>("status");
+                    let transaction_hash = row.get::<Option<String>, _>("transaction_hash");
+                    let created_at = row.get::<chrono::DateTime<chrono::Utc>, _>("created_at");
 
-                // If it's a customer transaction with missing USD value, calculate it
-                if (txn_type == "withdrawal" || txn_type == "merchant_payment" || txn_type == "sweep") && usd_amount_str == "0" {
-                    if let Ok(crypto_type) = crate::payment::models::CryptoType::from_string(&crypto_type_str) {
-                        if let Ok(price) = state.price_service.get_price(crypto_type).await {
-                            if let Ok(amount) = crypto_amount_str.parse::<rust_decimal::Decimal>() {
-                                let price_decimal = rust_decimal::Decimal::from_f64_retain(price).unwrap_or(rust_decimal::Decimal::ZERO);
-                                let usd_val = (amount * price_decimal).round_dp(2);
-                                usd_amount_str = usd_val.to_string();
+                    // If it's a customer transaction with missing USD value, calculate it
+                    if (txn_type == "withdrawal" || txn_type == "merchant_payment" || txn_type == "sweep") && usd_amount_str == "0" {
+                        if let Ok(crypto_type) = crate::payment::models::CryptoType::from_string(&crypto_type_str) {
+                            if let Ok(price) = state.price_service.get_price(crypto_type).await {
+                                if let Ok(amount) = crypto_amount_str.parse::<rust_decimal::Decimal>() {
+                                    let price_decimal = rust_decimal::Decimal::from_f64_retain(price).unwrap_or(rust_decimal::Decimal::ZERO);
+                                    let usd_val = (amount * price_decimal).round_dp(2);
+                                    usd_amount_str = usd_val.to_string();
+                                }
                             }
                         }
                     }
-                }
 
-                txns.push(json!({
-                    "type": txn_type,
-                    "id": row.get::<String, _>("id"),
-                    "crypto_amount": crypto_amount_str,
-                    "usd_amount": usd_amount_str,
-                    "crypto_type": crypto_type_str,
-                    "status": row.get::<String, _>("status"),
-                    "transaction_hash": row.get::<Option<String>, _>("transaction_hash"),
-                    "created_at": row.get::<chrono::DateTime<chrono::Utc>, _>("created_at").to_rfc3339()
-                }));
-            }
+                    json!({
+                        "type": txn_type,
+                        "id": crypto_id,
+                        "crypto_amount": crypto_amount_str,
+                        "usd_amount": usd_amount_str,
+                        "crypto_type": crypto_type_str,
+                        "status": status,
+                        "transaction_hash": transaction_hash,
+                        "created_at": created_at.to_rfc3339()
+                    })
+                }
+            });
+
+            let txns = join_all(tx_tasks).await;
             
             (StatusCode::OK, Json(json!({"transactions": txns}))).into_response()
-        },
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
@@ -243,36 +248,43 @@ pub async fn get_balance(
 ) -> impl IntoResponse {
     match state.balance_service.get_all_balances(context.merchant_id, context.sandbox_mode).await {
         Ok(balance) => {
+            use futures::future::join_all;
+            let balance_tasks = balance.balances.into_iter().map(|b| {
+                let price_service = state.price_service.clone();
+                async move {
+                    let price = price_service.get_price(b.crypto_type).await.unwrap_or(0.0);
+                    let price_dec = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
+                    
+                    let cur_avail_usd = b.available_balance * price_dec;
+                    let cur_res_avail_usd = b.reserved_balance * price_dec;
+                    let cur_total_usd = b.total_balance * price_dec;
+
+                    (cur_avail_usd, cur_res_avail_usd, cur_total_usd, json!({
+                        "crypto_type": b.crypto_type.to_string(),
+                        "available_balance": b.available_balance,
+                        "available_usd": cur_avail_usd,
+                        "reserved_balance": b.reserved_balance,
+                        "reserved_usd": cur_res_avail_usd,
+                        "total_balance": b.total_balance,
+                        "total_usd": cur_total_usd,
+                        "balance_usd": cur_total_usd,
+                        "last_updated": b.last_updated,
+                    }))
+                }
+            });
+
+            let results = join_all(balance_tasks).await;
+            
             let mut response_balances = vec![];
-            use rust_decimal::Decimal;
             let mut total_usd = Decimal::ZERO;
             let mut available_usd = Decimal::ZERO;
             let mut reserved_usd = Decimal::ZERO;
 
-            for b in balance.balances {
-                let price = state.price_service.get_price(b.crypto_type).await.unwrap_or(0.0);
-                use rust_decimal::prelude::FromPrimitive;
-                let price_dec = Decimal::from_f64(price).unwrap_or(Decimal::ZERO);
-                
-                let cur_avail_usd = b.available_balance * price_dec;
-                let cur_res_avail_usd = b.reserved_balance * price_dec;
-                let cur_total_usd = b.total_balance * price_dec;
-
-                available_usd += cur_avail_usd;
-                reserved_usd += cur_res_avail_usd;
-                total_usd += cur_total_usd;
-
-                response_balances.push(json!({
-                    "crypto_type": b.crypto_type.to_string(),
-                    "available_balance": b.available_balance,
-                    "available_usd": cur_avail_usd,
-                    "reserved_balance": b.reserved_balance,
-                    "reserved_usd": cur_res_avail_usd,
-                    "total_balance": b.total_balance,
-                    "total_usd": cur_total_usd,
-                    "balance_usd": cur_total_usd, // Frontend looks for balance_usd on rows
-                    "last_updated": b.last_updated,
-                }));
+            for (a_usd, r_usd, t_usd, b_json) in results {
+                available_usd += a_usd;
+                reserved_usd += r_usd;
+                total_usd += t_usd;
+                response_balances.push(b_json);
             }
             
             let response_obj = json!({

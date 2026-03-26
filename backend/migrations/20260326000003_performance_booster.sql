@@ -21,3 +21,10 @@ CREATE INDEX IF NOT EXISTS idx_customer_transactions_status_sandbox
 -- 5. Index for analytics aggregation on customer transactions
 CREATE INDEX IF NOT EXISTS idx_customer_transactions_merchant_created
     ON customer_transactions (merchant_id, created_at DESC);
+-- 6. Refunds index for unified transaction feed (merchant portal)
+CREATE INDEX IF NOT EXISTS idx_refunds_merchant_sandbox_created 
+    ON refunds (merchant_id, sandbox_mode, created_at DESC);
+
+-- 7. Withdrawals index for unified transaction feed and dashboard
+CREATE INDEX IF NOT EXISTS idx_withdrawals_merchant_sandbox_status_created 
+    ON withdrawals (merchant_id, sandbox_mode, status, created_at DESC);
