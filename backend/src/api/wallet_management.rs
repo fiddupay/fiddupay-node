@@ -18,8 +18,8 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
+use rust_decimal::Decimal;
 
 // Helper: get sandbox_mode for a merchant
 async fn get_sandbox_mode(pool: &PgPool, merchant_id: i64) -> bool {
@@ -492,10 +492,10 @@ pub async fn get_wallet_balances(
                     };
                     
                     let price_dec = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
-                    let available_usd = (w.available_balance * price_dec).round_dp(2);
-                    let reserved_usd = (w.reserved_balance * price_dec).round_dp(2);
-                    let total_usd = (w.total_balance * price_dec).round_dp(2);
-                    let total_volume_usd = (w.total_volume_crypto * price_dec).round_dp(2);
+                    let available_usd: Decimal = (w.available_balance * price_dec).round_dp(2);
+                    let reserved_usd: Decimal = (w.reserved_balance * price_dec).round_dp(2);
+                    let total_usd: Decimal = (w.total_balance * price_dec).round_dp(2);
+                    let total_volume_usd: Decimal = (w.total_volume_crypto * price_dec).round_dp(2);
 
                     json!({
                         "crypto_type": w.crypto_type,
