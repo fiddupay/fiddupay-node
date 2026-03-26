@@ -204,6 +204,7 @@ pub async fn list_unified_transactions(
             let txns = join_all(tx_tasks).await;
             
             (StatusCode::OK, Json(json!({"transactions": txns}))).into_response()
+        },
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
     }
 }
