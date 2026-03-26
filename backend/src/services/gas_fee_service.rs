@@ -34,16 +34,22 @@ impl GasFeeService {
         }
     }
 
-    /// Get real-time gas fees for all supported networks
+    /// Get real-time gas fees for all supported networks (Parallel Execution)
     pub async fn get_all_gas_estimates(&self) -> Result<HashMap<String, GasFeeEstimate>, ServiceError> {
-        let mut estimates = HashMap::new();
+        let (eth, bsc, poly, arb, sol) = tokio::try_join!(
+            self.get_ethereum_gas_rpc(),
+            self.get_bsc_gas_rpc(),
+            self.get_polygon_gas_rpc(),
+            self.get_arbitrum_gas_rpc(),
+            self.get_solana_gas_rpc()
+        )?;
 
-        // Fetch gas fees for each network using proper RPC methods
-        estimates.insert("ethereum".to_string(), self.get_ethereum_gas_rpc().await?);
-        estimates.insert("bsc".to_string(), self.get_bsc_gas_rpc().await?);
-        estimates.insert("polygon".to_string(), self.get_polygon_gas_rpc().await?);
-        estimates.insert("arbitrum".to_string(), self.get_arbitrum_gas_rpc().await?);
-        estimates.insert("solana".to_string(), self.get_solana_gas_rpc().await?);
+        let mut estimates = HashMap::new();
+        estimates.insert("ethereum".to_string(), eth);
+        estimates.insert("bsc".to_string(), bsc);
+        estimates.insert("polygon".to_string(), poly);
+        estimates.insert("arbitrum".to_string(), arb);
+        estimates.insert("solana".to_string(), sol);
 
         Ok(estimates)
     }

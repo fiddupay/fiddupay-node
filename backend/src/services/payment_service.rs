@@ -297,11 +297,14 @@ impl PaymentService {
         // Bind pagination
         sql_query = sql_query.bind(page_size as i64).bind(offset);
 
-        // Execute the query
-        let payments = sql_query.fetch_all(&self.db_pool).await?;
+        // Execute queries in parallel
+        let (payments_res, total_res) = tokio::join!(
+            sql_query.fetch_all(&self.db_pool),
+            self.count_payments(merchant_id, &filters)
+        );
 
-        // Get total count for pagination
-        let total = self.count_payments(merchant_id, &filters).await?;
+        let payments = payments_res?;
+        let total = total_res?;
 
         // Convert PaymentTransaction to PaymentResponse
         let mut payment_responses = Vec::new();

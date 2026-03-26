@@ -11,6 +11,7 @@ use crate::models::analytics::{AnalyticsReport, BlockchainStats};
 use crate::services::price_service::PriceService;
 use crate::payment::models::CryptoType;
 use std::sync::Arc;
+use futures;
 
 pub struct AnalyticsService {
     db_pool: PgPool,
@@ -81,8 +82,16 @@ impl AnalyticsService {
             query_builder = query_builder.bind(st);
         }
 
-        let (total_volume_usd, successful_payments, failed_payments, pending_payments, total_payments, total_fees_paid) =
-            query_builder.fetch_one(&self.db_pool).await?;
+        // Execute queries in parallel
+        let (stats_res, blockchain_res, trends_res) = tokio::join!(
+            query_builder.fetch_one(&self.db_pool),
+            self.get_blockchain_stats(merchant_id, start_date, end_date, status.clone(), sandbox_mode),
+            self.get_payment_trends(merchant_id, start_date, end_date, sandbox_mode)
+        );
+
+        let (total_volume_usd, successful_payments, failed_payments, pending_payments, total_payments, total_fees_paid) = stats_res?;
+        let by_blockchain = blockchain_res?;
+        let payment_trends = trends_res?;
 
         // Calculate average transaction value
         let average_transaction_value = if successful_payments > 0 {
@@ -90,16 +99,6 @@ impl AnalyticsService {
         } else {
             Decimal::ZERO
         };
-
-        // Get blockchain-specific stats
-        let by_blockchain = self
-            .get_blockchain_stats(merchant_id, start_date, end_date, status.clone(), sandbox_mode)
-            .await?;
-
-        // Get payment trends (daily)
-        let payment_trends = self
-            .get_payment_trends(merchant_id, start_date, end_date, sandbox_mode)
-            .await?;
 
         Ok(AnalyticsReport {
             total_volume_usd,
@@ -204,7 +203,7 @@ impl AnalyticsService {
         Ok(crate::models::analytics::BalanceHistory { points })
     }
 
-    /// Helper to get current prices for all supported assets using PriceService
+    /// Helper to get current prices for all supported assets using PriceService (Batch Optimization)
     async fn get_current_prices(&self) -> Result<HashMap<String, Decimal>, ServiceError> {
         let crypto_types = vec![
             CryptoType::Sol,
@@ -213,22 +212,34 @@ impl AnalyticsService {
             CryptoType::Eth,
             CryptoType::UsdtEth,
             CryptoType::Bnb,
-            CryptoType::UsdtBep20,
+             CryptoType::UsdtBep20,
+             CryptoType::BusdBep20,
             CryptoType::Matic,
             CryptoType::UsdtPolygon,
             CryptoType::Arb,
             CryptoType::UsdtArbitrum,
         ];
 
+        // Batch fetch prices in parallel
+        let price_futures: Vec<_> = crypto_types
+            .iter()
+            .map(|&ct| {
+                let ps = self.price_service.clone();
+                async move { (ct, ps.get_price(ct).await) }
+            })
+            .collect();
+
+        let results = futures::future::join_all(price_futures).await;
+        
         let mut prices = HashMap::new();
-        for ct in crypto_types {
-            if let Ok(price) = self.price_service.get_price(ct).await {
+        for (ct, res) in results {
+            if let Ok(price) = res {
                 if let Some(price_decimal) = Decimal::from_f64_retain(price) {
-                    // Store under the Display format (e.g., "SOL", "USDT_SPL")
                     prices.insert(ct.to_string(), price_decimal);
                 }
             }
         }
+        
         Ok(prices)
     }
 

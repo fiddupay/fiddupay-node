@@ -382,15 +382,34 @@ pub async fn payment_page(
     let is_cancelled = p_status == "CANCELLED";
     let is_expired = (p_status == "FAILED" || (p_expires_at < now)) && !is_confirmed && !is_cancelled;
 
-    // Check if sandbox and get redirect_url
-    let merchant_info_res = sqlx::query(
+    // Parallelize merchant info and supported currencies queries
+    let merchant_info_fut = sqlx::query(
         "SELECT sandbox_mode, redirect_url, customer_pays_fee FROM merchants WHERE id = $1"
     )
     .bind(p_merchant_id)
-    .fetch_optional(&state.db_pool)
-    .await;
+    .fetch_optional(&state.db_pool);
+
+    let currencies_fut = async {
+        if is_selection_required {
+            sqlx::query(
+                "SELECT crypto_type, network FROM merchant_wallets WHERE merchant_id = $1 AND is_active = true"
+            )
+            .bind(p_merchant_id)
+            .fetch_all(&state.db_pool)
+            .await
+            .map(|rows| rows.into_iter()
+                .map(|r| (r.get::<String, _>("crypto_type"), r.get::<String, _>("network")))
+                .collect::<Vec<_>>()
+            )
+        } else {
+            Ok(vec![])
+        }
+    };
+
+    let (merchant_info_res, currencies_res) = tokio::join!(merchant_info_fut, currencies_fut);
     
     let merchant_info = merchant_info_res.ok().flatten();
+    let supported_currencies = currencies_res.unwrap_or_default();
     
     let sandbox = merchant_info.as_ref().map(|m| m.get::<bool, _>("sandbox_mode")).unwrap_or(false);
     let redirect_url = merchant_info.as_ref().and_then(|m| m.get::<Option<String>, _>("redirect_url"));
@@ -415,23 +434,6 @@ pub async fn payment_page(
             });
         }
     }
-
-    // Fetch supported currencies if needed
-    let supported_currencies: Vec<(String, String)> = if is_selection_required {
-        let currencies_res = sqlx::query(
-             "SELECT crypto_type, network FROM merchant_wallets WHERE merchant_id = $1 AND is_active = true"
-        )
-        .bind(p_merchant_id)
-        .fetch_all(&state.db_pool)
-        .await;
-
-        currencies_res.unwrap_or_default()
-        .into_iter()
-        .map(|r| (r.get::<String, _>("crypto_type"), r.get::<String, _>("network")))
-        .collect()
-    } else {
-        vec![]
-    };
 
     // Render logic
     let html = render_payment_page(PaymentPageData {
