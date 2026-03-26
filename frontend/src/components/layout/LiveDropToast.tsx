@@ -16,9 +16,10 @@ export const LiveDropToast: React.FC = () => {
     if (!token) return;
 
     const apiUrl = import.meta.env.VITE_API_URL || 'https://api.fiddupay.com';
-    const wsUrl = apiUrl.replace(/^http/, 'ws') + `/api/v1/merchants/ws?token=${token}`;
+    const wsUrl = apiUrl.replace(/^http/, 'ws') + `/api/v1/merchants/ws`;
 
-    const ws = new WebSocket(wsUrl);
+    // Pass token as a subprotocol to avoid exposure in the URL/console
+    const ws = new WebSocket(wsUrl, token);
 
     ws.onmessage = (event) => {
       try {

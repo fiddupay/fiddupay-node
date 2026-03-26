@@ -53,27 +53,33 @@ pub async fn auth_middleware(
     next: Next,
 ) -> Result<Response, impl IntoResponse> {
     
-    // Extract query token for WebSocket authenticity
+    // Extract token from Sec-WebSocket-Protocol header (more secure for WebSockets)
+    let protocol_token = headers.get("sec-websocket-protocol").and_then(|v| v.to_str().ok());
+
+    // Extract query token for legacy WebSocket authenticity
     let query_token = uri.query().and_then(|q| {
          q.split('&')
           .find(|s| s.starts_with("token="))
           .map(|s| s[6..].to_string())
     });
 
-    // Extract API key from header, fallback to query parameter
+    // Extract API key from header, fallback to protocol or query parameter
     let api_key = match extract_api_key(&headers) {
         Some(key) => key,
-        None => match query_token {
-            Some(token) => token,
-            None => {
-                tracing::warn!("Missing or invalid Authorization header and no query token provided");
-                return Err((
-                    StatusCode::UNAUTHORIZED,
-                    axum::Json(json!({
-                        "error": "Missing or invalid Authorization header",
-                        "message": "Expected format: Authorization: Bearer <api_key> or URL ?token=<api_key>"
-                    }))
-                ));
+        None => match protocol_token {
+            Some(token) => token.to_string(),
+            None => match query_token {
+                Some(token) => token,
+                None => {
+                    tracing::warn!("Missing or invalid Authorization header and no WebSocket token provided");
+                    return Err((
+                        StatusCode::UNAUTHORIZED,
+                        axum::Json(json!({
+                            "error": "Missing or invalid Authorization header",
+                            "message": "Expected format: Authorization: Bearer <api_key> or URL Sec-WebSocket-Protocol header"
+                        }))
+                    ));
+                }
             }
         }
     };

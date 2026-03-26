@@ -12,13 +12,23 @@ use crate::api::state::AppState;
 use crate::middleware::auth::MerchantContext;
 use axum::Extension;
 
+use axum::http::HeaderMap;
+
 /// WebSocket handler for Merchant dashboard notifications
 pub async fn merchant_ws_handler(
     ws: WebSocketUpgrade,
+    headers: HeaderMap,
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_ws_socket(socket, context.merchant_id, state))
+    let mut response = ws.on_upgrade(move |socket| handle_ws_socket(socket, context.merchant_id, state)).into_response();
+    
+    // Echo the Sec-WebSocket-Protocol back to the client to complete the handshake
+    if let Some(protocol) = headers.get("sec-websocket-protocol") {
+        response.headers_mut().insert("sec-websocket-protocol", protocol.clone());
+    }
+    
+    response
 }
 
 async fn handle_ws_socket(socket: WebSocket, merchant_id: i64, state: AppState) {

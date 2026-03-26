@@ -161,6 +161,7 @@ pub async fn list_unified_transactions(
         .fetch_all(&state.db_pool)
         .await
     {
+        Ok(rows) => {
             use futures::future::join_all;
             let tx_tasks = rows.into_iter().map(|row| {
                 let state = state.clone();
