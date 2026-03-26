@@ -159,12 +159,21 @@ export default function WithdrawalInterface() {
                   const bal = getBalance(crypto.value);
                   return (
                     <SelectItem key={crypto.value} value={crypto.value}>
-                      <div className="flex items-center justify-between w-full">
-                        <span>{crypto.label}</span>
-                        <span className="text-sm text-gray-500 ml-2">
-                          {bal ? `${parseFloat(bal.available_balance).toFixed(6)}` : '0.000000'}
-                        </span>
-                      </div>
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-2">
+                            {(crypto.value.includes('SOL') || crypto.value.includes('BUSD')) && (
+                              <img 
+                                src={crypto.value.includes('SOL') ? '/solana-sol-logo.png' : '/binance-usd-busd-logo.png'} 
+                                alt={crypto.label}
+                                className="w-5 h-5 rounded-full"
+                              />
+                            )}
+                            <span>{crypto.label}</span>
+                          </div>
+                          <span className="text-sm text-gray-500 ml-2">
+                            {bal ? `${parseFloat(bal.available_balance).toFixed(6)}` : '0.000000'}
+                          </span>
+                        </div>
                     </SelectItem>
                   );
                 })}

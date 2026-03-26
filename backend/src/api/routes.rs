@@ -11,7 +11,7 @@ use axum::{
         HeaderValue, Method,
     },
     middleware as axum_middleware,
-    routing::{get, post, put, delete},
+    routing::{get, post, put, delete, get_service},
     Router,
 };
 use tower_http::cors::CorsLayer;
@@ -72,6 +72,8 @@ pub fn create_router(state: AppState) -> Router {
         // Apply global rate limiting to all routes
         .layer(axum_middleware::from_fn_with_state(rate_limiter, rate_limit_middleware))
         .layer(cors)
+        .route("/solana-sol-logo.png", get_service(tower_http::services::ServeFile::new("../frontend/public/solana-sol-logo.png")))
+        .route("/binance-usd-busd-logo.png", get_service(tower_http::services::ServeFile::new("../frontend/public/binance-usd-busd-logo.png")))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

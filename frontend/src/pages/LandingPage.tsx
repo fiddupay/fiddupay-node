@@ -107,6 +107,9 @@ const LandingPage: React.FC = () => {
               <span className={styles.currencyName}>Bitcoin</span>
             </div>
             <div className={styles.currencyCard}>
+              <div className={styles.currencyIconBox} style={{ width: '32px', height: '32px', marginBottom: '8px' }}>
+                <img src="/solana-sol-logo.png" alt="SOL" style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
+              </div>
               <span className={styles.currencySymbol}>SOL</span>
               <span className={styles.currencyName}>Solana</span>
             </div>
@@ -131,6 +134,9 @@ const LandingPage: React.FC = () => {
               <span className={styles.currencyName}>Multi-Chain</span>
             </div>
             <div className={styles.currencyCard}>
+              <div className={styles.currencyIconBox} style={{ width: '32px', height: '32px', marginBottom: '8px' }}>
+                <img src="/binance-usd-busd-logo.png" alt="BUSD" style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
+              </div>
               <span className={styles.currencySymbol}>BUSD</span>
               <span className={styles.currencyName}>Binance USD</span>
             </div>

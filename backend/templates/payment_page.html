@@ -888,7 +888,8 @@
                         btn.className = 'currency-item';
 
                         let logo = '';
-                        if (curr.symbol.includes('SOL')) logo = 'https://cryptologos.cc/logos/solana-sol-logo.png?v=029';
+                        if (curr.symbol.includes('SOL')) logo = '/solana-sol-logo.png';
+                        else if (curr.symbol.includes('BUSD')) logo = '/binance-usd-busd-logo.png';
                         else if (curr.symbol.includes('ETH')) logo = 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029';
                         else if (curr.symbol.includes('USDT')) logo = 'https://cryptologos.cc/logos/tether-usdt-logo.png?v=029';
                         else if (curr.symbol.includes('USDC')) logo = 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png?v=029';

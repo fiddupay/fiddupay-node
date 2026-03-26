@@ -268,7 +268,16 @@ const BalancePage: React.FC = () => {
                                     >
                                         <div className={styles.assetMain}>
                                             <div className={styles.assetIconBox}>
-                                                <i className={getIconForCrypto(asset.crypto_type)}></i>
+                                                {(asset.crypto_type.includes('SOL') || asset.crypto_type.includes('BUSD')) ? (
+                                                    <img 
+                                                        src={asset.crypto_type.includes('SOL') ? '/solana-sol-logo.png' : '/binance-usd-busd-logo.png'} 
+                                                        alt={asset.crypto_type}
+                                                        className={styles.assetIconImage}
+                                                        style={{ width: '100%', height: '100%', borderRadius: '50%' }}
+                                                    />
+                                                ) : (
+                                                    <i className={getIconForCrypto(asset.crypto_type)}></i>
+                                                )}
                                             </div>
                                             <div className={styles.assetMeta}>
                                                 <h3>{asset.crypto_type.split('_')[0]}</h3>
