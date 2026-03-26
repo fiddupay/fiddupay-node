@@ -145,8 +145,8 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(client.customers.getWallets).toBeDefined();
       expect(client.customers.getBalances).toBeDefined();
       expect(client.customers.list).toBeDefined();
-      expect(client.customers.withdraw).toBeDefined();
       expect(client.customers.sweep).toBeDefined();
+      expect(client.customers.bulkProvision).toBeDefined();
       expect(client.customers.deactivate).toBeDefined();
       expect(client.customers.getTransactions).toBeDefined();
       expect(client.customers.updateStatus).toBeDefined();

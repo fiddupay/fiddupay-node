@@ -264,8 +264,8 @@ describe('FidduPay SDK - Integration Test Suite', () => {
     it('should provide comprehensive customer operations', () => {
       const customerMethods = [
         'register', 'list', 'getBalances', 'getWallets', 'createWallets', 
-        'updateStatus', 'updatePermissions', 'withdraw', 'sweep', 'deactivate', 
-        'getTransactions', 'getDepositAddress', 'payMerchant'
+        'updateStatus', 'updatePermissions', 'sweep', 'deactivate', 
+        'getTransactions', 'getDepositAddress', 'payMerchant', 'bulkProvision'
       ];
       customerMethods.forEach(method => {
         expect(client.customers).toHaveProperty(method);
