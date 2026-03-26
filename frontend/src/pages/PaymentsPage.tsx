@@ -472,7 +472,20 @@ const PaymentsPage: React.FC = () => {
                   </div>
                 </div>
                 <div className={styles.tableCell}>
-                  <span className={styles.cryptoBadge}>{payment.crypto_type}</span>
+                  <div className="flex items-center gap-2">
+                    {(payment.crypto_type?.includes('SOL') || payment.crypto_type?.includes('BUSD')) ? (
+                      <img 
+                        src={payment.crypto_type.includes('SOL') ? '/solana-sol-logo.png' : '/binance-usd-busd-logo.png'} 
+                        alt={payment.crypto_type}
+                        className="w-5 h-5 rounded-full"
+                      />
+                    ) : (
+                      <span className={styles.cryptoBadge}>{payment.crypto_type}</span>
+                    )}
+                    {(payment.crypto_type?.includes('SOL') || payment.crypto_type?.includes('BUSD')) && (
+                      <span className={styles.cryptoBadge}>{payment.crypto_type}</span>
+                    )}
+                  </div>
                 </div>
                 <div className={styles.tableCell}>
                   <span className={`${styles.statusBadge} ${getStatusBadge(payment.status)}`}>

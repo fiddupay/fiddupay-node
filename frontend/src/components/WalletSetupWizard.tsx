@@ -148,9 +148,20 @@ export default function WalletSetupWizard() {
                       onClick={() => setSelectedNetwork(network.id)}
                     >
                       <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{network.name}</div>
-                          <div className="text-sm text-gray-500">{network.description}</div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 flex-shrink-0">
+                            {network.id === 'solana' ? (
+                              <img src="/solana-sol-logo.png" alt="Solana" className="w-full h-full rounded-full" />
+                            ) : network.id === 'bsc' ? (
+                              <img src="/binance-usd-busd-logo.png" alt="BSC" className="w-full h-full rounded-full" />
+                            ) : (
+                              <img src={`https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${network.id === 'ethereum' ? 'eth' : network.id === 'bitcoin' ? 'btc' : network.id}.png`} alt={network.name} className="w-full h-full rounded-full" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-medium">{network.name}</div>
+                            <div className="text-sm text-gray-500">{network.description}</div>
+                          </div>
                         </div>
                         {wallet && (
                           <div className="flex items-center gap-1 text-green-600">

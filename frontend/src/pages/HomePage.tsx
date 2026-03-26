@@ -65,7 +65,7 @@ const HomePage: React.FC = () => {
             </div>
             <div className={styles.cryptoItem}>
               <div className={styles.cryptoIcon}>
-                <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png" alt="Solana" className={styles.cryptoImg} />
+                <img src="/solana-sol-logo.png" alt="Solana" className={styles.cryptoImg} />
               </div>
               <h3>Solana</h3>
               <p>Fast & Low Cost</p>
@@ -93,6 +93,13 @@ const HomePage: React.FC = () => {
             </div>
             <div className={styles.cryptoItem}>
               <div className={styles.cryptoIcon}>
+                <img src="/binance-usd-busd-logo.png" alt="BUSD" className={styles.cryptoImg} />
+              </div>
+              <h3>BUSD</h3>
+              <p>Stablecoin</p>
+            </div>
+            <div className={styles.cryptoItem}>
+              <div className={styles.cryptoIcon}>
                 <img src="/arbitrum-arb-logo.png" alt="ARB" className={styles.cryptoImg} />
               </div>
               <h3>Arbitrum</h3>
@@ -103,7 +110,7 @@ const HomePage: React.FC = () => {
                 <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png" alt="USDT" className={styles.cryptoImg} />
               </div>
               <h3>Tether</h3>
-              <p>5 Networks</p>
+              <p>Multi-Chain</p>
             </div>
           </div>
         </div>

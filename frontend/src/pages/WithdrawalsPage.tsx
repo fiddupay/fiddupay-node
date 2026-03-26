@@ -373,7 +373,16 @@ const WithdrawalsPage: React.FC = () => {
                                     <div key={w.withdrawal_id} className={styles.historyItem}>
                                         <div className={styles.historyItemHeader}>
                                             <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                {(w.crypto_type?.includes('SOL') || w.crypto_type?.includes('BUSD')) ? (
+                                                <img 
+                                                    src={w.crypto_type.includes('SOL') ? '/solana-sol-logo.png' : '/binance-usd-busd-logo.png'} 
+                                                    alt={w.crypto_type}
+                                                    style={{ width: '20px', height: '20px', borderRadius: '50%' }}
+                                                />
+                                                ) : null}
                                                 <strong>{w.crypto_type}</strong>
+                                            </div>
                                                 <span className={styles.historyDate}>
                                                     {new Date(w.created_at).toLocaleDateString()} {new Date(w.created_at).toLocaleTimeString()}
                                                 </span>
