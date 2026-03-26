@@ -12,6 +12,7 @@ use crate::utils::encryption::Encryption;
 use sqlx::{PgPool, Row};
 use serde_json::json;
 use rust_decimal::Decimal;
+use web3::types::U256;
 use std::str::FromStr;
 
 const CUSTOMER_COLS: &str = "id, merchant_id, external_id, email, first_name, last_name, metadata, is_active, status, status_reason, can_withdraw, withdrawal_limit, created_at, updated_at, sandbox_mode";
@@ -842,7 +843,13 @@ impl MerchantCustomerService {
                 .unwrap_or_default();
 
                 let native_enum = CryptoType::from_string(native_currency).unwrap_or(CryptoType::Eth);
-                let onchain_native_balance = sender.get_native_balance(&customer_wallet_address, native_enum, sandbox_mode).await.unwrap_or(Decimal::ZERO);
+                // get_native_balance returns U256 (raw smallest unit). Convert to Decimal for comparison.
+                let onchain_raw_u256 = sender.get_native_balance(native_enum, &customer_wallet_address, sandbox_mode)
+                    .await
+                    .unwrap_or(U256::zero());
+                let onchain_native_balance = Decimal::from_f64_retain(
+                    onchain_raw_u256.low_u128() as f64 / divisor
+                ).unwrap_or(Decimal::ZERO);
 
                 // 1. Calculate Merchant/Customer balances assigned to this sub-wallet
                 let db_customer_native: Decimal = sqlx::query_scalar(

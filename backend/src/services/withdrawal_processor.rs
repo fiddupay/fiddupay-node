@@ -65,7 +65,7 @@ impl WithdrawalProcessor {
             "SELECT customer_id FROM customer_transactions WHERE reference_id = $1"
         )
         .bind(withdrawal_id)
-        .fetch_optional(&mut *tx)
+        .fetch_optional(&self.db_pool)
         .await?;
 
         let mut wd_fee = Decimal::ZERO;
