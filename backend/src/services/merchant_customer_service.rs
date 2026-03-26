@@ -273,23 +273,15 @@ impl MerchantCustomerService {
             .fetch_all(&self.db_pool)
             .await?
         } else if let Some(ids) = customer_ids {
-            // Verify that all requested IDs belong to this merchant
-            let mut valid_ids = Vec::new();
-            for ext_id in ids {
-                 let exists = sqlx::query_scalar::<_, bool>(
-                     "SELECT EXISTS(SELECT 1 FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2 AND sandbox_mode = $3)"
-                 )
-                 .bind(merchant_id)
-                 .bind(&ext_id)
-                 .bind(sandbox_mode)
-                 .fetch_one(&self.db_pool)
-                 .await?;
-                 
-                 if exists {
-                     valid_ids.push(ext_id);
-                 }
-            }
-            valid_ids
+            // Verify that all requested IDs belong to this merchant using a single batch query
+            sqlx::query_scalar::<_, String>(
+                "SELECT external_id FROM merchant_customers WHERE merchant_id = $1 AND sandbox_mode = $3 AND external_id = ANY($2)"
+            )
+            .bind(merchant_id)
+            .bind(&ids)
+            .bind(sandbox_mode)
+            .fetch_all(&self.db_pool)
+            .await?
         } else {
             return Err(ServiceError::BadRequest("Must provide customer_ids or set all_customers to true".to_string()));
         };

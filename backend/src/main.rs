@@ -33,11 +33,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!(" Connecting to database...");
     let db_pool = PgPoolOptions::new()
         .max_connections(config.database_max_connections)
-        .min_connections(5)  // Keep some connections warm
+        .min_connections(10)  // Increase warm connections for high concurrency
         .acquire_timeout(std::time::Duration::from_secs(config.database_timeout_seconds as u64))
-        .idle_timeout(std::time::Duration::from_secs(600))
-        .max_lifetime(std::time::Duration::from_secs(3600))
-        .test_before_acquire(true)  // Validate connections before use to avoid stale connection errors
+        .idle_timeout(std::time::Duration::from_secs(120)) // Reduce idle timeout to cycle connections faster
+        .max_lifetime(std::time::Duration::from_secs(1800)) // 30 minutes max life
+        .test_before_acquire(false)  // Disable test_before_acquire for better performance (rely on robust error handling)
         .connect(&config.database_url)
         .await?;
     tracing::info!(" Database pool connected");
