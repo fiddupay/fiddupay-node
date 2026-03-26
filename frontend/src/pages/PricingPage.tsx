@@ -12,7 +12,7 @@ interface PricingData {
 const PricingPage: React.FC = () => {
   const [pricingData, setPricingData] = useState<PricingData>({
     transaction_fee_percentage: 0.75,
-    daily_volume_limit_non_kyc_usd: '1000.00',
+    daily_volume_limit_non_kyc_usd: '...',
     supported_networks: 5
   })
 
@@ -33,12 +33,8 @@ const PricingPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load pricing data:', error)
-      // Use default values if API fails
-      setPricingData({
-        transaction_fee_percentage: 0.75,
-        daily_volume_limit_non_kyc_usd: '1000.00',
-        supported_networks: 5
-      })
+      // Defaults will be handled by the initial state '...' showing it's loading/unknown 
+      // or we could use another fallback from a global config if available
     }
   }
   return (

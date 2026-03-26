@@ -196,9 +196,10 @@ async fn save_contact_message(
 pub async fn get_pricing_info(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
+    let limit_str = state.config.daily_volume_limit_non_kyc_usd.to_string();
     let pricing_data = json!({
         "transaction_fee_percentage": state.config.default_fee_percentage,
-        "daily_volume_limit_non_kyc_usd": "1000.00",
+        "daily_volume_limit_non_kyc_usd": limit_str,
         "supported_networks": 5,
         "supported_cryptocurrencies": [
             "SOL", "USDT (SPL)", "ETH", "USDT (ERC-20)", 
@@ -219,8 +220,8 @@ pub async fn get_pricing_info(
                 "transaction_limit": "unlimited"
             },
             "non_kyc": {
-                "daily_volume_limit": "1000.00",
-                "transaction_limit": "1000.00"
+                "daily_volume_limit": limit_str,
+                "transaction_limit": limit_str
             }
         }
     });

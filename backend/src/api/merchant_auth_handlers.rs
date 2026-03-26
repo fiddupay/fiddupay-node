@@ -237,7 +237,7 @@ pub async fn login_merchant(
                     m_id,
                     m_kyc_verified,
                     m_daily_limit_usd
-                ).await.unwrap_or(Decimal::new(1000, 0));
+                ).await.unwrap_or(state.config.daily_volume_limit_non_kyc_usd);
 
                 // Auto-generate API key if missing (e.g. legacy user or DB reset)
                 let has_test_key = m_test_api_key_hash.is_some() && m_test_api_key_hash.as_ref().unwrap() != "PENDING";

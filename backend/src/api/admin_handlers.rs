@@ -479,7 +479,16 @@ pub async fn update_admin_config(
     if config.maintenance_mode.is_some() || config.rate_limit_requests_per_minute.is_some() {
         updated_sections.push("environment");
     }
-    if config.daily_volume_limit_non_kyc_usd.is_some() || config.max_monthly_transaction_volume.is_some() {
+    if let Some(limit) = config.daily_volume_limit_non_kyc_usd {
+        let _ = sqlx::query(
+            "INSERT INTO system_settings (key, value) VALUES ('DAILY_VOLUME_LIMIT_NON_KYC_USD', $1) 
+             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value"
+        )
+        .bind(limit.to_string())
+        .execute(&state.db_pool)
+        .await;
+        updated_sections.push("limits");
+    } else if config.max_monthly_transaction_volume.is_some() {
         updated_sections.push("limits");
     }
     if config.require_2fa_for_withdrawals.is_some() || config.auto_suspend_suspicious_accounts.is_some() {
