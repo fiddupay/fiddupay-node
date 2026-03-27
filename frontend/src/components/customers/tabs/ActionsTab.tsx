@@ -147,6 +147,18 @@ const ActionsTab: React.FC<ActionsTabProps> = ({
                     onChange={(e) => setSweepAmount(e.target.value)}
                     style={{ paddingRight: '3.5rem' }}
                   />
+                  {(() => {
+                    if (!sweepAmount || sweepMode !== "SPECIFIC") return null;
+                    const bal = customerBalances?.find((b: any) => b.crypto_type === sweepCryptoType);
+                    if (!bal || parseFloat(bal.locked_balance) === 0) return null;
+                    const rate = parseFloat(bal.locked_balance_usd) / parseFloat(bal.locked_balance);
+                    const usdVal = parseFloat(sweepAmount) * rate;
+                    return (
+                      <div style={{ position: 'absolute', bottom: '-18px', right: '4px', fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
+                        ≈ ${usdVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                      </div>
+                    );
+                  })()}
                   <button
                     type="button"
                     onClick={() => {
@@ -244,6 +256,18 @@ const ActionsTab: React.FC<ActionsTabProps> = ({
                   required
                   style={{ paddingRight: '3.5rem' }}
                 />
+                {(() => {
+                  if (!payMerchantAmount) return null;
+                  const bal = customerBalances?.find((b: any) => b.crypto_type === payMerchantCryptoType);
+                  if (!bal || parseFloat(bal.available_balance) === 0) return null;
+                  const rate = parseFloat(bal.available_balance_usd) / parseFloat(bal.available_balance);
+                  const usdVal = parseFloat(payMerchantAmount) * rate;
+                  return (
+                    <div style={{ position: 'absolute', bottom: '-18px', right: '4px', fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
+                      ≈ ${usdVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                    </div>
+                  );
+                })()}
                 <button
                   type="button"
                   onClick={() => {
