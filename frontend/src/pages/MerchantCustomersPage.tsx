@@ -1666,24 +1666,63 @@ const MerchantCustomersPage: React.FC = () => {
                               </div>
                             )}
 
-                            {sweepMode === "SPECIFIC" && (
-                              <div
-                                className={styles.formGroup}
-                                style={{ marginBottom: 0 }}
-                              >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                  <label style={{ margin: 0 }}>Amount (Optional)</label>
-                                  {customerBalances?.find((b: any) => b.crypto_type === sweepCryptoType) && (
-                                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
-                                      <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
-                                        Available to Sweep: {parseFloat(customerBalances.find((b: any) => b.crypto_type === sweepCryptoType).locked_balance).toFixed(6)}
-                                      </span>
-                                      <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
-                                        ≈ ${parseFloat(customerBalances.find((b: any) => b.crypto_type === sweepCryptoType).locked_balance_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
+                            <div
+                              className={styles.formGroup}
+                              style={{ marginBottom: 0 }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                <label style={{ margin: 0 }}>
+                                  {sweepMode === "SPECIFIC" ? "Amount (Optional)" : "Sweep Details"}
+                                </label>
+                                {customerBalances && (
+                                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
+                                    {(() => {
+                                      let filtered = customerBalances;
+                                      let label = "Total to Sweep";
+                                      if (sweepMode === "NATIVE_ONLY") {
+                                        filtered = customerBalances.filter((b: any) => {
+                                          const ct = b.crypto_type.toUpperCase();
+                                          return ["BTC", "ETH", "SOL", "BNB", "MATIC"].includes(ct) || ct === "ETHEREUM" || ct === "SOLANA";
+                                        });
+                                        label = "Total Native Coins";
+                                      } else if (sweepMode === "STABLE_ONLY") {
+                                        filtered = customerBalances.filter((b: any) => {
+                                          const ct = b.crypto_type.toUpperCase();
+                                          return ct.includes("USDT") || ct.includes("BUSD") || ct.includes("USDC");
+                                        });
+                                        label = "Total Stablecoins";
+                                      } else if (sweepMode === "SPECIFIC") {
+                                        const bal = customerBalances.find((b: any) => b.crypto_type === sweepCryptoType);
+                                        if (!bal) return null;
+                                        return (
+                                          <>
+                                            <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
+                                              Available to Sweep: {parseFloat(bal.locked_balance).toFixed(6)}
+                                            </span>
+                                            <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
+                                              ≈ ${parseFloat(bal.locked_balance_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                                            </span>
+                                          </>
+                                        );
+                                      }
+                                      
+                                      const totalUsd = filtered.reduce((sum: number, b: any) => sum + parseFloat(b.locked_balance_usd || "0"), 0);
+                                      return (
+                                        <>
+                                          <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
+                                            {label}: ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                                          </span>
+                                          <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
+                                            {filtered.filter((b: any) => parseFloat(b.locked_balance) > 0).length} assets with balance
+                                          </span>
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {sweepMode === "SPECIFIC" ? (
                                 <div style={{ position: 'relative' }}>
                                   <input
                                     className={styles.inputStyle}
@@ -1720,8 +1759,21 @@ const MerchantCustomersPage: React.FC = () => {
                                     MAX
                                   </button>
                                 </div>
-                              </div>
-                            )}
+                              ) : (
+                                <div style={{ 
+                                  padding: '1rem', 
+                                  background: '#f8fafc', 
+                                  border: '1px dashed #cbd5e1', 
+                                  borderRadius: '10px',
+                                  textAlign: 'center',
+                                  color: '#64748b',
+                                  fontSize: '0.85rem'
+                                }}>
+                                  <i className="fas fa-info-circle" style={{ marginRight: '0.5rem' }}></i>
+                                  Bulk sweep will process all assets in this category.
+                                </div>
+                              )}
+                            </div>
                           </div>
                           
                           <div className={styles.formGroup}>
