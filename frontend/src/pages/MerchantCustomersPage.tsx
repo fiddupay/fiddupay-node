@@ -1674,9 +1674,14 @@ const MerchantCustomersPage: React.FC = () => {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                                   <label style={{ margin: 0 }}>Amount (Optional)</label>
                                   {customerBalances?.find((b: any) => b.crypto_type === sweepCryptoType) && (
-                                    <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
-                                      Balance: {parseFloat(customerBalances.find((b: any) => b.crypto_type === sweepCryptoType).available_balance).toFixed(6)}
-                                    </span>
+                                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
+                                      <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
+                                        Available to Sweep: {parseFloat(customerBalances.find((b: any) => b.crypto_type === sweepCryptoType).locked_balance).toFixed(6)}
+                                      </span>
+                                      <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
+                                        ≈ ${parseFloat(customerBalances.find((b: any) => b.crypto_type === sweepCryptoType).locked_balance_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                                      </span>
+                                    </div>
                                   )}
                                 </div>
                                 <div style={{ position: 'relative' }}>
@@ -1695,7 +1700,7 @@ const MerchantCustomersPage: React.FC = () => {
                                     type="button"
                                     onClick={() => {
                                       const bal = customerBalances?.find((b: any) => b.crypto_type === sweepCryptoType);
-                                      if (bal) setSweepAmount(bal.available_balance);
+                                      if (bal) setSweepAmount(bal.locked_balance);
                                     }}
                                     style={{
                                       position: 'absolute',
