@@ -2,85 +2,17 @@ import React, { useState, useEffect, useMemo } from "react";
 import { customerAPI, publicAPI } from "@/services/apiService";
 import styles from "@/styles/pages/MerchantCustomersPage.module.css";
 import { useToast } from "@/contexts/ToastContext";
-import { FaWallet } from "react-icons/fa";
 
-interface Customer {
-  id: string;
-  merchant_id: string;
-  external_id: string;
-  email?: string;
-  first_name?: string;
-  last_name?: string;
-  is_active: boolean;
-  status: string;
-  status_reason?: string;
-  can_withdraw: boolean;
-  withdrawal_limit?: string;
-  created_at: string;
-}
+// Modular Components
+import CustomerStatsCards from "@/components/customers/CustomerStatsCards";
+import CustomerFilterBar from "@/components/customers/CustomerFilterBar";
+import CustomerDirectoryTable from "@/components/customers/CustomerDirectoryTable";
+import CreateCustomerDrawer from "@/components/customers/CreateCustomerDrawer";
+import CustomerDetailDrawer from "@/components/customers/CustomerDetailDrawer";
+import StatusUpdateModal from "@/components/customers/StatusUpdateModal";
 
-interface Wallet {
-  crypto_type: string;
-  network: string;
-  address: string;
-  created_at: string;
-}
-
-interface CustomerTx {
-  id: string;
-  type: string;
-  crypto_type: string;
-  amount: string;
-  fee: string;
-  status: string;
-  destination_address?: string;
-  transaction_hash?: string;
-  reference_id?: string;
-  description?: string;
-  created_at: string;
-  amount_usd?: string;
-}
-
-const STATUS_STYLES: Record<
-  string,
-  { color: string; bg: string; icon: string; label: string }
-> = {
-  active: {
-    color: "#059669",
-    bg: "#d1fae5",
-    icon: "fa-check-circle",
-    label: "Active",
-  },
-  flagged: {
-    color: "#d97706",
-    bg: "#fef3c7",
-    icon: "fa-flag",
-    label: "Flagged",
-  },
-  suspended: {
-    color: "#dc2626",
-    bg: "#fee2e2",
-    icon: "fa-pause-circle",
-    label: "Suspended",
-  },
-  blocked: {
-    color: "#6b7280",
-    bg: "#f3f4f6",
-    icon: "fa-ban",
-    label: "Blocked",
-  },
-};
-
-const TX_BADGES: Record<string, { color: string; bg: string; icon: string }> = {
-  WITHDRAWAL: { color: "#dc2626", bg: "#fee2e2", icon: "fa-arrow-up" },
-  MERCHANT_PAYMENT: {
-    color: "#7c3aed",
-    bg: "#ede9fe",
-    icon: "fa-shopping-cart",
-  },
-  SWEEP: { color: "#2563eb", bg: "#dbeafe", icon: "fa-broom" },
-  DEPOSIT: { color: "#059669", bg: "#d1fae5", icon: "fa-arrow-down" },
-};
+// Types & Utils
+import { Customer, Wallet, CustomerTx } from "@/components/customers/types";
 
 const MerchantCustomersPage: React.FC = () => {
   const { showToast } = useToast();
@@ -92,12 +24,8 @@ const MerchantCustomersPage: React.FC = () => {
 
   // Drawer States
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null,
-  );
-  const [drawerTab, setDrawerTab] = useState<
-    "overview" | "transactions" | "permissions" | "actions"
-  >("overview");
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [drawerTab, setDrawerTab] = useState<"overview" | "transactions" | "permissions" | "actions">("overview");
   const [expandedAsset, setExpandedAsset] = useState<string | null>(null);
 
   // Form States
@@ -111,9 +39,7 @@ const MerchantCustomersPage: React.FC = () => {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [customerWallets, setCustomerWallets] = useState<Wallet[]>([]);
   const [customerBalances, setCustomerBalances] = useState<any>(null);
-  const [customerTransactions, setCustomerTransactions] = useState<
-    CustomerTx[]
-  >([]);
+  const [customerTransactions, setCustomerTransactions] = useState<CustomerTx[]>([]);
   const [sweepMode, setSweepMode] = useState<"ALL" | "NATIVE_ONLY" | "STABLE_ONLY" | "SPECIFIC">("ALL");
   const [sweepCryptoType, setSweepCryptoType] = useState("USDT");
   const [sweepAmount, setSweepAmount] = useState("");
@@ -129,7 +55,7 @@ const MerchantCustomersPage: React.FC = () => {
   // Status update states
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [statusReason, setStatusReason] = useState("");
-  const [showStatusModal, setShowStatusModal] = useState<string | null>(null); // target status
+  const [showStatusModal, setShowStatusModal] = useState<string | null>(null);
 
   // Permission states
   const [permUpdating, setPermUpdating] = useState(false);
@@ -144,15 +70,11 @@ const MerchantCustomersPage: React.FC = () => {
     try {
       const res = await publicAPI.getSupportedCurrencies();
       if (res.data?.currency_groups) {
-        const flattened = Object.values(
-          res.data.currency_groups,
-        ).flat() as any[];
+        const flattened = Object.values(res.data.currency_groups).flat() as any[];
         setSupportedCurrencies(flattened);
-        if (flattened.length > 0 && !sweepCryptoType) {
-          setSweepCryptoType(flattened[0].crypto_type);
-        }
-        if (flattened.length > 0 && !payMerchantCryptoType) {
-          setPayMerchantCryptoType(flattened[0].crypto_type);
+        if (flattened.length > 0) {
+          if (!sweepCryptoType) setSweepCryptoType(flattened[0].crypto_type);
+          if (!payMerchantCryptoType) setPayMerchantCryptoType(flattened[0].crypto_type);
         }
       }
     } catch (err) {
@@ -168,12 +90,7 @@ const MerchantCustomersPage: React.FC = () => {
         setCustomers(res.data.customers);
       }
     } catch (error: any) {
-      const errMsg =
-        typeof error.response?.data?.error === "string"
-          ? error.response.data.error
-          : error.response?.data?.error?.message ||
-            error.message ||
-            "Failed to list customers";
+      const errMsg = error.response?.data?.error || error.message || "Failed to list customers";
       showToast(errMsg, "error");
     } finally {
       setLoading(false);
@@ -182,9 +99,7 @@ const MerchantCustomersPage: React.FC = () => {
 
   const stats = useMemo(() => {
     const total = customers.length;
-    const active = customers.filter(
-      (c) => c.status === "active" && c.is_active,
-    ).length;
+    const active = customers.filter((c) => c.status === "active" && c.is_active).length;
     const flagged = customers.filter((c) => c.status === "flagged").length;
     const recent = customers.filter((c) => {
       const diff = Date.now() - new Date(c.created_at).getTime();
@@ -198,15 +113,8 @@ const MerchantCustomersPage: React.FC = () => {
       const matchesSearch =
         c.external_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        `${c.first_name || ""} ${c.last_name || ""}`
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-
-      const matchesStatus =
-        statusFilter === "all" ||
-        c.status === statusFilter ||
-        (statusFilter === "inactive" && !c.is_active);
-
+        `${c.first_name || ""} ${c.last_name || ""}`.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || c.status === statusFilter || (statusFilter === "inactive" && !c.is_active);
       return matchesSearch && matchesStatus;
     });
   }, [customers, searchTerm, statusFilter]);
@@ -217,27 +125,15 @@ const MerchantCustomersPage: React.FC = () => {
       showToast("External ID is required", "error");
       return;
     }
-
     try {
       setSubmitting(true);
       await customerAPI.create(newCustomer);
       showToast("Customer registered with wallets provisioned", "success");
       setIsCreateDrawerOpen(false);
-      setNewCustomer({
-        external_id: "",
-        email: "",
-        first_name: "",
-        last_name: "",
-      });
+      setNewCustomer({ external_id: "", email: "", first_name: "", last_name: "" });
       fetchCustomers();
     } catch (error: any) {
-      const errMsg =
-        typeof error.response?.data?.error === "string"
-          ? error.response.data.error
-          : error.response?.data?.error?.message ||
-            error.message ||
-            "Failed to register customer";
-      showToast(errMsg, "error");
+      showToast(error.response?.data?.error || "Failed to register customer", "error");
     } finally {
       setSubmitting(false);
     }
@@ -251,15 +147,10 @@ const MerchantCustomersPage: React.FC = () => {
         customerAPI.getBalances(externalId),
         customerAPI.getTransactions(externalId, { limit: 20 }),
       ]);
-      if (walletRes.status === "fulfilled")
-        setCustomerWallets(walletRes.value.data?.wallets || []);
-      if (balRes.status === "fulfilled")
-        setCustomerBalances(balRes.value.data?.balances);
-      if (txRes.status === "fulfilled")
-        setCustomerTransactions(txRes.value.data?.transactions || []);
-    } catch {
-      /* silent */
-    } finally {
+      if (walletRes.status === "fulfilled") setCustomerWallets(walletRes.value.data?.wallets || []);
+      if (balRes.status === "fulfilled") setCustomerBalances(balRes.value.data?.balances);
+      if (txRes.status === "fulfilled") setCustomerTransactions(txRes.value.data?.transactions || []);
+    } catch { /* silent */ } finally {
       setDetailsLoading(false);
     }
   };
@@ -284,21 +175,13 @@ const MerchantCustomersPage: React.FC = () => {
       const updated = res.data?.customer;
       if (updated) {
         setSelectedCustomer(updated);
-        setCustomers((prev) =>
-          prev.map((c) => (c.id === updated.id ? updated : c)),
-        );
+        setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       }
       showToast(`Customer status changed to ${newStatus}`, "success");
       setShowStatusModal(null);
       setStatusReason("");
     } catch (error: any) {
-      const errMsg =
-        typeof error.response?.data?.error === "string"
-          ? error.response.data.error
-          : error.response?.data?.error?.message ||
-            error.message ||
-            "Failed to update status";
-      showToast(errMsg, "error");
+      showToast(error.response?.data?.error || "Failed to update status", "error");
     } finally {
       setStatusUpdating(false);
     }
@@ -308,29 +191,17 @@ const MerchantCustomersPage: React.FC = () => {
     if (!selectedCustomer) return;
     try {
       setPermUpdating(true);
-      const res = await customerAPI.updatePermissions(
-        selectedCustomer.external_id,
-        { can_withdraw: !selectedCustomer.can_withdraw },
-      );
+      const res = await customerAPI.updatePermissions(selectedCustomer.external_id, {
+        can_withdraw: !selectedCustomer.can_withdraw
+      });
       const updated = res.data?.customer;
       if (updated) {
         setSelectedCustomer(updated);
-        setCustomers((prev) =>
-          prev.map((c) => (c.id === updated.id ? updated : c)),
-        );
+        setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       }
-      showToast(
-        `Withdrawals ${!selectedCustomer.can_withdraw ? "enabled" : "disabled"}`,
-        "success",
-      );
+      showToast(`Withdrawals ${!selectedCustomer.can_withdraw ? "enabled" : "disabled"}`, "success");
     } catch (error: any) {
-      const errMsg =
-        typeof error.response?.data?.error === "string"
-          ? error.response.data.error
-          : error.response?.data?.error?.message ||
-            error.message ||
-            "Failed to update permissions";
-      showToast(errMsg, "error");
+      showToast(error.response?.data?.error || "Failed to update permissions", "error");
     } finally {
       setPermUpdating(false);
     }
@@ -339,21 +210,9 @@ const MerchantCustomersPage: React.FC = () => {
   const handleSweep = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomer || !sweepPin) {
-      showToast(
-        "Please enter your Merchant Transaction PIN",
-        "warning",
-      );
+      showToast("Please enter your Merchant Transaction PIN", "warning");
       return;
     }
-
-    if (sweepMode === "SPECIFIC" && !sweepCryptoType) {
-      showToast(
-        "Please select a specific asset to sweep",
-        "warning",
-      );
-      return;
-    }
-
     try {
       setSweeping(true);
       await customerAPI.sweep(selectedCustomer.external_id, {
@@ -362,21 +221,12 @@ const MerchantCustomersPage: React.FC = () => {
         amount: sweepAmount ? sweepAmount : undefined,
         pin: sweepPin,
       });
-      showToast(
-        "Sweep operation initiated successfully",
-        "success",
-      );
+      showToast("Sweep operation initiated successfully", "success");
       setSweepAmount("");
       setSweepPin("");
       fetchCustomerDetails(selectedCustomer.external_id);
     } catch (error: any) {
-      const errMsg =
-        typeof error.response?.data?.error === "string"
-          ? error.response.data.error
-          : error.response?.data?.error?.message ||
-            error.message ||
-            "Failed to sweep funds";
-      showToast(errMsg, "error");
+      showToast(error.response?.data?.error || "Failed to sweep funds", "error");
     } finally {
       setSweeping(false);
     }
@@ -392,13 +242,7 @@ const MerchantCustomersPage: React.FC = () => {
       showToast("Wallets provisioned successfully", "success");
       fetchCustomerDetails(selectedCustomer.external_id);
     } catch (error: any) {
-      const errMsg =
-        typeof error.response?.data?.error === "string"
-          ? error.response.data.error
-          : error.response?.data?.error?.message ||
-            error.message ||
-            "Failed to provision wallets";
-      showToast(errMsg, "error");
+      showToast(error.response?.data?.error || "Failed to provision wallets", "error");
     } finally {
       setProvisioning(false);
     }
@@ -420,13 +264,7 @@ const MerchantCustomersPage: React.FC = () => {
       setPayMerchantAmount("");
       fetchCustomerDetails(selectedCustomer.external_id);
     } catch (error: any) {
-      const errMsg =
-        typeof error.response?.data?.error === "string"
-          ? error.response.data.error
-          : error.response?.data?.error?.message ||
-            error.message ||
-            "Failed to process payment";
-      showToast(errMsg, "error");
+      showToast(error.response?.data?.error || "Failed to process payment", "error");
     } finally {
       setPayingMerchant(false);
     }
@@ -440,32 +278,19 @@ const MerchantCustomersPage: React.FC = () => {
         customer_ids: isAll ? undefined : selectedCustomerIds,
         all_customers: isAll,
       });
-      showToast(
-        `Wallets regenerated successfully for ${isAll ? "all" : selectedCustomerIds.length} customers`,
-        "success",
-      );
+      showToast(`Wallets regenerated successfully for ${isAll ? "all" : selectedCustomerIds.length} customers`, "success");
       if (!isAll) setSelectedCustomerIds([]);
     } catch (error: any) {
-      const errMsg =
-        typeof error.response?.data?.error === "string"
-          ? error.response.data.error
-          : error.response?.data?.error?.message ||
-            error.message ||
-            "Failed to bulk regenerate wallets";
-      showToast(errMsg, "error");
+      showToast(error.response?.data?.error || "Failed to bulk regenerate wallets", "error");
     } finally {
       setProvisioning(false);
     }
   };
 
-  const getInitials = (c: Customer) => {
-    if (c.first_name && c.last_name)
-      return `${c.first_name[0]}${c.last_name[0]}`.toUpperCase();
-    return c.external_id.substring(0, 2).toUpperCase();
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    showToast("Copied to clipboard", "success");
   };
-
-  const getStatusStyle = (status: string) =>
-    STATUS_STYLES[status] || STATUS_STYLES["active"];
 
   return (
     <div className={styles.page}>
@@ -475,1614 +300,87 @@ const MerchantCustomersPage: React.FC = () => {
           <p>Manage your ecosystem of sub-accounts and dedicated wallets</p>
         </div>
         <div className={styles.headerActions}>
-          <button
-            className={styles.addBtn}
-            onClick={() => setIsCreateDrawerOpen(true)}
-          >
-            <i className="fas fa-user-plus"></i>
-            Register Customer
+          <button className={styles.addBtn} onClick={() => setIsCreateDrawerOpen(true)}>
+            <i className="fas fa-user-plus"></i> Register Customer
           </button>
         </div>
       </header>
 
-      <section className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.primary}`}>
-            <i className="fas fa-users"></i>
-          </div>
-          <div className={styles.statInfo}>
-            <h3>Total Customers</h3>
-            <p className={styles.statValue}>{stats.total}</p>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.success}`}>
-            <i className="fas fa-user-check"></i>
-          </div>
-          <div className={styles.statInfo}>
-            <h3>Active Accounts</h3>
-            <p className={styles.statValue}>{stats.active}</p>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.warning}`}>
-            <i className="fas fa-flag"></i>
-          </div>
-          <div className={styles.statInfo}>
-            <h3>Flagged</h3>
-            <p className={styles.statValue}>{stats.flagged}</p>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.primary}`}>
-            <i className="fas fa-sparkles"></i>
-          </div>
-          <div className={styles.statInfo}>
-            <h3>New This Week</h3>
-            <p className={styles.statValue}>{stats.recent}</p>
-          </div>
-        </div>
-      </section>
+      <CustomerStatsCards stats={stats} />
 
-      <section className={styles.filterBar}>
-        <div className={styles.searchWrapper}>
-          <i className="fas fa-search"></i>
-          <input
-            className={styles.searchInput}
-            placeholder="Search ID, name, or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className={styles.filterActions}>
-          <select
-            className={styles.filterSelect}
-            value={statusFilter}
-            onChange={(e: any) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="flagged">Flagged</option>
-            <option value="suspended">Suspended</option>
-            <option value="blocked">Blocked</option>
-          </select>
-          <button
-            className={styles.actionBtn}
-            style={{
-              background: "white",
-              color: "#1e293b",
-              border: "1px solid #e2e8f0",
-            }}
-            onClick={fetchCustomers}
-          >
-            <i className="fas fa-sync-alt"></i>
-          </button>
-        </div>
-      </section>
+      <CustomerFilterBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        onRefresh={fetchCustomers}
+      />
 
-      <div className={styles.contentCard}>
-        <div className={styles.tableHeader}>
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            <h2>Registered Entities</h2>
-            <span
-              style={{
-                fontSize: "0.875rem",
-                color: "#64748b",
-                fontWeight: 600,
-              }}
-            >
-              {filteredCustomers.length} results found
-            </span>
-          </div>
-          {(selectedCustomerIds.length > 0 || filteredCustomers.length > 0) && (
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              {selectedCustomerIds.length > 0 && (
-                <button
-                  className={styles.actionBtn}
-                  style={{
-                    background: "#3b82f6",
-                    color: "white",
-                    padding: "0.5rem 1rem",
-                  }}
-                  onClick={() => handleBulkProvision(false)}
-                  disabled={provisioning}
-                >
-                  <i
-                    className={
-                      provisioning
-                        ? "fas fa-spinner fa-spin mr-2"
-                        : "fas fa-sync-alt mr-2"
-                    }
-                  ></i>
-                  Regenerate {selectedCustomerIds.length} Selected
-                </button>
-              )}
-              <button
-                className={styles.actionBtn}
-                style={{
-                  background: "#f59e0b",
-                  color: "white",
-                  padding: "0.5rem 1rem",
-                }}
-                onClick={() => handleBulkProvision(true)}
-                disabled={provisioning}
-              >
-                <i
-                  className={
-                    provisioning
-                      ? "fas fa-spinner fa-spin mr-2"
-                      : "fas fa-magic mr-2"
-                  }
-                ></i>
-                Regenerate All
-              </button>
-            </div>
-          )}
-        </div>
+      <CustomerDirectoryTable
+        loading={loading}
+        filteredCustomers={filteredCustomers}
+        searchTerm={searchTerm}
+        selectedCustomerIds={selectedCustomerIds}
+        setSelectedCustomerIds={setSelectedCustomerIds}
+        onCustomerClick={openCustomerDetails}
+        onBulkProvision={handleBulkProvision}
+        provisioning={provisioning}
+      />
 
-        {loading ? (
-          <div className={styles.loadingOverlay}>
-            <i className="fas fa-circle-notch fa-spin fa-3x"></i>
-          </div>
-        ) : filteredCustomers.length === 0 ? (
-          <div className={styles.noData}>
-            <i className="fas fa-users-slash"></i>
-            <p>
-              {searchTerm
-                ? "No results match your search"
-                : "No customers registered yet"}
-            </p>
-          </div>
-        ) : (
-          <div className={styles.tableContainer}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th style={{ width: "40px" }}>
-                    <input
-                      type="checkbox"
-                      checked={
-                        filteredCustomers.length > 0 &&
-                        selectedCustomerIds.length === filteredCustomers.length
-                      }
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedCustomerIds(
-                            filteredCustomers.map((c) => c.external_id),
-                          );
-                        } else {
-                          setSelectedCustomerIds([]);
-                        }
-                      }}
-                    />
-                  </th>
-                  <th>Customer Identity</th>
-                  <th>External ID</th>
-                  <th>Status</th>
-                  <th>Withdrawals</th>
-                  <th>Joined Date</th>
-                  <th style={{ textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCustomers.map((c) => {
-                  const st = getStatusStyle(c.status || "active");
-                  return (
-                    <tr
-                      key={c.id}
-                      className={styles.customerRow}
-                      onClick={() => openCustomerDetails(c)}
-                    >
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedCustomerIds.includes(c.external_id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedCustomerIds([
-                                ...selectedCustomerIds,
-                                c.external_id,
-                              ]);
-                            } else {
-                              setSelectedCustomerIds(
-                                selectedCustomerIds.filter(
-                                  (id) => id !== c.external_id,
-                                ),
-                              );
-                            }
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <div className={styles.customerInfo}>
-                          <div className={styles.avatar}>{getInitials(c)}</div>
-                          <div className={styles.customerMeta}>
-                            <span className={styles.customerName}>
-                              {c.first_name || c.last_name
-                                ? `${c.first_name || ""} ${c.last_name || ""}`.trim()
-                                : "Unnamed Customer"}
-                            </span>
-                            <span className={styles.customerEmail}>
-                              {c.email || "No email provided"}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={styles.externalId}>
-                          {c.external_id}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "0.35rem",
-                            padding: "0.25rem 0.75rem",
-                            borderRadius: "999px",
-                            fontSize: "0.8rem",
-                            fontWeight: 600,
-                            color: st.color,
-                            background: st.bg,
-                          }}
-                        >
-                          <i
-                            className={`fas ${st.icon}`}
-                            style={{ fontSize: "0.7rem" }}
-                          ></i>{" "}
-                          {st.label}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          style={{
-                            color: c.can_withdraw ? "#059669" : "#dc2626",
-                            fontWeight: 600,
-                            fontSize: "0.85rem",
-                          }}
-                        >
-                          {c.can_withdraw ? "✓ Enabled" : "✗ Disabled"}
-                        </span>
-                      </td>
-                      <td>
-                        {new Date(c.created_at).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <button
-                          className={styles.actionBtn}
-                          style={{
-                            padding: "0.5rem 1rem",
-                            background: "#f1f5f9",
-                            color: "#1e293b",
-                            display: "inline-flex",
-                          }}
-                        >
-                          Manage <i className="fas fa-chevron-right ml-2"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <CreateCustomerDrawer
+        isOpen={isCreateDrawerOpen}
+        onClose={() => setIsCreateDrawerOpen(false)}
+        newCustomer={newCustomer}
+        setNewCustomer={setNewCustomer}
+        submitting={submitting}
+        onSubmit={handleCreateCustomer}
+      />
 
-      {/* Create Customer Drawer */}
-      {isCreateDrawerOpen && (
-        <div
-          className={styles.overlay}
-          onClick={() => setIsCreateDrawerOpen(false)}
-        >
-          <div className={styles.drawer} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.drawerHeader}>
-              <h2>
-                <i
-                  className="fas fa-user-plus"
-                  style={{ color: "#2563eb" }}
-                ></i>{" "}
-                New Customer
-              </h2>
-              <button
-                className={styles.closeBtn}
-                onClick={() => setIsCreateDrawerOpen(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className={styles.drawerBody}>
-              <form onSubmit={handleCreateCustomer}>
-                <div className={styles.formGroup}>
-                  <label>External Reference ID*</label>
-                  <div className={styles.inputGroup}>
-                    <i className="fas fa-id-card"></i>
-                    <input
-                      className={styles.inputStyle}
-                      required
-                      placeholder="e.g. system_user_99"
-                      value={newCustomer.external_id}
-                      onChange={(e) =>
-                        setNewCustomer({
-                          ...newCustomer,
-                          external_id: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <p
-                    style={{
-                      fontSize: "0.75rem",
-                      color: "#64748b",
-                      marginTop: "0.5rem",
-                    }}
-                  >
-                    Must be unique. Wallets will be auto-provisioned upon
-                    registration.
-                  </p>
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Email Address</label>
-                  <div className={styles.inputGroup}>
-                    <i className="fas fa-envelope"></i>
-                    <input
-                      className={styles.inputStyle}
-                      type="email"
-                      placeholder="customer@domain.com"
-                      value={newCustomer.email}
-                      onChange={(e) =>
-                        setNewCustomer({
-                          ...newCustomer,
-                          email: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "1.5rem",
-                  }}
-                >
-                  <div className={styles.formGroup}>
-                    <label>First Name</label>
-                    <div className={styles.inputGroup}>
-                      <i className="fas fa-user-circle"></i>
-                      <input
-                        className={styles.inputStyle}
-                        placeholder="John"
-                        value={newCustomer.first_name}
-                        onChange={(e) =>
-                          setNewCustomer({
-                            ...newCustomer,
-                            first_name: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label>Last Name</label>
-                    <div className={styles.inputGroup}>
-                      <i className="fas fa-user-circle"></i>
-                      <input
-                        className={styles.inputStyle}
-                        placeholder="Doe"
-                        value={newCustomer.last_name}
-                        onChange={(e) =>
-                          setNewCustomer({
-                            ...newCustomer,
-                            last_name: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-                <button
-                  className={styles.addBtn}
-                  style={{ width: "100%", marginTop: "2rem" }}
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <i className="fas fa-circle-notch fa-spin"></i>
-                  ) : (
-                    "Complete Registration"
-                  )}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      <CustomerDetailDrawer
+        selectedCustomer={selectedCustomer}
+        onClose={() => setSelectedCustomer(null)}
+        drawerTab={drawerTab}
+        setDrawerTab={setDrawerTab}
+        detailsLoading={detailsLoading}
+        supportedCurrencies={supportedCurrencies}
+        customerBalances={customerBalances}
+        customerWallets={customerWallets}
+        customerTransactions={customerTransactions}
+        expandedAsset={expandedAsset}
+        setExpandedAsset={setExpandedAsset}
+        onProvisionWallets={handleProvisionWallets}
+        provisioning={provisioning}
+        onCopy={handleCopy}
+        statusUpdating={statusUpdating}
+        onStatusUpdate={handleStatusUpdate}
+        onShowStatusModal={setShowStatusModal}
+        permUpdating={permUpdating}
+        onToggleWithdraw={handleToggleWithdraw}
+        sweepMode={sweepMode}
+        setSweepMode={setSweepMode}
+        sweepCryptoType={sweepCryptoType}
+        setSweepCryptoType={setSweepCryptoType}
+        sweepAmount={sweepAmount}
+        setSweepAmount={setSweepAmount}
+        sweepPin={sweepPin}
+        setSweepPin={setSweepPin}
+        sweeping={sweeping}
+        onSweep={handleSweep}
+        payMerchantAmount={payMerchantAmount}
+        setPayMerchantAmount={setPayMerchantAmount}
+        payMerchantCryptoType={payMerchantCryptoType}
+        setPayMerchantCryptoType={setPayMerchantCryptoType}
+        payingMerchant={payingMerchant}
+        onPayMerchant={handlePayMerchant}
+      />
 
-      {/* Customer Details Drawer */}
-      {selectedCustomer && (
-        <div
-          className={styles.overlay}
-          onClick={() => setSelectedCustomer(null)}
-        >
-          <div className={styles.drawer} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.drawerHeader}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                }}
-              >
-                <h2>
-                  <i
-                    className="fas fa-id-badge"
-                    style={{ color: "#2563eb" }}
-                  ></i>{" "}
-                  {selectedCustomer.first_name || selectedCustomer.last_name
-                    ? `${selectedCustomer.first_name || ""} ${selectedCustomer.last_name || ""}`.trim()
-                    : selectedCustomer.external_id}
-                </h2>
-                {(() => {
-                  const st = getStatusStyle(
-                    selectedCustomer.status || "active",
-                  );
-                  return (
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "0.3rem",
-                        padding: "0.2rem 0.6rem",
-                        borderRadius: "999px",
-                        fontSize: "0.75rem",
-                        fontWeight: 700,
-                        color: st.color,
-                        background: st.bg,
-                      }}
-                    >
-                      <i
-                        className={`fas ${st.icon}`}
-                        style={{ fontSize: "0.65rem" }}
-                      ></i>{" "}
-                      {st.label}
-                    </span>
-                  );
-                })()}
-              </div>
-              <button
-                className={styles.closeBtn}
-                onClick={() => setSelectedCustomer(null)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-
-            {/* Drawer Tabs */}
-            <div
-              style={{
-                display: "flex",
-                borderBottom: "2px solid #e2e8f0",
-                padding: "0 2rem",
-                overflowX: "auto",
-              }}
-            >
-              {(
-                ["overview", "transactions", "permissions", "actions"] as const
-              ).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setDrawerTab(tab)}
-                  style={{
-                    padding: "0.75rem 1.25rem",
-                    border: "none",
-                    background: "none",
-                    cursor: "pointer",
-                    fontWeight: 600,
-                    fontSize: "0.875rem",
-                    color: drawerTab === tab ? "#2563eb" : "#94a3b8",
-                    borderBottom:
-                      drawerTab === tab
-                        ? "2px solid #2563eb"
-                        : "2px solid transparent",
-                    marginBottom: "-2px",
-                    transition: "all 0.2s",
-                    textTransform: "capitalize",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {tab === "overview" && (
-                    <i
-                      className="fas fa-wallet"
-                      style={{ marginRight: "0.4rem" }}
-                    ></i>
-                  )}
-                  {tab === "transactions" && (
-                    <i
-                      className="fas fa-exchange-alt"
-                      style={{ marginRight: "0.4rem" }}
-                    ></i>
-                  )}
-                  {tab === "permissions" && (
-                    <i
-                      className="fas fa-shield-alt"
-                      style={{ marginRight: "0.4rem" }}
-                    ></i>
-                  )}
-                  {tab === "actions" && (
-                    <i
-                      className="fas fa-hand-holding-usd"
-                      style={{ marginRight: "0.4rem" }}
-                    ></i>
-                  )}
-                  {tab === "actions" ? "Financial Actions" : tab}
-                </button>
-              ))}
-            </div>
-
-            <div className={styles.drawerBody}>
-              {detailsLoading ? (
-                <div className={styles.loadingOverlay}>
-                  <i className="fas fa-circle-notch fa-spin fa-2x"></i>
-                </div>
-              ) : (
-                <>
-                  {/* =================== OVERVIEW TAB =================== */}
-                  {drawerTab === "overview" && (
-                    <>
-                      {/* Portfolio Section */}
-                      <div className={styles.drawerSection}>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            marginBottom: "1.5rem",
-                          }}
-                        >
-                          <h3 style={{ margin: 0 }}>
-                            <i
-                              className="fas fa-wallet"
-                              style={{ color: "#2563eb" }}
-                            ></i>{" "}
-                            Portfolio
-                          </h3>
-                          {customerWallets.length === 0 && (
-                            <button
-                              onClick={handleProvisionWallets}
-                              className={styles.provisionBtn}
-                              style={{ width: "auto", padding: "0.5rem 1rem" }}
-                              disabled={provisioning}
-                            >
-                              {provisioning ? (
-                                <i className="fas fa-circle-notch fa-spin"></i>
-                              ) : (
-                                <i className="fas fa-magic"></i>
-                              )}
-                              Provision All
-                            </button>
-                          )}
-                        </div>
-
-                        <div className={styles.portfolioList}>
-                          {supportedCurrencies.length > 0 ? (
-                            supportedCurrencies.map((asset: any) => {
-                              const balance = customerBalances?.find(
-                                (b: any) =>
-                                  b.crypto_type === asset.crypto_type,
-                              );
-                              const wallet = customerWallets.find(
-                                (w: any) =>
-                                  w.crypto_type === asset.crypto_type,
-                              );
-                              const isExpanded =
-                                expandedAsset === asset.crypto_type;
-
-                              return (
-                                <div
-                                  key={asset.crypto_type}
-                                  className={`${styles.portfolioItem} ${isExpanded ? styles.expanded : ""}`}
-                                  onClick={() =>
-                                    setExpandedAsset(
-                                      isExpanded ? null : asset.crypto_type,
-                                    )
-                                  }
-                                >
-                                  <div className={styles.portfolioMain}>
-                                    <div className={styles.assetInfoGroup}>
-                                      <div className={styles.assetIconSmall}>
-                                        {asset.icon_url ? (
-                                          <img
-                                            src={asset.icon_url}
-                                            alt={asset.crypto_type}
-                                          />
-                                        ) : (
-                                          <FaWallet />
-                                        )}
-                                      </div>
-                                      <div className={styles.assetMetaGroup}>
-                                        <span className={styles.assetCode}>
-                                          {asset.crypto_type}
-                                        </span>
-                                        <span
-                                          className={styles.assetNetworkName}
-                                        >
-                                          {asset.network}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    <div className={styles.assetBalanceGroup}>
-                                      <span className={styles.balanceValue}>
-                                        {parseFloat(
-                                          balance?.available_balance || "0",
-                                        ).toFixed(6)}
-                                      </span>
-                                      <span className={styles.usdValue}>
-                                        ≈ $
-                                        {parseFloat(
-                                          balance?.available_balance_usd || "0",
-                                        ).toLocaleString(undefined, {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        })}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {isExpanded && (
-                                    <div
-                                      className={styles.expandedDetails}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      {wallet ? (
-                                        <div className={styles.addressContainer}>
-                                          <label>Deposit Address</label>
-                                          <div className={styles.addressRow}>
-                                            <code className={styles.addressCode}>
-                                              {wallet.address}
-                                            </code>
-                                            <button
-                                              className={styles.miniCopyBtn}
-                                              onClick={() => {
-                                                navigator.clipboard.writeText(
-                                                  wallet.address,
-                                                );
-                                                showToast(
-                                                  "Address copied!",
-                                                  "success",
-                                                );
-                                              }}
-                                            >
-                                              <i className="far fa-copy"></i>
-                                            </button>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontSize: '0.85rem' }}>
-                                          <p>No dedicated wallet for this asset yet.</p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <div className={styles.loadingOverlay}>
-                              <i className="fas fa-circle-notch fa-spin"></i>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* ================ TRANSACTIONS TAB ================ */}
-                  {drawerTab === "transactions" && (
-                    <div className={styles.drawerSection}>
-                      <h3>
-                        <i
-                          className="fas fa-exchange-alt"
-                          style={{ color: "#7c3aed" }}
-                        ></i>{" "}
-                        Activity History
-                      </h3>
-                      {customerTransactions.length > 0 ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "0.75rem",
-                          }}
-                        >
-                          {customerTransactions.map((tx) => {
-                            const badge =
-                              TX_BADGES[tx.type] || TX_BADGES["WITHDRAWAL"];
-                            return (
-                              <div
-                                key={tx.id}
-                                style={{
-                                  padding: "1rem",
-                                  background: "#f8fafc",
-                                  borderRadius: "12px",
-                                  border: "1px solid #e2e8f0",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    marginBottom: "0.5rem",
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: "0.3rem",
-                                      padding: "0.2rem 0.6rem",
-                                      borderRadius: "6px",
-                                      fontSize: "0.75rem",
-                                      fontWeight: 700,
-                                      color: badge.color,
-                                      background: badge.bg,
-                                    }}
-                                  >
-                                    <i className={`fas ${badge.icon}`}></i>{" "}
-                                    {tx.type.replace("_", " ")}
-                                  </span>
-                                  <span
-                                    style={{
-                                      fontSize: "0.75rem",
-                                      color: "#94a3b8",
-                                    }}
-                                  >
-                                    {new Date(tx.created_at).toLocaleString()}
-                                  </span>
-                                </div>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      flexDirection: "column",
-                                      alignItems: "flex-start",
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        fontWeight: 700,
-                                        fontSize: "1rem",
-                                        color: "#0f172a",
-                                      }}
-                                    >
-                                      {parseFloat(tx.amount).toFixed(6)}{" "}
-                                      {tx.crypto_type}
-                                    </span>
-                                    <span
-                                      style={{
-                                        fontSize: "0.75rem",
-                                        color: "#94a3b8",
-                                      }}
-                                    >
-                                      ≈ $
-                                      {parseFloat(
-                                        tx.amount_usd || "0",
-                                      ).toLocaleString(undefined, {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                      })}{" "}
-                                      USD
-                                    </span>
-                                  </div>
-                                  <span
-                                    style={{
-                                      padding: "0.15rem 0.5rem",
-                                      borderRadius: "6px",
-                                      fontSize: "0.7rem",
-                                      fontWeight: 600,
-                                      color:
-                                        tx.status === "COMPLETED"
-                                          ? "#059669"
-                                          : "#d97706",
-                                      background:
-                                        tx.status === "COMPLETED"
-                                          ? "#d1fae5"
-                                          : "#fef3c7",
-                                    }}
-                                  >
-                                    {tx.status}
-                                  </span>
-                                </div>
-                                {tx.description && (
-                                  <p
-                                    style={{
-                                      margin: "0.5rem 0 0",
-                                      fontSize: "0.8rem",
-                                      color: "#64748b",
-                                    }}
-                                  >
-                                    {tx.description}
-                                  </p>
-                                )}
-                                {tx.transaction_hash && (
-                                  <p
-                                    style={{
-                                      margin: "0.25rem 0 0",
-                                      fontSize: "0.75rem",
-                                      color: "#94a3b8",
-                                      fontFamily: "monospace",
-                                      wordBreak: "break-all",
-                                    }}
-                                  >
-                                    TX: {tx.transaction_hash}
-                                  </p>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div
-                          style={{
-                            textAlign: "center",
-                            padding: "3rem 1rem",
-                            color: "#94a3b8",
-                          }}
-                        >
-                          <i
-                            className="fas fa-inbox"
-                            style={{
-                              fontSize: "2rem",
-                              marginBottom: "0.75rem",
-                              display: "block",
-                            }}
-                          ></i>
-                          <p style={{ margin: 0 }}>No transactions yet</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* ================ PERMISSIONS TAB ================ */}
-                  {drawerTab === "permissions" && (
-                    <>
-                      {/* Status Management */}
-                      <div className={styles.drawerSection}>
-                        <h3>
-                          <i
-                            className="fas fa-user-shield"
-                            style={{ color: "#2563eb" }}
-                          ></i>{" "}
-                          Account Status
-                        </h3>
-                        <p
-                          style={{
-                            fontSize: "0.85rem",
-                            color: "#64748b",
-                            marginBottom: "1.5rem",
-                          }}
-                        >
-                          Current:{" "}
-                          <strong
-                            style={{
-                              color: getStatusStyle(
-                                selectedCustomer.status || "active",
-                              ).color,
-                            }}
-                          >
-                            {(
-                              selectedCustomer.status || "active"
-                            ).toUpperCase()}
-                          </strong>
-                          {selectedCustomer.status_reason && (
-                            <span> — {selectedCustomer.status_reason}</span>
-                          )}
-                        </p>
-
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: "0.75rem",
-                          }}
-                        >
-                          {selectedCustomer.status !== "active" && (
-                            <button
-                              onClick={() => handleStatusUpdate("active")}
-                              disabled={statusUpdating}
-                              style={{
-                                padding: "0.75rem",
-                                border: "1px solid #d1fae5",
-                                borderRadius: "10px",
-                                background: "#f0fdf4",
-                                color: "#059669",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                fontSize: "0.85rem",
-                              }}
-                            >
-                              <i
-                                className="fas fa-check-circle"
-                                style={{ marginRight: "0.3rem" }}
-                              ></i>{" "}
-                              Activate
-                            </button>
-                          )}
-                          {selectedCustomer.status !== "flagged" && (
-                            <button
-                              onClick={() => setShowStatusModal("flagged")}
-                              disabled={statusUpdating}
-                              style={{
-                                padding: "0.75rem",
-                                border: "1px solid #fef3c7",
-                                borderRadius: "10px",
-                                background: "#fffbeb",
-                                color: "#d97706",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                fontSize: "0.85rem",
-                              }}
-                            >
-                              <i
-                                className="fas fa-flag"
-                                style={{ marginRight: "0.3rem" }}
-                              ></i>{" "}
-                              Flag
-                            </button>
-                          )}
-                          {selectedCustomer.status !== "suspended" && (
-                            <button
-                              onClick={() => setShowStatusModal("suspended")}
-                              disabled={statusUpdating}
-                              style={{
-                                padding: "0.75rem",
-                                border: "1px solid #fee2e2",
-                                borderRadius: "10px",
-                                background: "#fef2f2",
-                                color: "#dc2626",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                fontSize: "0.85rem",
-                              }}
-                            >
-                              <i
-                                className="fas fa-pause-circle"
-                                style={{ marginRight: "0.3rem" }}
-                              ></i>{" "}
-                              Suspend
-                            </button>
-                          )}
-                          {selectedCustomer.status !== "blocked" && (
-                            <button
-                              onClick={() => setShowStatusModal("blocked")}
-                              disabled={statusUpdating}
-                              style={{
-                                padding: "0.75rem",
-                                border: "1px solid #f3f4f6",
-                                borderRadius: "10px",
-                                background: "#f9fafb",
-                                color: "#6b7280",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                fontSize: "0.85rem",
-                              }}
-                            >
-                              <i
-                                className="fas fa-ban"
-                                style={{ marginRight: "0.3rem" }}
-                              ></i>{" "}
-                              Block
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Withdrawal Permissions */}
-                      <div className={styles.drawerSection}>
-                        <h3>
-                          <i
-                            className="fas fa-shield-alt"
-                            style={{ color: "#7c3aed" }}
-                          ></i>{" "}
-                          Withdrawal Permissions
-                        </h3>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            padding: "1rem",
-                            background: "#f8fafc",
-                            borderRadius: "12px",
-                            marginBottom: "1rem",
-                          }}
-                        >
-                          <div>
-                            <p
-                              style={{
-                                margin: 0,
-                                fontWeight: 600,
-                                color: "#334155",
-                              }}
-                            >
-                              Allow Withdrawals
-                            </p>
-                            <p
-                              style={{
-                                margin: "0.25rem 0 0",
-                                fontSize: "0.8rem",
-                                color: "#94a3b8",
-                              }}
-                            >
-                              Customer can withdraw funds to external wallets
-                            </p>
-                          </div>
-                          <button
-                            onClick={handleToggleWithdraw}
-                            disabled={permUpdating}
-                            style={{
-                              width: "52px",
-                              height: "28px",
-                              borderRadius: "14px",
-                              border: "none",
-                              cursor: "pointer",
-                              background: selectedCustomer.can_withdraw
-                                ? "#059669"
-                                : "#d1d5db",
-                              position: "relative",
-                              transition: "background 0.2s",
-                            }}
-                          >
-                            <span
-                              style={{
-                                width: "22px",
-                                height: "22px",
-                                borderRadius: "50%",
-                                background: "white",
-                                position: "absolute",
-                                top: "3px",
-                                transition: "left 0.2s",
-                                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                                left: selectedCustomer.can_withdraw
-                                  ? "27px"
-                                  : "3px",
-                              }}
-                            ></span>
-                          </button>
-                        </div>
-                        {selectedCustomer.withdrawal_limit && (
-                          <p style={{ fontSize: "0.85rem", color: "#64748b" }}>
-                            Per-transaction limit:{" "}
-                            <strong>{selectedCustomer.withdrawal_limit}</strong>
-                          </p>
-                        )}
-                      </div>
-                    </>
-                  )}
-
-                  {/* ================ ACTIONS TAB ================ */}
-                  {drawerTab === "actions" && (
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "2rem",
-                      }}
-                    >
-                      {/* Sweep Customer Wallet */}
-                      <div className={styles.drawerSection}>
-                        <h3
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            marginBottom: "1rem",
-                          }}
-                        >
-                          <i
-                            className="fas fa-broom"
-                            style={{ color: "#2563eb" }}
-                          ></i>
-                          Sweep Sub-Wallet Balances
-                        </h3>
-                        <p
-                          style={{
-                            fontSize: "0.85rem",
-                            color: "#64748b",
-                            marginBottom: "1.5rem",
-                          }}
-                        >
-                          Sweep funds internally to your merchant Master Wallet. Gas fees 
-                          are seamlessly deducted directly from your ledger balance.
-                        </p>
-
-                        <form
-                          onSubmit={handleSweep}
-                          style={{
-                            background: "#fff",
-                            border: "1px solid #e2e8f0",
-                            padding: "1.5rem",
-                            borderRadius: "12px",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: "1fr 1fr",
-                              gap: "1rem",
-                              marginBottom: "1rem",
-                            }}
-                          >
-                            <div
-                              className={styles.formGroup}
-                              style={{ marginBottom: 0 }}
-                            >
-                              <label>Sweep Mode</label>
-                              <select
-                                className={styles.inputStyle}
-                                value={sweepMode}
-                                onChange={(e) =>
-                                  setSweepMode(e.target.value as any)
-                                }
-                              >
-                                <option value="ALL">Sweep All Assets</option>
-                                <option value="NATIVE_ONLY">Native Coins Only</option>
-                                <option value="STABLE_ONLY">Stablecoins Only</option>
-                                <option value="SPECIFIC">Specific Asset</option>
-                              </select>
-                            </div>
-                            
-                            {sweepMode === "SPECIFIC" && (
-                              <div
-                                className={styles.formGroup}
-                                style={{ marginBottom: 0 }}
-                              >
-                                <label>Target Asset</label>
-                                <select
-                                  className={styles.inputStyle}
-                                  value={sweepCryptoType}
-                                  onChange={(e) =>
-                                    setSweepCryptoType(e.target.value)
-                                  }
-                                >
-                                  {supportedCurrencies.map((c, idx) => (
-                                    <option key={idx} value={c.crypto_type}>
-                                      {c.crypto_type}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            )}
-
-                            <div
-                              className={styles.formGroup}
-                              style={{ marginBottom: 0 }}
-                            >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                <label style={{ margin: 0 }}>
-                                  {sweepMode === "SPECIFIC" ? "Amount (Optional)" : "Sweep Details"}
-                                </label>
-                                {customerBalances && (
-                                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
-                                    {(() => {
-                                      let filtered = customerBalances;
-                                      let label = "Total to Sweep";
-                                      if (sweepMode === "NATIVE_ONLY") {
-                                        filtered = customerBalances.filter((b: any) => {
-                                          const ct = b.crypto_type.toUpperCase();
-                                          return ["BTC", "ETH", "SOL", "BNB", "MATIC"].includes(ct) || ct === "ETHEREUM" || ct === "SOLANA";
-                                        });
-                                        label = "Total Native Coins";
-                                      } else if (sweepMode === "STABLE_ONLY") {
-                                        filtered = customerBalances.filter((b: any) => {
-                                          const ct = b.crypto_type.toUpperCase();
-                                          return ct.includes("USDT") || ct.includes("BUSD") || ct.includes("USDC");
-                                        });
-                                        label = "Total Stablecoins";
-                                      } else if (sweepMode === "SPECIFIC") {
-                                        const bal = customerBalances.find((b: any) => b.crypto_type === sweepCryptoType);
-                                        if (!bal) return null;
-                                        return (
-                                          <>
-                                            <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
-                                              Available to Sweep: {parseFloat(bal.locked_balance).toFixed(6)}
-                                            </span>
-                                            <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
-                                              ≈ ${parseFloat(bal.locked_balance_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
-                                            </span>
-                                          </>
-                                        );
-                                      }
-                                      
-                                      const totalUsd = filtered.reduce((sum: number, b: any) => sum + parseFloat(b.locked_balance_usd || "0"), 0);
-                                      return (
-                                        <>
-                                          <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
-                                            {label}: ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
-                                          </span>
-                                          <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
-                                            {filtered.filter((b: any) => parseFloat(b.locked_balance) > 0).length} assets with balance
-                                          </span>
-                                        </>
-                                      );
-                                    })()}
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {sweepMode === "SPECIFIC" ? (
-                                <div style={{ position: 'relative' }}>
-                                  <input
-                                    className={styles.inputStyle}
-                                    type="number"
-                                    step="any"
-                                    placeholder="Leave blank for MAX"
-                                    value={sweepAmount}
-                                    onChange={(e) =>
-                                      setSweepAmount(e.target.value)
-                                    }
-                                    style={{ paddingRight: '3.5rem' }}
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const bal = customerBalances?.find((b: any) => b.crypto_type === sweepCryptoType);
-                                      if (bal) setSweepAmount(bal.locked_balance);
-                                    }}
-                                    style={{
-                                      position: 'absolute',
-                                      right: '8px',
-                                      top: '50%',
-                                      transform: 'translateY(-50%)',
-                                      padding: '4px 8px',
-                                      background: '#f1f5f9',
-                                      border: '1px solid #e2e8f0',
-                                      borderRadius: '4px',
-                                      fontSize: '0.7rem',
-                                      fontWeight: 700,
-                                      color: '#475569',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    MAX
-                                  </button>
-                                </div>
-                              ) : (
-                                <div style={{ 
-                                  padding: '1rem', 
-                                  background: '#f8fafc', 
-                                  border: '1px dashed #cbd5e1', 
-                                  borderRadius: '10px',
-                                  textAlign: 'center',
-                                  color: '#64748b',
-                                  fontSize: '0.85rem'
-                                }}>
-                                  <i className="fas fa-info-circle" style={{ marginRight: '0.5rem' }}></i>
-                                  Bulk sweep will process all assets in this category.
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className={styles.formGroup}>
-                            <label>Merchant Transaction PIN</label>
-                            <input
-                              className={styles.inputStyle}
-                              type="password"
-                              maxLength={4}
-                              pattern="\d*"
-                              style={{
-                                letterSpacing: "0.5rem",
-                                textAlign: "center",
-                              }}
-                              placeholder="••••"
-                              value={sweepPin}
-                              onChange={(e) =>
-                                setSweepPin(
-                                  e.target.value.replace(/\D/g, ""),
-                                )
-                              }
-                              required
-                            />
-                          </div>
-                          
-                          <button
-                            type="submit"
-                            className={styles.addBtn}
-                            style={{ width: "100%", background: "#2563eb" }}
-                            disabled={sweeping}
-                          >
-                            {sweeping ? (
-                              <i className="fas fa-spinner fa-spin"></i>
-                            ) : (
-                              "Execute Sweep"
-                            )}
-                          </button>
-                          
-                          <p
-                            style={{
-                              color: "#64748b",
-                              fontSize: "0.75rem",
-                              marginTop: "0.75rem",
-                              textAlign: "center",
-                            }}
-                          >
-                            <i className="fas fa-info-circle" style={{ marginRight: '0.25rem' }}></i>
-                            Required gas limits will be discounted by any native 
-                            dust already present in the sub-wallet.
-                          </p>
-                        </form>
-                      </div>
-
-                      {/* Pay Merchant */}
-                      <div className={styles.drawerSection}>
-                        <h3
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
-                            marginBottom: "1rem",
-                          }}
-                        >
-                          <i
-                            className="fas fa-university"
-                            style={{ color: "#10b981" }}
-                          ></i>
-                          Move to Merchant Balance (Pay Merchant)
-                        </h3>
-                        <p
-                          style={{
-                            fontSize: "0.85rem",
-                            color: "#64748b",
-                            marginBottom: "1.5rem",
-                          }}
-                        >
-                          Transfer funds from the customer's wallet to your main
-                          merchant account immediately.
-                        </p>
-
-                        <form
-                          onSubmit={handlePayMerchant}
-                          style={{
-                            background: "#fff",
-                            border: "1px solid #e2e8f0",
-                            padding: "1.5rem",
-                            borderRadius: "12px",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: "1fr 1fr",
-                              gap: "1rem",
-                              marginBottom: "1rem",
-                            }}
-                          >
-                            <div
-                              className={styles.formGroup}
-                              style={{ marginBottom: 0 }}
-                            >
-                              <label>Asset</label>
-                              <select
-                                className={styles.inputStyle}
-                                value={payMerchantCryptoType}
-                                onChange={(e) =>
-                                  setPayMerchantCryptoType(e.target.value)
-                                }
-                              >
-                                {supportedCurrencies.map((c, idx) => (
-                                  <option key={idx} value={c.crypto_type}>
-                                    {c.crypto_type}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                             <div
-                              className={styles.formGroup}
-                              style={{ marginBottom: 0 }}
-                            >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                <label style={{ margin: 0 }}>Amount</label>
-                                {customerBalances?.find((b: any) => b.crypto_type === payMerchantCryptoType) && (
-                                  <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
-                                    Balance: {parseFloat(customerBalances.find((b: any) => b.crypto_type === payMerchantCryptoType).available_balance).toFixed(6)}
-                                  </span>
-                                )}
-                              </div>
-                              <div style={{ position: 'relative' }}>
-                                <input
-                                  className={styles.inputStyle}
-                                  type="number"
-                                  step="any"
-                                  placeholder="0.00"
-                                  value={payMerchantAmount}
-                                  onChange={(e) =>
-                                    setPayMerchantAmount(e.target.value)
-                                  }
-                                  required
-                                  style={{ paddingRight: '3.5rem' }}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const bal = customerBalances?.find((b: any) => b.crypto_type === payMerchantCryptoType);
-                                    if (bal) setPayMerchantAmount(bal.available_balance);
-                                  }}
-                                  style={{
-                                    position: 'absolute',
-                                    right: '8px',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    padding: '4px 8px',
-                                    background: '#f1f5f9',
-                                    border: '1px solid #e2e8f0',
-                                    borderRadius: '4px',
-                                    fontSize: '0.7rem',
-                                    fontWeight: 700,
-                                    color: '#475569',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  MAX
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                          <button
-                            type="submit"
-                            className={styles.addBtn}
-                            style={{ width: "100%", background: "#10b981" }}
-                            disabled={payingMerchant}
-                          >
-                            {payingMerchant ? (
-                              <i className="fas fa-spinner fa-spin"></i>
-                            ) : (
-                              "Transfer to Merchant Balance"
-                            )}
-                          </button>
-                        </form>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Status Change Reason Modal */}
-      {showStatusModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0,0,0,0.5)",
-          }}
-          onClick={() => {
-            setShowStatusModal(null);
-            setStatusReason("");
-          }}
-        >
-          <div
-            style={{
-              background: "white",
-              borderRadius: "16px",
-              padding: "2rem",
-              maxWidth: "420px",
-              width: "90%",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.1rem" }}>
-              {showStatusModal === "flagged" && "🚩 Flag Customer"}
-              {showStatusModal === "suspended" && "⏸️ Suspend Customer"}
-              {showStatusModal === "blocked" && "🚫 Block Customer"}
-            </h3>
-            <p
-              style={{
-                margin: "0 0 1.25rem",
-                fontSize: "0.85rem",
-                color: "#64748b",
-              }}
-            >
-              {showStatusModal === "flagged" &&
-                "Customer will be limited to view-only access. They cannot withdraw or pay."}
-              {showStatusModal === "suspended" &&
-                "Customer will lose all access. All operations will be rejected."}
-              {showStatusModal === "blocked" &&
-                "Customer will be permanently blocked. All operations will be rejected."}
-            </p>
-            <div style={{ marginBottom: "1.25rem" }}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "0.5rem",
-                  fontSize: "0.85rem",
-                  fontWeight: 600,
-                  color: "#334155",
-                }}
-              >
-                Reason (optional)
-              </label>
-              <textarea
-                value={statusReason}
-                onChange={(e) => setStatusReason(e.target.value)}
-                placeholder="Provide a reason for this action..."
-                rows={3}
-                style={{
-                  width: "100%",
-                  padding: "0.75rem",
-                  borderRadius: "10px",
-                  border: "1px solid #e2e8f0",
-                  fontSize: "0.9rem",
-                  resize: "none",
-                  fontFamily: "inherit",
-                  boxSizing: "border-box",
-                }}
-              ></textarea>
-            </div>
-            <div style={{ display: "flex", gap: "0.75rem" }}>
-              <button
-                onClick={() => {
-                  setShowStatusModal(null);
-                  setStatusReason("");
-                }}
-                style={{
-                  flex: 1,
-                  padding: "0.75rem",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "10px",
-                  background: "white",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  color: "#64748b",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleStatusUpdate(showStatusModal)}
-                disabled={statusUpdating}
-                style={{
-                  flex: 1,
-                  padding: "0.75rem",
-                  border: "none",
-                  borderRadius: "10px",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  color: "white",
-                  background:
-                    showStatusModal === "flagged"
-                      ? "#d97706"
-                      : showStatusModal === "suspended"
-                        ? "#dc2626"
-                        : "#6b7280",
-                }}
-              >
-                {statusUpdating ? "Updating..." : `Confirm ${showStatusModal}`}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <StatusUpdateModal
+        showStatusModal={showStatusModal}
+        setShowStatusModal={setShowStatusModal}
+        statusReason={statusReason}
+        setStatusReason={setStatusReason}
+        onConfirm={() => handleStatusUpdate(showStatusModal!)}
+      />
     </div>
   );
 };

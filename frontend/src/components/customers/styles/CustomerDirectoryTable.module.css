@@ -1,0 +1,135 @@
+.contentCard {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    position: relative;
+}
+
+.tableHeader {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tableHeader h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.tableContainer {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.table th {
+    background: #f8fafc;
+    padding: 1.25rem 1.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.table td {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.95rem;
+    color: #1e293b;
+}
+
+.customerRow {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.customerRow:hover {
+    background: #f1f5f9;
+}
+
+.customerInfo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.customerMeta {
+    display: flex;
+    flex-direction: column;
+}
+
+.customerName {
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.customerEmail {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.externalId {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #2563eb;
+    background: #eff6ff;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+}
+
+.actionBtn {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.loadingOverlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5rem;
+    color: #2563eb;
+}
+
+.noData {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #64748b;
+}
+
+.noData i {
+    font-size: 4rem;
+    color: #cbd5e1;
+    margin-bottom: 1.5rem;
+}
