@@ -378,7 +378,7 @@ const WithdrawalsPage: React.FC = () => {
                                                 <img 
                                                     src={w.crypto_type.includes('SOL') ? '/solana-sol-logo.png' : '/binance-usd-busd-logo.png'} 
                                                     alt={w.crypto_type}
-                                                    style={{ width: '20px', height: '20px', borderRadius: '50%' }}
+                                                    style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'contain' }}
                                                 />
                                                 ) : null}
                                                 <strong>{w.crypto_type}</strong>
