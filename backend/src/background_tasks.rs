@@ -97,6 +97,11 @@ impl BackgroundTasks {
             fee_service.start_auto_sweeper().await;
         });
 
+        let withdraw_tasks = self.clone();
+        tokio::spawn(async move {
+            withdraw_tasks.run_withdrawal_processor().await;
+        });
+
         info!("Background tasks started");
     }
 
@@ -607,6 +612,39 @@ impl BackgroundTasks {
             if let Err(e) = monitor.listen_for_signatures(addresses, rx, callback).await {
                 error!("Solana WebSocket monitor crashed: {}. Reconnecting in 2s...", e);
                 tokio::time::sleep(Duration::from_secs(2)).await;
+            }
+        }
+    }
+
+    /// Background task to process pending withdrawals
+    async fn run_withdrawal_processor(&self) {
+        let mut interval = interval(Duration::from_secs(15));
+        let processor = crate::services::withdrawal_processor::WithdrawalProcessor::new(
+            self.db_pool.clone(),
+            self.config.clone()
+        );
+
+        loop {
+            interval.tick().await;
+
+            // Find PENDING withdrawals
+            let pending_res = sqlx::query(
+                "SELECT withdrawal_id FROM withdrawals WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT 10"
+            )
+            .fetch_all(&self.db_pool)
+            .await;
+
+            match pending_res {
+                Ok(rows) => {
+                    use sqlx::Row;
+                    for row in rows {
+                        let wd_id: String = row.get("withdrawal_id");
+                        if let Err(e) = processor.process_withdrawal(&wd_id).await {
+                            error!("Error processing withdrawal {}: {}", wd_id, e);
+                        }
+                    }
+                },
+                Err(e) => error!("Error fetching pending withdrawals: {}", e),
             }
         }
     }
