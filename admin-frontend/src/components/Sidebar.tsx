@@ -1,11 +1,24 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Settings } from 'lucide-react';
+import { 
+    LayoutDashboard, 
+    Settings, 
+    Users, 
+    CreditCard, 
+    ArrowUpRight, 
+    Wallet, 
+    Server
+} from 'lucide-react';
 import clsx from 'clsx';
 
 const Sidebar: React.FC = () => {
     const navItems = [
         { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/merchants', label: 'Merchants', icon: Users },
+        { to: '/payments', label: 'Payments', icon: CreditCard },
+        { to: '/withdrawals', label: 'Withdrawals', icon: ArrowUpRight },
+        { to: '/wallets', label: 'Wallets', icon: Wallet },
+        { to: '/system', label: 'System', icon: Server },
         { to: '/settings', label: 'Settings', icon: Settings },
     ];
 

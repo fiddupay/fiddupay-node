@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Settings as SettingsIcon, Save, Zap, AlertTriangle } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Zap, Bell, Activity } from 'lucide-react';
 import { adminAPI } from '../lib/api';
+import FeeSweepTab from '../components/settings/tabs/FeeSweepTab';
+import GasAlertsTab from '../components/settings/tabs/GasAlertsTab';
+import ManualSweepTab from '../components/settings/tabs/ManualSweepTab';
 
 const NETWORKS = ["ETHEREUM", "BSC", "POLYGON", "ARBITRUM", "SOLANA"];
 
@@ -8,6 +11,7 @@ const Settings: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [triggering, setTriggering] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'sweep' | 'gas' | 'manual'>('sweep');
 
     const [settings, setSettings] = useState({
         is_auto_sweep_enabled: false,
@@ -84,170 +88,74 @@ const Settings: React.FC = () => {
         }
     };
 
-    if (loading) return <div>Loading settings...</div>;
+    if (loading) return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400 space-y-4">
+            <SettingsIcon className="w-12 h-12 animate-spin" />
+            <span className="text-sm font-medium">Loading platform configurations...</span>
+        </div>
+    );
+
+    const tabs = [
+        { id: 'sweep', label: 'Fee Sweeping', icon: Zap },
+        { id: 'gas', label: 'Gas Alerts', icon: Bell },
+        { id: 'manual', label: 'Manual Sweep', icon: Activity },
+    ];
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-12">
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                    <SettingsIcon className="w-6 h-6" />
-                    System Settings
-                </h1>
-                <p className="mt-1 text-sm text-slate-500">
-                    Manage platform configurations, including smart fee sweeping and gas alerts.
-                </p>
+        <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                        System Configuration
+                    </h1>
+                    <p className="text-slate-500 text-sm mt-1">Manage global platform behaviors, monitoring thresholds, and manual execution.</p>
+                </div>
+                {activeTab !== 'manual' && (
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-700 transition-all shadow-md active:scale-95 disabled:opacity-50"
+                    >
+                        <Save size={18} />
+                        {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                )}
             </div>
 
-            <div className="bg-surface rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <form onSubmit={handleSave} className="divide-y divide-slate-200">
-                    <div className="p-6 space-y-6">
-                        <div>
-                            <h2 className="text-lg font-semibold text-slate-900">Smart Fee Sweeping</h2>
-                            <p className="text-sm text-slate-500">Configure thresholds for automated fee collection to save on gas costs.</p>
-                        </div>
-
-                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-100">
-                            <div className="flex flex-col">
-                                <span className="font-medium text-slate-900">Enable Automated Sweeping</span>
-                                <span className="text-sm text-slate-500">When enabled, platform fees will be batched and swept periodically.</span>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    name="is_auto_sweep_enabled"
-                                    checked={settings.is_auto_sweep_enabled}
-                                    onChange={handleChange}
-                                    className="sr-only peer"
-                                />
-                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
-                            </label>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-slate-700">Minimum Accumulated Balance (USD)</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span className="text-slate-500 sm:text-sm">$</span>
-                                    </div>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        name="min_accumulated_usd"
-                                        value={settings.min_accumulated_usd}
-                                        onChange={handleChange}
-                                        className="block w-full pl-7 pr-12 sm:text-sm border-slate-300 rounded-md focus:ring-primary-500 focus:border-primary-500 border p-2"
-                                        placeholder="50.00"
-                                    />
-                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                        <span className="text-slate-500 sm:text-sm">USD</span>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-slate-500">Sweep triggers when wallet hits this value equivalent.</p>
-                            </div>
-
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-slate-700">Batch Collection Schedule</label>
-                                <input
-                                    type="text"
-                                    name="schedule_cron"
-                                    value={settings.schedule_cron}
-                                    onChange={handleChange}
-                                    className="block w-full sm:text-sm border-slate-300 rounded-md focus:ring-primary-500 focus:border-primary-500 border p-2 text-slate-900"
-                                    placeholder="0 0 * * *"
-                                />
-                                <p className="text-xs text-slate-500">CRON expression. Default is every midnight (UTC).</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="p-6 space-y-6">
-                        <div>
-                            <h2 className="text-lg font-semibold text-slate-900">Gas Monitoring & Alerts</h2>
-                            <p className="text-sm text-slate-500">Configure Webhook endpoints and low-fee thresholds to be notified of optimal clearing times.</p>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium text-slate-700">Discord/Slack Webhook URL</label>
-                                <input
-                                    type="url"
-                                    name="discord_webhook_url"
-                                    value={settings.discord_webhook_url}
-                                    onChange={handleChange}
-                                    className="block w-full sm:text-sm border-slate-300 rounded-md focus:ring-primary-500 focus:border-primary-500 border p-2"
-                                    placeholder="https://discord.com/api/webhooks/..."
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-1">
-                                    <label className="text-sm font-medium text-slate-700">EVM Gas Threshold (Gwei)</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        name="gas_alert_threshold_gwei"
-                                        value={settings.gas_alert_threshold_gwei}
-                                        onChange={handleChange}
-                                        className="block w-full sm:text-sm border-slate-300 rounded-md focus:ring-primary-500 focus:border-primary-500 border p-2"
-                                        placeholder="20.00"
-                                    />
-                                    <p className="text-xs text-slate-500">Alert triggers if network gas falls below this Gwei value.</p>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <label className="text-sm font-medium text-slate-700">Solana Threshold (Lamports)</label>
-                                    <input
-                                        type="number"
-                                        name="gas_alert_threshold_lamports"
-                                        value={settings.gas_alert_threshold_lamports}
-                                        onChange={handleChange}
-                                        className="block w-full sm:text-sm border-slate-300 rounded-md focus:ring-primary-500 focus:border-primary-500 border p-2"
-                                        placeholder="5000"
-                                    />
-                                    <p className="text-xs text-slate-500">Alert triggers if base fee multiplier falls below this.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="p-6 bg-slate-50 flex items-center justify-end">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden min-h-[500px] flex flex-col md:flex-row">
+                <div className="w-full md:w-64 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 p-4 space-y-1">
+                    {tabs.map((tab) => (
                         <button
-                            type="submit"
-                            disabled={saving}
-                            className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                                activeTab === tab.id 
+                                ? 'bg-white text-primary-600 shadow-md ring-1 ring-slate-200' 
+                                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                            }`}
                         >
-                            <Save className="w-4 h-4 mr-2" />
-                            {saving ? 'Saving...' : 'Save Settings'}
+                            <tab.icon size={18} />
+                            {tab.label}
                         </button>
-                    </div>
-                </form>
-            </div>
+                    ))}
+                </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-red-100 overflow-hidden">
-                <div className="p-6">
-                    <div className="flex items-center gap-2 text-red-700 mb-4">
-                        <AlertTriangle className="w-5 h-5" />
-                        <h2 className="text-lg font-semibold">Manual Fee Execution</h2>
-                    </div>
-                    <p className="text-sm text-slate-600 mb-6 max-w-2xl">
-                        You can bypass the scheduled minimums and immediately attempt to sweep all eligible merchant custody wallets on a chosen network into the platform central treasury. Use this if you have been alerted to exceptionally low network gas prices.
-                    </p>
-
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        {NETWORKS.map(net => (
-                            <button
-                                key={net}
-                                onClick={() => handleManualSweep(net)}
-                                disabled={triggering !== null}
-                                className="inline-flex flex-col items-center justify-center p-4 border rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all hover:scale-105 bg-white group disabled:opacity-50 shadow-sm hover:shadow-md"
-                            >
-                                <Zap className={`w-5 h-5 mb-2 ${triggering === net ? 'text-orange-500 animate-pulse' : 'text-slate-400 group-hover:text-amber-500'}`} />
-                                <span className="text-xs font-semibold text-slate-700">{net}</span>
-                                {triggering === net && <span className="text-[10px] text-orange-500 mt-1">Sweeping...</span>}
-                            </button>
-                        ))}
-                    </div>
+                <div className="flex-1 min-h-[400px]">
+                    <form onSubmit={handleSave}>
+                        {activeTab === 'sweep' && (
+                            <FeeSweepTab settings={settings} onChange={handleChange} />
+                        )}
+                        {activeTab === 'gas' && (
+                            <GasAlertsTab settings={settings} onChange={handleChange} />
+                        )}
+                        {activeTab === 'manual' && (
+                            <ManualSweepTab 
+                                networks={NETWORKS} 
+                                triggering={triggering} 
+                                onSweep={handleManualSweep} 
+                            />
+                        )}
+                    </form>
                 </div>
             </div>
         </div>
