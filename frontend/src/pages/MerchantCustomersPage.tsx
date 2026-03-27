@@ -1179,97 +1179,6 @@ const MerchantCustomersPage: React.FC = () => {
                           )}
                         </div>
                       </div>
-
-                      {/* Sweep Section */}
-                      <div className={styles.drawerSection}>
-                        <h3>
-                          <i
-                            className="fas fa-coins"
-                            style={{ color: "#f59e0b" }}
-                          ></i>{" "}
-                          Sweep Assets
-                        </h3>
-                        <form
-                          className={styles.sweepForm}
-                          onSubmit={handleSweep}
-                        >
-                          <div
-                            className={styles.formGroup}
-                            style={{ marginBottom: 0 }}
-                          >
-                            <label>Asset</label>
-                            <select
-                              className={styles.inputStyle}
-                              style={{ padding: "0.75rem 1rem", width: "100%" }}
-                              value={sweepCryptoType}
-                              onChange={(e) =>
-                                setSweepCryptoType(e.target.value)
-                              }
-                            >
-                              {supportedCurrencies.length > 0 ? (
-                                supportedCurrencies.map((c, idx) => (
-                                  <option key={idx} value={c.crypto_type}>
-                                    {c.crypto_type} ({c.network})
-                                  </option>
-                                ))
-                              ) : (
-                                <option disabled>
-                                  Loading supported assets...
-                                </option>
-                              )}
-                            </select>
-                          </div>
-                          <div
-                            className={styles.formGroup}
-                            style={{ marginBottom: 0 }}
-                          >
-                            <label>Amount</label>
-                            <input
-                              className={styles.inputStyle}
-                              style={{ padding: "0.75rem 1rem" }}
-                              type="number"
-                              step="any"
-                              placeholder="0.00"
-                              value={sweepAmount}
-                              onChange={(e) => setSweepAmount(e.target.value)}
-                            />
-                          </div>
-                          <div
-                            className={styles.formGroup}
-                            style={{ marginBottom: "1rem" }}
-                          >
-                            <label>Merchant Transaction PIN</label>
-                            <input
-                              className={styles.inputStyle}
-                              type="password"
-                              maxLength={4}
-                              pattern="\d*"
-                              style={{
-                                padding: "0.75rem 1rem",
-                                letterSpacing: "0.5rem",
-                                textAlign: "center",
-                              }}
-                              placeholder="••••"
-                              value={sweepPin}
-                              onChange={(e) =>
-                                setSweepPin(e.target.value.replace(/\D/g, ""))
-                              }
-                              required
-                            />
-                          </div>
-                          <button
-                            className={styles.actionBtn}
-                            style={{ width: "100%" }}
-                            disabled={sweeping || !selectedCustomer.is_active}
-                          >
-                            {sweeping ? (
-                              <i className="fas fa-spinner fa-spin"></i>
-                            ) : (
-                              "Sweep Funds"
-                            )}
-                          </button>
-                        </form>
-                      </div>
                     </>
                   )}
 
@@ -1762,17 +1671,50 @@ const MerchantCustomersPage: React.FC = () => {
                                 className={styles.formGroup}
                                 style={{ marginBottom: 0 }}
                               >
-                                <label>Amount (Optional)</label>
-                                <input
-                                  className={styles.inputStyle}
-                                  type="number"
-                                  step="any"
-                                  placeholder="Leave blank for MAX"
-                                  value={sweepAmount}
-                                  onChange={(e) =>
-                                    setSweepAmount(e.target.value)
-                                  }
-                                />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                  <label style={{ margin: 0 }}>Amount (Optional)</label>
+                                  {customerBalances?.find((b: any) => b.crypto_type === sweepCryptoType) && (
+                                    <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
+                                      Balance: {parseFloat(customerBalances.find((b: any) => b.crypto_type === sweepCryptoType).available_balance).toFixed(6)}
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ position: 'relative' }}>
+                                  <input
+                                    className={styles.inputStyle}
+                                    type="number"
+                                    step="any"
+                                    placeholder="Leave blank for MAX"
+                                    value={sweepAmount}
+                                    onChange={(e) =>
+                                      setSweepAmount(e.target.value)
+                                    }
+                                    style={{ paddingRight: '3.5rem' }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const bal = customerBalances?.find((b: any) => b.crypto_type === sweepCryptoType);
+                                      if (bal) setSweepAmount(bal.available_balance);
+                                    }}
+                                    style={{
+                                      position: 'absolute',
+                                      right: '8px',
+                                      top: '50%',
+                                      transform: 'translateY(-50%)',
+                                      padding: '4px 8px',
+                                      background: '#f1f5f9',
+                                      border: '1px solid #e2e8f0',
+                                      borderRadius: '4px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                      color: '#475569',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    MAX
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -1890,22 +1832,55 @@ const MerchantCustomersPage: React.FC = () => {
                                 ))}
                               </select>
                             </div>
-                            <div
+                             <div
                               className={styles.formGroup}
                               style={{ marginBottom: 0 }}
                             >
-                              <label>Amount</label>
-                              <input
-                                className={styles.inputStyle}
-                                type="number"
-                                step="any"
-                                placeholder="0.00"
-                                value={payMerchantAmount}
-                                onChange={(e) =>
-                                  setPayMerchantAmount(e.target.value)
-                                }
-                                required
-                              />
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                <label style={{ margin: 0 }}>Amount</label>
+                                {customerBalances?.find((b: any) => b.crypto_type === payMerchantCryptoType) && (
+                                  <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
+                                    Balance: {parseFloat(customerBalances.find((b: any) => b.crypto_type === payMerchantCryptoType).available_balance).toFixed(6)}
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ position: 'relative' }}>
+                                <input
+                                  className={styles.inputStyle}
+                                  type="number"
+                                  step="any"
+                                  placeholder="0.00"
+                                  value={payMerchantAmount}
+                                  onChange={(e) =>
+                                    setPayMerchantAmount(e.target.value)
+                                  }
+                                  required
+                                  style={{ paddingRight: '3.5rem' }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const bal = customerBalances?.find((b: any) => b.crypto_type === payMerchantCryptoType);
+                                    if (bal) setPayMerchantAmount(bal.available_balance);
+                                  }}
+                                  style={{
+                                    position: 'absolute',
+                                    right: '8px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    padding: '4px 8px',
+                                    background: '#f1f5f9',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '4px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    color: '#475569',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  MAX
+                                </button>
+                              </div>
                             </div>
                           </div>
                           <button
