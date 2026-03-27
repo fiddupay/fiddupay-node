@@ -8,7 +8,7 @@ pub mod payment_handlers;
 pub mod settings_handlers;
 pub mod analytics_handlers;
 pub mod withdrawal_handlers;
-pub mod admin_handlers;
+pub mod admin;
 pub mod merchant_handlers;
 pub mod admin_routes;
 pub mod merchant_routes;

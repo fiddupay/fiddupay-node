@@ -1,20 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import {
     MdAccountBalanceWallet,
-    MdForward,
-    MdCloudDone,
-    MdCheckCircle,
-    MdContentCopy,
     MdRefresh,
-    MdVpnKey,
     MdCode,
     MdPayment,
     MdNotificationsActive,
-    MdFlashOn,
-    MdInfo,
-    MdVisibility,
-    MdVisibilityOff,
-    MdHelp,
     MdLock,
     MdClose,
     MdWarning,
@@ -24,6 +14,13 @@ import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI, securityAPI } from '@/services/apiService'
 import { useToast } from '@/contexts/ToastContext'
 import styles from '@/styles/pages/SettingsPage.module.css'
+
+// Modular Tabs
+import SettlementTab from '@/components/settings/tabs/SettlementTab'
+import FeesTab from '@/components/settings/tabs/FeesTab'
+import ApiSettingsTab from '@/components/settings/tabs/ApiSettingsTab'
+import WebhooksTab from '@/components/settings/tabs/WebhooksTab'
+import SecurityTab from '@/components/settings/tabs/SecurityTab'
 
 type TabType = 'settlement' | 'fees' | 'api' | 'webhooks' | 'security'
 
@@ -387,517 +384,75 @@ const SettingsPage: React.FC = () => {
 
             <div className={styles.content}>
                 {activeTab === 'settlement' && (
-                    <section className={styles.section}>
-                        <h2>Settlement Mode</h2>
-                        <p>Choose how you want to receive and manage your funds.</p>
-
-                        <div className={styles.modeGrid}>
-                            <div
-                                className={`${styles.modeCard} ${selectedMode === 'forwarding' ? styles.activeCard : ''}`}
-                                onClick={() => handleUpdateSettlementMode('forwarding')}
-                            >
-                                {selectedMode === 'forwarding' && <MdCheckCircle className={styles.checkIcon} />}
-                                 <MdForward size={32} />
-                                <h3>Forwarding Bridge (WIP)</h3>
-                                <span>Auto-forwards funds to your external addresses. (Experimental)</span>
-                            </div>
-
-                            <div
-                                className={`${styles.modeCard} ${selectedMode === 'managed' ? styles.activeCard : ''}`}
-                                onClick={() => handleUpdateSettlementMode('managed')}
-                            >
-                                {selectedMode === 'managed' && <MdCheckCircle className={styles.checkIcon} />}
-                                <MdCloudDone size={32} />
-                                <h3>Managed Wallet</h3>
-                                <span>Funds are held in FidduPay generated wallets.</span>
-                            </div>
-                        </div>
-
-                        <div className={styles.safeguardBox}>
-                            <div className={styles.safeguardInfo}>
-                                <div className={styles.safeguardIcon}>
-                                    {user?.wallets_locked ? <MdLock color="#34d399" /> : <MdWarning color="#fbbf24" />}
-                                </div>
-                                <div className={styles.safeguardText}>
-                                    <h3>Primary Wallet Protection</h3>
-                                    <p>
-                                        {user?.wallets_locked 
-                                            ? "Your primary wallet addresses are locked. You must unlock them before making any changes."
-                                            : "Your primary wallets are currently unlocked. We recommend locking them to prevent accidental changes."
-                                        }
-                                    </p>
-                                </div>
-                            </div>
-                            <button 
-                                className={`${styles.lockBtn} ${user?.wallets_locked ? styles.unlocked : styles.locked}`}
-                                onClick={handleToggleWalletLock}
-                                disabled={loading}
-                            >
-                                {user?.wallets_locked ? 'Unlock Wallets' : 'Lock Wallets'}
-                            </button>
-                        </div>
-
-                        <div className={styles.safeguardBox} style={{ marginTop: '20px' }}>
-                            <div className={styles.safeguardInfo}>
-                                <div className={styles.safeguardIcon}>
-                                    {user?.customer_wallets_locked ? <MdLock color="#34d399" /> : <MdWarning color="#fbbf24" />}
-                                </div>
-                                <div className={styles.safeguardText}>
-                                    <h3>Customer Wallet Protection</h3>
-                                    <p>
-                                        {user?.customer_wallets_locked 
-                                            ? "Customer deposit addresses are locked. You must unlock them before re-provisioning wallets for your users."
-                                            : "Customer deposit addresses are currently unlocked. We recommend locking them for enhanced security."
-                                        }
-                                    </p>
-                                </div>
-                            </div>
-                            <button 
-                                className={`${styles.lockBtn} ${user?.customer_wallets_locked ? styles.unlocked : styles.locked}`}
-                                onClick={handleToggleCustomerWalletLock}
-                                disabled={loading}
-                            >
-                                {user?.customer_wallets_locked ? 'Unlock Customer Wallets' : 'Lock Customer Wallets'}
-                            </button>
-                        </div>
-                    </section>
+                    <SettlementTab 
+                        user={user}
+                        selectedMode={selectedMode}
+                        handleUpdateSettlementMode={handleUpdateSettlementMode}
+                        handleToggleWalletLock={handleToggleWalletLock}
+                        handleToggleCustomerWalletLock={handleToggleCustomerWalletLock}
+                        loading={loading}
+                        styles={styles}
+                    />
                 )}
 
                 {activeTab === 'fees' && (
-                    <section className={styles.section}>
-                        <h2>Fee Preferences</h2>
-                        <p>Configure who covers the platform processing fees.</p>
-
-                        <div className={styles.toggleGroup}>
-                            <div className={styles.toggleLabel}>
-                                <h4>Pass Fee to Customer</h4>
-                                <span>When enabled, the processing fee is added to the customer's total.</span>
-                            </div>
-
-                            <label className={styles.switch}>
-                                <input
-                                    type="checkbox"
-                                    checked={customerPaysFee}
-                                    onChange={handleUpdateFeeSetting}
-                                    disabled={loading}
-                                />
-                                <span className={styles.slider}></span>
-                            </label>
-                        </div>
-                    </section>
+                    <FeesTab 
+                        customerPaysFee={customerPaysFee}
+                        handleUpdateFeeSetting={handleUpdateFeeSetting}
+                        loading={loading}
+                        styles={styles}
+                    />
                 )}
 
                 {activeTab === 'api' && (
-                    <section className={styles.section}>
-                        <h2>API Settings</h2>
-                        <p>Manage your API credentials for integrating FidduPay.</p>
-
-                        <div className={styles.keyGrid}>
-                            <div className={styles.keyCard}>
-                                <div className={styles.keyHeader}>
-                                    <div className="flex items-center gap-2">
-                                        <MdVpnKey className="text-blue-500" />
-                                        <h4>Merchant API Key</h4>
-                                    </div>
-                                    <span className={`${styles.badge} ${user?.sandbox_mode ? styles.badgeSandbox : styles.badgeLive}`}>
-                                        {user?.sandbox_mode ? 'Sandbox' : 'Live'}
-                                    </span>
-                                </div>
-
-                                <div className={styles.keyInputGroup}>
-                                    <div className={styles.keyDisplay}>
-                                        {apiKey ? (
-                                            showApiKey ? apiKey : (
-                                                apiKey.includes('*') ? apiKey : `${apiKey.substring(0, 12)}...`
-                                            )
-                                        ) : 'No API key generated'}
-                                    </div>
-                                    <button
-                                        className={`${styles.copyBtn} ${apiKey.includes('*') ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        onClick={() => {
-                                            if (apiKey.includes('*')) {
-                                                showToast('For security, existing keys cannot be viewed. Rotate to generate a new one.', 'info')
-                                                return
-                                            }
-                                            setShowApiKey(!showApiKey)
-                                        }}
-                                        disabled={!apiKey}
-                                        title={apiKey.includes('*') ? 'Cannot view existing key (Hidden for security)' : (showApiKey ? 'Hide Key' : 'Show Key')}
-                                    >
-                                        {showApiKey ? <MdVisibilityOff /> : <MdVisibility />}
-                                    </button>
-                                    <button
-                                        className={styles.copyBtn}
-                                        onClick={() => copyToClipboard(apiKey, 'API Key')}
-                                        disabled={!apiKey || apiKey.includes('*')}
-                                        title={apiKey.includes('*') ? 'Rotate key to get a valid copy' : 'Copy Key'}
-                                    >
-                                        <MdContentCopy /> Copy
-                                    </button>
-                                    <button
-                                        className={styles.rotateBtn}
-                                        onClick={handleRotateKey}
-                                        disabled={loading}
-                                    >
-                                        {(!apiKey || apiKey === 'No API key generated') ? (
-                                            <>
-                                                <MdFlashOn className={loading ? 'animate-pulse' : ''} />
-                                                Generate Key
-                                            </>
-                                        ) : (
-                                            <>
-                                                <MdRefresh className={loading ? 'animate-spin' : ''} />
-                                                Rotate Key
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-
-                                <div className={styles.keyFooter}>
-                                    <span className={styles.keyNote}>
-                                        Keep your keys secure. Never share them in client-side code.
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className={styles.redirectSection}>
-                                <div className={styles.redirectHeader}>
-                                    <div className="flex items-center gap-2">
-                                        <MdForward className="text-blue-500" />
-                                        <h4>Customer Redirect URL</h4>
-                                    </div>
-                                    <span className={styles.badge}>Optional</span>
-                                </div>
-                                <p className={styles.redirectNote}>
-                                    After a successful payment, the customer will be automatically sent back to this URL.
-                                </p>
-                                <div className={styles.inputWrapper}>
-                                    <input
-                                        type="url"
-                                        value={redirectUrl}
-                                        onChange={(e) => setRedirectUrl(e.target.value)}
-                                        placeholder="https://your-site.com/checkout/success"
-                                        className={styles.urlInput}
-                                    />
-                                    <button
-                                        className={styles.saveBtn}
-                                        onClick={handleUpdateRedirect}
-                                        disabled={loading || !redirectUrl}
-                                    >
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-
-                        <div className={styles.ipWhitelistSection}>
-                            <h3>IP Whitelist Protection</h3>
-                            <p>Restrict API and Dashboard access to specific IP addresses. If empty, all IPs are allowed.</p>
-
-                            <div className={styles.ipList}>
-                                {ipWhitelist.length > 0 ? (
-                                    ipWhitelist.map(ip => (
-                                        <div key={ip} className={styles.ipItem}>
-                                            <span className={styles.ipAddress}>{ip}</span>
-                                            <button 
-                                                className={styles.removeIpBtn}
-                                                onClick={() => handleRemoveIp(ip)}
-                                                disabled={loading}
-                                                title="Remove IP"
-                                            >
-                                                <MdClose size={18} />
-                                            </button>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div style={{ padding: '16px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', color: '#64748b', fontSize: '13px' }}>
-                                        No IP restrictions active.
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className={styles.addIpForm}>
-                                <input 
-                                    type="text"
-                                    className={styles.urlInput}
-                                    placeholder="e.g. 192.168.1.1 or 203.0.113.0/24"
-                                    value={newIp}
-                                    onChange={(e) => setNewIp(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddIp()}
-                                />
-                                <button 
-                                    className={styles.addIpBtn} 
-                                    onClick={handleAddIp}
-                                    disabled={loading || !newIp}
-                                >
-                                    <i className="fas fa-plus"></i> Add IP
-                                </button>
-                            </div>
-                        </div>
-                    </section>
-
+                    <ApiSettingsTab 
+                        user={user}
+                        apiKey={apiKey}
+                        showApiKey={showApiKey}
+                        setShowApiKey={setShowApiKey}
+                        handleRotateKey={handleRotateKey}
+                        copyToClipboard={copyToClipboard}
+                        redirectUrl={redirectUrl}
+                        setRedirectUrl={setRedirectUrl}
+                        handleUpdateRedirect={handleUpdateRedirect}
+                        ipWhitelist={ipWhitelist}
+                        newIp={newIp}
+                        setNewIp={setNewIp}
+                        handleAddIp={handleAddIp}
+                        handleRemoveIp={handleRemoveIp}
+                        loading={loading}
+                        styles={styles}
+                    />
                 )}
 
                 {activeTab === 'webhooks' && (
-                    <section className={styles.section}>
-                        <div className={styles.webhookLayout}>
-                            <div className={styles.webhookMain}>
-                                <div className={styles.configSide}>
-                                    <h2>Webhook Configuration</h2>
-                                    <p>FidduPay will send real-time notifications to your URL when payment statuses change.</p>
-
-                                    <div className={styles.inputGroup}>
-                                        <label className={styles.toggleLabel} style={{ marginBottom: '12px' }}>
-                                            <h4>Notification Format</h4>
-                                        </label>
-                                        <div className={styles.formatSelector}>
-                                            <button
-                                                className={`${styles.formatBtn} ${webhookFormat === 'standard' ? styles.activeFormat : ''}`}
-                                                onClick={() => setWebhookFormat('standard')}
-                                            >
-                                                Standard JSON
-                                            </button>
-                                            <button
-                                                className={`${styles.formatBtn} ${webhookFormat === 'discord' ? styles.activeFormat : ''}`}
-                                                onClick={() => setWebhookFormat('discord')}
-                                            >
-                                                Discord Webhook
-                                            </button>
-                                            <button
-                                                className={`${styles.formatBtn} ${webhookFormat === 'slack' ? styles.activeFormat : ''}`}
-                                                onClick={() => setWebhookFormat('slack')}
-                                            >
-                                                Slack Webhook
-                                            </button>
-                                        </div>
-
-                                        <div className={styles.inputWrapper}>
-                                            <input
-                                                type="url"
-                                                // @ts-ignore
-                                                value={webhookUrls[webhookFormat]}
-                                                onChange={(e) => setWebhookUrls(prev => ({
-                                                    ...prev,
-                                                    [webhookFormat]: e.target.value
-                                                }))}
-                                                placeholder={webhookFormat === 'discord' ? "https://discord.com/api/webhooks/..." : (webhookFormat === 'slack' ? "https://hooks.slack.com/services/..." : "https://your-domain.com/webhooks/fiddupay")}
-                                                className={styles.urlInput}
-                                            />
-                                            <button
-                                                className={styles.saveBtn}
-                                                onClick={handleUpdateWebhook}
-                                                disabled={loading || !webhookUrls[webhookFormat as keyof typeof webhookUrls]}
-                                            >
-                                                {loading ? 'Saving...' : 'Update Settings'}
-                                            </button>
-                                            <button
-                                                className={styles.copyBtn}
-                                                onClick={handleSendTestWebhook}
-                                                disabled={loading || !webhookUrls[webhookFormat as keyof typeof webhookUrls]}
-                                                title="Send a sample notification to your URL"
-                                            >
-                                                <MdFlashOn /> Test Webhook
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {webhookFormat === 'standard' && (
-                                        <div className={styles.secretSection}>
-                                            <div className={styles.secretHeader}>
-                                                <h4>Webhook Signing Secret</h4>
-                                                <span className={styles.badge}>Per-Merchant Key</span>
-                                            </div>
-                                            <div className={styles.secretWrapper}>
-                                                <div className={styles.secretDisplay}>
-                                                    {showSecret ? signingSecret : '••••••••••••••••••••••••••••••••'}
-                                                </div>
-                                                <button
-                                                    className={styles.viewBtn}
-                                                    onClick={() => setShowSecret(!showSecret)}
-                                                >
-                                                    {showSecret ? <MdVisibilityOff /> : <MdVisibility />}
-                                                    {showSecret ? 'Hide' : 'View'}
-                                                </button>
-                                                <button
-                                                    className={`${styles.rotateBtn} ${showRotateSecretConfirm ? 'bg-red-50 border-red-500' : ''}`}
-                                                    onClick={handleRotateSecret}
-                                                    disabled={loading}
-                                                >
-                                                    <MdRefresh className={loading ? 'animate-spin' : ''} />
-                                                    {showRotateSecretConfirm ? 'Confirm' : 'Rotate'}
-                                                </button>
-                                            </div>
-                                            <p className={styles.keyNote} style={{ marginTop: '12px', marginBottom: 0 }}>
-                                                <MdInfo /> Use this secret to verify that webhook requests are genuinely from FidduPay.
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className={styles.docSide}>
-                                    <div className={styles.docSection}>
-                                        <h3><MdHelp /> How it works</h3>
-                                        <div className={styles.docGrid}>
-                                            <div className={styles.docItem}>
-                                                <div className={styles.docIcon}>1</div>
-                                                <div className={styles.docContent}>
-                                                    <h4>Event Triggered</h4>
-                                                    <p>An event occurs (e.g., a payment is confirmed by the network).</p>
-                                                </div>
-                                            </div>
-                                            <div className={styles.docItem}>
-                                                <div className={styles.docIcon}>2</div>
-                                                <div className={styles.docContent}>
-                                                    <h4>POST Request</h4>
-                                                    <p>
-                                                        {webhookFormat === 'discord'
-                                                            ? "FidduPay sends a Discord-formatted message directly to your channel."
-                                                            : (webhookFormat === 'slack'
-                                                                ? "FidduPay sends a Slack-formatted message directly to your channel."
-                                                                : "FidduPay sends a structured JSON payload to your server.")
-                                                        }
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className={styles.docItem}>
-                                                <div className={styles.docIcon}>3</div>
-                                                <div className={styles.docContent}>
-                                                    <h4>Acknowledgement</h4>
-                                                    <p>Your server (or Discord) acknowledges the notification.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className={styles.verificationBox}>
-                                <div className={styles.boxHeader}>
-                                    <span><MdLock /> {(webhookFormat === 'discord' || webhookFormat === 'slack') ? 'Payload Formatting' : 'Signature Verification'}</span>
-                                    <span>{(webhookFormat === 'discord' || webhookFormat === 'slack') ? 'No Verification' : 'Standard Headers'}</span>
-                                </div>
-                                {webhookFormat === 'standard' ? (
-                                    <>
-                                        <div className={styles.headerList}>
-                                            <div className={styles.headerItem}>
-                                                <span className={styles.headerKey}>X-Signature:</span>
-                                                <span className={styles.headerValue}>t=1707172800,v1=sha256_hmac_hex_result...</span>
-                                            </div>
-                                            <div className={styles.headerItem}>
-                                                <span className={styles.headerKey}>X-Timestamp:</span>
-                                                <span className={styles.headerValue}>1707172800</span>
-                                            </div>
-                                        </div>
-                                        <span className={styles.payloadLabel}>Example Payload JSON:</span>
-                                        <pre className={styles.payloadPre}>
-                                            {`{
-  "id": "evt_5f9a2c3b4",
-  "type": "payment.confirmed",
-  "created_at": "2026-03-24T15:00:00Z",
-  "data": {
-    "payment_id": "pay_5f9a2c3b4",
-    "status": "CONFIRMED",
-    "amount": "150.00",
-    "crypto_type": "SOL",
-    "transaction_hash": "3xKp..."
-  }
-}`}
-                                        </pre>
-                                    </>
-                                ) : (
-                                    <>
-                                        <p style={{ fontSize: '13px', color: '#888', marginBottom: '16px' }}>
-                                            {webhookFormat === 'discord' ? 'Discord' : 'Slack'} webhooks do not support HMAC signatures.
-                                            FidduPay will send a simplified message format compatible with {webhookFormat === 'discord' ? 'Discord' : 'Slack'}.
-                                        </p>
-                                        <span className={styles.payloadLabel}>Example {webhookFormat === 'discord' ? 'Discord' : 'Slack'} Payload:</span>
-                                        <pre className={styles.payloadPre}>
-                                            {webhookFormat === 'discord' ? `{
-  "content": "✅ **Payment Confirmed**\\nID: \`pay_5f9a2c3b4\`\\nAmount: \`150.00 SOL\`"
-}` : `{
-  "text": "✅ *Payment Confirmed*",
-  "blocks": [
-    {
-      "type": "section",
-      "text": {
-        "type": "mrkdwn",
-        "text": "*Payment Confirmed*\\nID: \`pay_5f9a2c3b4\`\\nAmount: \`150.00 SOL\`"
-      }
-    }
-  ]
-}`}
-                                        </pre>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </section>
+                    <WebhooksTab 
+                        webhookUrls={webhookUrls}
+                        setWebhookUrls={setWebhookUrls}
+                        webhookFormat={webhookFormat}
+                        setWebhookFormat={setWebhookFormat}
+                        handleUpdateWebhook={handleUpdateWebhook}
+                        handleSendTestWebhook={handleSendTestWebhook}
+                        signingSecret={signingSecret}
+                        showSecret={showSecret}
+                        setShowSecret={setShowSecret}
+                        handleRotateSecret={handleRotateSecret}
+                        loading={loading}
+                        styles={styles}
+                    />
                 )}
 
                 {activeTab === 'security' && (
-                    <section className={styles.section}>
-                        <h2>Security & Transaction PIN</h2>
-                        <p>Manage your transaction authorization settings.</p>
-
-                        <div className={styles.safeguardBox} style={{ borderLeft: '4px solid #2563eb' }}>
-                            <div className={styles.safeguardInfo}>
-                                <div className={styles.safeguardIcon}>
-                                    {user?.has_transaction_pin ? <MdCheckCircle color="#10b981" /> : <MdError color="#ef4444" />}
-                                </div>
-                                <div className={styles.safeguardText}>
-                                    <h3>4-Digit Transaction PIN</h3>
-                                    <p>
-                                        {user?.has_transaction_pin 
-                                            ? `Your PIN is set. You will be prompted for this PIN whenever you initiate a withdrawal, sweep, or payment.`
-                                            : "A 4-digit PIN is REQUIRED for all financial actions. Please set one now to enable withdrawals."
-                                        }
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className={styles.formCard} style={{ marginTop: '24px', maxWidth: '400px' }}>
-                            <form onSubmit={handleSetPin}>
-                                <div className={styles.formGroup}>
-                                    <label>{user?.has_transaction_pin ? 'Update Transaction PIN' : 'Set Merchant Transaction PIN'}</label>
-                                    <input 
-                                        type="password"
-                                        className={styles.inputStyle}
-                                        maxLength={4}
-                                        pattern="\d*"
-                                        placeholder="••••"
-                                        style={{ letterSpacing: '0.5rem', textAlign: 'center', fontSize: '1.5rem' }}
-                                        value={pin}
-                                        onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
-                                        required
-                                    />
-                                    <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Must be exactly 4 numeric digits.</p>
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label>Confirm PIN</label>
-                                    <input 
-                                        type="password"
-                                        className={styles.inputStyle}
-                                        maxLength={4}
-                                        pattern="\d*"
-                                        placeholder="••••"
-                                        style={{ letterSpacing: '0.5rem', textAlign: 'center', fontSize: '1.5rem' }}
-                                        value={confirmPin}
-                                        onChange={e => setConfirmPin(e.target.value.replace(/\D/g, ''))}
-                                        required
-                                    />
-                                </div>
-                                <button 
-                                    type="submit" 
-                                    className={styles.saveBtn} 
-                                    style={{ width: '100%', marginTop: '12px', background: '#2563eb' }}
-                                    disabled={settingPin || pin.length !== 4}
-                                >
-                                    {settingPin ? <i className="fas fa-spinner fa-spin"></i> : (user?.has_transaction_pin ? 'Update Merchant PIN' : 'Set Merchant PIN')}
-                                </button>
-                            </form>
-                        </div>
-                    </section>
+                    <SecurityTab 
+                        user={user}
+                        pin={pin}
+                        setPin={setPin}
+                        confirmPin={confirmPin}
+                        setConfirmPin={setConfirmPin}
+                        handleSetPin={handleSetPin}
+                        settingPin={settingPin}
+                        styles={styles}
+                    />
                 )}
             </div>
             {/* API Key Rotation Confirmation Modal */}

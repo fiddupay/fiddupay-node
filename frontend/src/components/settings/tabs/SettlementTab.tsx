@@ -1,0 +1,101 @@
+import React from 'react';
+import { MdCheckCircle, MdForward, MdCloudDone, MdLock, MdWarning } from 'react-icons/md';
+
+interface SettlementTabProps {
+    user: any;
+    selectedMode: 'forwarding' | 'managed';
+    handleUpdateSettlementMode: (mode: 'forwarding' | 'managed') => Promise<void>;
+    handleToggleWalletLock: () => Promise<void>;
+    handleToggleCustomerWalletLock: () => Promise<void>;
+    loading: boolean;
+    styles: any;
+}
+
+const SettlementTab: React.FC<SettlementTabProps> = ({
+    user,
+    selectedMode,
+    handleUpdateSettlementMode,
+    handleToggleWalletLock,
+    handleToggleCustomerWalletLock,
+    loading,
+    styles
+}) => {
+    return (
+        <section className={styles.section}>
+            <h2>Settlement Mode</h2>
+            <p>Choose how you want to receive and manage your funds.</p>
+
+            <div className={styles.modeGrid}>
+                <div
+                    className={`${styles.modeCard} ${selectedMode === 'forwarding' ? styles.activeCard : ''}`}
+                    onClick={() => handleUpdateSettlementMode('forwarding')}
+                >
+                    {selectedMode === 'forwarding' && <MdCheckCircle className={styles.checkIcon} />}
+                    <MdForward size={32} />
+                    <h3>Forwarding Bridge (WIP)</h3>
+                    <span>Auto-forwards funds to your external addresses. (Experimental)</span>
+                </div>
+
+                <div
+                    className={`${styles.modeCard} ${selectedMode === 'managed' ? styles.activeCard : ''}`}
+                    onClick={() => handleUpdateSettlementMode('managed')}
+                >
+                    {selectedMode === 'managed' && <MdCheckCircle className={styles.checkIcon} />}
+                    <MdCloudDone size={32} />
+                    <h3>Managed Wallet</h3>
+                    <span>Funds are held in FidduPay generated wallets.</span>
+                </div>
+            </div>
+
+            <div className={styles.safeguardBox}>
+                <div className={styles.safeguardInfo}>
+                    <div className={styles.safeguardIcon}>
+                        {user?.wallets_locked ? <MdLock color="#34d399" /> : <MdWarning color="#fbbf24" />}
+                    </div>
+                    <div className={styles.safeguardText}>
+                        <h3>Primary Wallet Protection</h3>
+                        <p>
+                            {user?.wallets_locked 
+                                ? "Your primary wallet addresses are locked. You must unlock them before making any changes."
+                                : "Your primary wallets are currently unlocked. We recommend locking them to prevent accidental changes."
+                            }
+                        </p>
+                    </div>
+                </div>
+                <button 
+                    className={`${styles.lockBtn} ${user?.wallets_locked ? styles.unlocked : styles.locked}`}
+                    onClick={handleToggleWalletLock}
+                    disabled={loading}
+                >
+                    {user?.wallets_locked ? 'Unlock Wallets' : 'Lock Wallets'}
+                </button>
+            </div>
+
+            <div className={styles.safeguardBox} style={{ marginTop: '20px' }}>
+                <div className={styles.safeguardInfo}>
+                    <div className={styles.safeguardIcon}>
+                        {user?.customer_wallets_locked ? <MdLock color="#34d399" /> : <MdWarning color="#fbbf24" />}
+                    </div>
+                    <div className={styles.safeguardText}>
+                        <h3>Customer Wallet Protection</h3>
+                        <p>
+                            {user?.customer_wallets_locked 
+                                ? "Customer deposit addresses are locked. You must unlock them before re-provisioning wallets for your users."
+                                : "Customer deposit addresses are currently unlocked. We recommend locking them for enhanced security."
+                            }
+                        </p>
+                    </div>
+                </div>
+                <button 
+                    className={`${styles.lockBtn} ${user?.customer_wallets_locked ? styles.unlocked : styles.locked}`}
+                    onClick={handleToggleCustomerWalletLock}
+                    disabled={loading}
+                >
+                    {user?.customer_wallets_locked ? 'Unlock Customer Wallets' : 'Lock Customer Wallets'}
+                </button>
+            </div>
+        </section>
+    );
+};
+
+export default SettlementTab;
