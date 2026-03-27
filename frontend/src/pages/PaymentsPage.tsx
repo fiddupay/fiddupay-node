@@ -472,12 +472,12 @@ const PaymentsPage: React.FC = () => {
                   </div>
                 </div>
                 <div className={styles.tableCell}>
-                  <div className="flex items-center gap-2">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {(payment.crypto_type?.includes('SOL') || payment.crypto_type?.includes('BUSD')) ? (
                       <img 
                         src={payment.crypto_type.includes('SOL') ? '/solana-sol-logo.png' : '/binance-usd-busd-logo.png'} 
                         alt={payment.crypto_type}
-                        style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'contain' }}
+                        style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'contain', display: 'block' }}
                       />
                     ) : (
                       <span className={styles.cryptoBadge}>{payment.crypto_type}</span>
@@ -621,12 +621,12 @@ const PaymentsPage: React.FC = () => {
                 </div>
                 <div className={styles.detailItem}>
                   <label>Currency</label>
-                  <div className="flex items-center gap-2">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {(selectedPaymentForDetails.crypto_type?.includes('SOL') || selectedPaymentForDetails.crypto_type?.includes('BUSD')) ? (
                       <img 
                         src={selectedPaymentForDetails.crypto_type.includes('SOL') ? '/solana-sol-logo.png' : '/binance-usd-busd-logo.png'} 
                         alt={selectedPaymentForDetails.crypto_type}
-                        style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'contain' }}
+                        style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'contain', display: 'block' }}
                       />
                     ) : null}
                     <span className={styles.cryptoBadge}>{selectedPaymentForDetails.crypto_type || 'USDC'}</span>
