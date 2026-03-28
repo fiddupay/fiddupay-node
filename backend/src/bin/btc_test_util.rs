@@ -28,11 +28,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(details) => {
             println!("SUCCESS: Transaction found!");
             println!("  Hash:           {}", details.hash);
-            println!("  Sender:         {}", details.from_address.as_deref().unwrap_or("Unknown"));
+            println!("  Sender:         {}", details.from_address);
             println!("  Recipient:      {}", details.to_address);
             println!("  Amount:         {} BTC", details.amount);
             println!("  Confirmations:  {}", details.confirmations);
-            println!("  Status:         {:?}", details.status);
+            println!("  Success:        {}", details.success);
             println!("  Timestamp:      {:?}", details.timestamp);
             
             if details.to_address == *target_address {
