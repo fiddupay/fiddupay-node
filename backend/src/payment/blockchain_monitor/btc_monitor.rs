@@ -12,6 +12,7 @@ pub struct BtcMonitor {
     client: Client,
     api_url: String,
     network_name: &'static str,
+    is_sandbox: bool,
 }
 
 impl BtcMonitor {
@@ -26,6 +27,18 @@ impl BtcMonitor {
             client: Client::new(),
             api_url: api_url.to_string(),
             network_name,
+            is_sandbox,
+        }
+    }
+
+    /// Check if a Bitcoin address is valid for the current network
+    pub fn is_address_valid_for_network(&self, address: &str) -> bool {
+        if self.is_sandbox {
+            // Testnet: m, n, 2, tb1
+            address.starts_with('m') || address.starts_with('n') || address.starts_with('2') || address.starts_with("tb1")
+        } else {
+            // Mainnet: 1, 3, bc1
+            address.starts_with('1') || address.starts_with('3') || address.starts_with("bc1")
         }
     }
 }
@@ -37,10 +50,24 @@ impl BlockchainMonitor for BtcMonitor {
         tx_hash: &str,
         target_address: Option<&str>,
     ) -> Result<BlockchainTransaction, Box<dyn std::error::Error + Send + Sync>> {
+        // Validate target address if provided
+        if let Some(target) = target_address {
+            if !self.is_address_valid_for_network(target) {
+                return Err(format!("Address {} is invalid for {}", target, self.network_name).into());
+            }
+        }
+
         info!(" Fetching {} transaction: {}", self.network_name, tx_hash);
 
         let url = format!("{}/tx/{}", self.api_url, tx_hash);
         let response = self.client.get(&url).send().await?;
+        
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(format!("{} API error: {} - {}", self.network_name, status, body).into());
+        }
+
         let data: serde_json::Value = response.json().await?;
 
         // Blockstream API returns transaction details directly
@@ -125,10 +152,27 @@ impl BlockchainMonitor for BtcMonitor {
         limit: usize,
         min_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
+        // Validate address for network
+        if !self.is_address_valid_for_network(address) {
+            return Err(format!("Address {} is invalid for {}", address, self.network_name).into());
+        }
+
         info!(" Fetching {} transactions for address: {}", self.network_name, address);
 
         let url = format!("{}/address/{}/txs", self.api_url, address);
         let response = self.client.get(&url).send().await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            // If it's a 404, we can assume there are no transactions (or the address is unknown to this chain)
+            if status == reqwest::StatusCode::NOT_FOUND {
+                warn!("Address {} not found on {}. Returning empty list.", address, self.network_name);
+                return Ok(Vec::new());
+            }
+            return Err(format!("{} API error: {} - {}", self.network_name, status, body).into());
+        }
+
         let data: Vec<serde_json::Value> = response.json().await?;
 
         let mut transactions = Vec::new();

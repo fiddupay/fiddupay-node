@@ -695,6 +695,9 @@ impl BackgroundTasks {
             let monitor = crate::payment::blockchain_monitor::btc_monitor::BtcMonitor::new(sandbox_mode);
 
             for address in addresses {
+                // Add a small 100ms delay to avoid hitting API rate limits if there are many addresses
+                tokio::time::sleep(Duration::from_millis(100)).await;
+
                 // Get recent transactions for the address
                 match monitor.get_transactions_to_address(&address, 5, None).await {
                     Ok(transactions) => {
@@ -724,7 +727,15 @@ impl BackgroundTasks {
                             }
                         }
                     },
-                    Err(e) => warn!("Failed to fetch BTC transactions for {}: {}", address, e),
+                    Err(e) => {
+                        // If it's an invalid network error, log a specific warning that the user should fix their data
+                        let err_msg = e.to_string();
+                        if err_msg.contains("is invalid for") {
+                            warn!("BTC Network Mismatch: {}. Please check your database records.", err_msg);
+                        } else {
+                            warn!("Failed to fetch BTC transactions for {}: {}", address, e);
+                        }
+                    }
                 }
             }
         }
