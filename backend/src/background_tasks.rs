@@ -86,6 +86,16 @@ impl BackgroundTasks {
             tasks_solana_sandbox.run_solana_monitor(true).await;
         });
 
+        let tasks_btc_prod = self.clone();
+        tokio::spawn(async move {
+            tasks_btc_prod.run_btc_monitor(false).await;
+        });
+
+        let tasks_btc_sandbox = self.clone();
+        tokio::spawn(async move {
+            tasks_btc_sandbox.run_btc_monitor(true).await;
+        });
+
         // Initialize Gas Monitor and Auto-Sweeper for platform fees
         let monitor = crate::services::gas_monitor_service::GasMonitorService::new(self.db_pool.clone(), self.config.clone());
         tokio::spawn(async move {
@@ -475,6 +485,45 @@ impl BackgroundTasks {
         }
     }
 
+    async fn fetch_btc_addresses(pool: &sqlx::PgPool, sandbox_mode: bool) -> Vec<String> {
+        let addresses_res = sqlx::query(
+            r#"
+            SELECT DISTINCT to_address 
+            FROM payment_transactions 
+            WHERE status IN ('PENDING', 'CONFIRMING')
+              AND to_address IS NOT NULL
+              AND sandbox_mode = $1
+              AND crypto_type = 'BTC'
+            UNION
+            SELECT DISTINCT address as to_address
+            FROM merchant_customer_wallets
+            WHERE sandbox_mode = $1
+              AND crypto_type = 'BTC'
+            UNION
+            SELECT DISTINCT address as to_address
+            FROM merchant_wallets
+            WHERE sandbox_mode = $1 AND is_active = true
+              AND crypto_type = 'BTC'
+            "#
+        )
+        .bind(sandbox_mode)
+        .fetch_all(pool)
+        .await;
+
+        match addresses_res {
+            Ok(rows) => {
+                use sqlx::Row;
+                rows.into_iter()
+                    .filter_map(|r| r.get::<Option<String>, _>("to_address"))
+                    .collect()
+            }
+            Err(e) => {
+                error!("Failed to fetch pending BTC addresses: {}", e);
+                Vec::new()
+            }
+        }
+    }
+
     /// Run Solana real-time monitor (WebSocket logsSubscribe)
     async fn run_solana_monitor(&self, sandbox_mode: bool) {
         let cluster_name = if sandbox_mode { "Devnet" } else { "Mainnet" };
@@ -612,6 +661,70 @@ impl BackgroundTasks {
             if let Err(e) = monitor.listen_for_signatures(addresses, rx, callback).await {
                 error!("Solana WebSocket monitor crashed: {}. Reconnecting in 2s...", e);
                 tokio::time::sleep(Duration::from_secs(2)).await;
+            }
+        }
+    }
+
+    /// Run Bitcoin real-time monitor (Polling based for now)
+    async fn run_btc_monitor(&self, sandbox_mode: bool) {
+        let cluster_name = if sandbox_mode { "Testnet" } else { "Mainnet" };
+        info!("Starting Bitcoin {} monitor...", cluster_name);
+
+        let mut interval = interval(Duration::from_secs(60)); // Poll every minute for BTC
+
+        loop {
+            interval.tick().await;
+
+            // Get all unique addresses for pending BTC payments
+            let addresses = Self::fetch_btc_addresses(&self.db_pool, sandbox_mode).await;
+            if addresses.is_empty() {
+                continue;
+            }
+
+            info!("Monitoring {} active Bitcoin {} addresses", addresses.len(), cluster_name);
+
+            let verifier = PaymentVerifier::new(
+                self.db_pool.clone(),
+                (*self.webhook_service).clone(),
+                self.price_service.clone(),
+                self.config.clone(),
+                self.redis_client.clone(),
+            );
+
+            let monitor = crate::payment::blockchain_monitor::btc_monitor::BtcMonitor::new(sandbox_mode);
+
+            for address in addresses {
+                // Get recent transactions for the address
+                match monitor.get_transactions_to_address(&address, 5, None).await {
+                    Ok(transactions) => {
+                        for tx in transactions {
+                            // Try to verify this transaction against any pending payment for this address
+                            let pending_res = sqlx::query(
+                                "SELECT id, merchant_id FROM payment_transactions WHERE to_address = $1 AND status IN ('PENDING', 'CONFIRMING')"
+                            )
+                            .bind(&address)
+                            .fetch_all(&self.db_pool)
+                            .await;
+
+                            match pending_res {
+                                Ok(rows) => {
+                                    use sqlx::Row;
+                                    for row in rows {
+                                        let p_id: i64 = row.get("id");
+                                        let m_id: i64 = row.get("merchant_id");
+                                        
+                                        // verify_payment_by_hash is idempotent and handles confirmation counts
+                                        if let Err(e) = verifier.verify_payment_by_hash(p_id, &tx.hash, m_id).await {
+                                            tracing::trace!("BTC Polling verification for payment {} hash {}: {}", p_id, tx.hash, e);
+                                        }
+                                    }
+                                },
+                                Err(e) => error!("Failed to query pending BTC payments for address {}: {}", address, e),
+                            }
+                        }
+                    },
+                    Err(e) => warn!("Failed to fetch BTC transactions for {}: {}", address, e),
+                }
             }
         }
     }

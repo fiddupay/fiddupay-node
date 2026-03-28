@@ -64,6 +64,9 @@ impl BlockchainMonitor for BtcMonitor {
         }
 
         if let Some(vout) = data.get("vout").and_then(|v| v.as_array()) {
+            let mut total_satoshis = 0u64;
+            let mut found_target = false;
+
             for out in vout {
                 let addr = out.get("scriptpubkey_address")
                     .and_then(|a| a.as_str())
@@ -73,16 +76,24 @@ impl BlockchainMonitor for BtcMonitor {
                     let matches = if let Some(target) = target_address {
                         addr == target
                     } else {
-                        true // Fallback to first if no target
+                        // If no target provided, we pick the first one with a valid address
+                        // that isn't the return address (simplified heuristic: first one we find)
+                        if !found_target { true } else { false }
                     };
 
                     if matches {
-                        to_address = addr.to_string();
-                        let satoshis = out.get("value").and_then(|v| v.as_u64()).unwrap_or(0);
-                        amount = Decimal::from(satoshis) / Decimal::from(100_000_000u64);
-                        break; 
+                        if !found_target {
+                            to_address = addr.to_string();
+                            found_target = true;
+                        }
+                        total_satoshis += out.get("value").and_then(|v| v.as_u64()).unwrap_or(0);
                     }
                 }
+            }
+
+            if found_target {
+                amount = Decimal::from(total_satoshis) / Decimal::from(100_000_000u64);
+                info!(" Found BTC transfer: to={}, amount={}", to_address, amount);
             }
         }
 
