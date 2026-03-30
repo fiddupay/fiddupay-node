@@ -33,6 +33,7 @@ pub struct Config {
     pub arbitrum_rpc_url: String,
     pub polygon_rpc_url: String,
     pub bitcoin_rpc_url: String,
+    pub bitcoin_rpc_url_backup: String,
 
     // Sandbox/Test Network URLs
     pub solana_devnet_rpc_url: String,
@@ -42,6 +43,7 @@ pub struct Config {
     pub arbitrum_sepolia_rpc_url: String,
     pub polygon_mumbai_rpc_url: String,
     pub bitcoin_testnet_rpc_url: String,
+    pub bitcoin_testnet_rpc_url_backup: String,
 
     // Blockchain Settings
     pub confirmation_blocks_sol: u32,
@@ -217,7 +219,9 @@ impl Config {
             arbitrum_rpc_url: env::var("ARBITRUM_RPC_URL")?,
             polygon_rpc_url: env::var("POLYGON_RPC_URL")?,
             bitcoin_rpc_url: env::var("BITCOIN_RPC_URL")
-                .unwrap_or_else(|_| "https://blockchain.info".to_string()),
+                .unwrap_or_else(|_| "https://blockstream.info/api".to_string()),
+            bitcoin_rpc_url_backup: env::var("BITCOIN_RPC_URL_BACKUP")
+                .unwrap_or_else(|_| "https://mempool.space/api".to_string()),
             solana_devnet_rpc_url: env::var("SOLANA_DEVNET_RPC_URL")?,
             solana_devnet_ws_url: env::var("SOLANA_DEVNET_WS_URL")
                 .unwrap_or_else(|_| "wss://api.devnet.solana.com".to_string()),
@@ -226,7 +230,9 @@ impl Config {
             arbitrum_sepolia_rpc_url: env::var("ARBITRUM_SEPOLIA_RPC_URL")?,
             polygon_mumbai_rpc_url: env::var("POLYGON_MUMBAI_RPC_URL")?,
             bitcoin_testnet_rpc_url: env::var("BITCOIN_TESTNET_RPC_URL")
-                .unwrap_or_else(|_| "https://testnet.blockchain.info".to_string()),
+                .unwrap_or_else(|_| "https://blockstream.info/testnet/api".to_string()),
+            bitcoin_testnet_rpc_url_backup: env::var("BITCOIN_TESTNET_RPC_URL_BACKUP")
+                .unwrap_or_else(|_| "https://mempool.space/testnet/api".to_string()),
 
 
             // Blockchain Settings
@@ -743,8 +749,10 @@ impl Default for Config {
             fee_wallet_bsc: "".to_string(),
             fee_wallet_polygon: "".to_string(),
             fee_wallet_arbitrum: "".to_string(),
-            bitcoin_rpc_url: "https://blockchain.info".to_string(),
-            bitcoin_testnet_rpc_url: "https://testnet.blockchain.info".to_string(),
+            bitcoin_rpc_url: "https://blockstream.info/api".to_string(),
+            bitcoin_rpc_url_backup: "https://mempool.space/api".to_string(),
+            bitcoin_testnet_rpc_url: "https://blockstream.info/testnet/api".to_string(),
+            bitcoin_testnet_rpc_url_backup: "https://mempool.space/testnet/api".to_string(),
             confirmation_blocks_btc: 2,
         }
     }

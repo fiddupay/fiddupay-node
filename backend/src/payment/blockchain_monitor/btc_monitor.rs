@@ -1,43 +1,44 @@
-// Bitcoin Blockchain Monitor
-// Uses Blockstream API for transaction verification
-
 use async_trait::async_trait;
-use reqwest::Client;
 use rust_decimal::Decimal;
 use tracing::{info, warn};
-use crate::payment::models::{BlockchainTransaction, CryptoType};
+use crate::payment::models::BlockchainTransaction;
+use crate::utils::bitcoin_api::{BitcoinApiConfig, get_with_failover};
 use super::BlockchainMonitor;
 
 pub struct BtcMonitor {
-    client: Client,
-    api_url: String,
+    api_config: BitcoinApiConfig,
     network_name: &'static str,
     is_sandbox: bool,
 }
 
 impl BtcMonitor {
-    pub fn new(is_sandbox: bool) -> Self {
-        let (api_url, network_name) = if is_sandbox {
-            ("https://blockstream.info/testnet/api", "Bitcoin Testnet")
-        } else {
-            ("https://blockstream.info/api", "Bitcoin Mainnet")
+    pub fn new(api_url: String, is_sandbox: bool) -> Self {
+        let network_name = if is_sandbox { "Bitcoin Testnet" } else { "Bitcoin Mainnet" };
+        // Build a simple config using the given URL as both primary and backup.
+        // When created from app Config via from_config(), both primary and backup are set properly.
+        let api_config = BitcoinApiConfig {
+            primary_url: api_url.trim_end_matches('/').to_string(),
+            backup_url: if is_sandbox {
+                "https://mempool.space/testnet/api".to_string()
+            } else {
+                "https://mempool.space/api".to_string()
+            },
         };
+        Self { api_config, network_name, is_sandbox }
+    }
 
-        Self {
-            client: Client::new(),
-            api_url: api_url.to_string(),
-            network_name,
-            is_sandbox,
-        }
+    /// Create from full app config (uses primary + backup from env).
+    pub fn from_config(config: &crate::config::Config, is_sandbox: bool) -> Self {
+        let network_name = if is_sandbox { "Bitcoin Testnet" } else { "Bitcoin Mainnet" };
+        let api_config = BitcoinApiConfig::from_config(config, is_sandbox);
+        Self { api_config, network_name, is_sandbox }
     }
 
     /// Check if a Bitcoin address is valid for the current network
     pub fn is_address_valid_for_network(&self, address: &str) -> bool {
         if self.is_sandbox {
-            // Testnet: m, n, 2, tb1
             address.starts_with('m') || address.starts_with('n') || address.starts_with('2') || address.starts_with("tb1")
         } else {
-            // Mainnet: 1, 3, bc1
             address.starts_with('1') || address.starts_with('3') || address.starts_with("bc1")
         }
     }
@@ -59,16 +60,9 @@ impl BlockchainMonitor for BtcMonitor {
 
         info!(" Fetching {} transaction: {}", self.network_name, tx_hash);
 
-        let url = format!("{}/tx/{}", self.api_url, tx_hash);
-        let response = self.client.get(&url).send().await?;
-        
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(format!("{} API error: {} - {}", self.network_name, status, body).into());
-        }
-
-        let data: serde_json::Value = response.json().await?;
+        let data = get_with_failover(&self.api_config, &format!("tx/{}", tx_hash))
+            .await
+            .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?;
 
         // Blockstream API returns transaction details directly
         let status = data.get("status").ok_or("No status in response")?;
@@ -159,21 +153,13 @@ impl BlockchainMonitor for BtcMonitor {
 
         info!(" Fetching {} transactions for address: {}", self.network_name, address);
 
-        let url = format!("{}/address/{}/txs", self.api_url, address);
-        let response = self.client.get(&url).send().await?;
+        let data = get_with_failover(&self.api_config, &format!("address/{}/txs", address))
+            .await
+            .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?;
 
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-            // If it's a 404, we can assume there are no transactions (or the address is unknown to this chain)
-            if status == reqwest::StatusCode::NOT_FOUND {
-                warn!("Address {} not found on {}. Returning empty list.", address, self.network_name);
-                return Ok(Vec::new());
-            }
-            return Err(format!("{} API error: {} - {}", self.network_name, status, body).into());
-        }
-
-        let data: Vec<serde_json::Value> = response.json().await?;
+        let data: Vec<serde_json::Value> = data.as_array()
+            .cloned()
+            .unwrap_or_default();
 
         let mut transactions = Vec::new();
         for tx_data in data.iter().take(limit) {
@@ -202,10 +188,11 @@ impl BlockchainMonitor for BtcMonitor {
 
 impl BtcMonitor {
     async fn get_current_height(&self) -> Result<u64, Box<dyn std::error::Error + Send + Sync>> {
-        let url = format!("{}/blocks/tip/height", self.api_url);
-        let response = self.client.get(&url).send().await?;
-        let height_str = response.text().await?;
-        let height = height_str.trim().parse::<u64>()?;
-        Ok(height)
+        let data = get_with_failover(&self.api_config, "blocks/tip/height")
+            .await
+            .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?;
+
+        // The response is a plain number (JSON number)
+        data.as_u64().ok_or_else(|| "Invalid block height response".into())
     }
 }

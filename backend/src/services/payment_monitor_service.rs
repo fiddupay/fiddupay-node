@@ -203,22 +203,14 @@ impl PaymentMonitorService {
 
     async fn get_btc_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
         let is_sandbox = self.config.bitcoin_rpc_url.contains("testnet");
-        let api_url = if is_sandbox {
-            "https://blockstream.info/testnet/api"
-        } else {
-            "https://blockstream.info/api"
-        };
-        
-        let url = format!("{}/address/{}", api_url, address);
-        let client = reqwest::Client::new();
-        let response: serde_json::Value = client
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| ServiceError::Internal(format!("BTC API error: {}", e)))?
-            .json()
-            .await
-            .map_err(|e| ServiceError::Internal(format!("BTC API parse error: {}", e)))?;
+        let api_config = crate::utils::bitcoin_api::BitcoinApiConfig::from_config(&self.config, is_sandbox);
+
+        let response = crate::utils::bitcoin_api::get_with_failover(
+            &api_config,
+            &format!("address/{}", address),
+        )
+        .await
+        .map_err(|e| ServiceError::Internal(format!("BTC API error: {}", e)))?;
 
         let chain_stats = response.get("chain_stats");
         let funded_sum = chain_stats.and_then(|v| v.get("funded_txo_sum")).and_then(|v| v.as_u64()).unwrap_or(0);
@@ -233,7 +225,7 @@ impl PaymentMonitorService {
         
         if total_funded > total_spent {
             let satoshis = total_funded - total_spent;
-            Ok(Decimal::new(satoshis as i64, 8)) // 8 decimals for BTC
+            Ok(Decimal::new(satoshis as i64, 8))
         } else {
             Ok(Decimal::ZERO)
         }

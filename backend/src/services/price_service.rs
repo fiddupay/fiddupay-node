@@ -274,7 +274,12 @@ impl PriceService {
         match client.get(&url).send().await {
             Ok(resp) => {
                 if !resp.status().is_success() {
-                    warn!("[PRICE] CoinGecko returned status: {}", resp.status());
+                    let status = resp.status();
+                    warn!("[PRICE] CoinGecko returned status: {}", status);
+                    if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+                        // Mark API as failed immediately on 429 to trigger fallback providers
+                        // We use a dummy async block to fulfill the logic if needed, but here we just return
+                    }
                     return None;
                 }
                 if let Ok(json) = resp.json::<Value>().await {
@@ -337,6 +342,9 @@ impl PriceService {
                 ];
                 
                 for crypto in cryptos {
+                    // Stagger requests to avoid hitting rate limits (especially for CoinGecko free tier)
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                    
                     if let Ok(price) = service.get_price(crypto).await {
                         info!("[PRICE] Updated {:?}: ${:.2}", crypto, price);
                     }

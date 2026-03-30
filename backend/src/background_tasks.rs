@@ -94,7 +94,9 @@ impl BackgroundTasks {
 
         let tasks_btc_sandbox = self.clone();
         tokio::spawn(async move {
-            tasks_btc_sandbox.run_btc_monitor(true).await;
+            // Disabled BTC Testnet monitor to reduce API usage as requested
+            // tasks_btc_sandbox.run_btc_monitor(true).await;
+            tracing::info!("BTC Testnet monitor is disabled.");
         });
 
         // Initialize Gas Monitor and Auto-Sweeper for platform fees
@@ -671,7 +673,7 @@ impl BackgroundTasks {
         let cluster_name = if sandbox_mode { "Testnet" } else { "Mainnet" };
         info!("Starting Bitcoin {} monitor...", cluster_name);
 
-        let mut interval = interval(Duration::from_secs(60)); // Poll every minute for BTC
+        let mut interval = interval(Duration::from_secs(180)); // Poll every 3 minutes for BTC to stay within rate limits (700 req/hour)
 
         loop {
             interval.tick().await;
@@ -692,11 +694,16 @@ impl BackgroundTasks {
                 self.redis_client.clone(),
             );
 
-            let monitor = crate::payment::blockchain_monitor::btc_monitor::BtcMonitor::new(sandbox_mode);
+            let api_url = if sandbox_mode {
+                self.config.bitcoin_testnet_rpc_url.clone()
+            } else {
+                self.config.bitcoin_rpc_url.clone()
+            };
+            let monitor = crate::payment::blockchain_monitor::btc_monitor::BtcMonitor::new(api_url, sandbox_mode);
 
             for address in addresses {
-                // Add a small 100ms delay to avoid hitting API rate limits if there are many addresses
-                tokio::time::sleep(Duration::from_millis(100)).await;
+                // Add a 500ms delay to avoid hitting API rate limits if there are many addresses
+                tokio::time::sleep(Duration::from_millis(500)).await;
 
                 // Get recent transactions for the address
                 match monitor.get_transactions_to_address(&address, 5, None).await {
@@ -732,6 +739,9 @@ impl BackgroundTasks {
                         let err_msg = e.to_string();
                         if err_msg.contains("is invalid for") {
                             warn!("BTC Network Mismatch: {}. Please check your database records.", err_msg);
+                        } else if err_msg.contains("429 Too Many Requests") {
+                            error!("BTC Rate Limit Hit (429). Skipping the rest of the current address batch.");
+                            break; // Stop processing this batch to avoid further blacklisting
                         } else {
                             warn!("Failed to fetch BTC transactions for {}: {}", address, e);
                         }

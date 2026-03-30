@@ -594,7 +594,7 @@ impl BlockchainTransactionSender {
         use std::str::FromStr;
 
         let network = if sandbox_mode { Network::Testnet } else { Network::Bitcoin };
-        let api_url = if sandbox_mode { "https://blockstream.info/testnet/api" } else { "https://blockstream.info/api" };
+        let api_config = crate::utils::bitcoin_api::BitcoinApiConfig::from_config(&self.config, sandbox_mode);
 
         let pk = PrivateKey::from_wif(private_key)
             .map_err(|e| ServiceError::Internal(format!("Invalid BTC Private Key: {}", e)))?;
@@ -607,12 +607,13 @@ impl BlockchainTransactionSender {
         let from_address = Address::p2wpkh(&compressed_public_key, network);
 
         // 1. Fetch UTXOs
-        let utxo_url = format!("{}/address/{}/utxo", api_url, from_address);
-        let client = reqwest::Client::new();
-        let utxos_resp = client.get(&utxo_url).send().await
-            .map_err(|e| ServiceError::Internal(format!("Failed to fetch UTXOs: {}", e)))?;
-        let utxos: Vec<serde_json::Value> = utxos_resp.json().await
-            .map_err(|e| ServiceError::Internal(format!("Failed to parse UTXOs: {}", e)))?;
+        let utxos: Vec<serde_json::Value> = crate::utils::bitcoin_api::get_with_failover(
+            &api_config,
+            &format!("address/{}/utxo", from_address),
+        )
+        .await
+        .map_err(|e| ServiceError::Internal(format!("Failed to fetch UTXOs: {}", e)))
+        .and_then(|v| v.as_array().cloned().ok_or_else(|| ServiceError::Internal("Invalid UTXO response format".to_string())))?;
 
         // 2. Select UTXOs
         let target_sats = (amount * Decimal::new(100_000_000, 0)).to_u64().unwrap_or(0);
@@ -703,22 +704,14 @@ impl BlockchainTransactionSender {
             tx.input[idx].witness = witness;
         }
 
-        // 5. Broadcast
+        // 5. Broadcast via failover
         use bitcoin::consensus::encode::serialize_hex;
         let tx_hex = serialize_hex(&tx);
-        
-        let broadcast_url = format!("{}/tx", api_url);
-        let broadcast_resp = client.post(&broadcast_url)
-            .body(tx_hex)
-            .send()
+
+        let txid = crate::utils::bitcoin_api::post_tx_with_failover(&api_config, &tx_hex)
             .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to broadcast: {}", e)))?;
+            .map_err(|e| ServiceError::Internal(e))?;
 
-        if !broadcast_resp.status().is_success() {
-            let err_text = broadcast_resp.text().await.unwrap_or_default();
-            return Err(ServiceError::Internal(format!("Broadcast failed: {}", err_text)));
-        }
-
-        Ok(tx.compute_txid().to_string())
+        Ok(txid)
     }
 }
