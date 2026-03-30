@@ -673,18 +673,27 @@ impl BackgroundTasks {
         let cluster_name = if sandbox_mode { "Testnet" } else { "Mainnet" };
         info!("Starting Bitcoin {} monitor...", cluster_name);
 
-        let mut interval = interval(Duration::from_secs(180)); // Poll every 3 minutes for BTC to stay within rate limits (700 req/hour)
+        // Blockstream free tier: 700 req/hour = ~1 req every 5.14s.
+        // Mempool.space is more lenient but we apply the same pacing to protect both.
+        // With 6s between addresses we can safely check up to ~600 addresses/hour
+        // (well within limits) while keeping latency acceptable for BTC (~10-min blocks).
+        const POLL_INTERVAL_SECS: u64 = 180;   // full-batch every 3 minutes
+        const INTER_ADDRESS_DELAY_MS: u64 = 6_000; // 6 seconds between addresses
+
+        let mut poll_interval = interval(Duration::from_secs(POLL_INTERVAL_SECS));
 
         loop {
-            interval.tick().await;
+            poll_interval.tick().await;
 
-            // Get all unique addresses for pending BTC payments
             let addresses = Self::fetch_btc_addresses(&self.db_pool, sandbox_mode).await;
             if addresses.is_empty() {
                 continue;
             }
 
-            info!("Monitoring {} active Bitcoin {} addresses", addresses.len(), cluster_name);
+            info!(
+                "Monitoring {} active Bitcoin {} addresses (delay: {}ms/address)",
+                addresses.len(), cluster_name, INTER_ADDRESS_DELAY_MS
+            );
 
             let verifier = PaymentVerifier::new(
                 self.db_pool.clone(),
@@ -694,26 +703,33 @@ impl BackgroundTasks {
                 self.redis_client.clone(),
             );
 
-            let api_url = if sandbox_mode {
-                self.config.bitcoin_testnet_rpc_url.clone()
-            } else {
-                self.config.bitcoin_rpc_url.clone()
-            };
-            let monitor = crate::payment::blockchain_monitor::btc_monitor::BtcMonitor::new(api_url, sandbox_mode);
+            let monitor = crate::payment::blockchain_monitor::btc_monitor::BtcMonitor::from_config(
+                &self.config, sandbox_mode
+            );
 
-            for address in addresses {
-                // Add a 500ms delay to avoid hitting API rate limits if there are many addresses
-                tokio::time::sleep(Duration::from_millis(500)).await;
+            // Track whether the primary provider (Blockstream) has been 429'd this batch.
+            // If so, we temporarily swap to backup-only for the rest of the batch so we
+            // don't waste 15s per address (primary timeout + retry).
+            let mut primary_rate_limited = false;
+            let batch_start = tokio::time::Instant::now();
 
-                // Get recent transactions for the address
-                match monitor.get_transactions_to_address(&address, 5, None).await {
+            for address in &addresses {
+                // Respect inter-address delay to stay within rate limits
+                tokio::time::sleep(Duration::from_millis(INTER_ADDRESS_DELAY_MS)).await;
+
+                // If primary was rate-limited earlier in this batch, log once and continue
+                // using the backup implicitly (failover in bitcoin_api handles it)
+                if primary_rate_limited {
+                    info!("[BTC] Primary rate-limited this batch — using backup for: {}", &address[..12]);
+                }
+
+                match monitor.get_transactions_to_address(address, 5, None).await {
                     Ok(transactions) => {
                         for tx in transactions {
-                            // Try to verify this transaction against any pending payment for this address
                             let pending_res = sqlx::query(
                                 "SELECT id, merchant_id FROM payment_transactions WHERE to_address = $1 AND status IN ('PENDING', 'CONFIRMING')"
                             )
-                            .bind(&address)
+                            .bind(address)
                             .fetch_all(&self.db_pool)
                             .await;
 
@@ -723,30 +739,45 @@ impl BackgroundTasks {
                                     for row in rows {
                                         let p_id: i64 = row.get("id");
                                         let m_id: i64 = row.get("merchant_id");
-                                        
-                                        // verify_payment_by_hash is idempotent and handles confirmation counts
                                         if let Err(e) = verifier.verify_payment_by_hash(p_id, &tx.hash, m_id).await {
-                                            tracing::trace!("BTC Polling verification for payment {} hash {}: {}", p_id, tx.hash, e);
+                                            tracing::trace!("BTC verify payment {} hash {}: {}", p_id, tx.hash, e);
                                         }
                                     }
                                 },
-                                Err(e) => error!("Failed to query pending BTC payments for address {}: {}", address, e),
+                                Err(e) => error!("Failed to query pending BTC payments for {}: {}", address, e),
                             }
                         }
                     },
                     Err(e) => {
-                        // If it's an invalid network error, log a specific warning that the user should fix their data
                         let err_msg = e.to_string();
-                        if err_msg.contains("is invalid for") {
-                            warn!("BTC Network Mismatch: {}. Please check your database records.", err_msg);
-                        } else if err_msg.contains("429 Too Many Requests") {
-                            error!("BTC Rate Limit Hit (429). Skipping the rest of the current address batch.");
-                            break; // Stop processing this batch to avoid further blacklisting
+                        if err_msg.contains("429") || err_msg.contains("Too Many Requests") {
+                            if !primary_rate_limited {
+                                warn!(
+                                    "[BTC] Primary API rate-limited (429). Will use backup-only for the remaining {} addresses in this batch.",
+                                    addresses.len()
+                                );
+                                primary_rate_limited = true;
+                            }
+                            // The failover utility already retried with backup — if it also
+                            // failed, log and continue. Don't break the loop.
+                            warn!("[BTC] Both providers failed for address {}: {}", &address[..12], err_msg);
+                        } else if err_msg.contains("is invalid for") {
+                            warn!("[BTC] Network mismatch for address {}: {}", address, err_msg);
                         } else {
-                            warn!("Failed to fetch BTC transactions for {}: {}", address, e);
+                            warn!("[BTC] Failed to fetch transactions for {}: {}", &address[..12], err_msg);
                         }
                     }
                 }
+            }
+
+            // If the batch finished quickly (few addresses), sleep the remainder of the
+            // poll interval so we don't accidentally double-poll within the same window.
+            let elapsed = batch_start.elapsed();
+            let min_batch_duration = Duration::from_secs(POLL_INTERVAL_SECS / 2);
+            if elapsed < min_batch_duration {
+                let remaining = min_batch_duration - elapsed;
+                info!("[BTC] Batch done in {:?}. Sleeping {:?} before next poll.", elapsed, remaining);
+                tokio::time::sleep(remaining).await;
             }
         }
     }
