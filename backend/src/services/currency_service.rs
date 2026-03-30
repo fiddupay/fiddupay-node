@@ -64,12 +64,12 @@ impl CurrencyService {
 
     pub fn get_required_confirmations(&self, crypto_type: &str) -> u32 {
         match crypto_type {
-            "USDT_ETH" | "ETH" => 12,
+            "USDT_ETH" | "ETH" => 5,
             "USDT_BEP20" | "USDT_BSC" | "BNB" => 15,
             "USDT_POLYGON" | "MATIC" => 30,
             "USDT_ARBITRUM" | "ARB" => 1,
             "USDT_SPL" | "SOL" | "WSOL" => 32,
-            "BTC" => 6,
+            "BTC" => 1,
             _ => 1,
         }
     }

@@ -240,7 +240,7 @@ impl Config {
                 .unwrap_or_else(|_| "32".to_string())
                 .parse()?,
             confirmation_blocks_eth: env::var("CONFIRMATION_BLOCKS_ETH")
-                .unwrap_or_else(|_| "12".to_string())
+                .unwrap_or_else(|_| "5".to_string())
                 .parse()?,
             confirmation_blocks_bsc: env::var("CONFIRMATION_BLOCKS_BSC")
                 .unwrap_or_else(|_| "15".to_string())
@@ -252,7 +252,7 @@ impl Config {
                 .unwrap_or_else(|_| "1".to_string())
                 .parse()?,
             confirmation_blocks_btc: env::var("CONFIRMATION_BLOCKS_BITCOIN")
-                .unwrap_or_else(|_| "2".to_string())
+                .unwrap_or_else(|_| "1".to_string())
                 .parse()?,
 
             // Chain IDs (Production) - Required (No defaults)
@@ -670,7 +670,7 @@ impl Default for Config {
             arbitrum_sepolia_rpc_url: "https://sepolia-rollup.arbitrum.io/rpc".to_string(),
             polygon_mumbai_rpc_url: "https://rpc-mumbai.maticvigil.com".to_string(),
             confirmation_blocks_sol: 1,
-            confirmation_blocks_eth: 12,
+            confirmation_blocks_eth: 1,
             confirmation_blocks_bsc: 3,
             confirmation_blocks_polygon: 20,
             confirmation_blocks_arbitrum: 1,
@@ -753,7 +753,7 @@ impl Default for Config {
             bitcoin_rpc_url_backup: "https://mempool.space/api".to_string(),
             bitcoin_testnet_rpc_url: "https://blockstream.info/testnet/api".to_string(),
             bitcoin_testnet_rpc_url_backup: "https://mempool.space/testnet/api".to_string(),
-            confirmation_blocks_btc: 2,
+            confirmation_blocks_btc: 1,
         }
     }
 }

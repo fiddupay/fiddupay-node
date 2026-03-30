@@ -189,14 +189,14 @@ impl CryptoType {
             CryptoType::UsdtArbitrum => 1,   // Arbitrum: configurable via CONFIRMATION_BLOCKS_ARBITRUM
             CryptoType::UsdtSpl => 32,       // Solana SPL: configurable via CONFIRMATION_BLOCKS_SOL
             CryptoType::UsdtPolygon => 30,   // Polygon: configurable via CONFIRMATION_BLOCKS_POLYGON
-            CryptoType::UsdtEth => 12,       // Ethereum: configurable via CONFIRMATION_BLOCKS_ETH
+            CryptoType::UsdtEth => 5,        // Ethereum: configurable via CONFIRMATION_BLOCKS_ETH
             CryptoType::Sol => 32,           // Solana: configurable via CONFIRMATION_BLOCKS_SOL
-            CryptoType::Eth => 12,           // Ethereum: configurable via CONFIRMATION_BLOCKS_ETH
+            CryptoType::Eth => 5,            // Ethereum: configurable via CONFIRMATION_BLOCKS_ETH
             CryptoType::Arb => 1,            // Arbitrum: configurable via CONFIRMATION_BLOCKS_ARBITRUM
             CryptoType::Matic => 30,         // Polygon: configurable via CONFIRMATION_BLOCKS_POLYGON
             CryptoType::Bnb => 15,           // BSC: configurable via CONFIRMATION_BLOCKS_BSC
             CryptoType::WSol => 32,          // Solana SPL: configurable via CONFIRMATION_BLOCKS_SOL
-            CryptoType::Btc => 2,            // Bitcoin: 2 confirmations for safety
+            CryptoType::Btc => 1,            // Bitcoin: 1 confirmation
             CryptoType::BusdBep20 => 15,     // BSC: 15 confirmations
         }
     }
