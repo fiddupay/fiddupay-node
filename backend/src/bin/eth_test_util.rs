@@ -15,16 +15,13 @@ use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // Load environment variables so the monitor has access to API keys
-    dotenv::dotenv().ok();
-    
     // Disable noisy tracing logs in tests unless user explicitly asks
     if env::var("RUST_LOG").is_err() {
         env::set_var("RUST_LOG", "info");
     }
     tracing_subscriber::fmt::init();
 
-    let config = Config::from_env();
+    let config = Config::from_env().expect("Failed to load config");
 
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
