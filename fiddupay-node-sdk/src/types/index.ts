@@ -4,6 +4,8 @@ export type CryptoType = 'SOL' | 'ETH' | 'BNB' | 'MATIC' | 'ARB' | 'USDT_ETH' | 
 
 export type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'REFUNDED' | 'SELECTION_REQUIRED' | 'CANCELLED';
 
+export type WebhookFormat = 'json' | 'discord' | 'slack';
+
 export type WebhookEventType =
   | 'payment.confirmed'
   | 'payment.expired'
@@ -48,9 +50,11 @@ export interface MerchantProfile {
   wallets_locked: boolean;
   customer_wallets_locked: boolean;
   webhook_url?: string;
-  webhook_format?: string;
+  webhook_format?: WebhookFormat;
   redirect_url?: string;
   api_key?: string;
+  has_transaction_pin: boolean;
+  pin_setup_at?: string;
 }
 
 export interface CreatePaymentRequest {
@@ -120,6 +124,7 @@ export interface Payment {
   block_number?: number;
   sandbox_mode?: boolean;
   partial_payments?: Record<string, any>;
+  last_verification_at?: string;
 }
 /**
  * Address-Only Mode Types
@@ -231,7 +236,7 @@ export interface AnalyticsQuery {
 export interface UnifiedSettingsRequest {
   webhook_url?: string;
   redirect_url?: string;
-  webhook_format?: 'json' | 'discord' | 'slack';
+  webhook_format?: WebhookFormat;
   settlement_mode?: 'forwarding' | 'managed';
   customer_pays_fee?: boolean;
   fee_percentage?: number;
@@ -241,6 +246,8 @@ export interface UnifiedSettingsRequest {
   webhook_signing_secret?: string; // Returned from GET /settings
   low_balance_alerts_enabled?: boolean;
   low_balance_threshold_usd?: string;
+  alerts_enabled?: boolean; // Security alerts
+  monitoring_enabled?: boolean; // Security monitoring
 }
 
 export interface Merchant {
@@ -661,9 +668,9 @@ export interface CustomerBalance {
   locked_balance: string;
   locked_balance_usd?: string; // Added to match backend
   total_balance: string;
-  total_balance_usd?: string; // Added to match backend
+  total_balance_usd?: string;
   last_updated_at: string;
-  sandbox_mode?: boolean; // Added to match backend
+  sandbox_mode?: boolean;
 }
 
 export interface CustomerBalanceResponse {
@@ -727,6 +734,21 @@ export interface SupportedCurrencyItem {
 export interface SupportedCurrenciesResponse {
   currency_groups: Record<string, SupportedCurrencyItem[]>;
   description: string;
+}
+
+export interface PublicPaymentStatus {
+  status: PaymentStatus;
+  payment_id: string;
+  link_id: string;
+  amount_usd: string;
+  crypto_type?: CryptoType;
+  deposit_address?: string;
+  amount_crypto?: string;
+  expires_at: string;
+  is_expired: boolean;
+  redirect_url?: string;
+  merchant_name?: string;
+  merchant_logo_url?: string;
 }
 
 export interface PricingResponse {

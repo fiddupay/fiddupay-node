@@ -33,8 +33,12 @@ export class HttpClient {
     this.setupInterceptors();
   }
 
-  private getBaseURL(): string {
-    return 'https://api.fiddupay.com';
+  public getBaseURL(): string {
+    return this.client.defaults.baseURL || 'https://api.fiddupay.com';
+  }
+
+  public getApiKey(): string {
+    return this.apiKey;
   }
 
   private setupInterceptors(): void {

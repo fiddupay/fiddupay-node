@@ -1,5 +1,5 @@
 import { HttpClient } from '../client';
-import { SupportedCurrenciesResponse, PricingResponse, SystemStatus } from '../types';
+import { SupportedCurrenciesResponse, PricingResponse, SystemStatus, PublicPaymentStatus, CryptoType } from '../types';
 
 export class Public {
   constructor(private client: HttpClient) {}
@@ -28,5 +28,34 @@ export class Public {
    */
   async getStatus(): Promise<SystemStatus> {
     return this.client.get<SystemStatus>('/api/v1/status');
+  }
+
+  /**
+   * Get public payment status by link ID or payment ID.
+   * Useful for frontend checkout pages.
+   */
+  async getPaymentStatus(linkId: string): Promise<PublicPaymentStatus> {
+    return this.client.get<PublicPaymentStatus>(`/${linkId}/status`);
+  }
+
+  /**
+   * Select a cryptocurrency for a multi-currency payment.
+   */
+  async finalizeSelection(linkId: string, cryptoType: CryptoType): Promise<PublicPaymentStatus> {
+    return this.client.post<PublicPaymentStatus>(`/${linkId}/select`, { crypto_type: cryptoType });
+  }
+
+  /**
+   * Trigger a background verification for a dynamic payment.
+   */
+  async triggerVerification(linkId: string): Promise<{ message: string; status: string }> {
+    return this.client.post(`/${linkId}/verify`, {});
+  }
+
+  /**
+   * Publicly cancel a pending payment.
+   */
+  async cancelPayment(paymentId: string): Promise<{ status: string; redirect_url?: string }> {
+    return this.client.post(`/${paymentId}/cancel`, {});
   }
 }

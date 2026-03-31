@@ -94,7 +94,7 @@ export class Customers {
      * The system automatically calculates and securely auto-funds the required blockchain gas fee 
      * from the Merchant's Master Wallet ledger, making it invisible to the customer.
      */
-    async sweep(externalId: string, data: CustomerSweepRequest, options?: RequestOptions): Promise<{ swept_amount: string; message: string }> {
+    async sweep(externalId: string, data: CustomerSweepRequest, options?: RequestOptions): Promise<{ sweeps: { crypto_type: string; amount: string }[]; message: string }> {
         return this.client.post(`/api/v1/merchants/customers/${externalId}/sweep`, data, options);
     }
 

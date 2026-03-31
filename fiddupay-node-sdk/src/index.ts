@@ -12,6 +12,7 @@ import { Withdrawals } from './resources/withdrawals';
 import { Security } from './resources/security';
 import { Balances, AuditLogs } from './resources/balances';
 import { Customers } from './resources/customers';
+import { WebSockets } from './resources/websockets';
 import { Sandbox } from './resources/sandbox';
 import { Contact } from './resources/contact';
 import { Transactions } from './resources/transactions';
@@ -52,6 +53,7 @@ export class FidduPayClient {
   public readonly transactions: Transactions;
   public readonly public: Public;
   public readonly addressOnly: AddressOnly;
+  public readonly websockets: WebSockets;
 
   constructor(config: FidduPayConfig) {
     this.validateConfig(config);
@@ -75,6 +77,7 @@ export class FidduPayClient {
     this.transactions = new Transactions(this.client);
     this.public = new Public(this.client);
     this.addressOnly = new AddressOnly(this.client);
+    this.websockets = new WebSockets(this.client);
   }
 
   private validateConfig(config: FidduPayConfig): void {

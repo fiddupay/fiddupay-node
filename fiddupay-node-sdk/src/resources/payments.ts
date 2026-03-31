@@ -63,6 +63,17 @@ export class Payments {
   }
 
   /**
+   * Trigger a background verification for a dynamic payment.
+   * This is a lightweight alternative to manually providing a transaction hash.
+   */
+  async triggerVerification(paymentId: string, options?: RequestOptions): Promise<{ message: string; status: string }> {
+    if (!paymentId) {
+      throw new FidduPayValidationError('Payment ID is required', 'payment_id');
+    }
+    return this.client.post(`/api/v1/merchants/payments/${paymentId}/verify_trigger`, {}, options);
+  }
+
+  /**
    * List payments with optional filters
    */
   async list(params?: ListPaymentsRequest, options?: RequestOptions): Promise<ListPaymentsResponse> {
@@ -107,7 +118,7 @@ export class Payments {
   }
 
   /**
-   * Create an address-only payment (WORK IN PROGRESS)
+   * Create an address-only payment
    */
   async createAddressOnly(data: CreateAddressOnlyPaymentRequest, options?: RequestOptions): Promise<AddressOnlyPayment> {
     this.validateCreateAddressOnlyPayment(data);
@@ -115,7 +126,7 @@ export class Payments {
   }
 
   /**
-   * Retrieve an address-only payment status by ID (WORK IN PROGRESS)
+   * Retrieve an address-only payment status by ID
    */
   async retrieveAddressOnly(paymentId: string, options?: RequestOptions): Promise<AddressOnlyPayment> {
     if (!paymentId) {
@@ -125,21 +136,21 @@ export class Payments {
   }
 
   /**
-   * List supported native currencies for address-only mode (EXPERIMENTAL)
+   * List supported native currencies for address-only mode
    */
   async listAddressOnlyCurrencies(options?: RequestOptions): Promise<string[]> {
     return this.client.get<string[]>('/api/v1/merchants/address-only/currencies', options);
   }
 
   /**
-   * Get address-only mode statistics (EXPERIMENTAL)
+   * Get address-only mode statistics
    */
   async getAddressOnlyStats(options?: RequestOptions): Promise<AddressOnlyStats> {
     return this.client.get<AddressOnlyStats>('/api/v1/merchants/address-only/stats', options);
   }
 
   /**
-   * Get address-only mode health status (EXPERIMENTAL)
+   * Get address-only mode health status
    */
   async getAddressOnlyHealth(options?: RequestOptions): Promise<AddressOnlyHealthStatus> {
     return this.client.get<AddressOnlyHealthStatus>('/api/v1/merchants/address-only/health', options);

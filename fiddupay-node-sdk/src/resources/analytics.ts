@@ -10,12 +10,16 @@ export class AnalyticsResource {
   async retrieve(params?: {
     from_date?: string;
     to_date?: string;
+    status?: string;
+    blockchain?: string;
     granularity?: 'day' | 'week' | 'month';
   }, options?: RequestOptions): Promise<Analytics> {
     const queryParams = new URLSearchParams();
 
     if (params?.from_date) queryParams.append('from_date', params.from_date);
     if (params?.to_date) queryParams.append('to_date', params.to_date);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.blockchain) queryParams.append('blockchain', params.blockchain);
     if (params?.granularity) queryParams.append('granularity', params.granularity);
 
     const query = queryParams.toString();
@@ -31,11 +35,15 @@ export class AnalyticsResource {
     format?: 'csv' | 'json' | 'xlsx';
     from_date: string;
     to_date: string;
+    status?: string;
+    blockchain?: string;
   }, options?: RequestOptions): Promise<string> {
     const queryParams = new URLSearchParams();
     if (params.format) queryParams.append('format', params.format);
     queryParams.append('from_date', params.from_date);
     queryParams.append('to_date', params.to_date);
+    if (params.status) queryParams.append('status', params.status);
+    if (params.blockchain) queryParams.append('blockchain', params.blockchain);
 
     return this.client.request('GET', `/api/v1/merchants/analytics/export?${queryParams.toString()}`);
   }
