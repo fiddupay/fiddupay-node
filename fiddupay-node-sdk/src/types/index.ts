@@ -2,7 +2,7 @@
 
 export type CryptoType = 'SOL' | 'ETH' | 'BNB' | 'MATIC' | 'ARB' | 'USDT_ETH' | 'USDT_BEP20' | 'USDT_POLYGON' | 'USDT_ARBITRUM' | 'USDT_SPL' | 'BTC' | 'BUSD_BEP20' | 'WSOL';
 
-export type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'REFUNDED' | 'SELECTION_REQUIRED';
+export type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'REFUNDED' | 'SELECTION_REQUIRED' | 'CANCELLED';
 
 export type WebhookEventType =
   | 'payment.confirmed'
@@ -239,6 +239,8 @@ export interface UnifiedSettingsRequest {
   sandbox_mode?: boolean;
   rotate_webhook_secret?: boolean;
   webhook_signing_secret?: string; // Returned from GET /settings
+  low_balance_alerts_enabled?: boolean;
+  low_balance_threshold_usd?: string;
 }
 
 export interface Merchant {
@@ -250,6 +252,8 @@ export interface Merchant {
     available_usd: string;
     pending_usd: string;
   };
+  low_balance_alerts_enabled?: boolean;
+  low_balance_threshold_usd?: string;
   created_at: string;
   verified_at?: string;
 }

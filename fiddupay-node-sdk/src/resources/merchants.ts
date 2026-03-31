@@ -31,10 +31,23 @@ export class Merchants {
   }
 
   /**
-   * Get merchant readiness status
+   * Get merchant readiness status (Checks KYC, wallet setup, etc.)
+   */
+  async getReadiness(options?: RequestOptions): Promise<{ 
+    is_ready: boolean; 
+    missing_steps: string[]; 
+    settlement_mode: string;
+    sandbox_mode: boolean;
+  }> {
+    return this.client.get('/api/v1/merchants/status', options);
+  }
+
+  /**
+   * Get merchant readiness status (legacy)
+   * @deprecated Use getReadiness() instead
    */
   async getStatus(options?: RequestOptions): Promise<any> {
-    return this.client.request('GET', '/api/v1/merchants/status');
+    return this.getReadiness(options);
   }
 
   async switchEnvironment(data: {

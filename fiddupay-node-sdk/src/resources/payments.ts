@@ -93,6 +93,20 @@ export class Payments {
   }
 
   /**
+   * Simulate a payment (Sandbox only)
+   */
+  async simulate(paymentId: string, data: {
+    success: boolean;
+    transaction_hash?: string;
+    from_address?: string;
+  }, options?: RequestOptions): Promise<any> {
+    if (!paymentId) {
+      throw new FidduPayValidationError('Payment ID is required', 'payment_id');
+    }
+    return this.client.post(`/api/v1/merchants/sandbox/payments/${paymentId}/simulate`, data, options);
+  }
+
+  /**
    * Create an address-only payment (WORK IN PROGRESS)
    */
   async createAddressOnly(data: CreateAddressOnlyPaymentRequest, options?: RequestOptions): Promise<AddressOnlyPayment> {

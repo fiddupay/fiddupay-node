@@ -39,4 +39,24 @@ export class AnalyticsResource {
 
     return this.client.request('GET', `/api/v1/merchants/analytics/export?${queryParams.toString()}`);
   }
+
+  /**
+   * Get chronological feed combining payments, refunds, and withdrawals.
+   */
+  async getUnifiedTransactions(params?: {
+    limit?: number;
+    offset?: number;
+    from_date?: string;
+    to_date?: string;
+    txn_type?: 'payment' | 'refund' | 'withdrawal';
+  }, options?: RequestOptions): Promise<any> {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    if (params?.from_date) queryParams.append('from_date', params.from_date);
+    if (params?.to_date) queryParams.append('to_date', params.to_date);
+    if (params?.txn_type) queryParams.append('txn_type', params.txn_type);
+
+    return this.client.get(`/api/v1/merchants/transactions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`, options);
+  }
 }

@@ -36,7 +36,7 @@ info:
     - Real-time threat detection
     - Account lockout protection
     
-  version: 2.5.9
+  version: 2.6.0
   contact:
     name: FidduPay Support
     email: support@fiddupay.com
@@ -253,7 +253,7 @@ components:
           description: "USD amount (use either amount OR amount_usd, not both)"
         crypto_type:
           type: string
-          enum: [SOL, USDT_SPL, USDT_ETH, USDT_BEP20, USDT_POLYGON, USDT_ARBITRUM, ETH, BNB, MATIC, ARB, BUSD_BEP20]
+          enum: [SOL, ETH, BNB, MATIC, ARB, USDT_ETH, USDT_BEP20, USDT_POLYGON, USDT_ARBITRUM, USDT_SPL, BTC, BUSD_BEP20, WSOL]
           example: "USDT_ETH"
         description:
           type: string
@@ -308,7 +308,7 @@ components:
           example: "0x742d35Cc6634C0532925a3b8D4C9db96DfbF8b82"
         status:
           type: string
-          enum: [PENDING, CONFIRMED, FAILED, EXPIRED, CONFIRMING, REFUNDED, SELECTION_REQUIRED]
+          enum: [PENDING, CONFIRMING, CONFIRMED, FAILED, EXPIRED, REFUNDED, SELECTION_REQUIRED, CANCELLED]
           example: "PENDING"
         confirmations:
           type: integer
@@ -394,7 +394,7 @@ components:
       properties:
         crypto_type:
           type: string
-          enum: [SOL, USDT_SPL, USDT_ETH, USDT_BEP20, USDT_POLYGON, USDT_ARBITRUM, ETH, BNB, MATIC, ARB, BUSD_BEP20]
+          enum: [SOL, ETH, BNB, MATIC, ARB, USDT_ETH, USDT_BEP20, USDT_POLYGON, USDT_ARBITRUM, USDT_SPL, BTC, BUSD_BEP20, WSOL]
           example: "USDT_ETH"
         address:
           type: string
@@ -423,7 +423,7 @@ components:
           example: "500.00"
         crypto_type:
           type: string
-          enum: [SOL, USDT_SPL, USDT_ETH, USDT_BEP20, USDT_POLYGON, USDT_ARBITRUM, ETH, BNB, MATIC, ARB, BUSD_BEP20]
+          enum: [SOL, ETH, BNB, MATIC, ARB, USDT_ETH, USDT_BEP20, USDT_POLYGON, USDT_ARBITRUM, USDT_SPL, BTC, BUSD_BEP20, WSOL]
           example: "USDT_ETH"
         to_address:
           type: string

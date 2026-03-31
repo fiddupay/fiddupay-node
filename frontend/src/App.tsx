@@ -21,6 +21,7 @@ import CareersPage from '@/pages/CareersPage'
 import BlogPage from '@/pages/BlogPage'
 import StatusPage from '@/pages/StatusPage'
 import SecurityPage from '@/pages/SecurityPage'
+import PublicSecurityPage from '@/pages/PublicSecurityPage'
 import CompliancePage from '@/pages/CompliancePage'
 import CookiesPage from '@/pages/CookiesPage'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
@@ -94,7 +95,7 @@ const App: React.FC = () => {
             <Route path="/careers" element={<Layout><CareersPage /></Layout>} />
             <Route path="/blog" element={<Layout><BlogPage /></Layout>} />
             <Route path="/status" element={<Layout><StatusPage /></Layout>} />
-            <Route path="/security" element={<Layout><SecurityPage /></Layout>} />
+            <Route path="/security" element={<Layout><PublicSecurityPage /></Layout>} />
             <Route path="/compliance" element={<Layout><CompliancePage /></Layout>} />
             <Route path="/cookies" element={<Layout><CookiesPage /></Layout>} />
 
@@ -168,6 +169,14 @@ const App: React.FC = () => {
                 element={
                   <React.Suspense fallback={<LoadingSpinner />}>
                     <SettingsPage />
+                  </React.Suspense>
+                }
+              />
+              <Route
+                path="security"
+                element={
+                  <React.Suspense fallback={<LoadingSpinner />}>
+                    <SecurityPage />
                   </React.Suspense>
                 }
               />

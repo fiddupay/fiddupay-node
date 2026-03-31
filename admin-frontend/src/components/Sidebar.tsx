@@ -7,7 +7,8 @@ import {
     CreditCard, 
     ArrowUpRight, 
     Wallet, 
-    Server
+    Server,
+    ShieldAlert
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -19,6 +20,7 @@ const Sidebar: React.FC = () => {
         { to: '/withdrawals', label: 'Withdrawals', icon: ArrowUpRight },
         { to: '/wallets', label: 'Wallets', icon: Wallet },
         { to: '/system', label: 'System', icon: Server },
+        { to: '/security', label: 'Security', icon: ShieldAlert },
         { to: '/settings', label: 'Settings', icon: Settings },
     ];
 

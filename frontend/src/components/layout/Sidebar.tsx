@@ -11,6 +11,7 @@ const navigation = [
   { name: 'Withdrawals', href: '/app/withdrawals', iconClass: 'fas fa-sign-out-alt' },
   { name: 'Customers', href: '/app/customers', iconClass: 'fas fa-users' },
   { name: 'Reports', href: '/app/reports', iconClass: 'fas fa-file-invoice' },
+  { name: 'Security', href: '/app/security', iconClass: 'fas fa-shield-alt' },
   { name: 'Settings', href: '/app/settings', iconClass: 'fas fa-cog' },
 ]
 

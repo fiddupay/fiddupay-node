@@ -1,4 +1,4 @@
-# FidduPay API Reference v2.5.3
+# FidduPay API Reference v2.6.0
 
 ## Base URL
 - **Sandbox**: `http://localhost:8080`
@@ -168,6 +168,16 @@ GET /api/v1/merchants/status
 Authorization: Bearer {api_key}
 ```
 Returns a comprehensive health check of the merchant's integration, including wallet coverage and security alerts.
+
+#### Node SDK Example
+```javascript
+const readiness = await fiddupay.merchants.getReadiness();
+if (readiness.is_ready) {
+  console.log('Merchant is ready to accept payments');
+} else {
+  console.log('Missing steps:', readiness.missing_steps);
+}
+```
 
 ### Set Wallet (Legacy)
 > [!WARNING]
@@ -431,6 +441,15 @@ Content-Type: application/json
   "transaction_hash": "0xabc...",
   "from_address": "0xsender..."
 }
+```
+
+#### Node SDK Example
+```javascript
+await fiddupay.payments.simulate('payment_123', {
+  success: true,
+  transaction_hash: '0xabc...',
+  from_address: '0xsender...'
+});
 ```
 
 ## Security Endpoints

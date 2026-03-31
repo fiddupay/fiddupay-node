@@ -8,6 +8,7 @@ import PaymentsPage from './pages/PaymentsPage';
 import WithdrawalsPage from './pages/WithdrawalsPage';
 import WalletsPage from './pages/WalletsPage';
 import SystemPage from './pages/SystemPage';
+import SecurityPage from './pages/SecurityPage';
 
 const App: React.FC = () => {
     return (
@@ -21,6 +22,7 @@ const App: React.FC = () => {
                     <Route path="withdrawals" element={<WithdrawalsPage />} />
                     <Route path="wallets" element={<WalletsPage />} />
                     <Route path="system" element={<SystemPage />} />
+                    <Route path="security" element={<SecurityPage />} />
                     <Route path="settings" element={<Settings />} />
                 </Route>
             </Routes>
