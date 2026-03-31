@@ -465,6 +465,7 @@ impl BackgroundTasks {
             }
         }
 
+        Ok(())
     }
     
     async fn fetch_solana_addresses(pool: &sqlx::PgPool, sandbox_mode: bool) -> Vec<String> {
