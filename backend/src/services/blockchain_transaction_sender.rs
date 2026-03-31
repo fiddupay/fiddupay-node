@@ -44,8 +44,8 @@ impl BlockchainTransactionSender {
                 (self.config.polygon_rpc_url_backup.clone(), self.config.polygon_chain_id),
             ],
             (CryptoType::Matic | CryptoType::UsdtPolygon, true) => vec![
-                (self.config.polygon_mumbai_rpc_url.clone(), self.config.polygon_mumbai_chain_id),
-                (self.config.polygon_mumbai_rpc_url_backup.clone(), self.config.polygon_mumbai_chain_id),
+                (self.config.polygon_amoy_rpc_url.clone(), self.config.polygon_amoy_chain_id),
+                (self.config.polygon_amoy_rpc_url_backup.clone(), self.config.polygon_amoy_chain_id),
             ],
             (CryptoType::Arb | CryptoType::UsdtArbitrum, false) => vec![
                 (self.config.arbitrum_rpc_url.clone(), self.config.arbitrum_chain_id),
@@ -322,6 +322,9 @@ impl BlockchainTransactionSender {
             let from_address = (&secret_key).address();
             let to_address_parsed: Address = to_address.parse().map_err(|_| ServiceError::ValidationError("Invalid dest addr".into()))?;
 
+            // Convert Decimal to native amount using crypto_type.decimals()
+            let wei_amount = (amount * Decimal::from(10u64.pow(crypto_type.decimals()))).to_u128().unwrap_or(0);
+
             // Nonce & Gas
             let nonce = match web3.eth().transaction_count(from_address, None).await {
                 Ok(n) => n,
@@ -409,6 +412,9 @@ impl BlockchainTransactionSender {
             let from_address = (&secret_key).address();
             let to_address_parsed: Address = to_address.parse().map_err(|_| ServiceError::ValidationError("Invalid to addr".into()))?;
             let token_contract_address: Address = token_address_str.parse().map_err(|_| ServiceError::ValidationError("Invalid token addr".into()))?;
+
+            // Convert Decimal to token amount using crypto_type.decimals()
+            let token_amount = (amount * Decimal::from(10u64.pow(crypto_type.decimals()))).to_u128().unwrap_or(0);
 
             let nonce = match web3.eth().transaction_count(from_address, None).await {
                 Ok(n) => n,
@@ -526,7 +532,7 @@ impl BlockchainTransactionSender {
                 (CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20, false) => (&self.config.bsc_rpc_url, self.config.bsc_chain_id),
                 (CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20, true) => (&self.config.bsc_testnet_rpc_url, self.config.bsc_testnet_chain_id),
                 (CryptoType::Matic | CryptoType::UsdtPolygon, false) => (&self.config.polygon_rpc_url, self.config.polygon_chain_id),
-                (CryptoType::Matic | CryptoType::UsdtPolygon, true) => (&self.config.polygon_mumbai_rpc_url, self.config.polygon_mumbai_chain_id),
+                (CryptoType::Matic | CryptoType::UsdtPolygon, true) => (&self.config.polygon_amoy_rpc_url, self.config.polygon_amoy_chain_id),
                 (CryptoType::Arb | CryptoType::UsdtArbitrum, false) => (&self.config.arbitrum_rpc_url, self.config.arbitrum_chain_id),
                 (CryptoType::Arb | CryptoType::UsdtArbitrum, true) => (&self.config.arbitrum_sepolia_rpc_url, self.config.arbitrum_sepolia_chain_id),
                 _ => return Err(ServiceError::ValidationError("Unsupported network for balance query".to_string())),
@@ -553,7 +559,7 @@ impl BlockchainTransactionSender {
             (CryptoType::Bnb, false) => (&self.config.bsc_rpc_url, self.config.bsc_chain_id),
             (CryptoType::Bnb, true) => (&self.config.bsc_testnet_rpc_url, self.config.bsc_testnet_chain_id),
             (CryptoType::Matic, false) => (&self.config.polygon_rpc_url, self.config.polygon_chain_id),
-            (CryptoType::Matic, true) => (&self.config.polygon_mumbai_rpc_url, self.config.polygon_mumbai_chain_id),
+            (CryptoType::Matic, true) => (&self.config.polygon_amoy_rpc_url, self.config.polygon_amoy_chain_id),
             (CryptoType::Arb, false) => (&self.config.arbitrum_rpc_url, self.config.arbitrum_chain_id),
             (CryptoType::Arb, true) => (&self.config.arbitrum_sepolia_rpc_url, self.config.arbitrum_sepolia_chain_id),
             (CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol, _) => {

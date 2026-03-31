@@ -53,8 +53,8 @@ pub struct Config {
     pub bsc_testnet_rpc_url_backup: String,
     pub arbitrum_sepolia_rpc_url: String,
     pub arbitrum_sepolia_rpc_url_backup: String,
-    pub polygon_mumbai_rpc_url: String,
-    pub polygon_mumbai_rpc_url_backup: String,
+    pub polygon_amoy_rpc_url: String,
+    pub polygon_amoy_rpc_url_backup: String,
     pub bitcoin_testnet_rpc_url: String,
     pub bitcoin_testnet_rpc_url_backup: String,
 
@@ -75,7 +75,7 @@ pub struct Config {
     // Chain IDs (Sandbox/Testnet)
     pub ethereum_sepolia_chain_id: u64,
     pub bsc_testnet_chain_id: u64,
-    pub polygon_mumbai_chain_id: u64,
+    pub polygon_amoy_chain_id: u64,
     pub arbitrum_sepolia_chain_id: u64,
 
     // Transaction Monitoring
@@ -160,13 +160,6 @@ pub struct Config {
 
     // Block Explorer APIs
     pub etherscan_api_url: String,
-    pub bscscan_api_url: String,
-    pub arbiscan_api_url: String,
-    pub polygonscan_api_url: String,
-    pub etherscan_sepolia_api_url: String,
-    pub bscscan_testnet_api_url: String,
-    pub arbiscan_sepolia_api_url: String,
-    pub polygonscan_mumbai_api_url: String,
 
 
     // Email Configuration
@@ -270,9 +263,11 @@ impl Config {
             arbitrum_sepolia_rpc_url: env::var("ARBITRUM_SEPOLIA_RPC_URL")?,
             arbitrum_sepolia_rpc_url_backup: env::var("ARBITRUM_SEPOLIA_RPC_URL_BACKUP")
                 .unwrap_or_else(|_| "https://rpc.ankr.com/arbitrum_sepolia".to_string()),
-            polygon_mumbai_rpc_url: env::var("POLYGON_MUMBAI_RPC_URL")?,
-            polygon_mumbai_rpc_url_backup: env::var("POLYGON_MUMBAI_RPC_URL_BACKUP")
-                .unwrap_or_else(|_| "https://rpc.ankr.com/polygon_mumbai".to_string()),
+            polygon_amoy_rpc_url: env::var("POLYGON_AMOY_RPC_URL")
+                .or_else(|_| env::var("POLYGON_MUMBAI_RPC_URL"))?, 
+            polygon_amoy_rpc_url_backup: env::var("POLYGON_AMOY_RPC_URL_BACKUP")
+                .or_else(|_| env::var("POLYGON_MUMBAI_RPC_URL_BACKUP"))
+                .unwrap_or_else(|_| "https://rpc-amoy.polygon.technology".to_string()),
             bitcoin_testnet_rpc_url: env::var("BITCOIN_TESTNET_RPC_URL")
                 .unwrap_or_else(|_| "https://blockstream.info/testnet/api".to_string()),
             bitcoin_testnet_rpc_url_backup: env::var("BITCOIN_TESTNET_RPC_URL_BACKUP")
@@ -311,13 +306,18 @@ impl Config {
 
 
             // Chain IDs (Sandbox/Testnet)
-            ethereum_sepolia_chain_id: env::var("ETHEREUM_SEPOLIA_CHAIN_ID")?
+            ethereum_sepolia_chain_id: env::var("ETHEREUM_SEPOLIA_CHAIN_ID")
+                .unwrap_or_else(|_| "11155111".to_string())
                 .parse()?,
-            bsc_testnet_chain_id: env::var("BSC_TESTNET_CHAIN_ID")?
+            bsc_testnet_chain_id: env::var("BSC_TESTNET_CHAIN_ID")
+                .unwrap_or_else(|_| "97".to_string())
                 .parse()?,
-            polygon_mumbai_chain_id: env::var("POLYGON_MUMBAI_CHAIN_ID")?
+            polygon_amoy_chain_id: env::var("POLYGON_AMOY_CHAIN_ID")
+                .or_else(|_| env::var("POLYGON_MUMBAI_CHAIN_ID"))
+                .unwrap_or_else(|_| "80002".to_string()) // Migrated to Amoy 
                 .parse()?,
-            arbitrum_sepolia_chain_id: env::var("ARBITRUM_SEPOLIA_CHAIN_ID")?
+            arbitrum_sepolia_chain_id: env::var("ARBITRUM_SEPOLIA_CHAIN_ID")
+                .unwrap_or_else(|_| "421614".to_string())
                 .parse()?,
 
             // Transaction Monitoring
@@ -473,23 +473,11 @@ impl Config {
 
             etherscan_api_key: env::var("ETHERSCAN_API_KEY").ok(),
             
-            // Block Explorer APIs
             etherscan_api_url: env::var("ETHERSCAN_API_URL")
+                .or_else(|_| env::var("BSCSCAN_API_URL"))
+                .or_else(|_| env::var("POLYGONSCAN_API_URL"))
+                .or_else(|_| env::var("ARBISCAN_API_URL"))
                 .unwrap_or_else(|_| "https://api.etherscan.io/v2/api".to_string()),
-            bscscan_api_url: env::var("BSCSCAN_API_URL")
-                .unwrap_or_else(|_| "https://api.bscscan.com/api".to_string()),
-            arbiscan_api_url: env::var("ARBISCAN_API_URL")
-                .unwrap_or_else(|_| "https://api.arbiscan.io/api".to_string()),
-            polygonscan_api_url: env::var("POLYGONSCAN_API_URL")
-                .unwrap_or_else(|_| "https://api.polygonscan.com/api".to_string()),
-            etherscan_sepolia_api_url: env::var("ETHERSCAN_SEPOLIA_API_URL")
-                .unwrap_or_else(|_| "https://api-sepolia.etherscan.io/api".to_string()),
-            bscscan_testnet_api_url: env::var("BSCSCAN_TESTNET_API_URL")
-                .unwrap_or_else(|_| "https://api-testnet.bscscan.com/api".to_string()),
-            arbiscan_sepolia_api_url: env::var("ARBISCAN_SEPOLIA_API_URL")
-                .unwrap_or_else(|_| "https://api-sepolia.arbiscan.io/api".to_string()),
-            polygonscan_mumbai_api_url: env::var("POLYGONSCAN_MUMBAI_API_URL")
-                .unwrap_or_else(|_| "https://api-mumbai.polygonscan.com/api".to_string()),
 
             // Email Configuration
             email_enabled: env::var("EMAIL_ENABLED")
@@ -712,7 +700,7 @@ impl Default for Config {
             ethereum_sepolia_rpc_url: "https://eth-sepolia.g.alchemy.com/v2/demo".to_string(),
             bsc_testnet_rpc_url: "https://data-seed-prebsc-1-s1.binance.org:8545".to_string(),
             arbitrum_sepolia_rpc_url: "https://sepolia-rollup.arbitrum.io/rpc".to_string(),
-            polygon_mumbai_rpc_url: "https://rpc-mumbai.maticvigil.com".to_string(),
+            polygon_amoy_rpc_url: "https://rpc-amoy.polygon.technology".to_string(),
             confirmation_blocks_sol: 1,
             confirmation_blocks_eth: 1,
             confirmation_blocks_bsc: 3,
@@ -724,7 +712,7 @@ impl Default for Config {
             arbitrum_chain_id: 42161,
             ethereum_sepolia_chain_id: 11155111,
             bsc_testnet_chain_id: 97,
-            polygon_mumbai_chain_id: 80001,
+            polygon_amoy_chain_id: 80002, // Amoy
             arbitrum_sepolia_chain_id: 421614,
             block_monitor_interval_seconds: 10,
             transaction_timeout_minutes: 60,
@@ -775,13 +763,6 @@ impl Default for Config {
             backend_url: "http://localhost:8080".to_string(),
             allowed_origins: vec!["http://localhost:3000".to_string()],
             etherscan_api_url: "https://api.etherscan.io/v2/api".to_string(),
-            bscscan_api_url: "https://api.bscscan.com/api".to_string(),
-            arbiscan_api_url: "https://api.arbiscan.io/api".to_string(),
-            polygonscan_api_url: "https://api.polygonscan.com/api".to_string(),
-            etherscan_sepolia_api_url: "https://api-sepolia.etherscan.io/api".to_string(),
-            bscscan_testnet_api_url: "https://api-testnet.bscscan.com/api".to_string(),
-            arbiscan_sepolia_api_url: "https://api-sepolia.arbiscan.io/api".to_string(),
-            polygonscan_mumbai_api_url: "https://api-mumbai.polygonscan.com/api".to_string(),
             email_enabled: false,
             email_from: "noreply@fiddupay.com".to_string(),
             smtp_host: None,

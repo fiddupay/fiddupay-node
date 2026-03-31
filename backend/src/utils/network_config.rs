@@ -26,10 +26,10 @@ impl NetworkConfig {
                 ethereum_rpc_url: config.ethereum_sepolia_rpc_url.clone(),
                 bsc_rpc_url: config.bsc_testnet_rpc_url.clone(),
                 arbitrum_rpc_url: config.arbitrum_sepolia_rpc_url.clone(),
-                polygon_rpc_url: config.polygon_mumbai_rpc_url.clone(),
+                polygon_rpc_url: config.polygon_amoy_rpc_url.clone(),
                 ethereum_chain_id: config.ethereum_sepolia_chain_id,
                 bsc_chain_id: config.bsc_testnet_chain_id,
-                polygon_chain_id: config.polygon_mumbai_chain_id,
+                polygon_chain_id: config.polygon_amoy_chain_id,
                 arbitrum_chain_id: config.arbitrum_sepolia_chain_id,
             }
         } else {

@@ -123,13 +123,13 @@ impl PaymentProcessor {
                     "SOL" => "Solana Devnet",
                     "ETH" => "Ethereum Sepolia",
                     "BNB" => "BSC Testnet", 
-                    "MATIC" => "Polygon Mumbai",
+                    "MATIC" => "Polygon Amoy",
                     "ARB" => "Arbitrum Sepolia",
                     "USDT" => match crypto_type.network() {
                         "Solana" => "Solana Devnet",
                         "Ethereum" => "Ethereum Sepolia",
                         "BSC" => "BSC Testnet",
-                        "Polygon" => "Polygon Mumbai", 
+                        "Polygon" => "Polygon Amoy", 
                         "Arbitrum" => "Arbitrum Sepolia",
                         _ => "Unknown Testnet"
                     },

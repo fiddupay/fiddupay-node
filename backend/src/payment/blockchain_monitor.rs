@@ -49,7 +49,7 @@ impl EvmMonitor {
     pub fn new_bsc(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
         Self {
             client: Client::new(),
-            api_url: if is_sandbox { config.bscscan_testnet_api_url.clone() } else { config.bscscan_api_url.clone() },
+            api_url: config.etherscan_api_url.clone(),
             api_key: config.etherscan_api_key.clone(),
             chain_name: if is_sandbox { "BSC Testnet" } else { "BSC" },
             decimals,
@@ -61,7 +61,7 @@ impl EvmMonitor {
     pub fn new_arbitrum(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
         Self {
             client: Client::new(),
-            api_url: if is_sandbox { config.arbiscan_sepolia_api_url.clone() } else { config.arbiscan_api_url.clone() },
+            api_url: config.etherscan_api_url.clone(),
             api_key: config.etherscan_api_key.clone(),
             chain_name: if is_sandbox { "Arbitrum Sepolia" } else { "Arbitrum" },
             decimals,
@@ -73,19 +73,19 @@ impl EvmMonitor {
     pub fn new_polygon(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
         Self {
             client: Client::new(),
-            api_url: if is_sandbox { config.polygonscan_mumbai_api_url.clone() } else { config.polygonscan_api_url.clone() },
+            api_url: config.etherscan_api_url.clone(),
             api_key: config.etherscan_api_key.clone(),
-            chain_name: if is_sandbox { "Polygon Mumbai" } else { "Polygon" },
+            chain_name: if is_sandbox { "Polygon Amoy" } else { "Polygon" },
             decimals,
             token_address,
-            chain_id: if is_sandbox { config.polygon_mumbai_chain_id } else { config.polygon_chain_id },
+            chain_id: if is_sandbox { config.polygon_amoy_chain_id } else { config.polygon_chain_id },
         }
     }
 
     pub fn new_ethereum(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
         Self {
             client: Client::new(),
-            api_url: if is_sandbox { config.etherscan_sepolia_api_url.clone() } else { config.etherscan_api_url.clone() },
+            api_url: config.etherscan_api_url.clone(),
             api_key: config.etherscan_api_key.clone(),
             chain_name: if is_sandbox { "Ethereum Sepolia" } else { "Ethereum" },
             decimals,
