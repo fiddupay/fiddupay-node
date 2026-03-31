@@ -105,9 +105,10 @@ impl BlockchainMonitor for EvmMonitor {
         info!(" Fetching {} transaction: {}", self.chain_name, tx_hash);
 
         // Build API request URL
+        let separator = if self.api_url.contains('?') { "&" } else { "?" };
         let mut url = format!(
-            "{}?module=proxy&action=eth_getTransactionByHash&txhash={}&chainid={}",
-            self.api_url, tx_hash, self.chain_id
+            "{}{}module=proxy&action=eth_getTransactionByHash&txhash={}&chainid={}",
+            self.api_url, separator, tx_hash, self.chain_id
         );
 
         if let Some(ref key) = self.api_key {
@@ -117,12 +118,27 @@ impl BlockchainMonitor for EvmMonitor {
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
 
-        // Check for API errors (Etherscan returns status="0" for errors with message in "result")
+        // Check for API errors (Etherscan returns status="0" for errors)
         if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
             if status == "0" {
-                let err_msg = data.get("result")
+                let result = data.get("result");
+                
+                // V2 API returns status "0" with empty result array when no records found
+                if let Some(res_arr) = result.and_then(|r| r.as_array()) {
+                    if res_arr.is_empty() {
+                        return Err("Transaction not found".into()); // For single Tx detail, treat as missing
+                    }
+                }
+
+                let err_msg = result
                     .map(|r| if r.is_string() { r.as_str().unwrap().to_string() } else { r.to_string() })
                     .unwrap_or_else(|| "Unknown EVM API Error".to_string());
+                
+                // Suppress rate limit warnings into structured errors
+                if err_msg.contains("rate limit") || err_msg.contains("Max rate limit") {
+                    return Err(format!("EVM_RATE_LIMIT: {}", err_msg).into());
+                }
+                
                 return Err(format!("EVM API Error: {}", err_msg).into());
             }
         }
@@ -239,9 +255,10 @@ impl BlockchainMonitor for EvmMonitor {
 
         // Build API request URL for transaction list
         let action = if self.token_address.is_some() { "tokentx" } else { "txlist" };
+        let separator = if self.api_url.contains('?') { "&" } else { "?" };
         let mut url = format!(
-            "{}?module=account&action={}&address={}&startblock=0&endblock=99999999&page=1&offset={}&sort=desc&chainid={}",
-            self.api_url, action, address, limit, self.chain_id
+            "{}{}module=account&action={}&address={}&startblock=0&endblock=99999999&page=1&offset={}&sort=desc&chainid={}",
+            self.api_url, separator, action, address, limit, self.chain_id
         );
 
         if let Some(ref token) = self.token_address {
@@ -252,14 +269,32 @@ impl BlockchainMonitor for EvmMonitor {
             url.push_str(&format!("&apikey={}", key));
         }
 
+        // Masked URL debug log for investigating chainid issues
+        tracing::debug!("[EVM-{}] Transactions URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
+
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
 
         if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
             if status == "0" {
-                let err_msg = data.get("result")
+                let result = data.get("result");
+                
+                // V2 API returns status "0" with empty result array when no records found
+                if let Some(res_arr) = result.and_then(|r| r.as_array()) {
+                    if res_arr.is_empty() {
+                        info!(" No transactions found for address {} on {}", address, self.chain_name);
+                        return Ok(Vec::new());
+                    }
+                }
+
+                let err_msg = result
                     .map(|r| if r.is_string() { r.as_str().unwrap().to_string() } else { r.to_string() })
                     .unwrap_or_else(|| "Unknown EVM API Error".to_string());
+                
+                if err_msg.contains("rate limit") || err_msg.contains("Max rate limit") {
+                    return Err(format!("EVM_RATE_LIMIT: {}", err_msg).into());
+                }
+
                 return Err(format!("EVM API Error: {}", err_msg).into());
             }
         }
@@ -306,14 +341,17 @@ impl BlockchainMonitor for EvmMonitor {
 impl EvmMonitor {
     /// Get current block number
     async fn get_current_block(&self) -> Result<u64, Box<dyn std::error::Error + Send + Sync>> {
+        let separator = if self.api_url.contains('?') { "&" } else { "?" };
         let mut url = format!(
-            "{}?module=proxy&action=eth_blockNumber&chainid={}",
-            self.api_url, self.chain_id
+            "{}{}module=proxy&action=eth_blockNumber&chainid={}",
+            self.api_url, separator, self.chain_id
         );
 
         if let Some(ref key) = self.api_key {
             url.push_str(&format!("&apikey={}", key));
         }
+
+        tracing::debug!("[EVM-{}] Current Block URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
 
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
@@ -337,14 +375,17 @@ impl EvmMonitor {
 
     /// Check if transaction succeeded
     async fn check_transaction_success(&self, tx_hash: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        let separator = if self.api_url.contains('?') { "&" } else { "?" };
         let mut url = format!(
-            "{}?module=proxy&action=eth_getTransactionReceipt&txhash={}&chainid={}",
-            self.api_url, tx_hash, self.chain_id
+            "{}{}module=proxy&action=eth_getTransactionReceipt&txhash={}&chainid={}",
+            self.api_url, separator, tx_hash, self.chain_id
         );
 
         if let Some(ref key) = self.api_key {
             url.push_str(&format!("&apikey={}", key));
         }
+        
+        tracing::debug!("[EVM-{}] Tx Success URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
 
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
@@ -354,6 +395,11 @@ impl EvmMonitor {
                 let err_msg = data.get("result")
                     .map(|r| if r.is_string() { r.as_str().unwrap().to_string() } else { r.to_string() })
                     .unwrap_or_else(|| "Unknown EVM API Error".to_string());
+                
+                if err_msg.contains("rate limit") || err_msg.contains("Max rate limit") {
+                    return Err(format!("EVM_RATE_LIMIT: {}", err_msg).into());
+                }
+
                 return Err(format!("EVM API Error: {}", err_msg).into());
             }
         }
@@ -375,14 +421,17 @@ impl EvmMonitor {
 
     /// Get block timestamp by block number
     async fn get_block_timestamp(&self, block_number: u64) -> Result<chrono::DateTime<chrono::Utc>, Box<dyn std::error::Error + Send + Sync>> {
+        let separator = if self.api_url.contains('?') { "&" } else { "?" };
         let mut url = format!(
-            "{}?module=proxy&action=eth_getBlockByNumber&tag=0x{:x}&boolean=false&chainid={}",
-            self.api_url, block_number, self.chain_id
+            "{}{}module=proxy&action=eth_getBlockByNumber&tag=0x{:x}&boolean=false&chainid={}",
+            self.api_url, separator, block_number, self.chain_id
         );
 
         if let Some(ref key) = self.api_key {
             url.push_str(&format!("&apikey={}", key));
         }
+
+        tracing::debug!("[EVM-{}] Block Timestamp URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
 
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;

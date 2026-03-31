@@ -677,7 +677,7 @@ impl BackgroundTasks {
                     },
                     Err(e) => {
                         let err_msg = e.to_string();
-                        if err_msg.contains("429") || err_msg.contains("rate limit") {
+                        if err_msg.contains("429") || err_msg.contains("rate limit") || err_msg.contains("EVM_RATE_LIMIT") {
                             warn!("[EVM-{}] Rate limit hit. Cooling down for 30s...", network);
                             tokio::time::sleep(Duration::from_secs(30)).await;
                         } else {

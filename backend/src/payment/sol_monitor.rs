@@ -157,6 +157,11 @@ impl SolanaMonitor {
         limit: usize,
         min_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
+        // VALIDATION: Ensure this is a valid Solana address (Requirement: Filter out mislabeled EVM addresses)
+        if address.starts_with("0x") || address.len() < 32 || Pubkey::from_str(address).is_err() {
+            return Ok(Vec::new());
+        }
+
         info!(" Fetching Solana transactions for address: {}", address);
 
         // Fetch current slot once to avoid N+1 RPC calls for confirmation calculations
