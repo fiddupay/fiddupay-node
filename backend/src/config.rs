@@ -313,7 +313,6 @@ impl Config {
                 .unwrap_or_else(|_| "97".to_string())
                 .parse()?,
             polygon_amoy_chain_id: env::var("POLYGON_AMOY_CHAIN_ID")
-                .or_else(|_| env::var("POLYGON_MUMBAI_CHAIN_ID"))
                 .unwrap_or_else(|_| "80002".to_string()) // Migrated to Amoy 
                 .parse()?,
             arbitrum_sepolia_chain_id: env::var("ARBITRUM_SEPOLIA_CHAIN_ID")
