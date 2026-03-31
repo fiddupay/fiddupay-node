@@ -42,6 +42,7 @@ pub struct EvmMonitor {
     chain_name: &'static str,
     decimals: u32, // Token decimals (18 for most ERC20)
     token_address: Option<String>, // ERC20 token address if monitoring tokens
+    chain_id: u64, // Chain ID required for Etherscan V2 API
 }
 
 impl EvmMonitor {
@@ -53,6 +54,7 @@ impl EvmMonitor {
             chain_name: if is_sandbox { "BSC Testnet" } else { "BSC" },
             decimals,
             token_address,
+            chain_id: if is_sandbox { config.bsc_testnet_chain_id } else { config.bsc_chain_id },
         }
     }
 
@@ -64,6 +66,7 @@ impl EvmMonitor {
             chain_name: if is_sandbox { "Arbitrum Sepolia" } else { "Arbitrum" },
             decimals,
             token_address,
+            chain_id: if is_sandbox { config.arbitrum_sepolia_chain_id } else { config.arbitrum_chain_id },
         }
     }
 
@@ -75,6 +78,7 @@ impl EvmMonitor {
             chain_name: if is_sandbox { "Polygon Mumbai" } else { "Polygon" },
             decimals,
             token_address,
+            chain_id: if is_sandbox { config.polygon_mumbai_chain_id } else { config.polygon_chain_id },
         }
     }
 
@@ -86,6 +90,7 @@ impl EvmMonitor {
             chain_name: if is_sandbox { "Ethereum Sepolia" } else { "Ethereum" },
             decimals,
             token_address,
+            chain_id: if is_sandbox { config.ethereum_sepolia_chain_id } else { config.ethereum_chain_id },
         }
     }
 }
@@ -101,8 +106,8 @@ impl BlockchainMonitor for EvmMonitor {
 
         // Build API request URL
         let mut url = format!(
-            "{}?module=proxy&action=eth_getTransactionByHash&txhash={}",
-            self.api_url, tx_hash
+            "{}?module=proxy&action=eth_getTransactionByHash&txhash={}&chainid={}",
+            self.api_url, tx_hash, self.chain_id
         );
 
         if let Some(ref key) = self.api_key {
@@ -233,8 +238,8 @@ impl BlockchainMonitor for EvmMonitor {
         // Build API request URL for transaction list
         let action = if self.token_address.is_some() { "tokentx" } else { "txlist" };
         let mut url = format!(
-            "{}?module=account&action={}&address={}&startblock=0&endblock=99999999&page=1&offset={}&sort=desc",
-            self.api_url, action, address, limit
+            "{}?module=account&action={}&address={}&startblock=0&endblock=99999999&page=1&offset={}&sort=desc&chainid={}",
+            self.api_url, action, address, limit, self.chain_id
         );
 
         if let Some(ref token) = self.token_address {
@@ -298,8 +303,8 @@ impl EvmMonitor {
     /// Get current block number
     async fn get_current_block(&self) -> Result<u64, Box<dyn std::error::Error + Send + Sync>> {
         let mut url = format!(
-            "{}?module=proxy&action=eth_blockNumber",
-            self.api_url
+            "{}?module=proxy&action=eth_blockNumber&chainid={}",
+            self.api_url, self.chain_id
         );
 
         if let Some(ref key) = self.api_key {
@@ -327,8 +332,8 @@ impl EvmMonitor {
     /// Check if transaction succeeded
     async fn check_transaction_success(&self, tx_hash: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         let mut url = format!(
-            "{}?module=proxy&action=eth_getTransactionReceipt&txhash={}",
-            self.api_url, tx_hash
+            "{}?module=proxy&action=eth_getTransactionReceipt&txhash={}&chainid={}",
+            self.api_url, tx_hash, self.chain_id
         );
 
         if let Some(ref key) = self.api_key {
@@ -363,8 +368,8 @@ impl EvmMonitor {
     /// Get block timestamp by block number
     async fn get_block_timestamp(&self, block_number: u64) -> Result<chrono::DateTime<chrono::Utc>, Box<dyn std::error::Error + Send + Sync>> {
         let mut url = format!(
-            "{}?module=proxy&action=eth_getBlockByNumber&tag=0x{:x}&boolean=false",
-            self.api_url, block_number
+            "{}?module=proxy&action=eth_getBlockByNumber&tag=0x{:x}&boolean=false&chainid={}",
+            self.api_url, block_number, self.chain_id
         );
 
         if let Some(ref key) = self.api_key {
