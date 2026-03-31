@@ -13,6 +13,7 @@ pub struct Config {
     pub database_url: String,
     pub database_max_connections: u32,
     pub database_timeout_seconds: u64,
+    pub helius_api_key: Option<String>,
 
     // Redis
     pub redis_url: String,
@@ -27,21 +28,33 @@ pub struct Config {
 
     // Blockchain RPC URLs (Production)
     pub solana_rpc_url: String,
+    pub solana_rpc_url_backup: String,
+    pub solana_rpc_url_backup_2: String,
     pub solana_ws_url: String,
     pub ethereum_rpc_url: String,
+    pub ethereum_rpc_url_backup: String,
     pub bsc_rpc_url: String,
+    pub bsc_rpc_url_backup: String,
     pub arbitrum_rpc_url: String,
+    pub arbitrum_rpc_url_backup: String,
     pub polygon_rpc_url: String,
+    pub polygon_rpc_url_backup: String,
     pub bitcoin_rpc_url: String,
     pub bitcoin_rpc_url_backup: String,
 
     // Sandbox/Test Network URLs
     pub solana_devnet_rpc_url: String,
+    pub solana_devnet_rpc_url_backup: String,
+    pub solana_devnet_rpc_url_backup_2: String,
     pub solana_devnet_ws_url: String,
     pub ethereum_sepolia_rpc_url: String,
+    pub ethereum_sepolia_rpc_url_backup: String,
     pub bsc_testnet_rpc_url: String,
+    pub bsc_testnet_rpc_url_backup: String,
     pub arbitrum_sepolia_rpc_url: String,
+    pub arbitrum_sepolia_rpc_url_backup: String,
     pub polygon_mumbai_rpc_url: String,
+    pub polygon_mumbai_rpc_url_backup: String,
     pub bitcoin_testnet_rpc_url: String,
     pub bitcoin_testnet_rpc_url_backup: String,
 
@@ -187,6 +200,7 @@ impl Config {
             database_timeout_seconds: env::var("DATABASE_TIMEOUT_SECONDS")
                 .unwrap_or_else(|_| "30".to_string())
                 .parse()?,
+            helius_api_key: env::var("HELIUS_API_KEY").ok(),
 
             // Redis
             redis_url: env::var("REDIS_URL")?,
@@ -212,23 +226,53 @@ impl Config {
 
             // Blockchain RPC URLs - Production (All required, no defaults)
             solana_rpc_url: env::var("SOLANA_RPC_URL")?,
+            solana_rpc_url_backup: {
+                if let Ok(key) = env::var("HELIUS_API_KEY") {
+                    format!("https://mainnet.helius-rpc.com/?api-key={}", key)
+                } else {
+                    env::var("SOLANA_RPC_URL_BACKUP")
+                        .unwrap_or_else(|_| "https://api.mainnet-beta.solana.com".to_string())
+                }
+            },
+            solana_rpc_url_backup_2: env::var("SOLANA_RPC_URL_BACKUP_2")
+                .unwrap_or_else(|_| "https://api.mainnet-beta.solana.com".to_string()),
             solana_ws_url: env::var("SOLANA_WS_URL")
                 .unwrap_or_else(|_| "wss://api.mainnet-beta.solana.com".to_string()),
             ethereum_rpc_url: env::var("ETHEREUM_RPC_URL")?,
+            ethereum_rpc_url_backup: env::var("ETHEREUM_RPC_URL_BACKUP")
+                .unwrap_or_else(|_| "https://rpc.ankr.com/eth".to_string()),
             bsc_rpc_url: env::var("BSC_RPC_URL")?,
+            bsc_rpc_url_backup: env::var("BSC_RPC_URL_BACKUP")
+                .unwrap_or_else(|_| "https://rpc.ankr.com/bsc".to_string()),
             arbitrum_rpc_url: env::var("ARBITRUM_RPC_URL")?,
+            arbitrum_rpc_url_backup: env::var("ARBITRUM_RPC_URL_BACKUP")
+                .unwrap_or_else(|_| "https://rpc.ankr.com/arbitrum".to_string()),
             polygon_rpc_url: env::var("POLYGON_RPC_URL")?,
+            polygon_rpc_url_backup: env::var("POLYGON_RPC_URL_BACKUP")
+                .unwrap_or_else(|_| "https://rpc.ankr.com/polygon".to_string()),
             bitcoin_rpc_url: env::var("BITCOIN_RPC_URL")
                 .unwrap_or_else(|_| "https://blockstream.info/api".to_string()),
             bitcoin_rpc_url_backup: env::var("BITCOIN_RPC_URL_BACKUP")
                 .unwrap_or_else(|_| "https://mempool.space/api".to_string()),
             solana_devnet_rpc_url: env::var("SOLANA_DEVNET_RPC_URL")?,
+            solana_devnet_rpc_url_backup: env::var("SOLANA_DEVNET_RPC_URL_BACKUP")
+                .unwrap_or_else(|_| "https://api.devnet.solana.com".to_string()),
+            solana_devnet_rpc_url_backup_2: env::var("SOLANA_DEVNET_RPC_URL_BACKUP_2")
+                .unwrap_or_else(|_| "https://api.devnet.solana.com".to_string()),
             solana_devnet_ws_url: env::var("SOLANA_DEVNET_WS_URL")
                 .unwrap_or_else(|_| "wss://api.devnet.solana.com".to_string()),
             ethereum_sepolia_rpc_url: env::var("ETHEREUM_SEPOLIA_RPC_URL")?,
+            ethereum_sepolia_rpc_url_backup: env::var("ETHEREUM_SEPOLIA_RPC_URL_BACKUP")
+                .unwrap_or_else(|_| "https://rpc.ankr.com/eth_sepolia".to_string()),
             bsc_testnet_rpc_url: env::var("BSC_TESTNET_RPC_URL")?,
+            bsc_testnet_rpc_url_backup: env::var("BSC_TESTNET_RPC_URL_BACKUP")
+                .unwrap_or_else(|_| "https://rpc.ankr.com/bsc_testnet_chapel".to_string()),
             arbitrum_sepolia_rpc_url: env::var("ARBITRUM_SEPOLIA_RPC_URL")?,
+            arbitrum_sepolia_rpc_url_backup: env::var("ARBITRUM_SEPOLIA_RPC_URL_BACKUP")
+                .unwrap_or_else(|_| "https://rpc.ankr.com/arbitrum_sepolia".to_string()),
             polygon_mumbai_rpc_url: env::var("POLYGON_MUMBAI_RPC_URL")?,
+            polygon_mumbai_rpc_url_backup: env::var("POLYGON_MUMBAI_RPC_URL_BACKUP")
+                .unwrap_or_else(|_| "https://rpc.ankr.com/polygon_mumbai".to_string()),
             bitcoin_testnet_rpc_url: env::var("BITCOIN_TESTNET_RPC_URL")
                 .unwrap_or_else(|_| "https://blockstream.info/testnet/api".to_string()),
             bitcoin_testnet_rpc_url_backup: env::var("BITCOIN_TESTNET_RPC_URL_BACKUP")

@@ -21,6 +21,60 @@ impl BlockchainTransactionSender {
         Self { config }
     }
 
+    fn get_evm_rpc_urls(&self, crypto_type: &CryptoType, sandbox_mode: bool) -> Vec<(String, u64)> {
+        match (crypto_type, sandbox_mode) {
+            (CryptoType::Eth | CryptoType::UsdtEth, false) => vec![
+                (self.config.ethereum_rpc_url.clone(), self.config.ethereum_chain_id),
+                (self.config.ethereum_rpc_url_backup.clone(), self.config.ethereum_chain_id),
+            ],
+            (CryptoType::Eth | CryptoType::UsdtEth, true) => vec![
+                (self.config.ethereum_sepolia_rpc_url.clone(), self.config.ethereum_sepolia_chain_id),
+                (self.config.ethereum_sepolia_rpc_url_backup.clone(), self.config.ethereum_sepolia_chain_id),
+            ],
+            (CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20, false) => vec![
+                (self.config.bsc_rpc_url.clone(), self.config.bsc_chain_id),
+                (self.config.bsc_rpc_url_backup.clone(), self.config.bsc_chain_id),
+            ],
+            (CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20, true) => vec![
+                (self.config.bsc_testnet_rpc_url.clone(), self.config.bsc_testnet_chain_id),
+                (self.config.bsc_testnet_rpc_url_backup.clone(), self.config.bsc_testnet_chain_id),
+            ],
+            (CryptoType::Matic | CryptoType::UsdtPolygon, false) => vec![
+                (self.config.polygon_rpc_url.clone(), self.config.polygon_chain_id),
+                (self.config.polygon_rpc_url_backup.clone(), self.config.polygon_chain_id),
+            ],
+            (CryptoType::Matic | CryptoType::UsdtPolygon, true) => vec![
+                (self.config.polygon_mumbai_rpc_url.clone(), self.config.polygon_mumbai_chain_id),
+                (self.config.polygon_mumbai_rpc_url_backup.clone(), self.config.polygon_mumbai_chain_id),
+            ],
+            (CryptoType::Arb | CryptoType::UsdtArbitrum, false) => vec![
+                (self.config.arbitrum_rpc_url.clone(), self.config.arbitrum_chain_id),
+                (self.config.arbitrum_rpc_url_backup.clone(), self.config.arbitrum_chain_id),
+            ],
+            (CryptoType::Arb | CryptoType::UsdtArbitrum, true) => vec![
+                (self.config.arbitrum_sepolia_rpc_url.clone(), self.config.arbitrum_sepolia_chain_id),
+                (self.config.arbitrum_sepolia_rpc_url_backup.clone(), self.config.arbitrum_sepolia_chain_id),
+            ],
+            _ => vec![],
+        }
+    }
+
+    fn get_solana_rpc_urls(&self, sandbox_mode: bool) -> Vec<String> {
+        if sandbox_mode {
+            vec![
+                self.config.solana_devnet_rpc_url.clone(),
+                self.config.solana_devnet_rpc_url_backup.clone(),
+                self.config.solana_devnet_rpc_url_backup_2.clone(),
+            ]
+        } else {
+            vec![
+                self.config.solana_rpc_url.clone(),
+                self.config.solana_rpc_url_backup.clone(),
+                self.config.solana_rpc_url_backup_2.clone(),
+            ]
+        }
+    }
+
     /// Send the transaction (routes to native or token transfer based on crypto_type)
     pub async fn send_transaction(
         &self,
@@ -75,7 +129,6 @@ impl BlockchainTransactionSender {
         let to_pubkey = Pubkey::from_str(to_address)
             .map_err(|_| ServiceError::ValidationError("Invalid Solana destination address".to_string()))?;
 
-        // Convert SOL amount to lamports (1 SOL = 1,000,000,000 lamports)
         let lamports = (amount * Decimal::new(1_000_000_000, 0))
             .to_u64()
             .ok_or_else(|| ServiceError::ValidationError("Invalid SOL amount".to_string()))?;
@@ -84,56 +137,57 @@ impl BlockchainTransactionSender {
             return Err(ServiceError::ValidationError("Amount must be greater than 0".to_string()));
         }
 
-        // Initialize non-blocking RPC client based on sandbox mode
-        let rpc_url = if sandbox_mode {
-            self.config.solana_devnet_rpc_url.clone()
-        } else {
-            self.config.solana_rpc_url.clone()
-        };
-        let rpc_client = RpcClient::new(rpc_url);
+        let rpc_urls = self.get_solana_rpc_urls(sandbox_mode);
+        let mut last_err = None;
 
-        // Get latest blockhash for transaction signing
-        let recent_blockhash = rpc_client.get_latest_blockhash()
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to get Solana blockhash: {}", e)))?;
+        for url in rpc_urls {
+            tracing::info!("[SOLANA] Attempting transaction via RPC: {}", url);
+            let rpc_client = RpcClient::new(url.clone());
 
-        use solana_sdk::system_instruction;
-        use solana_sdk::transaction::Transaction;
-
-        // Create the native SOL transfer transaction
-        let instructions = vec![system_instruction::transfer(
-            &sender_keypair.pubkey(),
-            &to_pubkey,
-            lamports,
-        )];
-        let tx = Transaction::new_signed_with_payer(
-            &instructions,
-            Some(&sender_keypair.pubkey()),
-            &[&sender_keypair],
-            recent_blockhash,
-        );
-
-        // Run simulation before sending (Requirement: Catch errors early)
-        match rpc_client.simulate_transaction(&tx).await {
-            Ok(sim) => {
-                if let Some(err) = sim.value.err {
-                    tracing::error!("[SOLANA-SIM] Simulation failed for SOL transfer: {:?}", err);
-                    return Err(ServiceError::Internal(format!("Transaction simulation failed: {}", err)));
+            // Get latest blockhash
+            let recent_blockhash = match rpc_client.get_latest_blockhash().await {
+                Ok(bh) => bh,
+                Err(e) => {
+                    tracing::warn!("[SOLANA] RPC {} failed (blockhash): {}", url, e);
+                    last_err = Some(e);
+                    continue;
                 }
-                tracing::info!("[SOLANA-SIM] Simulation successful for SOL transfer");
-            },
-            Err(e) => {
-                tracing::error!("[SOLANA-SIM] Simulation RPC error: {}", e);
-                return Err(ServiceError::Internal(format!("Failed to simulate transaction: {}", e)));
+            };
+
+            use solana_sdk::system_instruction;
+            use solana_sdk::transaction::Transaction;
+
+            let instructions = vec![system_instruction::transfer(
+                &sender_keypair.pubkey(),
+                &to_pubkey,
+                lamports,
+            )];
+            let tx = Transaction::new_signed_with_payer(
+                &instructions,
+                Some(&sender_keypair.pubkey()),
+                &[&sender_keypair],
+                recent_blockhash,
+            );
+
+            // Simulate
+            if let Err(e) = rpc_client.simulate_transaction(&tx).await {
+                tracing::warn!("[SOLANA] Simulation failed on {}: {}", url, e);
+                last_err = Some(e);
+                continue;
+            }
+
+            // Send and confirm
+            match rpc_client.send_and_confirm_transaction(&tx).await {
+                Ok(sig) => return Ok(sig.to_string()),
+                Err(e) => {
+                    tracing::warn!("[SOLANA] Send failed on {}: {}", url, e);
+                    last_err = Some(e);
+                    continue;
+                }
             }
         }
 
-        // Send and confirm the transaction on-chain
-        let signature = rpc_client.send_and_confirm_transaction(&tx)
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to send Solana transaction: {}", e)))?;
-
-        Ok(signature.to_string())
+        Err(ServiceError::Internal(format!("All Solana RPCs failed. Last error: {:?}", last_err)))
     }
 
     /// Send Solana SPL Token transaction
@@ -178,92 +232,57 @@ impl BlockchainTransactionSender {
             return Err(ServiceError::ValidationError("Amount must be greater than 0".to_string()));
         }
 
-        let rpc_url = if sandbox_mode {
-            self.config.solana_devnet_rpc_url.clone()
-        } else {
-            self.config.solana_rpc_url.clone()
-        };
-        let rpc_client = RpcClient::new(rpc_url);
-        
+        let rpc_urls = self.get_solana_rpc_urls(sandbox_mode);
+        let mut last_err = None;
 
-        // Calculate ATAs
-        let sender_pubkey = sender_keypair.pubkey();
-        let source_ata = get_associated_token_address(&sender_pubkey, &mint_pubkey);
-        let destination_ata = get_associated_token_address(&to_pubkey, &mint_pubkey);
+        for url in rpc_urls {
+            tracing::info!("[SOLANA-SPL] Attempting transaction via RPC: {}", url);
+            let rpc_client = RpcClient::new(url.clone());
 
-        tracing::info!("[SOLANA-TRANSFER] Sender: {}, to: {}, mint: {}", sender_pubkey, to_pubkey, mint_pubkey);
-        tracing::info!("[SOLANA-TRANSFER] Source ATA: {}, Destination ATA: {}", source_ata, destination_ata);
+            let sender_pubkey = sender_keypair.pubkey();
+            let source_ata = get_associated_token_address(&sender_pubkey, &mint_pubkey);
+            let destination_ata = get_associated_token_address(&to_pubkey, &mint_pubkey);
 
-        // 1. Check if source ATA exists and has balance
-        let source_account = rpc_client.get_account(&source_ata).await;
-        if source_account.is_err() {
-            tracing::error!("[SOLANA-TRANSFER] Source ATA {} does not exist. Withdrawal impossible without on-chain tokens.", source_ata);
-            return Err(ServiceError::ValidationError(format!("Source token account not initialized. Ensure you have {} on-chain.", if mint_address == "So11111111111111111111111111111111111111112" { "WSOL" } else { "USDT" })));
-        }
+            let mut instructions: Vec<Instruction> = Vec::new();
 
-        let mut instructions: Vec<Instruction> = Vec::new();
+            // Check accounts
+            let dest_account = rpc_client.get_account(&destination_ata).await;
+            if dest_account.is_err() {
+                instructions.push(create_associated_token_account_idempotent(
+                    &sender_pubkey, &to_pubkey, &mint_pubkey, &spl_token::id()
+                ));
+            }
 
-        // 2. Check if destination ATA exists (Requirement: Idempotent creation)
-        let dest_account = rpc_client.get_account(&destination_ata).await;
-        if dest_account.is_err() {
-            // Must create the destination ATA funded by the sender
-            // We use the IDEMPOTENT variant to prevent failures if the account is created concurrently
-            tracing::info!("[SOLANA-FEE] Destination ATA {} does not exist. Adding 'CreateATAIdempotent' instruction (Rent ≈ 0.002 SOL)", destination_ata);
-            instructions.push(
-                create_associated_token_account_idempotent(
-                    &sender_pubkey,
-                    &to_pubkey,
-                    &mint_pubkey,
-                    &spl_token::id(),
-                )
-            );
-        }
+            instructions.push(transfer_checked(
+                &spl_token::id(), &source_ata, &mint_pubkey, &destination_ata, &sender_keypair.pubkey(),
+                &[&sender_keypair.pubkey()], token_amount, decimals,
+            ).map_err(|e| ServiceError::Internal(format!("Failed to build transfer: {}", e)))?);
 
-        // Add the transfer_checked instruction
-        instructions.push(
-            transfer_checked(
-                &spl_token::id(),
-                &source_ata,
-                &mint_pubkey,
-                &destination_ata,
-                &sender_keypair.pubkey(),
-                &[&sender_keypair.pubkey()],
-                token_amount,
-                decimals,
-            ).map_err(|e| ServiceError::Internal(format!("Failed to build transfer instruction: {}", e)))?
-        );
-
-        let recent_blockhash = rpc_client.get_latest_blockhash()
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to get Solana blockhash: {}", e)))?;
-
-        let tx = Transaction::new_signed_with_payer(
-            &instructions,
-            Some(&sender_keypair.pubkey()),
-            &[&sender_keypair],
-            recent_blockhash,
-        );
-
-        // Run simulation before sending (Requirement: Catch errors early)
-        match rpc_client.simulate_transaction(&tx).await {
-            Ok(sim) => {
-                if let Some(err) = sim.value.err {
-                    tracing::error!("[SOLANA-SIM] Simulation failed for token transfer: {:?}", err);
-                    return Err(ServiceError::Internal(format!("Transaction simulation failed: {}. Ensure you have enough SOL for fees and enough tokens for withdrawal.", err)));
+            let recent_blockhash = match rpc_client.get_latest_blockhash().await {
+                Ok(bh) => bh,
+                Err(e) => {
+                    last_err = Some(e);
+                    continue;
                 }
-                tracing::info!("[SOLANA-SIM] Simulation successful for token transfer");
-            },
-            Err(e) => {
-                tracing::error!("[SOLANA-SIM] Simulation RPC error: {}", e);
-                return Err(ServiceError::Internal(format!("Failed to simulate transaction: {}", e)));
+            };
+
+            let tx = Transaction::new_signed_with_payer(&instructions, Some(&sender_keypair.pubkey()), &[&sender_keypair], recent_blockhash);
+
+            if let Err(e) = rpc_client.simulate_transaction(&tx).await {
+                last_err = Some(e);
+                continue;
+            }
+
+            match rpc_client.send_and_confirm_transaction(&tx).await {
+                Ok(sig) => return Ok(sig.to_string()),
+                Err(e) => {
+                    last_err = Some(e);
+                    continue;
+                }
             }
         }
 
-        let signature = rpc_client.send_and_confirm_transaction(&tx)
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to send Solana token transaction: {}", e)))?;
-
-        Ok(signature.to_string())
+        Err(ServiceError::Internal(format!("All Solana RPCs failed. Last error: {:?}", last_err)))
     }
 
     /// Send EVM transaction (ETH, BNB, MATIC, ARB)
@@ -276,84 +295,80 @@ impl BlockchainTransactionSender {
         gas_price: Option<U256>,
         sandbox_mode: bool,
     ) -> Result<String, ServiceError> {
-        let (rpc_url, chain_id) = match (crypto_type, sandbox_mode) {
-            (CryptoType::Eth, false) => (&self.config.ethereum_rpc_url, self.config.ethereum_chain_id),
-            (CryptoType::Eth, true) => (&self.config.ethereum_sepolia_rpc_url, self.config.ethereum_sepolia_chain_id),
-            (CryptoType::Bnb, false) => (&self.config.bsc_rpc_url, self.config.bsc_chain_id),
-            (CryptoType::Bnb, true) => (&self.config.bsc_testnet_rpc_url, self.config.bsc_testnet_chain_id),
-            (CryptoType::Matic, false) => (&self.config.polygon_rpc_url, self.config.polygon_chain_id),
-            (CryptoType::Matic, true) => (&self.config.polygon_mumbai_rpc_url, self.config.polygon_mumbai_chain_id),
-            (CryptoType::Arb, false) => (&self.config.arbitrum_rpc_url, self.config.arbitrum_chain_id),
-            (CryptoType::Arb, true) => (&self.config.arbitrum_sepolia_rpc_url, self.config.arbitrum_sepolia_chain_id),
-            _ => return Err(ServiceError::ValidationError("Unsupported EVM network".to_string())),
-        };
+        let rpc_configs = self.get_evm_rpc_urls(&crypto_type, sandbox_mode);
+        let mut last_err = None;
 
-        // Create web3 transport
-        let transport = Http::new(rpc_url)
-            .map_err(|e| ServiceError::Internal(format!("Failed to create transport: {}", e)))?;
-        let web3 = Web3::new(transport);
+        for (url, chain_id) in rpc_configs {
+            tracing::info!("[EVM] Attempting transaction via RPC: {}", url);
+            let transport = match Http::new(&url) {
+                Ok(t) => t,
+                Err(e) => {
+                    last_err = Some(e.to_string());
+                    continue;
+                }
+            };
+            let web3 = Web3::new(transport);
 
-        // Parse private key
-        let private_key = private_key.strip_prefix("0x").unwrap_or(private_key);
-        let key_bytes = hex::decode(private_key)
-            .map_err(|_| ServiceError::ValidationError("Invalid private key hex".to_string()))?;
-        
-        // Use web3's SecretKey type directly
-        let secret_key_bytes: [u8; 32] = key_bytes.try_into()
-            .map_err(|_| ServiceError::ValidationError("Invalid key length".to_string()))?;
-        let secret_key = web3::signing::SecretKey::from_slice(&secret_key_bytes)
-            .map_err(|_| ServiceError::ValidationError("Invalid private key".to_string()))?;
+            // Key setup
+            let private_key_clean = private_key.strip_prefix("0x").unwrap_or(private_key);
+            let key_bytes = match hex::decode(private_key_clean) {
+                Ok(b) => b,
+                Err(_) => return Err(ServiceError::ValidationError("Invalid private key".into())),
+            };
+            let secret_key = match web3::signing::SecretKey::from_slice(&key_bytes) {
+                Ok(sk) => sk,
+                Err(_) => return Err(ServiceError::ValidationError("Invalid private key".into())),
+            };
+            let from_address = (&secret_key).address();
+            let to_address_parsed: Address = to_address.parse().map_err(|_| ServiceError::ValidationError("Invalid dest addr".into()))?;
 
-        // Get sender address from secret key
-        let from_address = (&secret_key).address();
+            // Nonce & Gas
+            let nonce = match web3.eth().transaction_count(from_address, None).await {
+                Ok(n) => n,
+                Err(e) => {
+                    last_err = Some(e.to_string());
+                    continue;
+                }
+            };
+            let gas_price_val = match gas_price {
+                Some(p) => p,
+                None => match web3.eth().gas_price().await {
+                    Ok(p) => p,
+                    Err(e) => {
+                        last_err = Some(e.to_string());
+                        continue;
+                    }
+                }
+            };
 
-        // Parse destination address
-        let to_address: Address = to_address.parse()
-            .map_err(|_| ServiceError::ValidationError("Invalid destination address".to_string()))?;
+            let tx_params = TransactionParameters {
+                nonce: Some(nonce),
+                to: Some(to_address_parsed),
+                value: U256::from(wei_amount),
+                gas_price: Some(gas_price_val),
+                gas: U256::from(21000),
+                chain_id: Some(chain_id),
+                ..Default::default()
+            };
 
-        // Convert amount to wei
-        let wei_amount = (amount * Decimal::new(1_000_000_000_000_000_000i64, 0))
-            .to_u128()
-            .ok_or_else(|| ServiceError::ValidationError("Invalid amount".to_string()))?;
+            let signed_tx = match web3.accounts().sign_transaction(tx_params, &secret_key).await {
+                Ok(s) => s,
+                Err(e) => {
+                    last_err = Some(e.to_string());
+                    continue;
+                }
+            };
 
-        // Get nonce
-        let nonce = web3.eth()
-            .transaction_count(from_address, None)
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to get nonce: {}", e)))?;
+            match web3.eth().send_raw_transaction(signed_tx.raw_transaction).await {
+                Ok(hash) => return Ok(format!("0x{:x}", hash)),
+                Err(e) => {
+                    last_err = Some(e.to_string());
+                    continue;
+                }
+            }
+        }
 
-        // Get gas price if not provided
-        let gas_price = match gas_price {
-            Some(price) => price,
-            None => web3.eth()
-                .gas_price()
-                .await
-                .map_err(|e| ServiceError::Internal(format!("Failed to get gas price: {}", e)))?,
-        };
-
-        // Create transaction parameters
-        let tx_params = TransactionParameters {
-            nonce: Some(nonce),
-            to: Some(to_address),
-            value: U256::from(wei_amount),
-            gas_price: Some(gas_price),
-            gas: U256::from(21000), // Standard gas limit for ETH transfer
-            chain_id: Some(chain_id),
-            data: web3::types::Bytes::default(),
-            ..Default::default()
-        };
-
-        let signed_tx = web3.accounts()
-            .sign_transaction(tx_params, &secret_key)
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to sign transaction: {}", e)))?;
-
-        let tx_hash = web3.eth()
-            .send_raw_transaction(signed_tx.raw_transaction)
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to send transaction: {}", e)))?;
-
-        Ok(format!("0x{:x}", tx_hash))
+        Err(ServiceError::Internal(format!("All EVM RPCs failed. Last error: {:?}", last_err)))
     }
 
     /// Send EVM Token (ERC20/BEP20) transaction
@@ -367,94 +382,90 @@ impl BlockchainTransactionSender {
         gas_price: Option<U256>,
         sandbox_mode: bool,
     ) -> Result<String, ServiceError> {
-        let (rpc_url, chain_id) = match (crypto_type.clone(), sandbox_mode) {
-            (CryptoType::UsdtEth, false) => (&self.config.ethereum_rpc_url, self.config.ethereum_chain_id),
-            (CryptoType::UsdtEth, true) => (&self.config.ethereum_sepolia_rpc_url, self.config.ethereum_sepolia_chain_id),
-            (CryptoType::UsdtBep20, false) => (&self.config.bsc_rpc_url, self.config.bsc_chain_id),
-            (CryptoType::UsdtBep20, true) => (&self.config.bsc_testnet_rpc_url, self.config.bsc_testnet_chain_id),
-            (CryptoType::UsdtPolygon, false) => (&self.config.polygon_rpc_url, self.config.polygon_chain_id),
-            (CryptoType::UsdtPolygon, true) => (&self.config.polygon_mumbai_rpc_url, self.config.polygon_mumbai_chain_id),
-            (CryptoType::UsdtArbitrum, false) => (&self.config.arbitrum_rpc_url, self.config.arbitrum_chain_id),
-            (CryptoType::UsdtArbitrum, true) => (&self.config.arbitrum_sepolia_rpc_url, self.config.arbitrum_sepolia_chain_id),
-            _ => return Err(ServiceError::ValidationError("Unsupported EVM token network".to_string())),
-        };
+        let rpc_configs = self.get_evm_rpc_urls(&crypto_type, sandbox_mode);
+        let mut last_err = None;
 
-        let transport = Http::new(rpc_url)
-            .map_err(|e| ServiceError::Internal(format!("Failed to create transport: {}", e)))?;
-        let web3 = Web3::new(transport);
+        for (url, chain_id) in rpc_configs {
+            tracing::info!("[EVM-TOKEN] Attempting transaction via RPC: {}", url);
+            let transport = match Http::new(&url) {
+                Ok(t) => t,
+                Err(e) => {
+                    last_err = Some(e.to_string());
+                    continue;
+                }
+            };
+            let web3 = Web3::new(transport);
 
-        let private_key = private_key.strip_prefix("0x").unwrap_or(private_key);
-        let key_bytes = hex::decode(private_key)
-            .map_err(|_| ServiceError::ValidationError("Invalid private key hex".to_string()))?;
-        
-        let secret_key_bytes: [u8; 32] = key_bytes.try_into()
-            .map_err(|_| ServiceError::ValidationError("Invalid key length".to_string()))?;
-        let secret_key = web3::signing::SecretKey::from_slice(&secret_key_bytes)
-            .map_err(|_| ServiceError::ValidationError("Invalid private key".to_string()))?;
+            // Setup
+            let private_key_clean = private_key.strip_prefix("0x").unwrap_or(private_key);
+            let key_bytes = match hex::decode(private_key_clean) {
+                Ok(b) => b,
+                Err(_) => return Err(ServiceError::ValidationError("Invalid secret".into())),
+            };
+            let secret_key = match web3::signing::SecretKey::from_slice(&key_bytes) {
+                Ok(sk) => sk,
+                Err(_) => return Err(ServiceError::ValidationError("Invalid secret".into())),
+            };
+            let from_address = (&secret_key).address();
+            let to_address_parsed: Address = to_address.parse().map_err(|_| ServiceError::ValidationError("Invalid to addr".into()))?;
+            let token_contract_address: Address = token_address_str.parse().map_err(|_| ServiceError::ValidationError("Invalid token addr".into()))?;
 
-        let from_address = (&secret_key).address();
+            let nonce = match web3.eth().transaction_count(from_address, None).await {
+                Ok(n) => n,
+                Err(e) => {
+                    last_err = Some(e.to_string());
+                    continue;
+                }
+            };
+            let gas_price_val = match gas_price {
+                Some(p) => p,
+                None => match web3.eth().gas_price().await {
+                    Ok(p) => p,
+                    Err(e) => {
+                        last_err = Some(e.to_string());
+                        continue;
+                    }
+                }
+            };
 
-        let to_address_parsed: Address = to_address.parse()
-            .map_err(|_| ServiceError::ValidationError("Invalid destination address".to_string()))?;
+            // Data
+            let mut data = vec![0xa9, 0x05, 0x9c, 0xbb];
+            let mut padded_to = vec![0u8; 32];
+            padded_to[12..32].copy_from_slice(to_address_parsed.as_bytes());
+            data.extend(padded_to);
+            let mut padded_amount = vec![0u8; 32];
+            U256::from(token_amount).to_big_endian(&mut padded_amount);
+            data.extend(padded_amount);
 
-        let token_contract_address: Address = token_address_str.parse()
-            .map_err(|_| ServiceError::ValidationError("Invalid token contract address".to_string()))?;
+            let tx_params = TransactionParameters {
+                nonce: Some(nonce),
+                to: Some(token_contract_address),
+                value: U256::zero(),
+                gas_price: Some(gas_price_val),
+                gas: U256::from(65000),
+                chain_id: Some(chain_id),
+                data: web3::types::Bytes(data),
+                ..Default::default()
+            };
 
-        // Most tokens like USDT/USDC have 6 decimals on EVM (except BSC where USDT BEP20 is 18)
-        let decimals = if crypto_type == CryptoType::UsdtBep20 { 18 } else { 6 };
-        let token_amount = (amount * Decimal::new(10i64.pow(decimals as u32), 0))
-            .to_u128()
-            .ok_or_else(|| ServiceError::ValidationError("Invalid token amount".to_string()))?;
+            let signed_tx = match web3.accounts().sign_transaction(tx_params, &secret_key).await {
+                Ok(s) => s,
+                Err(e) => {
+                    last_err = Some(e.to_string());
+                    continue;
+                }
+            };
 
-        let nonce = web3.eth()
-            .transaction_count(from_address, None)
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to get nonce: {}", e)))?;
+            match web3.eth().send_raw_transaction(signed_tx.raw_transaction).await {
+                Ok(hash) => return Ok(format!("0x{:x}", hash)),
+                Err(e) => {
+                    last_err = Some(e.to_string());
+                    continue;
+                }
+            }
+        }
 
-        let gas_price = match gas_price {
-            Some(price) => price,
-            None => web3.eth()
-                .gas_price()
-                .await
-                .map_err(|e| ServiceError::Internal(format!("Failed to get gas price: {}", e)))?,
-        };
-
-        // Construct ERC20 transfer(address to, uint256 amount) data
-        // Method ID: 0xa9059cbb
-        let mut data = vec![0xa9, 0x05, 0x9c, 0xbb];
-        
-        // Append padded 'to' address
-        let mut padded_to = vec![0u8; 32];
-        padded_to[12..32].copy_from_slice(to_address_parsed.as_bytes());
-        data.extend(padded_to);
-
-        // Append padded 'amount'
-        let mut padded_amount = vec![0u8; 32];
-        U256::from(token_amount).to_big_endian(&mut padded_amount);
-        data.extend(padded_amount);
-
-        let tx_params = TransactionParameters {
-            nonce: Some(nonce),
-            to: Some(token_contract_address), // Sent to the contract!
-            value: U256::zero(),
-            gas_price: Some(gas_price),
-            gas: U256::from(65000), // Tokens need more gas (~65k)
-            chain_id: Some(chain_id),
-            data: web3::types::Bytes(data),
-            ..Default::default()
-        };
-
-        let signed_tx = web3.accounts()
-            .sign_transaction(tx_params, &secret_key)
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to sign token transaction: {}", e)))?;
-
-        let tx_hash = web3.eth()
-            .send_raw_transaction(signed_tx.raw_transaction)
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to send token transaction: {}", e)))?;
-
-        Ok(format!("0x{:x}", tx_hash))
+        Err(ServiceError::Internal(format!("All EVM Token RPCs failed. Last error: {:?}", last_err)))
     }
 
     /// Estimate gas for transaction
