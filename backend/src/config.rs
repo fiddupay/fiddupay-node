@@ -474,9 +474,6 @@ impl Config {
             etherscan_api_key: env::var("ETHERSCAN_API_KEY").ok(),
             
             etherscan_api_url: env::var("ETHERSCAN_API_URL")
-                .or_else(|_| env::var("BSCSCAN_API_URL"))
-                .or_else(|_| env::var("POLYGONSCAN_API_URL"))
-                .or_else(|_| env::var("ARBISCAN_API_URL"))
                 .unwrap_or_else(|_| "https://api.etherscan.io/v2/api".to_string()),
 
             // Email Configuration

@@ -120,7 +120,9 @@ impl BlockchainMonitor for EvmMonitor {
         // Check for API errors (Etherscan returns status="0" for errors with message in "result")
         if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
             if status == "0" {
-                let err_msg = data.get("result").and_then(|r| r.as_str()).unwrap_or("Unknown EVM API Error");
+                let err_msg = data.get("result")
+                    .map(|r| if r.is_string() { r.as_str().unwrap().to_string() } else { r.to_string() })
+                    .unwrap_or_else(|| "Unknown EVM API Error".to_string());
                 return Err(format!("EVM API Error: {}", err_msg).into());
             }
         }
@@ -255,7 +257,9 @@ impl BlockchainMonitor for EvmMonitor {
 
         if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
             if status == "0" {
-                let err_msg = data.get("result").and_then(|r| r.as_str()).unwrap_or("Unknown EVM API Error");
+                let err_msg = data.get("result")
+                    .map(|r| if r.is_string() { r.as_str().unwrap().to_string() } else { r.to_string() })
+                    .unwrap_or_else(|| "Unknown EVM API Error".to_string());
                 return Err(format!("EVM API Error: {}", err_msg).into());
             }
         }
@@ -316,7 +320,9 @@ impl EvmMonitor {
 
         if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
             if status == "0" {
-                let err_msg = data.get("result").and_then(|r| r.as_str()).unwrap_or("Unknown EVM API Error");
+                let err_msg = data.get("result")
+                    .map(|r| if r.is_string() { r.as_str().unwrap().to_string() } else { r.to_string() })
+                    .unwrap_or_else(|| "Unknown EVM API Error".to_string());
                 return Err(format!("EVM API Error: {}", err_msg).into());
             }
         }
@@ -345,7 +351,9 @@ impl EvmMonitor {
 
         if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
             if status == "0" {
-                let err_msg = data.get("result").and_then(|r| r.as_str()).unwrap_or("Unknown EVM API Error");
+                let err_msg = data.get("result")
+                    .map(|r| if r.is_string() { r.as_str().unwrap().to_string() } else { r.to_string() })
+                    .unwrap_or_else(|| "Unknown EVM API Error".to_string());
                 return Err(format!("EVM API Error: {}", err_msg).into());
             }
         }
@@ -381,7 +389,9 @@ impl EvmMonitor {
 
         if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
             if status == "0" {
-                let err_msg = data.get("result").and_then(|r| r.as_str()).unwrap_or("Unknown EVM API Error");
+                let err_msg = data.get("result")
+                    .map(|r| if r.is_string() { r.as_str().unwrap().to_string() } else { r.to_string() })
+                    .unwrap_or_else(|| "Unknown EVM API Error".to_string());
                 return Err(format!("EVM API Error: {}", err_msg).into());
             }
         }

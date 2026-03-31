@@ -465,8 +465,9 @@ impl BackgroundTasks {
             }
         }
 
-        Ok(())
-    }    async fn fetch_solana_addresses(pool: &sqlx::PgPool, sandbox_mode: bool) -> Vec<String> {
+    }
+    
+    async fn fetch_solana_addresses(pool: &sqlx::PgPool, sandbox_mode: bool) -> Vec<String> {
         let addresses_res = sqlx::query(
             r#"
             SELECT DISTINCT to_address 
@@ -496,8 +497,12 @@ impl BackgroundTasks {
                 use sqlx::Row;
                 rows.into_iter()
                     .filter_map(|r| r.get::<Option<String>, _>("to_address"))
-                    // Filter out EVM addresses that might have been mislabeled 
-                    .filter(|addr| !addr.starts_with("0x") && addr.len() > 30)
+                    // Filter out EVM addresses that might have been mislabeled (starts with 0x)
+                    // and ensure length matches Solana base58 expectations
+                    .filter(|addr| {
+                        let trimmed = addr.trim().to_lowercase();
+                        !trimmed.starts_with("0x") && addr.len() >= 32 && addr.len() <= 44
+                    })
                     .collect()
             }
             Err(e) => {
@@ -544,7 +549,9 @@ impl BackgroundTasks {
                 Vec::new()
             }
         }
-    }    async fn fetch_evm_addresses(pool: &sqlx::PgPool, network_prefix: &str, sandbox_mode: bool) -> Vec<String> {
+    }
+    
+    async fn fetch_evm_addresses(pool: &sqlx::PgPool, network_prefix: &str, sandbox_mode: bool) -> Vec<String> {
         let network_pattern = format!("%{}%", network_prefix.to_lowercase());
         let addresses_res = sqlx::query(
             r#"
@@ -587,7 +594,6 @@ impl BackgroundTasks {
             }
         }
     }
-}
 
     /// Run EVM real-time monitor
     async fn run_evm_monitor(&self, network: &'static str, sandbox_mode: bool) {
