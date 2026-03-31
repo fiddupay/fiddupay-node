@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.5.9
+# FidduPay Node.js SDK v2.6.0
 
-[![version](https://img.shields.io/badge/version-v2.5.9-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.6.0-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -453,8 +453,8 @@ Grouped by `client.*` resource modules for reference:
 
 | Module | Methods |
 | :--- | :--- |
-| **`merchants`** | `register()`, `retrieve()`, `getStatus()`, `switchEnvironment()`, `generateApiKey()`, `rotateApiKey()`, `getFeeSetting()`, `updateSettings()`, `getSettings()`, `sendTestWebhook()`, `getIpWhitelist()`, `getBalance()`, `getAuditLogs()`, `getBalanceHistory()` |
-| **`payments`** | `create()`, `retrieve()`, `list()`, `cancel()`, `verify()`, `finalizeSelection()`, `getAnalytics()`, `updateFeeSetting()`, `getFeeSetting()` |
+| **`merchants`** | `register()`, `retrieve()`, `getStatus()`, `getReadiness()`, `switchEnvironment()`, `generateApiKey()`, `rotateApiKey()`, `getFeeSetting()`, `updateSettings()`, `getSettings()`, `sendTestWebhook()`, `getIpWhitelist()`, `getBalance()`, `getAuditLogs()`, `getBalanceHistory()` |
+| **`payments`** | `create()`, `retrieve()`, `list()`, `cancel()`, `verify()`, `finalizeSelection()`, `simulate()`, `getAnalytics()`, `updateFeeSetting()`, `getFeeSetting()` |
 | **`addressOnly`** | `create()`, `retrieve()`, `listCurrencies()`, `getStats()`, `getHealth()`, `getFeeSetting()`, `setFeeSetting()` |
 | **`wallets`** | `setup()`, `getConfigurations()`, `getBalances()`, `getGasEstimates()`, `checkGasRequirements()`, `gasCheck()`, `checkWithdrawalCapability()`, `revoke()` |
 | **`balances`** | `get()`, `getHistory()` |
@@ -464,7 +464,7 @@ Grouped by `client.*` resource modules for reference:
 | **`refunds`** | `create()`, `list()`, `retrieve()`, `complete()` |
 | **`invoices`** | `create()`, `list()`, `retrieve()` |
 | **`transactions`** | `list()` |
-| **`analytics`** | `retrieve()`, `export()` |
+| **`analytics`** | `retrieve()`, `export()`, `getUnifiedTransactions()` |
 | **`security`** | `getEvents()`, `getAlerts()`, `getSettings()`, `updateSettings()`, `checkGasBalances()`, `getBalanceAlerts()`, `acknowledgeAlert()`, `resolveBalanceAlert()`, `toggleWalletLock()`, `toggleCustomerWalletLock()`, `setTransactionPin()`, `verifyTransactionPin()` |
 
 ## Contributing

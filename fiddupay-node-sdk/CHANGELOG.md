@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.0] - 2026-03-31
+
+### Added
+- **Unified Transaction Feed**: Added `analytics.getUnifiedTransactions()` to retrieve a chronological cross-resource feed (Payments, Refunds, Withdrawals).
+- **Integration Readiness**: Added `merchants.getReadiness()` (aliasing `getStatus`) for detailed operational health checks.
+- **Improved Sandbox Testing**: Added `payments.simulate()` for direct sandbox payment state triggers.
+- **Risk Configuration**: Added `low_balance_alerts_enabled` and `low_balance_threshold_usd` to merchant settings and profile types.
+- **Enhanced Statuses**: Added `CANCELLED` and `CONFIRMING` to `PaymentStatus` enum.
+- **New Crypto Support**: Explicit support for `WSOL` and `BTC` (SegWit) configurations.
+
+### Changed
+- **Strict Decimal Precision**: Updated all financial fields (`amount`, `fee`, `balance_usd`, etc.) to `string` types to ensure absolute precision parity with the backend's `rust_decimal` implementation.
+- **Etherscan V2 Alignment**: Internal URL construction now fully supports Multi-Chain V2 API requirements.
+
+### Fixed
+- **Type Parity**: Synchronized `Merchant` and `UnifiedSettingsRequest` interfaces with the latest backend hardening updates.
+
 ## [2.5.9] - 2026-03-26
 
 ### Added

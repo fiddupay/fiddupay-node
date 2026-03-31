@@ -12,6 +12,7 @@
 ## Analytics (`fiddupay.analytics`)
 - `fiddupay.analytics.retrieve()`
 - `fiddupay.analytics.export()`
+- `fiddupay.analytics.getUnifiedTransactions()`
 
 ## AuditLogs (`fiddupay.auditLogs`)
 - `fiddupay.auditLogs.list()`
@@ -50,6 +51,7 @@
 - `fiddupay.merchants.register()`
 - `fiddupay.merchants.retrieve()` (Profile)
 - `fiddupay.merchants.getStatus()`
+- `fiddupay.merchants.getReadiness()` (aliasing `getStatus`)
 - `fiddupay.merchants.switchEnvironment()`
 - `fiddupay.merchants.generateApiKey()`
 - `fiddupay.merchants.rotateApiKey()`
@@ -69,6 +71,7 @@
 - `fiddupay.payments.cancel()`
 - `fiddupay.payments.verify()`
 - `fiddupay.payments.finalizeSelection()`
+- `fiddupay.payments.simulate()` (Sandbox only)
 
 ## Refunds (`fiddupay.refunds`)
 - `fiddupay.refunds.create()`
