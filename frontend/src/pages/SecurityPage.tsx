@@ -59,10 +59,10 @@ const SecurityPage: React.FC = () => {
             setLoading(true)
             if (activeTab === 'alerts') {
                 const res = await securityAPI.getAlerts()
-                setAlerts(res.data || [])
+                setAlerts(res.data?.alerts || [])
             } else if (activeTab === 'events') {
                 const res = await securityAPI.getEvents({ limit: 50 })
-                setEvents(res.data || [])
+                setEvents(res.data?.events || [])
             }
         } catch (error) {
             console.error('Failed to fetch security data', error)

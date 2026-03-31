@@ -13,9 +13,11 @@ export class Wallets {
 
   /**
    * Get actual wallet balances and volume statistics
+   * @param params Optional parameters like exclude_stats to speed up the query
    */
-  async getBalances(options?: RequestOptions): Promise<{ wallets: any[] }> {
-    return this.client.request('GET', '/api/v1/merchants/wallets/balances');
+  async getBalances(params?: { exclude_stats?: boolean }, options?: RequestOptions): Promise<{ wallets: any[] }> {
+    const query = params?.exclude_stats ? '?exclude_stats=true' : '';
+    return this.client.request('GET', `/api/v1/merchants/wallets/balances${query}`, undefined, options);
   }
 
   /**

@@ -107,28 +107,24 @@ const WithdrawalsPage: React.FC = () => {
             setLoading(true)
             setBalanceError(null)
 
-            // Fetch balances — do NOT silently swallow errors
-            let balances: WalletBalance[] = []
-            try {
-                const balRes = await walletAPI.getBalances()
-                balances = Array.isArray(balRes.data?.wallets) ? balRes.data.wallets : []
-            } catch (balErr: any) {
-                const errMsg = balErr.response?.data?.error || balErr.message || 'Unknown error'
-                setBalanceError(`Failed to load wallets: ${errMsg}`)
-            }
+            // Fetch balances and history in parallel for better performance
+            const [balRes, histRes] = await Promise.all([
+                walletAPI.getBalances({ exclude_stats: true }).catch(err => {
+                    const errMsg = err.response?.data?.error || err.message || 'Unknown error'
+                    setBalanceError(`Failed to load wallets: ${errMsg}`)
+                    return { data: { wallets: [] } }
+                }),
+                withdrawalAPI.getHistory().catch(() => ({ data: [] }))
+            ])
 
+            const balances = Array.isArray(balRes.data?.wallets) ? balRes.data.wallets : []
             setWalletBalances(balances)
+
             if (balances.length > 0 && !selectedCrypto) {
                 setSelectedCrypto(balances[0].crypto_type)
             }
 
-            // Fetch withdrawal history
-            try {
-                const histRes = await withdrawalAPI.getHistory()
-                setWithdrawals(Array.isArray(histRes.data) ? histRes.data : [])
-            } catch {
-                setWithdrawals([])
-            }
+            setWithdrawals(Array.isArray(histRes.data) ? histRes.data : [])
         } catch (error) {
             console.error('Failed to load data:', error)
         } finally {

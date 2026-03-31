@@ -250,6 +250,11 @@ pub async fn process_withdrawal(
 // ============================================================================
 
 #[derive(Debug, Deserialize)]
+pub struct WalletBalancesQuery {
+    pub exclude_stats: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct GasCheckQuery {
     pub crypto_type: CryptoType,
     pub amount: Decimal,
@@ -404,12 +409,14 @@ pub async fn setup_wallet(
 pub async fn get_wallet_balances(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
+    Query(params): Query<WalletBalancesQuery>,
 ) -> impl IntoResponse {
     let (sandbox_mode, settlement_mode) = get_merchant_modes(&state.db_pool, context.merchant_id).await;
+    let exclude_stats = params.exclude_stats.unwrap_or(false);
 
     tracing::info!(
-        "get_wallet_balances: merchant_id={}, sandbox_mode={}, settlement_mode={}",
-        context.merchant_id, sandbox_mode, settlement_mode
+        "get_wallet_balances: merchant_id={}, sandbox_mode={}, settlement_mode={}, exclude_stats={}",
+        context.merchant_id, sandbox_mode, settlement_mode, exclude_stats
     );
 
     let is_forwarding = settlement_mode == "forwarding";
@@ -437,7 +444,27 @@ pub async fn get_wallet_balances(
         .fetch_all(&state.db_pool)
         .await
     } else {
-        sqlx::query_as::<_, WalletBalanceRow>(
+        let query = if exclude_stats {
+            r#"
+            SELECT
+                mw.crypto_type,
+                mw.network,
+                mw.address,
+                mw.is_active,
+                COALESCE(mb.available_balance, 0::numeric) as "available_balance",
+                COALESCE(mb.reserved_balance, 0::numeric) as "reserved_balance",
+                (COALESCE(mb.available_balance, 0::numeric) + COALESCE(mb.reserved_balance, 0::numeric)) as "total_balance",
+                0::bigint as "transaction_count",
+                0::numeric as "total_volume_crypto"
+            FROM merchant_wallets mw
+            LEFT JOIN merchant_balances mb
+                ON mw.merchant_id = mb.merchant_id
+               AND mw.crypto_type = mb.crypto_type
+               AND mw.sandbox_mode = mb.sandbox_mode
+            WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $2 AND mw.address != ''
+            ORDER BY mw.crypto_type
+            "#
+        } else {
             r#"
             SELECT
                 mw.crypto_type,
@@ -467,7 +494,9 @@ pub async fn get_wallet_balances(
             WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $2 AND mw.address != ''
             ORDER BY mw.crypto_type
             "#
-        )
+        };
+
+        sqlx::query_as::<_, WalletBalanceRow>(query)
         .bind(context.merchant_id)
         .bind(sandbox_mode)
         .fetch_all(&state.db_pool)

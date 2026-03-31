@@ -77,7 +77,7 @@ const DashboardPage: React.FC = () => {
       ])
       setAnalytics(analyticsData.data)
       setBalance(balanceData.data)
-      setAlerts(alertsData.data || [])
+      setAlerts(alertsData.data?.alerts || [])
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
     } finally {

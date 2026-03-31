@@ -139,7 +139,10 @@ export const walletAPI = {
     enable_all_evm?: boolean;
   }) => api.post('/api/v1/merchants/wallets', data),
   getAll: () => api.get('/api/v1/merchants/wallets'),
-  getBalances: () => api.get('/api/v1/merchants/wallets/balances'),
+  getBalances: (params?: { exclude_stats?: boolean }) => {
+    const query = params ? `?${new URLSearchParams(cleanParams(params)).toString()}` : '';
+    return api.get(`/api/v1/merchants/wallets/balances${query}`);
+  },
   revoke: (cryptoType: string) => api.delete(`/api/v1/merchants/wallets/${cryptoType}`),
 }
 
