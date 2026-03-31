@@ -112,6 +112,14 @@ impl BlockchainMonitor for EvmMonitor {
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
 
+        // Check for API errors (Etherscan returns status="0" for errors with message in "result")
+        if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
+            if status == "0" {
+                let err_msg = data.get("result").and_then(|r| r.as_str()).unwrap_or("Unknown EVM API Error");
+                return Err(format!("EVM API Error: {}", err_msg).into());
+            }
+        }
+
         // Parse transaction data
         let result = data.get("result")
             .ok_or("No result in response")?;
@@ -240,6 +248,13 @@ impl BlockchainMonitor for EvmMonitor {
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
 
+        if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
+            if status == "0" {
+                let err_msg = data.get("result").and_then(|r| r.as_str()).unwrap_or("Unknown EVM API Error");
+                return Err(format!("EVM API Error: {}", err_msg).into());
+            }
+        }
+
         let result = data.get("result")
             .and_then(|v| v.as_array())
             .ok_or("Invalid response format")?;
@@ -294,6 +309,13 @@ impl EvmMonitor {
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
 
+        if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
+            if status == "0" {
+                let err_msg = data.get("result").and_then(|r| r.as_str()).unwrap_or("Unknown EVM API Error");
+                return Err(format!("EVM API Error: {}", err_msg).into());
+            }
+        }
+
         let result = data.get("result")
             .and_then(|v| v.as_str())
             .ok_or("No result in response")?;
@@ -315,6 +337,13 @@ impl EvmMonitor {
 
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
+
+        if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
+            if status == "0" {
+                let err_msg = data.get("result").and_then(|r| r.as_str()).unwrap_or("Unknown EVM API Error");
+                return Err(format!("EVM API Error: {}", err_msg).into());
+            }
+        }
 
         let result = data.get("result")
             .ok_or("No result in response")?;
@@ -344,6 +373,13 @@ impl EvmMonitor {
 
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
+
+        if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
+            if status == "0" {
+                let err_msg = data.get("result").and_then(|r| r.as_str()).unwrap_or("Unknown EVM API Error");
+                return Err(format!("EVM API Error: {}", err_msg).into());
+            }
+        }
 
         let result = data.get("result")
             .ok_or("No result in response")?;
