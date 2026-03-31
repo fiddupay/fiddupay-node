@@ -99,6 +99,23 @@ impl BackgroundTasks {
             tracing::info!("BTC Testnet monitor is disabled.");
         });
 
+        // --- EVM Production Monitors ---
+        let networks = ["ETH", "BNB", "MATIC", "ARB"];
+        for net in networks {
+            let tasks = self.clone();
+            tokio::spawn(async move {
+                tasks.run_evm_monitor(net, false).await;
+            });
+        }
+
+        // --- EVM Sandbox Monitors ---
+        for net in networks {
+            let tasks = self.clone();
+            tokio::spawn(async move {
+                tasks.run_evm_monitor(net, true).await;
+            });
+        }
+
         // Initialize Gas Monitor and Auto-Sweeper for platform fees
         let monitor = crate::services::gas_monitor_service::GasMonitorService::new(self.db_pool.clone(), self.config.clone());
         tokio::spawn(async move {
@@ -523,6 +540,148 @@ impl BackgroundTasks {
             Err(e) => {
                 error!("Failed to fetch pending BTC addresses: {}", e);
                 Vec::new()
+            }
+        }
+    }
+
+    async fn fetch_evm_addresses(pool: &sqlx::PgPool, network_prefix: &str, sandbox_mode: bool) -> Vec<String> {
+        let network_pattern = format!("%{}%", network_prefix.to_lowercase());
+        let addresses_res = sqlx::query(
+            r#"
+            SELECT DISTINCT to_address 
+            FROM payment_transactions 
+            WHERE status IN ('PENDING', 'CONFIRMING')
+              AND to_address IS NOT NULL
+              AND sandbox_mode = $1
+              AND (network ILIKE $2 OR crypto_type ILIKE $3)
+            UNION
+            SELECT DISTINCT address as to_address
+            FROM merchant_customer_wallets
+            WHERE sandbox_mode = $1
+              AND crypto_type ILIKE $3
+            UNION
+            SELECT DISTINCT address as to_address
+            FROM merchant_wallets
+            WHERE sandbox_mode = $1 AND is_active = true
+              AND crypto_type ILIKE $3
+            "#
+        )
+        .bind(sandbox_mode)
+        .bind(&network_pattern)
+        .bind(&network_pattern)
+        .fetch_all(pool)
+        .await;
+
+        match addresses_res {
+            Ok(rows) => {
+                use sqlx::Row;
+                rows.into_iter()
+                    .filter_map(|r| r.get::<Option<String>, _>("to_address"))
+                    .collect()
+            }
+            Err(e) => {
+                error!("Failed to fetch pending {} addresses: {}", network_prefix, e);
+                Vec::new()
+            }
+        }
+    }
+
+    /// Run EVM real-time monitor
+    async fn run_evm_monitor(&self, network: &'static str, sandbox_mode: bool) {
+        let cluster_name = if sandbox_mode { "Sandbox" } else { "Mainnet" };
+        info!("Starting EVM {} ({}) monitor...", network, cluster_name);
+
+        // Standard Etherscan-like APIs (free tier) typically allow 5 req/sec.
+        // Implementing an 8s delay between addresses to be safe across multiple monitors.
+        const POLL_INTERVAL_SECS: u64 = 120; // Poll every 2 minutes (EVM is faster than BTC)
+        const INTER_ADDRESS_DELAY_MS: u64 = 8_000; // 8s per address
+
+        let mut poll_interval = interval(Duration::from_secs(POLL_INTERVAL_SECS));
+
+        loop {
+            poll_interval.tick().await;
+
+            let addresses = Self::fetch_evm_addresses(&self.db_pool, network, sandbox_mode).await;
+            if addresses.is_empty() {
+                continue;
+            }
+
+            info!(
+                "[EVM-{}] Monitoring {} addresses (delay: {}ms/address)",
+                network, addresses.len(), INTER_ADDRESS_DELAY_MS
+            );
+
+            let verifier = PaymentVerifier::new(
+                self.db_pool.clone(),
+                (*self.webhook_service).clone(),
+                self.price_service.clone(),
+                self.config.clone(),
+                self.redis_client.clone(),
+            );
+
+            // Fetch generic monitor for this native network type
+            let crypto_type = match network {
+                "ETH" => CryptoType::Eth,
+                "BNB" => CryptoType::Bnb,
+                "MATIC" => CryptoType::Matic,
+                "ARB" => CryptoType::Arb,
+                _ => CryptoType::Eth,
+            };
+            
+            let monitor = crate::payment::blockchain_monitor::get_blockchain_monitor(
+                &crypto_type, self.config.clone(), sandbox_mode
+            );
+
+            let batch_start = tokio::time::Instant::now();
+
+            for address in &addresses {
+                tokio::time::sleep(Duration::from_millis(INTER_ADDRESS_DELAY_MS)).await;
+
+                // For EVM, we check last 10 transactions to catch any missing payments
+                match monitor.get_transactions_to_address(address, 10, None).await {
+                    Ok(transactions) => {
+                        for tx in transactions {
+                            // Find any pending payment for this address and network
+                            // verify_payment_by_hash handles token mint checks and validation internally
+                            let pending_res = sqlx::query(
+                                "SELECT id, merchant_id FROM payment_transactions WHERE to_address = $1 AND status IN ('PENDING', 'CONFIRMING')"
+                            )
+                            .bind(address)
+                            .fetch_all(&self.db_pool)
+                            .await;
+
+                            match pending_res {
+                                Ok(rows) => {
+                                    use sqlx::Row;
+                                    for row in rows {
+                                        let p_id: i64 = row.get("id");
+                                        let m_id: i64 = row.get("merchant_id");
+                                        if let Err(e) = verifier.verify_payment_by_hash(p_id, &tx.hash, m_id).await {
+                                            tracing::trace!("[EVM-{}] Verification failed for p_id {}: {}", network, p_id, e);
+                                        }
+                                    }
+                                },
+                                Err(e) => error!("[EVM-{}] Failed to query pending payments: {}", network, e),
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        let err_msg = e.to_string();
+                        if err_msg.contains("429") || err_msg.contains("rate limit") {
+                            warn!("[EVM-{}] Rate limit hit. Cooling down for 30s...", network);
+                            tokio::time::sleep(Duration::from_secs(30)).await;
+                        } else {
+                            warn!("[EVM-{}] Failed to fetch transactions for {}: {}", network, &address[..12], err_msg);
+                        }
+                    }
+                }
+            }
+
+            let elapsed = batch_start.elapsed();
+            let min_batch_duration = Duration::from_secs(POLL_INTERVAL_SECS / 2);
+            if elapsed < min_batch_duration {
+                let remaining = min_batch_duration - elapsed;
+                tokio::time::sleep(remaining).await;
             }
         }
     }
