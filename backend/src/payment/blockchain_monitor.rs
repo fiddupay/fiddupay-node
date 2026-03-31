@@ -71,6 +71,8 @@ impl EvmMonitor {
     }
 
     pub fn new_polygon(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
+        let chain_id = if is_sandbox { config.polygon_amoy_chain_id } else { config.polygon_chain_id };
+        info!("Initializing Polygon monitor (Chain ID: {})", chain_id);
         Self {
             client: Client::new(),
             api_url: config.etherscan_api_url.clone(),
@@ -83,6 +85,8 @@ impl EvmMonitor {
     }
 
     pub fn new_ethereum(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
+        let chain_id = if is_sandbox { config.ethereum_sepolia_chain_id } else { config.ethereum_chain_id };
+        info!("Initializing Ethereum monitor (Chain ID: {})", chain_id);
         Self {
             client: Client::new(),
             api_url: config.etherscan_api_url.clone(),
@@ -114,6 +118,8 @@ impl BlockchainMonitor for EvmMonitor {
         if let Some(ref key) = self.api_key {
             url.push_str(&format!("&apikey={}", key));
         }
+
+        tracing::info!("[EVM-{}] URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
 
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
@@ -270,7 +276,7 @@ impl BlockchainMonitor for EvmMonitor {
         }
 
         // Masked URL debug log for investigating chainid issues
-        tracing::debug!("[EVM-{}] Transactions URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
+        tracing::info!("[EVM-{}] URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
 
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
@@ -351,7 +357,7 @@ impl EvmMonitor {
             url.push_str(&format!("&apikey={}", key));
         }
 
-        tracing::debug!("[EVM-{}] Current Block URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
+        tracing::info!("[EVM-{}] URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
 
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
@@ -385,7 +391,7 @@ impl EvmMonitor {
             url.push_str(&format!("&apikey={}", key));
         }
         
-        tracing::debug!("[EVM-{}] Tx Success URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
+        tracing::info!("[EVM-{}] URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
 
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
@@ -431,7 +437,7 @@ impl EvmMonitor {
             url.push_str(&format!("&apikey={}", key));
         }
 
-        tracing::debug!("[EVM-{}] Block Timestamp URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
+        tracing::info!("[EVM-{}] URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
 
         let response = self.client.get(&url).send().await?;
         let data: serde_json::Value = response.json().await?;
