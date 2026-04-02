@@ -478,6 +478,7 @@ pub async fn get_merchant_settings(
     (StatusCode::OK, Json(json!({
         "webhook_url": webhook_config.as_ref().map(|c| c.get::<String, _>("url")),
         "webhook_format": webhook_config.as_ref().map(|c| c.get::<String, _>("payload_format")),
+        "webhook_signing_secret": webhook_config.as_ref().and_then(|c| c.try_get::<String, _>("signing_secret").ok()),
         "settlement_mode": m_settlement_mode,
         "customer_pays_fee": m_customer_pays_fee,
         "sandbox_mode": m_sandbox_mode,
