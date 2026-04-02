@@ -171,15 +171,29 @@ impl MerchantCustomerService {
 
         let mut networks = networks;
         if networks.is_empty() {
-             let merchant_networks: Vec<String> = sqlx::query_scalar::<_, String>(
-                 "SELECT DISTINCT network FROM merchant_wallets WHERE merchant_id = $1 AND sandbox_mode = $2 AND is_active = true"
-             )
-             .bind(merchant_id)
-             .bind(sandbox_mode)
-             .fetch_all(&self.db_pool)
-             .await?;
-             
-             networks = merchant_networks;
+            let mut merchant_networks: Vec<String> = sqlx::query_scalar::<_, String>(
+                "SELECT DISTINCT network FROM merchant_wallets WHERE merchant_id = $1 AND sandbox_mode = $2 AND is_active = true"
+            )
+            .bind(merchant_id)
+            .bind(sandbox_mode)
+            .fetch_all(&self.db_pool)
+            .await?;
+            
+            if merchant_networks.is_empty() {
+                merchant_networks = sqlx::query_scalar::<_, String>(
+                    "SELECT DISTINCT network FROM merchant_forwarding_wallets WHERE merchant_id = $1 AND sandbox_mode = $2 AND is_active = true"
+                )
+                .bind(merchant_id)
+                .bind(sandbox_mode)
+                .fetch_all(&self.db_pool)
+                .await?;
+            }
+            
+            if merchant_networks.is_empty() {
+                merchant_networks = vec!["EVM".to_string(), "SOLANA".to_string(), "BITCOIN".to_string()];
+            }
+            
+            networks = merchant_networks;
         }
 
         let mut wallets: Vec<MerchantCustomerWallet> = Vec::new();

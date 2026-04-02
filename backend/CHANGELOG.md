@@ -1,5 +1,11 @@
 # FidduPay Backend Changelog
 
+## [2.6.0] - 2026-04-02
+
+### Fixed
+- **Webhook Secret Display**: Fixed `get_merchant_settings` to correctly return the `webhook_signing_secret` so merchants can view keys after rotation.
+- **Customer Wallet Auto-Provisioning**: Fixed a bug where registering a new customer provisioned zero wallets if a merchant only used Forwarding mode or hadn't fully set up. The system now checks forwarding wallets and intelligently falls back to provisioning EVM, Solana, and Bitcoin addresses by default.
+
 ## [2.5.8] - 2026-03-26
 
 ### Added
