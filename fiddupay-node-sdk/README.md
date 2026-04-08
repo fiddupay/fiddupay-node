@@ -296,7 +296,13 @@ const customer = await client.customers.register({
   email: 'user@example.com'
 });
 
+// Fetch aggregate summary of all platform customers (New in v2.6.0)
+const summary = await client.customers.getSummary();
+console.log(`Total Aggregate Customer Balance: $${summary.total_balance_usd}`);
+
 // Provision wallets
+// Note: Deposits into these wallets ONLY affect individual customer sub-balances.
+// They do NOT credit the merchant master balance directly.
 await client.customers.createWallets('user_123', {
   networks: ['evm', 'solana']
 });
@@ -459,7 +465,7 @@ Grouped by `client.*` resource modules for reference:
 | **`wallets`** | `setup()`, `getConfigurations()`, `getBalances()`, `getGasEstimates()`, `checkGasRequirements()`, `gasCheck()`, `checkWithdrawalCapability()`, `revoke()` |
 | **`balances`** | `get()`, `getHistory()` |
 | **`auditLogs`** | `list()` |
-| **`customers`** | `register()`, `createWallets()`, `getWallets()`, `getBalances()`, `list()`, `sweep(sweep_mode)`, `deactivate()`, `getTransactions()`, `updateStatus()`, `updatePermissions()`, `getDepositAddress()`, `payMerchant()`, `bulkProvision()` |
+| **`customers`** | `register()`, `createWallets()`, `getWallets()`, `getBalances()`, `list()`, `sweep(sweep_mode)`, `deactivate()`, `getTransactions()`, `updateStatus()`, `updatePermissions()`, `getDepositAddress()`, `payMerchant()`, `bulkProvision()`, `getSummary()` |
 | **`withdrawals`** | `create()`, `list()`, `get()`, `cancel()` |
 | **`refunds`** | `create()`, `list()`, `retrieve()`, `complete()` |
 | **`invoices`** | `create()`, `list()`, `retrieve()` |

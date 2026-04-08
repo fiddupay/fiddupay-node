@@ -371,6 +371,24 @@ export const API_DATA: DocSection[] = [
         description: 'Manage individual customer sub-accounts with dedicated deposit wallets.',
         endpoints: [
             {
+                id: 'get-customers-summary',
+                method: 'GET',
+                path: '/api/v1/merchants/customers/summary',
+                title: 'Get Customer Summary',
+                description: 'Retrieve aggregate statistics across all platform customers, including total counts (active, flagged, recent) and the total aggregate balance converted to USD.',
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/customers/summary \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const summary = await fiddupay.customers.getSummary();'
+                },
+                response: JSON.stringify({
+                    total_customers: 150,
+                    active_customers: 142,
+                    flagged_customers: 3,
+                    recent_customers: 12,
+                    total_balance_usd: 12500.50
+                }, null, 2)
+            },
+            {
                 id: 'register-customer',
                 method: 'POST',
                 path: '/api/v1/merchants/customers',

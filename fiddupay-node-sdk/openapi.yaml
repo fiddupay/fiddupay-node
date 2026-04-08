@@ -76,6 +76,8 @@ tags:
     description: Audit logs and compliance tracking
   - name: Balance
     description: Balance management and history
+  - name: Customers
+    description: Merchant customer sub-account management and dedicated wallets
   - name: System
     description: System utilities, status, and configuration
 
@@ -772,14 +774,24 @@ components:
           format: date-time
           example: "2026-02-05T12:00:00Z"
 
-        created_at:
-          type: string
-          format: date-time
-          example: "2026-01-26T06:00:00Z"
-        last_login:
-          type: string
-          format: date-time
-          example: "2026-01-26T06:00:00Z"
+    CustomerSummary:
+      type: object
+      properties:
+        total_customers:
+          type: integer
+          example: 150
+        active_customers:
+          type: integer
+          example: 142
+        flagged_customers:
+          type: integer
+          example: 3
+        recent_customers:
+          type: integer
+          example: 12
+        total_balance_usd:
+          type: number
+          example: 12500.50
 
 paths:
   /health:
@@ -795,6 +807,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+
+  /api/v1/merchants/customers/summary:
+    get:
+      tags:
+        - Customers
+      summary: Get customer summary
+      description: Get aggregate statistics and total USD balance for all platform customers
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Customer summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerSummary'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/v1/status:
     get:

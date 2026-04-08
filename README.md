@@ -1,4 +1,4 @@
-# FidduPay - Cryptocurrency Payment Gateway v2.5.0
+# FidduPay - Cryptocurrency Payment Gateway v2.6.0
 
 **A TechyTro Software Product**
 
@@ -179,6 +179,7 @@ FidduPay has achieved a **10/10 security score** with:
 - Real-time Threat Detection
 - Account Lockout Protection
 - **Merchant-as-Custodian Security**: High-risk customer actions (withdraw, sweep, pay merchant) are authorized using the **Merchant's verified 4-digit Transaction PIN**. This eliminates the need for customers to manage security secrets while ensuring merchants retain full control over financial operations.
+- **Financial Isolation (Sub-Accounts)**: Customer deposits into their designated wallets strictly update the customer's individual balance and do not fund the merchant's master wallet directly. This ensures clear accounting and platform-wide customer fund integrity.
 - **Real-Time Webhooks**: Instant transaction detection (0-conf) via WebSocket
 - **Partial Payment Support**: Smart handling of underpayments with automated notifications
 

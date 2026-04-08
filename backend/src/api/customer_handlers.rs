@@ -510,6 +510,18 @@ pub async fn list_customers(
     }
 }
 
+pub async fn get_customers_summary(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    
+    match service.get_customers_summary(context.merchant_id, context.sandbox_mode).await {
+        Ok(summary) => (StatusCode::OK, Json(summary)).into_response(),
+        Err(e) => e.into_response(),
+    }
+}
+
 
 pub async fn deactivate_customer(
     State(state): State<AppState>,

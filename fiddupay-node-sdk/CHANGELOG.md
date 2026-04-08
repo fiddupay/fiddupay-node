@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.0] - 2026-04-08 [Updated]
+
+### Added
+- New `customers.getSummary()` method to retrieve aggregate customer statistics and total USD balance.
+- `CustomerSummaryResponse` type definition.
+
+### Changed
+- **Sub-account Deposit Logic**: Customer deposits into their designated wallets now strictly update their sub-account balance. They no longer fund the merchant's global wallet balance directly. This provides better financial isolation between platform-wide customer funds and operational merchant funds.
+
+### Fixed
+- Webhook events for customer deposits are now correctly triggered as `customer.deposit`.
+- Improved atomic balance initialization for first-time customer deposits.
+
 ## [2.6.0] - 2026-03-31
 
 ### Added

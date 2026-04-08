@@ -7,12 +7,25 @@ interface StatsProps {
     active: number;
     flagged: number;
     recent: number;
+    totalBalanceUsd: number;
   };
 }
 
 const CustomerStatsCards: React.FC<StatsProps> = ({ stats }) => {
   return (
     <section className={styles.statsGrid}>
+      <div className={styles.statCard}>
+        <div className={`${styles.statIcon} ${styles.primary}`}>
+          <i className="fas fa-wallet"></i>
+        </div>
+        <div className={styles.statInfo}>
+          <h3>Total Deposits</h3>
+          <p className={styles.statValue}>
+            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.totalBalanceUsd)}
+          </p>
+          <span className={styles.statTrend}>Sub-ledger Total</span>
+        </div>
+      </div>
       <div className={styles.statCard}>
         <div className={`${styles.statIcon} ${styles.success}`}>
           <i className="fas fa-users"></i>

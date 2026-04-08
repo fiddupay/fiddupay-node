@@ -2,7 +2,7 @@
   "info": {
     "name": "FidduPay Merchant API SDK",
     "description": "Official Merchant API documentation for FidduPay Node.js SDK users.",
-    "version": "2.5.8",
+    "version": "2.6.0",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -84,6 +84,32 @@
     {
       "name": "Merchant Customers",
       "item": [
+        {
+          "name": "Get Customer Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "summary"
+              ]
+            },
+            "description": "Returns aggregate statistics (total, active, flagged, recent) and total aggregate balance in USD for all platform customers."
+          }
+        },
         {
           "name": "Register Customer",
           "request": {
@@ -241,7 +267,11 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"sweep_mode\": \"ALL\",\n  \"pin\": \"1234\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "description": "Sweeps ALL locked assets from the customer sub-wallet to your Master Wallet. Gas fees are automatically deducted from your native ledger balance. For EVM, the system auto-funds gas dust internally — customers never see gas transactions.\n\nSweep modes:\n- ALL (default): sweeps every asset\n- NATIVE_ONLY: sweeps only native coins (ETH, BNB, SOL…)\n- STABLE_ONLY: sweeps only stablecoins (USDT, BUSD…)\n- SPECIFIC: sweeps a single crypto_type (requires crypto_types array)"
           }
@@ -277,7 +307,11 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"sweep_mode\": \"SPECIFIC\",\n  \"crypto_types\": [\"USDT_ETH\"],\n  \"amount\": \"50.0\",\n  \"pin\": \"1234\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "description": "Sweep a specific asset from the customer sub-wallet. Omit 'amount' to sweep the maximum available locked balance."
           }
@@ -629,7 +663,11 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"sweep_mode\": \"STABLE_ONLY\",\n  \"pin\": \"1234\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "description": "Sweep only stablecoin balances (USDT, BUSD, etc.) locked by the customer to your Master Wallet. This non-custodial sweep deducts gas fees from your merchant native ledger — no external transfers visible to the customer."
           }

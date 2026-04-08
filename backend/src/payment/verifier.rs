@@ -831,16 +831,22 @@ impl PaymentVerifier {
         // Update balance
         sqlx::query(
             r#"
-            UPDATE merchant_customer_balances 
-             SET available_balance = available_balance + $1, 
-                 total_balance = total_balance + $1, 
-                 last_updated_at = NOW() 
-             WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
+            INSERT INTO merchant_customer_balances (
+                customer_id, merchant_id, crypto_type, available_balance, 
+                total_balance, last_updated_at, sandbox_mode
+            )
+            VALUES ($1, $2, $3, $4, $4, NOW(), $5)
+            ON CONFLICT (customer_id, crypto_type, sandbox_mode)
+            DO UPDATE SET
+                available_balance = merchant_customer_balances.available_balance + EXCLUDED.available_balance,
+                total_balance = merchant_customer_balances.total_balance + EXCLUDED.total_balance,
+                last_updated_at = NOW()
             "#
         )
-        .bind(net_amount)
         .bind(customer_id)
+        .bind(merchant_id)
         .bind(&final_crypto_str)
+        .bind(net_amount)
         .bind(sandbox_mode)
         .execute(&mut *tx)
         .await?;

@@ -182,6 +182,7 @@ export const customerAPI = {
   updatePermissions: (externalId: string, data: { can_withdraw?: boolean; withdrawal_limit?: string }) => api.patch(`/api/v1/merchants/customers/${externalId}/permissions`, data),
   sweep: (externalId: string, data: { sweep_mode: string; crypto_types?: string[]; amount?: string; pin: string }) => api.post(`/api/v1/merchants/customers/${externalId}/sweep`, data),
   deactivate: (externalId: string) => api.post(`/api/v1/merchants/customers/${externalId}/deactivate`),
+  getSummary: () => api.get('/api/v1/merchants/customers/summary'),
 }
 
 export const publicAPI = {

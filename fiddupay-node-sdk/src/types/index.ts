@@ -720,6 +720,14 @@ export interface CustomerPermissionsRequest {
   withdrawal_limit?: string;
 }
 
+export interface CustomerSummaryResponse {
+  total_customers: number;
+  active_customers: number;
+  flagged_customers: number;
+  recent_customers: number;
+  total_balance_usd: number;
+}
+
 /**
  * Public Endpoint Types
  */

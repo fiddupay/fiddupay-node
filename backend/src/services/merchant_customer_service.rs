@@ -1217,6 +1217,75 @@ impl MerchantCustomerService {
             Err(e) => Err(ServiceError::DatabaseError(e.to_string())),
         }
     }
+
+    /// Get aggregate summary of all customers for a merchant
+    pub async fn get_customers_summary(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+    ) -> Result<serde_json::Value, ServiceError> {
+        let counts_row = sqlx::query(
+            r#"
+            SELECT 
+                COUNT(*) as total,
+                COUNT(*) FILTER (WHERE status = 'active' AND is_active = TRUE) as active,
+                COUNT(*) FILTER (WHERE status = 'flagged') as flagged
+            FROM merchant_customers
+            WHERE merchant_id = $1 AND sandbox_mode = $2
+            "#
+        )
+        .bind(merchant_id)
+        .bind(sandbox_mode)
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        let total_count: i64 = counts_row.get("total");
+        let active_count: i64 = counts_row.get("active");
+        let flagged_count: i64 = counts_row.get("flagged");
+
+        // 7 days recent count
+        let recent_count: i64 = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM merchant_customers WHERE merchant_id = $1 AND sandbox_mode = $2 AND created_at > NOW() - INTERVAL '7 days'"
+        )
+        .bind(merchant_id)
+        .bind(sandbox_mode)
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        // Aggregate customer balances
+        let balance_rows = sqlx::query(
+            r#"
+            SELECT crypto_type, SUM(available_balance + locked_balance) as total_amount
+            FROM merchant_customer_balances
+            WHERE merchant_id = $1 AND sandbox_mode = $2
+            GROUP BY crypto_type
+            "#
+        )
+        .bind(merchant_id)
+        .bind(sandbox_mode)
+        .fetch_all(&self.db_pool)
+        .await?;
+
+        let mut total_balance_usd = Decimal::ZERO;
+        for row in balance_rows {
+            let crypto_type_str: String = row.get("crypto_type");
+            let amount: Decimal = row.get("total_amount");
+            
+            if let Ok(crypto_type) = CryptoType::from_string(&crypto_type_str) {
+                let price = self.price_service.get_price(crypto_type).await.unwrap_or(0.0);
+                let price_dec = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
+                total_balance_usd += (amount * price_dec).round_dp(2);
+            }
+        }
+
+        Ok(json!({
+            "total_customers": total_count,
+            "active_customers": active_count,
+            "flagged_customers": flagged_count,
+            "recent_customers": recent_count,
+            "total_balance_usd": total_balance_usd
+        }))
+    }
 }
 
 fn mask_email(email: &str) -> String {

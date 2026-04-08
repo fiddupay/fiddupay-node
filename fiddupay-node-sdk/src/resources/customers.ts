@@ -15,7 +15,8 @@ import {
     CustomerPermissionsRequest,
     CustomerWalletsResponse,
     CustomerWallet,
-    CustomerPayMerchantRequest
+    CustomerPayMerchantRequest,
+    CustomerSummaryResponse
 } from '../types';
 
 /**
@@ -179,5 +180,13 @@ export class Customers {
      */
     async bulkProvision(data: BulkProvisionRequest, options?: RequestOptions): Promise<BulkProvisionResponse> {
         return this.client.post('/api/v1/merchants/customers/bulk-provision', data, options);
+    }
+
+    /**
+     * Get aggregate summary of all customers for the merchant.
+     * Includes total/active/flagged counts and total balance in USD.
+     */
+    async getSummary(options?: RequestOptions): Promise<CustomerSummaryResponse> {
+        return this.client.get('/api/v1/merchants/customers/summary', options);
     }
 }

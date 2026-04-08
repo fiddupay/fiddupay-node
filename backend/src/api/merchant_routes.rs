@@ -82,6 +82,7 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/merchants/ip-whitelist", get(merchant_handlers::get_ip_whitelist))
         
         // Customer management (Sub-Account Designated Wallets)
+        .route("/api/v1/merchants/customers/summary", get(crate::api::customer_handlers::get_customers_summary))
         .route("/api/v1/merchants/customers", get(crate::api::customer_handlers::list_customers).post(crate::api::customer_handlers::register_customer))
         .route("/api/v1/merchants/customers/bulk-provision", post(crate::api::customer_handlers::bulk_provision_customer_wallets))
         .route("/api/v1/merchants/customers/:external_id/wallets", get(crate::api::customer_handlers::get_customer_wallets).post(crate::api::customer_handlers::provision_customer_wallets))

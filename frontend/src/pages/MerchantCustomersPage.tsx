@@ -60,11 +60,24 @@ const MerchantCustomersPage: React.FC = () => {
   // Permission states
   const [permUpdating, setPermUpdating] = useState(false);
   const [supportedCurrencies, setSupportedCurrencies] = useState<any[]>([]);
+  const [customerSummary, setCustomerSummary] = useState<any>(null);
 
   useEffect(() => {
     fetchCustomers();
     fetchSupportedCurrencies();
+    fetchCustomerSummary();
   }, []);
+
+  const fetchCustomerSummary = async () => {
+    try {
+      const res = await customerAPI.getSummary();
+      if (res.data) {
+        setCustomerSummary(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch customer summary", err);
+    }
+  };
 
   const fetchSupportedCurrencies = async () => {
     try {
@@ -98,6 +111,16 @@ const MerchantCustomersPage: React.FC = () => {
   };
 
   const stats = useMemo(() => {
+    if (customerSummary) {
+      return {
+        total: customerSummary.total_customers,
+        active: customerSummary.active_customers,
+        flagged: customerSummary.flagged_customers,
+        recent: customerSummary.recent_customers,
+        totalBalanceUsd: customerSummary.total_balance_usd,
+      };
+    }
+
     const total = customers.length;
     const active = customers.filter((c) => c.status === "active" && c.is_active).length;
     const flagged = customers.filter((c) => c.status === "flagged").length;
@@ -105,8 +128,8 @@ const MerchantCustomersPage: React.FC = () => {
       const diff = Date.now() - new Date(c.created_at).getTime();
       return diff < 7 * 24 * 60 * 60 * 1000;
     }).length;
-    return { total, active, flagged, recent };
-  }, [customers]);
+    return { total, active, flagged, recent, totalBalanceUsd: 0 };
+  }, [customers, customerSummary]);
 
   const filteredCustomers = useMemo(() => {
     return customers.filter((c) => {

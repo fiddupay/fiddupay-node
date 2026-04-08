@@ -501,6 +501,30 @@ GET /api/v1/merchants/customers?limit=50&offset=0
 Authorization: Bearer {api_key}
 ```
 
+### Get Customer Summary
+```http
+GET /api/v1/merchants/customers/summary
+Authorization: Bearer {api_key}
+```
+Returns aggregate statistics and total USD balance for all platform customers.
+
+#### Response
+```json
+{
+  "total_customers": 150,
+  "active_customers": 142,
+  "flagged_customers": 3,
+  "recent_customers": 12,
+  "total_balance_usd": 12500.50
+}
+```
+
+#### Node SDK Example
+```javascript
+const summary = await fiddupay.customers.getSummary();
+console.log('Total Platform Deposits:', summary.total_balance_usd);
+```
+
 ### Update Customer Status
 ```http
 PATCH /api/v1/merchants/customers/{external_id}/status
