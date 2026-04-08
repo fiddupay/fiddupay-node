@@ -34,7 +34,7 @@ export class HttpClient {
   }
 
   public getBaseURL(): string {
-    return this.client.defaults.baseURL || 'https://api.fiddupay.com';
+    return this.client?.defaults?.baseURL || 'https://api.fiddupay.com';
   }
 
   public getApiKey(): string {
