@@ -208,7 +208,10 @@ describe('FidduPay SDK - Integration Test Suite', () => {
         'balances',
         'auditLogs',
         'contact',
-        'transactions'
+        'transactions',
+        'addressOnly',
+        'websockets',
+        'public'
       ];
 
       expectedResources.forEach(resource => {
@@ -222,7 +225,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
         'create', 'retrieve', 'list', 'cancel', 'verify', 'finalizeSelection', 
         'createAddressOnly', 'retrieveAddressOnly', 
         'listAddressOnlyCurrencies', 'getAddressOnlyStats', 'getAddressOnlyHealth', 
-        'updateFeeSetting', 'getFeeSetting'
+        'updateFeeSetting', 'getFeeSetting', 'triggerVerification'
       ];
 
       paymentMethods.forEach(method => {
@@ -236,7 +239,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
         'register', 'login', 'retrieve', 'getStatus', 'switchEnvironment', 'generateApiKey', 
         'rotateApiKey', 'getFeeSetting', 'updateSettings', 'getSettings', 
         'sendTestWebhook', 'getIpWhitelist', 'getBalance', 'getAuditLogs', 'getBalanceHistory',
-        'getSupportedCurrencies', 'getPricing', 'getSystemStatus'
+        'getSupportedCurrencies', 'getPricing', 'getSystemStatus', 'getReadiness'
       ];
 
       merchantMethods.forEach(method => {
@@ -265,7 +268,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
       const customerMethods = [
         'register', 'list', 'getBalances', 'getWallets', 'createWallets', 
         'updateStatus', 'updatePermissions', 'sweep', 'deactivate', 
-        'getTransactions', 'getDepositAddress', 'payMerchant', 'bulkProvision'
+        'getTransactions', 'getDepositAddress', 'payMerchant', 'bulkProvision', 'getSummary'
       ];
       customerMethods.forEach(method => {
         expect(client.customers).toHaveProperty(method);
@@ -360,6 +363,30 @@ describe('FidduPay SDK - Integration Test Suite', () => {
       txnMethods.forEach(method => {
         expect(client.transactions).toHaveProperty(method);
         expect(typeof client.transactions[method as keyof typeof client.transactions]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive address-only operations', () => {
+      const addressOnlyMethods = ['createPayment', 'getStatus', 'getCurrencies', 'getStats', 'getHealth', 'updateFeeSetting', 'getFeeSetting'];
+      addressOnlyMethods.forEach(method => {
+        expect(client.addressOnly).toHaveProperty(method);
+        expect(typeof client.addressOnly[method as keyof typeof client.addressOnly]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive websocket operations', () => {
+      const wsMethods = ['getNotificationUrl'];
+      wsMethods.forEach(method => {
+        expect(client.websockets).toHaveProperty(method);
+        expect(typeof client.websockets[method as keyof typeof client.websockets]).toBe('function');
+      });
+    });
+
+    it('should provide comprehensive public resource operations', () => {
+      const publicMethods = ['getCurrencies', 'getPricing', 'getStatus', 'getPaymentStatus', 'finalizeSelection', 'triggerVerification', 'cancelPayment'];
+      publicMethods.forEach(method => {
+        expect(client.public).toHaveProperty(method);
+        expect(typeof client.public[method as keyof typeof client.public]).toBe('function');
       });
     });
   });
