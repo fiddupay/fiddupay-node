@@ -3,7 +3,7 @@ use rust_decimal::Decimal;
 use sqlx::{PgPool, FromRow};
 use serde::Serialize;
 use csv::Writer;
-use genpdf::{elements, fonts, style};
+use genpdf::{elements, fonts, style, Element};
 use crate::error::ServiceError;
 
 #[derive(Debug, FromRow, Serialize)]
@@ -124,7 +124,8 @@ impl ReportService {
         let font_bytes = std::fs::read(font_path)
             .map_err(|e| ServiceError::InternalError(format!("Failed to read font file: {}", e)))?;
         
-        let font_data = fonts::FontData::new(font_bytes, None);
+        let font_data = fonts::FontData::new(font_bytes, None)
+            .map_err(|e| ServiceError::InternalError(format!("Failed to create font data: {}", e)))?;
         let font_family = fonts::FontFamily {
             regular: font_data.clone(),
             bold: font_data.clone(),
@@ -164,29 +165,31 @@ impl ReportService {
 
         // Table
         let mut table = elements::TableLayout::new(vec![2, 4, 3, 2, 2]);
-        table.set_cell_decorator(elements::FrameCellDecorator::new());
+        table.set_cell_decorator(elements::FrameCellDecorator::new(true, true, false));
 
         // Header Row
-        table.push_row(elements::TableRow::new(vec![
-            Box::new(elements::Text::new("Date").styled(style::Style::new().bold())),
-            Box::new(elements::Text::new("Payment ID").styled(style::Style::new().bold())),
-            Box::new(elements::Text::new("Crypto").styled(style::Style::new().bold())),
-            Box::new(elements::Text::new("Amount USD").styled(style::Style::new().bold())),
-            Box::new(elements::Text::new("Status").styled(style::Style::new().bold())),
-        ]));
+        table.row()
+            .element(elements::Text::new("Date").styled(style::Style::new().bold()))
+            .element(elements::Text::new("Payment ID").styled(style::Style::new().bold()))
+            .element(elements::Text::new("Crypto").styled(style::Style::new().bold()))
+            .element(elements::Text::new("Amount USD").styled(style::Style::new().bold()))
+            .element(elements::Text::new("Status").styled(style::Style::new().bold()))
+            .push()
+            .map_err(|e| ServiceError::InternalError(format!("Failed to add table header: {}", e)))?;
 
         // Data Rows
         for row in data {
-            table.push_row(elements::TableRow::new(vec![
-                Box::new(elements::Text::new(row.created_at.format("%Y-%m-%d").to_string())),
-                Box::new(elements::Text::new(&row.payment_id)),
-                Box::new(elements::Text::new(format!("{} ({})", 
+            table.row()
+                .element(elements::Text::new(row.created_at.format("%Y-%m-%d").to_string()))
+                .element(elements::Text::new(&row.payment_id))
+                .element(elements::Text::new(format!("{} ({})", 
                     row.crypto_type.as_deref().unwrap_or("N/A"),
                     row.network.as_deref().unwrap_or("N/A")
-                ))),
-                Box::new(elements::Text::new(format!("${:.2}", row.amount_usd))),
-                Box::new(elements::Text::new(row.status.to_string())),
-            ]));
+                )))
+                .element(elements::Text::new(format!("${:.2}", row.amount_usd)))
+                .element(elements::Text::new(row.status.to_string()))
+                .push()
+                .map_err(|e| ServiceError::InternalError(format!("Failed to add table row: {}", e)))?;
         }
 
         doc.push(table);
@@ -197,7 +200,7 @@ impl ReportService {
             .styled(style::Color::Rgb(128, 128, 128)));
 
         let mut buffer = Vec::new();
-        doc.render_to(&mut buffer)
+        doc.render(&mut buffer)
             .map_err(|e| ServiceError::InternalError(format!("PDF rendering failed: {}", e)))?;
 
         Ok(buffer)
