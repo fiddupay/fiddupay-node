@@ -174,6 +174,23 @@ impl EvmMonitor {
     }
 }
 
+// Redact queries from URLs to prevent leaking API keys
+fn redact_url(url: &str) -> String {
+    if let Some(idx) = url.find('?') {
+        format!("{}?***REDACTED***", &url[..idx])
+    } else {
+        match url.find("alchemy.com/v2/") {
+            Some(idx) => format!("{}alchemy.com/v2/***REDACTED***", &url[..idx]),
+            None => {
+                match url.find("infura.io/v3/") {
+                    Some(idx) => format!("{}infura.io/v3/***REDACTED***", &url[..idx]),
+                    None => url.to_string()
+                }
+            }
+        }
+    }
+}
+
 impl EvmMonitor {
     async fn rpc_request(&self, method: &str, params: serde_json::Value) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
         let payload = serde_json::json!({
@@ -190,7 +207,7 @@ impl EvmMonitor {
                 Ok(response) => {
                     let status = response.status();
                     if status == 429 {
-                        warn!("Rate limit (429) hit on {}, trying next RPC...", url);
+                        warn!("Rate limit (429) hit on {}, trying next RPC...", redact_url(url));
                         last_error = Some("Rate limit hit".to_string());
                         continue;
                     }
@@ -199,7 +216,7 @@ impl EvmMonitor {
                             if data.get("error").is_some() {
                                 let err_msg = data["error"]["message"].as_str().unwrap_or("Unknown RPC error");
                                 if err_msg.to_lowercase().contains("rate limit") || err_msg.to_lowercase().contains("too many") {
-                                    warn!("Rate limit payload from {}, trying next RPC...", url);
+                                    warn!("Rate limit payload from {}, trying next RPC...", redact_url(url));
                                     last_error = Some(format!("Rate limit: {}", err_msg));
                                     continue;
                                 }
@@ -211,7 +228,7 @@ impl EvmMonitor {
                     }
                 },
                 Err(e) => {
-                    warn!("Network error connecting to {}: {}", url, e);
+                    warn!("Network error connecting to {}: {}", redact_url(url), e);
                     last_error = Some(e.to_string());
                 }
             }

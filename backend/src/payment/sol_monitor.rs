@@ -22,6 +22,18 @@ fn get_solana_rpc_url(config: &crate::config::Config) -> &str {
     &config.solana_rpc_url
 }
 
+// Redact queries from URLs to prevent leaking API keys
+fn redact_url(url: &str) -> String {
+    if let Some(idx) = url.find('?') {
+        format!("{}?***REDACTED***", &url[..idx])
+    } else {
+        match url.find("alchemy.com/v2/") {
+            Some(idx) => format!("{}alchemy.com/v2/***REDACTED***", &url[..idx]),
+            None => url.to_string()
+        }
+    }
+}
+
 // Get Solana WS URL from config based on the selected RPC node
 fn get_solana_ws_url(config: &crate::config::Config, rpc_url: &str) -> String {
     if rpc_url == config.solana_rpc_url {
@@ -198,20 +210,20 @@ impl SolanaMonitor {
             match self.client.post(url).json(&request).send().await {
                 Ok(response) => {
                     if response.status() == 429 {
-                        warn!("Solana rate limit hit on {}, trying next RPC...", url);
+                        warn!("Solana rate limit hit on {}, trying next RPC...", redact_url(url));
                         last_error = Some("Rate limit hit".to_string());
                         continue;
                     }
                     match response.json::<RpcResponse<T>>().await {
                         Ok(data) => return Ok(data),
                         Err(e) => {
-                            warn!("Solana RPC JSON parse error on {}: {}", url, e);
+                            warn!("Solana RPC JSON parse error on {}: {}", redact_url(url), e);
                             last_error = Some(e.to_string());
                         }
                     }
                 },
                 Err(e) => {
-                    warn!("Network error connecting to {}: {}", url, e);
+                    warn!("Network error connecting to {}: {}", redact_url(url), e);
                     last_error = Some(e.to_string());
                 }
             }
@@ -500,16 +512,17 @@ impl SolanaMonitor {
         let mut connected_ws_url = String::new();
         
         for url in &self.ws_urls {
-            info!("🔌 Attempting connection to Solana WebSocket: {}", url);
+            let safe_url = redact_url(url);
+            info!("🔌 Attempting connection to Solana WebSocket: {}", safe_url);
             match connect_async(url).await {
                 Ok((stream, _)) => {
                     ws_stream_opt = Some(stream);
                     connected_ws_url = url.clone();
-                    info!("✅ Successfully connected to Solana WebSocket: {}", url);
+                    info!("✅ Successfully connected to Solana WebSocket: {}", safe_url);
                     break;
                 }
                 Err(e) => {
-                    warn!("❌ Failed to connect to Solana WebSocket {}: {}", url, e);
+                    warn!("❌ Failed to connect to Solana WebSocket {}: {}", safe_url, e);
                     continue;
                 }
             }
