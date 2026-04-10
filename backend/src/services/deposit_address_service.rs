@@ -1,4 +1,6 @@
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
+use std::sync::Arc;
+use crate::config::Settings;
 use chrono::{DateTime, Utc, Duration};
 use serde::Serialize;
 use crate::error::ServiceError;
@@ -18,14 +20,15 @@ pub struct DepositAddress {
 pub struct DepositAddressService {
     pool: PgPool,
     encryption: Encryption,
+    config: Arc<Settings>,
 }
 
 impl DepositAddressService {
-    pub fn new(pool: PgPool) -> Result<Self, ServiceError> {
+    pub fn new(pool: PgPool, config: Arc<Settings>) -> Result<Self, ServiceError> {
         let encryption = Encryption::new()
             .map_err(|e| ServiceError::InternalError(format!("Encryption init failed: {}", e)))?;
         
-        Ok(Self { pool, encryption })
+        Ok(Self { pool, encryption, config })
     }
 
     /// Generate temporary deposit address for payment
@@ -50,12 +53,17 @@ impl DepositAddressService {
         let private_key_encrypted = self.encryption.encrypt(&keypair.private_key)
             .map_err(|e| ServiceError::InternalError(format!("Encryption failed: {}", e)))?;
 
-        sqlx::query!(
+        sqlx::query(
             r#"INSERT INTO deposit_addresses 
                (payment_id, crypto_type, deposit_address, private_key_encrypted, merchant_destination, expires_at)
-               VALUES ($1, $2, $3, $4, $5, $6)"#,
-            payment_id, crypto_type, keypair.address, private_key_encrypted, merchant_destination, expires_at
+               VALUES ($1, $2, $3, $4, $5, $6)"#
         )
+        .bind(payment_id)
+        .bind(crypto_type)
+        .bind(&keypair.address)
+        .bind(&private_key_encrypted)
+        .bind(merchant_destination)
+        .bind(expires_at)
         .execute(&self.pool)
         .await?;
 
@@ -70,44 +78,46 @@ impl DepositAddressService {
     }
 
     pub async fn get_deposit_address(&self, payment_id: &str) -> Result<DepositAddress, ServiceError> {
-        let record = sqlx::query!(
+        let record = sqlx::query(
             "SELECT payment_id, crypto_type, deposit_address, merchant_destination, expires_at, status
-             FROM deposit_addresses WHERE payment_id = $1",
-            payment_id
+             FROM deposit_addresses WHERE payment_id = $1"
         )
+        .bind(payment_id)
         .fetch_optional(&self.pool)
         .await?
         .ok_or_else(|| ServiceError::NotFound("Deposit address not found".to_string()))?;
 
         Ok(DepositAddress {
-            payment_id: record.payment_id,
-            crypto_type: record.crypto_type,
-            deposit_address: record.deposit_address,
-            merchant_destination: record.merchant_destination,
-            expires_at: record.expires_at,
-            status: record.status,
+            payment_id: record.get("payment_id"),
+            crypto_type: record.get("crypto_type"),
+            deposit_address: record.get("deposit_address"),
+            merchant_destination: record.get("merchant_destination"),
+            expires_at: record.get("expires_at"),
+            status: record.get("status"),
         })
     }
 
     pub async fn get_private_key(&self, payment_id: &str) -> Result<String, ServiceError> {
-        let record = sqlx::query!(
-            "SELECT private_key_encrypted FROM deposit_addresses WHERE payment_id = $1",
-            payment_id
+        let record = sqlx::query(
+            "SELECT private_key_encrypted FROM deposit_addresses WHERE payment_id = $1"
         )
+        .bind(payment_id)
         .fetch_optional(&self.pool)
         .await?
         .ok_or_else(|| ServiceError::NotFound("Deposit address not found".to_string()))?;
 
-        self.encryption.decrypt(&record.private_key_encrypted)
+        let private_key: String = record.get("private_key_encrypted");
+        self.encryption.decrypt(&private_key)
             .map_err(|e| ServiceError::InternalError(format!("Decryption failed: {}", e)))
     }
 
     pub async fn mark_as_used(&self, payment_id: &str, forward_tx_hash: &str) -> Result<(), ServiceError> {
-        sqlx::query!(
+        sqlx::query(
             "UPDATE deposit_addresses SET status = 'USED', forwarded_at = NOW(), forward_tx_hash = $2
-             WHERE payment_id = $1",
-            payment_id, forward_tx_hash
+             WHERE payment_id = $1"
         )
+        .bind(payment_id)
+        .bind(forward_tx_hash)
         .execute(&self.pool)
         .await?;
 
@@ -115,7 +125,7 @@ impl DepositAddressService {
     }
 
     pub async fn expire_old_addresses(&self) -> Result<u64, ServiceError> {
-        let result = sqlx::query!(
+        let result = sqlx::query(
             "UPDATE deposit_addresses SET status = 'EXPIRED'
              WHERE expires_at < NOW() AND status = 'ACTIVE'"
         )
