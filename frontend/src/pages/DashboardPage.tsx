@@ -10,9 +10,9 @@ import {
 } from 'recharts'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
-import { merchantAPI, paymentAPI, securityAPI } from '@/services/apiService'
+import { merchantAPI, paymentAPI, securityAPI, walletAPI } from '@/services/apiService'
 import { Balance, SecurityAlert } from '../types'
-import { MdWarning, MdArrowForward } from 'react-icons/md'
+import { MdWarning, MdArrowForward, MdRadar } from 'react-icons/md'
 import styles from '@/styles/pages/DashboardPage.module.css'
 
 interface AnalyticsData {
@@ -38,6 +38,9 @@ const DashboardPage: React.FC = () => {
   const [balance, setBalance] = useState<Balance | null>(null)
   const [alerts, setAlerts] = useState<SecurityAlert[]>([])
   const [loading, setLoading] = useState(true)
+  const [showGasModal, setShowGasModal] = useState(false)
+  const [gasEstimates, setGasEstimates] = useState<any>(null)
+  const [loadingGas, setLoadingGas] = useState(false)
   const [dailyVolumeUsed, setDailyVolumeUsed] = useState(0)
   const [dateRange, setDateRange] = useState(() => {
     const now = new Date();
@@ -85,6 +88,19 @@ const DashboardPage: React.FC = () => {
     }
   }
 
+  const loadGasData = async () => {
+    try {
+      setLoadingGas(true)
+      const res = await walletAPI.getGasEstimates()
+      setGasEstimates(res.data)
+      setShowGasModal(true)
+    } catch (error) {
+      console.error('Failed to load gas estimates:', error)
+    } finally {
+      setLoadingGas(false)
+    }
+  }
+
   const totalPayments = (analytics?.successful_payments || 0) + (analytics?.failed_payments || 0) + (analytics?.pending_payments || 0)
   const successRate = totalPayments > 0
     ? ((analytics?.successful_payments || 0) / totalPayments * 100).toFixed(1)
@@ -121,8 +137,11 @@ const DashboardPage: React.FC = () => {
               onChange={(e) => setDateRange(prev => ({ ...prev, to_date: e.target.value }))}
             />
           </div>
-          <button className={styles.refreshBtn} onClick={loadDashboardData} disabled={loading}>
+          <button className={styles.refreshBtn} onClick={loadDashboardData} disabled={loading} title="Refresh Dashboard">
             <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
+          </button>
+          <button className={styles.refreshBtn} onClick={loadGasData} disabled={loadingGas} title="Network Gas Radar" style={{ color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.1)' }}>
+            {loadingGas ? <i className="fas fa-spinner fa-spin"></i> : <MdRadar size={20} />}
           </button>
           <a href="/docs" className={styles.docsLink} target="_blank" rel="noopener noreferrer">
             <i className="fas fa-book"></i>
@@ -399,6 +418,52 @@ const DashboardPage: React.FC = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* Gas Radar Modal */}
+      {showGasModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowGasModal(false)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className={styles.modalHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MdRadar size={24} color="#8b5cf6" />
+                <h2 style={{ margin: 0 }}>Live Network Gas Radar</h2>
+              </div>
+              <button className={styles.closeButton} onClick={() => setShowGasModal(false)}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
+                Real-time transaction fee estimates for all supported blockchains. Native currencies will have these fees automatically deducted during sweeps.
+              </p>
+              
+              {gasEstimates?.networks && Object.entries(gasEstimates.networks).map(([net, data]: [string, any]) => (
+                <div key={net} style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', textTransform: 'uppercase', fontWeight: 600, color: '#334155' }}>
+                      {data.native_currency}
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, textTransform: 'capitalize', color: '#0f172a' }}>{net} Network</h4>
+                      <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Fast: {parseFloat(data.fast_fee).toLocaleString()} {data.native_currency}</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '1.1rem' }}>
+                      {parseFloat(data.standard_fee).toLocaleString()} {data.native_currency}
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                      <span style={{ display: 'inline-block', width: '6px', height: '6px', background: '#10b981', borderRadius: '50%' }}></span>
+                      Live standard fee
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

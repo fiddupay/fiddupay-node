@@ -36,3 +36,8 @@ pub mod websocket_client;
 pub mod balance_monitor;
 pub mod fee_collection_service;
 pub mod report_service;
+pub mod deposit_address_service;
+pub mod gas_monitor_service;
+pub mod multi_user_service;
+pub mod p2p_service;
+pub mod two_factor_service;

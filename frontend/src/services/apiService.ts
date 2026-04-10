@@ -154,6 +154,7 @@ export const walletAPI = {
     return api.get(`/api/v1/merchants/wallets/balances${query}`);
   },
   revoke: (cryptoType: string) => api.delete(`/api/v1/merchants/wallets/${cryptoType}`),
+  getGasEstimates: () => api.get('/api/v1/merchants/wallets/gas-estimates'),
 }
 
 export const securityAPI = {
