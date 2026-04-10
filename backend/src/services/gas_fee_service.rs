@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
+use std::str::FromStr;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GasFeeEstimate {
     pub network: String,
@@ -20,6 +22,24 @@ pub struct GasFeeEstimate {
     pub priority_fee: Option<Decimal>,
 }
 
+#[derive(Debug, Deserialize)]
+struct InfuraGasFeeLevel {
+    #[serde(rename = "suggestedMaxPriorityFeePerGas")]
+    suggested_max_priority_fee_per_gas: String,
+    #[serde(rename = "suggestedMaxFeePerGas")]
+    suggested_max_fee_per_gas: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct InfuraGasApiResponse {
+    low: InfuraGasFeeLevel,
+    medium: InfuraGasFeeLevel,
+    high: InfuraGasFeeLevel,
+    #[serde(rename = "estimatedBaseFee")]
+    estimated_base_fee: String,
+}
+
+
 #[derive(Clone)]
 pub struct GasFeeService {
     client: Client,
@@ -29,9 +49,64 @@ pub struct GasFeeService {
 impl GasFeeService {
     pub fn new(config: crate::config::Config) -> Self {
         Self {
-            client: Client::new(),
+            client: Client::builder().timeout(std::time::Duration::from_secs(5)).build().unwrap_or_default(),
             config,
         }
+    }
+
+    /// Helper for Infura Gas API
+    async fn get_infura_gas_api(&self, chain_id: u64, network: &str, native_currency: &str) -> Result<GasFeeEstimate, ServiceError> {
+        let keys = &self.config.infura_api_keys;
+        if keys.is_empty() {
+            return Err(ServiceError::Internal("No Infura API keys configured".to_string()));
+        }
+
+        let mut last_err = None;
+        for key in keys {
+            let url = format!("https://gas.api.infura.io/v3/{}/networks/{}/suggestedGasFees", key, chain_id);
+            match self.client.get(&url).send().await {
+                Ok(resp) if resp.status().is_success() => {
+                    match resp.json::<InfuraGasApiResponse>().await {
+                        Ok(data) => {
+                            let parse_gwei_to_primary = |gwei_str: &str| -> Decimal {
+                                let gwei_dec = Decimal::from_str(gwei_str).unwrap_or(Decimal::ZERO);
+                                // Gwei to Native (e.g. ETH) means divide by 1_000_000_000 (10^9)
+                                // Then multiply by 21,000 for standard gas limit.
+                                let mut result = gwei_dec * Decimal::new(21000, 0);
+                                result.set_scale(result.scale() + 9).unwrap_or(());
+                                result
+                            };
+                            
+                            let base_fee_eth = parse_gwei_to_primary(&data.estimated_base_fee);
+                            let standard_fee = parse_gwei_to_primary(&data.medium.suggested_max_fee_per_gas);
+                            let fast_fee = parse_gwei_to_primary(&data.high.suggested_max_fee_per_gas);
+                            let priority_fee = parse_gwei_to_primary(&data.medium.suggested_max_priority_fee_per_gas);
+                            
+                            return Ok(GasFeeEstimate {
+                                network: network.to_string(),
+                                native_currency: native_currency.to_string(),
+                                standard_fee,
+                                fast_fee,
+                                estimated_withdrawal_cost: standard_fee,
+                                base_fee: Some(base_fee_eth),
+                                priority_fee: Some(priority_fee),
+                            });
+                        }
+                        Err(e) => {
+                            last_err = Some(e.to_string());
+                        }
+                    }
+                }
+                Ok(resp) => {
+                    last_err = Some(format!("Infura Gas API HTTP {}, chain {}", resp.status(), chain_id));
+                }
+                Err(e) => {
+                    last_err = Some(e.to_string());
+                }
+            }
+        }
+        
+        Err(ServiceError::Internal(format!("Infura Gas API failed: {:?}", last_err)))
     }
 
     /// Get real-time gas fees for all supported networks (Parallel Execution)
@@ -79,6 +154,10 @@ impl GasFeeService {
 
     /// Ethereum gas fees using eth_feeHistory RPC method (EIP-1559) - 2026 method
     async fn get_ethereum_gas_rpc(&self) -> Result<GasFeeEstimate, ServiceError> {
+        if let Ok(estimate) = self.get_infura_gas_api(1, "ethereum", "ETH").await {
+            return Ok(estimate);
+        }
+
         let rpc_payload = json!({
             "jsonrpc": "2.0",
             "method": "eth_feeHistory",
@@ -142,6 +221,10 @@ impl GasFeeService {
 
     /// BSC gas fees using eth_gasPrice RPC method
     async fn get_bsc_gas_rpc(&self) -> Result<GasFeeEstimate, ServiceError> {
+        if let Ok(estimate) = self.get_infura_gas_api(56, "bsc", "BNB").await {
+            return Ok(estimate);
+        }
+
         let rpc_payload = json!({
             "jsonrpc": "2.0",
             "method": "eth_gasPrice",
@@ -182,6 +265,10 @@ impl GasFeeService {
 
     /// Polygon gas fees using eth_feeHistory RPC method
     async fn get_polygon_gas_rpc(&self) -> Result<GasFeeEstimate, ServiceError> {
+        if let Ok(estimate) = self.get_infura_gas_api(137, "polygon", "MATIC").await {
+            return Ok(estimate);
+        }
+
         let rpc_payload = json!({
             "jsonrpc": "2.0",
             "method": "eth_feeHistory",
@@ -242,6 +329,10 @@ impl GasFeeService {
 
     /// Arbitrum gas fees using eth_gasPrice RPC method
     async fn get_arbitrum_gas_rpc(&self) -> Result<GasFeeEstimate, ServiceError> {
+        if let Ok(estimate) = self.get_infura_gas_api(42161, "arbitrum", "ARB").await {
+            return Ok(estimate);
+        }
+
         let rpc_payload = json!({
             "jsonrpc": "2.0",
             "method": "eth_gasPrice",

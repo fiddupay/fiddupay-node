@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import styles from '@/styles/pages/ReportsPage.module.css'
 import { merchantAPI } from '@/services/apiService'
-import { useNotification } from '@/contexts/NotificationContext'
+import { useToast } from '@/contexts/ToastContext'
 
 const ReportsPage: React.FC = () => {
-    const { showNotification } = useNotification()
+    const { showToast } = useToast()
     const [loading, setLoading] = useState<'csv' | 'pdf' | null>(null)
     const [filters, setFilters] = useState({
         from_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -35,10 +35,10 @@ const ReportsPage: React.FC = () => {
             link.click()
             link.remove()
             
-            showNotification(`Successfully exported ${format.toUpperCase()} report`, 'success')
+            showToast(`Successfully exported ${format.toUpperCase()} report`, 'success')
         } catch (error) {
             console.error('Export failed:', error)
-            showNotification('Failed to export report. Please try again.', 'error')
+            showToast('Failed to export report. Please try again.', 'error')
         } finally {
             setLoading(null)
         }
