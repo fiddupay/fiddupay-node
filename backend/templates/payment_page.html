@@ -831,6 +831,14 @@
 
         const LINK_ID = window.location.pathname.split('/').pop();
         const REDIRECT_URL = '{{redirect_url}}';
+        const IS_WIDGET = new URLSearchParams(window.location.search).get('widget') === 'true';
+
+        // Custom Widget UI Overrides
+        if (IS_WIDGET) {
+            document.querySelector('.checkout-container').style.boxShadow = 'none';
+            document.querySelector('.checkout-container').style.border = 'none';
+            document.body.style.background = 'transparent';
+        }
 
         async function refreshContent() {
             const content = document.querySelector('.content');
@@ -871,10 +879,14 @@
             clearIntervals();
 
             // Auto-redirect if already confirmed
-            if (document.querySelector('.result-icon.success') && REDIRECT_URL) {
-                setTimeout(() => {
-                    window.location.href = REDIRECT_URL;
-                }, 3000);
+            if (document.querySelector('.result-icon.success')) {
+                if (IS_WIDGET) {
+                    window.parent.postMessage({ type: 'FIDDUPAY_SUCCESS', payload: { paymentId: LINK_ID } }, '*');
+                } else if (REDIRECT_URL) {
+                    setTimeout(() => {
+                        window.location.href = REDIRECT_URL;
+                    }, 3000);
+                }
             }
 
             // --- Selection Logic ---
@@ -975,7 +987,9 @@
 
                     if (response.ok) {
                         const data = await response.json();
-                        if (data.redirect_url) {
+                        if (IS_WIDGET) {
+                            window.parent.postMessage({ type: 'FIDDUPAY_CANCEL', payload: { paymentId: LINK_ID } }, '*');
+                        } else if (data.redirect_url) {
                             window.location.href = data.redirect_url;
                         } else {
                             refreshContent();

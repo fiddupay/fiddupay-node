@@ -14,6 +14,8 @@ export interface User {
   webhook_format?: string
   redirect_url?: string
   api_key?: string
+  live_publishable_key?: string
+  test_publishable_key?: string
   wallets_locked: boolean
   customer_wallets_locked: boolean
   ip_whitelist?: string[]

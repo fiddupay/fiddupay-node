@@ -21,8 +21,9 @@ import FeesTab from '@/components/settings/tabs/FeesTab'
 import ApiSettingsTab from '@/components/settings/tabs/ApiSettingsTab'
 import WebhooksTab from '@/components/settings/tabs/WebhooksTab'
 import SecurityTab from '@/components/settings/tabs/SecurityTab'
+import WidgetTab from '@/components/settings/tabs/WidgetTab'
 
-type TabType = 'settlement' | 'fees' | 'api' | 'webhooks' | 'security'
+type TabType = 'settlement' | 'fees' | 'api' | 'webhooks' | 'security' | 'widget'
 
 const SettingsPage: React.FC = () => {
     const { user, loadUser } = useAuthStore()
@@ -375,6 +376,12 @@ const SettingsPage: React.FC = () => {
                     <MdNotificationsActive /> Webhooks
                 </button>
                 <button
+                    className={`${styles.tabBtn} ${activeTab === 'widget' ? styles.activeTab : ''}`}
+                    onClick={() => setActiveTab('widget')}
+                >
+                    <MdCode /> Checkout Widget
+                </button>
+                <button
                     className={`${styles.tabBtn} ${activeTab === 'security' ? styles.activeTab : ''}`}
                     onClick={() => setActiveTab('security')}
                 >
@@ -440,6 +447,10 @@ const SettingsPage: React.FC = () => {
                         loading={loading}
                         styles={styles}
                     />
+                )}
+
+                {activeTab === 'widget' && (
+                    <WidgetTab styles={styles} />
                 )}
 
                 {activeTab === 'security' && (

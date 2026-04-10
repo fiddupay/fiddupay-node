@@ -101,7 +101,7 @@ impl MerchantService {
         let merchant_res: Result<Merchant, sqlx::Error> = sqlx::query_as::<_, Merchant>(
             r#"
             INSERT INTO merchants (
-                email, business_name, test_api_key_hash, password_hash, 
+                email, business_name, test_api_key_hash, test_publishable_key, password_hash, 
                 fee_percentage, customer_pays_fee, is_active, sandbox_mode, 
                 settlement_mode, kyc_verified, created_at, updated_at, 
                 daily_limit_usd, role, first_name, last_name, 
@@ -110,8 +110,8 @@ impl MerchantService {
                 business_certificate_url, terms_accepted,
                 wallets_locked, customer_wallets_locked
             )
-            VALUES ($1, $2, 'PENDING', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT', $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, TRUE, TRUE)
-            RETURNING id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url,
+            VALUES ($1, $2, 'PENDING', 'PENDING', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT', $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, TRUE, TRUE)
+            RETURNING id, email, business_name, live_api_key_hash, test_api_key_hash, live_publishable_key, test_publishable_key, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role::text as role, redirect_url,
                       first_name, last_name, gender, phone_number, country, applicant_role, business_country, business_license_number, business_certificate_url, terms_accepted,
                       wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at
             "#
@@ -151,12 +151,15 @@ impl MerchantService {
             .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
             .to_string();
 
-        // 4. Update the merchant with the real key
+        let pub_key = ApiKeyGenerator::generate_publishable_key(merchant.id, false);
+
+        // 4. Update the merchant with the real key and publishable key
         // Use sqlx::query function to avoid macro checking
         sqlx::query(
-            "UPDATE merchants SET test_api_key_hash = $1 WHERE id = $2"
+            "UPDATE merchants SET test_api_key_hash = $1, test_publishable_key = $2 WHERE id = $3"
         )
         .bind(api_key_hash)
+        .bind(&pub_key)
         .bind(merchant.id)
         .execute(&self.db_pool)
         .await?;
@@ -231,7 +234,7 @@ impl MerchantService {
         // Check if the target environment already has a key
         let merchant = sqlx::query_as::<_, Merchant>(
             r#"
-            SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, 
+            SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, live_publishable_key, test_publishable_key, password_hash, 
                    fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, 
                    kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
                    role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
@@ -289,7 +292,7 @@ impl MerchantService {
         // First, verify the old API key is correct
         let merchant = sqlx::query_as::<_, Merchant>(
             r#"
-            SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, 
+            SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, live_publishable_key, test_publishable_key, password_hash, 
                    fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, 
                    kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
                    role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
@@ -339,15 +342,18 @@ impl MerchantService {
             .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
             .to_string();
         
-        // Update the merchant with the new API key hash
+        let new_pub_key = ApiKeyGenerator::generate_publishable_key(merchant_id, is_old_live);
+
+        // Update the merchant with the new API key hash and publishable key
         let update_query = if is_old_live {
-            "UPDATE merchants SET live_api_key_hash = $1, updated_at = $2 WHERE id = $3"
+            "UPDATE merchants SET live_api_key_hash = $1, live_publishable_key = $2, updated_at = $3 WHERE id = $4"
         } else {
-            "UPDATE merchants SET test_api_key_hash = $1, updated_at = $2 WHERE id = $3"
+            "UPDATE merchants SET test_api_key_hash = $1, test_publishable_key = $2, updated_at = $3 WHERE id = $4"
         };
 
         sqlx::query(update_query)
         .bind(new_api_key_hash)
+        .bind(&new_pub_key)
         .bind(Utc::now())
         .bind(merchant_id)
         .execute(&self.db_pool)
@@ -378,15 +384,18 @@ impl MerchantService {
             .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
             .to_string();
         
-        // Update the merchant with the new API key hash
+        let new_pub_key = ApiKeyGenerator::generate_publishable_key(merchant_id, is_live);
+
+        // Update the merchant with the new API key hash and publishable key
         let update_query = if is_live {
-            "UPDATE merchants SET live_api_key_hash = $1, updated_at = $2 WHERE id = $3"
+            "UPDATE merchants SET live_api_key_hash = $1, live_publishable_key = $2, updated_at = $3 WHERE id = $4"
         } else {
-            "UPDATE merchants SET test_api_key_hash = $1, updated_at = $2 WHERE id = $3"
+            "UPDATE merchants SET test_api_key_hash = $1, test_publishable_key = $2, updated_at = $3 WHERE id = $4"
         };
 
         sqlx::query(update_query)
         .bind(new_api_key_hash)
+        .bind(&new_pub_key)
         .bind(Utc::now())
         .bind(merchant_id)
         .execute(&self.db_pool)
@@ -424,7 +433,7 @@ impl MerchantService {
                     if let Ok(merchant_id) = id_str.parse::<i64>() {
                         let merchant = sqlx::query_as::<_, Merchant>(
                             r#"
-                            SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, password_hash, 
+                            SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, live_publishable_key, test_publishable_key, password_hash, 
                                    fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, 
                                    kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
                                    role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
@@ -477,6 +486,47 @@ impl MerchantService {
         Err(ServiceError::InvalidApiKey)
     }
 
+    /// Authenticate a frontend client using a publishable key
+    pub async fn authenticate_publishable_key(
+        &self,
+        publishable_key: &str,
+    ) -> Result<Merchant, ServiceError> {
+        let is_live_prefix = publishable_key.starts_with("pub_live_");
+        
+        let query = if is_live_prefix {
+            r#"
+            SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, live_publishable_key, test_publishable_key, password_hash, 
+                   fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, 
+                   kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
+                   role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
+                   country, applicant_role, business_country, business_license_number, 
+                   business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked,
+                   transaction_pin_hash, pin_setup_at 
+            FROM merchants 
+            WHERE live_publishable_key = $1 AND is_active = true
+            "#
+        } else {
+             r#"
+            SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, live_publishable_key, test_publishable_key, password_hash, 
+                   fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, 
+                   kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
+                   role::text as role, redirect_url, first_name, last_name, gender, phone_number, 
+                   country, applicant_role, business_country, business_license_number, 
+                   business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked,
+                   transaction_pin_hash, pin_setup_at 
+            FROM merchants 
+            WHERE test_publishable_key = $1 AND is_active = true
+            "#
+        };
+
+        sqlx::query_as::<_, Merchant>(query)
+            .bind(publishable_key)
+            .fetch_optional(&self.db_pool)
+            .await
+            .map_err(ServiceError::Database)?
+            .ok_or(ServiceError::InvalidApiKey)
+    }
+
     /// Store an API key for a merchant with optional expiration
     pub async fn store_api_key_with_expiry(
         &self,
@@ -494,16 +544,18 @@ impl MerchantService {
             .to_string();
         
         let is_live = api_key.starts_with("sk_live_");
+        let pub_key = ApiKeyGenerator::generate_publishable_key(merchant_id, is_live);
 
         let update_query = if is_live {
-            "UPDATE merchants SET live_api_key_hash = $1, api_key_expires_at = $2, updated_at = $3 WHERE id = $4"
+            "UPDATE merchants SET live_api_key_hash = $1, live_publishable_key = $2, api_key_expires_at = $3, updated_at = $4 WHERE id = $5"
         } else {
-            "UPDATE merchants SET test_api_key_hash = $1, api_key_expires_at = $2, updated_at = $3 WHERE id = $4"
+            "UPDATE merchants SET test_api_key_hash = $1, test_publishable_key = $2, api_key_expires_at = $3, updated_at = $4 WHERE id = $5"
         };
         
-        // Update merchant with new API key hash and expiration
+        // Update merchant with new API key hash and expiration and publishable key
         sqlx::query(update_query)
         .bind(api_key_hash)
+        .bind(&pub_key)
         .bind(expires_at)
         .bind(Utc::now())
         .bind(merchant_id)

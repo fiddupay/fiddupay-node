@@ -27,3 +27,4 @@ pub mod p2p_routes;
 pub mod p2p_ws;
 pub mod p2p_auth_handlers;
 pub mod merchant_ws;
+pub mod public_routes;

@@ -54,4 +54,10 @@ impl ApiKeyGenerator {
         let prefix = if is_live { "sk_live" } else { "sk_sandbox" };
         format!("{}_{}_{}", prefix, merchant_id, nanoid!(24, &Self::ALPHABET))
     }
+
+    /// Generate publishable key for public frontends (pub_sandbox_ or pub_live_ prefix)
+    pub fn generate_publishable_key(merchant_id: i64, is_live: bool) -> String {
+        let prefix = if is_live { "pub_live" } else { "pub_sandbox" };
+        format!("{}_{}_{}", prefix, merchant_id, nanoid!(24, &Self::ALPHABET))
+    }
 }

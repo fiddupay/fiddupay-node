@@ -13,6 +13,8 @@ pub struct Merchant {
     pub business_name: String,
     pub live_api_key_hash: Option<String>,
     pub test_api_key_hash: Option<String>,
+    pub live_publishable_key: Option<String>,
+    pub test_publishable_key: Option<String>,
     pub password_hash: Option<String>,
     pub fee_percentage: Decimal,
     pub customer_pays_fee: bool, // true = customer pays, false = merchant pays
