@@ -9,10 +9,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let config = Config::from_env().map_err(|e| e.to_string())?;
     
     // The provided hash is on Mainnet
-    let rpc_url = Some(config.solana_rpc_url.clone());
+    let is_sandbox = false;
     // Use the official USDT mint confirmed by the user
     let usdt_mint = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB".to_string();
-    let monitor = SolanaMonitor::new(&config, rpc_url, Some(usdt_mint.clone()));
+    let monitor = SolanaMonitor::new(&config, is_sandbox, Some(usdt_mint.clone()));
     
     let hash = "4jCt18y8JC2UrxkQA6HYPDzKcj7deqNYKBupACSJ2Da8yJNc1vZusT8kYUKogDjmZrHPSMz5NNYAg8zbuwFgYY67";
     

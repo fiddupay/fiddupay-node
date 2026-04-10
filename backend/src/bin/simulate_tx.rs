@@ -148,7 +148,7 @@ async fn simulate_solana(config: &Config, pool: &PgPool, tx_hash: &str) -> Resul
         println!("{}", serde_json::to_string_pretty(&raw_json)?);
     }
 
-    let monitor = SolanaMonitor::new(config, None, None);
+    let monitor = SolanaMonitor::new(config, false, None);
     println!("\nFetching details via SolanaMonitor with config for signature lookup...");
     
     let tx = monitor.get_transaction_details(tx_hash).await.map_err(|e| format!("{}", e))?;
