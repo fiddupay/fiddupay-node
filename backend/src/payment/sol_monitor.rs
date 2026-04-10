@@ -22,12 +22,26 @@ fn get_solana_rpc_url(config: &crate::config::Config) -> &str {
     &config.solana_rpc_url
 }
 
-// Get Solana WS URL from config
+// Get Solana WS URL from config based on the selected RPC node
 fn get_solana_ws_url(config: &crate::config::Config, rpc_url: &str) -> String {
-    if rpc_url.contains("devnet") {
-        config.solana_devnet_ws_url.clone()
+    if rpc_url == config.solana_rpc_url {
+        return config.solana_ws_url.clone();
+    }
+    if rpc_url == config.solana_devnet_rpc_url {
+        return config.solana_devnet_ws_url.clone();
+    }
+    
+    // Convert https:// -> wss:// and http:// -> ws:// 
+    if rpc_url.starts_with("https://") {
+        rpc_url.replace("https://", "wss://")
+    } else if rpc_url.starts_with("http://") {
+        rpc_url.replace("http://", "ws://")
     } else {
-        config.solana_ws_url.clone()
+        if rpc_url.contains("devnet") {
+            config.solana_devnet_ws_url.clone()
+        } else {
+            config.solana_ws_url.clone()
+        }
     }
 }
 
@@ -121,8 +135,8 @@ struct TransactionMeta {
 #[derive(Debug, Clone)]
 pub struct SolanaMonitor {
     client: Client,
-    rpc_urls: Vec<String>,
-    ws_url: String,
+    pub rpc_urls: Vec<String>,
+    pub ws_urls: Vec<String>,
     expected_mint: Option<String>,
 }
 
@@ -133,16 +147,26 @@ impl SolanaMonitor {
         if let Some(url) = custom_rpc_url {
             rpc_urls.push(url);
         } else {
-            for key in &config.alchemy_api_keys {
-                rpc_urls.push(format!("https://solana-mainnet.g.alchemy.com/v2/{}", key));
+            // SVS
+            for key in &config.svs_api_keys {
+                rpc_urls.push(format!("https://basic.rpc.solanavibestation.com/?api_key={}", key));
             }
+            // Helius
             if let Some(ref key) = config.helius_api_key {
                 rpc_urls.push(format!("https://mainnet.helius-rpc.com/?api-key={}", key));
+            }
+            // Alchemy
+            for key in &config.alchemy_api_keys {
+                rpc_urls.push(format!("https://solana-mainnet.g.alchemy.com/v2/{}", key));
             }
             rpc_urls.push(config.solana_rpc_url.clone());
         }
 
-        let ws_url = get_solana_ws_url(config, &rpc_urls[0]);
+        // We store all possible WS URLs to fail over if needed
+        let mut ws_urls = Vec::new();
+        for rpc in &rpc_urls {
+            ws_urls.push(get_solana_ws_url(config, rpc));
+        }
         
         Self {
             client: Client::builder()
@@ -150,7 +174,7 @@ impl SolanaMonitor {
                 .build()
                 .unwrap_or_else(|_| Client::new()),
             rpc_urls,
-            ws_url,
+            ws_urls,
             expected_mint,
         }
     }
@@ -472,9 +496,34 @@ impl SolanaMonitor {
         mut new_addresses_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
         callback: Arc<dyn Fn(String, String) + Send + Sync>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("🔌 Connecting to Solana WebSocket: {}", self.ws_url);
+        let mut ws_stream_opt = None;
+        let mut connected_ws_url = String::new();
         
-        let (ws_stream, _) = connect_async(&self.ws_url).await?;
+        for url in &self.ws_urls {
+            info!("🔌 Attempting connection to Solana WebSocket: {}", url);
+            match connect_async(url).await {
+                Ok((stream, _)) => {
+                    ws_stream_opt = Some(stream);
+                    connected_ws_url = url.clone();
+                    info!("✅ Successfully connected to Solana WebSocket: {}", url);
+                    break;
+                }
+                Err(e) => {
+                    warn!("❌ Failed to connect to Solana WebSocket {}: {}", url, e);
+                    continue;
+                }
+            }
+        }
+
+        let ws_stream = match ws_stream_opt {
+            Some(stream) => stream,
+            None => {
+                let err_msg = "All Solana WebSocket nodes failed to connect".to_string();
+                error!("{}", err_msg);
+                return Err(err_msg.into());
+            }
+        };
+
         let (mut write, mut read) = ws_stream.split();
 
         // Map of subscription_id -> monitored_address (monitored_address could be an ATA)

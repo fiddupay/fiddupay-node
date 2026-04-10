@@ -22,6 +22,7 @@ pub struct Config {
     pub chainstack_bsc_url: Option<String>,
     pub infura_api_keys: Vec<String>,
     pub moralis_api_keys: Vec<String>,
+    pub svs_api_keys: Vec<String>,
     // Redis
     pub redis_url: String,
     pub redis_max_connections: u32,
@@ -234,6 +235,12 @@ impl Config {
                 .filter(|s| !s.is_empty())
                 .collect(),
             moralis_api_keys: env::var("MORALIS_API_KEYS")
+                .unwrap_or_default()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
+            svs_api_keys: env::var("SVS_API_KEYS")
                 .unwrap_or_default()
                 .split(',')
                 .map(|s| s.trim().to_string())
@@ -732,6 +739,7 @@ impl Default for Config {
             chainstack_bsc_url: None,
             infura_api_keys: vec![],
             moralis_api_keys: vec![],
+            svs_api_keys: vec![],
             redis_url: "redis://localhost:6379".to_string(),
             redis_max_connections: 10,
             redis_timeout_seconds: 30,
