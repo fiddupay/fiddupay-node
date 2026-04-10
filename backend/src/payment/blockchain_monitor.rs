@@ -37,65 +37,285 @@ pub trait BlockchainMonitor: Send + Sync {
 /// Uses Etherscan-like API for transaction fetching
 pub struct EvmMonitor {
     client: Client,
-    api_url: String,
-    api_key: Option<String>,
     chain_name: &'static str,
-    decimals: u32, // Token decimals (18 for most ERC20)
-    token_address: Option<String>, // ERC20 token address if monitoring tokens
-    chain_id: u64, // Chain ID required for Etherscan V2 API
+    decimals: u32,
+    token_address: Option<String>,
+    chain_id: u64,
+    rpc_urls: Vec<String>,
+    moralis_keys: Vec<String>,
+    etherscan_api_url: String,
+    etherscan_api_key: Option<String>,
+    internal_chain_identifier: &'static str,
+}
+
+impl EvmMonitor {
+    fn build_rpc_urls(chain: &str, is_sandbox: bool, config: &crate::config::Config) -> Vec<String> {
+        let mut urls = Vec::new();
+        for key in &config.alchemy_api_keys {
+            if let Some(url) = match (chain, is_sandbox) {
+                ("ETH", false) => Some(format!("https://eth-mainnet.g.alchemy.com/v2/{}", key)),
+                ("ETH", true) => Some(format!("https://eth-sepolia.g.alchemy.com/v2/{}", key)),
+                ("BSC", false) => Some(format!("https://bnb-mainnet.g.alchemy.com/v2/{}", key)),
+                ("BSC", true) => Some(format!("https://bnb-testnet.g.alchemy.com/v2/{}", key)),
+                ("POLYGON", false) => Some(format!("https://polygon-mainnet.g.alchemy.com/v2/{}", key)),
+                ("POLYGON", true) => Some(format!("https://polygon-amoy.g.alchemy.com/v2/{}", key)),
+                ("ARBITRUM", false) => Some(format!("https://arb-mainnet.g.alchemy.com/v2/{}", key)),
+                ("ARBITRUM", true) => Some(format!("https://arb-sepolia.g.alchemy.com/v2/{}", key)),
+                _ => None,
+            } { urls.push(url); }
+        }
+        for key in &config.infura_api_keys {
+            if let Some(url) = match (chain, is_sandbox) {
+                ("ETH", false) => Some(format!("https://mainnet.infura.io/v3/{}", key)),
+                ("ETH", true) => Some(format!("https://sepolia.infura.io/v3/{}", key)),
+                ("POLYGON", false) => Some(format!("https://polygon-mainnet.infura.io/v3/{}", key)),
+                ("POLYGON", true) => Some(format!("https://polygon-amoy.infura.io/v3/{}", key)),
+                ("ARBITRUM", false) => Some(format!("https://arbitrum-mainnet.infura.io/v3/{}", key)),
+                ("ARBITRUM", true) => Some(format!("https://arbitrum-sepolia.infura.io/v3/{}", key)),
+                _ => None,
+            } { urls.push(url); }
+        }
+        if chain == "ETH" && !is_sandbox { if let Some(ref url) = config.chainstack_eth_url { urls.push(url.clone()); } }
+        if chain == "BSC" && !is_sandbox { if let Some(ref url) = config.chainstack_bsc_url { urls.push(url.clone()); } }
+        for key in &config.ankr_api_keys {
+            if let Some(url) = match (chain, is_sandbox) {
+                ("ETH", false) => Some(format!("https://rpc.ankr.com/eth/{}", key)),
+                ("ETH", true) => Some(format!("https://rpc.ankr.com/eth_sepolia/{}", key)),
+                ("BSC", false) => Some(format!("https://rpc.ankr.com/bsc/{}", key)),
+                ("BSC", true) => Some(format!("https://rpc.ankr.com/bsc_testnet_chapel/{}", key)),
+                ("POLYGON", false) => Some(format!("https://rpc.ankr.com/polygon/{}", key)),
+                ("POLYGON", true) => Some(format!("https://rpc.ankr.com/polygon_amoy/{}", key)),
+                ("ARBITRUM", false) => Some(format!("https://rpc.ankr.com/arbitrum/{}", key)),
+                ("ARBITRUM", true) => Some(format!("https://rpc.ankr.com/arbitrum_sepolia/{}", key)),
+                _ => None,
+            } { urls.push(url); }
+        }
+        if chain == "ETH" && !is_sandbox { urls.extend(config.getblock_eth_keys.iter().map(|k| format!("https://go.getblock.io/{}", k))); }
+        if chain == "BSC" && !is_sandbox { urls.extend(config.getblock_bsc_keys.iter().map(|k| format!("https://go.getblock.io/{}", k))); }
+
+        if urls.is_empty() {
+             urls.push(match (chain, is_sandbox) {
+                ("ETH", false) => config.ethereum_rpc_url.clone(),
+                ("ETH", true) => config.ethereum_sepolia_rpc_url.clone(),
+                ("BSC", false) => config.bsc_rpc_url.clone(),
+                ("BSC", true) => config.bsc_testnet_rpc_url.clone(),
+                ("POLYGON", false) => config.polygon_rpc_url.clone(),
+                ("POLYGON", true) => config.polygon_amoy_rpc_url.clone(),
+                ("ARBITRUM", false) => config.arbitrum_rpc_url.clone(),
+                ("ARBITRUM", true) => config.arbitrum_sepolia_rpc_url.clone(),
+                _ => "".to_string(),
+             });
+        }
+        urls
+    }
 }
 
 impl EvmMonitor {
     pub fn new_bsc(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
         Self {
             client: Client::new(),
-            api_url: config.etherscan_api_url.clone(),
-            api_key: config.etherscan_api_key.clone(),
             chain_name: if is_sandbox { "BSC Testnet" } else { "BSC" },
             decimals,
             token_address,
             chain_id: if is_sandbox { config.bsc_testnet_chain_id } else { config.bsc_chain_id },
+            rpc_urls: Self::build_rpc_urls("BSC", is_sandbox, config),
+            moralis_keys: config.moralis_api_keys.clone(),
+            etherscan_api_url: if is_sandbox { "https://api-testnet.bscscan.com/api".to_string() } else { "https://api.bscscan.com/api".to_string() },
+            etherscan_api_key: config.etherscan_api_key.clone(),
+            internal_chain_identifier: "BSC",
         }
     }
 
     pub fn new_arbitrum(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
         Self {
             client: Client::new(),
-            api_url: config.etherscan_api_url.clone(),
-            api_key: config.etherscan_api_key.clone(),
             chain_name: if is_sandbox { "Arbitrum Sepolia" } else { "Arbitrum" },
             decimals,
             token_address,
             chain_id: if is_sandbox { config.arbitrum_sepolia_chain_id } else { config.arbitrum_chain_id },
+            rpc_urls: Self::build_rpc_urls("ARBITRUM", is_sandbox, config),
+            moralis_keys: config.moralis_api_keys.clone(),
+            etherscan_api_url: if is_sandbox { "https://api-sepolia.arbiscan.io/api".to_string() } else { "https://api.arbiscan.io/api".to_string() },
+            etherscan_api_key: config.etherscan_api_key.clone(),
+            internal_chain_identifier: "ARBITRUM",
         }
     }
 
     pub fn new_polygon(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
         let chain_id = if is_sandbox { config.polygon_amoy_chain_id } else { config.polygon_chain_id };
-        info!("Initializing Polygon monitor (Chain ID: {})", chain_id);
         Self {
             client: Client::new(),
-            api_url: config.etherscan_api_url.clone(),
-            api_key: config.etherscan_api_key.clone(),
             chain_name: if is_sandbox { "Polygon Amoy" } else { "Polygon" },
             decimals,
             token_address,
-            chain_id: if is_sandbox { config.polygon_amoy_chain_id } else { config.polygon_chain_id },
+            chain_id,
+            rpc_urls: Self::build_rpc_urls("POLYGON", is_sandbox, config),
+            moralis_keys: config.moralis_api_keys.clone(),
+            etherscan_api_url: if is_sandbox { "https://api-amoy.polygonscan.com/api".to_string() } else { "https://api.polygonscan.com/api".to_string() },
+            etherscan_api_key: config.etherscan_api_key.clone(),
+            internal_chain_identifier: "POLYGON",
         }
     }
 
     pub fn new_ethereum(config: &crate::config::Config, is_sandbox: bool, token_address: Option<String>, decimals: u32) -> Self {
         let chain_id = if is_sandbox { config.ethereum_sepolia_chain_id } else { config.ethereum_chain_id };
-        info!("Initializing Ethereum monitor (Chain ID: {})", chain_id);
         Self {
             client: Client::new(),
-            api_url: config.etherscan_api_url.clone(),
-            api_key: config.etherscan_api_key.clone(),
             chain_name: if is_sandbox { "Ethereum Sepolia" } else { "Ethereum" },
             decimals,
             token_address,
-            chain_id: if is_sandbox { config.ethereum_sepolia_chain_id } else { config.ethereum_chain_id },
+            chain_id,
+            rpc_urls: Self::build_rpc_urls("ETH", is_sandbox, config),
+            moralis_keys: config.moralis_api_keys.clone(),
+            etherscan_api_url: if is_sandbox { "https://api-sepolia.etherscan.io/api".to_string() } else { config.etherscan_api_url.clone() },
+            etherscan_api_key: config.etherscan_api_key.clone(),
+            internal_chain_identifier: "ETH",
         }
+    }
+}
+
+impl EvmMonitor {
+    async fn rpc_request(&self, method: &str, params: serde_json::Value) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
+        let payload = serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params,
+            "id": 1
+        });
+
+        let mut last_error = None;
+
+        for url in &self.rpc_urls {
+            match self.client.post(url).json(&payload).send().await {
+                Ok(response) => {
+                    let status = response.status();
+                    if status == 429 {
+                        warn!("Rate limit (429) hit on {}, trying next RPC...", url);
+                        last_error = Some("Rate limit hit".to_string());
+                        continue;
+                    }
+                    match response.json::<serde_json::Value>().await {
+                        Ok(data) => {
+                            if data.get("error").is_some() {
+                                let err_msg = data["error"]["message"].as_str().unwrap_or("Unknown RPC error");
+                                if err_msg.to_lowercase().contains("rate limit") || err_msg.to_lowercase().contains("too many") {
+                                    warn!("Rate limit payload from {}, trying next RPC...", url);
+                                    last_error = Some(format!("Rate limit: {}", err_msg));
+                                    continue;
+                                }
+                                return Err(format!("RPC Error: {}", err_msg).into());
+                            }
+                            return Ok(data);
+                        },
+                        Err(e) => last_error = Some(e.to_string()),
+                    }
+                },
+                Err(e) => {
+                    warn!("Network error connecting to {}: {}", url, e);
+                    last_error = Some(e.to_string());
+                }
+            }
+        }
+
+        if !self.etherscan_api_url.is_empty() {
+             let mut url = format!("{}?module=proxy&action={}", self.etherscan_api_url, method);
+             if let Some(ref key) = self.etherscan_api_key { url.push_str(&format!("&apikey={}", key)); }
+             let params_mapped = match method {
+                 "eth_getTransactionByHash" | "eth_getTransactionReceipt" => if let Some(arr) = params.as_array() {
+                     format!("&txhash={}", arr.get(0).and_then(|v| v.as_str()).unwrap_or(""))
+                 } else { "".to_string() },
+                 "eth_getBlockByNumber" => if let Some(arr) = params.as_array() {
+                     format!("&tag={}&boolean=false", arr.get(0).and_then(|v| v.as_str()).unwrap_or(""))
+                 } else { "".to_string() },
+                 _ => "".to_string(),
+             };
+             url.push_str(&params_mapped);
+
+             if let Ok(res) = self.client.get(&url).send().await {
+                 if let Ok(data) = res.json::<serde_json::Value>().await {
+                     if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
+                         if status == "0" && !data.get("result").and_then(|r| r.as_str()).unwrap_or("").contains("rate limit") {
+                             return Err(format!("EVM API Error: {:?}", data.get("result")).into());
+                         }
+                     }
+                     return Ok(data);
+                 }
+             }
+        }
+
+        Err(format!("All RPC nodes failed. Last error: {}", last_error.unwrap_or_else(|| "Unknown".to_string())).into())
+    }
+
+    async fn get_moralis_transactions(&self, address: &str, limit: usize) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
+        let moralis_chain = match self.internal_chain_identifier {
+            "ETH" => "eth",
+            "BSC" => "bsc",
+            "POLYGON" => "polygon",
+            "ARBITRUM" => "arbitrum",
+            _ => "eth"
+        };
+        let chain_str = if self.chain_name.contains("Sepolia") { "sepolia" } else if self.chain_name.contains("Testnet") { "bsc testnet" } else { moralis_chain };
+
+        let url = if let Some(ref token) = self.token_address {
+            format!("https://deep-index.moralis.io/api/v2.2/{}/erc20/transfers?chain={}&limit={}", address, chain_str, limit)
+        } else {
+            format!("https://deep-index.moralis.io/api/v2.2/{}/verbose?chain={}&limit={}", address, chain_str, limit)
+        };
+
+        for key in &self.moralis_keys {
+            if let Ok(response) = self.client.get(&url).header("X-API-Key", key).send().await {
+                if response.status() == 429 { continue; }
+                if response.status().is_success() {
+                    let data = response.json::<serde_json::Value>().await?;
+                    let mut transactions = Vec::new();
+                    if let Some(result_arr) = data.get("result").and_then(|v| v.as_array()) {
+                        for tx in result_arr {
+                            let hash = tx.get("transaction_hash").or_else(|| tx.get("hash")).and_then(|v| v.as_str()).unwrap_or("");
+                            if !hash.is_empty() {
+                                if let Ok(tx_dets) = self.get_transaction_details(hash, Some(address)).await {
+                                    transactions.push(tx_dets);
+                                }
+                            }
+                        }
+                    }
+                    return Ok(transactions);
+                }
+            }
+        }
+        Err("All Moralis keys exhausted or failed".into())
+    }
+
+    async fn get_etherscan_transactions(&self, address: &str, limit: usize, min_timestamp: Option<chrono::DateTime<chrono::Utc>>) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
+        let action = if self.token_address.is_some() { "tokentx" } else { "txlist" };
+        let mut url = format!("{}?module=account&action={}&address={}&startblock=0&endblock=99999999&page=1&offset={}&sort=desc&chainid={}", 
+            self.etherscan_api_url, action, address, limit, self.chain_id);
+        if let Some(ref token) = self.token_address { url.push_str(&format!("&contractaddress={}", token)); }
+        if let Some(ref key) = self.etherscan_api_key { url.push_str(&format!("&apikey={}", key)); }
+
+        let response = self.client.get(&url).send().await?.json::<serde_json::Value>().await?;
+        if let Some(status) = response.get("status").and_then(|s| s.as_str()) {
+            if status == "0" {
+                if let Some(res_arr) = response.get("result").and_then(|r| r.as_array()) {
+                    if res_arr.is_empty() { return Ok(Vec::new()); }
+                }
+                return Err(format!("EVM API Error: {:?}", response.get("result")).into());
+            }
+        }
+        let result = response.get("result").and_then(|v| v.as_array()).ok_or("Invalid response format")?;
+        let mut transactions = Vec::new();
+        for tx in result.iter().take(limit) {
+            let hash = tx.get("hash").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            
+            if let (Some(min_ts), Some(tx_ts_str)) = (min_timestamp, tx.get("timeStamp").and_then(|v| v.as_str())) {
+                if let Ok(ts_secs) = tx_ts_str.parse::<i64>() {
+                    if let Some(ts) = chrono::DateTime::from_timestamp(ts_secs, 0) {
+                        if ts < min_ts - chrono::Duration::seconds(60) { continue; }
+                    }
+                }
+            }
+            if let Ok(tx_dets) = self.get_transaction_details(&hash, Some(address)).await { transactions.push(tx_dets); }
+        }
+        Ok(transactions)
     }
 }
 
@@ -108,46 +328,8 @@ impl BlockchainMonitor for EvmMonitor {
     ) -> Result<BlockchainTransaction, Box<dyn std::error::Error + Send + Sync>> {
         info!(" Fetching {} transaction: {}", self.chain_name, tx_hash);
 
-        // Build API request URL
-        let separator = if self.api_url.contains('?') { "&" } else { "?" };
-        let mut url = format!(
-            "{}{}module=proxy&action=eth_getTransactionByHash&txhash={}&chainid={}",
-            self.api_url, separator, tx_hash, self.chain_id
-        );
-
-        if let Some(ref key) = self.api_key {
-            url.push_str(&format!("&apikey={}", key));
-        }
-
-        tracing::info!("[EVM-{}] URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
-
-        let response = self.client.get(&url).send().await?;
-        let data: serde_json::Value = response.json().await?;
-
-        // Check for API errors (Etherscan returns status="0" for errors)
-        if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
-            if status == "0" {
-                let result = data.get("result");
-                
-                // V2 API returns status "0" with empty result array when no records found
-                if let Some(res_arr) = result.and_then(|r| r.as_array()) {
-                    if res_arr.is_empty() {
-                        return Err("Transaction not found".into()); // For single Tx detail, treat as missing
-                    }
-                }
-
-                let err_msg = result
-                    .map(|r| if r.is_string() { r.as_str().unwrap().to_string() } else { r.to_string() })
-                    .unwrap_or_else(|| "Unknown EVM API Error".to_string());
-                
-                // Suppress rate limit warnings into structured errors
-                if err_msg.contains("rate limit") || err_msg.contains("Max rate limit") {
-                    return Err(format!("EVM_RATE_LIMIT: {}", err_msg).into());
-                }
-                
-                return Err(format!("EVM API Error: {}", err_msg).into());
-            }
-        }
+        let data = self.rpc_request("eth_getTransactionByHash", serde_json::json!([tx_hash])).await?;
+        let result = data.get("result").filter(|v| !v.is_null()).ok_or("Transaction not found")?;
 
         // Parse transaction data
         let result = data.get("result")
@@ -259,84 +441,14 @@ impl BlockchainMonitor for EvmMonitor {
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
         info!(" Fetching {} transactions for address: {}", self.chain_name, address);
 
-        // Build API request URL for transaction list
-        let action = if self.token_address.is_some() { "tokentx" } else { "txlist" };
-        let separator = if self.api_url.contains('?') { "&" } else { "?" };
-        let mut url = format!(
-            "{}{}module=account&action={}&address={}&startblock=0&endblock=99999999&page=1&offset={}&sort=desc&chainid={}",
-            self.api_url, separator, action, address, limit, self.chain_id
-        );
-
-        if let Some(ref token) = self.token_address {
-            url.push_str(&format!("&contractaddress={}", token));
+        if !self.moralis_keys.is_empty() {
+             match self.get_moralis_transactions(address, limit).await {
+                 Ok(txs) => return Ok(txs),
+                 Err(e) => warn!("Moralis parsing/fetching failed: {}, falling back to Etherscan...", e)
+             }
         }
-
-        if let Some(ref key) = self.api_key {
-            url.push_str(&format!("&apikey={}", key));
-        }
-
-        // Masked URL debug log for investigating chainid issues
-        tracing::info!("[EVM-{}] URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
-
-        let response = self.client.get(&url).send().await?;
-        let data: serde_json::Value = response.json().await?;
-
-        if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
-            if status == "0" {
-                let result = data.get("result");
-                
-                // V2 API returns status "0" with empty result array when no records found
-                if let Some(res_arr) = result.and_then(|r| r.as_array()) {
-                    if res_arr.is_empty() {
-                        info!(" No transactions found for address {} on {}", address, self.chain_name);
-                        return Ok(Vec::new());
-                    }
-                }
-
-                let err_msg = result
-                    .map(|r| if r.is_string() { r.as_str().unwrap().to_string() } else { r.to_string() })
-                    .unwrap_or_else(|| "Unknown EVM API Error".to_string());
-                
-                if err_msg.contains("rate limit") || err_msg.contains("Max rate limit") {
-                    return Err(format!("EVM_RATE_LIMIT: {}", err_msg).into());
-                }
-
-                return Err(format!("EVM API Error: {}", err_msg).into());
-            }
-        }
-
-        let result = data.get("result")
-            .and_then(|v| v.as_array())
-            .ok_or("Invalid response format")?;
-
-        let mut transactions = Vec::new();
-
-        for tx in result.iter().take(limit) {
-            let hash = tx.get("hash")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
-
-            // Optimization: skip if transaction is obviously too old (EVM APIs often provide timestamp in list)
-            if let (Some(min_ts), Some(tx_ts_str)) = (min_timestamp, tx.get("timeStamp").and_then(|v| v.as_str())) {
-                if let Ok(ts_secs) = tx_ts_str.parse::<i64>() {
-                    if let Some(ts) = chrono::DateTime::from_timestamp(ts_secs, 0) {
-                        if ts < min_ts - chrono::Duration::seconds(60) {
-                            continue;
-                        }
-                    }
-                }
-            }
-
-            // Get full transaction details, passing the address as target to help verifier if needed
-            match self.get_transaction_details(&hash, Some(address)).await {
-                Ok(blockchain_tx) => transactions.push(blockchain_tx),
-                Err(e) => warn!("Failed to get transaction {}: {}", hash, e),
-            }
-        }
-
-        info!(" Found {} {} transactions", transactions.len(), self.chain_name);
-        Ok(transactions)
+        
+        self.get_etherscan_transactions(address, limit, min_timestamp).await
     }
 
     fn blockchain_name(&self) -> &'static str {
@@ -347,128 +459,30 @@ impl BlockchainMonitor for EvmMonitor {
 impl EvmMonitor {
     /// Get current block number
     async fn get_current_block(&self) -> Result<u64, Box<dyn std::error::Error + Send + Sync>> {
-        let separator = if self.api_url.contains('?') { "&" } else { "?" };
-        let mut url = format!(
-            "{}{}module=proxy&action=eth_blockNumber&chainid={}",
-            self.api_url, separator, self.chain_id
-        );
-
-        if let Some(ref key) = self.api_key {
-            url.push_str(&format!("&apikey={}", key));
-        }
-
-        tracing::info!("[EVM-{}] URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
-
-        let response = self.client.get(&url).send().await?;
-        let data: serde_json::Value = response.json().await?;
-
-        if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
-            if status == "0" {
-                let err_msg = data.get("result")
-                    .map(|r| if r.is_string() { r.as_str().unwrap().to_string() } else { r.to_string() })
-                    .unwrap_or_else(|| "Unknown EVM API Error".to_string());
-                return Err(format!("EVM API Error: {}", err_msg).into());
-            }
-        }
-
-        let result = data.get("result")
-            .and_then(|v| v.as_str())
-            .ok_or("No result in response")?;
-
+        let data = self.rpc_request("eth_blockNumber", serde_json::json!([])).await?;
+        let result = data.get("result").and_then(|v| v.as_str()).ok_or("No result in response")?;
         let block_number = u64::from_str_radix(result.trim_start_matches("0x"), 16)?;
         Ok(block_number)
     }
 
     /// Check if transaction succeeded
     async fn check_transaction_success(&self, tx_hash: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        let separator = if self.api_url.contains('?') { "&" } else { "?" };
-        let mut url = format!(
-            "{}{}module=proxy&action=eth_getTransactionReceipt&txhash={}&chainid={}",
-            self.api_url, separator, tx_hash, self.chain_id
-        );
-
-        if let Some(ref key) = self.api_key {
-            url.push_str(&format!("&apikey={}", key));
-        }
-        
-        tracing::info!("[EVM-{}] URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
-
-        let response = self.client.get(&url).send().await?;
-        let data: serde_json::Value = response.json().await?;
-
-        if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
-            if status == "0" {
-                let err_msg = data.get("result")
-                    .map(|r| if r.is_string() { r.as_str().unwrap().to_string() } else { r.to_string() })
-                    .unwrap_or_else(|| "Unknown EVM API Error".to_string());
-                
-                if err_msg.contains("rate limit") || err_msg.contains("Max rate limit") {
-                    return Err(format!("EVM_RATE_LIMIT: {}", err_msg).into());
-                }
-
-                return Err(format!("EVM API Error: {}", err_msg).into());
-            }
-        }
-
-        let result = data.get("result")
-            .ok_or("No result in response")?;
-
-        if result.is_null() {
-            return Ok(false);
-        }
-
-        // Status "0x1" means success
-        let status = result.get("status")
-            .and_then(|v| v.as_str())
-            .unwrap_or("0x0");
-
+        let data = self.rpc_request("eth_getTransactionReceipt", serde_json::json!([tx_hash])).await?;
+        let result = data.get("result").ok_or("No result in response")?;
+        if result.is_null() { return Ok(false); }
+        let status = result.get("status").and_then(|v| v.as_str()).unwrap_or("0x0");
         Ok(status == "0x1")
     }
 
     /// Get block timestamp by block number
     async fn get_block_timestamp(&self, block_number: u64) -> Result<chrono::DateTime<chrono::Utc>, Box<dyn std::error::Error + Send + Sync>> {
-        let separator = if self.api_url.contains('?') { "&" } else { "?" };
-        let mut url = format!(
-            "{}{}module=proxy&action=eth_getBlockByNumber&tag=0x{:x}&boolean=false&chainid={}",
-            self.api_url, separator, block_number, self.chain_id
-        );
-
-        if let Some(ref key) = self.api_key {
-            url.push_str(&format!("&apikey={}", key));
-        }
-
-        tracing::info!("[EVM-{}] URL: {}", self.chain_name, url.replace(self.api_key.as_deref().unwrap_or(""), "REDACTED"));
-
-        let response = self.client.get(&url).send().await?;
-        let data: serde_json::Value = response.json().await?;
-
-        if let Some(status) = data.get("status").and_then(|s| s.as_str()) {
-            if status == "0" {
-                let err_msg = data.get("result")
-                    .map(|r| if r.is_string() { r.as_str().unwrap().to_string() } else { r.to_string() })
-                    .unwrap_or_else(|| "Unknown EVM API Error".to_string());
-                return Err(format!("EVM API Error: {}", err_msg).into());
-            }
-        }
-
-        let result = data.get("result")
-            .ok_or("No result in response")?;
-
-        if result.is_null() {
-            return Err("Block not found".into());
-        }
-
-        // Get timestamp from block (hex string)
-        let timestamp_hex = result.get("timestamp")
-            .and_then(|v| v.as_str())
-            .ok_or("No timestamp in block")?;
-
-        // Convert hex timestamp to u64
+        let tag = format!("0x{:x}", block_number);
+        let data = self.rpc_request("eth_getBlockByNumber", serde_json::json!([tag, false])).await?;
+        let result = data.get("result").ok_or("No result in response")?;
+        if result.is_null() { return Err("Block not found".into()); }
+        let timestamp_hex = result.get("timestamp").and_then(|v| v.as_str()).ok_or("No timestamp in block")?;
         let timestamp_secs = u64::from_str_radix(timestamp_hex.trim_start_matches("0x"), 16)?;
-
-        // Convert to DateTime
-        chrono::DateTime::from_timestamp(timestamp_secs as i64, 0)
-            .ok_or_else(|| "Invalid timestamp".into())
+        chrono::DateTime::from_timestamp(timestamp_secs as i64, 0).ok_or_else(|| "Invalid timestamp".into())
     }
 }
 
@@ -489,7 +503,7 @@ pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::C
         },
         "BITCOIN" => Box::new(self::btc_monitor::BtcMonitor::from_config(&config, is_sandbox)),
         "ETHEREUM" => Box::new(EvmMonitor::new_ethereum(&config, is_sandbox, token_address, decimals)),
-        "BEP20" => Box::new(EvmMonitor::new_bsc(&config, is_sandbox, token_address, decimals)),
+        "BINANCE" => Box::new(EvmMonitor::new_bsc(&config, is_sandbox, token_address, decimals)),
         "POLYGON" => Box::new(EvmMonitor::new_polygon(&config, is_sandbox, token_address, decimals)),
         "ARBITRUM" => Box::new(EvmMonitor::new_arbitrum(&config, is_sandbox, token_address, decimals)),
         _ => {

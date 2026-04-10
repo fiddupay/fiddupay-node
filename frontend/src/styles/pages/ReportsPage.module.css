@@ -1,48 +1,181 @@
 .page {
-    padding: 24px;
+    padding: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .header {
-    margin-bottom: 24px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 16px;
+    margin-bottom: 32px;
 }
 
-.header h1 {
-    font-size: 28px;
-    font-weight: 700;
+.titleArea h1 {
+    font-size: 32px;
+    font-weight: 800;
     color: var(--black);
     margin-bottom: 8px;
+    letter-spacing: -0.5px;
 }
 
-.header p {
+.titleArea p {
+    font-size: 16px;
     color: var(--gray);
 }
 
-.content {
+.filtersCard {
     background: var(--white);
     border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.filterGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.filterGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filterGroup label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--black);
+}
+
+.filterGroup input,
+.filterGroup select {
+    padding: 12px;
+    border: 1px solid var(--border);
     border-radius: 8px;
-    min-height: 400px;
+    font-size: 14px;
+    background-color: var(--light-gray);
+    transition: border-color 0.2s;
+}
+
+.filterGroup input:focus,
+.filterGroup select:focus {
+    outline: none;
+    border-color: var(--brand-blue);
+}
+
+.actionsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 32px;
+    margin-bottom: 48px;
+}
+
+.exportCard {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.exportCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.exportIcon {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    background: rgba(26, 115, 232, 0.1);
+    color: var(--brand-blue);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 32px;
+    margin-bottom: 24px;
 }
 
-.emptyState {
-    text-align: center;
-    color: var(--gray);
-}
-
-.emptyState i {
-    font-size: 48px;
-    margin-bottom: 16px;
-    color: var(--brand-blue);
-    opacity: 0.5;
-}
-
-.emptyState h3 {
+.exportInfo h3 {
     font-size: 20px;
-    margin-bottom: 8px;
-    color: var(--black);
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.exportInfo p {
+    font-size: 15px;
+    color: var(--gray);
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.exportBtn {
+    width: 100%;
+    padding: 14px;
+    background: var(--brand-blue);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.exportBtn:hover:not(:disabled) {
+    background: #1557b0;
+}
+
+.exportBtn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.pdfBtn {
+    background: #d93025; /* Google Red for PDF */
+}
+
+.pdfBtn:hover:not(:disabled) {
+    background: #b9261c;
+}
+
+.recentReports {
+    background: rgba(26, 115, 232, 0.03);
+    border-radius: 16px;
+    padding: 32px;
+}
+
+.recentReports h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+.recentReports ul {
+    list-style: none;
+    padding: 0;
+}
+
+.recentReports li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 15px;
+    color: var(--gray-dark);
+}
+
+.recentReports i {
+    color: var(--brand-blue);
+    font-size: 16px;
+}
+
+@media (max-width: 768px) {
+    .actionsGrid {
+        grid-template-columns: 1fr;
+    }
 }

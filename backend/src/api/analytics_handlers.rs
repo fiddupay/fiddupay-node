@@ -57,22 +57,47 @@ pub async fn export_analytics(
     let from = query.from_date.unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
     let to = query.to_date.unwrap_or_else(|| chrono::Utc::now());
     
-    if query.format.as_deref() == Some("json") {
-        match state.analytics_service.get_analytics(
-            context.merchant_id, 
-            from, 
-            to, 
-            query.blockchain.clone(), 
-            query.status.clone(), 
-            Some(context.sandbox_mode)
-        ).await {
-            Ok(report) => (StatusCode::OK, Json(report)).into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
-        }
-    } else {
-        match state.analytics_service.export_csv(context.merchant_id, from, to, query.blockchain, query.status, Some(context.sandbox_mode)).await {
-            Ok(csv) => (StatusCode::OK, csv).into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    let data = match state.report_service.get_payment_data(
+        context.merchant_id, 
+        from, 
+        to, 
+        query.blockchain.clone(), 
+        query.status.clone(), 
+        Some(context.sandbox_mode)
+    ).await {
+        Ok(d) => d,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+    };
+
+    match query.format.as_deref().unwrap_or("csv") {
+        "json" => {
+            (StatusCode::OK, Json(data)).into_response()
+        },
+        "pdf" => {
+            match state.report_service.generate_pdf("FidduPay Merchant", from, to, data).await {
+                Ok(pdf) => (
+                    StatusCode::OK,
+                    [
+                        ("Content-Type", "application/pdf"),
+                        ("Content-Disposition", "attachment; filename=\"report.pdf\""),
+                    ],
+                    pdf,
+                ).into_response(),
+                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+            }
+        },
+        _ => { // Default to CSV
+            match state.report_service.generate_csv(data).await {
+                Ok(csv) => (
+                    StatusCode::OK,
+                    [
+                        ("Content-Type", "text/csv"),
+                        ("Content-Disposition", "attachment; filename=\"report.csv\""),
+                    ],
+                    csv,
+                ).into_response(),
+                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+            }
         }
     }
 }

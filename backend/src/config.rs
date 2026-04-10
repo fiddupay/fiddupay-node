@@ -14,7 +14,14 @@ pub struct Config {
     pub database_max_connections: u32,
     pub database_timeout_seconds: u64,
     pub helius_api_key: Option<String>,
-
+    pub alchemy_api_keys: Vec<String>,
+    pub ankr_api_keys: Vec<String>,
+    pub getblock_eth_keys: Vec<String>,
+    pub getblock_bsc_keys: Vec<String>,
+    pub chainstack_eth_url: Option<String>,
+    pub chainstack_bsc_url: Option<String>,
+    pub infura_api_keys: Vec<String>,
+    pub moralis_api_keys: Vec<String>,
     // Redis
     pub redis_url: String,
     pub redis_max_connections: u32,
@@ -194,6 +201,44 @@ impl Config {
                 .unwrap_or_else(|_| "30".to_string())
                 .parse()?,
             helius_api_key: env::var("HELIUS_API_KEY").ok(),
+            alchemy_api_keys: env::var("ALCHEMY_API_KEYS")
+                .unwrap_or_default()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
+            ankr_api_keys: env::var("ANKR_API_KEYS")
+                .unwrap_or_default()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
+            getblock_eth_keys: env::var("GETBLOCK_ETH_KEYS")
+                .unwrap_or_default()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
+            getblock_bsc_keys: env::var("GETBLOCK_BSC_KEYS")
+                .unwrap_or_default()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
+            chainstack_eth_url: env::var("CHAINSTACK_ETH_URL").ok(),
+            chainstack_bsc_url: env::var("CHAINSTACK_BSC_URL").ok(),
+            infura_api_keys: env::var("INFURA_API_KEYS")
+                .unwrap_or_default()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
+            moralis_api_keys: env::var("MORALIS_API_KEYS")
+                .unwrap_or_default()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
 
             // Redis
             redis_url: env::var("REDIS_URL")?,
@@ -678,6 +723,15 @@ impl Default for Config {
             database_url: "postgres://localhost/test".to_string(),
             database_max_connections: 10,
             database_timeout_seconds: 30,
+            helius_api_key: None,
+            alchemy_api_keys: vec![],
+            ankr_api_keys: vec![],
+            getblock_eth_keys: vec![],
+            getblock_bsc_keys: vec![],
+            chainstack_eth_url: None,
+            chainstack_bsc_url: None,
+            infura_api_keys: vec![],
+            moralis_api_keys: vec![],
             redis_url: "redis://localhost:6379".to_string(),
             redis_max_connections: 10,
             redis_timeout_seconds: 30,

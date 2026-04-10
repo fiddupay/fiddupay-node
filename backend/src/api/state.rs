@@ -21,6 +21,7 @@ use crate::services::{
     volume_tracking_service::VolumeTrackingService,
     invoice_service::InvoiceService,
     p2p_service::P2pService,
+    report_service::ReportService,
 };
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -48,6 +49,7 @@ pub struct AppState {
     pub volume_tracking_service: Arc<VolumeTrackingService>,
     pub invoice_service: Arc<InvoiceService>,
     pub p2p_service: Arc<P2pService>,
+    pub report_service: Arc<ReportService>,
     pub redis_client: RedisClient,
 }
 
@@ -94,6 +96,7 @@ impl AppState {
             merchant_customer_service,
             invoice_service,
             p2p_service: Arc::new(P2pService::new(db_pool.clone())),
+            report_service: Arc::new(ReportService::new(db_pool.clone())),
             config,
             db_pool,
             redis_client,

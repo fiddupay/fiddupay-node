@@ -121,22 +121,35 @@ struct TransactionMeta {
 #[derive(Debug, Clone)]
 pub struct SolanaMonitor {
     client: Client,
-    rpc_url: String,
+    rpc_urls: Vec<String>,
     ws_url: String,
     expected_mint: Option<String>,
 }
 
 impl SolanaMonitor {
     pub fn new(config: &crate::config::Config, custom_rpc_url: Option<String>, expected_mint: Option<String>) -> Self {
-        let rpc_url = custom_rpc_url.unwrap_or_else(|| config.solana_rpc_url.clone());
-        let ws_url = get_solana_ws_url(config, &rpc_url);
+        let mut rpc_urls = Vec::new();
+
+        if let Some(url) = custom_rpc_url {
+            rpc_urls.push(url);
+        } else {
+            for key in &config.alchemy_api_keys {
+                rpc_urls.push(format!("https://solana-mainnet.g.alchemy.com/v2/{}", key));
+            }
+            if let Some(ref key) = config.helius_api_key {
+                rpc_urls.push(format!("https://mainnet.helius-rpc.com/?api-key={}", key));
+            }
+            rpc_urls.push(config.solana_rpc_url.clone());
+        }
+
+        let ws_url = get_solana_ws_url(config, &rpc_urls[0]);
         
         Self {
             client: Client::builder()
                 .timeout(std::time::Duration::from_secs(10))
                 .build()
                 .unwrap_or_else(|_| Client::new()),
-            rpc_url,
+            rpc_urls,
             ws_url,
             expected_mint,
         }
@@ -150,6 +163,38 @@ impl SolanaMonitor {
         Some(ata_pubkey.to_string())
     }
 
+    async fn rpc_request<T: serde::de::DeserializeOwned>(
+        &self, 
+        method: &str, 
+        params: serde_json::Value
+    ) -> Result<RpcResponse<T>, Box<dyn std::error::Error + Send + Sync>> {
+        let request = RpcRequest { jsonrpc: "2.0".to_string(), id: 1, method: method.to_string(), params };
+        let mut last_error = None;
+        for url in &self.rpc_urls {
+            match self.client.post(url).json(&request).send().await {
+                Ok(response) => {
+                    if response.status() == 429 {
+                        warn!("Solana rate limit hit on {}, trying next RPC...", url);
+                        last_error = Some("Rate limit hit".to_string());
+                        continue;
+                    }
+                    match response.json::<RpcResponse<T>>().await {
+                        Ok(data) => return Ok(data),
+                        Err(e) => {
+                            warn!("Solana RPC JSON parse error on {}: {}", url, e);
+                            last_error = Some(e.to_string());
+                        }
+                    }
+                },
+                Err(e) => {
+                    warn!("Network error connecting to {}: {}", url, e);
+                    last_error = Some(e.to_string());
+                }
+            }
+        }
+        Err(format!("All Solana RPC nodes failed. Last error: {:?}", last_error).into())
+    }
+
     /// Get recent transactions for an address
     pub async fn get_transactions_to_address(
         &self,
@@ -157,17 +202,14 @@ impl SolanaMonitor {
         limit: usize,
         min_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
-        // VALIDATION: Ensure this is a valid Solana address (Requirement: Filter out mislabeled EVM addresses)
         if address.starts_with("0x") || address.len() < 32 || Pubkey::from_str(address).is_err() {
             return Ok(Vec::new());
         }
 
         info!(" Fetching Solana transactions for address: {}", address);
 
-        // Fetch current slot once to avoid N+1 RPC calls for confirmation calculations
         let current_slot = self.get_current_slot().await.unwrap_or(0);
 
-        // Determine which addresses to check for signatures
         let mut addresses_to_check = vec![address.to_string()];
         if let Some(ref mint) = self.expected_mint {
             if let Some(ata) = Self::get_ata_address(address, mint) {
@@ -181,36 +223,20 @@ impl SolanaMonitor {
         let mut all_signatures = std::collections::HashSet::new();
 
         for addr in addresses_to_check {
-            // First, get signatures for address
-            let request = RpcRequest {
-                jsonrpc: "2.0".to_string(),
-                id: 1,
-                method: "getSignaturesForAddress".to_string(),
-                params: serde_json::json!([
-                    addr,
-                    { "limit": limit, "commitment": "confirmed" }
-                ]),
+            let rpc_response: RpcResponse<Vec<GetSignaturesResult>> = match self.rpc_request(
+                "getSignaturesForAddress", 
+                serde_json::json!([addr, { "limit": limit, "commitment": "confirmed" }])
+            ).await {
+                Ok(res) => res,
+                Err(e) => {
+                    error!("Solana RPC getSignaturesForAddress error for {}: {}", addr, e);
+                    continue;
+                }
             };
-
-            let response = self.client
-                .post(&self.rpc_url)
-                .json(&request)
-                .send()
-                .await
-                .map_err(|e| {
-                    error!("Solana RPC getSignaturesForAddress network error for {}: {}", addr, e);
-                    e
-                })?;
-
-            let rpc_response: RpcResponse<Vec<GetSignaturesResult>> = response.json().await
-                .map_err(|e| {
-                    error!("Solana RPC getSignaturesForAddress JSON error for {}: {}", addr, e);
-                    e
-                })?;
 
             if let Some(err) = rpc_response.error {
                 error!("Solana RPC getSignaturesForAddress error for {} {}: {}", addr, err.code, err.message);
-                continue; // Try next address
+                continue;
             }
 
             if let Some(signatures) = rpc_response.result {
@@ -256,52 +282,38 @@ impl SolanaMonitor {
         signature: &str,
         current_slot: Option<u64>,
     ) -> Result<BlockchainTransaction, Box<dyn std::error::Error + Send + Sync>> {
-        let request = RpcRequest {
-            jsonrpc: "2.0".to_string(),
-            id: 1,
-            method: "getTransaction".to_string(),
-            params: serde_json::json!([
-                signature,
-                {
-                    "encoding": "json",
-                    "maxSupportedTransactionVersion": 0,
-                    "commitment": "confirmed"
-                }
-            ]),
-        };
-
         let mut tx_result: Option<TransactionResult> = None;
         let mut retry_count = 0;
         let max_retries = 3;
 
         while retry_count <= max_retries {
-            let response = self.client
-                .post(&self.rpc_url)
-                .json(&request)
-                .send()
-                .await
-                .map_err(|e| {
-                    error!("Solana RPC getTransaction network error for {}: {}", signature, e);
-                    e
-                })?;
+            let rpc_response: Result<RpcResponse<Option<TransactionResult>>, _> = self.rpc_request(
+                "getTransaction",
+                serde_json::json!([
+                    signature,
+                    {
+                        "encoding": "json",
+                        "maxSupportedTransactionVersion": 0,
+                        "commitment": "confirmed"
+                    }
+                ])
+            ).await;
 
-            let text = response.text().await?;
-            let rpc_response: RpcResponse<Option<TransactionResult>> = match serde_json::from_str(&text) {
-                Ok(res) => res,
+            match rpc_response {
+                Ok(res) => {
+                    if let Some(err) = res.error {
+                        error!("Solana RPC getTransaction error for {}: {}: {}", signature, err.code, err.message);
+                        return Err(format!("RPC Error: {}", err.message).into());
+                    }
+                    if let Some(Some(tx)) = res.result {
+                        tx_result = Some(tx);
+                        break;
+                    }
+                },
                 Err(e) => {
-                    error!("Solana RPC getTransaction JSON error for {}: {} | Raw response: {}", signature, e, text);
-                    return Err(e.into());
+                    error!("Solana RPC getTransaction error for {}: {}", signature, e);
+                    return Err(e);
                 }
-            };
-
-            if let Some(err) = rpc_response.error {
-                error!("Solana RPC getTransaction error for {}: {}: {}", signature, err.code, err.message);
-                return Err(format!("RPC Error: {}", err.message).into());
-            }
-
-            if let Some(Some(res)) = rpc_response.result {
-                tx_result = Some(res);
-                break;
             }
 
             if retry_count < max_retries {
@@ -445,30 +457,11 @@ impl SolanaMonitor {
 
     /// Get current slot number
     async fn get_current_slot(&self) -> Result<u64, Box<dyn std::error::Error + Send + Sync>> {
-        let request = RpcRequest {
-            jsonrpc: "2.0".to_string(),
-            id: 1,
-            method: "getSlot".to_string(),
-            params: serde_json::json!([]),
-        };
-
-        let response = self.client
-            .post(&self.rpc_url)
-            .json(&request)
-            .send()
-            .await?;
-
-        let rpc_response: RpcResponse<u64> = response.json().await
-            .map_err(|e| {
-                error!("Solana RPC getSlot JSON error: {}", e);
-                e
-            })?;
-
+        let rpc_response: RpcResponse<u64> = self.rpc_request("getSlot", serde_json::json!([])).await?;
         if let Some(err) = rpc_response.error {
             error!("Solana RPC getSlot error {}: {}", err.code, err.message);
             return Err(format!("RPC Error: {}", err.message).into());
         }
-
         Ok(rpc_response.result.unwrap_or(0))
     }
 

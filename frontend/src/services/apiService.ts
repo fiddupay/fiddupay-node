@@ -81,6 +81,16 @@ export const merchantAPI = {
     const query = params ? `?${new URLSearchParams(cleanParams(params)).toString()}` : '';
     return api.get(`/api/v1/merchants/audit-logs${query}`);
   },
+  exportAnalytics: (params: {
+    from_date?: string;
+    to_date?: string;
+    status?: string;
+    blockchain?: string;
+    format: 'csv' | 'pdf' | 'json';
+  }) => {
+    const query = `?${new URLSearchParams(cleanParams(params)).toString()}`;
+    return api.get(`/api/v1/merchants/analytics/export${query}`, { responseType: 'blob' });
+  },
 }
 
 export const paymentAPI = {
