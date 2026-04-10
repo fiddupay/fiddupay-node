@@ -120,7 +120,7 @@ impl EvmMonitor {
             chain_id: if is_sandbox { config.bsc_testnet_chain_id } else { config.bsc_chain_id },
             rpc_urls: Self::build_rpc_urls("BSC", is_sandbox, config),
             moralis_keys: config.moralis_api_keys.clone(),
-            etherscan_api_url: if is_sandbox { "https://api-testnet.bscscan.com/api".to_string() } else { "https://api.bscscan.com/api".to_string() },
+            etherscan_api_url: "https://api.etherscan.io/v2/api".to_string(),
             etherscan_api_key: config.etherscan_api_key.clone(),
             internal_chain_identifier: "BSC",
         }
@@ -135,7 +135,7 @@ impl EvmMonitor {
             chain_id: if is_sandbox { config.arbitrum_sepolia_chain_id } else { config.arbitrum_chain_id },
             rpc_urls: Self::build_rpc_urls("ARBITRUM", is_sandbox, config),
             moralis_keys: config.moralis_api_keys.clone(),
-            etherscan_api_url: if is_sandbox { "https://api-sepolia.arbiscan.io/api".to_string() } else { "https://api.arbiscan.io/api".to_string() },
+            etherscan_api_url: "https://api.etherscan.io/v2/api".to_string(),
             etherscan_api_key: config.etherscan_api_key.clone(),
             internal_chain_identifier: "ARBITRUM",
         }
@@ -151,7 +151,7 @@ impl EvmMonitor {
             chain_id,
             rpc_urls: Self::build_rpc_urls("POLYGON", is_sandbox, config),
             moralis_keys: config.moralis_api_keys.clone(),
-            etherscan_api_url: if is_sandbox { "https://api-amoy.polygonscan.com/api".to_string() } else { "https://api.polygonscan.com/api".to_string() },
+            etherscan_api_url: "https://api.etherscan.io/v2/api".to_string(),
             etherscan_api_key: config.etherscan_api_key.clone(),
             internal_chain_identifier: "POLYGON",
         }
@@ -167,7 +167,7 @@ impl EvmMonitor {
             chain_id,
             rpc_urls: Self::build_rpc_urls("ETH", is_sandbox, config),
             moralis_keys: config.moralis_api_keys.clone(),
-            etherscan_api_url: if is_sandbox { "https://api-sepolia.etherscan.io/api".to_string() } else { config.etherscan_api_url.clone() },
+            etherscan_api_url: "https://api.etherscan.io/v2/api".to_string(),
             etherscan_api_key: config.etherscan_api_key.clone(),
             internal_chain_identifier: "ETH",
         }
@@ -235,7 +235,7 @@ impl EvmMonitor {
         }
 
         if !self.etherscan_api_url.is_empty() {
-             let mut url = format!("{}?module=proxy&action={}", self.etherscan_api_url, method);
+             let mut url = format!("{}?module=proxy&action={}&chainid={}", self.etherscan_api_url, method, self.chain_id);
              if let Some(ref key) = self.etherscan_api_key { url.push_str(&format!("&apikey={}", key)); }
              let params_mapped = match method {
                  "eth_getTransactionByHash" | "eth_getTransactionReceipt" => if let Some(arr) = params.as_array() {

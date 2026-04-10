@@ -136,60 +136,112 @@ impl ReportService {
         let mut doc = genpdf::Document::new(font_family);
         doc.set_title("FidduPay Transaction Report");
 
+        // Brand Color (FidduPay Blue-ish)
+        let brand_color = style::Color::Rgb(63, 81, 181);
+
         // Decoration
         let mut decorator = genpdf::SimplePageDecorator::new();
-        decorator.set_margins(10);
+        decorator.set_margins(15);
         doc.set_page_decorator(decorator);
 
-        // Header
-        doc.push(elements::Text::new("FidduPay Transaction Report")
-            .styled(style::Style::new().bold().with_font_size(18)));
-        doc.push(elements::Text::new(format!("Merchant: {}", merchant_name)));
-        doc.push(elements::Text::new(format!("Period: {} - {}", 
-            start_date.format("%Y-%m-%d"), 
-            end_date.format("%Y-%m-%d")
-        )));
+        // --- Header Section ---
+        doc.push(elements::Text::new("FidduPay")
+            .styled(style::Style::new().bold().with_font_size(24).with_color(brand_color)));
+        doc.push(elements::Text::new("Decentralized Payment Gateway")
+            .styled(style::Style::new().with_font_size(10).with_color(style::Color::Rgb(100, 100, 100))));
+        doc.push(elements::Break::new(1.0));
+        
+        // Accent Line
+        doc.push(elements::PaddedElement::new(
+            elements::Break::new(0.1),
+            genpdf::Margins::trbl(0, 0, 1, 0)
+        ));
+
+        doc.push(elements::Paragraph::new("Transaction Report")
+            .styled(style::Style::new().bold().with_font_size(16)));
+        
+        let mut meta_table = elements::TableLayout::new(vec![1, 3]);
+        let _ = meta_table.row()
+            .element(elements::Text::new("Merchant:").styled(style::Style::new().bold()))
+            .element(elements::Text::new(merchant_name))
+            .push();
+        let _ = meta_table.row()
+            .element(elements::Text::new("Period:").styled(style::Style::new().bold()))
+            .element(elements::Text::new(format!("{} to {}", 
+                start_date.format("%Y-%m-%d"), 
+                end_date.format("%Y-%m-%d")
+            )))
+            .push();
+        doc.push(meta_table);
         doc.push(elements::Break::new(1.5));
 
-        // Summary Calculations
+        // --- Summary Section ---
         let total_count = data.len();
         let total_amount_usd: Decimal = data.iter().map(|d| d.amount_usd).sum();
         let total_fees_usd: Decimal = data.iter().map(|d| d.fee_amount_usd).sum();
 
-        doc.push(elements::Paragraph::new("Summary")
-            .styled(style::Style::new().bold().with_font_size(14)));
-        doc.push(elements::Text::new(format!("Total Transactions: {}", total_count)));
-        doc.push(elements::Text::new(format!("Total Volume (USD): ${:.2}", total_amount_usd)));
-        doc.push(elements::Text::new(format!("Total Fees (USD):   ${:.2}", total_fees_usd)));
-        doc.push(elements::Break::new(1.5));
+        let mut summary_box = elements::LinearLayout::vertical();
+        summary_box.push(elements::Text::new("Financial Summary")
+            .styled(style::Style::new().bold().with_font_size(14).with_color(brand_color)));
+        summary_box.push(elements::Break::new(0.5));
+        summary_box.push(elements::Text::new(format!("Total Transactions: {}", total_count)));
+        summary_box.push(elements::Text::new(format!("Total Volume:       ${:.2} USD", total_amount_usd)));
+        summary_box.push(elements::Text::new(format!("Total Fees:         ${:.2} USD", total_fees_usd)));
+        
+        doc.push(elements::PaddedElement::new(
+            summary_box,
+            genpdf::Margins::trbl(5, 10, 5, 10)
+        ));
+        doc.push(elements::Break::new(2.0));
 
-        // Table
-        let mut table = elements::TableLayout::new(vec![2, 4, 3, 2, 2]);
+        // --- Table Section ---
+        // Adjusted widths: Date(2), Payment ID(5), Crypto(4), Amount(2), Status(2)
+        let mut table = elements::TableLayout::new(vec![2, 5, 4, 3, 2]);
         table.set_cell_decorator(elements::FrameCellDecorator::new(true, true, false));
 
+        // Helper for truncation
+        let truncate_id = |id: &str| -> String {
+            if id.len() > 20 {
+                format!("{}...", &id[..17])
+            } else {
+                id.to_string()
+            }
+        };
+
         // Header Row
-        table.row()
-            .element(elements::Text::new("Date").styled(style::Style::new().bold()))
-            .element(elements::Text::new("Payment ID").styled(style::Style::new().bold()))
-            .element(elements::Text::new("Crypto").styled(style::Style::new().bold()))
-            .element(elements::Text::new("Amount USD").styled(style::Style::new().bold()))
-            .element(elements::Text::new("Status").styled(style::Style::new().bold()))
-            .push()
-            .map_err(|e| ServiceError::InternalError(format!("Failed to add table header: {}", e)))?;
+        let header_style = style::Style::new().bold().with_font_size(11).with_color(style::Color::Rgb(255, 255, 255));
+        // Note: genpdf doesn't support cell background colors easily in 0.2 without custom decorators,
+        // so we'll just use bold text and standard borders for now but with better spacing.
+
+        let _ = table.row()
+            .element(elements::PaddedElement::new(elements::Text::new("Date").styled(style::Style::new().bold()), 2))
+            .element(elements::PaddedElement::new(elements::Text::new("Payment ID").styled(style::Style::new().bold()), 2))
+            .element(elements::PaddedElement::new(elements::Text::new("Crypto / Network").styled(style::Style::new().bold()), 2))
+            .element(elements::PaddedElement::new(elements::Text::new("Amount USD").styled(style::Style::new().bold()), 2))
+            .element(elements::PaddedElement::new(elements::Text::new("Status").styled(style::Style::new().bold()), 2))
+            .push();
 
         // Data Rows
+        let row_style = style::Style::new().with_font_size(10);
         for row in data {
-            table.row()
-                .element(elements::Text::new(row.created_at.format("%Y-%m-%d").to_string()))
-                .element(elements::Text::new(&row.payment_id))
-                .element(elements::Text::new(format!("{} ({})", 
+            let status_color = if row.status == "CONFIRMED" {
+                style::Color::Rgb(46, 125, 50) // Material Green 700
+            } else if row.status == "FAILED" {
+                style::Color::Rgb(198, 40, 40) // Material Red 800
+            } else {
+                style::Color::Rgb(0, 0, 0)
+            };
+
+            let _ = table.row()
+                .element(elements::PaddedElement::new(elements::Text::new(row.created_at.format("%Y-%m-%d").to_string()).styled(row_style), 2))
+                .element(elements::PaddedElement::new(elements::Text::new(truncate_id(&row.payment_id)).styled(row_style), 2))
+                .element(elements::PaddedElement::new(elements::Text::new(format!("{} on {}", 
                     row.crypto_type.as_deref().unwrap_or("N/A"),
                     row.network.as_deref().unwrap_or("N/A")
-                )))
-                .element(elements::Text::new(format!("${:.2}", row.amount_usd)))
-                .element(elements::Text::new(row.status.to_string()))
-                .push()
-                .map_err(|e| ServiceError::InternalError(format!("Failed to add table row: {}", e)))?;
+                )).styled(row_style), 2))
+                .element(elements::PaddedElement::new(elements::Text::new(format!("${:.2}", row.amount_usd)).styled(row_style), 2))
+                .element(elements::PaddedElement::new(elements::Text::new(row.status.to_string()).styled(row_style.with_color(status_color)), 2))
+                .push();
         }
 
         doc.push(table);
