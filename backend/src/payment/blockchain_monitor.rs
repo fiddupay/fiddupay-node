@@ -493,13 +493,8 @@ pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::C
     
     match crypto_type.network() {
         "SOLANA" | "SOLANA_SPL" => {
-            let rpc_url = if is_sandbox {
-                Some(config.solana_devnet_rpc_url.clone())
-            } else {
-                None // Uses default from config (mainnet)
-            };
             let expected_mint = crypto_type.token_address().map(|s| s.to_string());
-            Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, rpc_url, expected_mint))
+            Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, is_sandbox, expected_mint))
         },
         "BITCOIN" => Box::new(self::btc_monitor::BtcMonitor::from_config(&config, is_sandbox)),
         "ETHEREUM" => Box::new(EvmMonitor::new_ethereum(&config, is_sandbox, token_address, decimals)),
@@ -508,13 +503,8 @@ pub fn get_blockchain_monitor(crypto_type: &CryptoType, config: crate::config::C
         "ARBITRUM" => Box::new(EvmMonitor::new_arbitrum(&config, is_sandbox, token_address, decimals)),
         _ => {
              // Default to Solana for unknown types (fallback)
-            let rpc_url = if is_sandbox {
-                Some(config.solana_devnet_rpc_url.clone())
-            } else {
-                None
-            };
             let expected_mint = crypto_type.token_address().map(|s| s.to_string());
-            Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, rpc_url, expected_mint))
+            Box::new(crate::payment::sol_monitor::SolanaMonitor::new(&config, is_sandbox, expected_mint))
         },
     }
 }

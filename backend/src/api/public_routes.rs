@@ -1,11 +1,10 @@
 use axum::{
-    extract::{State, Json},
+    extract::{State, Json, DefaultBodyLimit},
     routing::{post},
     Router,
     response::IntoResponse,
-    http::StatusCode,
+    http::{StatusCode, HeaderMap},
 };
-use axum_client_ip::InsecureClientIp;
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use serde_json::json;
@@ -37,9 +36,22 @@ pub fn public_routes(state: AppState) -> Router<AppState> {
 /// Create a new payment via Publishable Key (for pure no-code frontend widgets)
 async fn create_public_payment(
     State(state): State<AppState>,
-    InsecureClientIp(ip): InsecureClientIp,
+    headers: HeaderMap,
     Json(payload): Json<PublicPaymentRequest>,
 ) -> impl IntoResponse {
+    
+    // Extract IP address from headers safely to bypass InsecureClientIp generic bounds
+    let ip_str = headers
+        .get("x-forwarded-for")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|s| s.split(',').next())
+        .map(|s| s.trim())
+        .unwrap_or_else(|| {
+            headers
+                .get("x-real-ip")
+                .and_then(|value| value.to_str().ok())
+                .unwrap_or("0.0.0.0")
+        });
     
     // 1. Authenticate using publishable key instead of standard API secret
     let merchant = match state
@@ -91,7 +103,7 @@ async fn create_public_payment(
                 Some(&format!("Created public widget payment request {}", response.payment_id)),
                 Some(json!({
                     "payment_id": response.payment_id,
-                    "ip_address": ip.to_string(),
+                    "ip_address": ip_str,
                     "origin": "public_widget",
                     "publishable_key_type": if payload.publishable_key.starts_with("pub_live") { "live" } else { "sandbox" }
                 }))

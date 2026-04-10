@@ -141,11 +141,11 @@ pub struct SolanaMonitor {
 }
 
 impl SolanaMonitor {
-    pub fn new(config: &crate::config::Config, custom_rpc_url: Option<String>, expected_mint: Option<String>) -> Self {
+    pub fn new(config: &crate::config::Config, is_sandbox: bool, expected_mint: Option<String>) -> Self {
         let mut rpc_urls = Vec::new();
 
-        if let Some(url) = custom_rpc_url {
-            rpc_urls.push(url);
+        if is_sandbox {
+            rpc_urls.push(config.solana_devnet_rpc_url.clone());
         } else {
             // SVS
             for key in &config.svs_api_keys {
