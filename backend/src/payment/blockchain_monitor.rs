@@ -302,6 +302,52 @@ impl EvmMonitor {
         Err("All Moralis keys exhausted or failed".into())
     }
 
+    async fn get_alchemy_transactions(&self, address: &str, limit: usize) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
+        let payload = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "alchemy_getAssetTransfers",
+            "params": [
+                {
+                    "toAddress": address,
+                    "category": ["external", "erc20"],
+                    "withMetadata": true,
+                    "maxCount": format!("0x{:x}", limit),
+                    "excludeZeroValue": true,
+                }
+            ]
+        });
+
+        for rpc_url in &self.rpc_urls {
+            // Only try Asset Transfers on Alchemy nodes
+            if !rpc_url.contains("alchemy.com") {
+                continue;
+            }
+
+            if let Ok(response) = self.client.post(rpc_url).json(&payload).send().await {
+                if response.status().is_success() {
+                    let data = response.json::<serde_json::Value>().await?;
+                    if let Some(result) = data.get("result") {
+                        if let Some(transfers) = result.get("transfers").and_then(|t| t.as_array()) {
+                            let mut transactions = Vec::new();
+                            for transfer in transfers {
+                                let hash = transfer.get("hash").and_then(|h| h.as_str()).unwrap_or("");
+                                if !hash.is_empty() {
+                                    // Fetch full details to ensure consistency
+                                    if let Ok(tx_dets) = self.get_transaction_details(hash, Some(address)).await {
+                                        transactions.push(tx_dets);
+                                    }
+                                }
+                            }
+                            return Ok(transactions);
+                        }
+                    }
+                }
+            }
+        }
+        Err("Alchemy Asset Transfers failed or no results".into())
+    }
+
     async fn get_etherscan_transactions(&self, address: &str, limit: usize, min_timestamp: Option<chrono::DateTime<chrono::Utc>>) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
         let action = if self.token_address.is_some() { "tokentx" } else { "txlist" };
         let mut url = format!("{}?module=account&action={}&address={}&startblock=0&endblock=99999999&page=1&offset={}&sort=desc&chainid={}", 
@@ -458,13 +504,21 @@ impl BlockchainMonitor for EvmMonitor {
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
         info!(" Fetching {} transactions for address: {}", self.chain_name, address);
 
+        // 1. Try Moralis (Primary)
         if !self.moralis_keys.is_empty() {
              match self.get_moralis_transactions(address, limit).await {
                  Ok(txs) => return Ok(txs),
-                 Err(e) => warn!("Moralis parsing/fetching failed: {}, falling back to Etherscan...", e)
+                 Err(e) => warn!("Moralis parsing/fetching failed: {}, falling back to Alchemy...", e)
              }
         }
+
+        // 2. Try Alchemy Asset Transfers (Robust Fallback - Free Multichain support)
+        match self.get_alchemy_transactions(address, limit).await {
+            Ok(txs) => return Ok(txs),
+            Err(e) => warn!("Alchemy Asset Transfers failed: {}, falling back to Etherscan...", e)
+        }
         
+        // 3. Try Etherscan V2 (Best Effort / Legacy fallback)
         self.get_etherscan_transactions(address, limit, min_timestamp).await
     }
 
