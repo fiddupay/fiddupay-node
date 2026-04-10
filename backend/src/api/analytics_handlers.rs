@@ -74,7 +74,15 @@ pub async fn export_analytics(
             (StatusCode::OK, Json(data)).into_response()
         },
         "pdf" => {
-            match state.report_service.generate_pdf("FidduPay Merchant", from, to, data).await {
+            let business_name: String = match sqlx::query_scalar("SELECT business_name FROM merchants WHERE id = $1")
+                .bind(context.merchant_id)
+                .fetch_one(&state.db_pool)
+                .await {
+                    Ok(name) => name,
+                    Err(_) => "FidduPay Merchant".to_string(),
+                };
+
+            match state.report_service.generate_pdf(&business_name, from, to, data).await {
                 Ok(pdf) => (
                     StatusCode::OK,
                     [

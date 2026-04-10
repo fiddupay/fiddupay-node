@@ -2,8 +2,8 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use sqlx::{PgPool, FromRow};
 use serde::Serialize;
-use std::io::Cursor;
 use csv::Writer;
+use genpdf::{elements, fonts, style};
 use crate::error::ServiceError;
 
 #[derive(Debug, FromRow, Serialize)]
@@ -111,19 +111,95 @@ impl ReportService {
         end_date: DateTime<Utc>,
         data: Vec<PaymentReportRow>,
     ) -> Result<Vec<u8>, ServiceError> {
-        // Placeholder for PDF generation utilizing genpdf
-        // For now, we return a simple notice or the data as a string in bytes
-        // until we can verify font availability or use printpdf builtins.
+        // 1. Load Font (Attempt typical Linux system paths)
+        let font_path = [
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+            "/usr/share/fonts/TTF/DejaVuSans.ttf",
+            "/usr/share/fonts/TTF/LiberationSans-Regular.ttf",
+        ].iter().find(|p| std::path::Path::new(p).exists())
+        .ok_or_else(|| ServiceError::InternalError("No TrueType font found on server. Please install liberation-fonts or dejavu-fonts.".to_string()))?;
+
+        let font_bytes = std::fs::read(font_path)
+            .map_err(|e| ServiceError::InternalError(format!("Failed to read font file: {}", e)))?;
         
-        // TODO: Full implementation with genpdf once font strategy is finalized.
-        let mut content = format!("FidduPay Transaction Report\n");
-        content.push_str(&format!("Merchant: {}\n", merchant_name));
-        content.push_str(&format!("Period: {} to {}\n\n", start_date, end_date));
-        
+        let font_data = fonts::FontData::new(font_bytes, None);
+        let font_family = fonts::FontFamily {
+            regular: font_data.clone(),
+            bold: font_data.clone(),
+            italic: font_data.clone(),
+            bold_italic: font_data.clone(),
+        };
+
+        let mut doc = genpdf::Document::new(font_family);
+        doc.set_title("FidduPay Transaction Report");
+
+        // Decoration
+        let mut decorator = genpdf::SimplePageDecorator::new();
+        decorator.set_margins(10);
+        doc.set_page_decorator(decorator);
+
+        // Header
+        doc.push(elements::Text::new("FidduPay Transaction Report")
+            .styled(style::Style::new().bold().with_font_size(18)));
+        doc.push(elements::Text::new(format!("Merchant: {}", merchant_name)));
+        doc.push(elements::Text::new(format!("Period: {} - {}", 
+            start_date.format("%Y-%m-%d"), 
+            end_date.format("%Y-%m-%d")
+        )));
+        doc.push(elements::Break::new(1.5));
+
+        // Summary Calculations
+        let total_count = data.len();
+        let total_amount_usd: Decimal = data.iter().map(|d| d.amount_usd).sum();
+        let total_fees_usd: Decimal = data.iter().map(|d| d.fee_amount_usd).sum();
+
+        doc.push(elements::Paragraph::new("Summary")
+            .styled(style::Style::new().bold().with_font_size(14)));
+        doc.push(elements::Text::new(format!("Total Transactions: {}", total_count)));
+        doc.push(elements::Text::new(format!("Total Volume (USD): ${:.2}", total_amount_usd)));
+        doc.push(elements::Text::new(format!("Total Fees (USD):   ${:.2}", total_fees_usd)));
+        doc.push(elements::Break::new(1.5));
+
+        // Table
+        let mut table = elements::TableLayout::new(vec![2, 4, 3, 2, 2]);
+        table.set_cell_decorator(elements::FrameCellDecorator::new());
+
+        // Header Row
+        table.push_row(elements::TableRow::new(vec![
+            Box::new(elements::Text::new("Date").styled(style::Style::new().bold())),
+            Box::new(elements::Text::new("Payment ID").styled(style::Style::new().bold())),
+            Box::new(elements::Text::new("Crypto").styled(style::Style::new().bold())),
+            Box::new(elements::Text::new("Amount USD").styled(style::Style::new().bold())),
+            Box::new(elements::Text::new("Status").styled(style::Style::new().bold())),
+        ]));
+
+        // Data Rows
         for row in data {
-            content.push_str(&format!("{} | {} | {} USD | {}\n", row.created_at, row.payment_id, row.amount_usd, row.status));
+            table.push_row(elements::TableRow::new(vec![
+                Box::new(elements::Text::new(row.created_at.format("%Y-%m-%d").to_string())),
+                Box::new(elements::Text::new(&row.payment_id)),
+                Box::new(elements::Text::new(format!("{} ({})", 
+                    row.crypto_type.as_deref().unwrap_or("N/A"),
+                    row.network.as_deref().unwrap_or("N/A")
+                ))),
+                Box::new(elements::Text::new(format!("${:.2}", row.amount_usd))),
+                Box::new(elements::Text::new(row.status.to_string())),
+            ]));
         }
-        
-        Ok(content.into_bytes())
+
+        doc.push(table);
+
+        // Footer
+        doc.push(elements::Break::new(2.0));
+        doc.push(elements::Paragraph::new("Generated by FidduPay - Decentralized Payment Gateway")
+            .styled(style::Color::Rgb(128, 128, 128)));
+
+        let mut buffer = Vec::new();
+        doc.render_to(&mut buffer)
+            .map_err(|e| ServiceError::InternalError(format!("PDF rendering failed: {}", e)))?;
+
+        Ok(buffer)
     }
 }
