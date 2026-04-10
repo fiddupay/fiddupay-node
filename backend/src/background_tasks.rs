@@ -731,13 +731,7 @@ impl BackgroundTasks {
             info!("Monitoring {} active Solana {} addresses via WebSocket", addresses.len(), cluster_name);
 
             // Initialize monitor and verifier
-            let rpc_url = if sandbox_mode {
-                Some(self.config.solana_devnet_rpc_url.clone())
-            } else {
-                Some(self.config.solana_rpc_url.clone())
-            };
-            
-            let monitor = SolanaMonitor::new(&self.config, rpc_url, None);
+            let monitor = SolanaMonitor::new(&self.config, sandbox_mode, None);
             let verifier = Arc::new(PaymentVerifier::new(
                 self.db_pool.clone(),
                 (*self.webhook_service).clone(),
