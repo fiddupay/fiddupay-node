@@ -1,6 +1,6 @@
 use sqlx::{PgPool, Row};
 use std::sync::Arc;
-use crate::config::Settings;
+use crate::config::Config;
 use chrono::{DateTime, Utc, Duration};
 use serde::Serialize;
 use crate::error::ServiceError;
@@ -20,11 +20,11 @@ pub struct DepositAddress {
 pub struct DepositAddressService {
     pool: PgPool,
     encryption: Encryption,
-    config: Arc<Settings>,
+    config: Arc<Config>,
 }
 
 impl DepositAddressService {
-    pub fn new(pool: PgPool, config: Arc<Settings>) -> Result<Self, ServiceError> {
+    pub fn new(pool: PgPool, config: Arc<Config>) -> Result<Self, ServiceError> {
         let encryption = Encryption::new()
             .map_err(|e| ServiceError::InternalError(format!("Encryption init failed: {}", e)))?;
         
