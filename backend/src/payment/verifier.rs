@@ -886,11 +886,12 @@ impl PaymentVerifier {
         if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
             let notification = serde_json::json!({
                 "event": "customer.deposit",
-                "amount": actual_amount,
-                "net_amount": net_amount,
-                "fee_amount": fee_amount,
+                "amount": actual_amount.to_string(),
+                "net_amount": net_amount.to_string(),
+                "fee_amount": fee_amount.to_string(),
                 "crypto_type": final_crypto_str,
-                "transaction_hash": transaction_hash
+                "transaction_hash": transaction_hash,
+                "payment_id": webhook_payload.payment_id.clone(), // Include payment_id for consistency
             });
             let channel = format!("merchant_notifications:{}", merchant_id);
             let _: redis::RedisResult<()> = redis::cmd("PUBLISH")
@@ -1104,10 +1105,11 @@ impl PaymentVerifier {
         if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
             let notification = serde_json::json!({
                 "event": "merchant.deposit",
-                "amount": actual_amount,
-                "amount_usd": amount_usd,
+                "amount": actual_amount.to_string(),
+                "amount_usd": amount_usd.to_string(),
                 "crypto_type": final_crypto_str,
-                "transaction_hash": transaction_hash
+                "transaction_hash": transaction_hash,
+                "payment_id": payment_id_str,
             });
             let channel = format!("merchant_notifications:{}", merchant_id);
             let _: redis::RedisResult<()> = redis::cmd("PUBLISH")

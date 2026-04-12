@@ -62,12 +62,15 @@ impl WebhookService {
                 ));
             }
 
+            // Check if a webhook with this format already exists for this merchant
+            // If so, update it. Otherwise, insert a new one.
+            // This prevents Discord webhook from overwriting the primary 'standard' API webhook.
             sqlx::query(
                 r#"
                 INSERT INTO webhook_configs (merchant_id, url, payload_format, is_active, signing_secret)
                 VALUES ($1, $2, $3, true, $4)
-                ON CONFLICT (merchant_id) 
-                DO UPDATE SET url = $2, payload_format = $3, is_active = true, updated_at = NOW()
+                ON CONFLICT (merchant_id) WHERE (payload_format = $3)
+                DO UPDATE SET url = $2, is_active = true, updated_at = NOW()
                 "#
             )
             .bind(merchant_id)
@@ -81,15 +84,15 @@ impl WebhookService {
              sqlx::query(
                 r#"
                 UPDATE webhook_configs 
-                SET payload_format = $1, updated_at = NOW()
-                WHERE merchant_id = $2
+                SET is_active = false, updated_at = NOW()
+                WHERE merchant_id = $1 AND payload_format = $2
                 "#
             )
-            .bind(&format)
             .bind(merchant_id)
+            .bind(&format)
             .execute(&self.db_pool)
             .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to update webhook format: {}", e)))?;
+            .map_err(|e| ServiceError::Internal(format!("Failed to deactivate webhook: {}", e)))?;
         }
 
         Ok(())
@@ -157,18 +160,18 @@ impl WebhookService {
         payment_id: Option<i64>,
         payload: WebhookPayload,
     ) -> Result<(), ServiceError> {
-        // Get merchant's webhook configuration
-        let config = sqlx::query(
+        // Get ALL active webhook configurations for this merchant
+        let configs = sqlx::query(
             "SELECT url, payload_format, signing_secret FROM webhook_configs WHERE merchant_id = $1 AND is_active = true"
         )
         .bind(merchant_id)
-        .fetch_optional(&self.db_pool)
+        .fetch_all(&self.db_pool)
         .await
-        .map_err(|e| ServiceError::Internal(format!("Failed to fetch webhook config: {}", e)))?;
+        .map_err(|e| ServiceError::Internal(format!("Failed to fetch webhook configs: {}", e)))?;
 
-use sqlx::Row;
+        use sqlx::Row;
 
-        if let Some(config) = config {
+        for config in configs {
             let config_url: String = config.get("url");
             let config_payload_format: String = config.get("payload_format");
             let payload_value = if config_payload_format == "discord" {
@@ -275,7 +278,7 @@ use sqlx::Row;
             .bind(&payload_value)
             .execute(&self.db_pool)
             .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to queue webhook: {}", e)))?;
+            .map_err(|e| ServiceError::Internal(format!("Failed to queue webhook for {}: {}", config_url, e)))?;
         }
 
         Ok(())

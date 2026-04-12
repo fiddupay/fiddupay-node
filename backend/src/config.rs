@@ -1,10 +1,10 @@
 // Configuration Module
 // Application configuration from environment variables
 
-use std::env;
-use sqlx::PgPool;
-use std::str::FromStr;
 use rust_decimal::Decimal;
+use sqlx::PgPool;
+use std::env;
+use std::str::FromStr;
 use tracing::warn;
 
 #[derive(Debug, Clone)]
@@ -169,7 +169,6 @@ pub struct Config {
     // Block Explorer APIs
     pub etherscan_api_url: String,
 
-
     // Email Configuration
     pub email_enabled: bool,
     pub email_from: String,
@@ -184,7 +183,6 @@ pub struct Config {
     pub fee_wallet_bsc: String,
     pub fee_wallet_polygon: String,
     pub fee_wallet_arbitrum: String,
-
     // Additional Feature Flags
 }
 
@@ -257,8 +255,7 @@ impl Config {
                 .parse()?,
 
             // Server
-            server_host: env::var("SERVER_HOST")
-                .unwrap_or_else(|_| "0.0.0.0".to_string()),
+            server_host: env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
             server_port: env::var("SERVER_PORT")
                 .unwrap_or_else(|_| "8080".to_string())
                 .parse()?,
@@ -316,7 +313,7 @@ impl Config {
             arbitrum_sepolia_rpc_url_backup: env::var("ARBITRUM_SEPOLIA_RPC_URL_BACKUP")
                 .unwrap_or_else(|_| "https://rpc.ankr.com/arbitrum_sepolia".to_string()),
             polygon_amoy_rpc_url: env::var("POLYGON_AMOY_RPC_URL")
-                .or_else(|_| env::var("POLYGON_MUMBAI_RPC_URL"))?, 
+                .or_else(|_| env::var("POLYGON_MUMBAI_RPC_URL"))?,
             polygon_amoy_rpc_url_backup: env::var("POLYGON_AMOY_RPC_URL_BACKUP")
                 .or_else(|_| env::var("POLYGON_MUMBAI_RPC_URL_BACKUP"))
                 .unwrap_or_else(|_| "https://rpc-amoy.polygon.technology".to_string()),
@@ -324,7 +321,6 @@ impl Config {
                 .unwrap_or_else(|_| "https://blockstream.info/testnet/api".to_string()),
             bitcoin_testnet_rpc_url_backup: env::var("BITCOIN_TESTNET_RPC_URL_BACKUP")
                 .unwrap_or_else(|_| "https://mempool.space/testnet/api".to_string()),
-
 
             // Blockchain Settings
             confirmation_blocks_sol: env::var("CONFIRMATION_BLOCKS_SOL")
@@ -347,15 +343,10 @@ impl Config {
                 .parse()?,
 
             // Chain IDs (Production) - Required (No defaults)
-            ethereum_chain_id: env::var("ETHEREUM_CHAIN_ID")?
-                .parse()?,
-            bsc_chain_id: env::var("BSC_CHAIN_ID")?
-                .parse()?,
-            polygon_chain_id: env::var("POLYGON_CHAIN_ID")?
-                .parse()?,
-            arbitrum_chain_id: env::var("ARBITRUM_CHAIN_ID")?
-                .parse()?,
-
+            ethereum_chain_id: env::var("ETHEREUM_CHAIN_ID")?.parse()?,
+            bsc_chain_id: env::var("BSC_CHAIN_ID")?.parse()?,
+            polygon_chain_id: env::var("POLYGON_CHAIN_ID")?.parse()?,
+            arbitrum_chain_id: env::var("ARBITRUM_CHAIN_ID")?.parse()?,
 
             // Chain IDs (Sandbox/Testnet)
             ethereum_sepolia_chain_id: env::var("ETHEREUM_SEPOLIA_CHAIN_ID")
@@ -365,7 +356,7 @@ impl Config {
                 .unwrap_or_else(|_| "97".to_string())
                 .parse()?,
             polygon_amoy_chain_id: env::var("POLYGON_AMOY_CHAIN_ID")
-                .unwrap_or_else(|_| "80002".to_string()) // Migrated to Amoy 
+                .unwrap_or_else(|_| "80002".to_string()) // Migrated to Amoy
                 .parse()?,
             arbitrum_sepolia_chain_id: env::var("ARBITRUM_SEPOLIA_CHAIN_ID")
                 .unwrap_or_else(|_| "421614".to_string())
@@ -378,7 +369,6 @@ impl Config {
             transaction_timeout_minutes: env::var("TRANSACTION_TIMEOUT_MINUTES")
                 .unwrap_or_else(|_| "60".to_string())
                 .parse()?,
-
 
             // Price API - Required, no defaults
             bybit_price_api_url: env::var("BYBIT_PRICE_API_URL")?,
@@ -523,7 +513,7 @@ impl Config {
                 .collect(),
 
             etherscan_api_key: env::var("ETHERSCAN_API_KEY").ok(),
-            
+
             etherscan_api_url: env::var("ETHERSCAN_API_URL")
                 .unwrap_or_else(|_| "https://api.etherscan.io/v2/api".to_string()),
 
@@ -605,7 +595,7 @@ impl Config {
         }
 
         if self.solana_devnet_rpc_url.is_empty() {
-             return Err("SOLANA_DEVNET_RPC_URL is required".to_string());
+            return Err("SOLANA_DEVNET_RPC_URL is required".to_string());
         }
 
         if self.frontend_url.is_empty() {
@@ -621,7 +611,7 @@ impl Config {
         }
 
         if self.bitcoin_rpc_url.is_empty() {
-             return Err("BITCOIN_RPC_URL is required".to_string());
+            return Err("BITCOIN_RPC_URL is required".to_string());
         }
 
         Ok(())
@@ -637,58 +627,71 @@ impl Config {
             use sqlx::Row;
             let key: String = row.get("key");
             let value: String = row.get("value");
-            
-            struct Setting { key: String, value: String }
+
+            struct Setting {
+                key: String,
+                value: String,
+            }
             let setting = Setting { key, value };
-            
+
             match setting.key.as_str() {
                 // Fee Configuration
                 "DEFAULT_FEE_PERCENTAGE" => {
                     if let Ok(val) = Decimal::from_str(&setting.value) {
-                         // Convert percentage to decimal (e.g. 0.75 -> 0.0075) if stored as percentage
-                         self.default_fee_percentage = val;
+                        // Convert percentage to decimal (e.g. 0.75 -> 0.0075) if stored as percentage
+                        self.default_fee_percentage = val;
                     }
-                },
-                
+                }
+
                 // Limits
                 "DAILY_VOLUME_LIMIT_NON_KYC_USD" => {
                     if let Ok(val) = Decimal::from_str(&setting.value) {
                         self.daily_volume_limit_non_kyc_usd = val;
                     }
-                },
+                }
                 "WITHDRAWAL_AUTO_APPROVAL_LIMIT_USD" => {
                     if let Ok(val) = Decimal::from_str(&setting.value) {
                         self.withdrawal_auto_approval_limit_usd = val;
                     }
-                },
+                }
 
                 // Feature Flags
                 "MAINTENANCE_MODE" => self.maintenance_mode = setting.value == "true",
-                "MERCHANT_REGISTRATION_ENABLED" => self.merchant_registration_enabled = setting.value == "true",
-                "WITHDRAWAL_ENABLED" => self.withdrawal_enabled = setting.value == "true", 
+                "MERCHANT_REGISTRATION_ENABLED" => {
+                    self.merchant_registration_enabled = setting.value == "true"
+                }
+                "WITHDRAWAL_ENABLED" => self.withdrawal_enabled = setting.value == "true",
                 "INVOICE_ENABLED" => self.invoice_enabled = setting.value == "true",
                 "TWO_FACTOR_ENABLED" => self.two_factor_enabled = setting.value == "true",
 
                 // Security Policies
                 "MAX_LOGIN_ATTEMPTS" => {
-                    if let Ok(val) = setting.value.parse() { self.max_login_attempts = val; }
-                },
+                    if let Ok(val) = setting.value.parse() {
+                        self.max_login_attempts = val;
+                    }
+                }
                 "ACCOUNT_LOCKOUT_DURATION_MINUTES" => {
-                    if let Ok(val) = setting.value.parse() { self.account_lockout_duration_minutes = val; }
-                },
+                    if let Ok(val) = setting.value.parse() {
+                        self.account_lockout_duration_minutes = val;
+                    }
+                }
 
                 // Rate Limiting
                 "RATE_LIMIT_REQUESTS_PER_MINUTE" => {
-                    if let Ok(val) = setting.value.parse() { self.rate_limit_requests_per_minute = val; }
-                },
+                    if let Ok(val) = setting.value.parse() {
+                        self.rate_limit_requests_per_minute = val;
+                    }
+                }
                 "RATE_LIMIT_BURST_SIZE" => {
-                    if let Ok(val) = setting.value.parse() { self.rate_limit_burst_size = val; }
-                },
+                    if let Ok(val) = setting.value.parse() {
+                        self.rate_limit_burst_size = val;
+                    }
+                }
 
-                _ => warn!("Unknown system setting key: {}", setting.key)
+                _ => warn!("Unknown system setting key: {}", setting.key),
             }
         }
-        
+
         Ok(())
     }
 
@@ -710,7 +713,7 @@ impl Config {
                     ON CONFLICT (network) DO UPDATE SET 
                         address = EXCLUDED.address,
                         updated_at = NOW()
-                    "#
+                    "#,
                 )
                 .bind(network)
                 .bind(address)
@@ -837,6 +840,18 @@ impl Default for Config {
             bitcoin_testnet_rpc_url: "https://blockstream.info/testnet/api".to_string(),
             bitcoin_testnet_rpc_url_backup: "https://mempool.space/testnet/api".to_string(),
             confirmation_blocks_btc: 1,
+            solana_rpc_url_backup: todo!(),
+            solana_rpc_url_backup_2: todo!(),
+            ethereum_rpc_url_backup: todo!(),
+            bsc_rpc_url_backup: todo!(),
+            arbitrum_rpc_url_backup: todo!(),
+            polygon_rpc_url_backup: todo!(),
+            solana_devnet_rpc_url_backup: todo!(),
+            solana_devnet_rpc_url_backup_2: todo!(),
+            ethereum_sepolia_rpc_url_backup: todo!(),
+            bsc_testnet_rpc_url_backup: todo!(),
+            arbitrum_sepolia_rpc_url_backup: todo!(),
+            polygon_amoy_rpc_url_backup: todo!(),
         }
     }
 }

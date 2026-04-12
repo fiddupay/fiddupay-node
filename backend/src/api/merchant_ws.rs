@@ -61,9 +61,10 @@ async fn handle_ws_socket(socket: WebSocket, merchant_id: i64, state: AppState) 
              // 1. Receive messages from Redis and send them to the WebSocket client
              Some(msg) = pubsub_stream.next() => {
                  if let Ok(payload) = msg.get_payload::<String>() {
-                     if sender.send(Message::Text(payload)).await.is_err() {
+                     if sender.send(Message::Text(payload.clone())).await.is_err() {
                          break; // Client disconnected
                      }
+                     tracing::info!("Relayed notification to merchant dashboard {}: {}", merchant_id, payload);
                  }
              }
 

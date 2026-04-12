@@ -15,36 +15,58 @@ export const LiveDropToast: React.FC = () => {
     const token = localStorage.getItem('fiddupay_dashboard_token') || sessionStorage.getItem('fiddupay_dashboard_token');
     if (!token) return;
 
-    const apiUrl = import.meta.env.VITE_API_URL || 'https://api.fiddupay.com';
-    const wsUrl = apiUrl.replace(/^http/, 'ws') + `/api/v1/merchants/ws`;
+    let socket: WebSocket | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout>;
 
-    // Pass token as a subprotocol to avoid exposure in the URL/console
-    const ws = new WebSocket(wsUrl, token);
+    const connect = () => {
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://api.fiddupay.com';
+      const wsUrl = apiUrl.replace(/^http/, 'ws') + `/api/v1/merchants/ws`;
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.event === 'merchant.deposit' || data.event === 'customer.deposit') {
-          const newToast: ToastMessage = {
-            id: Math.random().toString(),
-            amount: data.amount,
-            crypto_type: data.crypto_type,
-            event: data.event,
-          };
-          setToasts((prev) => [...prev, newToast]);
+      console.log('Connecting to notification stream...');
+      const ws = new WebSocket(wsUrl, token);
+      socket = ws;
 
-          // Auto-remove after 6 seconds
-          setTimeout(() => {
-            setToasts((prev) => prev.filter((t) => t.id !== newToast.id));
-          }, 6000);
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.event === 'merchant.deposit' || data.event === 'customer.deposit') {
+            const newToast: ToastMessage = {
+              id: Math.random().toString(),
+              amount: data.amount,
+              crypto_type: data.crypto_type,
+              event: data.event,
+            };
+            setToasts((prev) => [...prev, newToast]);
+
+            // Auto-remove after 6 seconds
+            setTimeout(() => {
+              setToasts((prev) => prev.filter((t) => t.id !== newToast.id));
+            }, 6000);
+          }
+        } catch (err) {
+          // Silent catch for malformed JSON
         }
-      } catch (err) {
-        // console.error('Failed to parse WebSocket message', err);
-      }
+      };
+
+      ws.onclose = () => {
+        console.warn('Notification stream closed. Retrying in 5s...');
+        reconnectTimeout = setTimeout(connect, 5000);
+      };
+
+      ws.onerror = (err) => {
+        console.error('Notification stream error:', err);
+        ws.close();
+      };
     };
 
+    connect();
+
     return () => {
-      ws.close();
+      if (socket) {
+        socket.onclose = null; // Prevent reconnect on intentional close
+        socket.close();
+      }
+      clearTimeout(reconnectTimeout);
     };
   }, []);
 
