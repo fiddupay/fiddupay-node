@@ -85,7 +85,8 @@ struct GetSignaturesResult {
     slot: u64,
     #[serde(rename = "blockTime")]
     block_time: Option<i64>,
-    confirmationStatus: Option<String>,
+    #[serde(rename = "confirmationStatus")]
+    confirmation_status: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -105,49 +106,51 @@ struct SolanaTransaction {
 
 #[derive(Debug, Deserialize)]
 struct TransactionMessage {
-    accountKeys: Vec<String>,
+    #[serde(rename = "accountKeys")]
+    account_keys: Vec<String>,
     instructions: Vec<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
 struct TokenBalanceInfo {
-    #[allow(non_snake_case)]
-    accountIndex: u64,
+    #[serde(rename = "accountIndex")]
+    account_index: u64,
     mint: Option<String>,
     owner: Option<String>,
-    #[allow(non_snake_case)]
-    uiTokenAmount: Option<UiTokenAmount>,
+    #[serde(rename = "uiTokenAmount")]
+    ui_token_amount: Option<UiTokenAmount>,
 }
 
 #[derive(Debug, Deserialize)]
 struct UiTokenAmount {
     amount: Option<String>,
     decimals: Option<u32>,
-    #[allow(non_snake_case)]
-    uiAmount: Option<f64>,
-    #[allow(non_snake_case)]
-    uiAmountString: Option<String>,
+    #[serde(rename = "uiAmount")]
+    ui_amount: Option<f64>,
+    #[serde(rename = "uiAmountString")]
+    ui_amount_string: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 struct TransactionMeta {
     err: Option<serde_json::Value>,
-    #[allow(non_snake_case)]
-    preBalances: Vec<u64>,
-    #[allow(non_snake_case)]
-    postBalances: Vec<u64>,
-    #[allow(non_snake_case)]
+    #[serde(rename = "preBalances")]
+    pre_balances: Vec<u64>,
+    #[serde(rename = "postBalances")]
+    post_balances: Vec<u64>,
+    #[serde(rename = "preTokenBalances")]
     #[serde(default)]
-    preTokenBalances: Vec<TokenBalanceInfo>,
-    #[allow(non_snake_case)]
+    pre_token_balances: Vec<TokenBalanceInfo>,
+    #[serde(rename = "postTokenBalances")]
     #[serde(default)]
-    postTokenBalances: Vec<TokenBalanceInfo>,
+    post_token_balances: Vec<TokenBalanceInfo>,
 }
 
 #[derive(Debug, Clone)]
 pub struct SolanaMonitor {
     client: Client,
     pub rpc_urls: Vec<String>,
+    pub historical_rpc_urls: Vec<String>,
     pub ws_urls: Vec<String>,
     expected_mint: Option<String>,
 }
@@ -155,23 +158,37 @@ pub struct SolanaMonitor {
 impl SolanaMonitor {
     pub fn new(config: &crate::config::Config, is_sandbox: bool, expected_mint: Option<String>) -> Self {
         let mut rpc_urls = Vec::new();
+        let mut historical_rpc_urls = Vec::new();
 
         if is_sandbox {
             rpc_urls.push(config.solana_devnet_rpc_url.clone());
+            historical_rpc_urls.push(config.solana_devnet_rpc_url.clone());
         } else {
-            // SVS
+            // SVS - Priority 1
             for key in &config.svs_api_keys {
+                // Live endpoint
                 rpc_urls.push(format!("https://basic.rpc.solanavibestation.com/?api_key={}", key));
+                // Historical endpoint for backfill catch-up
+                historical_rpc_urls.push(format!("https://basic.rpc.solanavibestation.com/historical?api_key={}", key));
             }
-            // Helius
+
+            // Helius - Priority 2 (Backup)
             if let Some(ref key) = config.helius_api_key {
-                rpc_urls.push(format!("https://mainnet.helius-rpc.com/?api-key={}", key));
+                let helius_url = format!("https://mainnet.helius-rpc.com/?api-key={}", key);
+                rpc_urls.push(helius_url.clone());
+                historical_rpc_urls.push(helius_url);
             }
-            // Alchemy
+
+            // Alchemy - Priority 3
             for key in &config.alchemy_api_keys {
-                rpc_urls.push(format!("https://solana-mainnet.g.alchemy.com/v2/{}", key));
+                let alchemy_url = format!("https://solana-mainnet.g.alchemy.com/v2/{}", key);
+                rpc_urls.push(alchemy_url.clone());
+                historical_rpc_urls.push(alchemy_url);
             }
+
+            // Fallback default
             rpc_urls.push(config.solana_rpc_url.clone());
+            historical_rpc_urls.push(config.solana_rpc_url.clone());
         }
 
         // We store all possible WS URLs to fail over if needed
@@ -186,6 +203,7 @@ impl SolanaMonitor {
                 .build()
                 .unwrap_or_else(|_| Client::new()),
             rpc_urls,
+            historical_rpc_urls,
             ws_urls,
             expected_mint,
         }
@@ -202,11 +220,19 @@ impl SolanaMonitor {
     async fn rpc_request<T: serde::de::DeserializeOwned>(
         &self, 
         method: &str, 
-        params: serde_json::Value
+        params: serde_json::Value,
+        is_historical: bool,
     ) -> Result<RpcResponse<T>, Box<dyn std::error::Error + Send + Sync>> {
         let request = RpcRequest { jsonrpc: "2.0".to_string(), id: 1, method: method.to_string(), params };
         let mut last_error = None;
-        for url in &self.rpc_urls {
+
+        let urls = if is_historical {
+            &self.historical_rpc_urls
+        } else {
+            &self.rpc_urls
+        };
+
+        for url in urls {
             match self.client.post(url).json(&request).send().await {
                 Ok(response) => {
                     if response.status() == 429 {
@@ -261,7 +287,8 @@ impl SolanaMonitor {
         for addr in addresses_to_check {
             let rpc_response: RpcResponse<Vec<GetSignaturesResult>> = match self.rpc_request(
                 "getSignaturesForAddress", 
-                serde_json::json!([addr, { "limit": limit, "commitment": "confirmed" }])
+                serde_json::json!([addr, { "limit": limit, "commitment": "finalized" }]),
+                true
             ).await {
                 Ok(res) => res,
                 Err(e) => {
@@ -332,7 +359,8 @@ impl SolanaMonitor {
                         "maxSupportedTransactionVersion": 0,
                         "commitment": "confirmed"
                     }
-                ])
+                ]),
+                false
             ).await;
 
             match rpc_response {
@@ -374,13 +402,13 @@ impl SolanaMonitor {
         //      → Use lamport balance diffs (preBalances/postBalances)
         let (to_address, amount, token_mint) = if let Some(ref meta) = tx_result.meta {
             // --- SPL Token Transfer Detection ---
-            if !meta.postTokenBalances.is_empty() {
+            if !meta.post_token_balances.is_empty() {
                 // Find the token account that received tokens by comparing pre vs post
                 let mut best_recipient_owner: Option<String> = None;
                 let mut best_mint: Option<String> = None;
                 let mut best_amount = Decimal::ZERO;
 
-                for post_tb in &meta.postTokenBalances {
+                for post_tb in &meta.post_token_balances {
                     // MINT VALIDATION: skip if we expect a specific mint and this doesn't match
                     if let (Some(expected), Some(actual_mint)) = (&self.expected_mint, &post_tb.mint) {
                         if expected != actual_mint {
@@ -388,19 +416,19 @@ impl SolanaMonitor {
                         }
                     }
 
-                    let post_raw = post_tb.uiTokenAmount.as_ref()
+                    let post_raw = post_tb.ui_token_amount.as_ref()
                         .and_then(|u| u.amount.as_ref())
                         .and_then(|a| a.parse::<u128>().ok())
                         .unwrap_or(0);
 
-                    let decimals = post_tb.uiTokenAmount.as_ref()
+                    let decimals = post_tb.ui_token_amount.as_ref()
                         .and_then(|u| u.decimals)
                         .unwrap_or(6);
 
                     // Find matching pre-balance for same account index AND mint
-                    let pre_raw = meta.preTokenBalances.iter()
-                        .find(|pre| pre.accountIndex == post_tb.accountIndex && pre.mint == post_tb.mint)
-                        .and_then(|pre| pre.uiTokenAmount.as_ref())
+                    let pre_raw = meta.pre_token_balances.iter()
+                        .find(|pre| pre.account_index == post_tb.account_index && pre.mint == post_tb.mint)
+                        .and_then(|pre| pre.ui_token_amount.as_ref())
                         .and_then(|u| u.amount.as_ref())
                         .and_then(|a| a.parse::<u128>().ok())
                         .unwrap_or(0);
@@ -423,26 +451,26 @@ impl SolanaMonitor {
                     (owner, best_amount, best_mint)
                 } else if self.expected_mint.is_none() {
                     // Fall back to SOL diff only if we aren't looking for a specific token
-                    let (addr, amt) = Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.accountKeys);
+                    let (addr, amt) = Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.account_keys);
                     (addr, amt, None)
                 } else {
                     // We expected a token but didn't find a matching increase
-                    (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO, None)
+                    (tx_result.transaction.message.account_keys.get(1).cloned().unwrap_or_default(), Decimal::ZERO, None)
                 }
             } else if self.expected_mint.is_none() {
                 // --- Native SOL Transfer ---
-                let (addr, amt) = Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.accountKeys);
+                let (addr, amt) = Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.account_keys);
                 (addr, amt, None)
             } else {
                 // Not an SPL transfer and we were expecting one
-                (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO, None)
+                (tx_result.transaction.message.account_keys.get(1).cloned().unwrap_or_default(), Decimal::ZERO, None)
             }
         } else {
-            (tx_result.transaction.message.accountKeys.get(1).cloned().unwrap_or_default(), Decimal::ZERO, None)
+            (tx_result.transaction.message.account_keys.get(1).cloned().unwrap_or_default(), Decimal::ZERO, None)
         };
 
         // Get sender address (the account that paid for the transaction or the first account)
-        let from_address = tx_result.transaction.message.accountKeys.get(0)
+        let from_address = tx_result.transaction.message.account_keys.get(0)
             .cloned()
             .unwrap_or_default();
 
@@ -493,7 +521,7 @@ impl SolanaMonitor {
 
     /// Get current slot number
     async fn get_current_slot(&self) -> Result<u64, Box<dyn std::error::Error + Send + Sync>> {
-        let rpc_response: RpcResponse<u64> = self.rpc_request("getSlot", serde_json::json!([])).await?;
+        let rpc_response: RpcResponse<u64> = self.rpc_request("getSlot", serde_json::json!([]), false).await?;
         if let Some(err) = rpc_response.error {
             error!("Solana RPC getSlot error {}: {}", err.code, err.message);
             return Err(format!("RPC Error: {}", err.message).into());
@@ -771,10 +799,10 @@ impl SolanaMonitor {
         let mut max_increase = 0u64;
         let mut recipient_idx = None;
 
-        if meta.preBalances.len() == meta.postBalances.len() {
-            for i in 0..meta.postBalances.len() {
-                let post = meta.postBalances[i];
-                let pre = meta.preBalances[i];
+        if meta.pre_balances.len() == meta.post_balances.len() {
+            for i in 0..meta.post_balances.len() {
+                let post = meta.post_balances[i];
+                let pre = meta.pre_balances[i];
                 if post > pre {
                     let increase = post - pre;
                     if increase > max_increase {
