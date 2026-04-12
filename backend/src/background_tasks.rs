@@ -599,37 +599,33 @@ impl BackgroundTasks {
     /// Run EVM real-time monitor
     async fn run_evm_monitor(&self, network: &'static str, sandbox_mode: bool) {
         let cluster_name = if sandbox_mode { "Sandbox" } else { "Mainnet" };
-        info!("Starting EVM {} ({}) monitor...", network, cluster_name);
-
-        // Standard Etherscan-like APIs (free tier) typically allow 5 req/sec.
-        // Implementing an 8s delay between addresses to be safe across multiple monitors.
-        const POLL_INTERVAL_SECS: u64 = 120; // Poll every 2 minutes (EVM is faster than BTC)
-        const INTER_ADDRESS_DELAY_MS: u64 = 8_000; // 8s per address
-
-        let mut poll_interval = interval(Duration::from_secs(POLL_INTERVAL_SECS));
+        info!("Starting EVM {} ({}) real-time WebSocket monitor...", network, cluster_name);
 
         loop {
-            poll_interval.tick().await;
-
+            // 1. Initial address fetch
             let addresses = Self::fetch_evm_addresses(&self.db_pool, network, sandbox_mode).await;
-            if addresses.is_empty() {
-                continue;
-            }
+            
+            // 2. Setup dynamic address channel
+            let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+            let db_clone = self.db_pool.clone();
+            let network_clone = network;
+            let mut known = addresses.iter().cloned().collect::<std::collections::HashSet<String>>();
 
-            info!(
-                "[EVM-{}] Monitoring {} addresses (delay: {}ms/address)",
-                network, addresses.len(), INTER_ADDRESS_DELAY_MS
-            );
+            // Background task to discovery newly added wallets or payments
+            tokio::spawn(async move {
+                loop {
+                    tokio::time::sleep(Duration::from_secs(20)).await;
+                    let current = BackgroundTasks::fetch_evm_addresses(&db_clone, network_clone, sandbox_mode).await;
+                    for a in current {
+                        if !known.contains(&a) {
+                            known.insert(a.clone());
+                            let _ = tx.send(a);
+                        }
+                    }
+                }
+            });
 
-            let verifier = PaymentVerifier::new(
-                self.db_pool.clone(),
-                (*self.webhook_service).clone(),
-                self.price_service.clone(),
-                self.config.clone(),
-                self.redis_client.clone(),
-            );
-
-            // Fetch generic monitor for this native network type
+            // 3. Initialize monitor and verifier
             let crypto_type = match network {
                 "ETH" => CryptoType::Eth,
                 "BNB" => CryptoType::Bnb,
@@ -641,57 +637,105 @@ impl BackgroundTasks {
             let monitor = crate::payment::blockchain_monitor::get_blockchain_monitor(
                 &crypto_type, self.config.clone(), sandbox_mode
             );
+            
+            // EvmMonitor is boxed, we need to downcast or handle trait methods
+            // Safety: based on get_blockchain_monitor implementation
+            // Since listen_for_evm_events isn't in the trait yet, we'll cast it if possible 
+            // or modify the trait. For now, we'll call it on the concrete monitor.
+            // Actually, we can move it to the trait or just instantiate it here directly.
+            
+            let evm_monitor = match network {
+                "ETH" => crate::payment::blockchain_monitor::EvmMonitor::new_ethereum(&self.config, sandbox_mode, crypto_type.token_address().map(|s| s.to_string()), crypto_type.decimals()),
+                "BNB" => crate::payment::blockchain_monitor::EvmMonitor::new_bsc(&self.config, sandbox_mode, crypto_type.token_address().map(|s| s.to_string()), crypto_type.decimals()),
+                "MATIC" => crate::payment::blockchain_monitor::EvmMonitor::new_polygon(&self.config, sandbox_mode, crypto_type.token_address().map(|s| s.to_string()), crypto_type.decimals()),
+                "ARB" => crate::payment::blockchain_monitor::EvmMonitor::new_arbitrum(&self.config, sandbox_mode, crypto_type.token_address().map(|s| s.to_string()), crypto_type.decimals()),
+                _ => crate::payment::blockchain_monitor::EvmMonitor::new_ethereum(&self.config, sandbox_mode, crypto_type.token_address().map(|s| s.to_string()), crypto_type.decimals()),
+            };
 
-            let batch_start = tokio::time::Instant::now();
+            let verifier = Arc::new(PaymentVerifier::new(
+                self.db_pool.clone(),
+                (*self.webhook_service).clone(),
+                self.price_service.clone(),
+                self.config.clone(),
+                self.redis_client.clone(),
+            ));
 
-            for address in &addresses {
-                tokio::time::sleep(Duration::from_millis(INTER_ADDRESS_DELAY_MS)).await;
+            let db_clone = self.db_pool.clone();
+            let verifier_clone = verifier.clone();
+            let net_name = network;
 
-                // For EVM, we check last 10 transactions to catch any missing payments
-                match monitor.get_transactions_to_address(address, 10, None).await {
-                    Ok(transactions) => {
-                        for tx in transactions {
-                            // Find any pending payment for this address and network
-                            // verify_payment_by_hash handles token mint checks and validation internally
-                            let pending_res = sqlx::query(
-                                "SELECT id, merchant_id FROM payment_transactions WHERE to_address = $1 AND status IN ('PENDING', 'CONFIRMING')"
-                            )
-                            .bind(address)
-                            .fetch_all(&self.db_pool)
-                            .await;
+            // 4. Verification Callback
+            let callback = Arc::new(move |hash: String, address: String| {
+                let db = db_clone.clone();
+                let v = verifier_clone.clone();
+                let addr_lwr = address.to_lowercase();
+                
+                tokio::spawn(async move {
+                    // Try to find if this belongs to a specific pending payment
+                    let pending_res = sqlx::query(
+                        "SELECT id, merchant_id FROM payment_transactions WHERE LOWER(to_address) = $1 AND status IN ('PENDING', 'CONFIRMING')"
+                    )
+                    .bind(&addr_lwr)
+                    .fetch_all(&db)
+                    .await;
 
-                            match pending_res {
-                                Ok(rows) => {
-                                    use sqlx::Row;
-                                    for row in rows {
-                                        let p_id: i64 = row.get("id");
-                                        let m_id: i64 = row.get("merchant_id");
-                                        if let Err(e) = verifier.verify_payment_by_hash(p_id, &tx.hash, m_id).await {
-                                            tracing::trace!("[EVM-{}] Verification failed for p_id {}: {}", network, p_id, e);
+                    match pending_res {
+                        Ok(rows) => {
+                            use sqlx::Row;
+                            if rows.is_empty() {
+                                // No pending payment? Check if it's a static CUSTOMER wallet
+                                let wallet_res = sqlx::query(
+                                    "SELECT customer_id, merchant_id, crypto_type FROM merchant_customer_wallets WHERE LOWER(address) = $1 AND sandbox_mode = $2"
+                                )
+                                .bind(&addr_lwr)
+                                .bind(sandbox_mode)
+                                .fetch_optional(&db)
+                                .await;
+
+                                if let Ok(Some(wallet)) = wallet_res {
+                                    let c_id: i64 = wallet.get("customer_id");
+                                    let m_id: i64 = wallet.get("merchant_id");
+                                    let c_str: String = wallet.get("crypto_type");
+                                    if let Err(e) = v.verify_customer_deposit(c_id, &hash, m_id, &c_str, sandbox_mode).await {
+                                        error!("[EVM-{}] Static customer verification failed: {}", net_name, e);
+                                    }
+                                } else {
+                                    // Check if it's a static MERCHANT wallet
+                                    let m_wallet_res = sqlx::query(
+                                        "SELECT merchant_id, crypto_type FROM merchant_wallets WHERE LOWER(address) = $1 AND sandbox_mode = $2 AND is_active = true"
+                                    )
+                                    .bind(&addr_lwr)
+                                    .bind(sandbox_mode)
+                                    .fetch_optional(&db)
+                                    .await;
+
+                                    if let Ok(Some(m_wallet)) = m_wallet_res {
+                                        let m_id: i64 = m_wallet.get("merchant_id");
+                                        let c_str: String = m_wallet.get("crypto_type");
+                                        if let Err(e) = v.verify_merchant_deposit(m_id, &hash, &c_str, sandbox_mode).await {
+                                            error!("[EVM-{}] Static merchant verification failed: {}", net_name, e);
                                         }
                                     }
-                                },
-                                Err(e) => error!("[EVM-{}] Failed to query pending payments: {}", network, e),
+                                }
+                            } else {
+                                for row in rows {
+                                    let p_id: i64 = row.get("id");
+                                    let m_id: i64 = row.get("merchant_id");
+                                    if let Err(e) = v.verify_payment_by_hash(p_id, &hash, m_id).await {
+                                        tracing::trace!("[EVM-{}] Verification error for {}: {}", net_name, hash, e);
+                                    }
+                                }
                             }
-                        }
-                    },
-                    Err(e) => {
-                        let err_msg = e.to_string();
-                        if err_msg.contains("429") || err_msg.contains("rate limit") || err_msg.contains("EVM_RATE_LIMIT") {
-                            warn!("[EVM-{}] Rate limit hit. Cooling down for 30s...", network);
-                            tokio::time::sleep(Duration::from_secs(30)).await;
-                        } else {
-                            warn!("[EVM-{}] Failed to fetch transactions for {}: {}", network, &address[..12], err_msg);
-                        }
+                        },
+                        Err(e) => error!("[EVM-{}] DB error in WS callback: {}", net_name, e),
                     }
-                }
-            }
+                });
+            });
 
-            let elapsed = batch_start.elapsed();
-            let min_batch_duration = Duration::from_secs(POLL_INTERVAL_SECS / 2);
-            if elapsed < min_batch_duration {
-                let remaining = min_batch_duration - elapsed;
-                tokio::time::sleep(remaining).await;
+            // 5. Start listener (blocks until error or disconnect)
+            if let Err(e) = evm_monitor.listen_for_evm_events(addresses, rx, callback).await {
+                error!("[EVM-{}] WebSocket listener crashed: {}. Restarting in 10s...", network, e);
+                tokio::time::sleep(Duration::from_secs(10)).await;
             }
         }
     }
