@@ -891,7 +891,6 @@ impl PaymentVerifier {
                 "fee_amount": fee_amount.to_string(),
                 "crypto_type": final_crypto_str,
                 "transaction_hash": transaction_hash,
-                "payment_id": webhook_payload.payment_id.clone(), // Include payment_id for consistency
             });
             let channel = format!("merchant_notifications:{}", merchant_id);
             let _: redis::RedisResult<()> = redis::cmd("PUBLISH")
