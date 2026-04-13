@@ -60,8 +60,13 @@ const StatusPage: React.FC = () => {
     try {
       const response = await publicAPI.getStatus()
       setStatus(response.data)
-    } catch (error) {
-      console.error('Failed to fetch system status:', error)
+    } catch (error: any) {
+      if (error.code === 'ERR_NETWORK' || !error.response) {
+        console.error('System Status Check: Network connection closed or server unreachable. Please check backend deployment on Railway.', error)
+      } else {
+        console.error('Failed to fetch system status:', error)
+      }
+      
       // Fallback enterprise mock data (reduced for clarity)
       setStatus({
         overall_status: 'operational',
