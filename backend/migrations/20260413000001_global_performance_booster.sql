@@ -35,6 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_merchant_wallets_addr_lwr
 CREATE INDEX IF NOT EXISTS idx_payment_transactions_analytics_status
     ON payment_transactions (merchant_id, status, created_at DESC);
 
+
 -- 4. Cross-Table Join Optimization
 -- Accelerates joins between refunds and payments in the unified feed
 CREATE INDEX IF NOT EXISTS idx_refunds_payment_lookup

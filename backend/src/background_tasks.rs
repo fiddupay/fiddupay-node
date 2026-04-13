@@ -476,17 +476,17 @@ impl BackgroundTasks {
             WHERE status IN ('PENDING', 'CONFIRMING')
               AND to_address IS NOT NULL
               AND sandbox_mode = $1
-              AND (network ILIKE '%solana%' OR crypto_type ILIKE '%sol%')
+              AND crypto_type IN ('SOL', 'WSOL', 'USDT_SPL')
             UNION
             SELECT DISTINCT address as to_address
             FROM merchant_customer_wallets
             WHERE sandbox_mode = $1
-              AND (crypto_type ILIKE '%sol%')
+              AND crypto_type IN ('SOL', 'WSOL', 'USDT_SPL')
             UNION
             SELECT DISTINCT address as to_address
             FROM merchant_wallets
             WHERE sandbox_mode = $1 AND is_active = true
-              AND (crypto_type ILIKE '%sol%')
+              AND crypto_type IN ('SOL', 'WSOL', 'USDT_SPL')
             "#
         )
         .bind(sandbox_mode)
@@ -553,7 +553,27 @@ impl BackgroundTasks {
     }
     
     async fn fetch_evm_addresses(pool: &sqlx::PgPool, network_prefix: &str, sandbox_mode: bool) -> Vec<String> {
-        let network_pattern = format!("%{}%", network_prefix.to_lowercase());
+        // Map network prefix to exact crypto types and networks
+        let (networks, cryptos): (Vec<String>, Vec<String>) = match network_prefix.to_uppercase().as_str() {
+            "ETH" => (
+                vec!["ethereum".to_string(), "goerli".to_string(), "sepolia".to_string()], 
+                vec!["ETH".to_string(), "USDT_ETH".to_string()]
+            ),
+            "BNB" | "BSC" => (
+                vec!["bsc".to_string(), "bsc_testnet".to_string(), "binance".to_string()], 
+                vec!["BNB".to_string(), "USDT_BEP20".to_string(), "BUSD_BEP20".to_string()]
+            ),
+            "MATIC" | "POLYGON" => (
+                vec!["polygon".to_string(), "amoy".to_string(), "mumbai".to_string()], 
+                vec!["MATIC".to_string(), "USDT_POLYGON".to_string()]
+            ),
+            "ARB" | "ARBITRUM" => (
+                vec!["arbitrum".to_string(), "arbitrum_sepolia".to_string()], 
+                vec!["ARB".to_string(), "USDT_ARBITRUM".to_string()]
+            ),
+            _ => (vec![network_prefix.to_lowercase()], vec![network_prefix.to_uppercase()]),
+        };
+
         let addresses_res = sqlx::query(
             r#"
             SELECT DISTINCT to_address 
@@ -561,22 +581,22 @@ impl BackgroundTasks {
             WHERE status IN ('PENDING', 'CONFIRMING')
               AND to_address IS NOT NULL
               AND sandbox_mode = $1
-              AND (network ILIKE $2 OR crypto_type ILIKE $3)
+              AND (network = ANY($2) OR crypto_type = ANY($3))
             UNION
             SELECT DISTINCT address as to_address
             FROM merchant_customer_wallets
             WHERE sandbox_mode = $1
-              AND crypto_type ILIKE $3
+              AND crypto_type = ANY($3)
             UNION
             SELECT DISTINCT address as to_address
             FROM merchant_wallets
             WHERE sandbox_mode = $1 AND is_active = true
-              AND crypto_type ILIKE $3
+              AND crypto_type = ANY($3)
             "#
         )
         .bind(sandbox_mode)
-        .bind(&network_pattern)
-        .bind(&network_pattern)
+        .bind(&networks)
+        .bind(&cryptos)
         .fetch_all(pool)
         .await;
 
