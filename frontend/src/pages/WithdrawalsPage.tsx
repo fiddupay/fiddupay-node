@@ -3,6 +3,7 @@ import { withdrawalAPI, walletAPI, publicAPI } from '@/services/apiService'
 import styles from '@/styles/pages/WithdrawalsPage.module.css'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuthStore } from '@/stores/authStore'
+import { extractErrorMessage } from '@/utils/errorUtils'
 
 interface WalletBalance {
     crypto_type: string
@@ -110,7 +111,7 @@ const WithdrawalsPage: React.FC = () => {
             // Fetch balances and history in parallel for better performance
             const [balRes, histRes] = await Promise.all([
                 walletAPI.getBalances({ exclude_stats: true }).catch(err => {
-                    const errMsg = err.response?.data?.error || err.message || 'Unknown error'
+                    const errMsg = extractErrorMessage(err, 'Unknown error')
                     setBalanceError(`Failed to load wallets: ${errMsg}`)
                     return { data: { wallets: [] } }
                 }),
@@ -176,7 +177,7 @@ const WithdrawalsPage: React.FC = () => {
             setTransactionPin('')
             await fetchData()
         } catch (error: any) {
-            showToast(error.response?.data?.error || 'Failed to create withdrawal', 'error')
+            showToast(extractErrorMessage(error, 'Failed to create withdrawal'), 'error')
         } finally {
             setSubmitting(false)
         }

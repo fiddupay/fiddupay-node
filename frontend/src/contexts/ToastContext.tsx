@@ -71,7 +71,9 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
               {toast.type === 'info' && <i className="fas fa-info-circle"></i>}
               {toast.type === 'warning' && <i className="fas fa-exclamation-triangle"></i>}
             </div>
-            <div className={styles.toastMessage}>{toast.message}</div>
+            <div className={styles.toastMessage}>
+              {typeof toast.message === 'object' ? JSON.stringify(toast.message) : toast.message}
+            </div>
             <button
               className={styles.toastClose}
               onClick={() => removeToast(toast.id)}

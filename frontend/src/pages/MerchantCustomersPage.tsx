@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { customerAPI, publicAPI } from "@/services/apiService";
 import styles from "@/styles/pages/MerchantCustomersPage.module.css";
 import { useToast } from "@/contexts/ToastContext";
+import { extractErrorMessage } from "@/utils/errorUtils";
 
 // Modular Components
 import CustomerStatsCards from "@/components/customers/CustomerStatsCards";
@@ -103,8 +104,7 @@ const MerchantCustomersPage: React.FC = () => {
         setCustomers(res.data.customers);
       }
     } catch (error: any) {
-      const errMsg = error.response?.data?.error || error.message || "Failed to list customers";
-      showToast(errMsg, "error");
+      showToast(extractErrorMessage(error, "Failed to list customers"), "error");
     } finally {
       setLoading(false);
     }
@@ -156,7 +156,7 @@ const MerchantCustomersPage: React.FC = () => {
       setNewCustomer({ external_id: "", email: "", first_name: "", last_name: "" });
       fetchCustomers();
     } catch (error: any) {
-      showToast(error.response?.data?.error || "Failed to register customer", "error");
+      showToast(extractErrorMessage(error, "Failed to register customer"), "error");
     } finally {
       setSubmitting(false);
     }
@@ -204,7 +204,7 @@ const MerchantCustomersPage: React.FC = () => {
       setShowStatusModal(null);
       setStatusReason("");
     } catch (error: any) {
-      showToast(error.response?.data?.error || "Failed to update status", "error");
+      showToast(extractErrorMessage(error, "Failed to update status"), "error");
     } finally {
       setStatusUpdating(false);
     }
@@ -224,7 +224,7 @@ const MerchantCustomersPage: React.FC = () => {
       }
       showToast(`Withdrawals ${!selectedCustomer.can_withdraw ? "enabled" : "disabled"}`, "success");
     } catch (error: any) {
-      showToast(error.response?.data?.error || "Failed to update permissions", "error");
+      showToast(extractErrorMessage(error, "Failed to update permissions"), "error");
     } finally {
       setPermUpdating(false);
     }
@@ -249,7 +249,7 @@ const MerchantCustomersPage: React.FC = () => {
       setSweepPin("");
       fetchCustomerDetails(selectedCustomer.external_id);
     } catch (error: any) {
-      showToast(error.response?.data?.error || "Failed to sweep funds", "error");
+      showToast(extractErrorMessage(error, "Failed to sweep funds"), "error");
     } finally {
       setSweeping(false);
     }
@@ -265,7 +265,7 @@ const MerchantCustomersPage: React.FC = () => {
       showToast("Wallets provisioned successfully", "success");
       fetchCustomerDetails(selectedCustomer.external_id);
     } catch (error: any) {
-      showToast(error.response?.data?.error || "Failed to provision wallets", "error");
+      showToast(extractErrorMessage(error, "Failed to provision wallets"), "error");
     } finally {
       setProvisioning(false);
     }
@@ -287,7 +287,7 @@ const MerchantCustomersPage: React.FC = () => {
       setPayMerchantAmount("");
       fetchCustomerDetails(selectedCustomer.external_id);
     } catch (error: any) {
-      showToast(error.response?.data?.error || "Failed to process payment", "error");
+      showToast(extractErrorMessage(error, "Failed to process payment"), "error");
     } finally {
       setPayingMerchant(false);
     }
@@ -304,7 +304,7 @@ const MerchantCustomersPage: React.FC = () => {
       showToast(`Wallets regenerated successfully for ${isAll ? "all" : selectedCustomerIds.length} customers`, "success");
       if (!isAll) setSelectedCustomerIds([]);
     } catch (error: any) {
-      showToast(error.response?.data?.error || "Failed to bulk regenerate wallets", "error");
+      showToast(extractErrorMessage(error, "Failed to bulk regenerate wallets"), "error");
     } finally {
       setProvisioning(false);
     }

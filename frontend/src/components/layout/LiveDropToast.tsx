@@ -53,8 +53,9 @@ export const LiveDropToast: React.FC = () => {
         reconnectTimeout = setTimeout(connect, 5000);
       };
 
-      ws.onerror = (err) => {
-        console.error('Notification stream error:', err);
+      ws.onerror = (err: any) => {
+        // Log a descriptive string instead of the raw Event object to avoid confusion
+        console.error('Notification stream error identifying connection issue:', err.message || 'Connection failed');
         ws.close();
       };
     };
