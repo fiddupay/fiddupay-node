@@ -147,6 +147,200 @@ impl PriceService {
         }
         Ok(())
     }
+
+    async fn get_cached_price(&self, key: &str) -> Option<f64> {
+        let cache = self.cache.read().await;
+        cache.get(key).and_then(|cached| {
+            if cached.timestamp.elapsed() < self.cache_ttl {
+                Some(cached.price)
+            } else {
+                None
+            }
+        })
+    }
+
+    async fn is_api_failed(&self, api_name: &str) -> bool {
+        let mut tracker = self.failure_tracker.write().await;
+        if let Some(failure_info) = tracker.get_mut(api_name) {
+            if failure_info.last_failure.elapsed() > self.failure_reset_duration {
+                tracker.remove(api_name);
+                return false;
+            }
+            failure_info.failure_count >= self.failure_threshold
+        } else {
+            false
+        }
+    }
+
+    async fn record_api_failure(&self, api_name: &str) {
+        let mut tracker = self.failure_tracker.write().await;
+        let failure_info = tracker.entry(api_name.to_string()).or_insert(ApiFailureTracker {
+            failure_count: 0,
+            last_failure: Instant::now(),
+        });
+        
+        failure_info.failure_count += 1;
+        failure_info.last_failure = Instant::now();
+        
+        if failure_info.failure_count >= self.failure_threshold {
+            warn!("[PRICE] API {} marked as failed after {} failures", api_name, failure_info.failure_count);
+        }
+    }
+
+    async fn record_api_success(&self, api_name: &str) {
+        let mut tracker = self.failure_tracker.write().await;
+        tracker.remove(api_name);
+    }
+
+    async fn fetch_price(&self, crypto_type: CryptoType) -> Result<f64, String> {
+        match crypto_type {
+            CryptoType::Sol | CryptoType::WSol => self.fetch_sol_price().await,
+            CryptoType::Eth => self.fetch_eth_price().await,
+            CryptoType::Arb => self.fetch_arb_price().await,
+            CryptoType::Matic => self.fetch_matic_price().await,
+            CryptoType::Bnb => self.fetch_bnb_price().await,
+            CryptoType::Btc => self.fetch_btc_price().await,
+            CryptoType::UsdtSpl | CryptoType::UsdtBep20 | CryptoType::UsdtEth | CryptoType::UsdtPolygon | CryptoType::UsdtArbitrum | CryptoType::BusdBep20 => {
+                Ok(1.0)
+            }
+        }
+    }
+
+    async fn fetch_sol_price(&self) -> Result<f64, String> {
+        if !self.is_api_failed("coingecko").await {
+            if let Some(price) = self.fetch_from_coingecko("solana").await {
+                self.record_api_success("coingecko").await;
+                return Ok(price);
+            } else {
+                self.record_api_failure("coingecko").await;
+            }
+        }
+        if let Some(price) = self.fetch_from_cryptocompare("SOL").await {
+            return Ok(price);
+        }
+        Err("Failed to fetch SOL price".to_string())
+    }
+
+    async fn fetch_eth_price(&self) -> Result<f64, String> {
+        if !self.is_api_failed("coingecko").await {
+            if let Some(price) = self.fetch_from_coingecko("ethereum").await {
+                self.record_api_success("coingecko").await;
+                return Ok(price);
+            } else {
+                self.record_api_failure("coingecko").await;
+            }
+        }
+        if let Some(price) = self.fetch_from_cryptocompare("ETH").await {
+            return Ok(price);
+        }
+        Err("Failed to fetch ETH price".to_string())
+    }
+
+    async fn fetch_arb_price(&self) -> Result<f64, String> {
+        if !self.is_api_failed("coingecko").await {
+            if let Some(price) = self.fetch_from_coingecko("arbitrum").await {
+                self.record_api_success("coingecko").await;
+                return Ok(price);
+            } else {
+                self.record_api_failure("coingecko").await;
+            }
+        }
+        if let Some(price) = self.fetch_from_cryptocompare("ARB").await {
+            return Ok(price);
+        }
+        Err("Failed to fetch ARB price".to_string())
+    }
+
+    async fn fetch_matic_price(&self) -> Result<f64, String> {
+        if !self.is_api_failed("coingecko").await {
+            if let Some(price) = self.fetch_from_coingecko("matic-network").await {
+                self.record_api_success("coingecko").await;
+                return Ok(price);
+            } else {
+                self.record_api_failure("coingecko").await;
+            }
+        }
+        if let Some(price) = self.fetch_from_cryptocompare("MATIC").await {
+            return Ok(price);
+        }
+        Err("Failed to fetch MATIC price".to_string())
+    }
+
+    async fn fetch_bnb_price(&self) -> Result<f64, String> {
+        if !self.is_api_failed("coingecko").await {
+            if let Some(price) = self.fetch_from_coingecko("binancecoin").await {
+                self.record_api_success("coingecko").await;
+                return Ok(price);
+            } else {
+                self.record_api_failure("coingecko").await;
+            }
+        }
+        if let Some(price) = self.fetch_from_cryptocompare("BNB").await {
+            return Ok(price);
+        }
+        Err("Failed to fetch BNB price".to_string())
+    }
+
+    async fn fetch_btc_price(&self) -> Result<f64, String> {
+        if !self.is_api_failed("coingecko").await {
+            if let Some(price) = self.fetch_from_coingecko("bitcoin").await {
+                self.record_api_success("coingecko").await;
+                return Ok(price);
+            } else {
+                self.record_api_failure("coingecko").await;
+            }
+        }
+        if let Some(price) = self.fetch_from_cryptocompare("BTC").await {
+            return Ok(price);
+        }
+        Err("Failed to fetch BTC price".to_string())
+    }
+
+    async fn fetch_from_coingecko(&self, coin_id: &str) -> Option<f64> {
+        let url = format!("https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=usd", coin_id);
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(10))
+            .user_agent("Mozilla/5.0 (compatible; FidduPay/1.0)")
+            .build()
+            .ok()?;
+        
+        match client.get(&url).send().await {
+            Ok(resp) => {
+                if !resp.status().is_success() {
+                    return None;
+                }
+                if let Ok(json) = resp.json::<Value>().await {
+                    json[coin_id]["usd"].as_f64()
+                } else {
+                    None
+                }
+            }
+            Err(_) => None,
+        }
+    }
+
+    async fn fetch_from_cryptocompare(&self, symbol: &str) -> Option<f64> {
+        let url = format!("https://min-api.cryptocompare.com/data/price?fsym={}&tsyms=USD", symbol);
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(10))
+            .user_agent("Mozilla/5.0 (compatible; FidduPay/1.0)")
+            .build()
+            .ok()?;
+
+        match client.get(&url).send().await {
+            Ok(resp) => {
+                if !resp.status().is_success() {
+                    return None;
+                }
+                if let Ok(json) = resp.json::<Value>().await {
+                    json["USD"].as_f64()
+                } else {
+                    None
+                }
+            }
+            Err(_) => None,
+        }
+    }
 }
 
 impl Clone for PriceService {

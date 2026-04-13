@@ -576,22 +576,24 @@ impl BackgroundTasks {
 
         let addresses_res = sqlx::query(
             r#"
-            SELECT DISTINCT to_address 
-            FROM payment_transactions 
-            WHERE status IN ('PENDING', 'CONFIRMING')
-              AND to_address IS NOT NULL
-              AND sandbox_mode = $1
-              AND (network = ANY($2) OR crypto_type = ANY($3))
-            UNION
-            SELECT DISTINCT address as to_address
-            FROM merchant_customer_wallets
-            WHERE sandbox_mode = $1
-              AND crypto_type = ANY($3)
-            UNION
-            SELECT DISTINCT address as to_address
-            FROM merchant_wallets
-            WHERE sandbox_mode = $1 AND is_active = true
-              AND crypto_type = ANY($3)
+            SELECT DISTINCT to_address FROM (
+                SELECT to_address 
+                FROM payment_transactions 
+                WHERE status IN ('PENDING', 'CONFIRMING')
+                  AND to_address IS NOT NULL
+                  AND sandbox_mode = $1
+                  AND (network = ANY($2) OR crypto_type = ANY($3))
+                UNION ALL
+                SELECT address as to_address
+                FROM merchant_customer_wallets
+                WHERE sandbox_mode = $1
+                  AND crypto_type = ANY($3)
+                UNION ALL
+                SELECT address as to_address
+                FROM merchant_wallets
+                WHERE sandbox_mode = $1 AND is_active = true
+                  AND crypto_type = ANY($3)
+            ) as discovery_pool
             "#
         )
         .bind(sandbox_mode)
