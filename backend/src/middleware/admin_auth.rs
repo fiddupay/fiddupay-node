@@ -86,7 +86,7 @@ pub async fn admin_auth_middleware(
     
     let secret = &state.config.jwt_secret;
     let decoding_key = DecodingKey::from_secret(secret.as_bytes());
-    let mut validation = Validation::new(Algorithm::HS256);
+    let validation = Validation::new(Algorithm::HS256);
     // Admins might not strictly need the default duration if not specified
     
     let admin_id = match decode::<AdminClaims>(&session_token, &decoding_key, &validation) {

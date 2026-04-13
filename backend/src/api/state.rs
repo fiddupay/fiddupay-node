@@ -23,6 +23,7 @@ use crate::services::{
     p2p_service::P2pService,
     report_service::ReportService,
     notification_service::NotificationService,
+    monitoring_service::MonitoringService,
 };
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -52,6 +53,7 @@ pub struct AppState {
     pub p2p_service: Arc<P2pService>,
     pub report_service: Arc<ReportService>,
     pub notification_service: Arc<NotificationService>,
+    pub monitoring_service: Arc<MonitoringService>,
     pub redis_client: RedisClient,
 }
 
@@ -81,6 +83,9 @@ impl AppState {
             volume_tracking_service.clone(),
             notification_service.clone(),
         ));
+
+        let monitoring_service = Arc::new(MonitoringService::new(db_pool.clone(), config.clone(), redis_client.clone()));
+        monitoring_service.clone().start_polling();
 
         Self {
             merchant_service,
@@ -114,6 +119,7 @@ impl AppState {
             p2p_service: Arc::new(P2pService::new(db_pool.clone())),
             report_service: Arc::new(ReportService::new(db_pool.clone())),
             notification_service,
+            monitoring_service,
             config,
             db_pool,
             redis_client,

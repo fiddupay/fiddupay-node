@@ -42,3 +42,4 @@ pub mod notification_service;
 pub mod multi_user_service;
 pub mod p2p_service;
 pub mod two_factor_service;
+pub mod monitoring_service;

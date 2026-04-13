@@ -1,0 +1,198 @@
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::RwLock;
+use sqlx::PgPool;
+use sysinfo::{System, SystemExt, CpuExt};
+use serde::{Serialize, Deserialize};
+use chrono::Utc;
+use tracing::{info, error};
+use crate::config::Config;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SystemHealth {
+    pub overall_status: String,
+    pub cpu_usage: f32,
+    pub memory_used_gb: f32,
+    pub memory_total_gb: f32,
+    pub db_connected: bool,
+    pub redis_connected: bool,
+    pub services: Vec<ServiceHealth>,
+    pub last_updated: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceHealth {
+    pub name: String,
+    pub status: String, // operational, degraded, outage
+    pub latency_ms: u32,
+    pub last_check: String,
+}
+
+pub struct MonitoringService {
+    db_pool: PgPool,
+    config: Config,
+    redis_client: redis::Client,
+    current_health: Arc<RwLock<SystemHealth>>,
+}
+
+impl MonitoringService {
+    pub fn new(db_pool: PgPool, config: Config, redis_client: redis::Client) -> Self {
+        let initial_health = SystemHealth {
+            overall_status: "initializing".to_string(),
+            cpu_usage: 0.0,
+            memory_used_gb: 0.0,
+            memory_total_gb: 0.0,
+            db_connected: false,
+            redis_connected: false,
+            services: vec![],
+            last_updated: Utc::now().to_rfc3339(),
+        };
+
+        Self {
+            db_pool,
+            config,
+            redis_client,
+            current_health: Arc::new(RwLock::new(initial_health)),
+        }
+    }
+
+    pub async fn get_health(&self) -> SystemHealth {
+        self.current_health.read().await.clone()
+    }
+
+    pub fn start_polling(self: Arc<Self>) {
+        let service = self.clone();
+        tokio::spawn(async move {
+            let mut sys = System::new_all();
+            let mut interval = tokio::time::interval(Duration::from_secs(30));
+
+            loop {
+                interval.tick().await;
+                service.perform_checks(&mut sys).await;
+            }
+        });
+    }
+
+    async fn perform_checks(&self, sys: &mut System) {
+        // 1. System Metrics
+        sys.refresh_cpu();
+        sys.refresh_memory();
+
+        let cpu_usage = sys.global_cpu_info().cpu_usage();
+        let memory_used = sys.used_memory() as f32 / 1024.0 / 1024.0 / 1024.0;
+        let memory_total = sys.total_memory() as f32 / 1024.0 / 1024.0 / 1024.0;
+
+        // 2. DB Check
+        let db_connected = sqlx::query("SELECT 1").fetch_one(&self.db_pool).await.is_ok();
+
+        // 3. Redis Check
+        let mut redis_conn = self.redis_client.get_async_connection().await;
+        let redis_connected = if let Ok(mut conn) = redis_conn {
+             redis::cmd("PING").query_async::<_, String>(&mut conn).await.is_ok()
+        } else {
+            false
+        };
+
+        // 4. RPC Probes
+        let mut services = vec![];
+        
+        // Probe Ethereum RPC
+        services.push(self.probe_rpc("Ethereum Node", &self.config.ethereum_rpc_url).await);
+        
+        // Probe Solana RPC
+        services.push(self.probe_rpc("Solana Node", &self.config.solana_rpc_url).await);
+
+        // Probe Bitcoin API (Blockstream or similar)
+        services.push(self.probe_rpc("Bitcoin Node", &self.config.bitcoin_rpc_url).await);
+
+        // Core Dashboard Service (Self check)
+        services.push(ServiceHealth {
+            name: "Core API Gateway".to_string(),
+            status: if db_connected { "operational".to_string() } else { "outage".to_string() },
+            latency_ms: 0,
+            last_check: Utc::now().to_rfc3339(),
+        });
+
+        // Determine overall status
+        let overall_status = if !db_connected || services.iter().any(|s| s.status == "outage") {
+            "outage".to_string()
+        } else if services.iter().any(|s| s.status == "degraded") {
+            "degraded".to_string()
+        } else {
+            "operational".to_string()
+        };
+
+        let health = SystemHealth {
+            overall_status,
+            cpu_usage,
+            memory_used_gb: memory_used,
+            memory_total_gb: memory_total,
+            db_connected,
+            redis_connected,
+            services: services.clone(),
+            last_updated: Utc::now().to_rfc3339(),
+        };
+
+        // Update cache
+        {
+            let mut current = self.current_health.write().await;
+            *current = health.clone();
+        }
+
+        // Persist history (once every 10 minutes to avoid DB bloat)
+        let now = Utc::now();
+        if now.minute() % 10 == 0 {
+            for service in services {
+                let _ = sqlx::query(
+                    "INSERT INTO system_health_history (service_name, status, latency_ms, cpu_usage, memory_usage_gb) 
+                     VALUES ($1, $2, $3, $4, $5)"
+                )
+                .bind(&service.name)
+                .bind(&service.status)
+                .bind(service.latency_ms as i32)
+                .bind(cpu_usage)
+                .bind(memory_used)
+                .execute(&self.db_pool)
+                .await;
+            }
+        }
+    }
+
+    async fn probe_rpc(&self, name: &str, url: &str) -> ServiceHealth {
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(5))
+            .build()
+            .unwrap();
+
+        let start = std::time::Instant::now();
+        let result = client.get(url).send().await;
+        let latency = start.elapsed().as_millis() as u32;
+
+        let status = match result {
+            Ok(resp) if resp.status().is_success() || resp.status().as_u16() == 405 || resp.status().as_u16() == 401 => {
+                // Many RPCs return 405 Method Not Allowed on a naked GET, but they are UP
+                if latency > 1000 { "degraded".to_string() } else { "operational".to_string() }
+            },
+            _ => "outage".to_string(),
+        };
+
+        ServiceHealth {
+            name: name.to_string(),
+            status,
+            latency_ms: latency,
+            last_check: Utc::now().to_rfc3339(),
+        }
+    }
+}
+
+// Extension trait for minute checking
+trait MinuteExt {
+    fn minute(&self) -> u32;
+}
+
+impl MinuteExt for chrono::DateTime<Utc> {
+    fn minute(&self) -> u32 {
+        use chrono::Timelike;
+        self.time().minute()
+    }
+}

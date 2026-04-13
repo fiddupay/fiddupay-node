@@ -4,25 +4,35 @@ import UptimeBarChart from '@/components/status/UptimeBarChart'
 import { MdCheckCircle, MdWarning, MdError, MdInfo, MdHistory, MdSpeed, MdUpdate, MdSecurity } from 'react-icons/md'
 import styles from '@/styles/pages/StatusPage.module.css'
 
-interface SystemStatus {
-  overall_status: 'operational' | 'degraded' | 'outage'
-  services: ServiceStatus[]
-  uptime_stats: UptimeStats
-  last_updated: string
+interface UptimePoint {
+  date: string;
+  status: 'operational' | 'degraded' | 'outage';
 }
 
 interface ServiceStatus {
   name: string
   description: string
-  status: 'operational' | 'degraded' | 'outage'
-  response_time?: number
+  status: string
+  response_time: number
   last_check: string
+  history: UptimePoint[]
 }
 
-interface UptimeStats {
-  thirty_days: number
-  ninety_days: number
-  one_year: number
+interface SystemMetrics {
+  cpu_usage: number;
+  memory_usage_percent: number;
+}
+
+interface SystemStatus {
+  overall_status: string
+  services: ServiceStatus[]
+  uptime_stats: {
+    thirty_days: number
+    ninety_days: number
+    one_year: number
+  }
+  last_updated: string
+  system_metrics?: SystemMetrics
 }
 
 const StatusPage: React.FC = () => {
@@ -50,35 +60,40 @@ const StatusPage: React.FC = () => {
             description: 'Authentication and routing infrastructure',
             status: 'operational',
             response_time: 42,
-            last_check: new Date().toISOString()
+            last_check: new Date().toISOString(),
+            history: []
           },
           {
             name: 'Blockchain Indexer',
             description: 'Real-time transaction confirmation engine',
             status: 'operational',
             response_time: 115,
-            last_check: new Date().toISOString()
+            last_check: new Date().toISOString(),
+            history: []
           },
           {
             name: 'Webhook Relay',
             description: 'Merchant notification delivery system',
             status: 'operational',
             response_time: 28,
-            last_check: new Date().toISOString()
+            last_check: new Date().toISOString(),
+            history: []
           },
           {
             name: 'Dashboard UI',
             description: 'Merchant and Admin management portals',
             status: 'operational',
             response_time: 19,
-            last_check: new Date().toISOString()
+            last_check: new Date().toISOString(),
+            history: []
           },
           {
             name: 'Payment Pages',
             description: 'Public-facing customer checkout interface',
             status: 'operational',
             response_time: 32,
-            last_check: new Date().toISOString()
+            last_check: new Date().toISOString(),
+            history: []
           }
         ],
         uptime_stats: {
@@ -170,7 +185,7 @@ const StatusPage: React.FC = () => {
                     </div>
                   </div>
                   
-                  <UptimeBarChart />
+                  <UptimeBarChart data={service.history.map(h => ({ date: h.date, status: h.status as any }))} />
                   
                   <div className={styles.serviceBottom}>
                     <span className={styles.responseTime}>
@@ -185,6 +200,20 @@ const StatusPage: React.FC = () => {
 
           {/* Sidebar / Metrics */}
           <aside className={styles.sidebar}>
+            {status?.system_metrics && (
+              <div className={styles.metricsCard}>
+                <h3>Server Performance</h3>
+                <div className={styles.metricItem}>
+                  <label>CPU Usage</label>
+                  <div className={styles.metricValue}>{status.system_metrics.cpu_usage.toFixed(1)}%</div>
+                </div>
+                <div className={styles.metricItem}>
+                  <label>Memory Usage</label>
+                  <div className={styles.metricValue}>{status.system_metrics.memory_usage_percent.toFixed(1)}%</div>
+                </div>
+              </div>
+            )}
+
             <div className={styles.metricsCard}>
               <h3>Uptime Report</h3>
               <div className={styles.metricItem}>

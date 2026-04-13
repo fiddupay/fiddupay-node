@@ -9,7 +9,7 @@ use crate::models::merchant_customer::{
     UpdateCustomerStatusRequest, UpdateCustomerPermissionsRequest
 };
 use axum::{
-    extract::{State, Path},
+    extract::{State, Path, Query},
     http::StatusCode,
     response::IntoResponse,
     Json, Extension,
@@ -24,7 +24,7 @@ pub async fn register_customer(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<CreateCustomerRequest>,
 ) -> impl IntoResponse {
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
     
     match service.register_customer(context.merchant_id, req, context.sandbox_mode).await {
         Ok((customer, wallets)) => {
@@ -56,7 +56,7 @@ pub async fn provision_customer_wallets(
     Path(external_id): Path<String>,
     Json(req): Json<crate::models::merchant_customer::ProvisionWalletRequest>,
 ) -> impl IntoResponse {
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
     
     match service.provision_wallets(context.merchant_id, &external_id, req.networks.clone().unwrap_or_default(), context.sandbox_mode, false).await {
         Ok(wallets) => {
@@ -99,7 +99,7 @@ pub async fn bulk_provision_customer_wallets(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<BulkProvisionRequest>,
 ) -> impl IntoResponse {
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
     
     match service.bulk_provision_wallets(
         context.merchant_id,
@@ -134,7 +134,7 @@ pub async fn get_customer_balances(
     Extension(context): Extension<MerchantContext>,
     Path(external_id): Path<String>,
 ) -> impl IntoResponse {
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
     
     match service.get_customer_balances(context.merchant_id, &external_id, context.sandbox_mode).await {
         Ok(balances) => {
@@ -201,7 +201,7 @@ pub async fn get_customer_wallets(
     Extension(context): Extension<MerchantContext>,
     Path(external_id): Path<String>,
 ) -> impl IntoResponse {
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
     
     match service.get_customer_wallets(context.merchant_id, &external_id, context.sandbox_mode).await {
         Ok(wallets) => (StatusCode::OK, Json(json!({
@@ -217,7 +217,7 @@ pub async fn get_deposit_address(
     Extension(context): Extension<MerchantContext>,
     Path((external_id, crypto_type)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
     
     match service.get_deposit_address(context.merchant_id, &external_id, &crypto_type, context.sandbox_mode).await {
         Ok(address) => (StatusCode::OK, Json(json!({
@@ -241,7 +241,7 @@ pub async fn get_customer_transactions(
     Path(external_id): Path<String>,
     axum::extract::Query(params): axum::extract::Query<TransactionQuery>,
 ) -> impl IntoResponse {
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
     let limit = params.limit.unwrap_or(50);
     let offset = params.offset.unwrap_or(0);
 
@@ -302,7 +302,7 @@ pub async fn pay_merchant(
     Json(req): Json<PayMerchantRequest>,
 ) -> impl IntoResponse {
 
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
     
     tracing::debug!(
         external_id = %external_id,
@@ -366,7 +366,7 @@ pub async fn update_customer_status(
     Path(external_id): Path<String>,
     Json(req): Json<UpdateCustomerStatusRequest>,
 ) -> impl IntoResponse {
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
     
     match service.update_customer_status(
         context.merchant_id, &external_id, &req.status, req.reason.as_deref(), context.sandbox_mode
@@ -398,7 +398,7 @@ pub async fn update_customer_permissions(
     Path(external_id): Path<String>,
     Json(req): Json<UpdateCustomerPermissionsRequest>,
 ) -> impl IntoResponse {
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
 
     let withdrawal_limit = req.withdrawal_limit.as_deref().and_then(|s| {
         rust_decimal::Decimal::from_str_exact(s).ok()
@@ -445,7 +445,7 @@ pub async fn sweep_customer_wallet(
     let req_mode = req.sweep_mode.clone();
     let req_types = req.crypto_types.clone();
 
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
     
     match service.sweep_customer_wallet(
         context.merchant_id, 
@@ -494,7 +494,7 @@ pub async fn list_customers(
     Extension(context): Extension<MerchantContext>,
     axum::extract::Query(params): axum::extract::Query<ListCustomersQuery>,
 ) -> impl IntoResponse {
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
     let limit = params.limit.unwrap_or(50);
     let offset = params.offset.unwrap_or(0);
     
@@ -514,7 +514,7 @@ pub async fn get_customers_summary(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
     
     match service.get_customers_summary(context.merchant_id, context.sandbox_mode).await {
         Ok(summary) => (StatusCode::OK, Json(summary)).into_response(),
@@ -528,7 +528,7 @@ pub async fn deactivate_customer(
     Extension(context): Extension<MerchantContext>,
     Path(external_id): Path<String>,
 ) -> impl IntoResponse {
-    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone());
+    let service = MerchantCustomerService::new(state.db_pool.clone(), state.price_service.clone(), state.volume_tracking_service.clone(), state.notification_service.clone());
     
     match service.deactivate_customer(context.merchant_id, &external_id, context.sandbox_mode).await {
         Ok(_) => {
