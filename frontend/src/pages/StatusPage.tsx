@@ -9,6 +9,16 @@ interface UptimePoint {
   status: 'operational' | 'degraded' | 'outage';
 }
 
+interface SystemIncident {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  severity: string;
+  created_at: string;
+  resolved_at?: string;
+}
+
 interface ServiceStatus {
   name: string
   description: string
@@ -33,6 +43,7 @@ interface SystemStatus {
   }
   last_updated: string
   system_metrics?: SystemMetrics
+  past_incidents: SystemIncident[]
 }
 
 const StatusPage: React.FC = () => {
@@ -51,7 +62,7 @@ const StatusPage: React.FC = () => {
       setStatus(response.data)
     } catch (error) {
       console.error('Failed to fetch system status:', error)
-      // Fallback enterprise mock data
+      // Fallback enterprise mock data (reduced for clarity)
       setStatus({
         overall_status: 'operational',
         services: [
@@ -62,38 +73,6 @@ const StatusPage: React.FC = () => {
             response_time: 42,
             last_check: new Date().toISOString(),
             history: []
-          },
-          {
-            name: 'Blockchain Indexer',
-            description: 'Real-time transaction confirmation engine',
-            status: 'operational',
-            response_time: 115,
-            last_check: new Date().toISOString(),
-            history: []
-          },
-          {
-            name: 'Webhook Relay',
-            description: 'Merchant notification delivery system',
-            status: 'operational',
-            response_time: 28,
-            last_check: new Date().toISOString(),
-            history: []
-          },
-          {
-            name: 'Dashboard UI',
-            description: 'Merchant and Admin management portals',
-            status: 'operational',
-            response_time: 19,
-            last_check: new Date().toISOString(),
-            history: []
-          },
-          {
-            name: 'Payment Pages',
-            description: 'Public-facing customer checkout interface',
-            status: 'operational',
-            response_time: 32,
-            last_check: new Date().toISOString(),
-            history: []
           }
         ],
         uptime_stats: {
@@ -101,7 +80,8 @@ const StatusPage: React.FC = () => {
           ninety_days: 99.98,
           one_year: 99.95
         },
-        last_updated: new Date().toISOString()
+        last_updated: new Date().toISOString(),
+        past_incidents: []
       })
     } finally {
       setLoading(false)
@@ -145,6 +125,10 @@ const StatusPage: React.FC = () => {
         <div className={styles.heroGlow} />
         <div className={styles.container}>
           <div className={styles.statusTitle}>
+            <div className={styles.liveIndicator}>
+              <div className={styles.livePulse} />
+              <span>LIVE SYSTEM METRICS</span>
+            </div>
             <h1>System Status</h1>
             <p>Transparency and real-time health metrics for the FidduPay ecosystem.</p>
           </div>
@@ -185,13 +169,13 @@ const StatusPage: React.FC = () => {
                     </div>
                   </div>
                   
-                  <UptimeBarChart data={service.history.map(h => ({ date: h.date, status: h.status as any }))} />
+                  <UptimeBarChart data={service.history.map((h: UptimePoint) => ({ date: h.date, status: h.status as any }))} />
                   
                   <div className={styles.serviceBottom}>
                     <span className={styles.responseTime}>
                       <MdSpeed /> {service.response_time}ms avg. load
                     </span>
-                    <span className={styles.uptimePercent}>99.98% uptime (90d)</span>
+                    <span className={styles.uptimePercent}>Calculated live from infrastructure</span>
                   </div>
                 </div>
               ))}
@@ -237,23 +221,24 @@ const StatusPage: React.FC = () => {
               </div>
               
               <div className={styles.incidentList}>
-                <div className={styles.incidentItem}>
-                  <div className={styles.incidentMeta}>
-                    <span className={styles.incidentDate}>April 08, 2026</span>
-                    <span className={styles.resolvedBadge}>Resolved</span>
-                  </div>
-                  <h4>Intermittent Dashboard Latency</h4>
-                  <p>Investigated a cold-start issue affecting dashboard load times for newly registered merchants.</p>
-                </div>
-                
-                <div className={styles.incidentItem}>
-                  <div className={styles.incidentMeta}>
-                    <span className={styles.incidentDate}>March 24, 2026</span>
-                    <span className={styles.resolvedBadge}>Resolved</span>
-                  </div>
-                  <h4>Solana Devnet Instability</h4>
-                  <p>Mitigated rpc failures by switching to a dedicated fallback cluster for testnet monitoring.</p>
-                </div>
+                {status?.past_incidents.length === 0 ? (
+                  <div className={styles.noIncidents}>No incidents reported in the last 90 days.</div>
+                ) : (
+                  status?.past_incidents.map((incident) => (
+                    <div key={incident.id} className={styles.incidentItem}>
+                      <div className={styles.incidentMeta}>
+                        <span className={styles.incidentDate}>
+                          {new Date(incident.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        </span>
+                        <span className={incident.status === 'resolved' ? styles.resolvedBadge : styles.investigatingBadge}>
+                          {incident.status.charAt(0).toUpperCase() + incident.status.slice(1)}
+                        </span>
+                      </div>
+                      <h4>{incident.title}</h4>
+                      <p>{incident.description}</p>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 

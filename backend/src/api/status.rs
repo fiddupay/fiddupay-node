@@ -10,6 +10,18 @@ pub struct SystemStatus {
     pub uptime_stats: UptimeStats,
     pub last_updated: String,
     pub system_metrics: Option<SystemMetrics>,
+    pub past_incidents: Vec<SystemIncident>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SystemIncident {
+    pub id: uuid::Uuid,
+    pub title: String,
+    pub description: String,
+    pub status: String,
+    pub severity: String,
+    pub created_at: String,
+    pub resolved_at: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -46,11 +58,8 @@ pub async fn get_system_status(
 ) -> Result<Json<SystemStatus>, StatusCode> {
     let health = state.monitoring_service.get_health().await;
 
-    // Fetch history for the last 90 days from the DB
-    // In a real implementation, we'd query daily_uptime_summary
-    // For now, we'll map the current real services
+    // 1. Map current services
     let mut services = vec![];
-
     for service in health.services {
         let description = match service.name.as_str() {
             "Core API Gateway" => "Authentication and routing infrastructure",
@@ -60,7 +69,6 @@ pub async fn get_system_status(
             _ => "System infrastructure component",
         };
 
-        // Fetch last 90 days of history for this service
         let history = fetch_service_history(&state.db_pool, &service.name).await;
 
         services.push(ServiceStatus {
@@ -73,26 +81,28 @@ pub async fn get_system_status(
         });
     }
 
+    // 2. Fetch Aggregate Uptime Stats
+    let uptime_stats = fetch_aggregate_uptime(&state.db_pool).await;
+
+    // 3. Fetch Recent Incidents
+    let past_incidents = fetch_recent_incidents(&state.db_pool).await;
+
     let status = SystemStatus {
         overall_status: health.overall_status,
         services,
-        uptime_stats: UptimeStats {
-            thirty_days: 99.99,
-            ninety_days: 99.98,
-            one_year: 99.95,
-        },
+        uptime_stats,
         last_updated: health.last_updated,
         system_metrics: Some(SystemMetrics {
             cpu_usage: health.cpu_usage,
             memory_usage_percent: (health.memory_used_gb / health.memory_total_gb) * 100.0,
         }),
+        past_incidents,
     };
 
     Ok(Json(status))
 }
 
 async fn fetch_service_history(pool: &sqlx::PgPool, service_name: &str) -> Vec<UptimePoint> {
-    // Query last 90 days of daily uptime
     let result = sqlx::query!(
         "SELECT day, uptime_percent FROM daily_uptime_summary 
          WHERE service_name = $1 
@@ -105,14 +115,63 @@ async fn fetch_service_history(pool: &sqlx::PgPool, service_name: &str) -> Vec<U
     match result {
         Ok(rows) => rows.into_iter().map(|r| UptimePoint {
             date: r.day.unwrap_or_else(|| Utc::now()).to_rfc3339(),
-            status: if r.uptime_percent.unwrap_or(0.0) > 99.0 { 
+            status: if r.uptime_percent.unwrap_or(0.0) >= 99.0 { 
                 "operational".to_string() 
-            } else if r.uptime_percent.unwrap_or(0.0) > 90.0 {
+            } else if r.uptime_percent.unwrap_or(0.0) >= 90.0 {
                 "degraded".to_string()
             } else {
                 "outage".to_string()
             },
         }).collect(),
-        Err(_) => vec![], // Fallback to empty if no history yet
+        Err(_) => vec![],
+    }
+}
+
+async fn fetch_aggregate_uptime(pool: &sqlx::PgPool) -> UptimeStats {
+    let stats = sqlx::query!(
+        r#"
+        SELECT 
+            AVG(uptime_percent) FILTER (WHERE day >= NOW() - INTERVAL '30 days') as thirty,
+            AVG(uptime_percent) FILTER (WHERE day >= NOW() - INTERVAL '90 days') as ninety,
+            AVG(uptime_percent) FILTER (WHERE day >= NOW() - INTERVAL '365 days') as yearly
+        FROM daily_uptime_summary
+        "#
+    )
+    .fetch_one(pool)
+    .await;
+
+    match stats {
+        Ok(row) => UptimeStats {
+            thirty_days: row.thirty.unwrap_or(100.0).round(),
+            ninety_days: row.ninety.unwrap_or(100.0).round(),
+            one_year: row.yearly.unwrap_or(100.0).round(),
+        },
+        Err(_) => UptimeStats {
+            thirty_days: 100.0,
+            ninety_days: 100.0,
+            one_year: 100.0,
+        },
+    }
+}
+
+async fn fetch_recent_incidents(pool: &sqlx::PgPool) -> Vec<SystemIncident> {
+    let result = sqlx::query!(
+        "SELECT id, title, description, status, severity, created_at, resolved_at FROM system_incidents 
+         ORDER BY created_at DESC LIMIT 5"
+    )
+    .fetch_all(pool)
+    .await;
+
+    match result {
+        Ok(rows) => rows.into_iter().map(|r| SystemIncident {
+            id: r.id,
+            title: r.title,
+            description: r.description,
+            status: r.status,
+            severity: r.severity,
+            created_at: r.created_at.to_rfc3339(),
+            resolved_at: r.resolved_at.map(|d| d.to_rfc3339()),
+        }).collect(),
+        Err(_) => vec![],
     }
 }
