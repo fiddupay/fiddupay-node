@@ -103,7 +103,7 @@ pub async fn get_system_status(
 }
 
 async fn fetch_service_history(pool: &sqlx::PgPool, service_name: &str) -> Vec<UptimePoint> {
-    let result = sqlx::query!(
+    let result: Result<Vec<_>, _> = sqlx::query!(
         "SELECT day, uptime_percent FROM daily_uptime_summary 
          WHERE service_name = $1 
          ORDER BY day DESC LIMIT 90",
@@ -128,7 +128,7 @@ async fn fetch_service_history(pool: &sqlx::PgPool, service_name: &str) -> Vec<U
 }
 
 async fn fetch_aggregate_uptime(pool: &sqlx::PgPool) -> UptimeStats {
-    let stats = sqlx::query!(
+    let stats: Result<_, _> = sqlx::query!(
         r#"
         SELECT 
             AVG(uptime_percent) FILTER (WHERE day >= NOW() - INTERVAL '30 days') as thirty,
@@ -155,7 +155,7 @@ async fn fetch_aggregate_uptime(pool: &sqlx::PgPool) -> UptimeStats {
 }
 
 async fn fetch_recent_incidents(pool: &sqlx::PgPool) -> Vec<SystemIncident> {
-    let result = sqlx::query!(
+    let result: Result<Vec<_>, _> = sqlx::query!(
         "SELECT id, title, description, status, severity, created_at, resolved_at FROM system_incidents 
          ORDER BY created_at DESC LIMIT 5"
     )
@@ -170,7 +170,7 @@ async fn fetch_recent_incidents(pool: &sqlx::PgPool) -> Vec<SystemIncident> {
             status: r.status,
             severity: r.severity,
             created_at: r.created_at.to_rfc3339(),
-            resolved_at: r.resolved_at.map(|d| d.to_rfc3339()),
+            resolved_at: r.resolved_at.map(|d: chrono::DateTime<Utc>| d.to_rfc3339()),
         }).collect(),
         Err(_) => vec![],
     }

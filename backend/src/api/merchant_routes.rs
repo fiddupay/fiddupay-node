@@ -5,7 +5,7 @@ use crate::api::{merchant_handlers, wallet_management, security_monitoring, addr
 use crate::middleware::auth;
 use axum::{
     middleware as axum_middleware,
-    routing::{get, post, put, patch},
+    routing::{get, post, put, patch, delete},
     Router,
 };
 use crate::api::state::AppState;

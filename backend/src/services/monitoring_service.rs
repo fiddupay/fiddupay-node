@@ -75,7 +75,7 @@ impl MonitoringService {
 
     async fn perform_checks(&self, sys: &mut System) {
         // 1. System Metrics
-        sys.refresh_cpu();
+        sys.refresh_cpu_all();
         sys.refresh_memory();
 
         let cpu_usage = sys.global_cpu_info().cpu_usage();
@@ -86,11 +86,11 @@ impl MonitoringService {
         let db_connected = sqlx::query("SELECT 1").fetch_one(&self.db_pool).await.is_ok();
 
         // 3. Redis Check
-        let mut redis_conn = self.redis_client.get_async_connection().await;
-        let redis_connected = if let Ok(mut conn) = redis_conn {
-             redis::cmd("PING").query_async::<_, String>(&mut conn).await.is_ok()
-        } else {
-            false
+        let redis_connected = match self.redis_client.get_multiplexed_tokio_connection().await {
+            Ok(mut conn) => {
+                 redis::cmd("PING").query_async::<String>(&mut conn).await.is_ok()
+            },
+            Err(_) => false
         };
 
         // 4. RPC Probes
