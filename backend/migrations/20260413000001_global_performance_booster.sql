@@ -30,10 +30,23 @@ CREATE INDEX IF NOT EXISTS idx_merchant_wallets_addr_lwr
     ON merchant_wallets (LOWER(address));
 
 
--- 3. Analytics Aggregation Indexes
+-- 3. Analytics and Discovery Aggregation Indexes
 -- These target the SUM() and COUNT() queries in AnalyticsService
+-- AND the background discovery queries in BackgroundTasks
 CREATE INDEX IF NOT EXISTS idx_payment_transactions_analytics_status
     ON payment_transactions (merchant_id, status, created_at DESC);
+
+-- Targets: SELECT DISTINCT to_address FROM payment_transactions WHERE status IN ('PENDING', 'CONFIRMING') AND sandbox_mode = $1
+CREATE INDEX IF NOT EXISTS idx_payment_transactions_discovery_v2
+    ON payment_transactions (sandbox_mode, status, network, crypto_type);
+
+-- Targets: SELECT address FROM merchant_customer_wallets WHERE sandbox_mode = $1 AND crypto_type = $2
+CREATE INDEX IF NOT EXISTS idx_merchant_customer_wallets_discovery
+    ON merchant_customer_wallets (sandbox_mode, crypto_type);
+
+-- Targets: SELECT address FROM merchant_wallets WHERE sandbox_mode = $1 AND is_active = true AND crypto_type = $2
+CREATE INDEX IF NOT EXISTS idx_merchant_wallets_discovery
+    ON merchant_wallets (sandbox_mode, crypto_type, is_active);
 
 
 -- 4. Cross-Table Join Optimization
