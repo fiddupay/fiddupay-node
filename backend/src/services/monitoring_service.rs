@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 use sqlx::PgPool;
-use sysinfo::{System, SystemExt, CpuExt};
+use sysinfo::System;
 use serde::{Serialize, Deserialize};
 use chrono::Utc;
 use tracing::{info, error};
@@ -75,8 +75,7 @@ impl MonitoringService {
 
     async fn perform_checks(&self, sys: &mut System) {
         // 1. System Metrics
-        sys.refresh_cpu_all();
-        sys.refresh_memory();
+        sys.refresh_all();
 
         let cpu_usage = sys.global_cpu_info().cpu_usage();
         let memory_used = sys.used_memory() as f32 / 1024.0 / 1024.0 / 1024.0;
@@ -86,7 +85,7 @@ impl MonitoringService {
         let db_connected = sqlx::query("SELECT 1").fetch_one(&self.db_pool).await.is_ok();
 
         // 3. Redis Check
-        let redis_connected = match self.redis_client.get_multiplexed_tokio_connection().await {
+        let redis_connected = match self.redis_client.get_multiplexed_async_connection().await {
             Ok(mut conn) => {
                  redis::cmd("PING").query_async::<String>(&mut conn).await.is_ok()
             },
