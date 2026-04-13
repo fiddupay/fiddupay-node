@@ -1,71 +1,68 @@
 .page {
     padding: 32px;
-    animation: fadeIn 0.5s ease-out;
+    animation: pageReveal 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.05), transparent 400px),
+                radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.05), transparent 400px);
     background-color: var(--fiddu-bg-primary);
     min-height: 100vh;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+@keyframes pageReveal {
+    from { opacity: 0; transform: translateY(20px); filter: blur(10px); }
+    to { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
+    margin-bottom: 40px;
 }
 
-.header h1 {
-    font-size: 28px;
-    font-weight: 700;
+.titleArea h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
     color: var(--fiddu-text-primary);
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
+    gap: 16px;
+    margin: 0 0 8px 0;
 }
 
-.header h1 i {
-    color: var(--fiddu-brand-primary);
+.titleArea h1 i {
+    background: linear-gradient(135deg, var(--fiddu-brand-primary), #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-.header p {
+.titleArea p {
     color: var(--fiddu-text-secondary);
     font-size: 16px;
+    margin: 0;
 }
 
 .refreshBtn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: white;
-    border: 1px solid var(--fiddu-border);
-    border-radius: 8px;
+    gap: 10px;
+    padding: 12px 24px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 14px;
     font-weight: 600;
     color: var(--fiddu-text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .refreshBtn:hover:not(:disabled) {
-    background: var(--fiddu-bg-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1);
     border-color: var(--fiddu-brand-primary);
     color: var(--fiddu-brand-primary);
-}
-
-.refreshBtn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
 }
 
 .loadingState {
@@ -73,272 +70,374 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 100px 0;
-    color: var(--fiddu-text-muted);
+    padding: 120px 0;
 }
 
-.loadingState i {
-    font-size: 2rem;
-    margin-bottom: 16px;
-    color: var(--fiddu-brand-primary);
-}
-
-/* Stats Grid */
-.statsGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 24px;
-    margin-bottom: 40px;
-}
-
-.statCard {
+.loaderBox {
+    width: 80px;
+    height: 80px;
+    border-radius: 24px;
     background: white;
-    padding: 24px;
-    border-radius: 12px;
-    border: 1px solid var(--fiddu-border);
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s;
-}
-
-.statCard:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-.statIcon {
-    width: 56px;
-    height: 56px;
-    border-radius: 12px;
-    background: rgba(37, 99, 235, 0.1);
-    color: #2563eb;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 32px;
+    color: var(--fiddu-brand-primary);
+    margin-bottom: 24px;
+    animation: bounce 2s infinite ease-in-out;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* Glass Stat Cards */
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+    margin-bottom: 48px;
+}
+
+.glassStatCard {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    padding: 28px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.03), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glassStatCard:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+}
+
+.statIcon {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--fiddu-brand-primary), #1e40af);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
 }
 
 .statLabel {
     font-size: 14px;
-    font-weight: 500;
-    color: var(--fiddu-text-secondary);
-    margin: 0;
+    font-weight: 600;
+    color: var(--fiddu-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 4px 0;
 }
 
 .statValue {
-    font-size: 28px;
-    font-weight: 700;
+    font-size: 32px;
+    font-weight: 800;
     color: var(--fiddu-text-primary);
-    margin: 4px 0 0 0;
-}
-
-/* Assets Breakdown */
-.balanceListSection {
-    margin-top: 2rem;
-}
-
-.sectionHeader {
-    margin-bottom: 24px;
-}
-
-.assetsList {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.assetRow {
-    background: white;
-    border: 1px solid var(--fiddu-border);
-    border-radius: 12px;
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-}
-
-.assetRow:hover {
-    transform: translateX(8px);
-    border-color: var(--fiddu-brand-primary);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-}
-
-.assetRow.active {
-    background: var(--fiddu-bg-primary);
-    border-color: var(--fiddu-brand-primary);
-    box-shadow: 0 0 0 1px var(--fiddu-brand-primary);
-}
-
-.assetMain {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    flex: 1;
-}
-
-.assetIconBox {
-    width: 48px;
-    height: 48px;
-    background: var(--fiddu-bg-primary);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: var(--fiddu-text-primary);
-    border: 1px solid var(--fiddu-border);
-}
-
-.assetMeta h3 {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--fiddu-text-primary);
+    letter-spacing: -0.02em;
     margin: 0;
 }
 
-.assetMeta span {
-    font-size: 12px;
-    color: var(--fiddu-text-muted);
-    font-weight: 500;
-}
-
-.assetValues {
-    display: flex;
-    align-items: center;
-    gap: 48px;
-    text-align: right;
-}
-
-.cryptoValue {
-    font-family: monospace;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--fiddu-text-secondary);
-}
-
-.usdValue {
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--fiddu-text-primary);
-    min-width: 120px;
-}
-
+/* Charts Grid */
 .chartsGrid {
     display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 24px;
-    margin-bottom: 40px;
+    grid-template-columns: 1fr 400px;
+    gap: 32px;
+    margin-bottom: 56px;
 }
 
 .premiumCard {
     background: white;
-    border: 1px solid var(--fiddu-border);
-    border-radius: 20px;
-    padding: 24px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    min-width: 0;
-}
-
-.cardHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
+    border-radius: 32px;
+    padding: 32px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(226, 232, 240, 0.5);
+    position: relative;
+    overflow: hidden;
 }
 
 .cardHeader h3 {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
     color: var(--fiddu-text-primary);
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.resetAssetBtn {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+    border: none;
+    padding: 6px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.resetAssetBtn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    transform: scale(1.02);
+}
+
+.chartContainer {
+    height: 300px;
+    margin-top: 32px;
+}
+
+/* Pie Chart Specifics */
+.pieWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.pieCenterContent {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.pieCenterLabel {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--fiddu-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.pieCenterValue {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--fiddu-text-primary);
+    line-height: 1;
+}
+
+/* Assets Grid */
+.balanceListSection {
+    margin-top: 64px;
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 32px;
+}
+
+.sectionHeader h2 {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0;
+}
+
+.assetCountBadge {
+    padding: 6px 14px;
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--fiddu-brand-primary);
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.assetsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+}
+
+.assetGlassCard {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 28px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    opacity: 0;
+    animation: cardEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: calc(var(--index) * 0.1s);
+}
+
+@keyframes cardEnter {
+    from { opacity: 0; transform: scale(0.9) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.assetGlassCard:hover {
+    transform: scale(1.05) translateY(-5px);
+    background: white;
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.1);
+    border-color: var(--fiddu-brand-primary);
+}
+
+.assetGlassCard.active {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(37, 99, 235, 0.02));
+    border-color: var(--fiddu-brand-primary);
+    box-shadow: 0 0 0 1px var(--fiddu-brand-primary);
+}
+
+.assetHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.assetIconWrapper {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.assetIconImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.fallbackIcon {
+    font-size: 22px;
+    color: var(--fiddu-text-primary);
+}
+
+.assetBadge {
+    padding: 4px 10px;
+    background: #f1f5f9;
+    color: #64748b;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.assetMainInfo h3 {
+    font-size: 18px;
+    font-weight: 800;
+    margin: 0 0 16px 0;
+    color: var(--fiddu-text-primary);
+}
+
+.cryptoAmount {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--fiddu-text-primary);
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+}
+
+.cryptoAmount span {
+    font-size: 14px;
+    color: var(--fiddu-text-muted);
+    font-weight: 600;
+}
+
+.usdEquivalent {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--fiddu-brand-primary);
+}
+
+.assetFooter {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.availableLabel {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--fiddu-text-muted);
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.chartContainer {
-    height: 300px;
-    width: 100%;
-    min-width: 0;
-    overflow: hidden;
+.pulseDot {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+    animation: pulse 2s infinite;
 }
 
-.miniPieContainer {
-    height: 240px;
-    min-width: 0;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+@keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
-.emptyAssets {
-    text-align: center;
-    padding: 48px;
+.modernEmptyState {
+    grid-column: 1 / -1;
     background: white;
-    border: 1px dashed var(--fiddu-border);
-    border-radius: 16px;
-    color: var(--fiddu-text-muted);
+    padding: 80px 40px;
+    border-radius: 40px;
+    text-align: center;
+    border: 2px dashed #e2e8f0;
 }
 
-.emptyAssets i {
-    font-size: 48px;
-    margin-bottom: 16px;
-    opacity: 0.3;
+.emptyIllustration {
+    font-size: 64px;
+    color: #e2e8f0;
+    margin-bottom: 24px;
+    position: relative;
+    display: inline-block;
 }
 
-@media (max-width: 768px) {
-    .page {
-        padding: 20px;
-    }
+.floatingCoin {
+    position: absolute;
+    top: -10px;
+    right: -20px;
+    font-size: 32px;
+    color: #fbbf24;
+    animation: drift 3s infinite ease-in-out;
+}
 
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-    }
+@keyframes drift {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(15deg); }
+}
 
-    .refreshBtn {
-        width: 100%;
-        justify-content: center;
-    }
-
+@media (max-width: 1024px) {
     .chartsGrid {
         grid-template-columns: 1fr;
-    }
-
-    .assetValues {
-        gap: 16px;
     }
 }
 
 @media (max-width: 640px) {
-  .statCard {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .assetRow {
-    padding: 12px;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .assetValues {
-    width: 100%;
-    justify-content: space-between;
-    text-align: left;
-  }
-
-  .usdValue {
-    min-width: 0;
-  }
+    .page { padding: 20px; }
+    .header { flex-direction: column; align-items: flex-start; }
+    .refreshBtn { width: 100%; justify-content: center; }
+    .statValue { font-size: 26px; }
+    .assetsGrid { grid-template-columns: 1fr; }
 }

@@ -4,6 +4,7 @@ import { Balance, BalanceHistory } from '@/types'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuthStore } from '@/stores/authStore'
 import styles from '@/styles/pages/BalancePage.module.css'
+import { BalanceSkeleton } from '@/components/layout/PageSkeletons'
 
 // Safe parseFloat that never returns NaN
 const safeFloat = (val: any): number => {
@@ -87,10 +88,10 @@ const BalancePage: React.FC = () => {
     const pieData = useMemo(() => {
         if (!balance?.balances) return []
         return balance.balances
-            .filter(b => safeFloat(b.balance_usd) > 0)
+            .filter(b => safeFloat(b.total_usd) > 0)
             .map(b => ({
                 name: b.crypto_type.split('_')[0],
-                value: safeFloat(b.balance_usd)
+                value: safeFloat(b.total_usd)
             }))
             .sort((a, b) => b.value - a.value)
     }, [balance])
@@ -124,32 +125,29 @@ const BalancePage: React.FC = () => {
             </div>
 
             {loading && !balance ? (
-                <div className={styles.loadingState}>
-                    <i className="fas fa-spinner fa-spin"></i>
-                    <p>Analyzing your wealth...</p>
-                </div>
+                <BalanceSkeleton />
             ) : (
                 <div className={styles.content}>
                     {/* Stats Summary Cards */}
                     <div className={styles.statsGrid}>
-                        <div className={styles.statCard}>
+                        <div className={styles.glassStatCard}>
                             <div className={styles.statIcon}><i className="fas fa-vault"></i></div>
                             <div className={styles.statInfo}>
-                                <p className={styles.statLabel}>Total Assets (USD)</p>
+                                <p className={styles.statLabel}>Total Portfolio Value</p>
                                 <p className={styles.statValue}>${safeFloat(balance?.total_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                             </div>
                         </div>
-                        <div className={styles.statCard}>
-                            <div className={styles.statIcon} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><i className="fas fa-unlock"></i></div>
+                        <div className={styles.glassStatCard}>
+                            <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white' }}><i className="fas fa-unlock"></i></div>
                             <div className={styles.statInfo}>
-                                <p className={styles.statLabel}>Available Now</p>
+                                <p className={styles.statLabel}>Liquid Assets</p>
                                 <p className={styles.statValue}>${safeFloat(balance?.available_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                             </div>
                         </div>
-                        <div className={styles.statCard}>
-                            <div className={styles.statIcon} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}><i className="fas fa-hourglass-half"></i></div>
+                        <div className={styles.glassStatCard}>
+                            <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white' }}><i className="fas fa-hourglass-half"></i></div>
                             <div className={styles.statInfo}>
-                                <p className={styles.statLabel}>Settling / Reserved</p>
+                                <p className={styles.statLabel}>Pending / Reserved</p>
                                 <p className={styles.statValue}>${safeFloat(balance?.reserved_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                             </div>
                         </div>
@@ -162,14 +160,14 @@ const BalancePage: React.FC = () => {
                             <div className={styles.cardHeader}>
                                 <h3>
                                     <i className="fas fa-chart-line"></i>
-                                    {selectedAsset ? `${selectedAsset.split('_')[0]} Balance Trend` : 'Total Balance Growth'}
+                                    {selectedAsset ? `${selectedAsset.split('_')[0]} Performance` : 'Wealth Growth'}
                                 </h3>
                                 {selectedAsset && (
                                     <button
                                         onClick={() => setSelectedAsset(null)}
-                                        style={{ fontSize: '0.75rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                                        className={styles.resetAssetBtn}
                                     >
-                                        Show Total
+                                        <i className="fas fa-times"></i> Clear Selection
                                     </button>
                                 )}
                             </div>
@@ -179,32 +177,38 @@ const BalancePage: React.FC = () => {
                                         <AreaChart data={chartData}>
                                             <defs>
                                                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
+                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
                                                     <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                                                 </linearGradient>
                                             </defs>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(203, 213, 225, 0.3)" />
                                             <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
                                             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(val) => `$${val}`} />
                                             <Tooltip
-                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                                                formatter={(value: any) => [`$${parseFloat(value).toLocaleString()}`, selectedAsset ? 'Amount' : 'Total USD']}
+                                                contentStyle={{ 
+                                                    borderRadius: '16px', 
+                                                    border: '1px solid rgba(255,255,255,0.2)', 
+                                                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                                                    backdropFilter: 'blur(10px)',
+                                                    background: 'rgba(255, 255, 255, 0.9)'
+                                                }}
+                                                formatter={(value: any) => [`$${parseFloat(value).toLocaleString()}`, selectedAsset ? 'Current Value' : 'Portfolio Value']}
                                             />
                                             <Area
                                                 type="monotone"
                                                 dataKey={selectedAsset || 'total'}
                                                 stroke="#2563eb"
-                                                strokeWidth={3}
+                                                strokeWidth={4}
                                                 fillOpacity={1}
                                                 fill="url(#colorValue)"
-                                                animationDuration={1500}
+                                                animationDuration={2000}
                                             />
                                         </AreaChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', color: '#94a3b8', flexDirection: 'column', gap: '8px' }}>
-                                        <i className="fas fa-chart-area" style={{ fontSize: '2rem' }}></i>
-                                        <p style={{ margin: 0, fontSize: '0.85rem' }}>No balance history data yet</p>
+                                    <div className={styles.noHistory}>
+                                        <div className={styles.emptyIcon}><i className="fas fa-chart-area"></i></div>
+                                        <p>Chart data will appear once you have multi-day history</p>
                                     </div>
                                 )}
                             </div>
@@ -213,91 +217,123 @@ const BalancePage: React.FC = () => {
                         {/* Pie Chart Component */}
                         <div className={styles.premiumCard}>
                             <div className={styles.cardHeader}>
-                                <h3><i className="fas fa-chart-pie"></i> Distribution</h3>
+                                <h3><i className="fas fa-pie-chart"></i> Asset Allocation</h3>
                             </div>
-                            <div className={styles.miniPieContainer}>
+                            <div className={styles.pieContent}>
                                 {pieData.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height={200}>
-                                        <PieChart>
-                                            <Pie
-                                                data={pieData}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={60}
-                                                outerRadius={80}
-                                                paddingAngle={5}
-                                                dataKey="value"
-                                                animationBegin={200}
-                                                animationDuration={1000}
-                                            >
-                                                {pieData.map((_entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={PRIORITY_COLORS[index % PRIORITY_COLORS.length]} />
-                                                ))}
-                                            </Pie>
-                                            <PieTooltip
-                                                contentStyle={{ borderRadius: '8px', border: 'none', fontSize: '12px' }}
-                                                formatter={(val: any) => [`$${parseFloat(val).toLocaleString()}`, 'Value']}
-                                            />
-                                        </PieChart>
-                                    </ResponsiveContainer>
+                                    <div className={styles.pieWrapper}>
+                                        <ResponsiveContainer width="100%" height={240}>
+                                            <PieChart>
+                                                <Pie
+                                                    data={pieData}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={70}
+                                                    outerRadius={95}
+                                                    paddingAngle={8}
+                                                    dataKey="value"
+                                                    stroke="none"
+                                                    animationBegin={0}
+                                                    animationDuration={1500}
+                                                >
+                                                    {pieData.map((_entry, index) => (
+                                                        <Cell 
+                                                            key={`cell-${index}`} 
+                                                            fill={PRIORITY_COLORS[index % PRIORITY_COLORS.length]} 
+                                                            style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }}
+                                                        />
+                                                    ))}
+                                                </Pie>
+                                                <PieTooltip
+                                                    contentStyle={{ 
+                                                        borderRadius: '12px', 
+                                                        border: 'none', 
+                                                        background: 'rgba(0,0,0,0.8)', 
+                                                        color: 'white',
+                                                        fontSize: '12px' 
+                                                    }}
+                                                    itemStyle={{ color: 'white' }}
+                                                    formatter={(val: any) => [`$${parseFloat(val).toLocaleString()}`, 'Portfolio Stake']}
+                                                />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                        <div className={styles.pieCenterContent}>
+                                            <span className={styles.pieCenterLabel}>Assets</span>
+                                            <span className={styles.pieCenterValue}>{pieData.length}</span>
+                                        </div>
+                                    </div>
                                 ) : (
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: '#94a3b8', fontSize: '0.85rem' }}>
-                                        No assets to display
+                                    <div className={styles.noDataPlaceholder}>
+                                        <i className="fas fa-coins"></i>
+                                        <p>Awaiting your first deposit</p>
                                     </div>
                                 )}
-                                <div style={{ fontSize: '0.8rem', color: '#64748b', textAlign: 'center', marginTop: '1rem' }}>
-                                    {pieData.length} active assets
-                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Assets List Section */}
+                    {/* Assets Grid Section */}
                     <div className={styles.balanceListSection}>
                         <div className={styles.sectionHeader}>
-                            <h2>Assets Breakdown</h2>
+                            <h2>Your Crypto Assets</h2>
+                            <span className={styles.assetCountBadge}>{balance?.balances?.length || 0} Total</span>
                         </div>
 
-                        <div className={styles.assetsList}>
+                        <div className={styles.assetsGrid}>
                             {balance?.balances && balance.balances.length > 0 ? (
-                                balance.balances.map((asset) => (
+                                balance.balances.map((asset, index) => (
                                     <div
                                         key={asset.crypto_type}
-                                        className={`${styles.assetRow} ${selectedAsset === asset.crypto_type ? styles.active : ''}`}
+                                        className={`${styles.assetGlassCard} ${selectedAsset === asset.crypto_type ? styles.active : ''}`}
+                                        style={{ '--index': index } as React.CSSProperties}
                                         onClick={() => setSelectedAsset(selectedAsset === asset.crypto_type ? null : asset.crypto_type)}
                                     >
-                                        <div className={styles.assetMain}>
-                                            <div className={styles.assetIconBox}>
+                                        <div className={styles.assetHeader}>
+                                            <div className={styles.assetIconWrapper}>
                                                 {(asset.crypto_type.includes('SOL') || asset.crypto_type.includes('BUSD')) ? (
                                                     <img 
                                                         src={asset.crypto_type.includes('SOL') ? '/solana-sol-logo.png' : '/binance-usd-busd-logo.png'} 
                                                         alt={asset.crypto_type}
                                                         className={styles.assetIconImage}
-                                                        style={{ width: '100%', height: '100%', borderRadius: '50%' }}
                                                     />
                                                 ) : (
-                                                    <i className={getIconForCrypto(asset.crypto_type)}></i>
+                                                    <div className={styles.fallbackIcon}>
+                                                        <i className={getIconForCrypto(asset.crypto_type)}></i>
+                                                    </div>
                                                 )}
                                             </div>
-                                            <div className={styles.assetMeta}>
-                                                <h3>{asset.crypto_type.split('_')[0]}</h3>
-                                                <span>{getNetworkLabel(asset.crypto_type, !!user?.sandbox_mode)}</span>
+                                            <div className={styles.assetBadge}>
+                                                {getNetworkLabel(asset.crypto_type, !!user?.sandbox_mode)}
                                             </div>
                                         </div>
-                                        <div className={styles.assetValues}>
-                                            <div className={styles.cryptoValue}>
-                                                {safeFloat(asset.total_balance).toFixed(6)} {asset.crypto_type.split('_')[0]}
+                                        
+                                        <div className={styles.assetMainInfo}>
+                                            <h3>{asset.crypto_type.split('_')[0]}</h3>
+                                            <div className={styles.assetHoldings}>
+                                                <div className={styles.cryptoAmount}>
+                                                    {safeFloat(asset.total_balance).toFixed(6)} <span>{asset.crypto_type.split('_')[0]}</span>
+                                                </div>
+                                                <div className={styles.usdEquivalent}>
+                                                    ${safeFloat(asset.total_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </div>
                                             </div>
-                                            <div className={styles.usdValue}>
-                                                ${safeFloat(asset.balance_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </div>
+
+                                        <div className={styles.assetFooter}>
+                                            <div className={styles.availableLabel}>
+                                                <span className={styles.pulseDot}></span> Available: ${safeFloat(asset.available_usd).toLocaleString()}
                                             </div>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <div className={styles.emptyAssets}>
-                                    <i className="fas fa-coins"></i>
-                                    <p>No crypto assets found in your account yet.</p>
+                                <div className={styles.modernEmptyState}>
+                                    <div className={styles.emptyIllustration}>
+                                        <i className="fas fa-wallet"></i>
+                                        <div className={styles.floatingCoin}><i className="fas fa-coins"></i></div>
+                                    </div>
+                                    <h3>Empty Wallet</h3>
+                                    <p>Your received payments will appear here as assets once confirmed on the blockchain.</p>
                                 </div>
                             )}
                         </div>
@@ -313,10 +349,12 @@ function getIconForCrypto(type: string): string {
     const t = type.toLowerCase()
     if (t.includes('eth')) return 'fab fa-ethereum'
     if (t.includes('btc')) return 'fab fa-bitcoin'
-    if (t.includes('usdt') || t.includes('usdc')) return 'fas fa-dollar-sign'
-    if (t.includes('sol')) return 'fas fa-bolt'
-    if (t.includes('bnb')) return 'fab fa-bitcoin'
+    if (t.includes('usdt')) return 'fas fa-shield-halved'
+    if (t.includes('usdc')) return 'fas fa-dollar-sign'
+    if (t.includes('sol')) return 'fas fa-bolt-lightning'
+    if (t.includes('bnb')) return 'fas fa-diamond'
     if (t.includes('arb')) return 'fas fa-layer-group'
+    if (t.includes('matic')) return 'fas fa-hexagon-nodes'
     return 'fas fa-coins'
 }
 

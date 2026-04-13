@@ -1,0 +1,48 @@
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(226, 232, 240, 0.4) 25%,
+        rgba(226, 232, 240, 0.7) 50%,
+        rgba(226, 232, 240, 0.4) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite linear;
+    position: relative;
+    overflow: hidden;
+}
+
+.text {
+    height: 1em;
+    margin-bottom: 0.5em;
+    border-radius: 4px;
+}
+
+.rect {
+    border-radius: 8px;
+}
+
+.circle {
+    border-radius: 50%;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Dark mode support if needed */
+@media (prefers-color-scheme: dark) {
+    .skeleton {
+        background: linear-gradient(
+            90deg,
+            rgba(30, 41, 59, 0.4) 25%,
+            rgba(30, 41, 59, 0.7) 50%,
+            rgba(30, 41, 59, 0.4) 75%
+        );
+        background-size: 200% 100%;
+    }
+}

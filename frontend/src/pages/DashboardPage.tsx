@@ -14,6 +14,7 @@ import { merchantAPI, paymentAPI, securityAPI, walletAPI } from '@/services/apiS
 import { Balance, SecurityAlert } from '../types'
 import { MdWarning, MdArrowForward, MdRadar } from 'react-icons/md'
 import styles from '@/styles/pages/DashboardPage.module.css'
+import { DashboardSkeleton } from '@/components/layout/PageSkeletons'
 
 interface AnalyticsData {
   total_volume_usd: string
@@ -151,10 +152,7 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {loading && !analytics ? (
-        <div className={styles.loadingState}>
-          <i className="fas fa-spinner fa-spin"></i>
-          <p>Loading your dashboard...</p>
-        </div>
+        <DashboardSkeleton />
       ) : (
         <>
           {!user?.has_transaction_pin && (

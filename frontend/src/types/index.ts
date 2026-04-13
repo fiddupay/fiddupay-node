@@ -205,6 +205,7 @@ export interface CurrencyBalance {
   available_balance: string
   reserved_balance: string
   balance_usd: string
+  total_usd: string
   available_usd: string
   reserved_usd: string
   last_updated: string
