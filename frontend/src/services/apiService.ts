@@ -196,6 +196,21 @@ export const customerAPI = {
   getSummary: () => api.get('/api/v1/merchants/customers/summary'),
 }
 
+export const notificationAPI = {
+  list: (params?: { limit?: number; offset?: number }) => {
+    const query = params ? `?${new URLSearchParams(cleanParams(params)).toString()}` : '';
+    return api.get(`/api/v1/merchants/notifications${query}`);
+  },
+  markRead: (id?: string) => {
+    const url = id ? `/api/v1/merchants/notifications/${id}/mark-read` : '/api/v1/merchants/notifications/mark-read';
+    return api.post(url);
+  },
+  delete: (id?: string) => {
+    const url = id ? `/api/v1/merchants/notifications/${id}` : '/api/v1/merchants/notifications';
+    return api.delete(url);
+  },
+}
+
 export const publicAPI = {
   contact: (data: { name: string; email: string; subject: string; message: string }) => api.post('/api/v1/contact', data),
   getSupportedCurrencies: (merchantId?: number) => {
@@ -217,4 +232,5 @@ export default {
   refund: refundAPI,
   sandbox: sandboxAPI,
   public: publicAPI,
+  notifications: notificationAPI,
 }

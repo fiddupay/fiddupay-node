@@ -1,301 +1,399 @@
 .statusPage {
   min-height: 100vh;
-  background: #f8fafc;
+  background-color: var(--fiddu-bg-primary);
+  color: var(--fiddu-text-primary);
+  padding-bottom: 80px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 0 24px;
 }
 
-.loading {
+/* Hero Section */
+.heroSection {
+  position: relative;
+  padding: 80px 0 120px;
+  background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.05), transparent 40%),
+              radial-gradient(circle at top left, rgba(59, 130, 246, 0.05), transparent 40%);
+  overflow: hidden;
+}
+
+.heroGlow {
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.03), transparent 70%);
+  pointer-events: none;
+}
+
+.statusTitle h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin: 0 0 16px;
+  letter-spacing: -0.02em;
+  background: linear-gradient(to bottom, #fff, #9ca3af);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.statusTitle p {
+  font-size: 1.125rem;
+  color: var(--fiddu-text-secondary);
+  max-width: 600px;
+  margin: 0;
+}
+
+/* Main Status Banner */
+.mainStatus {
+  margin-top: 48px;
+  padding: 32px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.mainStatus.operational {
+  border-color: rgba(16, 185, 129, 0.2);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.01));
+}
+
+.statusPulse {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.operational .statusPulse {
+  background-color: #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+}
+
+.operational .statusPulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.4;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.5); opacity: 0; }
+}
+
+.statusInfo {
+  flex: 1;
+}
+
+.statusInfo h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.statusInfo p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--fiddu-text-secondary);
+}
+
+.overallHealthBadge {
+  padding: 8px 16px;
+  border-radius: 99px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Content Grid */
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 48px;
+  margin-top: -60px;
+  position: relative;
+  z-index: 10;
+}
+
+/* Service Section */
+.serviceSection {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--fiddu-text-secondary);
+}
+
+.sectionHeader h2, .sectionHeader h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--fiddu-text-primary);
+}
+
+.serviceList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.serviceItem {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 24px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.serviceItem:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.serviceTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.serviceInfo h3 {
+  margin: 0 0 4px;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.serviceInfo p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--fiddu-text-secondary);
+}
+
+.serviceStatusLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.iconOperational { color: #10b981; }
+.iconDegraded { color: #f59e0b; }
+.iconOutage { color: #dc2626; }
+
+.serviceStatusLabel[data-status="operational"] { color: #10b981; }
+
+.serviceBottom {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--fiddu-text-secondary);
+}
+
+.responseTime {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Uptime Bar Chart */
+.uptimeBarChart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.barsContainer {
+  display: flex;
+  gap: 2px;
+  height: 38px;
+  align-items: flex-end;
+}
+
+.bar {
+  flex: 1;
+  height: 100%;
+  border-radius: 2px;
+  background: rgba(16, 185, 129, 0.8);
+  min-width: 2px;
+  transition: all 0.2s ease;
+}
+
+.bar:hover {
+  transform: scaleY(1.2);
+  opacity: 1;
+}
+
+.bar.operational { background: #10b981; }
+.bar.degraded { background: #f59e0b; }
+.bar.outage { background: #dc2626; }
+.bar.maintenance { background: #6b7280; }
+
+.chartFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--fiddu-text-secondary);
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.divider {
+  width: 1px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Sidebar */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.metricsCard {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.metricsCard h3 {
+  margin: 0 0 20px;
+  font-size: 1rem;
+}
+
+.metricItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.metricItem:last-child {
+  border-bottom: none;
+}
+
+.metricItem label {
+  font-size: 0.875rem;
+  color: var(--fiddu-text-secondary);
+}
+
+.metricValue {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.incidentSection {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.incidentItem {
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 16px;
+  padding: 20px;
+  border-left: 3px solid #10b981;
+}
+
+.incidentMeta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.incidentDate {
+  font-size: 0.75rem;
+  color: var(--fiddu-text-secondary);
+  font-weight: 600;
+}
+
+.resolvedBadge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.incidentItem h4 {
+  margin: 0 0 8px;
+  font-size: 0.9375rem;
+}
+
+.incidentItem p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--fiddu-text-secondary);
+  line-height: 1.5;
+}
+
+.refreshNote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--fiddu-text-secondary);
+}
+
+/* Loading Wrapper */
+.loadingWrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 50vh;
-  gap: 1rem;
+  padding: 100px 0;
+  gap: 20px;
 }
 
-.spinner {
+.loader {
   width: 40px;
   height: 40px;
-  border: 4px solid #e5e7eb;
-  border-top: 4px solid #1e40af;
+  border: 3px solid rgba(16, 185, 129, 0.1);
+  border-top-color: #10b981;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
-/* Header */
-.header {
-  text-align: center;
-  margin-bottom: 3rem;
-}
-
-.header h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #000000;
-  margin-bottom: 0.5rem;
-}
-
-.header p {
-  color: #6b7280;
-  font-size: 1.125rem;
-  margin-bottom: 2rem;
-}
-
-/* Overall Health */
-.overallHealth {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3rem;
-  margin: 2rem 0;
-}
-
-.healthChart {
-  position: relative;
-}
-
-.chartContainer {
-  position: relative;
-  width: 150px;
-  height: 150px;
-}
-
-.chart {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.healthProgress {
-  transition: stroke-dasharray 1s ease-in-out;
-}
-
-.chartCenter {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-}
-
-.healthPercent {
-  display: block;
-  font-size: 2rem;
-  font-weight: 700;
-  color: #000000;
-}
-
-.healthLabel {
-  display: block;
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin-top: 0.25rem;
-}
-
-.overallStatus {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.statusBadge {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 2rem;
-  color: white;
-  font-weight: 600;
-  font-size: 1.125rem;
-}
-
-/* Services */
-.services {
-  margin-bottom: 3rem;
-}
-
-.services h2 {
-  font-size: 1.875rem;
-  font-weight: 600;
-  color: #000000;
-  margin-bottom: 2rem;
-  text-align: center;
-}
-
-.servicesGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.serviceCard {
-  background: white;
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
-  transition: transform 0.3s ease;
-}
-
-.serviceCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-}
-
-.serviceHeader {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.serviceIcon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.125rem;
-}
-
-.serviceInfo {
-  flex: 1;
-}
-
-.serviceInfo h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #000000;
-  margin: 0 0 0.25rem 0;
-}
-
-.serviceInfo p {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
-}
-
-.serviceStatus {
-  font-weight: 600;
-  font-size: 0.875rem;
-}
-
-.healthBar {
-  width: 100%;
-  height: 8px;
-  background: #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.healthBar .healthProgress {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 1s ease-in-out;
-}
-
-.responseTime {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.5rem;
-  text-align: right;
-}
-
-/* Metrics */
-.metrics h2 {
-  font-size: 1.875rem;
-  font-weight: 600;
-  color: #000000;
-  margin-bottom: 2rem;
-  text-align: center;
-}
-
-.metricsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-}
-
-.metricCard {
-  background: white;
-  border-radius: 1rem;
-  padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: transform 0.3s ease;
-}
-
-.metricCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-}
-
-.metricIcon {
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-radius: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.25rem;
-}
-
-.metricContent h3 {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #6b7280;
-  margin: 0 0 0.25rem 0;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.metricValue {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #000000;
-  margin-bottom: 0.25rem;
-}
-
-.metricContent p {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
-}
-
-@media (max-width: 768px) {
-  .overallHealth {
-    flex-direction: column;
-    gap: 2rem;
-  }
-  
-  .chartContainer {
-    width: 120px;
-    height: 120px;
-  }
-  
-  .servicesGrid {
+@media (max-width: 1024px) {
+  .contentGrid {
     grid-template-columns: 1fr;
   }
   
-  .metricsGrid {
-    grid-template-columns: 1fr;
+  .statusTitle h1 {
+    font-size: 2.5rem;
   }
 }

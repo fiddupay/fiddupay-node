@@ -7,6 +7,7 @@ pub mod merchant_auth_handlers;
 pub mod payment_handlers;
 pub mod settings_handlers;
 pub mod analytics_handlers;
+pub mod notification_handlers;
 pub mod withdrawal_handlers;
 pub mod admin;
 pub mod merchant_handlers;

@@ -2,6 +2,7 @@
 // Core data structures for the gateway service
 
 pub mod merchant;
+pub mod notification;
 pub mod payment;
 pub mod webhook;
 pub mod refund;

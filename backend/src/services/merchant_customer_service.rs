@@ -20,16 +20,23 @@ const CUSTOMER_COLS: &str = "id, merchant_id, external_id, email, first_name, la
 use std::sync::Arc;
 use crate::services::price_service::PriceService;
 use crate::services::volume_tracking_service::VolumeTrackingService;
+use crate::services::notification_service::NotificationService;
 
 pub struct MerchantCustomerService {
     db_pool: PgPool,
     price_service: Arc<PriceService>,
     volume_tracking: Arc<VolumeTrackingService>,
+    notification_service: Arc<NotificationService>,
 }
 
 impl MerchantCustomerService {
-    pub fn new(db_pool: PgPool, price_service: Arc<PriceService>, volume_tracking: Arc<VolumeTrackingService>) -> Self {
-        Self { db_pool, price_service, volume_tracking }
+    pub fn new(
+        db_pool: PgPool, 
+        price_service: Arc<PriceService>, 
+        volume_tracking: Arc<VolumeTrackingService>,
+        notification_service: Arc<NotificationService>,
+    ) -> Self {
+        Self { db_pool, price_service, volume_tracking, notification_service }
     }
 
     // =========================================================================
@@ -141,16 +148,14 @@ impl MerchantCustomerService {
                 vec![]
             });
 
-        let audit_details = serde_json::json!({
-            "external_id": req.external_id,
-            "email": req.email.as_ref().map(|e| mask_email(e))
-        });
-        let _ = sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
-            .bind(merchant_id)
-            .bind("customer.registered")
-            .bind(&audit_details)
-            .execute(&self.db_pool)
-            .await;
+        let _ = self.notification_service.create_notification(
+            merchant_id,
+            "🎉 New Customer Registered",
+            &format!("Customer {} ({}) has been successfully registered.", req.external_id, req.email.as_deref().unwrap_or("No email")),
+            "success",
+            "customer.registered",
+            sandbox_mode
+        ).await;
 
         Ok((customer, wallets))
     }

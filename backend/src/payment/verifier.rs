@@ -19,6 +19,7 @@ pub struct PaymentVerifier {
     price_service: std::sync::Arc<crate::services::price_service::PriceService>,
     config: crate::config::Config,
     redis_client: redis::Client,
+    notification_service: std::sync::Arc<crate::services::notification_service::NotificationService>,
 }
 
 impl PaymentVerifier {
@@ -28,6 +29,7 @@ impl PaymentVerifier {
         price_service: std::sync::Arc<crate::services::price_service::PriceService>, 
         config: crate::config::Config,
         redis_client: redis::Client,
+        notification_service: std::sync::Arc<crate::services::notification_service::NotificationService>,
     ) -> Self {
         Self {
             db_pool,
@@ -35,6 +37,7 @@ impl PaymentVerifier {
             price_service,
             config,
             redis_client,
+            notification_service,
         }
     }
 
@@ -639,7 +642,7 @@ impl PaymentVerifier {
                 remaining_balance = remaining_balance - $1,
                 expires_at = expires_at + INTERVAL '15 minutes'
             WHERE id = $2
-            RETURNING amount, total_paid, remaining_balance, merchant_id, crypto_type, amount_usd, public_id
+            RETURNING amount, total_paid, remaining_balance, merchant_id, crypto_type, amount_usd, public_id, sandbox_mode
             "#
         )
         .bind(amount)
@@ -654,6 +657,7 @@ impl PaymentVerifier {
         let crypto_type_str: String = payment_row.get("crypto_type");
         let p_amount_usd: Decimal = payment_row.get("amount_usd");
         let public_id: String = payment_row.get("public_id");
+        let sandbox_mode: bool = payment_row.get("sandbox_mode");
 
         // Check if payment is now complete
         let is_complete = if let (Some(amt), Some(paid)) = (payment_amount, total_paid) {
@@ -676,6 +680,16 @@ impl PaymentVerifier {
 
         info!(" Partial payment recorded for payment {}: {} (total: {:?}/{:?})", 
             payment_id, amount, total_paid, payment_amount);
+
+        // PERSISTENT NOTIFICATION: Payment Received
+        let _ = self.notification_service.create_notification(
+            merchant_id,
+            if is_complete { "✅ Payment Fully Received" } else { "💰 Partial Payment Received" },
+            &format!("Received {} {} for payment {}. (USD: ${})", amount, crypto_type_str, public_id, amount_usd),
+            "success",
+            "payment.received",
+            sandbox_mode
+        ).await;
 
         // Publish to Redis for real-time dashboard notification
         if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
@@ -881,6 +895,16 @@ impl PaymentVerifier {
 
         info!("💰 Static deposit confirmed for customer {}: {} {} (Fee: {} {})", 
             customer_id, net_amount, final_crypto_str, fee_amount, final_crypto_str);
+
+        // PERSISTENT NOTIFICATION: Static Deposit Received
+        let _ = self.notification_service.create_notification(
+            merchant_id,
+            "📩 Static Deposit Received",
+            &format!("Customer {} deposited {} {}. (USD: ${})", customer_id, actual_amount, final_crypto_str, amount_usd),
+            "success",
+            "customer.deposit",
+            sandbox_mode
+        ).await;
 
         // Publish to Redis for Merchant Dashboard Toast Notification (Customer Activity)
         if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {

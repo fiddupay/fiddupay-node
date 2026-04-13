@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MdCheckCircle, MdClose } from 'react-icons/md';
+import { useNotificationStore } from '@/stores/notificationStore';
 
 interface ToastMessage {
   id: string;
@@ -10,6 +11,7 @@ interface ToastMessage {
 
 export const LiveDropToast: React.FC = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const { addNotification } = useNotificationStore();
 
   useEffect(() => {
     const token = localStorage.getItem('fiddupay_dashboard_token') || sessionStorage.getItem('fiddupay_dashboard_token');
@@ -37,6 +39,14 @@ export const LiveDropToast: React.FC = () => {
               event: data.event,
             };
             setToasts((prev) => [...prev, newToast]);
+
+            // Sync with Notification Panel
+            addNotification({
+              title: data.event === 'merchant.deposit' ? '🎉 New Deposit' : '🛍️ Client Payment',
+              message: `Received +${data.amount} ${data.crypto_type}`,
+              type: 'success',
+              event: data.event
+            });
 
             // Auto-remove after 6 seconds
             setTimeout(() => {

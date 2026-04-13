@@ -1,9 +1,11 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { MdNotifications, MdMenu, MdFlashOn, MdScience } from 'react-icons/md'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI } from '@/services/apiService'
 import { setSuppressAuthRedirect } from '@/utils/api'
 import { useToast } from '@/contexts/ToastContext'
+import { useNotificationStore } from '@/stores/notificationStore'
+import NotificationPanel from './NotificationPanel'
 import styles from '@/styles/components/layout/Header.module.css'
 
 interface HeaderProps {
@@ -13,6 +15,11 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { user, loadUser } = useAuthStore()
   const { showToast } = useToast()
+  const { unreadCount, togglePanel, fetchNotifications } = useNotificationStore()
+
+  useEffect(() => {
+    fetchNotifications()
+  }, [fetchNotifications])
 
   const handleSwitchEnvironment = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -72,9 +79,19 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             </div>
           </div>
 
-          <button className={styles.notificationButton}>
+          <button 
+            className={styles.notificationButton}
+            onClick={() => togglePanel()}
+          >
             <MdNotifications />
+            {unreadCount > 0 && (
+              <span className={styles.badge}>
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
+
+          <NotificationPanel />
 
           <div className={styles.userInfo}>
             <div className={styles.userAvatar}>

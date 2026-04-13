@@ -42,6 +42,7 @@ pub struct BackgroundTasks {
     config: crate::config::Config,
     price_service: Arc<crate::services::price_service::PriceService>,
     redis_client: redis::Client,
+    notification_service: Arc<crate::services::notification_service::NotificationService>,
 }
 
 impl BackgroundTasks {
@@ -50,6 +51,7 @@ impl BackgroundTasks {
         config: crate::config::Config, 
         price_service: Arc<crate::services::price_service::PriceService>,
         redis_client: redis::Client,
+        notification_service: Arc<crate::services::notification_service::NotificationService>,
     ) -> Self {
         let webhook_service = Arc::new(WebhookService::new(db_pool.clone(), config.webhook_signing_key.clone()));
         Self {
@@ -58,6 +60,7 @@ impl BackgroundTasks {
             config,
             price_service,
             redis_client,
+            notification_service,
         }
     }
 
@@ -680,6 +683,7 @@ impl BackgroundTasks {
                 self.price_service.clone(),
                 self.config.clone(),
                 self.redis_client.clone(),
+                self.notification_service.clone(),
             ));
 
             let db_clone = self.db_pool.clone();
@@ -804,6 +808,7 @@ impl BackgroundTasks {
                 self.price_service.clone(),
                 self.config.clone(),
                 self.redis_client.clone(),
+                self.notification_service.clone(),
             ));
 
             let db_clone = self.db_pool.clone();
@@ -930,6 +935,7 @@ impl BackgroundTasks {
                 self.price_service.clone(),
                 self.config.clone(),
                 self.redis_client.clone(),
+                self.notification_service.clone(),
             );
 
             let monitor = crate::payment::blockchain_monitor::btc_monitor::BtcMonitor::from_config(

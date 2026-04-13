@@ -8,7 +8,7 @@ use sqlx::{PgPool, Row};
 use tracing::info;
 
 use crate::error::ServiceError;
-use crate::services::{merchant_service::MerchantService, price_service::PriceService, invoice_service::InvoiceService};
+use crate::services::{merchant_service::MerchantService, price_service::PriceService, invoice_service::InvoiceService, notification_service::NotificationService};
 use std::sync::Arc;
 use super::models::{CreatePaymentRequest, PaymentResponse, PaymentStatus, CryptoType, InvoiceItem};
 
@@ -20,18 +20,29 @@ pub struct PaymentProcessor {
     merchant_service: MerchantService,
     invoice_service: Arc<InvoiceService>,
     audit_service: Arc<crate::services::audit_service::AuditService>,
+    notification_service: Arc<NotificationService>,
     config: crate::config::Config,
     volume_tracking: Arc<crate::services::volume_tracking_service::VolumeTrackingService>,
 }
 
 impl PaymentProcessor {
-    pub fn new(db_pool: PgPool, _payment_page_base_url: String, price_service: Arc<PriceService>, invoice_service: Arc<InvoiceService>, audit_service: Arc<crate::services::audit_service::AuditService>, config: crate::config::Config, volume_tracking: Arc<crate::services::volume_tracking_service::VolumeTrackingService>) -> Self {
+    pub fn new(
+        db_pool: PgPool, 
+        _payment_page_base_url: String, 
+        price_service: Arc<PriceService>, 
+        invoice_service: Arc<InvoiceService>, 
+        audit_service: Arc<crate::services::audit_service::AuditService>, 
+        config: crate::config::Config, 
+        volume_tracking: Arc<crate::services::volume_tracking_service::VolumeTrackingService>,
+        notification_service: Arc<NotificationService>,
+    ) -> Self {
         Self {
             db_pool: db_pool.clone(),
             price_service,
             merchant_service: MerchantService::new(db_pool, config.clone(), audit_service.clone(), volume_tracking.clone()),
             invoice_service,
             audit_service,
+            notification_service,
             config,
             volume_tracking,
         }
@@ -272,16 +283,20 @@ impl PaymentProcessor {
             }
         }
 
-        info!(
-            "Created payment {} for merchant {} - Status: {:?} - Amount: {} {} (Est. ${})",
-            payment_id, 
-            merchant_id, 
-            status, 
-            crypto_amount.unwrap_or(Decimal::ZERO),
-            request.crypto_type.map(|ct| ct.to_string()).unwrap_or_else(|| "USD".to_string()),
-            amount_usd
-        );
-        
+        // Generate persistent notification for the merchant
+        let _ = self.notification_service.create_notification(
+            merchant_id,
+            "🔗 Payment Link Created",
+            &format!("A new payment of {} {} has been generated (ID: {}).", 
+                crypto_amount.unwrap_or(Decimal::ZERO), 
+                request.crypto_type.map(|ct| ct.to_string()).unwrap_or_else(|| "USD".to_string()),
+                payment_id
+            ),
+            "info",
+            "payment.created",
+            is_sandbox
+        ).await;
+
         Ok(PaymentResponse {
             payment_id,
             status,

@@ -1,7 +1,7 @@
 // Merchant Routes
 // All merchant-specific API endpoints with API key authentication
 
-use crate::api::{merchant_handlers, wallet_management, security_monitoring, address_only, merchant_ws};
+use crate::api::{merchant_handlers, wallet_management, security_monitoring, address_only, merchant_ws, notification_handlers};
 use crate::middleware::auth;
 use axum::{
     middleware as axum_middleware,
@@ -23,6 +23,13 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route("/api/v1/merchants/api-keys/rotate", post(merchant_handlers::rotate_api_key))
         .route("/api/v1/merchants/settings", get(merchant_handlers::get_merchant_settings).patch(merchant_handlers::update_merchant_settings))
         .route("/api/v1/merchants/webhook/test", post(merchant_handlers::send_test_webhook))
+
+        // Notifications history
+        .route("/api/v1/merchants/notifications", get(notification_handlers::list_notifications))
+        .route("/api/v1/merchants/notifications/mark-read", post(notification_handlers::mark_notification_read))
+        .route("/api/v1/merchants/notifications/:notification_id/mark-read", post(notification_handlers::mark_notification_read))
+        .route("/api/v1/merchants/notifications", delete(notification_handlers::delete_notifications))
+        .route("/api/v1/merchants/notifications/:notification_id", delete(notification_handlers::delete_notifications))
         
         // Payment management
         .route("/api/v1/merchants/payments", post(merchant_handlers::create_payment))
