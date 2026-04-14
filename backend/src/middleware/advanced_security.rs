@@ -122,7 +122,7 @@ impl ThreatDetector {
         threat_level
     }
 
-    async fn count_recent_requests(&self, ip: &str) -> u32 {
+    async fn count_recent_requests(&self, _ip: &str) -> u32 {
         // Simplified implementation - in production, use Redis or similar
         42 // Placeholder
     }

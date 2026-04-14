@@ -546,7 +546,7 @@ impl SolanaMonitor {
                 Ok((stream, _)) => {
                     ws_stream_opt = Some(stream);
                     connected_ws_url = url.clone();
-                    info!("✅ Successfully connected to Solana WebSocket: {}", safe_url);
+                    info!("✅ Successfully connected to Solana WebSocket: {}", redact_url(&connected_ws_url));
                     break;
                 }
                 Err(e) => {

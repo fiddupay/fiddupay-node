@@ -107,7 +107,7 @@ pub async fn create_address_only_payment(
 
 /// Get payment status
 pub async fn get_address_only_payment_status(
-    Extension(context): Extension<MerchantContext>,
+    Extension(_context): Extension<MerchantContext>,
     Extension(address_service): Extension<AddressOnlyService>,
     Query(query): Query<PaymentStatusQuery>,
 ) -> Result<Json<AddressOnlyPayment>, ServiceError> {

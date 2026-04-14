@@ -54,8 +54,6 @@ pub struct PaymentService {
     db_pool: PgPool,
     processor: PaymentProcessor,
     verifier: PaymentVerifier,
-    invoice_service: Arc<InvoiceService>,
-    notification_service: Arc<NotificationService>,
     config: crate::config::Config,
 }
 
@@ -94,8 +92,6 @@ impl PaymentService {
                 notification_service.clone()
             ),
             db_pool,
-            invoice_service,
-            notification_service,
             config,
         }
     }
@@ -484,20 +480,6 @@ impl PaymentService {
         })
     }
 
-    /// Get partial payment records for a payment
-    async fn get_partial_payments(
-        &self,
-        payment_id: i64,
-    ) -> Result<Vec<PartialPaymentRecord>, PaymentServiceError> {
-        let records = sqlx::query_as::<_, PartialPaymentRecord>(
-            "SELECT * FROM partial_payments WHERE payment_id = $1 ORDER BY created_at ASC"
-        )
-        .bind(payment_id)
-        .fetch_all(&self.db_pool)
-        .await?;
-
-        Ok(records)
-    }
 
     /// Parse crypto type from string
     fn parse_crypto_type(&self, crypto_type_str: &str) -> CryptoType {

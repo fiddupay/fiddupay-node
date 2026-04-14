@@ -396,6 +396,10 @@ impl WalletConfigService {
             let current_key: Option<String> = row.get("encrypted_private_key");
 
             if !current_address.is_empty() {
+                let mode_desc = current_mode.as_deref().unwrap_or("unknown");
+                let has_key = current_key.is_some();
+                let reason = format!("Deleted {} wallet (managed={}) via dashboard", mode_desc, has_key);
+
                 sqlx::query(
                     r#"
                     INSERT INTO merchant_wallet_history (
@@ -409,7 +413,7 @@ impl WalletConfigService {
                 .bind(&crypto_type_str)
                 .bind(&network)
                 .bind(&current_address)
-                .bind("Deleted via dashboard")
+                .bind(reason)
                 .execute(&self.db_pool)
                 .await
                 .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;

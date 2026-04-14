@@ -42,6 +42,7 @@ pub struct Merchant {
     pub customer_wallets_locked: bool,
     pub transaction_pin_hash: Option<String>,
     pub pin_setup_at: Option<DateTime<Utc>>,
+    pub low_balance_threshold_usd: Decimal,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]

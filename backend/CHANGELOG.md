@@ -1,5 +1,15 @@
 # FidduPay Backend Changelog
 
+## [2.6.13] - 2026-04-14
+
+### Added
+- **Infrastructure Hardening**: Integrated LlamaNodes and keyless Ankr public fallbacks for blockchain monitoring to resolve Alchemy 429 rate-limiting issues.
+- **Improved Failover Logic**: Updated RPC requests to intelligently skip providers returning 401 (Unauthorized) or 403 (Forbidden) errors, ensuring seamless failover to healthy nodes.
+- **Dynamic Balance Thresholds**: Implemented merchant-configurable USD-based low balance thresholds. Merchants can now set their own USD limit for dashboard alerts.
+
+### Changed
+- **USD-Based Monitoring**: Refactored the balance monitoring background task to calculate the total USD value of merchant holdings across all chains using the PriceService.
+
 ## [2.6.11] - 2026-04-14
 
 ### Added

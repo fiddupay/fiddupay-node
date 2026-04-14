@@ -8,6 +8,7 @@ use crate::services::{
     gas_fee_service::GasFeeService,
     payment_monitor_service::PaymentMonitorService,
     webhook_notification_service::WebhookNotificationService,
+    notification_service::NotificationService,
 };
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -23,13 +24,14 @@ pub struct AddressOnlyManager {
 
 impl AddressOnlyManager {
     /// Initialize address-only mode with all components
-    pub async fn new(db_pool: PgPool, config: Config) -> Result<Self, ServiceError> {
+    pub async fn new(db_pool: PgPool, config: Config, notification_service: Arc<NotificationService>) -> Result<Self, ServiceError> {
         // Initialize services
         let gas_service = GasFeeService::new(config.clone());
         let address_service = Arc::new(AddressOnlyService::new(
             db_pool.clone(),
             gas_service,
             config.clone(),
+            notification_service,
         ));
         let webhook_service = Arc::new(WebhookNotificationService::new(db_pool.clone()));
         let monitor_service = Arc::new(PaymentMonitorService::new(

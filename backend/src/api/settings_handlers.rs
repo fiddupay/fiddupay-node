@@ -35,7 +35,7 @@ pub async fn get_merchant_profile(
         SELECT id, business_name, email, sandbox_mode, settlement_mode, 
                kyc_verified, daily_limit_usd, created_at, redirect_url,
                test_api_key_hash, live_api_key_hash, wallets_locked, customer_wallets_locked,
-               transaction_pin_hash, pin_setup_at
+               transaction_pin_hash, pin_setup_at, low_balance_threshold_usd
         FROM merchants
         WHERE id = $1
         "#
@@ -82,6 +82,7 @@ pub async fn get_merchant_profile(
     let m_customer_wallets_locked: bool = merchant.get("customer_wallets_locked");
     let m_transaction_pin_hash: Option<String> = merchant.get("transaction_pin_hash");
     let m_pin_setup_at: Option<chrono::DateTime<chrono::Utc>> = merchant.get("pin_setup_at");
+    let m_low_balance_threshold_usd: Decimal = merchant.get("low_balance_threshold_usd");
 
     let display_key = if context.api_key == "DASHBOARD_SESSION" {
         let hash_opt = if m_sandbox_mode { &m_test_api_key_hash } else { &m_live_api_key_hash };
@@ -115,7 +116,8 @@ pub async fn get_merchant_profile(
         "created_at": m_created_at.to_rfc3339(),
         "two_factor_enabled": false,
         "has_transaction_pin": m_transaction_pin_hash.is_some(),
-        "pin_setup_at": m_pin_setup_at.map(|d| d.to_rfc3339())
+        "pin_setup_at": m_pin_setup_at.map(|d| d.to_rfc3339()),
+        "low_balance_threshold_usd": m_low_balance_threshold_usd.to_string()
     });
     
     // 4. Calculate daily volume remaining
@@ -348,6 +350,7 @@ pub struct UnifiedSettingsRequest {
     pub ip_whitelist: Option<Vec<String>>,
     pub sandbox_mode: Option<bool>,
     pub rotate_webhook_secret: Option<bool>,
+    pub low_balance_threshold_usd: Option<Decimal>,
 }
 
 fn validate_optional_webhook_url(url: &String) -> Result<(), validator::ValidationError> {
@@ -372,13 +375,21 @@ pub async fn update_merchant_settings(
         }
     }
 
-    // 2. Update Fee Settings if provided
-    if req.fee_percentage.is_some() || req.customer_pays_fee.is_some() {
+    // 2. Update Fee & Balance Settings if provided
+    if req.fee_percentage.is_some() || req.customer_pays_fee.is_some() || req.low_balance_threshold_usd.is_some() {
         if let Err(e) = sqlx::query(
-            "UPDATE merchants SET fee_percentage = COALESCE($1, fee_percentage), customer_pays_fee = COALESCE($2, customer_pays_fee), updated_at = NOW() WHERE id = $3"
+            r#"
+            UPDATE merchants 
+            SET fee_percentage = COALESCE($1, fee_percentage), 
+                customer_pays_fee = COALESCE($2, customer_pays_fee), 
+                low_balance_threshold_usd = COALESCE($3, low_balance_threshold_usd),
+                updated_at = NOW() 
+            WHERE id = $4
+            "#
         )
         .bind(req.fee_percentage)
         .bind(req.customer_pays_fee)
+        .bind(req.low_balance_threshold_usd)
         .bind(context.merchant_id)
         .execute(&state.db_pool)
         .await {

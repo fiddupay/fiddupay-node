@@ -17,27 +17,27 @@ pub struct PerformanceCache {
 }
 
 #[derive(Clone)]
-struct CachedMerchant {
-    merchant_id: i64,
-    email: String,
-    business_name: String,
-    is_active: bool,
-    cached_at: DateTime<Utc>,
+pub struct CachedMerchant {
+    pub merchant_id: i64,
+    pub email: String,
+    pub business_name: String,
+    pub is_active: bool,
+    pub cached_at: DateTime<Utc>,
 }
 
 #[derive(Clone)]
-struct CachedPayment {
-    payment_id: String,
-    status: String,
-    amount_usd: String,
-    cached_at: DateTime<Utc>,
+pub struct CachedPayment {
+    pub payment_id: String,
+    pub status: String,
+    pub amount_usd: String,
+    pub cached_at: DateTime<Utc>,
 }
 
 #[derive(Clone)]
-struct CachedPrice {
-    crypto_type: String,
-    price_usd: String,
-    cached_at: DateTime<Utc>,
+pub struct CachedPrice {
+    pub crypto_type: String,
+    pub price_usd: String,
+    pub cached_at: DateTime<Utc>,
 }
 
 impl PerformanceCache {

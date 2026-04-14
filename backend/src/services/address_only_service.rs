@@ -8,6 +8,8 @@ use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use std::sync::Arc;
+use crate::services::notification_service::NotificationService;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
@@ -42,11 +44,12 @@ pub struct AddressOnlyService {
     db_pool: PgPool,
     gas_service: GasFeeService,
     config: crate::config::Config,
+    notification_service: Arc<NotificationService>,
 }
 
 impl AddressOnlyService {
-    pub fn new(db_pool: PgPool, gas_service: GasFeeService, config: crate::config::Config) -> Self {
-        Self { db_pool, gas_service, config }
+    pub fn new(db_pool: PgPool, gas_service: GasFeeService, config: crate::config::Config, notification_service: Arc<NotificationService>) -> Self {
+        Self { db_pool, gas_service, config, notification_service }
     }
 
     /// Create payment request for address-only mode (native currencies only)
@@ -140,6 +143,16 @@ impl AddressOnlyService {
         // Update status to received
         self.update_payment_status(payment_id, AddressOnlyStatus::PaymentReceived).await?;
 
+        // Create in-app notification
+        let _ = self.notification_service.create_notification(
+            payment.merchant_id,
+            "Payment Received (Address-Only)",
+            &format!("Received {} {} (Payment ID: {})", received_amount, payment.crypto_type, payment_id),
+            "success",
+            "payment.received",
+            false // Mode tracking not fully implemented for AddressOnly yet
+        ).await;
+
         // Initiate auto-forwarding
         self.initiate_auto_forwarding(&payment, tx_hash).await?;
 
@@ -169,6 +182,16 @@ impl AddressOnlyService {
 
         // Send webhook notification with partial payment details
         if let Ok(updated_payment) = self.get_payment_by_id(payment_id).await {
+            // Create in-app notification
+            let _ = self.notification_service.create_notification(
+                updated_payment.merchant_id,
+                "Partial Payment Received (Address-Only)",
+                &format!("Received partial payment of {} {} (Payment ID: {})", received_amount, updated_payment.crypto_type, payment_id),
+                "info",
+                "payment.partial",
+                false
+            ).await;
+
             let webhook_service = crate::services::webhook_notification_service::WebhookNotificationService::new(self.db_pool.clone());
             let _ = webhook_service.notify_status_change(&updated_payment).await;
         }

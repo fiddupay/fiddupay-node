@@ -96,6 +96,29 @@ impl EvmMonitor {
                 _ => None,
             } { urls.push(url); }
         }
+
+        // --- PUBLIC FALLBACKS (LlamaNodes & Keyless Ankr) ---
+        // If we are in production, add high-performance public fallbacks to escape Alchemy/Infura rate limits
+        if !is_sandbox {
+            // LlamaNodes (Excellent limits for public use)
+            match chain {
+                "ETH" => urls.push("https://eth.llamarpc.com".to_string()),
+                "BSC" => urls.push("https://binance.llamarpc.com".to_string()),
+                "POLYGON" => urls.push("https://polygon.llamarpc.com".to_string()),
+                "ARBITRUM" => urls.push("https://arbitrum.llamarpc.com".to_string()),
+                _ => {}
+            }
+
+            // Ankr Public (Keyless) - solid backup
+            match chain {
+                "ETH" => urls.push("https://rpc.ankr.com/eth".to_string()),
+                "BSC" => urls.push("https://rpc.ankr.com/bsc".to_string()),
+                "POLYGON" => urls.push("https://rpc.ankr.com/polygon".to_string()),
+                "ARBITRUM" => urls.push("https://rpc.ankr.com/arbitrum".to_string()),
+                _ => {}
+            }
+        }
+
         if chain == "ETH" && !is_sandbox { urls.extend(config.getblock_eth_keys.iter().map(|k| format!("https://go.getblock.io/{}", k))); }
         if chain == "BSC" && !is_sandbox { urls.extend(config.getblock_bsc_keys.iter().map(|k| format!("https://go.getblock.io/{}", k))); }
 
@@ -228,7 +251,7 @@ impl EvmMonitor {
                 Ok((stream, _)) => {
                     ws_stream_opt = Some(stream);
                     connected_ws_url = url.clone();
-                    info!("✅ Successfully connected to {} WebSocket: {}", self.chain_name, safe_url);
+                    info!("✅ Successfully connected to {} WebSocket: {}", self.chain_name, redact_url(&connected_ws_url));
                     break;
                 }
                 Err(e) => {
@@ -509,6 +532,11 @@ impl EvmMonitor {
                         last_error = Some("Rate limit hit".to_string());
                         // Apply backoff delay before trying the next RPC or retrying
                         tokio::time::sleep(std::time::Duration::from_millis(800)).await;
+                        continue;
+                    }
+                    if status == 401 || status == 403 {
+                        warn!("Auth error ({}) for {}, skipping provider...", status, redact_url(url));
+                        last_error = Some(format!("Auth error: {}", status));
                         continue;
                     }
                     match response.json::<serde_json::Value>().await {

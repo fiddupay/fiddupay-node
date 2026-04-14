@@ -1,19 +1,20 @@
 use crate::error::ServiceError;
 use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
+use std::sync::Arc;
 
 use crate::payment::models::CryptoType;
-use crate::services::blockchain_transaction_sender::BlockchainTransactionSender;
-use crate::utils::encryption::Encryption;
+use crate::services::notification_service::NotificationService;
 
 pub struct WithdrawalProcessor {
     db_pool: PgPool,
     config: crate::config::Config,
+    notification_service: Arc<NotificationService>,
 }
 
 impl WithdrawalProcessor {
-    pub fn new(db_pool: PgPool, config: crate::config::Config) -> Self {
-        Self { db_pool, config }
+    pub fn new(db_pool: PgPool, config: crate::config::Config, notification_service: Arc<NotificationService>) -> Self {
+        Self { db_pool, config, notification_service }
     }
 
     pub async fn process_withdrawal(&self, withdrawal_id: &str) -> Result<(), ServiceError> {
@@ -73,7 +74,6 @@ impl WithdrawalProcessor {
             wd_fee = fee_val;
         }
 
-        let is_sweep = customer_tx.is_some();
         let encrypted_key_opt: Option<String>;
         let source_address: String;
 
@@ -196,12 +196,33 @@ impl WithdrawalProcessor {
         ).await {
             Ok(hash) => {
                 tracing::info!("Withdrawal {} submitted successfully. TX Hash: {}", withdrawal_id, hash);
+                
+                // Create successful notification
+                let _ = self.notification_service.create_notification(
+                    wd_merchant_id,
+                    "Withdrawal Completed",
+                    &format!("Your withdrawal of {} {} has been submitted successfully.", wd_amount, wd_crypto_type),
+                    "success",
+                    "withdrawal.completed",
+                    wd_sandbox_mode
+                ).await;
+
                 hash
             },
             Err(e) => {
                 // If it fails on-chain, reject the withdrawal with the error
                 tracing::error!("Withdrawal {} on-chain submission FAILED: {}", withdrawal_id, e);
-                let mut error_msg = e.to_string();
+                let error_msg = e.to_string();
+
+                // Create error notification
+                let _ = self.notification_service.create_notification(
+                    wd_merchant_id,
+                    "Withdrawal Failed",
+                    &format!("Your withdrawal of {} {} failed: {}", wd_amount, wd_crypto_type, error_msg),
+                    "error",
+                    "withdrawal.failed",
+                    wd_sandbox_mode
+                ).await;
                 
                 // Lookup IF this withdrawal belongs to a Customer Transaction
                 let customer_id: Option<i64> = sqlx::query_scalar::<_, i64>(

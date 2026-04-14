@@ -160,7 +160,7 @@ pub async fn check_gas_requirements(
 
 pub async fn get_gas_estimates(
     State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Extension(_context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     let gas_service = crate::services::gas_fee_service::GasFeeService::new(state.config.clone());
     
@@ -220,9 +220,13 @@ pub async fn process_withdrawal(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
     Path(withdrawal_id): Path<String>,
-    Json(req): Json<ProcessWithdrawalRequest>,
+    Json(_req): Json<ProcessWithdrawalRequest>,
 ) -> impl IntoResponse {
-    let processor = WithdrawalProcessor::new(state.db_pool.clone(), state.config.clone());
+    let processor = WithdrawalProcessor::new(
+        state.db_pool.clone(), 
+        state.config.clone(),
+        state.notification_service.clone()
+    );
     
     match processor.process_withdrawal(&withdrawal_id).await {
         Ok(result) => {

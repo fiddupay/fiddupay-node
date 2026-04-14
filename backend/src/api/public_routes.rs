@@ -26,7 +26,7 @@ pub struct PublicPaymentRequest {
     pub description: Option<String>,
 }
 
-pub fn public_routes(state: AppState) -> Router<AppState> {
+pub fn public_routes(_state: AppState) -> Router<AppState> {
     let api = Router::new()
         .route("/payments/create", post(create_public_payment));
         

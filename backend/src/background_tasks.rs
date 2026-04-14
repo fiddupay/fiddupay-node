@@ -154,6 +154,11 @@ impl BackgroundTasks {
             withdraw_tasks.run_withdrawal_processor().await;
         });
 
+        let balance_tasks = self.clone();
+        tokio::spawn(async move {
+            balance_tasks.run_balance_monitor().await;
+        });
+
         info!("Background tasks started");
     }
 
@@ -1041,7 +1046,8 @@ impl BackgroundTasks {
         let mut interval = interval(Duration::from_secs(15));
         let processor = crate::services::withdrawal_processor::WithdrawalProcessor::new(
             self.db_pool.clone(),
-            self.config.clone()
+            self.config.clone(),
+            self.notification_service.clone()
         );
 
         loop {
@@ -1065,6 +1071,24 @@ impl BackgroundTasks {
                     }
                 },
                 Err(e) => error!("Error fetching pending withdrawals: {}", e),
+            }
+        }
+    }
+
+    /// Background task to monitor merchant balances and send alerts
+    async fn run_balance_monitor(&self) {
+        let mut interval = interval(Duration::from_secs(3600)); // Check every hour
+        let monitor = crate::services::balance_monitoring_service::BalanceMonitoringService::new(
+            self.db_pool.clone(),
+            self.notification_service.clone(),
+            self.price_service.clone()
+        );
+
+        loop {
+            interval.tick().await;
+            
+            if let Err(e) = monitor.check_low_balances().await {
+                error!("Error checking low balances: {}", e);
             }
         }
     }

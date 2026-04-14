@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.13] - 2026-04-14
+
+### Changed
+- **Type Synchronization**: Updated `MerchantProfile` interface to include the `low_balance_threshold_usd` field, ensuring parity with the latest backend response.
+
 ## [2.6.12] - 2026-04-14
 
 ### Security

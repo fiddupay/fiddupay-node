@@ -55,6 +55,7 @@ export interface MerchantProfile {
   api_key?: string;
   has_transaction_pin: boolean;
   pin_setup_at?: string;
+  low_balance_threshold_usd: string;
 }
 
 export interface CreatePaymentRequest {
