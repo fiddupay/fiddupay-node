@@ -52,54 +52,33 @@ npm run build:backend
 npm run build:frontend
 ```
 
-### Caddy Server (Reverse Proxy)
+### Production Service Management (VPS)
 
-This project uses Caddy as a reverse proxy and file server. The `Caddyfile` is located in the project root.
+FidduPay uses `systemd` to manage processes and Caddy as a high-performance reverse proxy. **Always use `systemctl`** to manage services in production to avoid port conflicts.
 
+#### Core API (fiddupay.service)
 ```bash
-# Check status
-sudo systemctl status fiddupay
-sudo systemctl restart fiddupay
-sudo caddy fmt --overwrite /etc/caddy/Caddyfile
+sudo systemctl status fiddupay    # Check if API is running
+sudo systemctl restart fiddupay   # Restart after backend updates
+sudo journalctl -u fiddupay -f    # Follow real-time API logs
+```
+
+#### Reverse Proxy (caddy.service)
+```bash
+sudo systemctl status caddy       # Check proxy status
+sudo systemctl reload caddy       # Apply Caddyfile changes (ZERO downtime)
+sudo systemctl restart caddy      # Hard restart Caddy
+```
+
+#### Configuration & Diagnostics
+```bash
+# Validate Caddyfile syntax before reloading
 sudo caddy validate --config /etc/caddy/Caddyfile
-sudo systemctl reload caddy
-sudo systemctl restart caddy
-sudo systemctl status caddy
-# Start Caddy in the background
-sudo caddy start
 
-# Run Caddy in the foreground
-sudo caddy run
-
-# Reload Caddy config (zero downtime)
-sudo caddy reload
-
-# Stop Caddy
-sudo caddy stop
-
-# Format Caddyfile
-caddy fmt --overwrite
-
- sudo nano /etc/caddy/Caddyfile
-
-  find / -name "Caddyfile" 2>/dev/null
-   sudo cat /etc/caddy/Caddyfile
-   sudo systemctl cat caddy | grep -i caddyfile
-
-   sudo journalctl -u fiddupay -f
-
-   sudo journalctl -u fiddupay -n 100
-
-   sudo journalctl -u fiddupay --since "227 minutes ago" --no-pager
-
-   # Check API request logs
-tail -f /var/log/caddy/fiddupay.api.log
-
-# Check Payment Page request logs
-tail -f /var/log/caddy/fiddupay.pay.log
-
-
-sudo journalctl -u caddy --since "30 seconds ago" | grep "enabling automatic TLS"
+# View Caddy logs
+tail -f /var/log/caddy/fiddupay.api.log    # API Requests
+tail -f /var/log/caddy/fiddupay.pay.log    # Payment Page
+tail -f /var/log/caddy/fiddupay.frontend.log # Dashboard
 ```
 
 ### Deployment & Releases
@@ -143,7 +122,7 @@ git push https://github.com/fiddupay/fiddupay-node.git --delete v2.6.1
 ```
 
 ```bash
-sudo bash ./scripts/push-sdk.sh main v2.4.6
+sudo bash ./scripts/push-sdk.sh main v2.6.12
 cd fiddupay-node-sdk
 npm publish --access public
 ```
