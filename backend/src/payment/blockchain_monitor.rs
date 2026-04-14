@@ -233,6 +233,8 @@ impl EvmMonitor {
                 }
                 Err(e) => {
                     warn!("❌ Failed to connect to {} WebSocket {}: {}", self.chain_name, safe_url, e);
+                    // Add a small delay between connection attempts to prevent hammering providers
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                     continue;
                 }
             }
@@ -294,20 +296,8 @@ impl EvmMonitor {
             info!("📡 {} WS: Sent {} token log subscription requests", self.chain_name, addresses.len());
         }
 
-        // --- START CATCH-UP BACKFILL ---
-        info!("⏳ Performing {} history backfill catch-up for {} address(s)...", self.chain_name, addresses.len());
-        for addr in &addresses {
-            let min_ts = Utc::now() - chrono::Duration::minutes(15);
-            match self.get_transactions_to_address(addr, 10, Some(min_ts)).await {
-                Ok(txs) => {
-                    for tx in txs {
-                        callback(tx.hash.clone(), addr.clone());
-                    }
-                }
-                Err(e) => warn!("{} history catch-up failed for {}: {}", self.chain_name, addr, e),
-            }
-            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-        }
+        // --- CATCH-UP BACKFILL REMOVED (Per User Request - Manual Only) ---
+        // History backfill is now handled manually by administrators to reduce RPC load.
 
         let mut ping_interval = tokio::time::interval(std::time::Duration::from_secs(15));
         let mut head_sub_id: Option<String> = None;
@@ -515,8 +505,10 @@ impl EvmMonitor {
                 Ok(response) => {
                     let status = response.status();
                     if status == 429 {
-                        warn!("Rate limit (429) hit on {}, trying next RPC...", redact_url(url));
+                        warn!("Rate limit (429) hit on {}, applying backoff delay...", redact_url(url));
                         last_error = Some("Rate limit hit".to_string());
+                        // Apply backoff delay before trying the next RPC or retrying
+                        tokio::time::sleep(std::time::Duration::from_millis(800)).await;
                         continue;
                     }
                     match response.json::<serde_json::Value>().await {

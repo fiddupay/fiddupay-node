@@ -104,19 +104,38 @@ impl BackgroundTasks {
 
         // --- EVM Production Monitors ---
         let networks = ["ETH", "BNB", "MATIC", "ARB"];
-        for net in networks {
-            let tasks = self.clone();
-            tokio::spawn(async move {
-                tasks.run_evm_monitor(net, false).await;
-            });
-        }
+        let tasks_prod = self.clone();
+        tokio::spawn(async move {
+            for net in networks {
+                let tasks = tasks_prod.clone();
+                tokio::spawn(async move {
+                    tasks.run_evm_monitor(net, false).await;
+                });
+                // Stagger monitor starts to prevent RPC request spikes
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+            }
+        });
 
         // --- EVM Sandbox Monitors ---
-        for net in networks {
-            let tasks = self.clone();
+        let enable_sandbox = std::env::var("ENABLE_SANDBOX_MONITORS")
+            .unwrap_or_else(|_| "true".to_string())
+            .parse::<bool>()
+            .unwrap_or(true);
+
+        if enable_sandbox {
+            let tasks_sandbox = self.clone();
             tokio::spawn(async move {
-                tasks.run_evm_monitor(net, true).await;
+                for net in networks {
+                    let tasks = tasks_sandbox.clone();
+                    tokio::spawn(async move {
+                        tasks.run_evm_monitor(net, true).await;
+                    });
+                    // Stagger sandbox starts as well
+                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                }
             });
+        } else {
+            info!("EVM Sandbox monitors are disabled via ENABLE_SANDBOX_MONITORS");
         }
 
         // Initialize Gas Monitor and Auto-Sweeper for platform fees
