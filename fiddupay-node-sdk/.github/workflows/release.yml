@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+  id-token: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -15,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'  # Node 22 LTS with npm 11
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
 
@@ -44,35 +48,31 @@ jobs:
           fi
 
       - name: Publish to NPM
-        run: npm publish
+        run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref }}
-          release_name: FidduPay Node.js SDK ${{ github.ref }}
+          name: FidduPay Node.js SDK ${{ steps.version.outputs.VERSION }}
           body: |
-            ##  FidduPay Node.js SDK ${{ steps.version.outputs.VERSION }}
+            ## FidduPay Node.js SDK ${{ steps.version.outputs.VERSION }}
             
-            ###  What's New
-            - Complete backend API coverage (45+ endpoints)
-            - Enhanced security measures
-            - Comprehensive testing suite
-            - Professional documentation
+            ### What's New
+            - Consolidated CI/CD pipeline with NPM Provenance
+            - Patched security vulnerabilities in `axios` and `follow-redirects`
+            - Latest API feature coverage (Public Payment Widget & Notifications)
             
-            ###  Installation
+            ### Installation
             ```bash
-            npm install @fiddupay/fiddupay-node@${{ steps.version.outputs.VERSION }}
+            npm install @fiddupay/node-sdk@${{ steps.version.outputs.VERSION }}
             ```
             
-            ###  Links
-            - [NPM Package](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
+            ### Links
+            - [NPM Package](https://www.npmjs.com/package/@fiddupay/node-sdk)
             - [Documentation](https://github.com/fiddupay/fiddupay-node#readme)
-            
-            **Full Changelog**: https://github.com/fiddupay/fiddupay-node/compare/v1.0.1...v${{ steps.version.outputs.VERSION }}
           draft: false
           prerelease: false
+          generate_release_notes: true
