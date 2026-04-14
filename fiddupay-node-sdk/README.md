@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.6.0
+# FidduPay Node.js SDK v2.6.11
 
-[![version](https://img.shields.io/badge/version-v2.6.0-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.6.11-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -64,6 +64,19 @@ await client.sandbox.simulatePayment(payment.id, {
   transaction_hash: '0xabc...',
   from_address: '0xsender...'
 });
+```
+
+### Public Widget (No-Code Integration)
+Create a payment using only your **Publishable Key**. Ideal for browser-based widgets where secret keys must not be exposed.
+
+```typescript
+const payment = await client.public.createPayment({
+  publishable_key: 'pub_live_...',
+  amount_usd: '50.00',
+  description: 'Widget Payment'
+});
+
+console.log('Checkout URL:', payment.payment_url);
 ```
 
 ## Features
@@ -472,6 +485,7 @@ Grouped by `client.*` resource modules for reference:
 | **`transactions`** | `list()` |
 | **`analytics`** | `retrieve()`, `export()`, `getUnifiedTransactions()` |
 | **`security`** | `getEvents()`, `getAlerts()`, `getSettings()`, `updateSettings()`, `checkGasBalances()`, `getBalanceAlerts()`, `acknowledgeAlert()`, `resolveBalanceAlert()`, `toggleWalletLock()`, `toggleCustomerWalletLock()`, `setTransactionPin()`, `verifyTransactionPin()` |
+| **`notifications`** | `list()`, `markRead()`, `delete()` |
 
 ## Contributing
 

@@ -1,4 +1,4 @@
-# FidduPay API Reference v2.6.0
+# FidduPay API Reference v2.6.11
 
 ## Base URL
 - **Sandbox**: `http://localhost:8080`
@@ -111,6 +111,27 @@ POST /pay/{payment_id}/cancel
 ```
 Public endpoint to cancel a payment in `PENDING` or `SELECTION_REQUIRED` status.
 
+### Create Public Payment (No-Code Widget)
+```http
+POST /api/v1/public/payments/create
+Content-Type: application/json
+
+{
+  "publishable_key": "pub_live_...",
+  "amount_usd": "50.00",
+  "description": "Widget Payment"
+}
+```
+**Node SDK Example**:
+```javascript
+const payment = await fiddupay.public.createPayment({
+  publishable_key: 'pub_live_...',
+  amount_usd: '50.00',
+  description: 'Widget Payment'
+});
+console.log('Payment URL:', payment.payment_url);
+```
+
 ## Merchant Endpoints (Auth Required)
 
 ### Get Merchant Profile
@@ -208,18 +229,36 @@ Content-Type: application/json
 }
 ```
 
-### Set Webhook (Legacy)
+```
 > [!WARNING]
 > Deprecated in favor of `PATCH /api/v1/merchants/settings`.
 
-```http
-PUT /api/v1/merchants/webhook
-Authorization: Bearer {api_key}
-Content-Type: application/json
+### Notification Management
 
-{
-  "webhook_url": "https://your-site.com/webhook"
-}
+### List Notifications
+```http
+GET /api/v1/merchants/notifications?limit=20&offset=0
+Authorization: Bearer {api_key}
+```
+
+### Mark Notifications as Read
+```http
+POST /api/v1/merchants/notifications/mark-read
+POST /api/v1/merchants/notifications/{notification_id}/mark-read
+Authorization: Bearer {api_key}
+```
+
+### Delete Notifications
+```http
+DELETE /api/v1/merchants/notifications
+DELETE /api/v1/merchants/notifications/{notification_id}
+Authorization: Bearer {api_key}
+```
+
+**Node SDK Example**:
+```javascript
+const { notifications, unread_count } = await fiddupay.notifications.list();
+await fiddupay.notifications.markRead(); // Mark all as read
 ```
 
 ## Payment Endpoints

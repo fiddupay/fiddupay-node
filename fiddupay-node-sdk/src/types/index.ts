@@ -78,6 +78,14 @@ export interface CreatePaymentRequest {
   notes?: string;
 }
 
+export interface PublicPaymentRequest {
+  publishable_key: string;
+  amount?: string;
+  amount_usd?: string;
+  crypto_type?: CryptoType;
+  description?: string;
+}
+
 export interface SelectionRequest {
   crypto_type: CryptoType;
 }
@@ -129,12 +137,6 @@ export interface Payment {
 /**
  * Address-Only Mode Types
  */
-export interface CreateAddressOnlyPaymentRequest {
-  crypto_type: CryptoType;
-  merchant_address: string;
-  requested_amount: string;
-}
-
 export interface AddressOnlyPaymentResponse {
   payment_id: string;
   gateway_deposit_address: string;
@@ -796,6 +798,27 @@ export interface UptimeStats {
   thirty_days: number;
   ninety_days: number;
   one_year: number;
+}
+
+/**
+ * Notification Types
+ */
+export interface MerchantNotification {
+  id: string;
+  title: string;
+  message: string;
+  notification_type: string;
+  event_type: string;
+  is_read: boolean;
+  sandbox_mode: boolean;
+  created_at: string;
+  expires_at?: string;
+}
+
+export interface NotificationListResponse {
+  notifications: MerchantNotification[];
+  total: number;
+  unread_count: number;
 }
 
 export interface SystemStatus {

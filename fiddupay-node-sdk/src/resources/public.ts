@@ -1,8 +1,22 @@
 import { HttpClient } from '../client';
-import { SupportedCurrenciesResponse, PricingResponse, SystemStatus, PublicPaymentStatus, CryptoType } from '../types';
+import { 
+  SupportedCurrenciesResponse, 
+  PricingResponse, 
+  SystemStatus, 
+  PublicPaymentStatus, 
+  CryptoType,
+  PublicPaymentRequest 
+} from '../types';
 
 export class Public {
   constructor(private client: HttpClient) {}
+
+  /**
+   * Create a new payment via Publishable Key (for pure no-code frontend widgets)
+   */
+  async createPayment(payload: PublicPaymentRequest): Promise<{ payment_id: string; payment_url: string }> {
+    return this.client.post('/api/v1/public/payments/create', payload);
+  }
 
   /**
    * Get supported currencies and networks

@@ -1,5 +1,22 @@
 # FidduPay Backend Changelog
 
+## [2.6.11] - 2026-04-14
+
+### Added
+- **Public Payment Widget API**: New `POST /api/v1/public/payments/create` endpoint allowing creation of payments using Publishable Keys (for pure frontend/no-code widgets).
+- **Merchant Notification System**: Added support for internal merchant notifications with endpoints to list, mark as read, and delete.
+- **EVM WebSocket Infrastructure**: Migrated blockchain monitoring from polling to a high-performance WebSocket architecture for ETH, BNB, MATIC, and ARB.
+- **RPC Rotation & Failover**: Integrated advanced multi-provider rotation for Alchemy, Infura, and Ankr to prevent downtime and rate limits.
+- **Staggered Monitor Initialization**: Optimized background task startup to prevent request bursts on boot.
+
+### Improved
+- **Premium UX Enhancements**: Significant performance optimizations across status tracking and verified payment flows.
+- **PDF Report Design**: Modernized the PDF generation service with improved aesthetics and comprehensive data breakdown.
+- **Solana Monitoring**: Fixed a critical bug in Solana WebSocket signature tracking.
+
+### Removed
+- **Automatic History Catch-up**: Replaced automatic heavy history backfills on startup with a manual admin-triggered process to reduce RPC usage.
+
 ## [2.6.0] - 2026-04-02
 
 ### Fixed

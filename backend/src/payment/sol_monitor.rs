@@ -624,24 +624,8 @@ impl SolanaMonitor {
         }
         info!("✅ Solana WS: Sent {} wallet and {} ATA subscription requests (Total: {})", wallet_count, ata_count, initial_monitor_addresses.len());
 
-        // --- START CATCH-UP BACKFILL ---
-        // Backfill only original owner addresses (get_transactions_to_address now handles ATAs internally)
-        let unique_owners: std::collections::HashSet<String> = owner_map.values().cloned().collect();
-        info!("⏳ Performing Solana history backfill catch-up for {} owner(s)...", unique_owners.len());
-        for addr in unique_owners {
-            let min_ts = Utc::now() - chrono::Duration::minutes(10);
-            match self.get_transactions_to_address(&addr, 10, Some(min_ts)).await {
-                Ok(txs) => {
-                    info!(" Found {} historical transactions for {}. Triggering verification backfill...", txs.len(), addr);
-                    for tx in txs {
-                        callback(tx.hash.clone(), addr.clone());
-                    }
-                }
-                Err(e) => warn!("Solana history catch-up backfill failed for {}: {}", addr, e),
-            }
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-        }
-        // --- END CATCH-UP BACKFILL ---
+        // ✅ NOTE: Automatic history backfill for existing addresses has been disabled.
+        // It should now be triggered manually by an admin using the /historical endpoint.
 
         let mut active_subscriptions = std::collections::HashMap::new();
         let mut ping_interval = tokio::time::interval(std::time::Duration::from_secs(10));
@@ -692,21 +676,7 @@ impl SolanaMonitor {
                     }
                     info!("✅ Solana WS: Sent dynamic subscriptions for wallet {} + {} ATAs", new_owner, to_add.len() - 1);
 
-                    // --- START DYNAMIC CATCH-UP ---
-                    let addr_clone = new_owner.clone();
-                    let cb_clone = callback.clone();
-                    let min_ts = Utc::now() - chrono::Duration::minutes(10);
-                    let monitor_clone = self.clone();
-                    // Actually, self is already captured by the loop, and this is a loop branch.
-                    match self.get_transactions_to_address(&addr_clone, 5, Some(min_ts)).await {
-                        Ok(txs) => {
-                            for tx in txs {
-                                cb_clone(tx.hash.clone(), addr_clone.clone());
-                            }
-                        }
-                        Err(e) => warn!("Solana dynamic catch-up backfill failed for {}: {}", addr_clone, e),
-                    }
-                    // --- END DYNAMIC CATCH-UP ---
+                    // ✅ NOTE: Automatic history backfill for dynamic addresses has been disabled.
                 }
                 message = read.next() => {
                     let message = match message {
