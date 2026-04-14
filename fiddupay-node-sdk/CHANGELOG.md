@@ -2,10 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.6.11] modified - 2026-04-14
+## [2.6.12] - 2026-04-14
 
 ### Security
-
 - **Critical Patches**: Updated `axios` to `v1.15.0` to resolve critical SSRF and cloud metadata exfiltration vulnerabilities (CVE-2026-40175).
 - **Dependency Hardening**: Added overrides for `follow-redirects` to `v1.16.0` to fix authentication header leakage on cross-domain redirects (GHSA-r4q5-vmmm-2653).
 - **Supply Chain Protection**: Verified clean dependency tree following the late-March security incidents.
