@@ -1,0 +1,39 @@
+name: Continuous Deployment (VPS)
+
+on:
+  workflow_run:
+    workflows: ["Backend CI", "Frontend CI"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_PASSPHRASE }} # Optional
+          script: |
+            cd ~/crypto-payment-gateway
+            
+            echo "--- PULLING LATEST CHANGES ---"
+            git pull origin main
+            
+            echo "--- BUILDING BACKEND ---"
+            npm run build:backend
+            
+            echo "--- BUILDING FRONTEND ---"
+            npm run build:frontend
+            
+            echo "--- RESTARTING SERVICES ---"
+            sudo systemctl restart fiddupay
+            sudo systemctl reload caddy
+            
+            echo "--- DEPLOYMENT COMPLETE ---"

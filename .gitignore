@@ -123,3 +123,6 @@ realistic_test_results/
 dist/
 build/
 backend/.gitignore
+# Temporary Deployment Keys
+fiddupay_vps
+fiddupay_vps.pub
