@@ -5,53 +5,14 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub enum UserRole {
-    #[serde(rename = "SUPER_ADMIN")]
-    SuperAdmin,
-    #[serde(rename = "ADMIN")]
-    Admin,
-    #[serde(rename = "MODERATOR")]
-    Moderator,
-    #[serde(rename = "MERCHANT")]
-    Merchant,
-    #[serde(rename = "USER")]
-    User,
-}
-
-impl UserRole {
-    pub fn as_str(&self) -> &str {
-        match self {
-            UserRole::SuperAdmin => "SUPER_ADMIN",
-            UserRole::Admin => "ADMIN",
-            UserRole::Moderator => "MODERATOR",
-            UserRole::Merchant => "MERCHANT",
-            UserRole::User => "USER",
-        }
-    }
-
-    pub fn can_manage_users(&self) -> bool {
-        matches!(
-            self,
-            UserRole::SuperAdmin | UserRole::Admin | UserRole::Merchant
-        )
-    }
-
-    pub fn can_approve_withdrawals(&self) -> bool {
-        matches!(self, UserRole::SuperAdmin | UserRole::Admin)
-    }
-
-    pub fn can_view_analytics(&self) -> bool {
-        !matches!(self, UserRole::User)
-    }
-}
+use crate::models::merchant::UserRole;
 
 #[derive(Debug, Serialize)]
 pub struct MerchantUser {
     pub id: i32,
     pub merchant_id: i64,
     pub email: String,
-    pub role: String,
+    pub role: UserRole,
     pub is_active: bool,
     pub last_login: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
@@ -61,7 +22,7 @@ pub struct MerchantUser {
 pub struct CreateUserRequest {
     pub email: String,
     pub password: String,
-    pub role: String,
+    pub role: UserRole,
 }
 
 pub struct MultiUserService {
@@ -91,15 +52,15 @@ impl MultiUserService {
                 i32,
                 i64,
                 String,
-                String,
+                UserRole,
                 bool,
                 Option<DateTime<Utc>>,
                 DateTime<Utc>,
             ),
         >(
             r#"INSERT INTO merchant_users (merchant_id, email, password_hash, role)
-               VALUES ($1, $2, $3, $4::user_role)
-               RETURNING id, merchant_id, email, role::text, is_active, last_login, created_at"#,
+               VALUES ($1, $2, $3, $4)
+               RETURNING id, merchant_id, email, role, is_active, last_login, created_at"#,
         )
         .bind(merchant_id)
         .bind(&req.email)
@@ -121,7 +82,7 @@ impl MultiUserService {
 
     pub async fn list_users(&self, merchant_id: i64) -> Result<Vec<MerchantUser>, ServiceError> {
         let records = sqlx::query(
-            "SELECT id, merchant_id, email, role::text as role, is_active, last_login, created_at
+            "SELECT id, merchant_id, email, role, is_active, last_login, created_at
              FROM merchant_users WHERE merchant_id = $1 ORDER BY created_at DESC",
         )
         .bind(merchant_id)
@@ -135,10 +96,8 @@ impl MultiUserService {
                 merchant_id: r.get("merchant_id"),
                 email: r.get("email"),
                 role: r
-                    .try_get::<Option<String>, _>("role")
-                    .ok()
-                    .flatten()
-                    .unwrap_or("MERCHANT".to_string()),
+                    .try_get::<UserRole, _>("role")
+                    .unwrap_or(UserRole::Merchant),
                 is_active: r.get("is_active"),
                 last_login: r.get("last_login"),
                 created_at: r.get("created_at"),
@@ -150,10 +109,10 @@ impl MultiUserService {
         &self,
         merchant_id: i64,
         user_id: i32,
-        new_role: &str,
+        new_role: UserRole,
     ) -> Result<(), ServiceError> {
         sqlx::query(
-            "UPDATE merchant_users SET role = $3::user_role, updated_at = NOW()
+            "UPDATE merchant_users SET role = $3, updated_at = NOW()
              WHERE id = $1 AND merchant_id = $2",
         )
         .bind(user_id)
@@ -188,8 +147,8 @@ impl MultiUserService {
         password: &str,
     ) -> Result<MerchantUser, ServiceError> {
         let record = sqlx::query(
-            "SELECT id, merchant_id, email, password_hash, role::text as role, is_active, last_login, created_at
-             FROM merchant_users WHERE email = $1 AND is_active = true"
+            "SELECT id, merchant_id, email, password_hash, role, is_active, last_login, created_at
+             FROM merchant_users WHERE email = $1 AND is_active = true",
         )
         .bind(email)
         .fetch_optional(&self.pool)
@@ -215,10 +174,8 @@ impl MultiUserService {
             merchant_id: record.get("merchant_id"),
             email: record.get("email"),
             role: record
-                .try_get::<Option<String>, _>("role")
-                .ok()
-                .flatten()
-                .unwrap_or("MERCHANT".to_string()),
+                .try_get::<UserRole, _>("role")
+                .unwrap_or(UserRole::Merchant),
             is_active: record.get("is_active"),
             last_login: Some(Utc::now()),
             created_at: record.get("created_at"),

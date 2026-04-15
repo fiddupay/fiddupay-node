@@ -2,6 +2,7 @@
 // API key authentication
 
 use crate::api::state::AppState;
+use crate::models::merchant::UserRole;
 use axum::{
     extract::{Request, State},
     http::{HeaderMap, StatusCode},
@@ -14,6 +15,8 @@ use serde_json::json;
 #[derive(Clone)]
 pub struct MerchantContext {
     pub merchant_id: i64,
+    pub user_id: Option<i32>, // NULL for API keys, present for team members
+    pub role: UserRole,
     pub api_key: String,
     pub sandbox_mode: bool,
     pub settlement_mode: String,
@@ -97,6 +100,8 @@ pub async fn auth_middleware(
                 let is_live_prefix = api_key.starts_with("sk_live_");
                 let context = MerchantContext {
                     merchant_id: merchant.id,
+                    user_id: None,
+                    role: merchant.role,
                     api_key: api_key.clone(),
                     sandbox_mode: !is_live_prefix,
                     settlement_mode: merchant.settlement_mode.clone(),
@@ -167,6 +172,8 @@ pub async fn auth_middleware(
 
                 let context = MerchantContext {
                     merchant_id,
+                    user_id: token_data.claims.user_id,
+                    role: token_data.claims.role,
                     api_key: "DASHBOARD_SESSION".to_string(),
                     sandbox_mode,
                     settlement_mode,
@@ -193,6 +200,8 @@ pub async fn auth_middleware(
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct DashboardClaims {
     pub sub: String, // merchant_id
+    pub user_id: Option<i32>,
+    pub role: UserRole,
     pub exp: usize,
     pub iat: usize,
     #[serde(default)]
@@ -204,4 +213,40 @@ pub struct DashboardClaims {
 /// Use this in handlers to get the authenticated merchant
 pub fn get_merchant_context(request: &Request) -> Option<&MerchantContext> {
     request.extensions().get::<MerchantContext>()
+}
+
+/// Helper to require a specific role
+pub fn require_role(
+    context: &MerchantContext,
+    required_role: UserRole,
+) -> Result<(), (StatusCode, axum::Json<serde_json::Value>)> {
+    if context.role == required_role || context.role == UserRole::SuperAdmin {
+        Ok(())
+    } else {
+        Err((
+            StatusCode::FORBIDDEN,
+            axum::Json(json!({
+                "error": "Insufficient permissions",
+                "message": format!("This action requires the {:?} role", required_role)
+            })),
+        ))
+    }
+}
+
+/// Helper to require any of the specified roles
+pub fn require_any_role(
+    context: &MerchantContext,
+    allowed_roles: &[UserRole],
+) -> Result<(), (StatusCode, axum::Json<serde_json::Value>)> {
+    if allowed_roles.contains(&context.role) || context.role == UserRole::SuperAdmin {
+        Ok(())
+    } else {
+        Err((
+            StatusCode::FORBIDDEN,
+            axum::Json(json!({
+                "error": "Insufficient permissions",
+                "message": "You do not have the required role to perform this action"
+            })),
+        ))
+    }
 }

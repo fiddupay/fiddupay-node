@@ -14,6 +14,7 @@ use serde_json::json;
 use validator::Validate;
 
 use crate::middleware::validation::{validate_business_email, validate_password_strength};
+use crate::models::merchant::UserRole;
 
 // ============================================================================
 // Request/Response Types
@@ -70,6 +71,7 @@ pub struct MerchantProfile {
     pub id: i64,
     pub business_name: String,
     pub email: String,
+    pub role: UserRole,
     pub api_key: String,
     pub created_at: String,
     pub two_factor_enabled: bool,
@@ -137,6 +139,8 @@ pub async fn register_merchant(
 
             let claims = DashboardClaims {
                 sub: response.merchant_id.to_string(),
+                user_id: None,
+                role: UserRole::Merchant,
                 exp,
                 iat: now.timestamp() as usize,
                 sandbox_mode: true, // New registrations start in sandbox
@@ -155,6 +159,7 @@ pub async fn register_merchant(
                     id: response.merchant_id,
                     business_name: req.business_name.clone(),
                     email: req.email.clone(),
+                    role: UserRole::Merchant,
                     api_key: response.api_key, // Return the REAL key once on registration
                     created_at: chrono::Utc::now().to_rfc3339(),
                     two_factor_enabled: false,
@@ -195,14 +200,14 @@ pub async fn login_merchant(
     State(state): State<AppState>,
     Json(req): Json<LoginMerchantRequest>,
 ) -> impl IntoResponse {
-    // Validate input (basic format)
+    // 1. Validate input (basic format)
     if let Err(e) = req.validate() {
         return ServiceError::ValidationError(e.to_string()).into_response();
     }
 
-    // Query the database for the user
+    // 2. Attempt Owner Login first
     let merchant_query = sqlx::query(
-        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role::text as role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at FROM merchants WHERE email = $1 AND is_active = true"
+        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at FROM merchants WHERE email = $1 AND is_active = true"
     )
     .bind(&req.email)
     .fetch_optional(&state.db_pool)
@@ -210,186 +215,67 @@ pub async fn login_merchant(
 
     match merchant_query {
         Ok(Some(merchant)) => {
-            use sqlx::Row;
-            // VERIFY PASSWORD
             use argon2::{Argon2, PasswordHash, PasswordVerifier};
+            use sqlx::Row;
 
-            let m_id: i64 = merchant.get("id");
-            let m_business_name: String = merchant.get("business_name");
-            let m_email: String = merchant.get("email");
-            let m_sandbox_mode: bool = merchant.get("sandbox_mode");
-            let m_settlement_mode: String = merchant.get("settlement_mode");
-            let m_kyc_verified: bool = merchant.get("kyc_verified");
-            let m_created_at: chrono::DateTime<chrono::Utc> = merchant.get("created_at");
-            let _m_role: Option<String> = merchant.try_get("role").ok();
-            let m_live_api_key_hash: Option<String> = merchant.get("live_api_key_hash");
-            let m_test_api_key_hash: Option<String> = merchant.get("test_api_key_hash");
             let m_password_hash: Option<String> = merchant.get("password_hash");
-            let m_daily_limit_usd: Option<Decimal> = merchant.get("daily_limit_usd");
-            let m_transaction_pin_hash: Option<String> = merchant.get("transaction_pin_hash");
-            let m_pin_setup_at: Option<chrono::DateTime<chrono::Utc>> =
-                merchant.get("pin_setup_at");
 
-            // Check if password_hash exists (it might be NULL for old users or API-only users)
-            let hash_to_check = m_password_hash.as_ref().ok_or_else(|| {
-                // If no password hash, user cannot login via password (API key only)
-                ServiceError::Unauthorized(
-                    "Password login not available for this account".to_string(),
-                )
-            });
-
-            if let Err(_) = hash_to_check {
-                return (
-                    StatusCode::UNAUTHORIZED,
-                    Json(json!({
-                        "error": "Invalid credentials",
-                        "message": "Invalid email or password"
-                    })),
-                )
-                    .into_response();
-            }
-
-            let parsed_hash = PasswordHash::new(hash_to_check.unwrap())
-                .map_err(|e| ServiceError::InternalError(format!("Invalid hash structure: {}", e)))
-                .unwrap();
-
-            let valid = Argon2::default()
-                .verify_password(req.password.as_bytes(), &parsed_hash)
-                .is_ok();
-
-            if !valid {
-                return (
-                    StatusCode::UNAUTHORIZED,
-                    Json(json!({
-                        "error": "Invalid credentials",
-                        "message": "Invalid email or password"
-                    })),
-                )
-                    .into_response();
-            }
-
-            let auth_response = {
-                let merchant_service = crate::services::merchant_service::MerchantService::new(
-                    state.db_pool.clone(),
-                    state.config.clone(),
-                    state.audit_service.clone(),
-                    state.volume_tracking_service.clone(),
-                );
-
-                let remaining_volume: Decimal = merchant_service
-                    .get_daily_volume_remaining(m_id, m_kyc_verified, m_daily_limit_usd)
-                    .await
-                    .unwrap_or(state.config.daily_volume_limit_non_kyc_usd);
-
-                // Auto-generate API key if missing (e.g. legacy user or DB reset)
-                let has_test_key = m_test_api_key_hash.is_some()
-                    && m_test_api_key_hash.as_ref().unwrap() != "PENDING";
-
-                if !has_test_key {
-                    tracing::info!("Auto-generating missing API key for merchant {}", m_id);
-                    let _ = merchant_service
-                        .generate_and_store_api_key_with_expiry(m_id, false, None)
+            if let Some(hash_str) = m_password_hash {
+                if let Ok(parsed_hash) = PasswordHash::new(&hash_str) {
+                    if Argon2::default()
+                        .verify_password(req.password.as_bytes(), &parsed_hash)
+                        .is_ok()
+                    {
+                        // SUCCESS: Owner Login
+                        let m_role: UserRole = merchant.get("role");
+                        return finalize_login(
+                            state,
+                            merchant_context_from_row(merchant),
+                            m_role,
+                            None,
+                            req.remember_me.unwrap_or(false),
+                        )
                         .await;
-                }
-
-                // Generate Dashboard JWT
-                use crate::middleware::auth::DashboardClaims;
-                use jsonwebtoken::{encode, EncodingKey, Header};
-
-                let now = chrono::Utc::now();
-                let duration = if req.remember_me.unwrap_or(false) {
-                    chrono::Duration::days(30)
-                } else {
-                    chrono::Duration::hours(24)
-                };
-
-                let exp = (now + duration).timestamp() as usize;
-
-                let claims = DashboardClaims {
-                    sub: m_id.to_string(),
-                    exp,
-                    iat: now.timestamp() as usize,
-                    sandbox_mode: m_sandbox_mode,
-                };
-
-                let secret = &state.config.jwt_secret;
-                let token = encode(
-                    &Header::default(),
-                    &claims,
-                    &EncodingKey::from_secret(secret.as_bytes()),
-                )
-                .unwrap_or_default();
-
-                // Format masked key for display
-                let display_key = if m_sandbox_mode {
-                    "sk_test_********".to_string()
-                } else {
-                    if let Some(h) = &m_live_api_key_hash {
-                        if h != "PENDING" && !h.is_empty() {
-                            "sk_live_********".to_string()
-                        } else {
-                            "Not generated".to_string()
-                        }
-                    } else {
-                        "Not generated".to_string()
                     }
-                };
-
-                // Log login and trace
-                let _ = state
-                    .audit_service
-                    .log_event(
-                        m_id,
-                        "login",
-                        Some("Successfully logged in via dashboard"),
-                        Some(json!({"email": m_email})),
-                    )
-                    .await;
-                tracing::info!("EVENT: login | Merchant: {} | Email: {}", m_id, m_email);
-
-                AuthResponse {
-                    user: MerchantProfile {
-                        id: m_id,
-                        business_name: m_business_name,
-                        email: m_email,
-                        api_key: display_key,
-                        created_at: m_created_at.to_rfc3339(),
-                        two_factor_enabled: false,
-                        daily_limit_usd: m_daily_limit_usd
-                            .or(if !m_kyc_verified {
-                                Some(state.config.daily_volume_limit_non_kyc_usd)
-                            } else {
-                                None
-                            })
-                            .map(|d: Decimal| d.to_string()),
-                        daily_volume_remaining: remaining_volume.to_string(),
-                        kyc_verified: m_kyc_verified,
-                        sandbox_mode: m_sandbox_mode,
-                        settlement_mode: m_settlement_mode,
-                        has_transaction_pin: m_transaction_pin_hash.is_some(),
-                        pin_setup_at: m_pin_setup_at.map(|d| d.to_rfc3339()),
-                    },
-                    dashboard_token: token,
                 }
-            };
-            (StatusCode::OK, Json(auth_response)).into_response()
+            }
+
+            // Password failed or no hash
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(
+                    json!({"error": "Invalid credentials", "message": "Invalid email or password"}),
+                ),
+            )
+                .into_response()
         }
-        Ok(None) => (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({
-                "error": "Invalid credentials",
-                "message": "Invalid email or password"
-            })),
-        )
-            .into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({
-                "error": "Database error",
-                "message": format!("Failed to authenticate user: {}", e)
-            })),
-        )
-            .into_response(),
+        Ok(None) => {
+            // 3. Fallback to Team Member login
+            let multi_user_service =
+                crate::services::multi_user_service::MultiUserService::new(state.db_pool.clone());
+            match multi_user_service.authenticate(&req.email, &req.password).await {
+                Ok(user) => {
+                    // Fetch the parent merchant info for the context
+                    let merchant_res = sqlx::query(
+                        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at FROM merchants WHERE id = $1"
+                    )
+                    .bind(user.merchant_id)
+                    .fetch_optional(&state.db_pool)
+                    .await;
+
+                    match merchant_res {
+                        Ok(Some(m_row)) => {
+                            // SUCCESS: Team Member Login
+                            finalize_login(state, merchant_context_from_row(m_row), user.role, Some(user.id), req.remember_me.unwrap_or(false)).await
+                        }
+                        Ok(None) => ServiceError::InternalError("Parent merchant not found".to_string()).into_response(),
+                        Err(e) => ServiceError::Database(e).into_response(),
+                    }
+                }
+                Err(_) => (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid credentials", "message": "Invalid email or password"}))).into_response(),
+            }
+        }
+        Err(e) => ServiceError::Database(e).into_response(),
     }
 }
 
@@ -410,4 +296,152 @@ pub async fn debug_auth(
             "error": format!("{:?}", e)
         })),
     }
+}
+// Helper to extract merchant data from a Row
+fn merchant_context_from_row(row: sqlx::postgres::PgRow) -> MerchantProfileData {
+    use sqlx::Row;
+    MerchantProfileData {
+        id: row.get("id"),
+        business_name: row.get("business_name"),
+        email: row.get("email"),
+        sandbox_mode: row.get("sandbox_mode"),
+        settlement_mode: row.get("settlement_mode"),
+        kyc_verified: row.get("kyc_verified"),
+        created_at: row.get("created_at"),
+        live_api_key_hash: row.get("live_api_key_hash"),
+        test_api_key_hash: row.get("test_api_key_hash"),
+        daily_limit_usd: row.get("daily_limit_usd"),
+        transaction_pin_hash: row.get("transaction_pin_hash"),
+        pin_setup_at: row.get("pin_setup_at"),
+    }
+}
+
+struct MerchantProfileData {
+    id: i64,
+    business_name: String,
+    email: String,
+    sandbox_mode: bool,
+    settlement_mode: String,
+    kyc_verified: bool,
+    created_at: chrono::DateTime<chrono::Utc>,
+    live_api_key_hash: Option<String>,
+    test_api_key_hash: Option<String>,
+    daily_limit_usd: Option<Decimal>,
+    transaction_pin_hash: Option<String>,
+    pin_setup_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+// Unified logic to generate token and response
+async fn finalize_login(
+    state: AppState,
+    m: MerchantProfileData,
+    role: UserRole,
+    user_id: Option<i32>,
+    remember_me: bool,
+) -> axum::response::Response {
+    let merchant_service = crate::services::merchant_service::MerchantService::new(
+        state.db_pool.clone(),
+        state.config.clone(),
+        state.audit_service.clone(),
+        state.volume_tracking_service.clone(),
+    );
+
+    let remaining_volume: Decimal = merchant_service
+        .get_daily_volume_remaining(m.id, m.kyc_verified, m.daily_limit_usd)
+        .await
+        .unwrap_or(state.config.daily_volume_limit_non_kyc_usd);
+
+    // Auto-generate API key if missing (only for owners)
+    if user_id.is_none() {
+        let has_test_key =
+            m.test_api_key_hash.is_some() && m.test_api_key_hash.as_ref().unwrap() != "PENDING";
+        if !has_test_key {
+            let _ = merchant_service
+                .generate_and_store_api_key_with_expiry(m.id, false, None)
+                .await;
+        }
+    }
+
+    // Generate Dashboard JWT
+    use crate::middleware::auth::DashboardClaims;
+    use jsonwebtoken::{encode, EncodingKey, Header};
+
+    let exp = if remember_me {
+        chrono::Utc::now() + chrono::Duration::days(30)
+    } else {
+        chrono::Utc::now() + chrono::Duration::hours(24)
+    };
+
+    let claims = DashboardClaims {
+        sub: m.id.to_string(),
+        user_id,
+        role,
+        exp: exp.timestamp() as usize,
+        iat: chrono::Utc::now().timestamp() as usize,
+        sandbox_mode: m.sandbox_mode,
+    };
+
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(state.config.jwt_secret.as_bytes()),
+    )
+    .unwrap_or_default();
+
+    // Refresh display key logic
+    let display_key = if m.sandbox_mode {
+        "sk_test_********".to_string()
+    } else {
+        match &m.live_api_key_hash {
+            Some(h) if !h.is_empty() && h != "PENDING" => "sk_live_********".to_string(),
+            _ => "Not generated".to_string(),
+        }
+    };
+
+    // Log login and trace
+    let _ = state
+        .audit_service
+        .log_event(
+            m.id,
+            "login",
+            Some(&format!("Successfully logged in via dashboard (Role: {:?})", role)),
+            Some(json!({
+                "email": m.email,
+                "user_id": user_id,
+                "role": role
+            })),
+        )
+        .await;
+
+    tracing::info!(
+        "EVENT: login | Merchant: {} | Email: {} | Role: {:?} | User: {:?}",
+        m.id,
+        m.email,
+        role,
+        user_id
+    );
+
+    (
+        StatusCode::OK,
+        Json(AuthResponse {
+            user: MerchantProfile {
+                id: m.id,
+                business_name: m.business_name,
+                email: m.email,
+                role,
+                api_key: display_key,
+                created_at: m.created_at.to_rfc3339(),
+                two_factor_enabled: false,
+                daily_limit_usd: m.daily_limit_usd.map(|d| d.to_string()),
+                daily_volume_remaining: remaining_volume.to_string(),
+                kyc_verified: m.kyc_verified,
+                sandbox_mode: m.sandbox_mode,
+                settlement_mode: m.settlement_mode,
+                has_transaction_pin: m.transaction_pin_hash.is_some(),
+                pin_setup_at: m.pin_setup_at.map(|d| d.to_rfc3339()),
+            },
+            dashboard_token: token,
+        }),
+    )
+        .into_response()
 }

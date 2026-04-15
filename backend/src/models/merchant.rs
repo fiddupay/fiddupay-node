@@ -6,6 +6,48 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, sqlx::Type)]
+#[sqlx(type_name = "user_role", rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum UserRole {
+    #[serde(rename = "SUPER_ADMIN")]
+    SuperAdmin,
+    #[serde(rename = "ADMIN")]
+    Admin,
+    #[serde(rename = "MODERATOR")]
+    Moderator,
+    #[serde(rename = "MERCHANT")]
+    Merchant,
+    #[serde(rename = "USER")]
+    User,
+}
+
+impl UserRole {
+    pub fn as_str(&self) -> &str {
+        match self {
+            UserRole::SuperAdmin => "SUPER_ADMIN",
+            UserRole::Admin => "ADMIN",
+            UserRole::Moderator => "MODERATOR",
+            UserRole::Merchant => "MERCHANT",
+            UserRole::User => "USER",
+        }
+    }
+
+    pub fn can_manage_users(&self) -> bool {
+        matches!(
+            self,
+            UserRole::SuperAdmin | UserRole::Admin | UserRole::Merchant
+        )
+    }
+
+    pub fn can_approve_withdrawals(&self) -> bool {
+        matches!(self, UserRole::SuperAdmin | UserRole::Admin)
+    }
+
+    pub fn can_view_analytics(&self) -> bool {
+        !matches!(self, UserRole::User)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Merchant {
     pub id: i64,
@@ -26,7 +68,7 @@ pub struct Merchant {
     pub updated_at: DateTime<Utc>,
     pub api_key_expires_at: Option<DateTime<Utc>>,
     pub daily_limit_usd: Option<Decimal>,
-    pub role: String,
+    pub role: UserRole,
     pub redirect_url: Option<String>,
     pub first_name: Option<String>,
     pub last_name: Option<String>,

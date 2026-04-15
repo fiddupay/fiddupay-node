@@ -3,7 +3,8 @@
 
 use crate::api::state::AppState;
 use crate::error::ServiceError;
-use crate::middleware::auth::MerchantContext;
+use crate::middleware::auth::{require_any_role, MerchantContext};
+use crate::models::merchant::UserRole;
 use axum::{
     extract::{Extension, Path, Query, State},
     http::StatusCode,
@@ -22,6 +23,11 @@ pub async fn create_withdrawal(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<crate::services::withdrawal_service::WithdrawalRequest>,
 ) -> impl IntoResponse {
+    // -1. Authorization Check (Strict: Only the Merchant Owner can create withdrawals)
+    if let Err(e) = require_role(&context, UserRole::Merchant) {
+        return e.into_response();
+    }
+
     // 0. Validate input
     if let Err(e) = req.validate() {
         return ServiceError::ValidationError(e.to_string()).into_response();
@@ -167,6 +173,11 @@ pub async fn cancel_withdrawal(
     Extension(context): Extension<MerchantContext>,
     Path(withdrawal_id): Path<String>,
 ) -> impl IntoResponse {
+    // -1. Authorization Check (Strict: Only the Merchant Owner can cancel withdrawals)
+    if let Err(e) = require_role(&context, UserRole::Merchant) {
+        return e.into_response();
+    }
+
     match state
         .withdrawal_service
         .cancel_withdrawal(context.merchant_id, &withdrawal_id)
