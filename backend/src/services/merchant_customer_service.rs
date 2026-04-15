@@ -9,11 +9,11 @@ use crate::models::merchant_customer::{
 use crate::payment::models::CryptoType;
 use crate::utils::encryption::Encryption;
 use crate::utils::keygen::KeyGenerator;
+use ethers::core::types::U256;
 use rust_decimal::Decimal;
 use serde_json::json;
 use sqlx::{PgPool, Row};
 use std::str::FromStr;
-use web3::types::U256;
 
 const CUSTOMER_COLS: &str = "id, merchant_id, external_id, email, first_name, last_name, metadata, is_active, status, status_reason, can_withdraw, withdrawal_limit, created_at, updated_at, sandbox_mode";
 
@@ -1041,11 +1041,11 @@ impl MerchantCustomerService {
                 let gas_price = sender
                     .get_current_gas_price(crypto_enum.clone(), sandbox_mode)
                     .await
-                    .unwrap_or(web3::types::U256::from(50_000_000_000u64));
+                    .unwrap_or(U256::from(50_000_000_000u64));
                 let estimated_gas_limit = sender
                     .estimate_gas(crypto_enum.clone(), "", "", amount)
                     .await
-                    .unwrap_or(web3::types::U256::from(65000));
+                    .unwrap_or(U256::from(65000));
                 let required_native_u128 = (gas_price * estimated_gas_limit).as_u128();
 
                 let divisor = if native_currency == "SOL" {

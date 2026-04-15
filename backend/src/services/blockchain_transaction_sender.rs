@@ -3,14 +3,16 @@
 
 use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
+use ethers::{
+    core::types::{Address, Bytes, TransactionRequest, U256},
+    middleware::SignerMiddleware,
+    providers::{Http, Middleware, Provider},
+    signers::{LocalWallet, Signer},
+};
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
-use web3::{
-    signing::Key,
-    transports::Http,
-    types::{Address, TransactionParameters, U256},
-    Web3,
-};
+use std::sync::Arc;
+use std::time::Duration;
 
 pub struct BlockchainTransactionSender {
     config: crate::config::Config,
@@ -403,26 +405,21 @@ impl BlockchainTransactionSender {
 
         for (url, chain_id) in rpc_configs {
             tracing::info!("[EVM] Attempting transaction via RPC: {}", url);
-            let transport = match Http::new(&url) {
-                Ok(t) => t,
+            let provider = match Provider::<Http>::try_from(url.as_str()) {
+                Ok(p) => p,
                 Err(e) => {
                     last_err = Some(e.to_string());
                     continue;
                 }
             };
-            let web3 = Web3::new(transport);
 
             // Key setup
             let private_key_clean = private_key.strip_prefix("0x").unwrap_or(private_key);
-            let key_bytes = match hex::decode(private_key_clean) {
-                Ok(b) => b,
+            let wallet: LocalWallet = match private_key_clean.parse::<LocalWallet>() {
+                Ok(w) => w.with_chain_id(chain_id),
                 Err(_) => return Err(ServiceError::ValidationError("Invalid private key".into())),
             };
-            let secret_key = match web3::signing::SecretKey::from_slice(&key_bytes) {
-                Ok(sk) => sk,
-                Err(_) => return Err(ServiceError::ValidationError("Invalid private key".into())),
-            };
-            let from_address = (&secret_key).address();
+            let from_address = wallet.address();
             let to_address_parsed: Address = to_address
                 .parse()
                 .map_err(|_| ServiceError::ValidationError("Invalid dest addr".into()))?;
@@ -433,7 +430,7 @@ impl BlockchainTransactionSender {
                 .unwrap_or(0);
 
             // Nonce & Gas
-            let nonce = match web3.eth().transaction_count(from_address, None).await {
+            let nonce = match provider.get_transaction_count(from_address, None).await {
                 Ok(n) => n,
                 Err(e) => {
                     last_err = Some(e.to_string());
@@ -442,7 +439,7 @@ impl BlockchainTransactionSender {
             };
             let gas_price_val = match gas_price {
                 Some(p) => p,
-                None => match web3.eth().gas_price().await {
+                None => match provider.get_gas_price().await {
                     Ok(p) => p,
                     Err(e) => {
                         last_err = Some(e.to_string());
@@ -451,39 +448,24 @@ impl BlockchainTransactionSender {
                 },
             };
 
-            let tx_params = TransactionParameters {
-                nonce: Some(nonce),
-                to: Some(to_address_parsed),
-                value: U256::from(wei_amount),
-                gas_price: Some(gas_price_val),
-                gas: U256::from(21000),
-                chain_id: Some(chain_id),
-                ..Default::default()
-            };
+            let tx = TransactionRequest::new()
+                .nonce(nonce)
+                .to(to_address_parsed)
+                .value(U256::from(wei_amount))
+                .gas_price(gas_price_val)
+                .gas(U256::from(21000u64))
+                .chain_id(chain_id);
 
-            let signed_tx = match web3
-                .accounts()
-                .sign_transaction(tx_params, &secret_key)
-                .await
-            {
-                Ok(s) => s,
+            let client = SignerMiddleware::new(provider, wallet);
+            let signature = match client.send_transaction(tx, None).await {
+                Ok(pending_tx) => pending_tx.tx_hash(),
                 Err(e) => {
                     last_err = Some(e.to_string());
                     continue;
                 }
             };
 
-            match web3
-                .eth()
-                .send_raw_transaction(signed_tx.raw_transaction)
-                .await
-            {
-                Ok(hash) => return Ok(format!("0x{:x}", hash)),
-                Err(e) => {
-                    last_err = Some(e.to_string());
-                    continue;
-                }
-            }
+            return Ok(format!("0x{:x}", signature));
         }
 
         Err(ServiceError::Internal(format!(
@@ -508,26 +490,21 @@ impl BlockchainTransactionSender {
 
         for (url, chain_id) in rpc_configs {
             tracing::info!("[EVM-TOKEN] Attempting transaction via RPC: {}", url);
-            let transport = match Http::new(&url) {
-                Ok(t) => t,
+            let provider = match Provider::<Http>::try_from(url.as_str()) {
+                Ok(p) => p,
                 Err(e) => {
                     last_err = Some(e.to_string());
                     continue;
                 }
             };
-            let web3 = Web3::new(transport);
 
             // Setup
             let private_key_clean = private_key.strip_prefix("0x").unwrap_or(private_key);
-            let key_bytes = match hex::decode(private_key_clean) {
-                Ok(b) => b,
+            let wallet: LocalWallet = match private_key_clean.parse::<LocalWallet>() {
+                Ok(w) => w.with_chain_id(chain_id),
                 Err(_) => return Err(ServiceError::ValidationError("Invalid secret".into())),
             };
-            let secret_key = match web3::signing::SecretKey::from_slice(&key_bytes) {
-                Ok(sk) => sk,
-                Err(_) => return Err(ServiceError::ValidationError("Invalid secret".into())),
-            };
-            let from_address = (&secret_key).address();
+            let from_address = wallet.address();
             let to_address_parsed: Address = to_address
                 .parse()
                 .map_err(|_| ServiceError::ValidationError("Invalid to addr".into()))?;
@@ -540,7 +517,7 @@ impl BlockchainTransactionSender {
                 .to_u128()
                 .unwrap_or(0);
 
-            let nonce = match web3.eth().transaction_count(from_address, None).await {
+            let nonce = match provider.get_transaction_count(from_address, None).await {
                 Ok(n) => n,
                 Err(e) => {
                     last_err = Some(e.to_string());
@@ -549,7 +526,7 @@ impl BlockchainTransactionSender {
             };
             let gas_price_val = match gas_price {
                 Some(p) => p,
-                None => match web3.eth().gas_price().await {
+                None => match provider.get_gas_price().await {
                     Ok(p) => p,
                     Err(e) => {
                         last_err = Some(e.to_string());
@@ -558,7 +535,7 @@ impl BlockchainTransactionSender {
                 },
             };
 
-            // Data
+            // Data: transfer(address,uint256) -> a9059cbb
             let mut data = vec![0xa9, 0x05, 0x9c, 0xbb];
             let mut padded_to = vec![0u8; 32];
             padded_to[12..32].copy_from_slice(to_address_parsed.as_bytes());
@@ -567,40 +544,25 @@ impl BlockchainTransactionSender {
             U256::from(token_amount).to_big_endian(&mut padded_amount);
             data.extend(padded_amount);
 
-            let tx_params = TransactionParameters {
-                nonce: Some(nonce),
-                to: Some(token_contract_address),
-                value: U256::zero(),
-                gas_price: Some(gas_price_val),
-                gas: U256::from(65000),
-                chain_id: Some(chain_id),
-                data: web3::types::Bytes(data),
-                ..Default::default()
-            };
+            let tx = TransactionRequest::new()
+                .nonce(nonce)
+                .to(token_contract_address)
+                .value(U256::zero())
+                .gas_price(gas_price_val)
+                .gas(U256::from(65000u64))
+                .chain_id(chain_id)
+                .data(Bytes::from(data));
 
-            let signed_tx = match web3
-                .accounts()
-                .sign_transaction(tx_params, &secret_key)
-                .await
-            {
-                Ok(s) => s,
+            let client = SignerMiddleware::new(provider, wallet);
+            let signature = match client.send_transaction(tx, None).await {
+                Ok(pending_tx) => pending_tx.tx_hash(),
                 Err(e) => {
                     last_err = Some(e.to_string());
                     continue;
                 }
             };
 
-            match web3
-                .eth()
-                .send_raw_transaction(signed_tx.raw_transaction)
-                .await
-            {
-                Ok(hash) => return Ok(format!("0x{:x}", hash)),
-                Err(e) => {
-                    last_err = Some(e.to_string());
-                    continue;
-                }
-            }
+            return Ok(format!("0x{:x}", signature));
         }
 
         Err(ServiceError::Internal(format!(
@@ -697,16 +659,21 @@ impl BlockchainTransactionSender {
                 }
             };
 
-            let transport = Http::new(rpc_url)
-                .map_err(|e| ServiceError::Internal(format!("Failed to connect to EVM: {}", e)))?;
-            let web3 = Web3::new(transport);
+            let provider = match Provider::<Http>::try_from(rpc_url) {
+                Ok(p) => p,
+                Err(e) => {
+                    return Err(ServiceError::Internal(format!(
+                        "Failed to connect to EVM: {}",
+                        e
+                    )))
+                }
+            };
 
             let addr: Address = address
                 .parse()
                 .map_err(|_| ServiceError::ValidationError("Invalid EVM address".to_string()))?;
-            let balance = web3
-                .eth()
-                .balance(addr, None)
+            let balance = provider
+                .get_balance(addr, None)
                 .await
                 .map_err(|e| ServiceError::Internal(format!("Failed EVM balance: {}", e)))?;
             Ok(balance)
@@ -759,12 +726,18 @@ impl BlockchainTransactionSender {
             }
         };
 
-        let transport = Http::new(rpc_url)
-            .map_err(|e| ServiceError::Internal(format!("Failed to create transport: {}", e)))?;
-        let web3 = Web3::new(transport);
+        let provider = match Provider::<Http>::try_from(rpc_url) {
+            Ok(p) => p,
+            Err(e) => {
+                return Err(ServiceError::Internal(format!(
+                    "Failed to create provider: {}",
+                    e
+                )))
+            }
+        };
 
-        web3.eth()
-            .gas_price()
+        provider
+            .get_gas_price()
             .await
             .map_err(|e| ServiceError::Internal(format!("Failed to get gas price: {}", e)))
     }

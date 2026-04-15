@@ -22,6 +22,7 @@ fiddupay/
 ## Quick Start
 
 ### Prerequisites
+
 - Rust 1.70+
 - Node.js 18+
 - PostgreSQL 13+
@@ -57,6 +58,7 @@ npm run build:frontend
 FidduPay uses `systemd` to manage processes and Caddy as a high-performance reverse proxy. **Always use `systemctl`** to manage services in production to avoid port conflicts.
 
 #### Core API (fiddupay.service)
+
 ```bash
 sudo systemctl status fiddupay    # Check if API is running
 sudo systemctl restart fiddupay   # Restart after backend updates
@@ -64,6 +66,7 @@ sudo journalctl -u fiddupay -f    # Follow real-time API logs
 ```
 
 #### Reverse Proxy (caddy.service)
+
 ```bash
 sudo systemctl status caddy       # Check proxy status
 sudo systemctl reload caddy       # Apply Caddyfile changes (ZERO downtime)
@@ -71,6 +74,7 @@ sudo systemctl restart caddy      # Hard restart Caddy
 ```
 
 #### Configuration & Diagnostics
+
 ```bash
 # Validate Caddyfile syntax before reloading
 sudo caddy validate --config /etc/caddy/Caddyfile
@@ -84,7 +88,9 @@ tail -f /var/log/caddy/fiddupay.frontend.log # Dashboard
 ### Deployment & Releases
 
 #### Automated Release (Recommended)
+
 This is a unified command that:
+
 1.  Bumps versions in both the monorepo and SDK `package.json`.
 2.  Commits and pushes changes to the main `fiddupay` repository.
 3.  Synchronizes and tags the standalone SDK repository to trigger automated GitHub Actions and NPM publishing.
@@ -94,6 +100,7 @@ npm run release <version>  # Example: npm run release 2.4.1
 ```
 
 #### Repository Sync Scripts
+
 To sync specific code changes strictly to their respective GitHub repositories using PowerShell:
 
 ```powershell
@@ -108,15 +115,24 @@ To sync specific code changes strictly to their respective GitHub repositories u
 ```
 
 #### Manual SDK Sync
+
 To sync code changes to the standalone SDK repository without creating a release tag:
 
 ```bash
 bash ./scripts/push-sdk.sh main
 ```
 
+Precheck before pushing to github:
+cargo audit
+cargo fmt
+cargo fmt -- --check -p fiddupay
+cargo clippy
+cargo check
+
 To sync code AND push a version tag manually (triggering the automated pipeline):
 
 To delete a version on github:
+
 ```bash
 git push https://github.com/fiddupay/fiddupay-node.git --delete v2.6.13
 ```
@@ -130,6 +146,7 @@ npm publish --access public
 ## Configuration
 
 ### Backend (.env)
+
 ```bash
 DATABASE_URL=postgresql://user:password@localhost:5432/fiddupay
 REDIS_URL=redis://localhost:6379
@@ -139,6 +156,7 @@ ETHEREUM_RPC_URL=your-ethereum-rpc
 ```
 
 ### Frontend (.env.local)
+
 ```bash
 VITE_API_URL=http://localhost:8080
 ```
@@ -157,6 +175,7 @@ VITE_API_URL=http://localhost:8080
 ## Security
 
 FidduPay has achieved a **10/10 security score** with:
+
 - XSS Prevention & CSRF Protection
 - SQL Injection Protection
 - Advanced Rate Limiting
@@ -170,6 +189,7 @@ FidduPay has achieved a **10/10 security score** with:
 ## Supported Cryptocurrencies
 
 **5 Major Blockchain Networks:**
+
 - **Solana** - SOL + USDT (SPL)
 - **Ethereum** - ETH + USDT (ERC-20)
 - **Binance Smart Chain** - BNB + USDT (BEP-20)

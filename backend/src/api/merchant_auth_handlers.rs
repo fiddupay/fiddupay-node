@@ -404,7 +404,10 @@ async fn finalize_login(
         .log_event(
             m.id,
             "login",
-            Some(&format!("Successfully logged in via dashboard (Role: {:?})", role)),
+            Some(&format!(
+                "Successfully logged in via dashboard (Role: {:?})",
+                role
+            )),
             Some(json!({
                 "email": m.email,
                 "user_id": user_id,

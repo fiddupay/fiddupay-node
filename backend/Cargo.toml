@@ -28,14 +28,14 @@ rust_decimal_macros = "1.33"
 chrono = { version = "0.4", features = ["serde"] }
 
 # HTTP client
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.12", features = ["json"] }
 
 # WebSocket for real-time gas monitoring
 tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
 futures-util = "0.3"
 
 # Blockchain transaction libraries (minimal set)
-web3 = "0.19"
+ethers = { version = "2.0", features = ["rustls"] }
 solana-client = "3.0.0"
 solana-sdk = "3.0.0"
 solana-program = "3.0.0"
@@ -66,7 +66,7 @@ nanoid = "0.4"
 jsonwebtoken = "9.2"
 
 # URL parsing and validation
-url = "2.5"
+url = "2.5.4"
 
 # Environment variables
 dotenvy = "0.15"
@@ -122,3 +122,6 @@ sysinfo = "0.30"
 [dev-dependencies]
 proptest = "1.4"
 mockall = "0.12"
+
+[patch.crates-io]
+# Patches removed - migrated to maintained libraries

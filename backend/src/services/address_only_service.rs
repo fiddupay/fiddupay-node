@@ -5,6 +5,7 @@ use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
 use crate::services::gas_fee_service::GasFeeService;
 use crate::services::notification_service::NotificationService;
+use ethers::core::types::U256;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -473,7 +474,7 @@ impl AddressOnlyService {
         let gas_price_wei = (gas_estimate.standard_fee
             * Decimal::new(1_000_000_000_000_000_000i64, 0))
         .to_u128()
-        .map(web3::types::U256::from);
+        .map(U256::from);
 
         tx_sender
             .send_transaction(
