@@ -226,8 +226,8 @@ impl BlockchainTransactionSender {
                 }
             };
 
-            use solana_system_interface::instruction as system_instruction;
             use solana_sdk::transaction::Transaction;
+            use solana_system_interface::instruction as system_instruction;
 
             let instructions = vec![system_instruction::transfer(
                 &sender_keypair.pubkey(),
