@@ -36,7 +36,7 @@ pub async fn create_withdrawal(
     // 1. Enforce settlement mode (Requirement: Managed mode only for manual withdrawals)
     if context.settlement_mode != "managed" {
         return (
-            StatusCode::FORBIDDEN, 
+            StatusCode::FORBIDDEN,
             Json(json!({"error": "Manual withdrawals are only available in Managed settlement mode"}))
         ).into_response();
     }
@@ -61,6 +61,7 @@ pub async fn create_withdrawal(
                     let processor = crate::services::withdrawal_processor::WithdrawalProcessor::new(
                         state.db_pool.clone(),
                         state.config.clone(),
+                        state.notification_service.clone(),
                     );
                     let withdrawal_id = withdrawal.withdrawal_id.clone();
 

@@ -27,7 +27,7 @@ pub async fn create_payment(
     // Rejection Forwarding mode from using Standard payments
     if context.settlement_mode == "forwarding" {
         return (
-            StatusCode::FORBIDDEN, 
+            StatusCode::FORBIDDEN,
             Json(json!({
                 "error": "Standard payments are not available in Forwarding mode. Please use Address-Only payments.",
                 "code": "SETTLEMENT_MODE_MISMATCH"

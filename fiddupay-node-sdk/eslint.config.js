@@ -31,4 +31,10 @@ export default [
       'prefer-const': 'error',
     },
   },
+  {
+    files: ['examples/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 ];

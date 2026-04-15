@@ -4,7 +4,9 @@ use sqlx::{PgPool, Row};
 use std::sync::Arc;
 
 use crate::payment::models::CryptoType;
+use crate::services::blockchain_transaction_sender::BlockchainTransactionSender;
 use crate::services::notification_service::NotificationService;
+use crate::utils::encryption::Encryption;
 
 pub struct WithdrawalProcessor {
     db_pool: PgPool,
@@ -148,7 +150,8 @@ impl WithdrawalProcessor {
                 if let Some(mw) = merchant_master_wallet {
                     if let Some(m_enc) = mw.get::<Option<String>, _>("encrypted_private_key") {
                         if let Ok(encryption) = Encryption::new() {
-                            if let Ok(m_priv) = encryption.decrypt(&m_enc) {
+                            let decrypt_res: Result<String, String> = encryption.decrypt(&m_enc);
+                            if let Ok(m_priv) = decrypt_res {
                                 let native_enum = CryptoType::from_string(native_crypto_str)
                                     .unwrap_or(CryptoType::Eth);
 
@@ -211,10 +214,10 @@ impl WithdrawalProcessor {
         })?;
 
         // 3. Decrypt the private key
-        let encryption = Encryption::new().map_err(|e| ServiceError::Internal(e))?;
-        let private_key = encryption
+        let encryption = Encryption::new().map_err(|e: String| ServiceError::Internal(e))?;
+        let private_key: String = encryption
             .decrypt(&encrypted_key)
-            .map_err(|e| ServiceError::Internal(e))?;
+            .map_err(|e: String| ServiceError::Internal(e))?;
 
         tracing::info!(
             "Blockchain submission started for withdrawal {} to address {}",
@@ -276,7 +279,7 @@ impl WithdrawalProcessor {
                     withdrawal_id,
                     e
                 );
-                let error_msg = e.to_string();
+                let mut error_msg: String = e.to_string();
 
                 // Create error notification
                 let _ = self

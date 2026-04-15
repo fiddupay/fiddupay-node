@@ -10,7 +10,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::{error, info, warn};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BalanceAlert {
     pub merchant_id: i64,
     pub alert_type: String,
@@ -59,7 +59,7 @@ impl BalanceMonitoringService {
             // 2. Fetch balances for this merchant
             let balances = sqlx::query!(
                 r#"
-                SELECT crypto_type, balance 
+                SELECT crypto_type, available_balance as balance 
                 FROM merchant_balances 
                 WHERE merchant_id = $1
                 "#,
@@ -82,13 +82,13 @@ impl BalanceMonitoringService {
             }
 
             // 4. Compare against threshold
-            if total_usd_value < merchant.low_balance_threshold_usd {
+            if total_usd_value < merchant.low_balance_threshold_usd.unwrap_or_default() {
                 let alert = BalanceAlert {
                     merchant_id: merchant.id,
                     alert_type: "LOW_BALANCE_USD".to_string(),
                     crypto_type: "USD_TOTAL".to_string(),
                     current_balance: total_usd_value,
-                    threshold: merchant.low_balance_threshold_usd,
+                    threshold: merchant.low_balance_threshold_usd.unwrap_or_default(),
                     created_at: Utc::now(),
                 };
 

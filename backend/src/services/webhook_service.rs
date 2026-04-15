@@ -190,7 +190,7 @@ impl WebhookService {
                         } else {
                             format!("\n**[View on Explorer](https://etherscan.io/tx/{})**", tx_hash_display)
                         };
-                        
+
                         let is_deposit = payload.event_type.contains("deposit");
                         let view_link = if is_deposit {
                             String::new()

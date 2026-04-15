@@ -231,7 +231,7 @@ fn is_private_or_localhost(host: &str) -> bool {
             }
             IpAddr::V6(ipv6) => {
                 // Adjust to standard methods where available, keeping fallback compatibility
-                ipv6.is_loopback() || 
+                ipv6.is_loopback() ||
                 ipv6.segments()[0] & 0xfe00 == 0xfc00 || // Unique local (fc00::/7)
                 (ipv6.segments()[0] & 0xffc0) == 0xfe80 // Link-local (fe80::/10)
             }
