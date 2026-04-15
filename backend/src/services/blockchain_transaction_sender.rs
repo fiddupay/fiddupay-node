@@ -226,7 +226,7 @@ impl BlockchainTransactionSender {
                 }
             };
 
-            use solana_sdk::system_instruction;
+            use solana_system_interface::instruction as system_instruction;
             use solana_sdk::transaction::Transaction;
 
             let instructions = vec![system_instruction::transfer(
@@ -279,9 +279,9 @@ impl BlockchainTransactionSender {
             instruction::Instruction,
             pubkey::Pubkey,
             signature::{Keypair, Signer},
-            system_instruction,
             transaction::Transaction,
         };
+        use solana_system_interface::instruction as system_instruction;
         use spl_associated_token_account::{
             get_associated_token_address, instruction::create_associated_token_account_idempotent,
         };
