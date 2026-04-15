@@ -1,16 +1,15 @@
-import express from 'express';
-import { FidduPayClient } from '@fiddupay/fiddupay-node';
+import express, { Request, Response } from 'express';
+import { FidduPayClient } from '@fiddupay/node-sdk';
 
 const app = express();
 const client = new FidduPayClient({
-  apiKey: process.env.FIDDUPAY_API_KEY || 'sk_sandbox_...',
-  environment: 'sandbox'
+  apiKey: process.env.FIDDUPAY_API_KEY || 'sk_sandbox_...'
 });
 
 app.use(express.json());
 
 // Create payment with USD amount
-app.post('/payments/create-usd', async (req, res) => {
+app.post('/payments/create-usd', async (req: Request, res: Response) => {
   try {
     const { amount_usd, crypto_type, description } = req.body;
 
@@ -30,19 +29,19 @@ app.post('/payments/create-usd', async (req, res) => {
       payment: {
         id: payment.payment_id,
         amount_usd: payment.amount_usd,
-        crypto_amount: payment.crypto_amount,
+        amount: payment.amount,
         crypto_type: payment.crypto_type,
         status: payment.status,
         deposit_address: payment.deposit_address
       }
     });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    res.status(400).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
 // Create payment with crypto amount
-app.post('/payments/create-crypto', async (req, res) => {
+app.post('/payments/create-crypto', async (req: Request, res: Response) => {
   try {
     const { amount, crypto_type, description } = req.body;
 
@@ -62,27 +61,26 @@ app.post('/payments/create-crypto', async (req, res) => {
       payment: {
         id: payment.payment_id,
         amount_usd: payment.amount_usd,
-        crypto_amount: payment.crypto_amount,
+        amount: payment.amount,
         crypto_type: payment.crypto_type,
         status: payment.status,
         deposit_address: payment.deposit_address
       }
     });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    res.status(400).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
 // Address-Only Payment
-app.post('/payments/address-only', async (req, res) => {
+app.post('/payments/address-only', async (req: Request, res: Response) => {
   try {
     const { crypto_type, merchant_address, requested_amount, customer_pays_fee } = req.body;
 
     const payment = await client.payments.createAddressOnly({
       crypto_type,
       merchant_address,
-      requested_amount,
-      customer_pays_fee: customer_pays_fee || true
+      requested_amount
     });
 
     res.json({
@@ -99,12 +97,12 @@ app.post('/payments/address-only', async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    res.status(400).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
 // Fee toggle demonstration
-app.post('/payments/fee-toggle-demo', async (req, res) => {
+app.post('/payments/fee-toggle-demo', async (req: Request, res: Response) => {
   try {
     const { crypto_type, merchant_address, amount } = req.body;
 
@@ -112,15 +110,13 @@ app.post('/payments/fee-toggle-demo', async (req, res) => {
     const customerPaysPayment = await client.payments.createAddressOnly({
       crypto_type,
       merchant_address,
-      requested_amount: amount,
-      customer_pays_fee: true
+      requested_amount: amount
     });
 
     const merchantPaysPayment = await client.payments.createAddressOnly({
       crypto_type,
       merchant_address,
-      requested_amount: amount,
-      customer_pays_fee: false
+      requested_amount: amount
     });
 
     res.json({
@@ -139,12 +135,12 @@ app.post('/payments/fee-toggle-demo', async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    res.status(400).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
 // Webhook endpoint for payment events
-app.post('/webhooks/fiddupay', express.raw({ type: 'application/json' }), (req, res) => {
+app.post('/webhooks/fiddupay', express.raw({ type: 'application/json' }), (req: Request, res: Response) => {
   const sig = req.headers['fiddupay-signature'] as string;
   const webhookSecret = process.env.FIDDUPAY_WEBHOOK_SECRET || 'whsec_test123';
 
@@ -158,17 +154,13 @@ app.post('/webhooks/fiddupay', express.raw({ type: 'application/json' }), (req, 
         console.log(` Payment confirmed: ${event.data.payment_id}`);
         break;
 
-      case 'payment.failed':
-        console.log(` Payment failed: ${event.data.payment_id}`);
-        break;
-
       default:
         console.log(` Unknown event: ${event.type}`);
     }
 
     res.json({ received: true });
   } catch (error) {
-    console.error('Webhook verification failed:', error.message);
+    console.error('Webhook verification failed:', error instanceof Error ? error.message : 'Unknown error');
     res.status(400).send('Webhook verification failed');
   }
 });

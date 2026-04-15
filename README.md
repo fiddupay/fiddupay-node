@@ -17,7 +17,7 @@ fiddupay/
 ```
 
 > [!NOTE]
-> The `fiddupay-node-sdk` folder is the source of truth for the [@fiddupay/fiddupay-node](https://github.com/fiddupay/fiddupay-node) standalone repository. Use `./scripts/push-sdk.sh` to sync changes.
+> The `fiddupay-node-sdk` folder is the source of truth for the [@fiddupay/node-sdk](https://github.com/fiddupay/fiddupay-node) standalone repository. Use `./scripts/push-sdk.sh` to sync changes.
 
 ## Quick Start
 
@@ -118,11 +118,11 @@ To sync code AND push a version tag manually (triggering the automated pipeline)
 
 To delete a version on github:
 ```bash
-git push https://github.com/fiddupay/fiddupay-node.git --delete v2.6.1
+git push https://github.com/fiddupay/fiddupay-node.git --delete v2.6.13
 ```
 
 ```bash
-sudo bash ./scripts/push-sdk.sh main v2.6.12
+sudo bash ./scripts/push-sdk.sh main v2.6.13
 cd fiddupay-node-sdk
 npm publish --access public
 ```

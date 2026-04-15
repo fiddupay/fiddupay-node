@@ -1,4 +1,4 @@
-# FidduPay Node.js SDK Guide v2.5.5
+# FidduPay Node.js SDK Guide v2.6.13
 
 **Official Node.js SDK for FidduPay Cryptocurrency Payment Gateway**
 
@@ -26,7 +26,7 @@ console.log('Daily Volume Remaining:', profile.daily_volume_remaining);
 
 ### Core Components
 ```
-fiddupay-node/
+fiddupay-node-sdk/
  src/
     index.ts              # Main SDK export
     client.ts             # HTTP client wrapper
@@ -82,16 +82,16 @@ fiddupay-node/
 
 ### Installation
 ```bash
-npm install @fiddupay/fiddupay-node
+npm install @fiddupay/node-sdk
 # or
-yarn add fiddupay-node
+yarn add @fiddupay/node-sdk
 ```
 
 ### Basic Usage
 ```typescript
-import FidduPay from 'fiddupay-node';
+import { FidduPayClient } from '@fiddupay/node-sdk';
 
-const fiddupay = new FidduPay({
+const fiddupay = new FidduPayClient({
   apiKey: 'sk_sandbox_...',
   environment: 'sandbox' // or 'production'
 });
@@ -469,10 +469,10 @@ describe('Webhooks', () => {
 ### Express.js Integration
 ```typescript
 import express from 'express';
-import FidduPay from 'fiddupay-node';
+import { FidduPayClient } from '@fiddupay/node-sdk';
 
 const app = express();
-const fiddupay = new FidduPay({ apiKey: process.env.FIDDUPAY_API_KEY });
+const fiddupay = new FidduPayClient({ apiKey: process.env.FIDDUPAY_API_KEY });
 
 // Create USD-based payment endpoint
 app.post('/create-payment', async (req, res) => {
@@ -509,9 +509,9 @@ app.post('/create-crypto-payment', async (req, res) => {
 ```typescript
 // pages/api/payments.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import FidduPay from 'fiddupay-node';
+import { FidduPayClient } from '@fiddupay/node-sdk';
 
-const fiddupay = new FidduPay({ apiKey: process.env.FIDDUPAY_API_KEY });
+const fiddupay = new FidduPayClient({ apiKey: process.env.FIDDUPAY_API_KEY });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
@@ -528,20 +528,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 ### NestJS Service
 ```typescript
 import { Injectable } from '@nestjs/common';
-import FidduPay from 'fiddupay-node';
+import { FidduPayClient } from '@fiddupay/node-sdk';
 
 @Injectable()
 export class PaymentService {
   private fiddupay: FidduPay;
 
   constructor() {
-    this.fiddupay = new FidduPay({
+    this.fiddupay = new FidduPayClient({
       apiKey: process.env.FIDDUPAY_API_KEY,
       environment: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox'
     });
   }
 
-  async createPayment(data: CreatePaymentRequest) {
+  async createPayment(data: any) {
     return await this.fiddupay.payments.create(data);
   }
 }
@@ -612,8 +612,8 @@ examples/
 ##  Distribution Strategy
 
 ### NPM Package
-- **Package Name**: `fiddupay-node`
-- **Scope**: `@fiddupay/node` (future consideration)
+- **Package Name**: `@fiddupay/node-sdk`
+- **Scope**: `@fiddupay`
 - **Versioning**: Semantic versioning (semver)
 - **License**: MIT License
 - **Keywords**: cryptocurrency, payments, blockchain, fintech, api
@@ -655,7 +655,7 @@ examples/
 
 ---
 
-**Document Version**: 2.5.5
-**Last Updated**: March 24, 2026
-**Next Review**: June 1, 2026  
+**Document Version**: 2.6.13
+**Last Updated**: April 15, 2026
+**Next Review**: July 1, 2026  
 **Owner**: TechyTro Software - FidduPay SDK Team

@@ -10,7 +10,6 @@
       "jest"
     ],
     "outDir": "./dist",
-    "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -19,10 +18,15 @@
     "declarationMap": true,
     "sourceMap": true,
     "removeComments": false,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@fiddupay/node-sdk": ["./src/index"]
+    }
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "examples/**/*"
   ],
   "exclude": [
     "node_modules",

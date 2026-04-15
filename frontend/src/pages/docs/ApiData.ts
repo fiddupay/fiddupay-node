@@ -50,7 +50,9 @@ export const API_DATA: DocSection[] = [
                     email: "merchant@example.com",
                     created_at: "2026-01-26T06:00:00Z",
                     sandbox_mode: true,
-                    settlement_mode: "managed"
+                    settlement_mode: "managed",
+                    low_balance_alerts_enabled: true,
+                    low_balance_threshold_usd: "50.00"
                 }, null, 2)
             },
             {
@@ -97,11 +99,13 @@ export const API_DATA: DocSection[] = [
                     { name: 'customer_pays_fee', type: 'boolean', required: false, description: 'Toggle who pays network fees' },
                     { name: 'fee_percentage', type: 'number', required: false, description: 'Custom fee percentage override' },
                     { name: 'ip_whitelist', type: 'string[]', required: false, description: 'Array of allowed IP addresses' },
-                    { name: 'sandbox_mode', type: 'boolean', required: false, description: 'Toggle sandbox environment' }
+                    { name: 'sandbox_mode', type: 'boolean', required: false, description: 'Toggle sandbox environment' },
+                    { name: 'low_balance_threshold_usd', type: 'string', required: false, description: 'USD threshold for balance alerts (e.g. "50.00")' },
+                    { name: 'low_balance_alerts_enabled', type: 'boolean', required: false, description: 'Toggle real-time low balance notifications' }
                 ],
                 request: {
-                    curl: 'curl -X PATCH https://api.fiddupay.com/api/v1/merchants/settings \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "webhook_url": "https://example.com/webhook",\n    "settlement_mode": "forwarding",\n    "customer_pays_fee": true\n  }\'',
-                    node: 'await fiddupay.merchants.updateSettings({\n  webhook_url: "https://example.com/webhook",\n  settlement_mode: "forwarding",\n  customer_pays_fee: true\n});'
+                    curl: 'curl -X PATCH https://api.fiddupay.com/api/v1/merchants/settings \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "webhook_url": "https://example.com/webhook",\n    "low_balance_alerts_enabled": true,\n    "low_balance_threshold_usd": "100.00"\n  }\'',
+                    node: 'await fiddupay.merchants.updateSettings({\n  webhook_url: "https://example.com/webhook",\n  low_balance_alerts_enabled: true,\n  low_balance_threshold_usd: "100.00"\n});'
                 },
                 response: JSON.stringify({
                     status: "success",
@@ -1063,6 +1067,94 @@ export const API_DATA: DocSection[] = [
         ]
     },
     {
+        id: 'public-api',
+        title: 'Public API',
+        description: 'Publishable Key endpoints for pure frontend/no-code integrations. These do not require your Secret API key.',
+        endpoints: [
+            {
+                id: 'create-public-payment',
+                method: 'POST',
+                path: '/api/v1/public/payments/create',
+                title: 'Create Public Payment',
+                description: 'Initialize a payment via Publishable Key (for pure no-code frontend widgets). Returns a payment ID and specialized payment URL.',
+                body: [
+                    { name: 'publishable_key', type: 'string', required: true, description: 'Your account publishable key (pub_...)' },
+                    { name: 'amount_usd', type: 'string', required: false, description: 'Required if amount is omitted' },
+                    { name: 'amount', type: 'string', required: false, description: 'Required if amount_usd is omitted' },
+                    { name: 'crypto_type', type: 'string', required: false, description: 'Specific asset (e.g., SOL, USDT_ETH)' },
+                    { name: 'description', type: 'string', required: false, description: 'Payment description' }
+                ],
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/public/payments/create \\\n  -H "Content-Type: application/json" \\\n  -d \'{\n    "publishable_key": "pub_live_...",\n    "amount_usd": "100.00"\n  }\'',
+                    node: 'const { payment_url } = await fiddupay.public.createPayment({\n  publishable_key: "pub_live_...",\n  amount_usd: "100.00"\n});'
+                },
+                response: JSON.stringify({
+                    payment_id: "pay_xyz",
+                    payment_url: "https://pay.fiddupay.com/pay_xyz"
+                }, null, 2)
+            }
+        ]
+    },
+    {
+        id: 'notifications',
+        title: 'Notifications',
+        description: 'Manage account-level notifications and system alerts for the merchant dashboard.',
+        endpoints: [
+            {
+                id: 'list-notifications',
+                method: 'GET',
+                path: '/api/v1/merchants/notifications',
+                title: 'List Notifications',
+                description: 'Retrieve latest account notifications, filtered by environment.',
+                parameters: [
+                    { name: 'limit', type: 'integer', required: false, description: 'Defaults to 20' },
+                    { name: 'offset', type: 'integer', required: false, description: 'Pagination offset' }
+                ],
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/notifications \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const { notifications } = await fiddupay.notifications.list();'
+                },
+                response: JSON.stringify({
+                    notifications: [
+                        { id: "not_123", type: "low_balance", message: "Low balance on ETH", read: false, created_at: "2026-04-14T10:00:00Z" }
+                    ],
+                    total: 1,
+                    unread_count: 1
+                }, null, 2)
+            },
+            {
+                id: 'mark-read',
+                method: 'PATCH',
+                path: '/api/v1/merchants/notifications/:id/read',
+                title: 'Mark Read',
+                description: 'Mark a specific notification (or all if ID is omitted) as read.',
+                request: {
+                    curl: 'curl -X PATCH https://api.fiddupay.com/api/v1/merchants/notifications/not_123/read \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'await fiddupay.notifications.markRead("not_123");'
+                },
+                response: JSON.stringify({
+                    status: "success",
+                    affected: 1
+                }, null, 2)
+            },
+            {
+                id: 'delete-notification',
+                method: 'DELETE',
+                path: '/api/v1/merchants/notifications/:id',
+                title: 'Delete Notification',
+                description: 'Remove a specific notification (or all if ID is omitted) permanently.',
+                request: {
+                    curl: 'curl -X DELETE https://api.fiddupay.com/api/v1/merchants/notifications/not_123 \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'await fiddupay.notifications.delete("not_123");'
+                },
+                response: JSON.stringify({
+                    status: "success",
+                    affected: 1
+                }, null, 2)
+            }
+        ]
+    },
+    {
         id: 'webhooks',
         title: 'Webhooks',
         description: 'FidduPay sends real-time event notifications to your server via HTTP POST requests. Every event is wrapped in a structured envelope with a unique ID, type, and timestamp. You should verify the `X-Signature` header on every delivery using your webhook signing secret.',
@@ -1091,7 +1183,7 @@ X-Signature: t=1743004800,v1=abc123...
     "transaction_hash": "3xKp..."
   }
 }`,
-                    node: `import { FidduPay, Webhooks } from '@fiddupay/fiddupay-node';
+                    node: `import { FidduPay, Webhooks } from '@fiddupay/node-sdk';
 
 // Express example
 app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {

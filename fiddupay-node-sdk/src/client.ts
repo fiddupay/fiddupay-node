@@ -23,7 +23,7 @@ export class HttpClient {
       timeout: config.timeout || 30000,
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': '@fiddupay/fiddupay-node/2.6.0'
+        'User-Agent': '@fiddupay/node-sdk/2.6.13'
       },
       // Security configurations
       maxRedirects: 0, // Prevent redirect attacks
@@ -76,9 +76,10 @@ export class HttpClient {
     switch (status) {
       case 401:
         return new FidduPayAuthenticationError(message);
-      case 429:
+      case 429: {
         const retryAfter = parseInt(response.headers['retry-after']) || undefined;
         return new FidduPayRateLimitError(message, retryAfter);
+      }
       default:
         return new FidduPayAPIError(message, status, code, requestId);
     }

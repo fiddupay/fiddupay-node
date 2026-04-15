@@ -421,7 +421,7 @@ All notable changes to this project will be documented in this file.
 
 #### 🔄 **Migration Process**
 
-1. **Update SDK**: `npm update @fiddupay/fiddupay-node`
+1. **Update SDK**: `npm update @fiddupay/node-sdk`
 2. **Verify Version**: Ensure v2.3.6 is installed
 3. **Test Integration**: Run existing tests to verify functionality
 4. **No Code Changes**: All existing code continues to work unchanged

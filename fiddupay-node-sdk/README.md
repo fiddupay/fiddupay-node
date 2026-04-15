@@ -1,7 +1,7 @@
-# FidduPay Node.js SDK v2.6.11
+# FidduPay Node.js SDK v2.6.13
 
-[![version](https://img.shields.io/badge/version-v2.6.11-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
-[![npm downloads](https://img.shields.io/npm/dm/@fiddupay/fiddupay-node.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.6.13-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![npm downloads](https://img.shields.io/npm/dm/@fiddupay/node-sdk.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/node-sdk)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -36,13 +36,13 @@ Customers pay directly from their own wallets to your addresses. No key manageme
 ### Installation
 
 ```bash
-npm install @fiddupay/fiddupay-node
+npm install @fiddupay/node-sdk
 ```
 
 ### Basic Usage
 
 ```typescript
-import { FidduPayClient } from '@fiddupay/fiddupay-node';
+import { FidduPayClient } from '@fiddupay/node-sdk';
 
 const client = new FidduPayClient({
   apiKey: 'sk_sandbox_your_api_key',
@@ -152,7 +152,7 @@ console.log('Payment confirmed:', isConfirmed);
 
 ```typescript
 import express from 'express';
-import { Webhooks } from '@fiddupay/fiddupay-node';
+import { Webhooks } from '@fiddupay/node-sdk';
 
 const app = express();
 
@@ -417,7 +417,7 @@ const feed = await client.transactions.list({
 ## Error Handling
 
 ```typescript
-import { FidduPayError, APIError, AuthenticationError, ValidationError, RateLimitError } from '@fiddupay/fiddupay-node';
+import { FidduPayError, APIError, AuthenticationError, ValidationError, RateLimitError } from '@fiddupay/node-sdk';
 
 try {
   const payment = await client.payments.create({

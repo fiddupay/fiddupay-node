@@ -51,7 +51,7 @@ const DocsSidebar: React.FC<DocsSidebarProps> = ({ apiData, activeSection, scrol
                 <a href="https://github.com/fiddupay/fiddupay-node" target="_blank" rel="noopener noreferrer" className={styles.sidebarLink}>
                     <i className="fab fa-github" style={{ marginRight: '8px' }}></i> GitHub Source
                 </a>
-                <a href="https://www.npmjs.com/package/@fiddupay/fiddupay-node" target="_blank" rel="noopener noreferrer" className={styles.sidebarLink}>
+                <a href="https://www.npmjs.com/package/@fiddupay/node-sdk" target="_blank" rel="noopener noreferrer" className={styles.sidebarLink}>
                     <i className="fab fa-npm" style={{ marginRight: '8px' }}></i> Node.js SDK
                 </a>
             </div>
