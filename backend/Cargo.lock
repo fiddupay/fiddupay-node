@@ -6854,7 +6854,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55b54965bf0b76fa8e2b35376583efddd4d916618cfe595bf48c7d7b55a9e628"
 dependencies = [
  "num-traits",
+ "serde",
+ "serde_derive",
  "solana-address 2.6.0",
+ "solana-instruction",
  "solana-msg",
  "solana-program-error",
 ]
