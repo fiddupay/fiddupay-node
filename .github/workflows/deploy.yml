@@ -21,6 +21,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           passphrase: ${{ secrets.VPS_PASSPHRASE }} # Optional
           script: |
+            # Ensure Cargo is in PATH for non-interactive shell
+            export PATH="$HOME/.cargo/bin:$PATH"
+            
             cd ~/crypto-payment-gateway
             
             echo "--- PULLING LATEST CHANGES ---"

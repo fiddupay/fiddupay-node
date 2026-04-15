@@ -5,7 +5,7 @@ use crate::services::price_service::PriceService;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::{error, info, warn};
@@ -43,7 +43,7 @@ impl BalanceMonitoringService {
         info!("Running USD-based low balance check for all merchants...");
 
         // 1. Fetch merchants with active thresholds
-        let merchants = sqlx::query!(
+        let merchants = sqlx::query(
             r#"
             SELECT id, business_name, low_balance_threshold_usd 
             FROM merchants 
@@ -56,15 +56,18 @@ impl BalanceMonitoringService {
         let mut alerts = Vec::new();
 
         for merchant in merchants {
+            let merchant_id: i64 = merchant.get("id");
+            let low_balance_threshold_usd: Option<Decimal> = merchant.get("low_balance_threshold_usd");
+
             // 2. Fetch balances for this merchant
-            let balances = sqlx::query!(
+            let balances = sqlx::query(
                 r#"
                 SELECT crypto_type, available_balance as balance 
                 FROM merchant_balances 
                 WHERE merchant_id = $1
                 "#,
-                merchant.id
             )
+            .bind(merchant_id)
             .fetch_all(&self.db_pool)
             .await?;
 
@@ -72,30 +75,33 @@ impl BalanceMonitoringService {
 
             // 3. Calculate total USD value
             for bal_row in balances {
-                if let Ok(crypto) = CryptoType::from_str(&bal_row.crypto_type) {
+                let crypto_type: String = bal_row.get("crypto_type");
+                let balance: Decimal = bal_row.get("balance");
+
+                if let Ok(crypto) = CryptoType::from_str(&crypto_type) {
                     if let Ok(price) = self.price_service.get_price(crypto).await {
                         let crypto_price =
                             Decimal::from_str(&price.to_string()).unwrap_or(Decimal::ZERO);
-                        total_usd_value += bal_row.balance * crypto_price;
+                        total_usd_value += balance * crypto_price;
                     }
                 }
             }
 
             // 4. Compare against threshold
-            if total_usd_value < merchant.low_balance_threshold_usd.unwrap_or_default() {
+            if total_usd_value < low_balance_threshold_usd.unwrap_or_default() {
                 let alert = BalanceAlert {
-                    merchant_id: merchant.id,
+                    merchant_id,
                     alert_type: "LOW_BALANCE_USD".to_string(),
                     crypto_type: "USD_TOTAL".to_string(),
                     current_balance: total_usd_value,
-                    threshold: merchant.low_balance_threshold_usd.unwrap_or_default(),
+                    threshold: low_balance_threshold_usd.unwrap_or_default(),
                     created_at: Utc::now(),
                 };
 
                 if let Err(e) = self.send_balance_alert(alert.clone()).await {
                     error!(
                         "Failed to send balance alert for merchant {}: {}",
-                        merchant.id, e
+                        merchant_id, e
                     );
                 }
                 alerts.push(alert);

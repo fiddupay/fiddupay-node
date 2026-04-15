@@ -2,6 +2,7 @@ use crate::api::state::AppState;
 use axum::{extract::State, http::StatusCode, response::Json};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use sqlx::Row;
 
 #[derive(Serialize, Deserialize)]
 pub struct SystemStatus {
@@ -103,27 +104,31 @@ pub async fn get_system_status(
 }
 
 async fn fetch_service_history(pool: &sqlx::PgPool, service_name: &str) -> Vec<UptimePoint> {
-    let result: Result<Vec<_>, _> = sqlx::query!(
+    let result = sqlx::query(
         "SELECT day, uptime_percent FROM daily_uptime_summary 
          WHERE service_name = $1 
          ORDER BY day DESC LIMIT 90",
-        service_name
     )
+    .bind(service_name)
     .fetch_all(pool)
     .await;
 
     match result {
         Ok(rows) => rows
             .into_iter()
-            .map(|r| UptimePoint {
-                date: r.day.unwrap_or_else(|| Utc::now()).to_rfc3339(),
-                status: if r.uptime_percent.unwrap_or(0.0) >= 99.0 {
-                    "operational".to_string()
-                } else if r.uptime_percent.unwrap_or(0.0) >= 90.0 {
-                    "degraded".to_string()
-                } else {
-                    "outage".to_string()
-                },
+            .map(|r| {
+                let day: Option<DateTime<Utc>> = r.get("day");
+                let uptime_percent: Option<f64> = r.get("uptime_percent");
+                UptimePoint {
+                    date: day.unwrap_or_else(|| Utc::now()).to_rfc3339(),
+                    status: if uptime_percent.unwrap_or(0.0) >= 99.0 {
+                        "operational".to_string()
+                    } else if uptime_percent.unwrap_or(0.0) >= 90.0 {
+                        "degraded".to_string()
+                    } else {
+                        "outage".to_string()
+                    },
+                }
             })
             .collect(),
         Err(_) => vec![],
@@ -131,7 +136,7 @@ async fn fetch_service_history(pool: &sqlx::PgPool, service_name: &str) -> Vec<U
 }
 
 async fn fetch_aggregate_uptime(pool: &sqlx::PgPool) -> UptimeStats {
-    let stats: Result<_, _> = sqlx::query!(
+    let stats = sqlx::query(
         r#"
         SELECT 
             AVG(uptime_percent) FILTER (WHERE day >= NOW() - INTERVAL '30 days') as thirty,
@@ -145,9 +150,9 @@ async fn fetch_aggregate_uptime(pool: &sqlx::PgPool) -> UptimeStats {
 
     match stats {
         Ok(row) => UptimeStats {
-            thirty_days: row.thirty.unwrap_or(100.0).round(),
-            ninety_days: row.ninety.unwrap_or(100.0).round(),
-            one_year: row.yearly.unwrap_or(100.0).round(),
+            thirty_days: row.get::<Option<f64>, _>("thirty").unwrap_or(100.0).round(),
+            ninety_days: row.get::<Option<f64>, _>("ninety").unwrap_or(100.0).round(),
+            one_year: row.get::<Option<f64>, _>("yearly").unwrap_or(100.0).round(),
         },
         Err(_) => UptimeStats {
             thirty_days: 100.0,
@@ -158,7 +163,7 @@ async fn fetch_aggregate_uptime(pool: &sqlx::PgPool) -> UptimeStats {
 }
 
 async fn fetch_recent_incidents(pool: &sqlx::PgPool) -> Vec<SystemIncident> {
-    let result: Result<Vec<_>, _> = sqlx::query!(
+    let result = sqlx::query(
         "SELECT id, title, description, status, severity, created_at, resolved_at FROM system_incidents 
          ORDER BY created_at DESC LIMIT 5"
     )
@@ -169,13 +174,13 @@ async fn fetch_recent_incidents(pool: &sqlx::PgPool) -> Vec<SystemIncident> {
         Ok(rows) => rows
             .into_iter()
             .map(|r| SystemIncident {
-                id: r.id,
-                title: r.title,
-                description: r.description,
-                status: r.status,
-                severity: r.severity,
-                created_at: r.created_at.to_rfc3339(),
-                resolved_at: r.resolved_at.map(|d: chrono::DateTime<Utc>| d.to_rfc3339()),
+                id: r.get("id"),
+                title: r.get("title"),
+                description: r.get("description"),
+                status: r.get("status"),
+                severity: r.get("severity"),
+                created_at: r.get::<DateTime<Utc>, _>("created_at").to_rfc3339(),
+                resolved_at: r.get::<Option<DateTime<Utc>>, _>("resolved_at").map(|d| d.to_rfc3339()),
             })
             .collect(),
         Err(_) => vec![],
