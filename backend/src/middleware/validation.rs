@@ -8,6 +8,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde_json::json;
+use std::borrow::Cow;
 use validator::{Validate, ValidationErrors};
 
 /// Validation middleware for JSON payloads
@@ -121,45 +122,64 @@ pub async fn security_headers_middleware(request: Request, next: Next) -> Respon
     response
 }
 
-/// Password strength validation
+/// Password strength validation using hardcoded security policies
 pub fn validate_password_strength(password: &str) -> Result<(), validator::ValidationError> {
-    let mut score = 0;
+    const MIN_LENGTH: usize = 8;
 
     // Length check
-    if password.len() >= 8 {
-        score += 1;
-    }
-    if password.len() >= 12 {
-        score += 1;
+    if password.len() < MIN_LENGTH {
+        let mut err = validator::ValidationError::new("password_too_short");
+        err.message = Some(Cow::from(format!(
+            "Password must be at least {} characters long",
+            MIN_LENGTH
+        )));
+        return Err(err);
     }
 
-    // Character variety
-    if password.chars().any(|c| c.is_lowercase()) {
-        score += 1;
+    // Uppercase check
+    if !password.chars().any(|c| c.is_uppercase()) {
+        return Err(
+            validator::ValidationError::new("password_no_uppercase").with_message(Cow::from(
+                "Password must contain at least one uppercase letter",
+            )),
+        );
     }
-    if password.chars().any(|c| c.is_uppercase()) {
-        score += 1;
+
+    // Lowercase check
+    if !password.chars().any(|c| c.is_lowercase()) {
+        return Err(
+            validator::ValidationError::new("password_no_lowercase").with_message(Cow::from(
+                "Password must contain at least one lowercase letter",
+            )),
+        );
     }
-    if password.chars().any(|c| c.is_numeric()) {
-        score += 1;
+
+    // Numbers check
+    if !password.chars().any(|c| c.is_numeric()) {
+        return Err(validator::ValidationError::new("password_no_number")
+            .with_message(Cow::from("Password must contain at least one number")));
     }
-    if password.chars().any(|c| !c.is_alphanumeric()) {
-        score += 1;
+
+    // Symbols check (Encouraged but not strictly forced in simple mode,
+    // but I'll keep it for high security)
+    if !password.chars().any(|c| !c.is_alphanumeric()) {
+        return Err(
+            validator::ValidationError::new("password_no_special").with_message(Cow::from(
+                "Password must contain at least one special character",
+            )),
+        );
     }
 
     // Common patterns
-    if !password.to_lowercase().contains("password")
-        && !password.to_lowercase().contains("123456")
-        && !password.to_lowercase().contains("qwerty")
+    if password.to_lowercase().contains("password")
+        || password.to_lowercase().contains("123456")
+        || password.to_lowercase().contains("qwerty")
     {
-        score += 1;
+        return Err(validator::ValidationError::new("password_too_common")
+            .with_message(Cow::from("Password is too common or easy to guess")));
     }
 
-    if score >= 5 {
-        Ok(())
-    } else {
-        Err(validator::ValidationError::new("Password too weak. Must be at least 8 characters with uppercase, lowercase, numbers, and symbols"))
-    }
+    Ok(())
 }
 
 /// Email domain validation
@@ -182,6 +202,18 @@ pub fn validate_business_email(email: &str) -> Result<(), validator::ValidationE
         }
     }
 
+    Ok(())
+}
+
+/// Positive amount validation (for Decimal)
+pub fn validate_positive_amount(
+    amount: &rust_decimal::Decimal,
+) -> Result<(), validator::ValidationError> {
+    if *amount <= rust_decimal::Decimal::ZERO {
+        return Err(validator::ValidationError::new(
+            "Amount must be greater than zero",
+        ));
+    }
     Ok(())
 }
 

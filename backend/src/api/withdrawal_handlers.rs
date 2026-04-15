@@ -2,6 +2,7 @@
 // Withdrawal management endpoints
 
 use crate::api::state::AppState;
+use crate::error::ServiceError;
 use crate::middleware::auth::MerchantContext;
 use axum::{
     extract::{Extension, Path, Query, State},
@@ -10,6 +11,7 @@ use axum::{
 };
 use serde::Deserialize;
 use serde_json::json;
+use validator::Validate;
 
 // ============================================================================
 // Withdrawal CRUD
@@ -20,7 +22,12 @@ pub async fn create_withdrawal(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<crate::services::withdrawal_service::WithdrawalRequest>,
 ) -> impl IntoResponse {
-    // 0. Verify Transaction PIN (Merchant)
+    // 0. Validate input
+    if let Err(e) = req.validate() {
+        return ServiceError::ValidationError(e.to_string()).into_response();
+    }
+
+    // 1. Verify Transaction PIN (Merchant)
     if let Err(e) = state
         .merchant_service
         .verify_transaction_pin(context.merchant_id, &req.pin)

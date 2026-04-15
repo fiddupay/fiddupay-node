@@ -1,6 +1,8 @@
+use crate::middleware::validation::validate_positive_amount;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 #[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct P2pProfile {
@@ -165,12 +167,17 @@ pub struct P2pSupportTicket {
 // Request Payloads
 // ==========================================
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Validate)]
 pub struct CreateProfileRequest {
+    #[validate(email)]
     pub email: String,
+    #[validate(length(min = 3, max = 50))]
     pub nickname: String,
+    #[validate(length(min = 8))]
     pub password: String,
+    #[validate(length(min = 1, max = 100))]
     pub first_name: String,
+    #[validate(length(min = 1, max = 100))]
     pub last_name: String,
     pub gender: String,
     pub phone_number: String,
@@ -187,14 +194,18 @@ pub struct CreatePaymentMethodRequest {
     pub bank_name: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Validate)]
 pub struct CreateAdRequest {
     pub ad_type: String,
     pub crypto_type: String,
     pub fiat_currency: String,
+    #[validate(custom(function = "validate_positive_amount"))]
     pub price: Decimal,
+    #[validate(custom(function = "validate_positive_amount"))]
     pub total_amount: Decimal,
+    #[validate(custom(function = "validate_positive_amount"))]
     pub min_limit: Decimal,
+    #[validate(custom(function = "validate_positive_amount"))]
     pub max_limit: Decimal,
     pub payment_time_limit: Option<i32>,
     pub terms_and_conditions: Option<String>,
@@ -202,7 +213,7 @@ pub struct CreateAdRequest {
     pub payment_method_ids: Vec<i64>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Validate)]
 pub struct CreateTradeRequest {
     pub ad_id: i64,
     pub crypto_amount: Option<Decimal>,

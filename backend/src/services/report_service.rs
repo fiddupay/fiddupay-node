@@ -242,10 +242,6 @@ impl ReportService {
         };
 
         // Header Row
-        let header_style = style::Style::new()
-            .bold()
-            .with_font_size(11)
-            .with_color(style::Color::Rgb(255, 255, 255));
         // Note: genpdf doesn't support cell background colors easily in 0.2 without custom decorators,
         // so we'll just use bold text and standard borders for now but with better spacing.
 

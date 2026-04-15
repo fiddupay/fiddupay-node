@@ -8,14 +8,16 @@ use crate::models::merchant_customer::{
     UpdateCustomerStatusRequest,
 };
 use crate::services::merchant_customer_service::MerchantCustomerService;
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
+// use argon2::{Argon2, PasswordHash, PasswordVerifier};
+use crate::error::ServiceError;
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
     Extension, Json,
 };
 use serde_json::json;
+use validator::Validate;
 
 // Helper removed, now using state.merchant_service.verify_transaction_pin
 
@@ -24,6 +26,11 @@ pub async fn register_customer(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<CreateCustomerRequest>,
 ) -> impl IntoResponse {
+    // 1. Validate input
+    if let Err(e) = req.validate() {
+        return ServiceError::ValidationError(e.to_string()).into_response();
+    }
+
     let service = MerchantCustomerService::new(
         state.db_pool.clone(),
         state.price_service.clone(),

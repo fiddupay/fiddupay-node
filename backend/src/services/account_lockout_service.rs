@@ -1,5 +1,4 @@
 use crate::error::ServiceError;
-use chrono::{Duration, Utc};
 use sqlx::PgPool;
 
 pub struct AccountLockoutService {

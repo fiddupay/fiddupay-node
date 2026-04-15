@@ -104,13 +104,6 @@ pub struct Config {
     pub webhook_signing_key: String,
     pub jwt_secret: String,
 
-    // Password Security
-    pub password_min_length: u32,
-    pub password_require_uppercase: bool,
-    pub password_require_lowercase: bool,
-    pub password_require_numbers: bool,
-    pub password_require_symbols: bool,
-
     // Account Security
     pub max_login_attempts: u32,
     pub account_lockout_duration_minutes: u64,
@@ -384,23 +377,6 @@ impl Config {
             encryption_key: env::var("ENCRYPTION_KEY")?,
             webhook_signing_key: env::var("WEBHOOK_SIGNING_KEY")?,
             jwt_secret: env::var("JWT_SECRET")?,
-
-            // Password Security
-            password_min_length: env::var("PASSWORD_MIN_LENGTH")
-                .unwrap_or_else(|_| "8".to_string())
-                .parse()?,
-            password_require_uppercase: env::var("PASSWORD_REQUIRE_UPPERCASE")
-                .unwrap_or_else(|_| "true".to_string())
-                .parse()?,
-            password_require_lowercase: env::var("PASSWORD_REQUIRE_LOWERCASE")
-                .unwrap_or_else(|_| "true".to_string())
-                .parse()?,
-            password_require_numbers: env::var("PASSWORD_REQUIRE_NUMBERS")
-                .unwrap_or_else(|_| "true".to_string())
-                .parse()?,
-            password_require_symbols: env::var("PASSWORD_REQUIRE_SYMBOLS")
-                .unwrap_or_else(|_| "false".to_string())
-                .parse()?,
 
             // Account Security
             max_login_attempts: env::var("MAX_LOGIN_ATTEMPTS")
@@ -785,11 +761,6 @@ impl Default for Config {
             encryption_key: "test_key_32_bytes_long_for_tests".to_string(),
             webhook_signing_key: "test_webhook_key".to_string(),
             jwt_secret: "test_jwt_secret".to_string(),
-            password_min_length: 8,
-            password_require_uppercase: true,
-            password_require_lowercase: true,
-            password_require_numbers: true,
-            password_require_symbols: true,
             max_login_attempts: 5,
             account_lockout_duration_minutes: 30,
             session_timeout_hours: 24,

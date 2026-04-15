@@ -281,7 +281,6 @@ impl BlockchainTransactionSender {
             signature::{Keypair, Signer},
             transaction::Transaction,
         };
-        use solana_system_interface::instruction as system_instruction;
         use spl_associated_token_account::{
             get_associated_token_address, instruction::create_associated_token_account_idempotent,
         };
@@ -926,7 +925,7 @@ impl BlockchainTransactionSender {
                     .map_err(|e| ServiceError::Internal(format!("Sighash error: {}", e)))?;
 
                 let sig = secp.sign_ecdsa(
-                    &bitcoin::secp256k1::Message::from_slice(&sighash[..]).unwrap(),
+                    &bitcoin::secp256k1::Message::from_digest_slice(&sighash[..]).unwrap(),
                     &pk.inner,
                 );
                 signatures.push(sig);

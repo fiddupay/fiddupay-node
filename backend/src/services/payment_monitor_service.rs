@@ -2,10 +2,10 @@
 // Monitors deposit addresses for incoming payments and triggers auto-forwarding
 
 use crate::error::ServiceError;
-use crate::services::address_only_service::{AddressOnlyService, AddressOnlyStatus};
+use crate::services::address_only_service::AddressOnlyService;
 use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
-use std::collections::HashMap;
+
 use tokio::time::{interval, Duration};
 
 pub struct PaymentMonitorService {

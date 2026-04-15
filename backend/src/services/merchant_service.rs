@@ -2,13 +2,12 @@
 // Business logic for merchant management
 
 use crate::error::ServiceError;
-use crate::models::merchant::{Merchant, MerchantRegistrationResponse, MerchantWallet};
+use crate::models::merchant::{Merchant, MerchantRegistrationResponse};
 use crate::payment::models::CryptoType;
 use crate::services::volume_tracking_service::VolumeTrackingService;
 use crate::utils::api_keys::ApiKeyGenerator;
-use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use chrono::Utc;
-use nanoid::nanoid;
 use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
 use std::sync::Arc;

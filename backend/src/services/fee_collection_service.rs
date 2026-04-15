@@ -19,12 +19,11 @@
 //
 // The stored `fee_amount` is the correct sweep amount in both cases.
 
-use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
 use crate::utils::encryption::Encryption;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 pub struct FeeCollectionService {
     db_pool: PgPool,

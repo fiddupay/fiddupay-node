@@ -122,7 +122,3 @@ sysinfo = "0.30"
 [dev-dependencies]
 proptest = "1.4"
 mockall = "0.12"
-
-[patch.crates-io]
-# Fixes RUSTSEC-2024-0421 for unmaintained web3 crate by patching from git source
-idna = { git = "https://github.com/servo/rust-url", tag = "idna-v1.0.3" }

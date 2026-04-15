@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use std::str::FromStr;
 use std::sync::Arc;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BalanceAlert {
@@ -48,7 +48,7 @@ impl BalanceMonitoringService {
             SELECT id, business_name, low_balance_threshold_usd 
             FROM merchants 
             WHERE low_balance_threshold_usd > 0 AND is_active = true
-            "#
+            "#,
         )
         .fetch_all(&self.db_pool)
         .await?;
@@ -57,7 +57,8 @@ impl BalanceMonitoringService {
 
         for merchant in merchants {
             let merchant_id: i64 = merchant.get("id");
-            let low_balance_threshold_usd: Option<Decimal> = merchant.get("low_balance_threshold_usd");
+            let low_balance_threshold_usd: Option<Decimal> =
+                merchant.get("low_balance_threshold_usd");
 
             // 2. Fetch balances for this merchant
             let balances = sqlx::query(

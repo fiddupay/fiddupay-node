@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use validator::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct MerchantCustomer {
@@ -79,9 +80,11 @@ pub struct CustomerTransaction {
 // Request structs
 // ============================================================================
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct CreateCustomerRequest {
+    #[validate(length(min = 1, max = 100))]
     pub external_id: String,
+    #[validate(email)]
     pub email: Option<String>,
     pub first_name: Option<String>,
     pub last_name: Option<String>,

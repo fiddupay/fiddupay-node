@@ -143,7 +143,7 @@ async fn fetch_aggregate_uptime(pool: &sqlx::PgPool) -> UptimeStats {
             AVG(uptime_percent) FILTER (WHERE day >= NOW() - INTERVAL '90 days') as ninety,
             AVG(uptime_percent) FILTER (WHERE day >= NOW() - INTERVAL '365 days') as yearly
         FROM daily_uptime_summary
-        "#
+        "#,
     )
     .fetch_one(pool)
     .await;
@@ -180,7 +180,9 @@ async fn fetch_recent_incidents(pool: &sqlx::PgPool) -> Vec<SystemIncident> {
                 status: r.get("status"),
                 severity: r.get("severity"),
                 created_at: r.get::<DateTime<Utc>, _>("created_at").to_rfc3339(),
-                resolved_at: r.get::<Option<DateTime<Utc>>, _>("resolved_at").map(|d| d.to_rfc3339()),
+                resolved_at: r
+                    .get::<Option<DateTime<Utc>>, _>("resolved_at")
+                    .map(|d| d.to_rfc3339()),
             })
             .collect(),
         Err(_) => vec![],

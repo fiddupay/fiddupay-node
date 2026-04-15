@@ -21,7 +21,7 @@ use crate::middleware::validation::{validate_business_email, validate_password_s
 
 #[derive(Deserialize, Validate)]
 pub struct RegisterMerchantRequest {
-    #[validate(email)]
+    #[validate(email, custom(function = "validate_business_email"))]
     pub email: String,
 
     #[validate(length(min = 1, max = 100))]
@@ -94,6 +94,16 @@ pub async fn register_merchant(
     if !state.config.merchant_registration_enabled {
         return ServiceError::Forbidden("Registration is currently disabled".to_string())
             .into_response();
+    }
+
+    // 2. Validate input
+    if let Err(e) = req.validate() {
+        return ServiceError::ValidationError(e.to_string()).into_response();
+    }
+
+    // 3. Custom Password Strength check (Hardcoded policies)
+    if let Err(e) = validate_password_strength(&req.password) {
+        return ServiceError::ValidationError(e.to_string()).into_response();
     }
 
     let registration_req = crate::models::merchant::MerchantRegistrationRequest {
@@ -185,6 +195,11 @@ pub async fn login_merchant(
     State(state): State<AppState>,
     Json(req): Json<LoginMerchantRequest>,
 ) -> impl IntoResponse {
+    // Validate input (basic format)
+    if let Err(e) = req.validate() {
+        return ServiceError::ValidationError(e.to_string()).into_response();
+    }
+
     // Query the database for the user
     let merchant_query = sqlx::query(
         "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role::text as role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at FROM merchants WHERE email = $1 AND is_active = true"
@@ -206,7 +221,7 @@ pub async fn login_merchant(
             let m_settlement_mode: String = merchant.get("settlement_mode");
             let m_kyc_verified: bool = merchant.get("kyc_verified");
             let m_created_at: chrono::DateTime<chrono::Utc> = merchant.get("created_at");
-            let m_role: Option<String> = merchant.try_get("role").ok();
+            let _m_role: Option<String> = merchant.try_get("role").ok();
             let m_live_api_key_hash: Option<String> = merchant.get("live_api_key_hash");
             let m_test_api_key_hash: Option<String> = merchant.get("test_api_key_hash");
             let m_password_hash: Option<String> = merchant.get("password_hash");

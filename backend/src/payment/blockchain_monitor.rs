@@ -4,7 +4,6 @@
 use async_trait::async_trait;
 use reqwest::Client;
 use rust_decimal::Decimal;
-use std::str::FromStr;
 use tracing::{error, info, warn};
 
 use super::models::{BlockchainTransaction, CryptoType};

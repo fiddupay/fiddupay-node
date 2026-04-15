@@ -9648,8 +9648,3 @@ checksum = "73ab332fe2f6680068f3582b16a24f90ad7096d5d39b974d1c0aff0125116f02"
 dependencies = [
  "simd-adler32",
 ]
-
-[[patch.unused]]
-name = "idna"
-version = "1.0.3"
-source = "git+https://github.com/servo/rust-url?tag=idna-v1.0.3#8a683ff4ab10498d619fd8206b64402de19474be"

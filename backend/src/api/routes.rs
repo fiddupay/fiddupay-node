@@ -5,8 +5,7 @@ use crate::api::middleware::{create_rate_limit_layer, rate_limit_middleware};
 use crate::api::state::AppState;
 use crate::api::{admin_routes, merchant_routes, p2p_routes, public_routes};
 use crate::api::{
-    blog, careers, merchant_auth_handlers, payment_handlers, public_handlers, security_monitoring,
-    status, wallet_management,
+    blog, careers, merchant_auth_handlers, payment_handlers, public_handlers, status,
 };
 use axum::{
     http::{
@@ -14,7 +13,7 @@ use axum::{
         HeaderValue, Method,
     },
     middleware as axum_middleware,
-    routing::{delete, get, get_service, post, put},
+    routing::{get, get_service, post},
     Router,
 };
 use tower_http::cors::CorsLayer;

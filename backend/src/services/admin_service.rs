@@ -1,11 +1,7 @@
-// Admin Service
-// Business logic for admin operations
-
 use crate::error::ServiceError;
-use crate::models::merchant::Merchant;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::{PgPool, Row};
 
 #[derive(Debug, Serialize)]

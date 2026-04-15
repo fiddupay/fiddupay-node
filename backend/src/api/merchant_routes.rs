@@ -9,7 +9,7 @@ use crate::api::{
 use crate::middleware::auth;
 use axum::{
     middleware as axum_middleware,
-    routing::{delete, get, patch, post, put},
+    routing::{delete, get, patch, post},
     Router,
 };
 

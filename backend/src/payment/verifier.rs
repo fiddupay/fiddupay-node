@@ -4,7 +4,7 @@
 use chrono::Utc;
 use rust_decimal::Decimal;
 use serde_json::json;
-use sqlx::{PgPool, Postgres, Row, Transaction};
+use sqlx::{PgPool, Row};
 use std::str::FromStr;
 use tracing::{error, info, warn};
 
@@ -749,7 +749,6 @@ impl PaymentVerifier {
         let total_paid: Option<Decimal> = payment_row.get("total_paid");
         let merchant_id: i64 = payment_row.get("merchant_id");
         let crypto_type_str: String = payment_row.get("crypto_type");
-        let p_amount_usd: Decimal = payment_row.get("amount_usd");
         let public_id: String = payment_row.get("public_id");
         let sandbox_mode: bool = payment_row.get("sandbox_mode");
 

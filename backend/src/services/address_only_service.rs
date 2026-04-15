@@ -296,7 +296,7 @@ impl AddressOnlyService {
         // Use existing KeyGenerator for real address generation
         use crate::utils::keygen::KeyGenerator;
 
-        let network = match crypto_type {
+        match crypto_type {
             CryptoType::Eth => "ethereum",
             CryptoType::Bnb => "bsc",
             CryptoType::Matic => "polygon",
@@ -495,7 +495,7 @@ impl AddressOnlyService {
                 .fetch_optional(&self.db_pool)
                 .await;
 
-        let record = record_res?
+        let _record = record_res?
             .ok_or_else(|| ServiceError::NotFound("Deposit keypair not found".to_string()))?;
 
         // For now, return a placeholder since we don't have decrypt_data

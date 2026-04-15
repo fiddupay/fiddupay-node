@@ -232,7 +232,7 @@ pub async fn get_response_cache() -> &'static ResponseCache {
 
 /// Optimized serialization helpers
 pub mod serialization {
-    use serde::{Deserialize, Serialize};
+    use serde::Serialize;
     use std::sync::Arc;
 
     /// Pre-allocated buffer for JSON serialization

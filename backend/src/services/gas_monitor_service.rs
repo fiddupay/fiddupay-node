@@ -2,13 +2,12 @@ use crate::payment::models::CryptoType;
 use crate::services::blockchain_transaction_sender::BlockchainTransactionSender;
 use chrono::{DateTime, Utc};
 use reqwest::Client;
-use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use serde_json::json;
 use sqlx::{PgPool, Row};
 use std::collections::HashMap;
 use std::time::Duration;
-use tracing::{error, info};
+use tracing::error;
 
 pub struct GasMonitorService {
     db_pool: PgPool,

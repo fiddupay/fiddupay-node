@@ -3,7 +3,6 @@ use crate::api::state::AppState;
 use crate::middleware::admin_auth::AdminContext;
 use axum::{
     extract::State,
-    http::StatusCode,
     response::{IntoResponse, Json},
     Extension,
 };

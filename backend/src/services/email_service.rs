@@ -3,7 +3,7 @@ use lettre::message::header::ContentType;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 use serde::Serialize;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 #[derive(Debug, Serialize)]
 pub struct EmailTemplate {

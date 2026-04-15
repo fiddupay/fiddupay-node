@@ -1,5 +1,5 @@
 use futures_util::{SinkExt, StreamExt};
-use std::sync::Arc;
+
 use tokio::sync::broadcast;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tracing::{error, info, warn};
@@ -7,7 +7,6 @@ use url::Url;
 
 use crate::error::ServiceError;
 use crate::models::webhook::WebhookPayload;
-use crate::payment::models::{CryptoType, PaymentStatus};
 
 pub struct WebSocketClient {
     config: crate::config::Config,
@@ -62,7 +61,7 @@ impl WebSocketClient {
         // Process incoming messages
         while let Some(msg) = read.next().await {
             match msg {
-                Ok(Message::Text(text)) => {
+                Ok(Message::Text(_text)) => {
                     // Parse text and trigger payment.detected if relevant
                     // This logic would need to filter for our addresses
                     // For now, we just log detection

@@ -1,15 +1,9 @@
-// Payment Processor
-// Creates and manages payment requests
-
 use chrono::{Duration, Utc};
-use nanoid::nanoid;
 use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
 use tracing::info;
 
-use super::models::{
-    CreatePaymentRequest, CryptoType, InvoiceItem, PaymentResponse, PaymentStatus,
-};
+use super::models::{CreatePaymentRequest, PaymentResponse, PaymentStatus};
 use crate::error::ServiceError;
 use crate::services::{
     invoice_service::InvoiceService, merchant_service::MerchantService,
@@ -211,7 +205,6 @@ impl PaymentProcessor {
 
         // 5. ENFORCE DAILY VOLUME LIMIT for non-KYC merchants
         if !kyc_verified {
-            let limit = daily_limit_usd.unwrap_or(self.config.daily_volume_limit_non_kyc_usd);
             let remaining = self
                 .merchant_service
                 .get_daily_volume_remaining(merchant_id, kyc_verified, daily_limit_usd)
@@ -354,7 +347,7 @@ impl PaymentProcessor {
             amount_usd,
             crypto_type: request.crypto_type.map(|ct| ct.as_str().to_string()),
             to_address: merchant_wallet.clone(),
-            network: network,
+            network,
             deposit_address: merchant_wallet,
             payment_link: Some(payment_link),
             qr_code_data,

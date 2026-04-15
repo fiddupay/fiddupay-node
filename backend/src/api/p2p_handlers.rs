@@ -1,10 +1,14 @@
+use crate::error::ServiceError;
+use crate::middleware::validation::validate_positive_amount;
 use axum::{
     extract::{Extension, Path, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
+use serde::{Deserialize, Serialize};
 use serde_json::json;
+use validator::Validate;
 
 use crate::api::state::AppState;
 use crate::middleware::auth::MerchantContext;
@@ -62,6 +66,11 @@ pub async fn create_p2p_ad(
     Extension(context): Extension<MerchantContext>,
     Json(payload): Json<CreateAdRequest>,
 ) -> impl IntoResponse {
+    // 0. Validate input
+    if let Err(e) = payload.validate() {
+        return ServiceError::ValidationError(e.to_string()).into_response();
+    }
+
     let service = state.p2p_service.clone();
 
     let sandbox_mode =
@@ -112,6 +121,11 @@ pub async fn create_p2p_trade(
     Extension(context): Extension<MerchantContext>,
     Json(payload): Json<CreateTradeRequest>,
 ) -> impl IntoResponse {
+    // 0. Validate input
+    if let Err(e) = payload.validate() {
+        return ServiceError::ValidationError(e.to_string()).into_response();
+    }
+
     let service = state.p2p_service.clone();
 
     let sandbox_mode =

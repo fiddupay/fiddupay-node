@@ -1,8 +1,10 @@
 use crate::error::ServiceError;
-use chrono::{DateTime, Utc};
+
+use crate::middleware::validation::validate_positive_amount;
 use rust_decimal::Decimal;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use sqlx::{PgPool, Row};
+use validator::Validate;
 
 use crate::config::Config;
 use crate::models::withdrawal::Withdrawal;
@@ -12,11 +14,14 @@ use crate::services::volume_tracking_service::VolumeTrackingService;
 use rust_decimal::prelude::FromPrimitive;
 use std::sync::Arc;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct WithdrawalRequest {
     pub crypto_type: String,
+    #[validate(custom(function = "validate_positive_amount"))]
     pub amount: Decimal,
+    #[validate(length(min = 10, max = 200))]
     pub destination_address: String,
+    #[validate(length(min = 4, max = 10))]
     pub pin: String,
 }
 

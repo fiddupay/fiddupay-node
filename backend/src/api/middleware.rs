@@ -1,6 +1,5 @@
 use crate::config::Config;
 use axum::{
-    body::Body,
     extract::Request,
     http::StatusCode,
     middleware::Next,
