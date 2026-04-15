@@ -4,14 +4,14 @@
 use crate::error::ServiceError;
 use crate::models::merchant::{Merchant, MerchantRegistrationResponse, MerchantWallet};
 use crate::payment::models::CryptoType;
+use crate::services::volume_tracking_service::VolumeTrackingService;
 use crate::utils::api_keys::ApiKeyGenerator;
-use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
+use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use chrono::Utc;
 use nanoid::nanoid;
 use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
 use std::sync::Arc;
-use crate::services::volume_tracking_service::VolumeTrackingService;
 
 pub struct MerchantService {
     db_pool: PgPool,
@@ -21,42 +21,75 @@ pub struct MerchantService {
 }
 
 impl MerchantService {
-    pub fn new(db_pool: PgPool, config: crate::config::Config, audit_service: Arc<crate::services::audit_service::AuditService>, volume_tracking: Arc<VolumeTrackingService>) -> Self {
-        Self { db_pool, config, audit_service, volume_tracking }
+    pub fn new(
+        db_pool: PgPool,
+        config: crate::config::Config,
+        audit_service: Arc<crate::services::audit_service::AuditService>,
+        volume_tracking: Arc<VolumeTrackingService>,
+    ) -> Self {
+        Self {
+            db_pool,
+            config,
+            audit_service,
+            volume_tracking,
+        }
     }
 
     /// Validate a wallet address for a specific crypto type
-    pub fn validate_wallet_address(&self, address: &str, crypto_type: CryptoType) -> Result<(), ServiceError> {
+    pub fn validate_wallet_address(
+        &self,
+        address: &str,
+        crypto_type: CryptoType,
+    ) -> Result<(), ServiceError> {
         match crypto_type {
             CryptoType::Sol | CryptoType::UsdtSpl => {
                 // Solana address format: 32-44 characters, base58
                 if address.len() < 32 || address.len() > 44 {
-                    return Err(ServiceError::ValidationError("Invalid Solana address length".to_string()));
+                    return Err(ServiceError::ValidationError(
+                        "Invalid Solana address length".to_string(),
+                    ));
                 }
-                
+
                 // Basic character set validation for base58 (no 0, O, I, l)
                 let invalid_chars = ['0', 'O', 'I', 'l'];
-                if address.chars().any(|c| !c.is_alphanumeric() || invalid_chars.contains(&c)) {
-                    return Err(ServiceError::ValidationError("Invalid characters in Solana address".to_string()));
+                if address
+                    .chars()
+                    .any(|c| !c.is_alphanumeric() || invalid_chars.contains(&c))
+                {
+                    return Err(ServiceError::ValidationError(
+                        "Invalid characters in Solana address".to_string(),
+                    ));
                 }
-            },
-            CryptoType::UsdtBep20 | CryptoType::UsdtPolygon | CryptoType::UsdtArbitrum | CryptoType::Eth => {
+            }
+            CryptoType::UsdtBep20
+            | CryptoType::UsdtPolygon
+            | CryptoType::UsdtArbitrum
+            | CryptoType::Eth => {
                 // EVM address format: 42 characters, starts with 0x
                 if !address.starts_with("0x") {
-                    return Err(ServiceError::ValidationError("EVM address must start with 0x".to_string()));
+                    return Err(ServiceError::ValidationError(
+                        "EVM address must start with 0x".to_string(),
+                    ));
                 }
                 if address.len() != 42 {
-                    return Err(ServiceError::ValidationError("Invalid EVM address length".to_string()));
+                    return Err(ServiceError::ValidationError(
+                        "Invalid EVM address length".to_string(),
+                    ));
                 }
-                
+
                 // Hex validation
                 if !address[2..].chars().all(|c| c.is_ascii_hexdigit()) {
-                    return Err(ServiceError::ValidationError("Invalid hex in EVM address".to_string()));
+                    return Err(ServiceError::ValidationError(
+                        "Invalid hex in EVM address".to_string(),
+                    ));
                 }
-            },
+            }
             _ => {
-                 // Unknown crypto type, skipping validation or returning generic error
-                 return Err(ServiceError::ValidationError(format!("Validation not implemented for {:?}", crypto_type)));
+                // Unknown crypto type, skipping validation or returning generic error
+                return Err(ServiceError::ValidationError(format!(
+                    "Validation not implemented for {:?}",
+                    crypto_type
+                )));
             }
         }
         Ok(())
@@ -70,8 +103,12 @@ impl MerchantService {
         daily_limit_usd: Option<Decimal>,
     ) -> Result<Decimal, ServiceError> {
         let limit = daily_limit_usd.unwrap_or(self.config.daily_volume_limit_non_kyc_usd);
-        self.volume_tracking.get_remaining_daily_volume(merchant_id, limit, kyc_verified).await?
-            .ok_or(ServiceError::ValidationError("KYC verified merchants have no daily volume limit".to_string()))
+        self.volume_tracking
+            .get_remaining_daily_volume(merchant_id, limit, kyc_verified)
+            .await?
+            .ok_or(ServiceError::ValidationError(
+                "KYC verified merchants have no daily volume limit".to_string(),
+            ))
             .or(Ok(Decimal::ZERO)) // Handle the None case gracefully
     }
 
@@ -89,11 +126,12 @@ impl MerchantService {
         let password = &req.password;
 
         // 1. Hash the User Password
-        use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+        use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
         use rand::rngs::OsRng;
         let argon2 = Argon2::default();
         let password_salt = SaltString::generate(&mut OsRng);
-        let password_hash = argon2.hash_password(password.as_bytes(), &password_salt)
+        let password_hash = argon2
+            .hash_password(password.as_bytes(), &password_salt)
             .map_err(|_| ServiceError::InternalError("Failed to hash password".to_string()))?
             .to_string();
 
@@ -147,7 +185,8 @@ impl MerchantService {
         // 3. Generate Real Session Key (Sandbox by default for new accounts)
         let api_key = ApiKeyGenerator::generate_session_key(merchant.id, false); // false = sandbox
         let salt = SaltString::generate(&mut OsRng);
-        let api_key_hash = argon2.hash_password(api_key.as_bytes(), &salt)
+        let api_key_hash = argon2
+            .hash_password(api_key.as_bytes(), &salt)
             .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
             .to_string();
 
@@ -156,14 +195,14 @@ impl MerchantService {
         // 4. Update the merchant with the real key and publishable key
         // Use sqlx::query function to avoid macro checking
         sqlx::query(
-            "UPDATE merchants SET test_api_key_hash = $1, test_publishable_key = $2 WHERE id = $3"
+            "UPDATE merchants SET test_api_key_hash = $1, test_publishable_key = $2 WHERE id = $3",
         )
         .bind(api_key_hash)
         .bind(&pub_key)
         .bind(merchant.id)
         .execute(&self.db_pool)
         .await?;
-        
+
         Ok(MerchantRegistrationResponse {
             merchant_id: merchant.id,
             api_key,
@@ -171,7 +210,7 @@ impl MerchantService {
     }
 
     /// Switch merchant environment (sandbox <-> live)
-    /// 
+    ///
     /// Only toggles sandbox_mode. Returns a new API key ONLY if the target
     /// environment has no key hash stored yet (first-time switch).
     /// Existing tokens remain valid — no re-authentication needed.
@@ -182,20 +221,18 @@ impl MerchantService {
     ) -> Result<Option<String>, ServiceError> {
         // Toggle the sandbox mode
         let target_sandbox = !to_live;
-        sqlx::query(
-            "UPDATE merchants SET sandbox_mode = $1, updated_at = $2 WHERE id = $3"
-        )
-        .bind(target_sandbox)
-        .bind(Utc::now())
-        .bind(merchant_id)
-        .execute(&self.db_pool)
-        .await?;
+        sqlx::query("UPDATE merchants SET sandbox_mode = $1, updated_at = $2 WHERE id = $3")
+            .bind(target_sandbox)
+            .bind(Utc::now())
+            .bind(merchant_id)
+            .execute(&self.db_pool)
+            .await?;
 
         // Mirror wallet configs from the opposite environment into the target environment.
         // This ensures merchants always see their wallets regardless of which mode they're in.
         // ON CONFLICT DO NOTHING ensures we never overwrite wallets that already exist in the target.
         let source_sandbox = !target_sandbox;
-        
+
         // Mirror merchant_wallets (managed / imported)
         sqlx::query(
             r#"
@@ -251,8 +288,15 @@ impl MerchantService {
         .await?
         .ok_or(ServiceError::MerchantNotFound)?;
 
-        let target_hash = if to_live { &merchant.live_api_key_hash } else { &merchant.test_api_key_hash };
-        let has_key = target_hash.as_ref().map(|h| h != "PENDING" && !h.is_empty()).unwrap_or(false);
+        let target_hash = if to_live {
+            &merchant.live_api_key_hash
+        } else {
+            &merchant.test_api_key_hash
+        };
+        let has_key = target_hash
+            .as_ref()
+            .map(|h| h != "PENDING" && !h.is_empty())
+            .unwrap_or(false);
 
         if has_key {
             // Key exists — no regeneration needed.
@@ -262,25 +306,35 @@ impl MerchantService {
             Ok(None)
         } else {
             // First time in this environment — generate a key
-            tracing::info!("Environment switch for merchant {}: to_live={}, generating first-time key", merchant_id, to_live);
-            let key = self.generate_and_store_api_key_with_expiry(merchant_id, to_live, merchant.api_key_expires_at).await?;
+            tracing::info!(
+                "Environment switch for merchant {}: to_live={}, generating first-time key",
+                merchant_id,
+                to_live
+            );
+            let key = self
+                .generate_and_store_api_key_with_expiry(
+                    merchant_id,
+                    to_live,
+                    merchant.api_key_expires_at,
+                )
+                .await?;
             Ok(Some(key))
         }
     }
 
     /// Rotate API key for a merchant
-    /// 
+    ///
     /// Invalidates the old API key and generates a new one. This allows
     /// merchants to rotate their credentials without service interruption
     /// if they provide the old key for verification.
-    /// 
+    ///
     /// # Arguments
     /// * `merchant_id` - ID of the merchant
     /// * `old_api_key` - Current API key for verification
-    /// 
+    ///
     /// # Returns
     /// * New API key string
-    /// 
+    ///
     /// # Requirements
     /// * 7.5: Support API key rotation without service interruption
     /// * 7.6: Invalidate old key and generate new one
@@ -307,15 +361,17 @@ impl MerchantService {
         .fetch_optional(&self.db_pool)
         .await?
         .ok_or(ServiceError::MerchantNotFound)?;
-        
+
         // Determine if old key is live or test based on prefix
         // Since we are moving to standard prefixes, we can check.
         let is_old_live = old_api_key.starts_with("sk_live_");
-        
+
         // Use Argon2 for verification
-        use argon2::{Argon2, PasswordHash, PasswordVerifier, PasswordHasher, password_hash::SaltString};
+        use argon2::{
+            password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+        };
         use rand::rngs::OsRng;
-        
+
         let hash_to_check = if is_old_live {
             merchant.live_api_key_hash.as_ref()
         } else {
@@ -323,25 +379,28 @@ impl MerchantService {
         };
 
         let hash_str = hash_to_check.ok_or(ServiceError::InvalidApiKey)?;
-        let parsed_hash = PasswordHash::new(hash_str)
-            .map_err(|_| ServiceError::InvalidApiKey)?;
-        
-        if Argon2::default().verify_password(old_api_key.as_bytes(), &parsed_hash).is_err() {
+        let parsed_hash = PasswordHash::new(hash_str).map_err(|_| ServiceError::InvalidApiKey)?;
+
+        if Argon2::default()
+            .verify_password(old_api_key.as_bytes(), &parsed_hash)
+            .is_err()
+        {
             // Fallback: try the other key just in case (e.g. if prefix logic fails for legacy keys)
             // But strict separation is safer.
             return Err(ServiceError::InvalidApiKey);
         }
-        
+
         // Generate a new searchable API key for the SAME environment as the old one
         let new_api_key = ApiKeyGenerator::generate_session_key(merchant_id, is_old_live);
-        
+
         // Hash the new API key
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
-        let new_api_key_hash = argon2.hash_password(new_api_key.as_bytes(), &salt)
+        let new_api_key_hash = argon2
+            .hash_password(new_api_key.as_bytes(), &salt)
             .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
             .to_string();
-        
+
         let new_pub_key = ApiKeyGenerator::generate_publishable_key(merchant_id, is_old_live);
 
         // Update the merchant with the new API key hash and publishable key
@@ -352,18 +411,18 @@ impl MerchantService {
         };
 
         sqlx::query(update_query)
-        .bind(new_api_key_hash)
-        .bind(&new_pub_key)
-        .bind(Utc::now())
-        .bind(merchant_id)
-        .execute(&self.db_pool)
-        .await?;
-        
+            .bind(new_api_key_hash)
+            .bind(&new_pub_key)
+            .bind(Utc::now())
+            .bind(merchant_id)
+            .execute(&self.db_pool)
+            .await?;
+
         Ok(new_api_key)
     }
 
     /// Rotate API key for a specific environment (trusted caller)
-    /// 
+    ///
     /// Generates a new API key for the specified environment without requiring
     /// the old key for verification. Should only be used by authenticated
     /// dashboard sessions.
@@ -374,16 +433,17 @@ impl MerchantService {
     ) -> Result<String, ServiceError> {
         // Generate a new searchable API key
         let new_api_key = ApiKeyGenerator::generate_session_key(merchant_id, is_live);
-        
+
         // Hash the new API key
-        use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+        use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
         use rand::rngs::OsRng;
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
-        let new_api_key_hash = argon2.hash_password(new_api_key.as_bytes(), &salt)
+        let new_api_key_hash = argon2
+            .hash_password(new_api_key.as_bytes(), &salt)
             .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
             .to_string();
-        
+
         let new_pub_key = ApiKeyGenerator::generate_publishable_key(merchant_id, is_live);
 
         // Update the merchant with the new API key hash and publishable key
@@ -394,38 +454,35 @@ impl MerchantService {
         };
 
         sqlx::query(update_query)
-        .bind(new_api_key_hash)
-        .bind(&new_pub_key)
-        .bind(Utc::now())
-        .bind(merchant_id)
-        .execute(&self.db_pool)
-        .await?;
-        
+            .bind(new_api_key_hash)
+            .bind(&new_pub_key)
+            .bind(Utc::now())
+            .bind(merchant_id)
+            .execute(&self.db_pool)
+            .await?;
+
         Ok(new_api_key)
     }
 
     /// Authenticate a merchant using their API key
-    /// 
+    ///
     /// Validates the provided API key against stored Argon2 hash and
     /// returns the merchant if authentication succeeds.
-    /// 
+    ///
     /// # Arguments
     /// * `api_key` - API key to authenticate
-    /// 
+    ///
     /// # Returns
     /// * `Merchant` if authentication succeeds
-    /// 
+    ///
     /// # Requirements
     /// * 7.1: Authenticate merchant with valid API key
     /// * 1.2: Use Argon2 verification for API keys
-    pub async fn authenticate(
-        &self,
-        token: &str,
-    ) -> Result<Merchant, ServiceError> {
+    pub async fn authenticate(&self, token: &str) -> Result<Merchant, ServiceError> {
         // Searchable token logic (Strictly sk_sandbox_ or sk_live_)
         if token.starts_with("sk_sandbox_") || token.starts_with("sk_live_") {
             let parts: Vec<&str> = token.split('_').collect();
-            
+
             // Expected format: prefix_type_id_random (e.g., sk_sandbox_123_...)
             if parts.len() >= 3 {
                 // For all our searchable prefixes, the ID is at index 2
@@ -452,7 +509,7 @@ impl MerchantService {
                         if let Some(merchant) = merchant {
                             use argon2::{Argon2, PasswordHash, PasswordVerifier};
                             use chrono::Utc;
-                            
+
                             // Determine which hash to check based on prefix
                             let is_live_prefix = token.starts_with("sk_live_");
                             let hash_to_check = if is_live_prefix {
@@ -463,14 +520,24 @@ impl MerchantService {
 
                             if let Some(hash_str) = hash_to_check {
                                 if let Ok(parsed_hash) = PasswordHash::new(hash_str) {
-                                    if Argon2::default().verify_password(token.as_bytes(), &parsed_hash).is_ok() {
+                                    if Argon2::default()
+                                        .verify_password(token.as_bytes(), &parsed_hash)
+                                        .is_ok()
+                                    {
                                         if let Some(expires_at) = merchant.api_key_expires_at {
                                             if Utc::now() > expires_at {
-                                                tracing::warn!("API key for merchant {} expired", merchant.id);
+                                                tracing::warn!(
+                                                    "API key for merchant {} expired",
+                                                    merchant.id
+                                                );
                                                 return Err(ServiceError::InvalidApiKey);
                                             }
                                         }
-                                        tracing::info!("Authenticated merchant {} via {}", merchant.id, if is_live_prefix { "Live" } else { "Sandbox" });
+                                        tracing::info!(
+                                            "Authenticated merchant {} via {}",
+                                            merchant.id,
+                                            if is_live_prefix { "Live" } else { "Sandbox" }
+                                        );
                                         return Ok(merchant);
                                     }
                                 }
@@ -492,7 +559,7 @@ impl MerchantService {
         publishable_key: &str,
     ) -> Result<Merchant, ServiceError> {
         let is_live_prefix = publishable_key.starts_with("pub_live_");
-        
+
         let query = if is_live_prefix {
             r#"
             SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, live_publishable_key, test_publishable_key, password_hash, 
@@ -506,7 +573,7 @@ impl MerchantService {
             WHERE live_publishable_key = $1 AND is_active = true
             "#
         } else {
-             r#"
+            r#"
             SELECT id, email, business_name, live_api_key_hash, test_api_key_hash, live_publishable_key, test_publishable_key, password_hash, 
                    fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, 
                    kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, 
@@ -535,14 +602,15 @@ impl MerchantService {
         expires_at: Option<chrono::DateTime<Utc>>,
     ) -> Result<(), ServiceError> {
         // Hash the API key using Argon2
-        use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+        use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
         use rand::rngs::OsRng;
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
-        let api_key_hash = argon2.hash_password(api_key.as_bytes(), &salt)
+        let api_key_hash = argon2
+            .hash_password(api_key.as_bytes(), &salt)
             .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
             .to_string();
-        
+
         let is_live = api_key.starts_with("sk_live_");
         let pub_key = ApiKeyGenerator::generate_publishable_key(merchant_id, is_live);
 
@@ -551,18 +619,18 @@ impl MerchantService {
         } else {
             "UPDATE merchants SET test_api_key_hash = $1, test_publishable_key = $2, api_key_expires_at = $3, updated_at = $4 WHERE id = $5"
         };
-        
+
         // Update merchant with new API key hash and expiration and publishable key
         sqlx::query(update_query)
-        .bind(api_key_hash)
-        .bind(&pub_key)
-        .bind(expires_at)
-        .bind(Utc::now())
-        .bind(merchant_id)
-        .execute(&self.db_pool)
-        .await
-        .map_err(ServiceError::Database)?;
-        
+            .bind(api_key_hash)
+            .bind(&pub_key)
+            .bind(expires_at)
+            .bind(Utc::now())
+            .bind(merchant_id)
+            .execute(&self.db_pool)
+            .await
+            .map_err(ServiceError::Database)?;
+
         Ok(())
     }
 
@@ -576,27 +644,28 @@ impl MerchantService {
         // Use single source of truth for API key generation
         // Ensure we use the searchable session key format correctly!
         let api_key = ApiKeyGenerator::generate_session_key(merchant_id, is_live);
-        
-        self.store_api_key_with_expiry(merchant_id, &api_key, expires_at).await?;
-        
+
+        self.store_api_key_with_expiry(merchant_id, &api_key, expires_at)
+            .await?;
+
         Ok(api_key)
     }
 
     /// Set or update wallet address for a specific blockchain
-    /// 
+    ///
     /// Validates the wallet address format for the specified blockchain type
     /// and stores it in the database. If a wallet already exists for this
     /// merchant and crypto type, it will be updated.
-    /// 
+    ///
     /// # Arguments
     /// * `merchant_id` - ID of the merchant
     /// * `crypto_type` - Type of cryptocurrency (SOL, USDT_SPL, USDT_BEP20, etc.)
     /// * `address` - Wallet address to validate and store
-    /// 
+    ///
     /// # Returns
     /// * `Ok(())` if the address is valid and stored successfully
     /// * `Err(ServiceError)` if validation fails or database error occurs
-    /// 
+    ///
     /// # Requirements
     /// * 1.4: Validate and store wallet addresses for supported blockchains
     /// * 1.5: Support multiple wallet addresses per merchant (one per blockchain)
@@ -609,25 +678,25 @@ impl MerchantService {
     ) -> Result<(), ServiceError> {
         // Validate the address format for the specific blockchain
         crate::utils::validation::validate_wallet_address(&address, crypto_type)?;
-        
+
         // Fetch current sandbox mode for this merchant
-        let sandbox_mode = sqlx::query_scalar::<_, bool>("SELECT sandbox_mode FROM merchants WHERE id = $1")
-            .bind(merchant_id)
-            .fetch_one(&self.db_pool)
-            .await
-            .unwrap_or(false);
+        let sandbox_mode =
+            sqlx::query_scalar::<_, bool>("SELECT sandbox_mode FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&self.db_pool)
+                .await
+                .unwrap_or(false);
 
         // Get the network name for this crypto type
         let network = crypto_type.network();
         let crypto_type_str = crypto_type.to_string();
-         // 1. Check if the merchant has wallets locked
-        let wallets_locked = sqlx::query_scalar::<_, bool>(
-            "SELECT wallets_locked FROM merchants WHERE id = $1"
-        )
-        .bind(merchant_id)
-        .fetch_one(&self.db_pool)
-        .await
-        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+        // 1. Check if the merchant has wallets locked
+        let wallets_locked =
+            sqlx::query_scalar::<_, bool>("SELECT wallets_locked FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&self.db_pool)
+                .await
+                .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
         // 2. Fetch current wallet if it exists
         let current_wallet = sqlx::query(
@@ -649,7 +718,8 @@ impl MerchantService {
             if current_address != address {
                 if wallets_locked {
                     return Err(ServiceError::BadRequest(
-                        "Wallets are locked. Please unlock in settings to change address.".to_string()
+                        "Wallets are locked. Please unlock in settings to change address."
+                            .to_string(),
                     ));
                 }
 
@@ -662,7 +732,7 @@ impl MerchantService {
                         encrypted_private_key, is_active, reason
                     )
                     VALUES ($1, 'merchant', $2, $3, $4, $5, $6, $7, $8, $9)
-                    "#
+                    "#,
                 )
                 .bind(merchant_id)
                 .bind(&crypto_type_str)
@@ -705,33 +775,41 @@ impl MerchantService {
         .await?;
 
         // Log wallet address change
-        let _ = self.audit_service.log_event(
+        let _ = self
+            .audit_service
+            .log_event(
+                merchant_id,
+                "wallet_address_update",
+                Some(&format!("Updated {} wallet address", crypto_type_str)),
+                Some(serde_json::json!({
+                    "crypto_type": crypto_type_str,
+                    "address": address,
+                    "sandbox_mode": sandbox_mode
+                })),
+            )
+            .await;
+        tracing::info!(
+            "EVENT: wallet_address_update | Merchant: {} | Crypto: {} | Sandbox: {}",
             merchant_id,
-            "wallet_address_update",
-            Some(&format!("Updated {} wallet address", crypto_type_str)),
-            Some(serde_json::json!({
-                "crypto_type": crypto_type_str,
-                "address": address,
-                "sandbox_mode": sandbox_mode
-            }))
-        ).await;
-        tracing::info!("EVENT: wallet_address_update | Merchant: {} | Crypto: {} | Sandbox: {}", merchant_id, crypto_type_str, sandbox_mode);
-        
+            crypto_type_str,
+            sandbox_mode
+        );
+
         Ok(())
     }
 
     /// Get wallet address for a specific blockchain
-    /// 
+    ///
     /// Retrieves the merchant's wallet address for the specified cryptocurrency type.
-    /// 
+    ///
     /// # Arguments
     /// * `merchant_id` - ID of the merchant
     /// * `crypto_type` - Type of cryptocurrency
-    /// 
+    ///
     /// # Returns
     /// * Wallet address string if found
     /// * `Err(ServiceError::WalletNotFound)` if no wallet is configured
-    /// 
+    ///
     /// # Requirements
     /// * 1.4: Retrieve stored wallet addresses
     pub async fn get_wallet_address(
@@ -772,10 +850,10 @@ impl MerchantService {
             } else {
                 return Err(ServiceError::WalletNotFound);
             }
-        } 
-        
+        }
+
         // MANAGED MODE: Look in merchant_wallets
-        
+
         let wallet_opt = sqlx::query(
             "SELECT address FROM merchant_wallets 
              WHERE merchant_id = $1 AND crypto_type = $2 AND is_active = true AND sandbox_mode = $3"
@@ -785,7 +863,7 @@ impl MerchantService {
         .bind(sandbox_mode_val)
         .fetch_optional(&self.db_pool)
         .await?;
-        
+
         if let Some(wallet) = wallet_opt {
             let addr: String = wallet.get("address");
             return Ok(addr);
@@ -793,17 +871,25 @@ impl MerchantService {
 
         // If not found in merchant_wallets, auto-generate ONLY if managed mode
         if settlement_mode == "managed" {
-            tracing::info!("Auto-generating wallet for merchant {} for network {}", merchant_id, lookup_crypto_type);
-            
-            let wallet_service = crate::services::wallet_config_service::WalletConfigService::new(self.db_pool.clone());
+            tracing::info!(
+                "Auto-generating wallet for merchant {} for network {}",
+                merchant_id,
+                lookup_crypto_type
+            );
+
+            let wallet_service = crate::services::wallet_config_service::WalletConfigService::new(
+                self.db_pool.clone(),
+            );
             let gen_req = crate::services::wallet_config_service::GenerateWalletRequest {
                 crypto_type: lookup_crypto_type.to_string(),
             };
-            
-            let response = wallet_service.generate_wallet(merchant_id, sandbox_mode_val, gen_req).await?;
+
+            let response = wallet_service
+                .generate_wallet(merchant_id, sandbox_mode_val, gen_req)
+                .await?;
             return Ok(response.config.address);
         }
-        
+
         Err(ServiceError::WalletNotFound)
     }
 
@@ -814,26 +900,33 @@ impl MerchantService {
     ) -> Result<(), ServiceError> {
         // Validate the mode
         if !["forwarding", "managed"].contains(&mode) {
-            return Err(ServiceError::ValidationError("Invalid settlement mode".to_string()));
+            return Err(ServiceError::ValidationError(
+                "Invalid settlement mode".to_string(),
+            ));
         }
 
-        sqlx::query(
-            "UPDATE merchants SET settlement_mode = $1, updated_at = $2 WHERE id = $3"
-        )
-        .bind(mode)
-        .bind(Utc::now())
-        .bind(merchant_id)
-        .execute(&self.db_pool)
-        .await?;
+        sqlx::query("UPDATE merchants SET settlement_mode = $1, updated_at = $2 WHERE id = $3")
+            .bind(mode)
+            .bind(Utc::now())
+            .bind(merchant_id)
+            .execute(&self.db_pool)
+            .await?;
 
         // Log settlement mode update
-        let _ = self.audit_service.log_event(
+        let _ = self
+            .audit_service
+            .log_event(
+                merchant_id,
+                "settlement_mode_update",
+                Some(&format!("Updated settlement mode to {}", mode)),
+                Some(serde_json::json!({"settlement_mode": mode})),
+            )
+            .await;
+        tracing::info!(
+            "EVENT: settlement_mode_update | Merchant: {} | Mode: {}",
             merchant_id,
-            "settlement_mode_update",
-            Some(&format!("Updated settlement mode to {}", mode)),
-            Some(serde_json::json!({"settlement_mode": mode}))
-        ).await;
-        tracing::info!("EVENT: settlement_mode_update | Merchant: {} | Mode: {}", merchant_id, mode);
+            mode
+        );
 
         Ok(())
     }
@@ -848,7 +941,9 @@ impl MerchantService {
     ) -> Result<(), ServiceError> {
         if let Some(ref mode) = settlement_mode {
             if !["forwarding", "managed"].contains(&mode.as_str()) {
-                return Err(ServiceError::ValidationError("Invalid settlement mode".to_string()));
+                return Err(ServiceError::ValidationError(
+                    "Invalid settlement mode".to_string(),
+                ));
             }
         }
 
@@ -862,7 +957,7 @@ impl MerchantService {
                 redirect_url = COALESCE($4, redirect_url),
                 updated_at = $5
             WHERE id = $6
-            "#
+            "#,
         )
         .bind(&settlement_mode)
         .bind(customer_pays_fee)
@@ -882,14 +977,12 @@ impl MerchantService {
         merchant_id: i64,
         locked: bool,
     ) -> Result<(), ServiceError> {
-        sqlx::query(
-            "UPDATE merchants SET wallets_locked = $1, updated_at = NOW() WHERE id = $2"
-        )
-        .bind(locked)
-        .bind(merchant_id)
-        .execute(&self.db_pool)
-        .await?;
-        
+        sqlx::query("UPDATE merchants SET wallets_locked = $1, updated_at = NOW() WHERE id = $2")
+            .bind(locked)
+            .bind(merchant_id)
+            .execute(&self.db_pool)
+            .await?;
+
         Ok(())
     }
 
@@ -900,13 +993,13 @@ impl MerchantService {
         locked: bool,
     ) -> Result<(), ServiceError> {
         sqlx::query(
-            "UPDATE merchants SET customer_wallets_locked = $1, updated_at = NOW() WHERE id = $2"
+            "UPDATE merchants SET customer_wallets_locked = $1, updated_at = NOW() WHERE id = $2",
         )
         .bind(locked)
         .bind(merchant_id)
         .execute(&self.db_pool)
         .await?;
-        
+
         Ok(())
     }
 
@@ -917,7 +1010,7 @@ impl MerchantService {
         pin: &str,
     ) -> Result<(), ServiceError> {
         let pin_hash: Option<String> = sqlx::query_scalar::<_, Option<String>>(
-            "SELECT transaction_pin_hash FROM merchants WHERE id = $1"
+            "SELECT transaction_pin_hash FROM merchants WHERE id = $1",
         )
         .bind(merchant_id)
         .fetch_one(&self.db_pool)
@@ -925,14 +1018,21 @@ impl MerchantService {
         .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
         let hash_str = pin_hash.ok_or_else(|| {
-            ServiceError::ValidationError("Transaction PIN not set. Please set it in Settings.".to_string())
+            ServiceError::ValidationError(
+                "Transaction PIN not set. Please set it in Settings.".to_string(),
+            )
         })?;
 
         let parsed_hash = PasswordHash::new(&hash_str)
             .map_err(|_| ServiceError::InternalError("Invalid stored PIN format".to_string()))?;
 
-        if Argon2::default().verify_password(pin.as_bytes(), &parsed_hash).is_err() {
-            return Err(ServiceError::ValidationError("Invalid transaction PIN".to_string()));
+        if Argon2::default()
+            .verify_password(pin.as_bytes(), &parsed_hash)
+            .is_err()
+        {
+            return Err(ServiceError::ValidationError(
+                "Invalid transaction PIN".to_string(),
+            ));
         }
 
         Ok(())

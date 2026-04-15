@@ -1,9 +1,9 @@
-use sqlx::PgPool;
+use crate::error::ServiceError;
+use chrono::{DateTime, NaiveDate, Utc};
+use nanoid::nanoid;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc, NaiveDate};
-use nanoid::nanoid;
-use crate::error::ServiceError;
+use sqlx::PgPool;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InvoiceItem {
@@ -50,7 +50,11 @@ impl InvoiceService {
         Self { pool }
     }
 
-    pub async fn create_invoice(&self, merchant_id: i64, req: CreateInvoiceRequest) -> Result<Invoice, ServiceError> {
+    pub async fn create_invoice(
+        &self,
+        merchant_id: i64,
+        req: CreateInvoiceRequest,
+    ) -> Result<Invoice, ServiceError> {
         // Calculate totals
         let subtotal: Decimal = req.items.iter().map(|item| item.amount).sum();
         let tax = req.tax.unwrap_or(Decimal::ZERO);
@@ -80,11 +84,15 @@ impl InvoiceService {
         self.get_invoice(merchant_id, &invoice_id).await
     }
 
-    pub async fn get_invoice(&self, merchant_id: i64, invoice_id: &str) -> Result<Invoice, ServiceError> {
+    pub async fn get_invoice(
+        &self,
+        merchant_id: i64,
+        invoice_id: &str,
+    ) -> Result<Invoice, ServiceError> {
         let record = sqlx::query(
             r#"SELECT invoice_id, merchant_id, customer_email, customer_name, status, items, 
                       subtotal, tax, total, payment_id, due_date, notes, created_at, paid_at
-               FROM invoices WHERE invoice_id = $1 AND merchant_id = $2"#
+               FROM invoices WHERE invoice_id = $1 AND merchant_id = $2"#,
         )
         .bind(invoice_id)
         .bind(merchant_id)
@@ -114,11 +122,15 @@ impl InvoiceService {
         })
     }
 
-    pub async fn list_invoices(&self, merchant_id: i64, limit: i64) -> Result<Vec<Invoice>, ServiceError> {
+    pub async fn list_invoices(
+        &self,
+        merchant_id: i64,
+        limit: i64,
+    ) -> Result<Vec<Invoice>, ServiceError> {
         let records = sqlx::query(
             r#"SELECT invoice_id, merchant_id, customer_email, customer_name, status, items,
                       subtotal, tax, total, payment_id, due_date, notes, created_at, paid_at
-               FROM invoices WHERE merchant_id = $1 ORDER BY created_at DESC LIMIT $2"#
+               FROM invoices WHERE merchant_id = $1 ORDER BY created_at DESC LIMIT $2"#,
         )
         .bind(merchant_id)
         .bind(limit)
@@ -126,29 +138,36 @@ impl InvoiceService {
         .await?;
 
         use sqlx::Row;
-        records.into_iter().map(|r| {
-            let items_val: serde_json::Value = r.get("items");
-            let items: Vec<InvoiceItem> = serde_json::from_value(items_val)?;
-            Ok(Invoice {
-                invoice_id: r.get("invoice_id"),
-                merchant_id: r.get("merchant_id"),
-                customer_email: r.get("customer_email"),
-                customer_name: r.get("customer_name"),
-                status: r.get("status"),
-                items,
-                subtotal: r.get("subtotal"),
-                tax: r.get("tax"),
-                total: r.get("total"),
-                payment_id: r.get("payment_id"),
-                due_date: r.get("due_date"),
-                notes: r.get("notes"),
-                created_at: r.get("created_at"),
-                paid_at: r.get("paid_at"),
+        records
+            .into_iter()
+            .map(|r| {
+                let items_val: serde_json::Value = r.get("items");
+                let items: Vec<InvoiceItem> = serde_json::from_value(items_val)?;
+                Ok(Invoice {
+                    invoice_id: r.get("invoice_id"),
+                    merchant_id: r.get("merchant_id"),
+                    customer_email: r.get("customer_email"),
+                    customer_name: r.get("customer_name"),
+                    status: r.get("status"),
+                    items,
+                    subtotal: r.get("subtotal"),
+                    tax: r.get("tax"),
+                    total: r.get("total"),
+                    payment_id: r.get("payment_id"),
+                    due_date: r.get("due_date"),
+                    notes: r.get("notes"),
+                    created_at: r.get("created_at"),
+                    paid_at: r.get("paid_at"),
+                })
             })
-        }).collect()
+            .collect()
     }
 
-    pub async fn mark_as_paid(&self, invoice_id: &str, payment_id: &str) -> Result<(), ServiceError> {
+    pub async fn mark_as_paid(
+        &self,
+        invoice_id: &str,
+        payment_id: &str,
+    ) -> Result<(), ServiceError> {
         sqlx::query(
             "UPDATE invoices SET status = 'PAID', payment_id = $2, paid_at = NOW() WHERE invoice_id = $1"
         )

@@ -2,24 +2,23 @@
 // Handles 3-mode wallet configuration and management
 
 use crate::api::state::AppState;
+use crate::error::ServiceError;
 use crate::middleware::auth::MerchantContext;
+use crate::payment::models::CryptoType;
 use crate::services::wallet_config_service::{
-    WalletConfigService, ConfigureWalletRequest, GenerateWalletRequest, 
-    GasValidationResult
+    ConfigureWalletRequest, GasValidationResult, GenerateWalletRequest, WalletConfigService,
 };
 use crate::services::withdrawal_processor::WithdrawalProcessor;
-use crate::payment::models::CryptoType;
-use crate::error::ServiceError;
 use axum::{
-    extract::{State, Path, Query},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json, Extension,
+    Extension, Json,
 };
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{PgPool, Row};
-use rust_decimal::Decimal;
 
 // Helper: get sandbox_mode for a merchant
 async fn get_sandbox_mode(pool: &PgPool, merchant_id: i64) -> bool {
@@ -30,7 +29,7 @@ async fn get_sandbox_mode(pool: &PgPool, merchant_id: i64) -> bool {
         .unwrap_or(false)
 }
 
-// Helper: get settlement_mode for a merchant  
+// Helper: get settlement_mode for a merchant
 async fn get_settlement_mode(pool: &PgPool, merchant_id: i64) -> String {
     sqlx::query_scalar::<_, String>("SELECT settlement_mode FROM merchants WHERE id = $1")
         .bind(merchant_id)
@@ -65,24 +64,32 @@ pub async fn get_wallets(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
-    
-    let (sandbox_mode, settlement_mode) = get_merchant_modes(&state.db_pool, context.merchant_id).await;
+
+    let (sandbox_mode, settlement_mode) =
+        get_merchant_modes(&state.db_pool, context.merchant_id).await;
 
     let result = if settlement_mode == "forwarding" {
-        wallet_service.get_forwarding_configs(context.merchant_id, sandbox_mode).await
+        wallet_service
+            .get_forwarding_configs(context.merchant_id, sandbox_mode)
+            .await
     } else {
-        wallet_service.get_wallet_configs(context.merchant_id, sandbox_mode).await
+        wallet_service
+            .get_wallet_configs(context.merchant_id, sandbox_mode)
+            .await
     };
 
     match result {
-        Ok(configs) => (StatusCode::OK, Json(json!({
-            "wallets": configs,
-            "supported_networks": ["ethereum", "bsc", "polygon", "arbitrum", "solana"]
-        }))).into_response(),
+        Ok(configs) => (
+            StatusCode::OK,
+            Json(json!({
+                "wallets": configs,
+                "supported_networks": ["ethereum", "bsc", "polygon", "arbitrum", "solana"]
+            })),
+        )
+            .into_response(),
         Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
-
 
 pub async fn delete_wallet(
     State(state): State<AppState>,
@@ -91,29 +98,45 @@ pub async fn delete_wallet(
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
 
-    let (sandbox_mode, settlement_mode) = get_merchant_modes(&state.db_pool, context.merchant_id).await;
+    let (sandbox_mode, settlement_mode) =
+        get_merchant_modes(&state.db_pool, context.merchant_id).await;
 
     let result = if settlement_mode == "forwarding" {
-        wallet_service.delete_forwarding_config(context.merchant_id, sandbox_mode, crypto_type.clone()).await
+        wallet_service
+            .delete_forwarding_config(context.merchant_id, sandbox_mode, crypto_type.clone())
+            .await
     } else {
-        wallet_service.delete_wallet_config(context.merchant_id, sandbox_mode, crypto_type.clone()).await
+        wallet_service
+            .delete_wallet_config(context.merchant_id, sandbox_mode, crypto_type.clone())
+            .await
     };
 
     match result {
         Ok(_) => {
             // Log wallet deletion and trace
-            let _ = state.audit_service.log_event(
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "wallet_deletion",
+                    Some(&format!("Removed wallet configuration for {}", crypto_type)),
+                    Some(json!({"crypto_type": crypto_type})),
+                )
+                .await;
+            tracing::info!(
+                "EVENT: wallet_deletion | Merchant: {} | Crypto: {}",
                 context.merchant_id,
-                "wallet_deletion",
-                Some(&format!("Removed wallet configuration for {}", crypto_type)),
-                Some(json!({"crypto_type": crypto_type}))
-            ).await;
-            tracing::info!("EVENT: wallet_deletion | Merchant: {} | Crypto: {}", context.merchant_id, crypto_type);
+                crypto_type
+            );
 
-            (StatusCode::OK, Json(json!({
-                "message": "Wallet configuration removed successfully"
-            }))).into_response()
-        },
+            (
+                StatusCode::OK,
+                Json(json!({
+                    "message": "Wallet configuration removed successfully"
+                })),
+            )
+                .into_response()
+        }
         Err(e) => ServiceError::BadRequest(e.to_string()).into_response(),
     }
 }
@@ -128,15 +151,18 @@ pub async fn check_gas_requirements(
     Query(params): Query<GasCheckQuery>,
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
-    
+
     let sandbox_mode = get_sandbox_mode(&state.db_pool, context.merchant_id).await;
 
-    match wallet_service.validate_gas_for_withdrawal(
-        context.merchant_id,
-        sandbox_mode,
-        params.crypto_type,
-        params.amount,
-    ).await {
+    match wallet_service
+        .validate_gas_for_withdrawal(
+            context.merchant_id,
+            sandbox_mode,
+            params.crypto_type,
+            params.amount,
+        )
+        .await
+    {
         Ok(result) => {
             let response = if result.valid {
                 json!({
@@ -151,7 +177,7 @@ pub async fn check_gas_requirements(
                     "can_withdraw": false
                 })
             };
-            
+
             (StatusCode::OK, Json(response)).into_response()
         }
         Err(e) => ServiceError::BadRequest(e.to_string()).into_response(),
@@ -163,7 +189,7 @@ pub async fn get_gas_estimates(
     Extension(_context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     let gas_service = crate::services::gas_fee_service::GasFeeService::new(state.config.clone());
-    
+
     match gas_service.get_all_gas_estimates().await {
         Ok(estimates) => {
             let response = json!({
@@ -177,7 +203,9 @@ pub async fn get_gas_estimates(
             });
             (StatusCode::OK, Json(response)).into_response()
         }
-        Err(e) => ServiceError::Internal(format!("Failed to fetch gas estimates: {}", e)).into_response(),
+        Err(e) => {
+            ServiceError::Internal(format!("Failed to fetch gas estimates: {}", e)).into_response()
+        }
     }
 }
 
@@ -191,22 +219,34 @@ pub async fn check_withdrawal_capability(
     Path(crypto_type): Path<CryptoType>,
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
-    
+
     let sandbox_mode = get_sandbox_mode(&state.db_pool, context.merchant_id).await;
 
-    match wallet_service.can_withdraw(context.merchant_id, sandbox_mode, crypto_type, rust_decimal::Decimal::ZERO).await {
+    match wallet_service
+        .can_withdraw(
+            context.merchant_id,
+            sandbox_mode,
+            crypto_type,
+            rust_decimal::Decimal::ZERO,
+        )
+        .await
+    {
         Ok(can_withdraw) => {
             let message = if can_withdraw {
                 "Withdrawal available - wallet has private key access"
             } else {
                 "Withdrawal not available - configure wallet (generate)"
             };
-            
-            (StatusCode::OK, Json(json!({
-                "crypto_type": crypto_type,
-                "can_withdraw": can_withdraw,
-                "message": message
-            }))).into_response()
+
+            (
+                StatusCode::OK,
+                Json(json!({
+                    "crypto_type": crypto_type,
+                    "can_withdraw": can_withdraw,
+                    "message": message
+                })),
+            )
+                .into_response()
         }
         Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
@@ -223,28 +263,35 @@ pub async fn process_withdrawal(
     Json(_req): Json<ProcessWithdrawalRequest>,
 ) -> impl IntoResponse {
     let processor = WithdrawalProcessor::new(
-        state.db_pool.clone(), 
+        state.db_pool.clone(),
         state.config.clone(),
-        state.notification_service.clone()
+        state.notification_service.clone(),
     );
-    
+
     match processor.process_withdrawal(&withdrawal_id).await {
         Ok(result) => {
             // Log audit event
-            let _ = state.audit_service.log_event(
-                context.merchant_id,
-                "withdrawal_processing",
-                Some(&format!("Processed withdrawal {}", withdrawal_id)),
-                Some(json!({
-                    "withdrawal_id": withdrawal_id
-                }))
-            ).await;
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "withdrawal_processing",
+                    Some(&format!("Processed withdrawal {}", withdrawal_id)),
+                    Some(json!({
+                        "withdrawal_id": withdrawal_id
+                    })),
+                )
+                .await;
 
-            (StatusCode::OK, Json(json!({
-                "withdrawal": result,
-                "message": "Withdrawal processed successfully"
-            }))).into_response()
-        },
+            (
+                StatusCode::OK,
+                Json(json!({
+                    "withdrawal": result,
+                    "message": "Withdrawal processed successfully"
+                })),
+            )
+                .into_response()
+        }
         Err(e) => ServiceError::BadRequest(e.to_string()).into_response(),
     }
 }
@@ -283,45 +330,69 @@ pub async fn setup_wallet(
     Json(req): Json<UnifiedWalletSetupRequest>,
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
-    
+
     match req.mode.as_str() {
         "address" => {
             if let Some(address) = req.address {
-                let (sandbox_mode, settlement_mode) = get_merchant_modes(&state.db_pool, context.merchant_id).await;
+                let (sandbox_mode, settlement_mode) =
+                    get_merchant_modes(&state.db_pool, context.merchant_id).await;
 
                 if settlement_mode == "forwarding" {
                     let crypto_type = match CryptoType::from_string(&req.crypto_type) {
                         Ok(ct) => ct,
-                        Err(e) => return ServiceError::BadRequest(format!("{}", e)).into_response(),
+                        Err(e) => {
+                            return ServiceError::BadRequest(format!("{}", e)).into_response()
+                        }
                     };
-                    match wallet_service.set_forwarding_address(
-                        context.merchant_id,
-                        crypto_type,
-                        address.clone(),
-                        req.is_active.unwrap_or(true),
-                        sandbox_mode,
-                    ).await {
+                    match wallet_service
+                        .set_forwarding_address(
+                            context.merchant_id,
+                            crypto_type,
+                            address.clone(),
+                            req.is_active.unwrap_or(true),
+                            sandbox_mode,
+                        )
+                        .await
+                    {
                         Ok(config) => {
                             // Log forwarding setup and trace
-                            let _ = state.audit_service.log_event(
+                            let _ = state
+                                .audit_service
+                                .log_event(
+                                    context.merchant_id,
+                                    "wallet_setup_forwarding",
+                                    Some(&format!(
+                                        "Configured {} forwarding address",
+                                        req.crypto_type
+                                    )),
+                                    Some(json!({
+                                        "crypto_type": req.crypto_type,
+                                        "address": address,
+                                        "is_active": req.is_active.unwrap_or(true)
+                                    })),
+                                )
+                                .await;
+                            tracing::info!(
+                                "EVENT: wallet_setup_forwarding | Merchant: {} | Crypto: {}",
                                 context.merchant_id,
-                                "wallet_setup_forwarding",
-                                Some(&format!("Configured {} forwarding address", req.crypto_type)),
-                                Some(json!({
-                                    "crypto_type": req.crypto_type,
-                                    "address": address,
-                                    "is_active": req.is_active.unwrap_or(true)
-                                }))
-                            ).await;
-                            tracing::info!("EVENT: wallet_setup_forwarding | Merchant: {} | Crypto: {}", context.merchant_id, req.crypto_type);
+                                req.crypto_type
+                            );
 
-                            (StatusCode::OK, Json(json!({
-                                "wallet": config,
-                                "mode": "address",
-                                "message": "Forwarding address configured successfully."
-                            }))).into_response()
-                        },
-                        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e.to_string()}))).into_response(),
+                            (
+                                StatusCode::OK,
+                                Json(json!({
+                                    "wallet": config,
+                                    "mode": "address",
+                                    "message": "Forwarding address configured successfully."
+                                })),
+                            )
+                                .into_response()
+                        }
+                        Err(e) => (
+                            StatusCode::BAD_REQUEST,
+                            Json(json!({"error": e.to_string()})),
+                        )
+                            .into_response(),
                     }
                 } else {
                     let configure_request = ConfigureWalletRequest {
@@ -329,36 +400,59 @@ pub async fn setup_wallet(
                         address: address.clone(),
                         is_active: req.is_active,
                     };
-                    match wallet_service.configure_address_only(context.merchant_id, sandbox_mode, configure_request).await {
+                    match wallet_service
+                        .configure_address_only(
+                            context.merchant_id,
+                            sandbox_mode,
+                            configure_request,
+                        )
+                        .await
+                    {
                         Ok(config) => {
                             // Log address-only setup and trace
-                            let _ = state.audit_service.log_event(
+                            let _ = state
+                                .audit_service
+                                .log_event(
+                                    context.merchant_id,
+                                    "wallet_setup_address_only",
+                                    Some(&format!(
+                                        "Configured {} address-only wallet",
+                                        req.crypto_type
+                                    )),
+                                    Some(json!({
+                                        "crypto_type": req.crypto_type,
+                                        "address": address,
+                                        "is_active": req.is_active
+                                    })),
+                                )
+                                .await;
+                            tracing::info!(
+                                "EVENT: wallet_setup_address_only | Merchant: {} | Crypto: {}",
                                 context.merchant_id,
-                                "wallet_setup_address_only",
-                                Some(&format!("Configured {} address-only wallet", req.crypto_type)),
-                                Some(json!({
-                                    "crypto_type": req.crypto_type,
-                                    "address": address,
-                                    "is_active": req.is_active
-                                }))
-                            ).await;
-                            tracing::info!("EVENT: wallet_setup_address_only | Merchant: {} | Crypto: {}", context.merchant_id, req.crypto_type);
+                                req.crypto_type
+                            );
 
-                            (StatusCode::OK, Json(json!({
-                                "wallet": config,
-                                "mode": "address",
-                                "message": "Address-only wallet configured successfully."
-                            }))).into_response()
-                        },
+                            (
+                                StatusCode::OK,
+                                Json(json!({
+                                    "wallet": config,
+                                    "mode": "address",
+                                    "message": "Address-only wallet configured successfully."
+                                })),
+                            )
+                                .into_response()
+                        }
                         Err(e) => ServiceError::BadRequest(e.to_string()).into_response(),
                     }
                 }
             } else {
-                ServiceError::BadRequest("Address is required for mode 'address'".to_string()).into_response()
+                ServiceError::BadRequest("Address is required for mode 'address'".to_string())
+                    .into_response()
             }
-        },
+        }
         "generate" => {
-            let (sandbox_mode, settlement_mode) = get_merchant_modes(&state.db_pool, context.merchant_id).await;
+            let (sandbox_mode, settlement_mode) =
+                get_merchant_modes(&state.db_pool, context.merchant_id).await;
 
             let generate_request = GenerateWalletRequest {
                 crypto_type: req.crypto_type.clone(),
@@ -367,9 +461,13 @@ pub async fn setup_wallet(
             let is_managed = settlement_mode == "managed";
 
             let result = if is_managed {
-                wallet_service.generate_wallet_managed(context.merchant_id, sandbox_mode, generate_request).await
+                wallet_service
+                    .generate_wallet_managed(context.merchant_id, sandbox_mode, generate_request)
+                    .await
             } else {
-                wallet_service.generate_wallet(context.merchant_id, sandbox_mode, generate_request).await
+                wallet_service
+                    .generate_wallet(context.merchant_id, sandbox_mode, generate_request)
+                    .await
             };
 
             match result {
@@ -381,28 +479,49 @@ pub async fn setup_wallet(
                     };
 
                     // Log wallet generation and trace
-                    let _ = state.audit_service.log_event(
+                    let _ = state
+                        .audit_service
+                        .log_event(
+                            context.merchant_id,
+                            "wallet_generation",
+                            Some(&format!(
+                                "Generated new {} wallet ({})",
+                                req.crypto_type,
+                                if is_managed {
+                                    "managed"
+                                } else {
+                                    "user-managed"
+                                }
+                            )),
+                            Some(json!({
+                                "crypto_type": req.crypto_type,
+                                "managed": is_managed
+                            })),
+                        )
+                        .await;
+                    tracing::info!(
+                        "EVENT: wallet_generation | Merchant: {} | Crypto: {} | Managed: {}",
                         context.merchant_id,
-                        "wallet_generation",
-                        Some(&format!("Generated new {} wallet ({})", req.crypto_type, if is_managed { "managed" } else { "user-managed" })),
-                        Some(json!({
-                            "crypto_type": req.crypto_type,
-                            "managed": is_managed
-                        }))
-                    ).await;
-                    tracing::info!("EVENT: wallet_generation | Merchant: {} | Crypto: {} | Managed: {}", context.merchant_id, req.crypto_type, is_managed);
+                        req.crypto_type,
+                        is_managed
+                    );
 
-                    (StatusCode::CREATED, Json(json!({
-                        "wallet": response,
-                        "mode": "generate",
-                        "managed": is_managed,
-                        "message": msg
-                    }))).into_response()
+                    (
+                        StatusCode::CREATED,
+                        Json(json!({
+                            "wallet": response,
+                            "mode": "generate",
+                            "managed": is_managed,
+                            "message": msg
+                        })),
+                    )
+                        .into_response()
                 }
                 Err(e) => ServiceError::BadRequest(e.to_string()).into_response(),
             }
-        },
-        _ => ServiceError::BadRequest("Invalid mode. Use 'address' or 'generate'.".to_string()).into_response(),
+        }
+        _ => ServiceError::BadRequest("Invalid mode. Use 'address' or 'generate'.".to_string())
+            .into_response(),
     }
 }
 
@@ -415,7 +534,8 @@ pub async fn get_wallet_balances(
     Extension(context): Extension<MerchantContext>,
     Query(params): Query<WalletBalancesQuery>,
 ) -> impl IntoResponse {
-    let (sandbox_mode, settlement_mode) = get_merchant_modes(&state.db_pool, context.merchant_id).await;
+    let (sandbox_mode, settlement_mode) =
+        get_merchant_modes(&state.db_pool, context.merchant_id).await;
     let exclude_stats = params.exclude_stats.unwrap_or(false);
 
     tracing::info!(
@@ -424,7 +544,7 @@ pub async fn get_wallet_balances(
     );
 
     let is_forwarding = settlement_mode == "forwarding";
-    
+
     let result: Result<Vec<WalletBalanceRow>, sqlx::Error> = if is_forwarding {
         sqlx::query_as::<_, WalletBalanceRow>(
             r#"
@@ -441,7 +561,7 @@ pub async fn get_wallet_balances(
             FROM merchant_forwarding_wallets
             WHERE merchant_id = $1 AND sandbox_mode = $2 AND address != ''
             ORDER BY crypto_type
-            "#
+            "#,
         )
         .bind(context.merchant_id)
         .bind(sandbox_mode)
@@ -501,16 +621,16 @@ pub async fn get_wallet_balances(
         };
 
         sqlx::query_as::<_, WalletBalanceRow>(query)
-        .bind(context.merchant_id)
-        .bind(sandbox_mode)
-        .fetch_all(&state.db_pool)
-        .await
+            .bind(context.merchant_id)
+            .bind(sandbox_mode)
+            .fetch_all(&state.db_pool)
+            .await
     };
 
     match result {
         Ok(wallets) => {
-            use std::collections::HashMap;
             use futures::future::join_all;
+            use std::collections::HashMap;
 
             // 1. Gather all unique crypto types
             let mut unique_cryptos = std::collections::HashSet::new();
@@ -531,43 +651,50 @@ pub async fn get_wallet_balances(
                     }
                 }
             });
-            
+
             let price_results = join_all(price_tasks).await;
             for res in price_results.into_iter().flatten() {
                 price_map.insert(res.0, res.1);
             }
 
             // 3. Process wallets using pre-fetched prices
-            let response_wallets: Vec<_> = wallets.into_iter().map(|w| {
-                let price = price_map.get(&w.crypto_type).copied().unwrap_or(0.0);
-                let price_dec = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
-                
-                let total_usd = (w.total_balance * price_dec).round_dp(2);
-                let available_usd = (w.available_balance * price_dec).round_dp(2);
-                let reserved_usd = (w.reserved_balance * price_dec).round_dp(2);
-                let total_volume_usd = (w.total_volume_crypto * price_dec).round_dp(2);
+            let response_wallets: Vec<_> = wallets
+                .into_iter()
+                .map(|w| {
+                    let price = price_map.get(&w.crypto_type).copied().unwrap_or(0.0);
+                    let price_dec = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
 
-                json!({
-                    "crypto_type": w.crypto_type,
-                    "network": w.network,
-                    "address": w.address,
-                    "is_active": w.is_active,
-                    "available_balance": w.available_balance.to_string(),
-                    "available_usd": available_usd.to_string(),
-                    "reserved_balance": w.reserved_balance.to_string(),
-                    "reserved_usd": reserved_usd.to_string(),
-                    "total_balance": w.total_balance.to_string(),
-                    "total_usd": total_usd.to_string(),
-                    "balance_usd": total_usd.to_string(), // Frontend legacy compatibility
-                    "transaction_count": w.transaction_count,
-                    "total_volume_crypto": w.total_volume_crypto.to_string(),
-                    "total_volume_usd": total_volume_usd.to_string()
+                    let total_usd = (w.total_balance * price_dec).round_dp(2);
+                    let available_usd = (w.available_balance * price_dec).round_dp(2);
+                    let reserved_usd = (w.reserved_balance * price_dec).round_dp(2);
+                    let total_volume_usd = (w.total_volume_crypto * price_dec).round_dp(2);
+
+                    json!({
+                        "crypto_type": w.crypto_type,
+                        "network": w.network,
+                        "address": w.address,
+                        "is_active": w.is_active,
+                        "available_balance": w.available_balance.to_string(),
+                        "available_usd": available_usd.to_string(),
+                        "reserved_balance": w.reserved_balance.to_string(),
+                        "reserved_usd": reserved_usd.to_string(),
+                        "total_balance": w.total_balance.to_string(),
+                        "total_usd": total_usd.to_string(),
+                        "balance_usd": total_usd.to_string(), // Frontend legacy compatibility
+                        "transaction_count": w.transaction_count,
+                        "total_volume_crypto": w.total_volume_crypto.to_string(),
+                        "total_volume_usd": total_volume_usd.to_string()
+                    })
                 })
-            }).collect();
+                .collect();
 
-            (StatusCode::OK, Json(json!({
-                "wallets": response_wallets
-            }))).into_response()
+            (
+                StatusCode::OK,
+                Json(json!({
+                    "wallets": response_wallets
+                })),
+            )
+                .into_response()
         }
         Err(e) => {
             tracing::error!("Failed to get wallet balances: {:?}", e);

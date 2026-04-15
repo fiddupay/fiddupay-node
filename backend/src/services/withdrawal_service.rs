@@ -4,13 +4,13 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 
-use crate::models::withdrawal::Withdrawal;
-use crate::services::price_service::PriceService;
-use crate::payment::models::CryptoType;
-use std::sync::Arc;
-use rust_decimal::prelude::FromPrimitive;
-use crate::services::volume_tracking_service::VolumeTrackingService;
 use crate::config::Config;
+use crate::models::withdrawal::Withdrawal;
+use crate::payment::models::CryptoType;
+use crate::services::price_service::PriceService;
+use crate::services::volume_tracking_service::VolumeTrackingService;
+use rust_decimal::prelude::FromPrimitive;
+use std::sync::Arc;
 
 #[derive(Debug, Deserialize)]
 pub struct WithdrawalRequest {
@@ -28,8 +28,18 @@ pub struct WithdrawalService {
 }
 
 impl WithdrawalService {
-    pub fn new(db_pool: PgPool, price_service: Arc<PriceService>, volume_tracking: Arc<VolumeTrackingService>, config: Config) -> Self {
-        Self { db_pool, price_service, volume_tracking, config }
+    pub fn new(
+        db_pool: PgPool,
+        price_service: Arc<PriceService>,
+        volume_tracking: Arc<VolumeTrackingService>,
+        config: Config,
+    ) -> Self {
+        Self {
+            db_pool,
+            price_service,
+            volume_tracking,
+            config,
+        }
     }
 
     pub async fn create_withdrawal(
@@ -39,27 +49,36 @@ impl WithdrawalService {
         sandbox_mode: bool,
     ) -> Result<Withdrawal, ServiceError> {
         let withdrawal_id = format!("wd_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
-        
+
         // Calculate USD amount (Requirement 20)
         let crypto_type_enum = CryptoType::from_string(&request.crypto_type)?;
-        let price = self.price_service.get_price(crypto_type_enum).await.unwrap_or(0.0);
+        let price = self
+            .price_service
+            .get_price(crypto_type_enum)
+            .await
+            .unwrap_or(0.0);
         let amount_usd = request.amount * Decimal::from_f64(price).unwrap_or(Decimal::ZERO);
         let amount_usd = amount_usd.round_dp(2);
 
         let mut tx = self.db_pool.begin().await?;
 
         // 0. Fetch Merchant KYC status and limit
-        let merchant_row = sqlx::query("SELECT kyc_verified, daily_limit_usd FROM merchants WHERE id = $1")
-            .bind(merchant_id)
-            .fetch_one(&mut *tx)
-            .await?;
+        let merchant_row =
+            sqlx::query("SELECT kyc_verified, daily_limit_usd FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&mut *tx)
+                .await?;
         let kyc_verified: bool = merchant_row.get("kyc_verified");
         let daily_limit_usd: Option<Decimal> = merchant_row.get("daily_limit_usd");
 
         if !kyc_verified {
             let limit = daily_limit_usd.unwrap_or(self.config.daily_volume_limit_non_kyc_usd);
-            let remaining = self.volume_tracking.get_remaining_daily_volume(merchant_id, limit, kyc_verified).await?.unwrap_or(Decimal::ZERO);
-            
+            let remaining = self
+                .volume_tracking
+                .get_remaining_daily_volume(merchant_id, limit, kyc_verified)
+                .await?
+                .unwrap_or(Decimal::ZERO);
+
             if amount_usd > remaining {
                 return Err(ServiceError::Forbidden(format!(
                     "Daily volume limit exceeded. Requested: ${}, Remaining: ${}. Please complete KYC to remove this limit.",
@@ -72,7 +91,7 @@ impl WithdrawalService {
         let balance_row = sqlx::query(
             "SELECT available_balance FROM merchant_balances 
              WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 
-             FOR UPDATE"
+             FOR UPDATE",
         )
         .bind(merchant_id)
         .bind(&request.crypto_type)
@@ -82,12 +101,16 @@ impl WithdrawalService {
 
         let available: Decimal = match balance_row {
             Some(row) => row.get("available_balance"),
-            None => return Err(ServiceError::ValidationError("No balance found for this currency".to_string())),
+            None => {
+                return Err(ServiceError::ValidationError(
+                    "No balance found for this currency".to_string(),
+                ))
+            }
         };
 
         if available < request.amount {
             return Err(ServiceError::ValidationError(format!(
-                "Insufficient ledger balance. Available: {}, Requested: {}", 
+                "Insufficient ledger balance. Available: {}, Requested: {}",
                 available, request.amount
             )));
         }
@@ -96,7 +119,7 @@ impl WithdrawalService {
         sqlx::query(
             "UPDATE merchant_balances 
              SET available_balance = available_balance - $1, last_updated = NOW()
-             WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
+             WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4",
         )
         .bind(request.amount)
         .bind(merchant_id)

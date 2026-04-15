@@ -1,18 +1,18 @@
-use crate::middleware::admin_auth::AdminContext;
-use crate::api::state::AppState;
 use crate::api::admin::auth::verify_admin_access;
+use crate::api::state::AppState;
+use crate::middleware::admin_auth::AdminContext;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Json},
     Extension,
 };
-use serde_json::json;
 use serde::Deserialize;
+use serde_json::json;
 
 #[derive(Deserialize)]
 pub struct AdminWalletQuery {
-    pub wallet_type: Option<String>,       // "hot" | "cold"
+    pub wallet_type: Option<String>, // "hot" | "cold"
     pub include_balances: Option<bool>,
 }
 
@@ -66,10 +66,10 @@ pub async fn get_all_wallets(
     match wallet_type {
         "hot" => {
             response["hot_wallets"] = hot_wallets;
-        },
+        }
         "cold" => {
             response["cold_wallets"] = cold_wallets;
-        },
+        }
         _ => {
             response["hot_wallets"] = hot_wallets;
             response["cold_wallets"] = cold_wallets;
@@ -112,7 +112,8 @@ pub async fn transfer_funds(
         "amount": transfer.amount,
         "crypto_type": transfer.crypto_type,
         "status": "pending"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 pub async fn get_fee_sweep_settings(
@@ -127,8 +128,9 @@ pub async fn get_fee_sweep_settings(
         Ok(settings) => Json(json!({ "success": true, "data": settings })).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "success": false, "error": e.to_string() }))
-        ).into_response()
+            Json(json!({ "success": false, "error": e.to_string() })),
+        )
+            .into_response(),
     }
 }
 
@@ -145,8 +147,9 @@ pub async fn update_fee_sweep_settings(
         Ok(settings) => Json(json!({ "success": true, "data": settings })).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "success": false, "error": e.to_string() }))
-        ).into_response()
+            Json(json!({ "success": false, "error": e.to_string() })),
+        )
+            .into_response(),
     }
 }
 
@@ -161,18 +164,20 @@ pub async fn trigger_manual_sweep(
 
     let fee_service = crate::services::fee_collection_service::FeeCollectionService::new(
         state.db_pool.clone(),
-        state.config.clone()
+        state.config.clone(),
     );
 
     match fee_service.sweep_all_eligible(&network).await {
-        Ok(tx_hashes) => Json(json!({ 
-            "success": true, 
+        Ok(tx_hashes) => Json(json!({
+            "success": true,
             "message": format!("Swept fees for {} wallets", tx_hashes.len()),
-            "tx_hashes": tx_hashes 
-        })).into_response(),
+            "tx_hashes": tx_hashes
+        }))
+        .into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "success": false, "error": e.to_string() }))
-        ).into_response()
+            Json(json!({ "success": false, "error": e.to_string() })),
+        )
+            .into_response(),
     }
 }

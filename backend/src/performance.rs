@@ -1,10 +1,10 @@
 // Performance optimizations for FidduPay
 // This module contains performance-critical optimizations
 
+use chrono::{DateTime, Utc};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 
 /// High-performance cache for frequently accessed data
 pub struct PerformanceCache {
@@ -54,7 +54,11 @@ impl PerformanceCache {
         let cache = self.merchant_cache.read().await;
         if let Some(cached) = cache.get(&merchant_id) {
             // Cache for 5 minutes
-            if Utc::now().signed_duration_since(cached.cached_at).num_minutes() < 5 {
+            if Utc::now()
+                .signed_duration_since(cached.cached_at)
+                .num_minutes()
+                < 5
+            {
                 return Some(cached.clone());
             }
         }
@@ -72,7 +76,11 @@ impl PerformanceCache {
         let cache = self.payment_cache.read().await;
         if let Some(cached) = cache.get(payment_id) {
             // Cache for 1 minute for payment_transactions (they change frequently)
-            if Utc::now().signed_duration_since(cached.cached_at).num_seconds() < 60 {
+            if Utc::now()
+                .signed_duration_since(cached.cached_at)
+                .num_seconds()
+                < 60
+            {
                 return Some(cached.clone());
             }
         }
@@ -90,7 +98,11 @@ impl PerformanceCache {
         let cache = self.price_cache.read().await;
         if let Some(cached) = cache.get(crypto_type) {
             // Cache for 30 seconds for prices
-            if Utc::now().signed_duration_since(cached.cached_at).num_seconds() < 30 {
+            if Utc::now()
+                .signed_duration_since(cached.cached_at)
+                .num_seconds()
+                < 30
+            {
                 return Some(cached.clone());
             }
         }
@@ -106,29 +118,25 @@ impl PerformanceCache {
     /// Clean expired entries from all caches
     pub async fn cleanup_expired(&self) {
         let now = Utc::now();
-        
+
         // Clean merchant cache (5 minute expiry)
         {
             let mut cache = self.merchant_cache.write().await;
-            cache.retain(|_, cached| {
-                now.signed_duration_since(cached.cached_at).num_minutes() < 5
-            });
+            cache.retain(|_, cached| now.signed_duration_since(cached.cached_at).num_minutes() < 5);
         }
 
         // Clean payment cache (1 minute expiry)
         {
             let mut cache = self.payment_cache.write().await;
-            cache.retain(|_, cached| {
-                now.signed_duration_since(cached.cached_at).num_seconds() < 60
-            });
+            cache
+                .retain(|_, cached| now.signed_duration_since(cached.cached_at).num_seconds() < 60);
         }
 
         // Clean price cache (30 second expiry)
         {
             let mut cache = self.price_cache.write().await;
-            cache.retain(|_, cached| {
-                now.signed_duration_since(cached.cached_at).num_seconds() < 30
-            });
+            cache
+                .retain(|_, cached| now.signed_duration_since(cached.cached_at).num_seconds() < 30);
         }
     }
 }
@@ -187,11 +195,11 @@ impl BatchOperations {
 
         query_builder.push_values(payment_transactions, |mut b, payment| {
             b.push_bind(payment.0)
-             .push_bind(payment.1)
-             .push_bind(payment.2)
-             .push_bind(payment.3)
-             .push_bind("PENDING")
-             .push_bind(Utc::now());
+                .push_bind(payment.1)
+                .push_bind(payment.2)
+                .push_bind(payment.3)
+                .push_bind("PENDING")
+                .push_bind(Utc::now());
         });
 
         query_builder.build().execute(pool).await?;
@@ -209,7 +217,10 @@ impl BatchOperations {
 
         // Use a more efficient approach with unnest for batch updates
         let payment_ids: Vec<String> = updates.iter().map(|(id, _)| id.to_string()).collect();
-        let statuses: Vec<String> = updates.iter().map(|(_, status)| status.to_string()).collect();
+        let statuses: Vec<String> = updates
+            .iter()
+            .map(|(_, status)| status.to_string())
+            .collect();
 
         sqlx::query(
             r#"
@@ -220,7 +231,7 @@ impl BatchOperations {
                        unnest($2::text[]) as status
             ) as data
             WHERE payment_transactions.payment_id = data.payment_id
-            "#
+            "#,
         )
         .bind(&payment_ids)
         .bind(&statuses)

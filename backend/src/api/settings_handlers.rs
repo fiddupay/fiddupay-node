@@ -2,6 +2,7 @@
 // Merchant settings, webhook, fee, and IP whitelist management
 
 use crate::api::state::AppState;
+use crate::error::ServiceError;
 use crate::middleware::auth::MerchantContext;
 use crate::payment::models::CryptoType;
 use axum::{
@@ -9,12 +10,11 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
 };
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use validator::Validate;
-use rust_decimal::Decimal;
-use crate::error::ServiceError;
 use sqlx::Row;
+use validator::Validate;
 
 use crate::middleware::validation::validate_webhook_url;
 use crate::models::merchant::Merchant;
@@ -38,11 +38,12 @@ pub async fn get_merchant_profile(
                transaction_pin_hash, pin_setup_at, low_balance_threshold_usd
         FROM merchants
         WHERE id = $1
-        "#
+        "#,
     )
     .bind(merchant_id)
     .fetch_optional(&state.db_pool)
-    .await {
+    .await
+    {
         Ok(Some(m)) => m,
         Ok(None) => return ServiceError::MerchantNotFound.into_response(),
         Err(e) => {
@@ -85,13 +86,23 @@ pub async fn get_merchant_profile(
     let m_low_balance_threshold_usd: Decimal = merchant.get("low_balance_threshold_usd");
 
     let display_key = if context.api_key == "DASHBOARD_SESSION" {
-        let hash_opt = if m_sandbox_mode { &m_test_api_key_hash } else { &m_live_api_key_hash };
-        let is_valid = hash_opt.as_ref().map(|h: &String| h != "PENDING" && !h.is_empty()).unwrap_or(false);
-        
+        let hash_opt = if m_sandbox_mode {
+            &m_test_api_key_hash
+        } else {
+            &m_live_api_key_hash
+        };
+        let is_valid = hash_opt
+            .as_ref()
+            .map(|h: &String| h != "PENDING" && !h.is_empty())
+            .unwrap_or(false);
+
         if !is_valid {
             "Not generated".to_string()
         } else {
-            format!("sk_{}_********", if m_sandbox_mode { "test" } else { "live" })
+            format!(
+                "sk_{}_********",
+                if m_sandbox_mode { "test" } else { "live" }
+            )
         }
     } else {
         context.api_key.clone()
@@ -119,16 +130,16 @@ pub async fn get_merchant_profile(
         "pin_setup_at": m_pin_setup_at.map(|d| d.to_rfc3339()),
         "low_balance_threshold_usd": m_low_balance_threshold_usd.to_string()
     });
-    
+
     // 4. Calculate daily volume remaining
-    let remaining = state.merchant_service.get_daily_volume_remaining(
-        m_id,
-        m_kyc_verified,
-        m_daily_limit_usd
-    ).await.unwrap_or(Decimal::ZERO);
-    
+    let remaining = state
+        .merchant_service
+        .get_daily_volume_remaining(m_id, m_kyc_verified, m_daily_limit_usd)
+        .await
+        .unwrap_or(Decimal::ZERO);
+
     profile["daily_volume_remaining"] = json!(remaining.to_string());
-    
+
     (StatusCode::OK, Json(json!({ "user": profile }))).into_response()
 }
 
@@ -137,15 +148,19 @@ pub async fn get_merchant_readiness(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     let merchant_id = context.merchant_id;
-    let wallet_service = crate::services::wallet_config_service::WalletConfigService::new(state.db_pool.clone());
-    let currency_service = crate::services::currency_service::CurrencyService::new(state.db_pool.clone());
-    
+    let wallet_service =
+        crate::services::wallet_config_service::WalletConfigService::new(state.db_pool.clone());
+    let currency_service =
+        crate::services::currency_service::CurrencyService::new(state.db_pool.clone());
+
     // 1. Fetch data
-    let merchant_res = sqlx::query("SELECT sandbox_mode, settlement_mode, kyc_verified FROM merchants WHERE id = $1")
-        .bind(merchant_id)
-        .fetch_one(&state.db_pool)
-        .await;
-    
+    let merchant_res = sqlx::query(
+        "SELECT sandbox_mode, settlement_mode, kyc_verified FROM merchants WHERE id = $1",
+    )
+    .bind(merchant_id)
+    .fetch_one(&state.db_pool)
+    .await;
+
     let merchant = match merchant_res {
         Ok(m) => m,
         Err(e) => return ServiceError::Database(e).into_response(),
@@ -156,12 +171,18 @@ pub async fn get_merchant_readiness(
     let m_kyc_verified: bool = merchant.get("kyc_verified");
 
     let wallets_res = if m_settlement_mode == "forwarding" {
-        wallet_service.get_forwarding_configs(merchant_id, m_sandbox_mode).await
+        wallet_service
+            .get_forwarding_configs(merchant_id, m_sandbox_mode)
+            .await
     } else {
-        wallet_service.get_wallet_configs(merchant_id, m_sandbox_mode).await
+        wallet_service
+            .get_wallet_configs(merchant_id, m_sandbox_mode)
+            .await
     };
-    
-    let currencies_res = currency_service.get_merchant_enabled_currencies(merchant_id).await;
+
+    let currencies_res = currency_service
+        .get_merchant_enabled_currencies(merchant_id)
+        .await;
 
     let wallets = wallets_res.unwrap_or_default();
     let enabled_currencies = currencies_res;
@@ -190,28 +211,36 @@ pub async fn get_merchant_readiness(
                     issues.push(format!("Network {} is configured but inactive", network));
                     is_ready = false;
                 }
-            },
+            }
             None => {
                 network_status[network] = json!({
                     "status": "missing",
                     "action_required": "configure_wallet"
                 });
-                issues.push(format!("Wallet not configured for enabled network: {}", network));
+                issues.push(format!(
+                    "Wallet not configured for enabled network: {}",
+                    network
+                ));
                 is_ready = false;
             }
         }
     }
 
     // 4. Security status check
-    let security_alerts_res: Result<i64, sqlx::Error> = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM security_alerts WHERE merchant_id = $1 AND acknowledged = FALSE")
-        .bind(merchant_id)
-        .fetch_one(&state.db_pool)
-        .await;
+    let security_alerts_res: Result<i64, sqlx::Error> = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*) FROM security_alerts WHERE merchant_id = $1 AND acknowledged = FALSE",
+    )
+    .bind(merchant_id)
+    .fetch_one(&state.db_pool)
+    .await;
 
     let security_alerts = security_alerts_res.unwrap_or(0);
 
     if security_alerts > 0 {
-        issues.push(format!("{} active security alerts require attention", security_alerts));
+        issues.push(format!(
+            "{} active security alerts require attention",
+            security_alerts
+        ));
     }
 
     // 5. Build final response
@@ -244,7 +273,11 @@ pub async fn switch_environment(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<SwitchEnvironmentRequest>,
 ) -> impl IntoResponse {
-    match state.merchant_service.switch_environment(context.merchant_id, req.to_live).await {
+    match state
+        .merchant_service
+        .switch_environment(context.merchant_id, req.to_live)
+        .await
+    {
         Ok(maybe_key) => {
             let mut response = json!({
                 "environment": if req.to_live { "live" } else { "sandbox" },
@@ -254,16 +287,26 @@ pub async fn switch_environment(
                 response["api_key"] = json!(api_key);
             }
             // Log switch and trace
-            let _ = state.audit_service.log_event(
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "environment_switch",
+                    Some(&format!(
+                        "Switched to {}",
+                        if req.to_live { "live" } else { "sandbox" }
+                    )),
+                    Some(json!({"to_live": req.to_live})),
+                )
+                .await;
+            tracing::info!(
+                "EVENT: environment_switch | Merchant: {} | To: {}",
                 context.merchant_id,
-                "environment_switch",
-                Some(&format!("Switched to {}", if req.to_live { "live" } else { "sandbox" })),
-                Some(json!({"to_live": req.to_live}))
-            ).await;
-            tracing::info!("EVENT: environment_switch | Merchant: {} | To: {}", context.merchant_id, if req.to_live { "live" } else { "sandbox" });
+                if req.to_live { "live" } else { "sandbox" }
+            );
 
             (StatusCode::OK, Json(response)).into_response()
-        },
+        }
         Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
@@ -278,19 +321,33 @@ pub async fn generate_api_key(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<GenerateApiKeyRequest>,
 ) -> impl IntoResponse {
-    match state.merchant_service.generate_and_store_api_key_with_expiry(context.merchant_id, req.is_live, None).await {
+    match state
+        .merchant_service
+        .generate_and_store_api_key_with_expiry(context.merchant_id, req.is_live, None)
+        .await
+    {
         Ok(api_key) => {
             // Log key generation and trace
-            let _ = state.audit_service.log_event(
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "api_key_generation",
+                    Some(&format!(
+                        "Generated new {} API key",
+                        if req.is_live { "live" } else { "test" }
+                    )),
+                    Some(json!({"is_live": req.is_live})),
+                )
+                .await;
+            tracing::info!(
+                "EVENT: api_key_generation | Merchant: {} | Live: {}",
                 context.merchant_id,
-                "api_key_generation",
-                Some(&format!("Generated new {} API key", if req.is_live { "live" } else { "test" })),
-                Some(json!({"is_live": req.is_live}))
-            ).await;
-            tracing::info!("EVENT: api_key_generation | Merchant: {} | Live: {}", context.merchant_id, req.is_live);
+                req.is_live
+            );
 
             (StatusCode::OK, Json(json!({"api_key": api_key}))).into_response()
-        },
+        }
         Err(e) => ServiceError::Internal(format!("{}", e)).into_response(),
     }
 }
@@ -308,28 +365,49 @@ pub async fn rotate_api_key(
     let result = if context.api_key == "DASHBOARD_SESSION" {
         match req {
             Some(Json(payload)) => {
-                state.merchant_service.rotate_api_key_by_env(context.merchant_id, payload.is_live).await
-            },
-            None => return ServiceError::BadRequest("Dashboard rotation requires 'is_live' parameter".to_string()).into_response()
+                state
+                    .merchant_service
+                    .rotate_api_key_by_env(context.merchant_id, payload.is_live)
+                    .await
+            }
+            None => {
+                return ServiceError::BadRequest(
+                    "Dashboard rotation requires 'is_live' parameter".to_string(),
+                )
+                .into_response()
+            }
         }
     } else {
-        state.merchant_service.rotate_api_key(context.merchant_id, &context.api_key).await
+        state
+            .merchant_service
+            .rotate_api_key(context.merchant_id, &context.api_key)
+            .await
     };
 
     match result {
         Ok(new_api_key) => {
             // Log key rotation and trace
             let is_live = new_api_key.starts_with("sk_live_");
-            let _ = state.audit_service.log_event(
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "api_key_rotation",
+                    Some(&format!(
+                        "Rotated {} API key",
+                        if is_live { "live" } else { "test" }
+                    )),
+                    Some(json!({"is_live": is_live})),
+                )
+                .await;
+            tracing::info!(
+                "EVENT: api_key_rotation | Merchant: {} | Live: {}",
                 context.merchant_id,
-                "api_key_rotation",
-                Some(&format!("Rotated {} API key", if is_live { "live" } else { "test" })),
-                Some(json!({"is_live": is_live}))
-            ).await;
-            tracing::info!("EVENT: api_key_rotation | Merchant: {} | Live: {}", context.merchant_id, is_live);
+                is_live
+            );
 
             (StatusCode::OK, Json(json!({"api_key": new_api_key}))).into_response()
-        },
+        }
         Err(e) => e.into_response(),
     }
 }
@@ -363,20 +441,31 @@ pub async fn update_merchant_settings(
     Json(req): Json<UnifiedSettingsRequest>,
 ) -> impl IntoResponse {
     // 1. Update Merchant core settings
-    if req.settlement_mode.is_some() || req.customer_pays_fee.is_some() || req.sandbox_mode.is_some() || req.redirect_url.is_some() {
-        if let Err(e) = state.merchant_service.update_settings(
-            context.merchant_id,
-            req.settlement_mode.clone(),
-            req.customer_pays_fee,
-            req.sandbox_mode,
-            req.redirect_url.clone(),
-        ).await {
+    if req.settlement_mode.is_some()
+        || req.customer_pays_fee.is_some()
+        || req.sandbox_mode.is_some()
+        || req.redirect_url.is_some()
+    {
+        if let Err(e) = state
+            .merchant_service
+            .update_settings(
+                context.merchant_id,
+                req.settlement_mode.clone(),
+                req.customer_pays_fee,
+                req.sandbox_mode,
+                req.redirect_url.clone(),
+            )
+            .await
+        {
             return ServiceError::Internal(e.to_string()).into_response();
         }
     }
 
     // 2. Update Fee & Balance Settings if provided
-    if req.fee_percentage.is_some() || req.customer_pays_fee.is_some() || req.low_balance_threshold_usd.is_some() {
+    if req.fee_percentage.is_some()
+        || req.customer_pays_fee.is_some()
+        || req.low_balance_threshold_usd.is_some()
+    {
         if let Err(e) = sqlx::query(
             r#"
             UPDATE merchants 
@@ -385,32 +474,41 @@ pub async fn update_merchant_settings(
                 low_balance_threshold_usd = COALESCE($3, low_balance_threshold_usd),
                 updated_at = NOW() 
             WHERE id = $4
-            "#
+            "#,
         )
         .bind(req.fee_percentage)
         .bind(req.customer_pays_fee)
         .bind(req.low_balance_threshold_usd)
         .bind(context.merchant_id)
         .execute(&state.db_pool)
-        .await {
+        .await
+        {
             return ServiceError::Database(e).into_response();
         }
     }
 
     // 3. Update Webhook if provided
     if req.webhook_url.is_some() || req.webhook_format.is_some() {
-        if let Err(e) = state.webhook_service.set_webhook_url(
-            context.merchant_id, 
-            req.webhook_url.clone(),
-            req.webhook_format.clone()
-        ).await {
+        if let Err(e) = state
+            .webhook_service
+            .set_webhook_url(
+                context.merchant_id,
+                req.webhook_url.clone(),
+                req.webhook_format.clone(),
+            )
+            .await
+        {
             return e.into_response();
         }
     }
 
     // 4. Update IP Whitelist if provided
     if let Some(ips) = req.ip_whitelist.clone() {
-        if let Err(e) = state.ip_whitelist_service.set_whitelist(context.merchant_id, ips).await {
+        if let Err(e) = state
+            .ip_whitelist_service
+            .set_whitelist(context.merchant_id, ips)
+            .await
+        {
             return ServiceError::BadRequest(e.to_string()).into_response();
         }
     }
@@ -430,28 +528,33 @@ pub async fn update_merchant_settings(
     }
 
     // Log settings update and trace
-    let _ = state.audit_service.log_event(
-        context.merchant_id,
-        "settings_update",
-        Some("Updated merchant profile settings"),
-        Some(json!(req))
-    ).await;
+    let _ = state
+        .audit_service
+        .log_event(
+            context.merchant_id,
+            "settings_update",
+            Some("Updated merchant profile settings"),
+            Some(json!(req)),
+        )
+        .await;
     tracing::info!("EVENT: settings_update | Merchant: {}", context.merchant_id);
 
-    (StatusCode::OK, Json(json!({
-        "status": "success",
-        "message": "Settings updated successfully"
-    }))).into_response()
+    (
+        StatusCode::OK,
+        Json(json!({
+            "status": "success",
+            "message": "Settings updated successfully"
+        })),
+    )
+        .into_response()
 }
-
-
 
 pub async fn get_merchant_settings(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     let merchant_id = context.merchant_id;
-    
+
     // 1. Get core merchant settings
     let merchant = match sqlx::query(
         "SELECT settlement_mode, customer_pays_fee, sandbox_mode, redirect_url FROM merchants WHERE id = $1"
@@ -474,7 +577,7 @@ pub async fn get_merchant_settings(
 
     // 3. Get IP whitelist
     let ip_whitelist: Vec<String> = sqlx::query_scalar::<_, String>(
-        "SELECT ip_address FROM ip_whitelist WHERE merchant_id = $1"
+        "SELECT ip_address FROM ip_whitelist WHERE merchant_id = $1",
     )
     .bind(merchant_id)
     .fetch_all(&state.db_pool)
@@ -503,7 +606,7 @@ pub async fn send_test_webhook(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     let merchant_id = context.merchant_id;
-    
+
     let payload = crate::models::webhook::WebhookPayload {
         event_type: "webhook.test".to_string(),
         payment_id: "test_payment_123".to_string(),
@@ -516,22 +619,33 @@ pub async fn send_test_webhook(
         timestamp: chrono::Utc::now().timestamp(),
     };
 
-    if let Err(e) = state.webhook_service.queue_webhook(merchant_id, None, payload).await {
-         return ServiceError::Internal(e.to_string()).into_response();
+    if let Err(e) = state
+        .webhook_service
+        .queue_webhook(merchant_id, None, payload)
+        .await
+    {
+        return ServiceError::Internal(e.to_string()).into_response();
     }
 
     // Log audit event
-    let _ = state.audit_service.log_event(
-        context.merchant_id,
-        "test_webhook_trigger",
-        Some("Triggered test webhook delivery"),
-        None
-    ).await;
+    let _ = state
+        .audit_service
+        .log_event(
+            context.merchant_id,
+            "test_webhook_trigger",
+            Some("Triggered test webhook delivery"),
+            None,
+        )
+        .await;
 
-    (StatusCode::OK, Json(json!({
-        "status": "success",
-        "message": "Test webhook queued for delivery"
-    }))).into_response()
+    (
+        StatusCode::OK,
+        Json(json!({
+            "status": "success",
+            "message": "Test webhook queued for delivery"
+        })),
+    )
+        .into_response()
 }
 
 // ============================================================================
@@ -542,7 +656,11 @@ pub async fn get_ip_whitelist(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    match state.ip_whitelist_service.get_whitelist(context.merchant_id).await {
+    match state
+        .ip_whitelist_service
+        .get_whitelist(context.merchant_id)
+        .await
+    {
         Ok(ips) => (StatusCode::OK, Json(json!({"ip_addresses": ips}))).into_response(),
         Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
@@ -566,7 +684,7 @@ pub async fn get_fee_setting(
         r#"
         SELECT fee_percentage, customer_pays_fee 
         FROM merchants WHERE id = $1
-        "#
+        "#,
     )
     .bind(context.merchant_id)
     .fetch_optional(&state.db_pool)
@@ -576,7 +694,11 @@ pub async fn get_fee_setting(
         Ok(Some(m)) => (StatusCode::OK, Json(m)).into_response(),
         Ok(None) => ServiceError::MerchantNotFound.into_response(),
         Err(e) => {
-            tracing::error!("Failed to fetch merchant fees for merchant {}: {:?}", context.merchant_id, e);
+            tracing::error!(
+                "Failed to fetch merchant fees for merchant {}: {:?}",
+                context.merchant_id,
+                e
+            );
             ServiceError::Database(e).into_response()
         }
     }
@@ -591,21 +713,28 @@ pub async fn create_invoice(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<crate::services::invoice_service::CreateInvoiceRequest>,
 ) -> impl IntoResponse {
-    match state.invoice_service.create_invoice(context.merchant_id, req).await {
+    match state
+        .invoice_service
+        .create_invoice(context.merchant_id, req)
+        .await
+    {
         Ok(invoice) => {
             // Log audit event
-            let _ = state.audit_service.log_event(
-                context.merchant_id,
-                "invoice_creation",
-                Some(&format!("Created invoice {}", invoice.invoice_id)),
-                Some(json!({
-                    "invoice_id": invoice.invoice_id,
-                    "amount": invoice.total
-                }))
-            ).await;
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "invoice_creation",
+                    Some(&format!("Created invoice {}", invoice.invoice_id)),
+                    Some(json!({
+                        "invoice_id": invoice.invoice_id,
+                        "amount": invoice.total
+                    })),
+                )
+                .await;
 
             (StatusCode::CREATED, Json(invoice)).into_response()
-        },
+        }
         Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
@@ -615,8 +744,15 @@ pub async fn list_invoices(
     Extension(context): Extension<MerchantContext>,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let limit = params.get("limit").and_then(|l| l.parse().ok()).unwrap_or(50);
-    match state.invoice_service.list_invoices(context.merchant_id, limit).await {
+    let limit = params
+        .get("limit")
+        .and_then(|l| l.parse().ok())
+        .unwrap_or(50);
+    match state
+        .invoice_service
+        .list_invoices(context.merchant_id, limit)
+        .await
+    {
         Ok(invoices) => (StatusCode::OK, Json(invoices)).into_response(),
         Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
@@ -627,7 +763,11 @@ pub async fn get_invoice(
     Extension(context): Extension<MerchantContext>,
     axum::extract::Path(invoice_id): axum::extract::Path<String>,
 ) -> impl IntoResponse {
-    match state.invoice_service.get_invoice(context.merchant_id, &invoice_id).await {
+    match state
+        .invoice_service
+        .get_invoice(context.merchant_id, &invoice_id)
+        .await
+    {
         Ok(invoice) => (StatusCode::OK, Json(invoice)).into_response(),
         Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
@@ -651,50 +791,83 @@ pub async fn toggle_wallet_lock(
     // 1. Verify password if provided (required for security)
     let password = match req.password {
         Some(p) => p,
-        None => return ServiceError::BadRequest("Password required for this action".to_string()).into_response(),
+        None => {
+            return ServiceError::BadRequest("Password required for this action".to_string())
+                .into_response()
+        }
     };
 
     // 2. Fetch password hash
     let password_hash: Option<String> = match sqlx::query_scalar::<_, Option<String>>(
-        "SELECT password_hash FROM merchants WHERE id = $1"
+        "SELECT password_hash FROM merchants WHERE id = $1",
     )
     .bind(context.merchant_id)
     .fetch_one(&state.db_pool)
-    .await {
+    .await
+    {
         Ok(h) => h,
         Err(e) => return ServiceError::Database(e).into_response(),
     };
 
     let hash_str = match password_hash {
         Some(h) => h,
-        None => return ServiceError::Unauthorized("Account does not have a password configured".to_string()).into_response(),
+        None => {
+            return ServiceError::Unauthorized(
+                "Account does not have a password configured".to_string(),
+            )
+            .into_response()
+        }
     };
 
     // 3. Verify password
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
     let parsed_hash = match PasswordHash::new(&hash_str) {
         Ok(h) => h,
-        Err(_) => return ServiceError::Internal("Invalid stored password format".to_string()).into_response(),
+        Err(_) => {
+            return ServiceError::Internal("Invalid stored password format".to_string())
+                .into_response()
+        }
     };
 
-    if Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_err() {
+    if Argon2::default()
+        .verify_password(password.as_bytes(), &parsed_hash)
+        .is_err()
+    {
         return ServiceError::Unauthorized("Invalid password".to_string()).into_response();
     }
 
     // 4. Proceed with lock toggle
-    match state.merchant_service.set_wallet_lock(context.merchant_id, req.locked).await {
+    match state
+        .merchant_service
+        .set_wallet_lock(context.merchant_id, req.locked)
+        .await
+    {
         Ok(_) => {
             // Log lock toggle and trace
-            let _ = state.audit_service.log_event(
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "wallet_lock_toggle",
+                    Some(&format!(
+                        "Merchant wallets {}",
+                        if req.locked { "locked" } else { "unlocked" }
+                    )),
+                    Some(json!({"locked": req.locked})),
+                )
+                .await;
+            tracing::info!(
+                "EVENT: wallet_lock_toggle | Merchant: {} | Locked: {}",
                 context.merchant_id,
-                "wallet_lock_toggle",
-                Some(&format!("Merchant wallets {}", if req.locked { "locked" } else { "unlocked" })),
-                Some(json!({"locked": req.locked}))
-            ).await;
-            tracing::info!("EVENT: wallet_lock_toggle | Merchant: {} | Locked: {}", context.merchant_id, req.locked);
+                req.locked
+            );
 
-            (StatusCode::OK, Json(json!({"status": "success", "locked": req.locked}))).into_response()
-        },
+            (
+                StatusCode::OK,
+                Json(json!({"status": "success", "locked": req.locked})),
+            )
+                .into_response()
+        }
         Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
@@ -707,49 +880,82 @@ pub async fn toggle_customer_wallet_lock(
     // 1. Verify password if provided
     let password = match req.password {
         Some(p) => p,
-        None => return ServiceError::BadRequest("Password required for this action".to_string()).into_response(),
+        None => {
+            return ServiceError::BadRequest("Password required for this action".to_string())
+                .into_response()
+        }
     };
 
     // 2. Fetch password hash
     let password_hash: Option<String> = match sqlx::query_scalar::<_, Option<String>>(
-        "SELECT password_hash FROM merchants WHERE id = $1"
+        "SELECT password_hash FROM merchants WHERE id = $1",
     )
     .bind(context.merchant_id)
     .fetch_one(&state.db_pool)
-    .await {
+    .await
+    {
         Ok(h) => h,
         Err(e) => return ServiceError::Database(e).into_response(),
     };
 
     let hash_str = match password_hash {
         Some(h) => h,
-        None => return ServiceError::Unauthorized("Account does not have a password configured".to_string()).into_response(),
+        None => {
+            return ServiceError::Unauthorized(
+                "Account does not have a password configured".to_string(),
+            )
+            .into_response()
+        }
     };
 
     // 3. Verify password
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
     let parsed_hash = match PasswordHash::new(&hash_str) {
         Ok(h) => h,
-        Err(_) => return ServiceError::Internal("Invalid stored password format".to_string()).into_response(),
+        Err(_) => {
+            return ServiceError::Internal("Invalid stored password format".to_string())
+                .into_response()
+        }
     };
 
-    if Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_err() {
+    if Argon2::default()
+        .verify_password(password.as_bytes(), &parsed_hash)
+        .is_err()
+    {
         return ServiceError::Unauthorized("Invalid password".to_string()).into_response();
     }
 
-    match state.merchant_service.set_customer_wallet_lock(context.merchant_id, req.locked).await {
+    match state
+        .merchant_service
+        .set_customer_wallet_lock(context.merchant_id, req.locked)
+        .await
+    {
         Ok(_) => {
             // Log lock toggle and trace
-            let _ = state.audit_service.log_event(
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "customer_wallet_lock_toggle",
+                    Some(&format!(
+                        "Customer wallets {}",
+                        if req.locked { "locked" } else { "unlocked" }
+                    )),
+                    Some(json!({"locked": req.locked})),
+                )
+                .await;
+            tracing::info!(
+                "EVENT: customer_wallet_lock_toggle | Merchant: {} | Locked: {}",
                 context.merchant_id,
-                "customer_wallet_lock_toggle",
-                Some(&format!("Customer wallets {}", if req.locked { "locked" } else { "unlocked" })),
-                Some(json!({"locked": req.locked}))
-            ).await;
-            tracing::info!("EVENT: customer_wallet_lock_toggle | Merchant: {} | Locked: {}", context.merchant_id, req.locked);
+                req.locked
+            );
 
-            (StatusCode::OK, Json(json!({"status": "success", "locked": req.locked}))).into_response()
-        },
+            (
+                StatusCode::OK,
+                Json(json!({"status": "success", "locked": req.locked})),
+            )
+                .into_response()
+        }
         Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
@@ -774,7 +980,7 @@ pub async fn set_transaction_pin(
     }
 
     // 2. Hash PIN
-    use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+    use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
     use rand::rngs::OsRng;
     let argon2 = Argon2::default();
     let salt = SaltString::generate(&mut OsRng);
@@ -795,14 +1001,21 @@ pub async fn set_transaction_pin(
     }
 
     // 4. Log event
-    let _ = state.audit_service.log_event(
-        context.merchant_id,
-        "transaction_pin_set",
-        Some("Merchant set transaction PIN"),
-        None
-    ).await;
+    let _ = state
+        .audit_service
+        .log_event(
+            context.merchant_id,
+            "transaction_pin_set",
+            Some("Merchant set transaction PIN"),
+            None,
+        )
+        .await;
 
-    (StatusCode::OK, Json(json!({"status": "success", "message": "Transaction PIN set successfully"}))).into_response()
+    (
+        StatusCode::OK,
+        Json(json!({"status": "success", "message": "Transaction PIN set successfully"})),
+    )
+        .into_response()
 }
 
 #[derive(serde::Deserialize)]
@@ -817,30 +1030,43 @@ pub async fn verify_transaction_pin(
 ) -> impl IntoResponse {
     // 1. Fetch PIN hash
     let pin_hash: Option<String> = match sqlx::query_scalar::<_, Option<String>>(
-        "SELECT transaction_pin_hash FROM merchants WHERE id = $1"
+        "SELECT transaction_pin_hash FROM merchants WHERE id = $1",
     )
     .bind(context.merchant_id)
     .fetch_one(&state.db_pool)
-    .await {
+    .await
+    {
         Ok(h) => h,
         Err(e) => return ServiceError::Database(e).into_response(),
     };
 
     let hash_str = match pin_hash {
         Some(h) => h,
-        None => return ServiceError::BadRequest("Transaction PIN not configured".to_string()).into_response(),
+        None => {
+            return ServiceError::BadRequest("Transaction PIN not configured".to_string())
+                .into_response()
+        }
     };
 
     // 2. Verify PIN
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
     let parsed_hash = match PasswordHash::new(&hash_str) {
         Ok(h) => h,
-        Err(_) => return ServiceError::Internal("Invalid stored PIN format".to_string()).into_response(),
+        Err(_) => {
+            return ServiceError::Internal("Invalid stored PIN format".to_string()).into_response()
+        }
     };
 
-    if Argon2::default().verify_password(req.pin.as_bytes(), &parsed_hash).is_err() {
+    if Argon2::default()
+        .verify_password(req.pin.as_bytes(), &parsed_hash)
+        .is_err()
+    {
         return ServiceError::Unauthorized("Invalid PIN".to_string()).into_response();
     }
 
-    (StatusCode::OK, Json(json!({"status": "success", "message": "PIN verified"}))).into_response()
+    (
+        StatusCode::OK,
+        Json(json!({"status": "success", "message": "PIN verified"})),
+    )
+        .into_response()
 }

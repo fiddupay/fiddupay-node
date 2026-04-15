@@ -1,9 +1,9 @@
-use serde::Serialize;
 use crate::error::ServiceError;
-use tracing::{info, warn, error};
-use lettre::{Message, SmtpTransport, Transport};
-use lettre::transport::smtp::authentication::Credentials;
 use lettre::message::header::ContentType;
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::{Message, SmtpTransport, Transport};
+use serde::Serialize;
+use tracing::{error, info, warn};
 
 #[derive(Debug, Serialize)]
 pub struct EmailTemplate {
@@ -40,9 +40,18 @@ impl EmailService {
         }
     }
 
-    pub async fn send_payment_confirmed(&self, to: &str, payment_id: &str, amount: &str, crypto: &str) -> Result<(), ServiceError> {
+    pub async fn send_payment_confirmed(
+        &self,
+        to: &str,
+        payment_id: &str,
+        amount: &str,
+        crypto: &str,
+    ) -> Result<(), ServiceError> {
         if !self.enabled {
-            info!(" Email disabled - would send payment confirmation to {}", to);
+            info!(
+                " Email disabled - would send payment confirmation to {}",
+                to
+            );
             return Ok(());
         }
 
@@ -58,9 +67,18 @@ impl EmailService {
         self.send_email(to, &subject, &body).await
     }
 
-    pub async fn send_withdrawal_completed(&self, to: &str, withdrawal_id: &str, amount: &str, crypto: &str) -> Result<(), ServiceError> {
+    pub async fn send_withdrawal_completed(
+        &self,
+        to: &str,
+        withdrawal_id: &str,
+        amount: &str,
+        crypto: &str,
+    ) -> Result<(), ServiceError> {
         if !self.enabled {
-            info!(" Email disabled - would send withdrawal notification to {}", to);
+            info!(
+                " Email disabled - would send withdrawal notification to {}",
+                to
+            );
             return Ok(());
         }
 
@@ -76,7 +94,13 @@ impl EmailService {
         self.send_email(to, &subject, &body).await
     }
 
-    pub async fn send_invoice(&self, to: &str, invoice_id: &str, total: &str, due_date: &str) -> Result<(), ServiceError> {
+    pub async fn send_invoice(
+        &self,
+        to: &str,
+        invoice_id: &str,
+        total: &str,
+        due_date: &str,
+    ) -> Result<(), ServiceError> {
         if !self.enabled {
             info!(" Email disabled - would send invoice to {}", to);
             return Ok(());
@@ -114,27 +138,34 @@ impl EmailService {
         }
 
         // Check if SMTP is configured
-        let smtp_host = self.smtp_host.as_ref()
+        let smtp_host = self
+            .smtp_host
+            .as_ref()
             .ok_or_else(|| ServiceError::InternalError("SMTP host not configured".to_string()))?;
-        let smtp_username = self.smtp_username.as_ref()
-            .ok_or_else(|| ServiceError::InternalError("SMTP username not configured".to_string()))?;
-        let smtp_password = self.smtp_password.as_ref()
-            .ok_or_else(|| ServiceError::InternalError("SMTP password not configured".to_string()))?;
+        let smtp_username = self.smtp_username.as_ref().ok_or_else(|| {
+            ServiceError::InternalError("SMTP username not configured".to_string())
+        })?;
+        let smtp_password = self.smtp_password.as_ref().ok_or_else(|| {
+            ServiceError::InternalError("SMTP password not configured".to_string())
+        })?;
 
         // Build email
-        let email = Message::builder()
-            .from(self.from_email.parse()
-                .map_err(|e| ServiceError::InternalError(format!("Invalid from email: {}", e)))?)
-            .to(to.parse()
-                .map_err(|e| ServiceError::InternalError(format!("Invalid to email: {}", e)))?)
-            .subject(subject)
-            .header(ContentType::TEXT_PLAIN)
-            .body(body.to_string())
-            .map_err(|e| ServiceError::InternalError(format!("Email build failed: {}", e)))?;
+        let email =
+            Message::builder()
+                .from(self.from_email.parse().map_err(|e| {
+                    ServiceError::InternalError(format!("Invalid from email: {}", e))
+                })?)
+                .to(to
+                    .parse()
+                    .map_err(|e| ServiceError::InternalError(format!("Invalid to email: {}", e)))?)
+                .subject(subject)
+                .header(ContentType::TEXT_PLAIN)
+                .body(body.to_string())
+                .map_err(|e| ServiceError::InternalError(format!("Email build failed: {}", e)))?;
 
         // Create SMTP transport
         let creds = Credentials::new(smtp_username.clone(), smtp_password.clone());
-        
+
         let mailer = SmtpTransport::relay(smtp_host)
             .map_err(|e| ServiceError::InternalError(format!("SMTP relay failed: {}", e)))?
             .credentials(creds)
@@ -148,7 +179,10 @@ impl EmailService {
             }
             Err(e) => {
                 error!(" Email send failed: {}", e);
-                Err(ServiceError::InternalError(format!("Email send failed: {}", e)))
+                Err(ServiceError::InternalError(format!(
+                    "Email send failed: {}",
+                    e
+                )))
             }
         }
     }

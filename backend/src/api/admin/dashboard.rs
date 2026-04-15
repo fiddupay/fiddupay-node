@@ -1,6 +1,6 @@
-use crate::middleware::admin_auth::AdminContext;
-use crate::api::state::AppState;
 use crate::api::admin::auth::verify_admin_access;
+use crate::api::state::AppState;
+use crate::middleware::admin_auth::AdminContext;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -26,8 +26,9 @@ pub async fn get_admin_dashboard(
             Json(json!({
                 "error": "Failed to get dashboard stats",
                 "message": e.to_string()
-            }))
-        ).into_response(),
+            })),
+        )
+            .into_response(),
     }
 }
 
@@ -48,8 +49,9 @@ pub async fn get_security_events(
             Json(json!({
                 "error": "Failed to get security events",
                 "message": e.to_string()
-            }))
-        ).into_response(),
+            })),
+        )
+            .into_response(),
     }
 }
 
@@ -70,8 +72,9 @@ pub async fn get_security_alerts(
             Json(json!({
                 "error": "Failed to get security alerts",
                 "message": e.to_string()
-            }))
-        ).into_response(),
+            })),
+        )
+            .into_response(),
     }
 }
 
@@ -87,11 +90,12 @@ pub async fn acknowledge_alert(
     }
 
     // Simple immediate response to avoid any potential hanging
-    Json(json!({ 
-        "success": true, 
+    Json(json!({
+        "success": true,
         "message": format!("Alert {} acknowledged successfully", alert_id),
         "alert_id": alert_id
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Get platform analytics
@@ -110,8 +114,9 @@ pub async fn get_platform_analytics(
             Json(json!({
                 "error": "Failed to get platform analytics",
                 "message": e.to_string()
-            }))
-        ).into_response(),
+            })),
+        )
+            .into_response(),
     }
 }
 
@@ -130,7 +135,8 @@ pub async fn get_revenue_analytics(
         "withdrawal_fees": 25000.0,
         "monthly_growth": 15.5,
         "period": "last_30_days"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Get transaction reports
@@ -149,7 +155,8 @@ pub async fn get_transaction_reports(
             "total_volume": 2500000.0,
             "success_rate": 98.5
         }
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Get merchant reports
@@ -169,5 +176,6 @@ pub async fn get_merchant_reports(
             "suspended_merchants": 5,
             "new_this_month": 25
         }
-    })).into_response()
+    }))
+    .into_response()
 }

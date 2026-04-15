@@ -1,12 +1,12 @@
+use crate::config::Config;
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::RwLock;
-use sqlx::PgPool;
 use sysinfo::System;
-use serde::{Serialize, Deserialize};
-use chrono::Utc;
-use tracing::{info, error};
-use crate::config::Config;
+use tokio::sync::RwLock;
+use tracing::{error, info};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemHealth {
@@ -82,32 +82,49 @@ impl MonitoringService {
         let memory_total = sys.total_memory() as f32 / 1024.0 / 1024.0 / 1024.0;
 
         // 2. DB Check
-        let db_connected = sqlx::query("SELECT 1").fetch_one(&self.db_pool).await.is_ok();
+        let db_connected = sqlx::query("SELECT 1")
+            .fetch_one(&self.db_pool)
+            .await
+            .is_ok();
 
         // 3. Redis Check
         let redis_connected = match self.redis_client.get_multiplexed_async_connection().await {
-            Ok(mut conn) => {
-                 redis::cmd("PING").query_async::<String>(&mut conn).await.is_ok()
-            },
-            Err(_) => false
+            Ok(mut conn) => redis::cmd("PING")
+                .query_async::<String>(&mut conn)
+                .await
+                .is_ok(),
+            Err(_) => false,
         };
 
         // 4. RPC Probes
         let mut services = vec![];
-        
+
         // Probe Ethereum RPC
-        services.push(self.probe_rpc("Ethereum Node", &self.config.ethereum_rpc_url).await);
-        
+        services.push(
+            self.probe_rpc("Ethereum Node", &self.config.ethereum_rpc_url)
+                .await,
+        );
+
         // Probe Solana RPC
-        services.push(self.probe_rpc("Solana Node", &self.config.solana_rpc_url).await);
+        services.push(
+            self.probe_rpc("Solana Node", &self.config.solana_rpc_url)
+                .await,
+        );
 
         // Probe Bitcoin API (Blockstream or similar)
-        services.push(self.probe_rpc("Bitcoin Node", &self.config.bitcoin_rpc_url).await);
+        services.push(
+            self.probe_rpc("Bitcoin Node", &self.config.bitcoin_rpc_url)
+                .await,
+        );
 
         // Core Dashboard Service (Self check)
         services.push(ServiceHealth {
             name: "Core API Gateway".to_string(),
-            status: if db_connected { "operational".to_string() } else { "outage".to_string() },
+            status: if db_connected {
+                "operational".to_string()
+            } else {
+                "outage".to_string()
+            },
             latency_ms: 0,
             last_check: Utc::now().to_rfc3339(),
         });
@@ -168,10 +185,18 @@ impl MonitoringService {
         let latency = start.elapsed().as_millis() as u32;
 
         let status = match result {
-            Ok(resp) if resp.status().is_success() || resp.status().as_u16() == 405 || resp.status().as_u16() == 401 => {
+            Ok(resp)
+                if resp.status().is_success()
+                    || resp.status().as_u16() == 405
+                    || resp.status().as_u16() == 401 =>
+            {
                 // Many RPCs return 405 Method Not Allowed on a naked GET, but they are UP
-                if latency > 1000 { "degraded".to_string() } else { "operational".to_string() }
-            },
+                if latency > 1000 {
+                    "degraded".to_string()
+                } else {
+                    "operational".to_string()
+                }
+            }
             _ => "outage".to_string(),
         };
 

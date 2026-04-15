@@ -1,15 +1,15 @@
-use crate::middleware::admin_auth::AdminContext;
-use crate::api::state::AppState;
 use crate::api::admin::auth::verify_admin_access;
 use crate::api::admin::payments::AdminQuery;
+use crate::api::state::AppState;
+use crate::middleware::admin_auth::AdminContext;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Json},
     Extension,
 };
-use serde_json::json;
 use serde::Deserialize;
+use serde_json::json;
 
 #[derive(Deserialize)]
 pub struct AdminUserCreate {
@@ -29,7 +29,7 @@ pub struct AdminAuditLogQueryParams {
     pub to: Option<String>,
     pub action_type: Option<String>,
     pub limit: Option<i64>,
-    pub scope: Option<String>, // "merchant", "admin", "all"
+    pub scope: Option<String>,    // "merchant", "admin", "all"
     pub merchant_id: Option<i64>, // if scope == "merchant"
 }
 
@@ -53,7 +53,8 @@ pub async fn get_admin_users(
                 "last_login": "2024-01-15T10:30:00Z"
             }
         ]
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Create admin user
@@ -74,7 +75,8 @@ pub async fn create_admin_user(
             "name": user_data.name,
             "permissions": user_data.permissions
         }
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Delete admin user
@@ -90,7 +92,8 @@ pub async fn delete_admin_user(
     Json(json!({
         "message": "Admin user deleted successfully",
         "user_id": user_id
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Update user permissions
@@ -108,7 +111,8 @@ pub async fn update_user_permissions(
         "message": "User permissions updated successfully",
         "user_id": user_id,
         "permissions": permissions.permissions
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Get system health
@@ -133,7 +137,8 @@ pub async fn get_system_health(
         "memory_usage": "45%",
         "cpu_usage": "12%",
         "disk_usage": "67%"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Get system logs
@@ -164,7 +169,8 @@ pub async fn get_system_logs(
         "total": 1000,
         "limit": query.limit.unwrap_or(50),
         "offset": query.offset.unwrap_or(0)
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Get aggregated audit logs (Super Admin view)
@@ -177,7 +183,7 @@ pub async fn get_admin_audit_logs(
         return response.into_response();
     }
 
-    use crate::services::audit_service::{AuditScope, AuditLogQuery};
+    use crate::services::audit_service::{AuditLogQuery, AuditScope};
 
     let scope_str = params.scope.as_deref().unwrap_or("all");
     let scope = match scope_str {
@@ -185,7 +191,13 @@ pub async fn get_admin_audit_logs(
             if let Some(id) = params.merchant_id {
                 AuditScope::Merchant(id)
             } else {
-                return (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "merchant_id is required for merchant scope"}))).into_response();
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(
+                        serde_json::json!({"error": "merchant_id is required for merchant scope"}),
+                    ),
+                )
+                    .into_response();
             }
         }
         "admin" => AuditScope::Admin,
@@ -201,7 +213,11 @@ pub async fn get_admin_audit_logs(
 
     match state.audit_service.get_logs(scope, query).await {
         Ok(logs) => (StatusCode::OK, Json(logs)).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": e.to_string()})),
+        )
+            .into_response(),
     }
 }
 
@@ -219,7 +235,8 @@ pub async fn create_system_backup(
         "backup_id": "backup_20240115_103000",
         "status": "in_progress",
         "estimated_completion": "2024-01-15T11:00:00Z"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Toggle maintenance mode
@@ -235,5 +252,6 @@ pub async fn toggle_maintenance_mode(
         "message": "Maintenance mode toggled successfully",
         "maintenance_mode": true,
         "estimated_duration": "30 minutes"
-    })).into_response()
+    }))
+    .into_response()
 }

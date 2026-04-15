@@ -21,13 +21,17 @@ pub async fn merchant_ws_handler(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    let mut response = ws.on_upgrade(move |socket| handle_ws_socket(socket, context.merchant_id, state)).into_response();
-    
+    let mut response = ws
+        .on_upgrade(move |socket| handle_ws_socket(socket, context.merchant_id, state))
+        .into_response();
+
     // Echo the Sec-WebSocket-Protocol back to the client to complete the handshake
     if let Some(protocol) = headers.get("sec-websocket-protocol") {
-        response.headers_mut().insert("sec-websocket-protocol", protocol.clone());
+        response
+            .headers_mut()
+            .insert("sec-websocket-protocol", protocol.clone());
     }
-    
+
     response
 }
 
@@ -36,7 +40,11 @@ async fn handle_ws_socket(socket: WebSocket, merchant_id: i64, state: AppState) 
     let channel_name = format!("merchant_notifications:{}", merchant_id);
 
     // Send connection acknowledgement
-    if sender.send(Message::Text(r#"{"event":"connected"}"#.into())).await.is_err() {
+    if sender
+        .send(Message::Text(r#"{"event":"connected"}"#.into()))
+        .await
+        .is_err()
+    {
         return;
     }
 
@@ -44,14 +52,18 @@ async fn handle_ws_socket(socket: WebSocket, merchant_id: i64, state: AppState) 
     let mut pubsub_conn = match state.redis_client.get_async_pubsub().await {
         Ok(conn) => conn,
         Err(e) => {
-            tracing::error!("Failed to get Redis Pub/Sub connection for merchant {}: {}", merchant_id, e);
+            tracing::error!(
+                "Failed to get Redis Pub/Sub connection for merchant {}: {}",
+                merchant_id,
+                e
+            );
             return;
         }
     };
 
     if let Err(e) = pubsub_conn.subscribe(&channel_name).await {
-         tracing::error!("Failed to subscribe to channel {}: {}", channel_name, e);
-         return;
+        tracing::error!("Failed to subscribe to channel {}: {}", channel_name, e);
+        return;
     }
 
     let mut pubsub_stream = pubsub_conn.on_message();
@@ -71,11 +83,11 @@ async fn handle_ws_socket(socket: WebSocket, merchant_id: i64, state: AppState) 
              // 2. Client closed connection
              Some(Ok(msg)) = receiver.next() => {
                   if let Message::Close(_) = msg {
-                      break; 
+                      break;
                   }
              }
              else => {
-                 break; 
+                 break;
              }
         }
     }

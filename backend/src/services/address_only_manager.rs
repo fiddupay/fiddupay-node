@@ -4,11 +4,9 @@
 use crate::config::Config;
 use crate::error::ServiceError;
 use crate::services::{
-    address_only_service::AddressOnlyService,
-    gas_fee_service::GasFeeService,
-    payment_monitor_service::PaymentMonitorService,
+    address_only_service::AddressOnlyService, gas_fee_service::GasFeeService,
+    notification_service::NotificationService, payment_monitor_service::PaymentMonitorService,
     webhook_notification_service::WebhookNotificationService,
-    notification_service::NotificationService,
 };
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -24,7 +22,11 @@ pub struct AddressOnlyManager {
 
 impl AddressOnlyManager {
     /// Initialize address-only mode with all components
-    pub async fn new(db_pool: PgPool, config: Config, notification_service: Arc<NotificationService>) -> Result<Self, ServiceError> {
+    pub async fn new(
+        db_pool: PgPool,
+        config: Config,
+        notification_service: Arc<NotificationService>,
+    ) -> Result<Self, ServiceError> {
         // Initialize services
         let gas_service = GasFeeService::new(config.clone());
         let address_service = Arc::new(AddressOnlyService::new(
@@ -52,7 +54,7 @@ impl AddressOnlyManager {
     /// Start payment monitoring in background
     pub async fn start_monitoring(&mut self) -> Result<(), ServiceError> {
         let monitor_service = Arc::clone(&self.monitor_service);
-        
+
         let handle = tokio::spawn(async move {
             if let Err(e) = monitor_service.start_monitoring().await {
                 tracing::error!("Payment monitoring failed: {}", e);
@@ -61,7 +63,7 @@ impl AddressOnlyManager {
 
         self.monitor_handle = Some(handle);
         tracing::info!("Address-only payment monitoring started");
-        
+
         Ok(())
     }
 
@@ -87,9 +89,11 @@ impl AddressOnlyManager {
     pub async fn health_check(&self) -> Result<AddressOnlyHealthStatus, ServiceError> {
         // Check database connectivity
         let db_healthy = self.check_database_health().await?;
-        
+
         // Check monitoring status
-        let monitoring_active = self.monitor_handle.as_ref()
+        let monitoring_active = self
+            .monitor_handle
+            .as_ref()
             .map(|h| !h.is_finished())
             .unwrap_or(false);
 

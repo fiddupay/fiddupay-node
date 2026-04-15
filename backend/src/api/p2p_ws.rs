@@ -22,7 +22,14 @@ async fn handle_ws_socket(socket: WebSocket, trade_id: String, state: AppState) 
     let (mut sender, mut receiver) = socket.split();
     let channel_name = format!("p2p_trade:{}", trade_id);
 
-    if sender.send(Message::Text(format!("Connected to trade room: {}", trade_id))).await.is_err() {
+    if sender
+        .send(Message::Text(format!(
+            "Connected to trade room: {}",
+            trade_id
+        )))
+        .await
+        .is_err()
+    {
         return;
     }
 
@@ -31,14 +38,16 @@ async fn handle_ws_socket(socket: WebSocket, trade_id: String, state: AppState) 
         Ok(conn) => conn,
         Err(e) => {
             tracing::error!("Failed to get Redis Pub/Sub connection: {}", e);
-            let _ = sender.send(Message::Text("Error connecting to chat server".into())).await;
+            let _ = sender
+                .send(Message::Text("Error connecting to chat server".into()))
+                .await;
             return;
         }
     };
 
     if let Err(e) = pubsub_conn.subscribe(&channel_name).await {
-         tracing::error!("Failed to subscribe to channel {}: {}", channel_name, e);
-         return;
+        tracing::error!("Failed to subscribe to channel {}: {}", channel_name, e);
+        return;
     }
 
     let mut pubsub_stream = pubsub_conn.on_message();

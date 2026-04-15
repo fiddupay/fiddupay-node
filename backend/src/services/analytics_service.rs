@@ -8,10 +8,10 @@ use std::collections::HashMap;
 
 use crate::error::ServiceError;
 use crate::models::analytics::{AnalyticsReport, BlockchainStats};
-use crate::services::price_service::PriceService;
 use crate::payment::models::CryptoType;
-use std::sync::Arc;
+use crate::services::price_service::PriceService;
 use futures;
+use std::sync::Arc;
 
 pub struct AnalyticsService {
     db_pool: PgPool,
@@ -20,7 +20,10 @@ pub struct AnalyticsService {
 
 impl AnalyticsService {
     pub fn new(db_pool: PgPool, price_service: Arc<PriceService>) -> Self {
-        Self { db_pool, price_service }
+        Self {
+            db_pool,
+            price_service,
+        }
     }
 
     /// Get analytics for a merchant within a date range
@@ -85,11 +88,24 @@ impl AnalyticsService {
         // Execute queries in parallel
         let (stats_res, blockchain_res, trends_res) = tokio::join!(
             query_builder.fetch_one(&self.db_pool),
-            self.get_blockchain_stats(merchant_id, start_date, end_date, status.clone(), sandbox_mode),
+            self.get_blockchain_stats(
+                merchant_id,
+                start_date,
+                end_date,
+                status.clone(),
+                sandbox_mode
+            ),
             self.get_payment_trends(merchant_id, start_date, end_date, sandbox_mode)
         );
 
-        let (total_volume_usd, successful_payments, failed_payments, pending_payments, total_payments, total_fees_paid) = stats_res?;
+        let (
+            total_volume_usd,
+            successful_payments,
+            failed_payments,
+            pending_payments,
+            total_payments,
+            total_fees_paid,
+        ) = stats_res?;
         let by_blockchain = blockchain_res?;
         let payment_trends = trends_res?;
 
@@ -154,7 +170,8 @@ impl AnalyticsService {
         let prices = self.get_current_prices().await?;
 
         let mut running_balances: HashMap<String, Decimal> = HashMap::new();
-        let mut daily_points: HashMap<String, crate::models::analytics::BalanceTrendPoint> = HashMap::new();
+        let mut daily_points: HashMap<String, crate::models::analytics::BalanceTrendPoint> =
+            HashMap::new();
         let mut dates: Vec<String> = Vec::new();
 
         use sqlx::Row;
@@ -184,20 +201,24 @@ impl AnalyticsService {
                 dates.push(date_str.clone());
             }
 
-            daily_points.insert(date_str, crate::models::analytics::BalanceTrendPoint {
-                date: created_at.format("%Y-%m-%d").to_string(),
-                total_usd,
-                balances: running_balances.clone(),
-            });
+            daily_points.insert(
+                date_str,
+                crate::models::analytics::BalanceTrendPoint {
+                    date: created_at.format("%Y-%m-%d").to_string(),
+                    total_usd,
+                    balances: running_balances.clone(),
+                },
+            );
         }
 
-        let points: Vec<crate::models::analytics::BalanceTrendPoint> = dates.into_iter()
+        let points: Vec<crate::models::analytics::BalanceTrendPoint> = dates
+            .into_iter()
             .map(|d| daily_points.remove(&d).unwrap())
             .collect();
 
         // Ensure we have at least one point if history exists
         if points.is_empty() {
-             return Ok(crate::models::analytics::BalanceHistory { points: vec![] });
+            return Ok(crate::models::analytics::BalanceHistory { points: vec![] });
         }
 
         Ok(crate::models::analytics::BalanceHistory { points })
@@ -212,8 +233,8 @@ impl AnalyticsService {
             CryptoType::Eth,
             CryptoType::UsdtEth,
             CryptoType::Bnb,
-             CryptoType::UsdtBep20,
-             CryptoType::BusdBep20,
+            CryptoType::UsdtBep20,
+            CryptoType::BusdBep20,
             CryptoType::Matic,
             CryptoType::UsdtPolygon,
             CryptoType::Arb,
@@ -230,7 +251,7 @@ impl AnalyticsService {
             .collect();
 
         let results = futures::future::join_all(price_futures).await;
-        
+
         let mut prices = HashMap::new();
         for (ct, res) in results {
             if let Ok(price) = res {
@@ -239,7 +260,7 @@ impl AnalyticsService {
                 }
             }
         }
-        
+
         Ok(prices)
     }
 
@@ -459,7 +480,9 @@ impl AnalyticsService {
                 row.fee_amount_usd,
                 escape_csv_field(&row.description.as_deref().unwrap_or_default()),
                 row.created_at.to_rfc3339(),
-                row.confirmed_at.map(|dt| dt.to_rfc3339()).unwrap_or_default(),
+                row.confirmed_at
+                    .map(|dt| dt.to_rfc3339())
+                    .unwrap_or_default(),
                 row.expires_at.to_rfc3339(),
             ));
         }

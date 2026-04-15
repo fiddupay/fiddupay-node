@@ -27,7 +27,11 @@ impl AccountLockoutService {
         Ok(())
     }
 
-    pub async fn record_successful_login(&self, _email: &str, _ip: &str) -> Result<(), ServiceError> {
+    pub async fn record_successful_login(
+        &self,
+        _email: &str,
+        _ip: &str,
+    ) -> Result<(), ServiceError> {
         // Simplified - no recording for now
         Ok(())
     }

@@ -1,14 +1,14 @@
 use rust_decimal::Decimal;
 use sqlx::PgPool;
-use tracing::{info, warn, error};
 use std::time::Duration;
 use tokio::time::interval;
+use tracing::{error, info, warn};
 
 use crate::error::ServiceError;
-use crate::services::webhook_notification_service::WebhookNotificationService;
 use crate::models::webhook::WebhookPayload;
 use crate::payment::models::PaymentStatus;
 use crate::services::address_only_service::AddressOnlyService;
+use crate::services::webhook_notification_service::WebhookNotificationService;
 
 pub struct BalanceMonitor {
     db_pool: PgPool,
@@ -41,7 +41,7 @@ impl BalanceMonitor {
         // Get all merchants with active wallets
         // Simplified: iterating known wallets or deposit addresses where merchant pays fee
         // For this MVP, we'll scan a mocked list or just query active address-only payments
-        
+
         // TODO: Implement actual wallet iteration
         Ok(())
     }

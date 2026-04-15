@@ -16,7 +16,7 @@ pub struct MerchantCustomer {
     pub last_name: Option<String>,
     pub metadata: Option<serde_json::Value>,
     pub is_active: bool,
-    pub status: String,               // active, flagged, suspended, blocked
+    pub status: String, // active, flagged, suspended, blocked
     pub status_reason: Option<String>,
     pub can_withdraw: bool,
     pub withdrawal_limit: Option<Decimal>,
@@ -113,13 +113,13 @@ pub struct SweepCustomerRequest {
 pub struct PayMerchantRequest {
     pub crypto_type: String,
     pub amount: String,
-    pub reference_id: Option<String>,  // merchant's order/product ID
-    pub description: Option<String>,   // e.g. "Purchase: Premium Plan"
+    pub reference_id: Option<String>, // merchant's order/product ID
+    pub description: Option<String>,  // e.g. "Purchase: Premium Plan"
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateCustomerStatusRequest {
-    pub status: String,         // active, flagged, suspended, blocked
+    pub status: String, // active, flagged, suspended, blocked
     pub reason: Option<String>,
 }
 

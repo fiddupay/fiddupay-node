@@ -1,9 +1,9 @@
+use super::BlockchainMonitor;
+use crate::payment::models::BlockchainTransaction;
+use crate::utils::bitcoin_api::{get_with_failover, BitcoinApiConfig};
 use async_trait::async_trait;
 use rust_decimal::Decimal;
 use tracing::{info, warn};
-use crate::payment::models::BlockchainTransaction;
-use crate::utils::bitcoin_api::{BitcoinApiConfig, get_with_failover};
-use super::BlockchainMonitor;
 
 pub struct BtcMonitor {
     api_config: BitcoinApiConfig,
@@ -13,7 +13,11 @@ pub struct BtcMonitor {
 
 impl BtcMonitor {
     pub fn new(api_url: String, is_sandbox: bool) -> Self {
-        let network_name = if is_sandbox { "Bitcoin Testnet" } else { "Bitcoin Mainnet" };
+        let network_name = if is_sandbox {
+            "Bitcoin Testnet"
+        } else {
+            "Bitcoin Mainnet"
+        };
         // Build a simple config using the given URL as both primary and backup.
         // When created from app Config via from_config(), both primary and backup are set properly.
         let api_config = BitcoinApiConfig {
@@ -24,20 +28,35 @@ impl BtcMonitor {
                 "https://mempool.space/api".to_string()
             },
         };
-        Self { api_config, network_name, is_sandbox }
+        Self {
+            api_config,
+            network_name,
+            is_sandbox,
+        }
     }
 
     /// Create from full app config (uses primary + backup from env).
     pub fn from_config(config: &crate::config::Config, is_sandbox: bool) -> Self {
-        let network_name = if is_sandbox { "Bitcoin Testnet" } else { "Bitcoin Mainnet" };
+        let network_name = if is_sandbox {
+            "Bitcoin Testnet"
+        } else {
+            "Bitcoin Mainnet"
+        };
         let api_config = BitcoinApiConfig::from_config(config, is_sandbox);
-        Self { api_config, network_name, is_sandbox }
+        Self {
+            api_config,
+            network_name,
+            is_sandbox,
+        }
     }
 
     /// Check if a Bitcoin address is valid for the current network
     pub fn is_address_valid_for_network(&self, address: &str) -> bool {
         if self.is_sandbox {
-            address.starts_with('m') || address.starts_with('n') || address.starts_with('2') || address.starts_with("tb1")
+            address.starts_with('m')
+                || address.starts_with('n')
+                || address.starts_with('2')
+                || address.starts_with("tb1")
         } else {
             address.starts_with('1') || address.starts_with('3') || address.starts_with("bc1")
         }
@@ -54,7 +73,9 @@ impl BlockchainMonitor for BtcMonitor {
         // Validate target address if provided
         if let Some(target) = target_address {
             if !self.is_address_valid_for_network(target) {
-                return Err(format!("Address {} is invalid for {}", target, self.network_name).into());
+                return Err(
+                    format!("Address {} is invalid for {}", target, self.network_name).into(),
+                );
             }
         }
 
@@ -66,7 +87,10 @@ impl BlockchainMonitor for BtcMonitor {
 
         // Blockstream API returns transaction details directly
         let status = data.get("status").ok_or("No status in response")?;
-        let confirmed = status.get("confirmed").and_then(|v| v.as_bool()).unwrap_or(false);
+        let confirmed = status
+            .get("confirmed")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
         let block_height = status.get("block_height").and_then(|v| v.as_u64());
         let timestamp_secs = status.get("block_time").and_then(|v| v.as_i64());
 
@@ -76,7 +100,8 @@ impl BlockchainMonitor for BtcMonitor {
 
         if let Some(vin) = data.get("vin").and_then(|v| v.as_array()) {
             if let Some(first_in) = vin.first() {
-                from_address = first_in.get("prevout")
+                from_address = first_in
+                    .get("prevout")
                     .and_then(|p| p.get("scriptpubkey_address"))
                     .and_then(|a| a.as_str())
                     .unwrap_or("unknown")
@@ -89,17 +114,22 @@ impl BlockchainMonitor for BtcMonitor {
             let mut found_target = false;
 
             for out in vout {
-                let addr = out.get("scriptpubkey_address")
+                let addr = out
+                    .get("scriptpubkey_address")
                     .and_then(|a| a.as_str())
                     .unwrap_or("");
-                
+
                 if !addr.is_empty() {
                     let matches = if let Some(target) = target_address {
                         addr == target
                     } else {
                         // If no target provided, we pick the first one with a valid address
                         // that isn't the return address (simplified heuristic: first one we find)
-                        if !found_target { true } else { false }
+                        if !found_target {
+                            true
+                        } else {
+                            false
+                        }
                     };
 
                     if matches {
@@ -124,7 +154,8 @@ impl BlockchainMonitor for BtcMonitor {
             _ => 0,
         };
 
-        let timestamp = timestamp_secs.and_then(|s| chrono::DateTime::from_timestamp(s, 0))
+        let timestamp = timestamp_secs
+            .and_then(|s| chrono::DateTime::from_timestamp(s, 0))
             .unwrap_or_else(chrono::Utc::now);
 
         Ok(BlockchainTransaction {
@@ -151,15 +182,16 @@ impl BlockchainMonitor for BtcMonitor {
             return Err(format!("Address {} is invalid for {}", address, self.network_name).into());
         }
 
-        info!(" Fetching {} transactions for address: {}", self.network_name, address);
+        info!(
+            " Fetching {} transactions for address: {}",
+            self.network_name, address
+        );
 
         let data = get_with_failover(&self.api_config, &format!("address/{}/txs", address))
             .await
             .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?;
 
-        let data: Vec<serde_json::Value> = data.as_array()
-            .cloned()
-            .unwrap_or_default();
+        let data: Vec<serde_json::Value> = data.as_array().cloned().unwrap_or_default();
 
         let mut transactions = Vec::new();
         for tx_data in data.iter().take(limit) {
@@ -167,12 +199,14 @@ impl BlockchainMonitor for BtcMonitor {
                 match self.get_transaction_details(txid, Some(address)).await {
                     Ok(tx) => {
                         if let Some(min_ts) = min_timestamp {
-                             if let Some(ts) = tx.timestamp {
-                                 if ts < min_ts { continue; }
-                             }
+                            if let Some(ts) = tx.timestamp {
+                                if ts < min_ts {
+                                    continue;
+                                }
+                            }
                         }
                         transactions.push(tx);
-                    },
+                    }
                     Err(e) => warn!("Failed to get BTC transaction {}: {}", txid, e),
                 }
             }
@@ -193,6 +227,7 @@ impl BtcMonitor {
             .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?;
 
         // The response is a plain number (JSON number)
-        data.as_u64().ok_or_else(|| "Invalid block height response".into())
+        data.as_u64()
+            .ok_or_else(|| "Invalid block height response".into())
     }
 }

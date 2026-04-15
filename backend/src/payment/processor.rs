@@ -7,10 +7,15 @@ use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
 use tracing::info;
 
+use super::models::{
+    CreatePaymentRequest, CryptoType, InvoiceItem, PaymentResponse, PaymentStatus,
+};
 use crate::error::ServiceError;
-use crate::services::{merchant_service::MerchantService, price_service::PriceService, invoice_service::InvoiceService, notification_service::NotificationService};
+use crate::services::{
+    invoice_service::InvoiceService, merchant_service::MerchantService,
+    notification_service::NotificationService, price_service::PriceService,
+};
 use std::sync::Arc;
-use super::models::{CreatePaymentRequest, PaymentResponse, PaymentStatus, CryptoType, InvoiceItem};
 
 use super::fee_calculator::FeeCalculator;
 
@@ -27,19 +32,24 @@ pub struct PaymentProcessor {
 
 impl PaymentProcessor {
     pub fn new(
-        db_pool: PgPool, 
-        _payment_page_base_url: String, 
-        price_service: Arc<PriceService>, 
-        invoice_service: Arc<InvoiceService>, 
-        audit_service: Arc<crate::services::audit_service::AuditService>, 
-        config: crate::config::Config, 
+        db_pool: PgPool,
+        _payment_page_base_url: String,
+        price_service: Arc<PriceService>,
+        invoice_service: Arc<InvoiceService>,
+        audit_service: Arc<crate::services::audit_service::AuditService>,
+        config: crate::config::Config,
         volume_tracking: Arc<crate::services::volume_tracking_service::VolumeTrackingService>,
         notification_service: Arc<NotificationService>,
     ) -> Self {
         Self {
             db_pool: db_pool.clone(),
             price_service,
-            merchant_service: MerchantService::new(db_pool, config.clone(), audit_service.clone(), volume_tracking.clone()),
+            merchant_service: MerchantService::new(
+                db_pool,
+                config.clone(),
+                audit_service.clone(),
+                volume_tracking.clone(),
+            ),
             invoice_service,
             audit_service,
             notification_service,
@@ -49,17 +59,17 @@ impl PaymentProcessor {
     }
 
     /// Create a new payment request for a merchant
-    /// 
+    ///
     /// Generates a unique payment ID, calculates crypto amount using real-time prices,
     /// calculates fees, and creates a payment record in the database.
-    /// 
+    ///
     /// # Arguments
     /// * `merchant_id` - ID of the merchant creating the payment
     /// * `request` - Payment creation request with amount, crypto type, etc.
-    /// 
+    ///
     /// # Returns
     /// * `PaymentResponse` with payment details including deposit address and payment link
-    /// 
+    ///
     /// # Requirements
     /// * 2.1: Generate unique payment identifier
     /// * 2.2: Calculate crypto amount using real-time exchange rates
@@ -72,12 +82,13 @@ impl PaymentProcessor {
         request: CreatePaymentRequest,
     ) -> Result<PaymentResponse, ServiceError> {
         // Validate that exactly one of amount or amount_usd is provided
-        request.validate()
+        request
+            .validate()
             .map_err(|e| ServiceError::ValidationError(e))?;
 
         // Generate unique payment ID (e.g., "pay_abc123xyz")
         let payment_id = self.generate_payment_id();
-        
+
         // Get merchant to retrieve fee percentage, preference and limits
         let merchant_res = sqlx::query(
             "SELECT fee_percentage, customer_pays_fee, sandbox_mode, kyc_verified, daily_limit_usd FROM merchants WHERE id = $1"
@@ -85,25 +96,33 @@ impl PaymentProcessor {
         .bind(merchant_id)
         .fetch_one(&self.db_pool)
         .await;
-        
+
         let merchant_row = merchant_res?;
-        
+
         use sqlx::Row;
         let fee_percentage: Decimal = merchant_row.get("fee_percentage");
         let customer_pays_fee: bool = merchant_row.get("customer_pays_fee");
         let is_sandbox: bool = merchant_row.get("sandbox_mode");
         let kyc_verified: bool = merchant_row.get("kyc_verified");
         let daily_limit_usd: Option<Decimal> = merchant_row.get("daily_limit_usd");
-        
+
         // Validate fee percentage is within acceptable bounds (0.1% - 5%)
         FeeCalculator::validate_fee_percentage(fee_percentage)?;
 
-        let (crypto_amount, amount_usd, fee_amount_crypto, fee_amount_usd, merchant_wallet, status, network) = 
-        if let Some(crypto_type) = request.crypto_type {
+        let (
+            crypto_amount,
+            amount_usd,
+            fee_amount_crypto,
+            fee_amount_usd,
+            merchant_wallet,
+            status,
+            network,
+        ) = if let Some(crypto_type) = request.crypto_type {
             // Case A: Specific crypto type provided - normal flow
-            
+
             // Get merchant's wallet address for this crypto type
-            let wallet = self.merchant_service
+            let wallet = self
+                .merchant_service
                 .get_wallet_address(merchant_id, crypto_type)
                 .await?;
 
@@ -113,10 +132,14 @@ impl PaymentProcessor {
             let (base_amount_usd, price_decimal) = if crypto_type.as_str() == "USDT" {
                 (crypto_amt, Decimal::ONE) // 1:1
             } else {
-                let crypto_price = self.price_service.get_price(crypto_type).await
+                let crypto_price = self
+                    .price_service
+                    .get_price(crypto_type)
+                    .await
                     .map_err(|e| ServiceError::Internal(format!("Failed to fetch price: {}", e)))?;
-                let price_decimal = Decimal::from_f64_retain(crypto_price)
-                    .ok_or_else(|| ServiceError::Internal("Invalid price conversion".to_string()))?;
+                let price_decimal = Decimal::from_f64_retain(crypto_price).ok_or_else(|| {
+                    ServiceError::Internal("Invalid price conversion".to_string())
+                })?;
                 (crypto_amt * price_decimal, price_decimal)
             };
 
@@ -133,29 +156,41 @@ impl PaymentProcessor {
                 match crypto_type.as_str() {
                     "SOL" => "Solana Devnet",
                     "ETH" => "Ethereum Sepolia",
-                    "BNB" => "BSC Testnet", 
+                    "BNB" => "BSC Testnet",
                     "MATIC" => "Polygon Amoy",
                     "ARB" => "Arbitrum Sepolia",
                     "USDT" => match crypto_type.network() {
                         "Solana" => "Solana Devnet",
                         "Ethereum" => "Ethereum Sepolia",
                         "BSC" => "BSC Testnet",
-                        "Polygon" => "Polygon Amoy", 
+                        "Polygon" => "Polygon Amoy",
                         "Arbitrum" => "Arbitrum Sepolia",
-                        _ => "Unknown Testnet"
+                        _ => "Unknown Testnet",
                     },
-                    _ => "Unknown Testnet"
+                    _ => "Unknown Testnet",
                 }
             } else {
                 crypto_type.network()
             };
 
-            (Some(final_crypto), final_usd, Some(fee_crypto), Some(fee_amount_usd), Some(wallet), PaymentStatus::Pending, Some(network.to_string()))
+            (
+                Some(final_crypto),
+                final_usd,
+                Some(fee_crypto),
+                Some(fee_amount_usd),
+                Some(wallet),
+                PaymentStatus::Pending,
+                Some(network.to_string()),
+            )
         } else {
             // Case B: No crypto type provided - multi-currency selection mode
-            let amount_usd = request.amount_usd.ok_or_else(|| ServiceError::ValidationError("amount_usd is required for multi-currency selection".to_string()))?;
+            let amount_usd = request.amount_usd.ok_or_else(|| {
+                ServiceError::ValidationError(
+                    "amount_usd is required for multi-currency selection".to_string(),
+                )
+            })?;
             let fee_amount_usd = FeeCalculator::calculate_fee_usd(amount_usd, fee_percentage);
-            
+
             // If customer pays fee, add it to the total USD.
             let total_amount_usd = if customer_pays_fee {
                 FeeCalculator::calculate_total_with_fee(amount_usd, fee_amount_usd)
@@ -163,17 +198,24 @@ impl PaymentProcessor {
                 amount_usd
             };
 
-            (None, total_amount_usd, None, Some(fee_amount_usd), None::<String>, PaymentStatus::SelectionRequired, None)
+            (
+                None,
+                total_amount_usd,
+                None,
+                Some(fee_amount_usd),
+                None::<String>,
+                PaymentStatus::SelectionRequired,
+                None,
+            )
         };
 
         // 5. ENFORCE DAILY VOLUME LIMIT for non-KYC merchants
         if !kyc_verified {
             let limit = daily_limit_usd.unwrap_or(self.config.daily_volume_limit_non_kyc_usd);
-            let remaining = self.merchant_service.get_daily_volume_remaining(
-                merchant_id,
-                kyc_verified,
-                daily_limit_usd
-            ).await?;
+            let remaining = self
+                .merchant_service
+                .get_daily_volume_remaining(merchant_id, kyc_verified, daily_limit_usd)
+                .await?;
 
             if amount_usd > remaining {
                 return Err(ServiceError::Forbidden(format!(
@@ -230,35 +272,33 @@ impl PaymentProcessor {
         .await?;
 
         // Generate payment link and QR code
-        let payment_link = format!("{}/{}", 
-            self.config.payment_page_base_url,
-            payment_id
-        );
-        
-        let qr_code_data = if let (Some(wallet), Some(amt)) = (merchant_wallet.as_ref(), crypto_amount) {
-            let prefix = request.crypto_type.as_ref().map(|ct: &crate::payment::models::CryptoType| ct.uri_scheme()).unwrap_or("ethereum");
-            Some(format!(
-                "{}:{}?amount={}",
-                prefix,
-                wallet,
-                amt
-            ))
-        } else {
-            None
-        };
-        
+        let payment_link = format!("{}/{}", self.config.payment_page_base_url, payment_id);
+
+        let qr_code_data =
+            if let (Some(wallet), Some(amt)) = (merchant_wallet.as_ref(), crypto_amount) {
+                let prefix = request
+                    .crypto_type
+                    .as_ref()
+                    .map(|ct: &crate::payment::models::CryptoType| ct.uri_scheme())
+                    .unwrap_or("ethereum");
+                Some(format!("{}:{}?amount={}", prefix, wallet, amt))
+            } else {
+                None
+            };
+
         // If it's an invoice, create the invoice record
         if request.is_invoice {
             if let Some(items) = request.items {
                 // Map local InvoiceItem to service's InvoiceItem
-                let service_items: Vec<crate::services::invoice_service::InvoiceItem> = items.into_iter().map(|i| {
-                    crate::services::invoice_service::InvoiceItem {
+                let service_items: Vec<crate::services::invoice_service::InvoiceItem> = items
+                    .into_iter()
+                    .map(|i| crate::services::invoice_service::InvoiceItem {
                         description: i.description,
                         quantity: i.quantity,
                         unit_price: i.unit_price,
                         amount: i.amount,
-                    }
-                }).collect();
+                    })
+                    .collect();
 
                 let invoice_req = crate::services::invoice_service::CreateInvoiceRequest {
                     customer_email: request.customer_email,
@@ -269,33 +309,43 @@ impl PaymentProcessor {
                     notes: request.notes,
                 };
 
-                if let Ok(invoice) = self.invoice_service.create_invoice(merchant_id, invoice_req).await {
+                if let Ok(invoice) = self
+                    .invoice_service
+                    .create_invoice(merchant_id, invoice_req)
+                    .await
+                {
                     // Link invoice to payment
-                    let update_res: Result<_, sqlx::Error> = sqlx::query(
-                        "UPDATE invoices SET payment_id = $1 WHERE invoice_id = $2"
-                    )
-                    .bind(&payment_id)
-                    .bind(&invoice.invoice_id)
-                    .execute(&self.db_pool)
-                    .await;
+                    let update_res: Result<_, sqlx::Error> =
+                        sqlx::query("UPDATE invoices SET payment_id = $1 WHERE invoice_id = $2")
+                            .bind(&payment_id)
+                            .bind(&invoice.invoice_id)
+                            .execute(&self.db_pool)
+                            .await;
                     let _ = update_res;
                 }
             }
         }
 
         // Generate persistent notification for the merchant
-        let _ = self.notification_service.create_notification(
-            merchant_id,
-            "🔗 Payment Link Created",
-            &format!("A new payment of {} {} has been generated (ID: {}).", 
-                crypto_amount.unwrap_or(Decimal::ZERO), 
-                request.crypto_type.map(|ct| ct.to_string()).unwrap_or_else(|| "USD".to_string()),
-                payment_id
-            ),
-            "info",
-            "payment.created",
-            is_sandbox
-        ).await;
+        let _ = self
+            .notification_service
+            .create_notification(
+                merchant_id,
+                "🔗 Payment Link Created",
+                &format!(
+                    "A new payment of {} {} has been generated (ID: {}).",
+                    crypto_amount.unwrap_or(Decimal::ZERO),
+                    request
+                        .crypto_type
+                        .map(|ct| ct.to_string())
+                        .unwrap_or_else(|| "USD".to_string()),
+                    payment_id
+                ),
+                "info",
+                "payment.created",
+                is_sandbox,
+            )
+            .await;
 
         Ok(PaymentResponse {
             payment_id,
@@ -325,9 +375,13 @@ impl PaymentProcessor {
     }
 
     /// Cancel a pending payment
-    pub async fn cancel_payment(&self, merchant_id: i64, payment_id: &str) -> Result<(), ServiceError> {
+    pub async fn cancel_payment(
+        &self,
+        merchant_id: i64,
+        payment_id: &str,
+    ) -> Result<(), ServiceError> {
         let payment_row = sqlx::query(
-            "SELECT status FROM payment_transactions WHERE payment_id = $1 AND merchant_id = $2"
+            "SELECT status FROM payment_transactions WHERE payment_id = $1 AND merchant_id = $2",
         )
         .bind(payment_id)
         .bind(merchant_id)
@@ -340,7 +394,9 @@ impl PaymentProcessor {
 
         // Only allow cancellation of pending/confirming/selection_required payments
         match current_status {
-            PaymentStatus::Pending | PaymentStatus::Confirming | PaymentStatus::SelectionRequired => {
+            PaymentStatus::Pending
+            | PaymentStatus::Confirming
+            | PaymentStatus::SelectionRequired => {
                 sqlx::query(
                     "UPDATE payment_transactions SET status = 'CANCELLED' WHERE payment_id = $1 AND merchant_id = $2"
                 )
@@ -349,10 +405,16 @@ impl PaymentProcessor {
                 .execute(&self.db_pool)
                 .await?;
 
-                info!("Payment {} cancelled by merchant {}", payment_id, merchant_id);
+                info!(
+                    "Payment {} cancelled by merchant {}",
+                    payment_id, merchant_id
+                );
                 Ok(())
             }
-            _ => Err(ServiceError::ValidationError(format!("Cannot cancel payment in {:?} state", current_status))),
+            _ => Err(ServiceError::ValidationError(format!(
+                "Cannot cancel payment in {:?} state",
+                current_status
+            ))),
         }
     }
 

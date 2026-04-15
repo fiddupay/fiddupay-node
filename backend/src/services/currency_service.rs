@@ -17,7 +17,9 @@ impl CurrencyService {
         Self { pool }
     }
 
-    pub async fn get_supported_currencies(&self) -> Vec<(&'static str, &'static str, &'static str, &'static str)> {
+    pub async fn get_supported_currencies(
+        &self,
+    ) -> Vec<(&'static str, &'static str, &'static str, &'static str)> {
         vec![
             // (crypto_type, currency_group, network_name, icon_url)
             ("USDT_ETH", "USDT", "ETHEREUM", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
@@ -38,7 +40,13 @@ impl CurrencyService {
 
     pub fn get_currency_children(&self, currency_group: &str) -> Vec<&'static str> {
         match currency_group {
-            "USDT" => vec!["USDT_ETH", "USDT_BEP20", "USDT_POLYGON", "USDT_ARBITRUM", "USDT_SPL"],
+            "USDT" => vec![
+                "USDT_ETH",
+                "USDT_BEP20",
+                "USDT_POLYGON",
+                "USDT_ARBITRUM",
+                "USDT_SPL",
+            ],
             "ETH" => vec!["ETH"],
             "ARB" => vec!["ARB"],
             "SOL" => vec!["SOL", "WSOL"],
@@ -74,12 +82,15 @@ impl CurrencyService {
         }
     }
 
-    pub async fn get_merchant_enabled_currencies(&self, merchant_id: i64) -> Vec<(&'static str, &'static str, &'static str, &'static str)> {
+    pub async fn get_merchant_enabled_currencies(
+        &self,
+        merchant_id: i64,
+    ) -> Vec<(&'static str, &'static str, &'static str, &'static str)> {
         let all_supported = self.get_supported_currencies().await;
-        
+
         // Fetch active wallets for this merchant
         let rows_res = sqlx::query(
-            "SELECT crypto_type FROM merchant_wallets WHERE merchant_id = $1 AND is_active = true"
+            "SELECT crypto_type FROM merchant_wallets WHERE merchant_id = $1 AND is_active = true",
         )
         .bind(merchant_id)
         .fetch_all(&self.pool)
@@ -92,19 +103,22 @@ impl CurrencyService {
         };
 
         // Filter supported list
-        all_supported.into_iter()
+        all_supported
+            .into_iter()
             .filter(|(crypto_type, group, _, _)| {
                 // Return true if this specific crypto is active
                 if active_wallets.contains(&crypto_type.to_string()) {
                     return true;
                 }
 
-                // Robustness: If this is part of a "sister" group (like Solana), 
+                // Robustness: If this is part of a "sister" group (like Solana),
                 // and any other member of that group is active, show this one too.
                 // This handles cases where backfilling hasn't happened yet.
                 if *group == "SOL" || *crypto_type == "USDT_SPL" {
                     let solana_siblings = vec!["SOL", "WSOL", "USDT_SPL"];
-                    return active_wallets.iter().any(|aw| solana_siblings.contains(&aw.as_str()));
+                    return active_wallets
+                        .iter()
+                        .any(|aw| solana_siblings.contains(&aw.as_str()));
                 }
 
                 false

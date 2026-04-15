@@ -22,12 +22,14 @@ pub type AppRateLimiter = Arc<RateLimiter<NotKeyed, InMemoryState, DefaultClock>
 
 /// Create a rate limiter with config
 pub fn create_rate_limiter(requests_per_minute: u32) -> AppRateLimiter {
-    let quota = Quota::per_minute(NonZeroU32::new(requests_per_minute).unwrap_or(NonZeroU32::new(100).unwrap()));
+    let quota = Quota::per_minute(
+        NonZeroU32::new(requests_per_minute).unwrap_or(NonZeroU32::new(100).unwrap()),
+    );
     Arc::new(RateLimiter::direct(quota))
 }
 
 /// Rate limiting middleware
-/// 
+///
 /// # Requirements
 /// * 7.3: Limit requests to 100 per minute per API key
 /// * 7.4: Return 429 when rate limit exceeded
@@ -49,7 +51,7 @@ pub async fn rate_limit_middleware(
                 axum::Json(json!({
                     "error": "Rate limit exceeded",
                     "message": "Too many requests. Limit: 100 requests per minute"
-                }))
+                })),
             ))
         }
     }

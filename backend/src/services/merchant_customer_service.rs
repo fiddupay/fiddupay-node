@@ -3,24 +3,24 @@
 
 use crate::error::ServiceError;
 use crate::models::merchant_customer::{
-    MerchantCustomer, MerchantCustomerWallet, CreateCustomerRequest, 
-    MerchantCustomerBalance, CustomerTransaction
+    CreateCustomerRequest, CustomerTransaction, MerchantCustomer, MerchantCustomerBalance,
+    MerchantCustomerWallet,
 };
 use crate::payment::models::CryptoType;
-use crate::utils::keygen::KeyGenerator;
 use crate::utils::encryption::Encryption;
-use sqlx::{PgPool, Row};
-use serde_json::json;
+use crate::utils::keygen::KeyGenerator;
 use rust_decimal::Decimal;
-use web3::types::U256;
+use serde_json::json;
+use sqlx::{PgPool, Row};
 use std::str::FromStr;
+use web3::types::U256;
 
 const CUSTOMER_COLS: &str = "id, merchant_id, external_id, email, first_name, last_name, metadata, is_active, status, status_reason, can_withdraw, withdrawal_limit, created_at, updated_at, sandbox_mode";
 
-use std::sync::Arc;
+use crate::services::notification_service::NotificationService;
 use crate::services::price_service::PriceService;
 use crate::services::volume_tracking_service::VolumeTrackingService;
-use crate::services::notification_service::NotificationService;
+use std::sync::Arc;
 
 pub struct MerchantCustomerService {
     db_pool: PgPool,
@@ -31,12 +31,17 @@ pub struct MerchantCustomerService {
 
 impl MerchantCustomerService {
     pub fn new(
-        db_pool: PgPool, 
-        price_service: Arc<PriceService>, 
+        db_pool: PgPool,
+        price_service: Arc<PriceService>,
         volume_tracking: Arc<VolumeTrackingService>,
         notification_service: Arc<NotificationService>,
     ) -> Self {
-        Self { db_pool, price_service, volume_tracking, notification_service }
+        Self {
+            db_pool,
+            price_service,
+            volume_tracking,
+            notification_service,
+        }
     }
 
     // =========================================================================
@@ -46,7 +51,9 @@ impl MerchantCustomerService {
     /// Check if a customer can perform the given action. Returns the customer if OK.
     fn check_permissions(customer: &MerchantCustomer, action: &str) -> Result<(), ServiceError> {
         if !customer.is_active {
-            return Err(ServiceError::ValidationError("Customer account is deactivated".to_string()));
+            return Err(ServiceError::ValidationError(
+                "Customer account is deactivated".to_string(),
+            ));
         }
 
         match customer.status.as_str() {
@@ -60,30 +67,37 @@ impl MerchantCustomerService {
                         customer.status_reason.as_deref().unwrap_or("Under review")
                     ))),
                 }
-            },
-            "suspended" | "blocked" => {
-                Err(ServiceError::ValidationError(format!(
-                    "Customer account is {}: {}",
-                    customer.status,
-                    customer.status_reason.as_deref().unwrap_or("Contact support")
-                )))
-            },
+            }
+            "suspended" | "blocked" => Err(ServiceError::ValidationError(format!(
+                "Customer account is {}: {}",
+                customer.status,
+                customer
+                    .status_reason
+                    .as_deref()
+                    .unwrap_or("Contact support")
+            ))),
             _ => Ok(()),
         }
     }
 
     /// Additional check for withdrawal-specific permissions
-    fn check_withdrawal_permissions(customer: &MerchantCustomer, amount: Decimal) -> Result<(), ServiceError> {
+    fn check_withdrawal_permissions(
+        customer: &MerchantCustomer,
+        amount: Decimal,
+    ) -> Result<(), ServiceError> {
         Self::check_permissions(customer, "withdraw")?;
 
         if !customer.can_withdraw {
-            return Err(ServiceError::ValidationError("Withdrawals are disabled for this customer".to_string()));
+            return Err(ServiceError::ValidationError(
+                "Withdrawals are disabled for this customer".to_string(),
+            ));
         }
 
         if let Some(limit) = customer.withdrawal_limit {
             if amount > limit {
                 return Err(ServiceError::ValidationError(format!(
-                    "Amount {} exceeds withdrawal limit of {}", amount, limit
+                    "Amount {} exceeds withdrawal limit of {}",
+                    amount, limit
                 )));
             }
         }
@@ -92,7 +106,12 @@ impl MerchantCustomerService {
     }
 
     /// Fetch and validate a customer
-    async fn get_verified_customer(&self, merchant_id: i64, external_id: &str, sandbox_mode: bool) -> Result<MerchantCustomer, ServiceError> {
+    async fn get_verified_customer(
+        &self,
+        merchant_id: i64,
+        external_id: &str,
+        sandbox_mode: bool,
+    ) -> Result<MerchantCustomer, ServiceError> {
         let customer = sqlx::query_as::<_, MerchantCustomer>(
             &format!("SELECT {} FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2 AND sandbox_mode = $3", CUSTOMER_COLS)
         )
@@ -142,20 +161,39 @@ impl MerchantCustomerService {
         .await?;
 
         // Auto-provision wallets using merchant's supported networks
-        let wallets = self.provision_wallets(merchant_id, &customer.external_id, vec![], sandbox_mode, true).await
+        let wallets = self
+            .provision_wallets(
+                merchant_id,
+                &customer.external_id,
+                vec![],
+                sandbox_mode,
+                true,
+            )
+            .await
             .unwrap_or_else(|e| {
-                tracing::warn!("Auto-provision wallets failed for customer {}: {}", customer.external_id, e);
+                tracing::warn!(
+                    "Auto-provision wallets failed for customer {}: {}",
+                    customer.external_id,
+                    e
+                );
                 vec![]
             });
 
-        let _ = self.notification_service.create_notification(
-            merchant_id,
-            "🎉 New Customer Registered",
-            &format!("Customer {} ({}) has been successfully registered.", req.external_id, req.email.as_deref().unwrap_or("No email")),
-            "success",
-            "customer.registered",
-            sandbox_mode
-        ).await;
+        let _ = self
+            .notification_service
+            .create_notification(
+                merchant_id,
+                "🎉 New Customer Registered",
+                &format!(
+                    "Customer {} ({}) has been successfully registered.",
+                    req.external_id,
+                    req.email.as_deref().unwrap_or("No email")
+                ),
+                "success",
+                "customer.registered",
+                sandbox_mode,
+            )
+            .await;
 
         Ok((customer, wallets))
     }
@@ -169,7 +207,9 @@ impl MerchantCustomerService {
         sandbox_mode: bool,
         bypass_lock: bool,
     ) -> Result<Vec<MerchantCustomerWallet>, ServiceError> {
-        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
+        let customer = self
+            .get_verified_customer(merchant_id, external_id, sandbox_mode)
+            .await?;
 
         let encryption = Encryption::new()
             .map_err(|e| ServiceError::InternalError(format!("Encryption setup failed: {}", e)))?;
@@ -183,7 +223,7 @@ impl MerchantCustomerService {
             .bind(sandbox_mode)
             .fetch_all(&self.db_pool)
             .await?;
-            
+
             if merchant_networks.is_empty() {
                 merchant_networks = sqlx::query_scalar::<_, String>(
                     "SELECT DISTINCT network FROM merchant_forwarding_wallets WHERE merchant_id = $1 AND sandbox_mode = $2 AND is_active = true"
@@ -193,11 +233,15 @@ impl MerchantCustomerService {
                 .fetch_all(&self.db_pool)
                 .await?;
             }
-            
+
             if merchant_networks.is_empty() {
-                merchant_networks = vec!["EVM".to_string(), "SOLANA".to_string(), "BITCOIN".to_string()];
+                merchant_networks = vec![
+                    "EVM".to_string(),
+                    "SOLANA".to_string(),
+                    "BITCOIN".to_string(),
+                ];
             }
-            
+
             networks = merchant_networks;
         }
 
@@ -206,69 +250,108 @@ impl MerchantCustomerService {
         for network_type in networks {
             let normalized = network_type.to_uppercase();
             match normalized.as_str() {
-                "EVM" | "ETH" | "ERC20" | "BSC" | "BEP20" | "POLYGON" | "MATIC" | "ARB" | "ARBITRUM" | "NATIVE" | "ETHEREUM" | 
-                "USDT_ETH" | "USDT_BEP20" | "BUSD_BEP20" | "USDT_POLYGON" | "USDT_ARBITRUM" | "BNB" => {
-                    if wallets.iter().any(|w| w.network.to_uppercase() == "ETHEREUM") {
+                "EVM" | "ETH" | "ERC20" | "BSC" | "BEP20" | "POLYGON" | "MATIC" | "ARB"
+                | "ARBITRUM" | "NATIVE" | "ETHEREUM" | "USDT_ETH" | "USDT_BEP20" | "BUSD_BEP20"
+                | "USDT_POLYGON" | "USDT_ARBITRUM" | "BNB" => {
+                    if wallets
+                        .iter()
+                        .any(|w| w.network.to_uppercase() == "ETHEREUM")
+                    {
                         continue;
                     }
-                    
+
                     let keypair = KeyGenerator::generate_evm_wallet()?;
-                    let encrypted_key = encryption.encrypt(&keypair.private_key)
-                        .map_err(|e| ServiceError::InternalError(format!("Encryption failed: {}", e)))?;
+                    let encrypted_key = encryption.encrypt(&keypair.private_key).map_err(|e| {
+                        ServiceError::InternalError(format!("Encryption failed: {}", e))
+                    })?;
 
                     let evm_cryptos = vec![
-                        CryptoType::Eth, CryptoType::UsdtEth,
-                        CryptoType::Bnb, CryptoType::UsdtBep20, CryptoType::BusdBep20,
-                        CryptoType::Matic, CryptoType::UsdtPolygon,
-                        CryptoType::Arb, CryptoType::UsdtArbitrum,
+                        CryptoType::Eth,
+                        CryptoType::UsdtEth,
+                        CryptoType::Bnb,
+                        CryptoType::UsdtBep20,
+                        CryptoType::BusdBep20,
+                        CryptoType::Matic,
+                        CryptoType::UsdtPolygon,
+                        CryptoType::Arb,
+                        CryptoType::UsdtArbitrum,
                     ];
 
                     for crypto in evm_cryptos {
-                        let wallet = self.save_customer_wallet(
-                            customer.id, merchant_id, crypto,
-                            keypair.address.clone(), encrypted_key.clone(),
-                            sandbox_mode, bypass_lock,
-                        ).await?;
+                        let wallet = self
+                            .save_customer_wallet(
+                                customer.id,
+                                merchant_id,
+                                crypto,
+                                keypair.address.clone(),
+                                encrypted_key.clone(),
+                                sandbox_mode,
+                                bypass_lock,
+                            )
+                            .await?;
                         wallets.push(wallet);
                     }
-                },
-                "SOLANA" | "SOL" | "SPL" | "SOLANA_SPL" | "SOLANA_MAINNET" | "SOLANA_DEVNET" | "USDT_SPL" | "WSOL" => {
+                }
+                "SOLANA" | "SOL" | "SPL" | "SOLANA_SPL" | "SOLANA_MAINNET" | "SOLANA_DEVNET"
+                | "USDT_SPL" | "WSOL" => {
                     if wallets.iter().any(|w| w.network.to_uppercase() == "SOLANA") {
                         continue;
                     }
 
                     let keypair = KeyGenerator::generate_solana_wallet()?;
-                    let encrypted_key = encryption.encrypt(&keypair.private_key)
-                        .map_err(|e| ServiceError::InternalError(format!("Encryption failed: {}", e)))?;
+                    let encrypted_key = encryption.encrypt(&keypair.private_key).map_err(|e| {
+                        ServiceError::InternalError(format!("Encryption failed: {}", e))
+                    })?;
 
                     let sol_cryptos = vec![CryptoType::Sol, CryptoType::UsdtSpl];
 
                     for crypto in sol_cryptos {
-                        let wallet = self.save_customer_wallet(
-                            customer.id, merchant_id, crypto,
-                            keypair.address.clone(), encrypted_key.clone(),
-                            sandbox_mode, bypass_lock,
-                        ).await?;
+                        let wallet = self
+                            .save_customer_wallet(
+                                customer.id,
+                                merchant_id,
+                                crypto,
+                                keypair.address.clone(),
+                                encrypted_key.clone(),
+                                sandbox_mode,
+                                bypass_lock,
+                            )
+                            .await?;
                         wallets.push(wallet);
                     }
-                },
+                }
                 "BITCOIN" | "BTC" | "BITCOIN_MAINNET" | "BITCOIN_TESTNET" => {
-                    if wallets.iter().any(|w| w.network.to_uppercase() == "BITCOIN") {
+                    if wallets
+                        .iter()
+                        .any(|w| w.network.to_uppercase() == "BITCOIN")
+                    {
                         continue;
                     }
 
                     let keypair = KeyGenerator::generate_btc_wallet(sandbox_mode)?;
-                    let encrypted_key = encryption.encrypt(&keypair.private_key)
-                        .map_err(|e| ServiceError::InternalError(format!("Encryption failed: {}", e)))?;
+                    let encrypted_key = encryption.encrypt(&keypair.private_key).map_err(|e| {
+                        ServiceError::InternalError(format!("Encryption failed: {}", e))
+                    })?;
 
-                    let wallet = self.save_customer_wallet(
-                        customer.id, merchant_id, CryptoType::Btc,
-                        keypair.address.clone(), encrypted_key.clone(),
-                        sandbox_mode, bypass_lock,
-                    ).await?;
+                    let wallet = self
+                        .save_customer_wallet(
+                            customer.id,
+                            merchant_id,
+                            CryptoType::Btc,
+                            keypair.address.clone(),
+                            encrypted_key.clone(),
+                            sandbox_mode,
+                            bypass_lock,
+                        )
+                        .await?;
                     wallets.push(wallet);
-                },
-                _ => return Err(ServiceError::ValidationError(format!("Unsupported network type: {}", network_type))),
+                }
+                _ => {
+                    return Err(ServiceError::ValidationError(format!(
+                        "Unsupported network type: {}",
+                        network_type
+                    )))
+                }
             }
         }
 
@@ -302,12 +385,17 @@ impl MerchantCustomerService {
             .fetch_all(&self.db_pool)
             .await?
         } else {
-            return Err(ServiceError::BadRequest("Must provide customer_ids or set all_customers to true".to_string()));
+            return Err(ServiceError::BadRequest(
+                "Must provide customer_ids or set all_customers to true".to_string(),
+            ));
         };
 
         let mut success_count = 0;
         for ext_id in external_ids {
-            match self.provision_wallets(merchant_id, &ext_id, vec![], sandbox_mode, true).await {
+            match self
+                .provision_wallets(merchant_id, &ext_id, vec![], sandbox_mode, true)
+                .await
+            {
                 Ok(_) => success_count += 1,
                 Err(e) => tracing::warn!("Bulk provision failed for customer {}: {}", ext_id, e),
             }
@@ -331,12 +419,15 @@ impl MerchantCustomerService {
 
         tracing::info!(
             "save_customer_wallet: customer={}, merchant={}, crypto={}, sandbox={}",
-            customer_id, merchant_id, crypto_str, sandbox_mode
+            customer_id,
+            merchant_id,
+            crypto_str,
+            sandbox_mode
         );
 
         // 1. Check if customer wallets are locked for this merchant
         let customer_wallets_locked = sqlx::query_scalar::<_, bool>(
-            "SELECT customer_wallets_locked FROM merchants WHERE id = $1"
+            "SELECT customer_wallets_locked FROM merchants WHERE id = $1",
         )
         .bind(merchant_id)
         .fetch_one(&self.db_pool)
@@ -364,7 +455,11 @@ impl MerchantCustomerService {
         .await
         .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
-        if current_wallet.is_none() && has_existing_wallets && customer_wallets_locked && !bypass_lock {
+        if current_wallet.is_none()
+            && has_existing_wallets
+            && customer_wallets_locked
+            && !bypass_lock
+        {
             tracing::warn!("Blocked new currency provisioning for existing customer {} (customer wallets locked)", customer_id);
             return Err(ServiceError::BadRequest(
                 "Customer wallets are locked. Please unlock in settings to provision new currencies for this user.".to_string()
@@ -377,9 +472,13 @@ impl MerchantCustomerService {
 
             if current_address != address {
                 if customer_wallets_locked {
-                    tracing::warn!("Blocked customer wallet change for merchant {} (customer wallets locked)", merchant_id);
+                    tracing::warn!(
+                        "Blocked customer wallet change for merchant {} (customer wallets locked)",
+                        merchant_id
+                    );
                     return Err(ServiceError::BadRequest(
-                        "Customer wallets are locked. Please unlock in settings to change.".to_string()
+                        "Customer wallets are locked. Please unlock in settings to change."
+                            .to_string(),
                     ));
                 }
 
@@ -397,7 +496,7 @@ impl MerchantCustomerService {
                         encrypted_private_key, reason
                     )
                     VALUES ($1, $2, 'customer', $3, $4, $5, $6, 'managed', $7, $8)
-                    "#
+                    "#,
                 )
                 .bind(merchant_id)
                 .bind(customer_id)
@@ -503,7 +602,9 @@ impl MerchantCustomerService {
         crypto_type_str: &str,
         sandbox_mode: bool,
     ) -> Result<String, ServiceError> {
-        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
+        let customer = self
+            .get_verified_customer(merchant_id, external_id, sandbox_mode)
+            .await?;
         Self::check_permissions(&customer, "view")?;
 
         let wallet = sqlx::query_as::<_, MerchantCustomerWallet>(
@@ -527,7 +628,9 @@ impl MerchantCustomerService {
         offset: i64,
         sandbox_mode: bool,
     ) -> Result<(Vec<CustomerTransaction>, i64), ServiceError> {
-        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
+        let customer = self
+            .get_verified_customer(merchant_id, external_id, sandbox_mode)
+            .await?;
         Self::check_permissions(&customer, "view")?;
 
         let total: i64 = sqlx::query_scalar::<_, i64>(
@@ -569,22 +672,23 @@ impl MerchantCustomerService {
         sandbox_mode: bool,
     ) -> Result<(Vec<MerchantCustomer>, i64), ServiceError> {
         let total_count: i64 = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM merchant_customers WHERE merchant_id = $1 AND sandbox_mode = $2"
+            "SELECT COUNT(*) FROM merchant_customers WHERE merchant_id = $1 AND sandbox_mode = $2",
         )
         .bind(merchant_id)
         .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await?;
 
-        let customers = sqlx::query_as::<_, MerchantCustomer>(
-            &format!(r#"
+        let customers = sqlx::query_as::<_, MerchantCustomer>(&format!(
+            r#"
             SELECT {} 
             FROM merchant_customers 
             WHERE merchant_id = $1 AND sandbox_mode = $2
             ORDER BY created_at DESC 
             LIMIT $3 OFFSET $4
-            "#, CUSTOMER_COLS)
-        )
+            "#,
+            CUSTOMER_COLS
+        ))
         .bind(merchant_id)
         .bind(sandbox_mode)
         .bind(limit)
@@ -599,8 +703,6 @@ impl MerchantCustomerService {
     // Transaction Operations (with permission checks)
     // =========================================================================
 
-
-
     /// Customer pays merchant — real on-chain transaction
     pub async fn pay_merchant(
         &self,
@@ -612,23 +714,31 @@ impl MerchantCustomerService {
         description: Option<&str>,
         sandbox_mode: bool,
     ) -> Result<CustomerTransaction, ServiceError> {
-        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
-        
+        let customer = self
+            .get_verified_customer(merchant_id, external_id, sandbox_mode)
+            .await?;
+
         // Normalize crypto type
         let crypto_enum = CryptoType::from_string(crypto_type_str)?;
-        if crypto_enum == CryptoType::Eth && crypto_type_str.to_uppercase() != "ETH" && crypto_type_str.to_uppercase() != "ETHEREUM" {
-             // Basic validation since from_string defaults to Pending
-             if !crypto_type_str.to_uppercase().contains("ETH") {
-                  // Fallback for actual strict parsing if we wanted it
-             }
+        if crypto_enum == CryptoType::Eth
+            && crypto_type_str.to_uppercase() != "ETH"
+            && crypto_type_str.to_uppercase() != "ETHEREUM"
+        {
+            // Basic validation since from_string defaults to Pending
+            if !crypto_type_str.to_uppercase().contains("ETH") {
+                // Fallback for actual strict parsing if we wanted it
+            }
         }
         let normalized_crypto = crypto_enum.to_string();
 
-        let amount = Decimal::from_str(amount_str)
-            .map_err(|_| ServiceError::ValidationError(format!("Invalid amount format: {}", amount_str)))?;
+        let amount = Decimal::from_str(amount_str).map_err(|_| {
+            ServiceError::ValidationError(format!("Invalid amount format: {}", amount_str))
+        })?;
 
         if amount <= Decimal::ZERO {
-             return Err(ServiceError::ValidationError("Payment amount must be greater than zero".to_string()));
+            return Err(ServiceError::ValidationError(
+                "Payment amount must be greater than zero".to_string(),
+            ));
         }
 
         // 2. Get customer's wallet (need private key for on-chain tx)
@@ -652,7 +762,8 @@ impl MerchantCustomerService {
         .fetch_optional(&self.db_pool)
         .await?;
 
-        let merchant_address = merchant_wallet_address.unwrap_or_else(|| "Internal Ledger".to_string());
+        let merchant_address =
+            merchant_wallet_address.unwrap_or_else(|| "Internal Ledger".to_string());
 
         // 4. Check customer balance (locked for update in transaction)
         let mut tx = self.db_pool.begin().await?;
@@ -667,7 +778,7 @@ impl MerchantCustomerService {
         .await?;
 
         match balance {
-            Some(b) if b.available_balance >= amount => {},
+            Some(b) if b.available_balance >= amount => {}
             _ => return Err(ServiceError::InsufficientFunds(normalized_crypto.clone())),
         }
 
@@ -704,9 +815,11 @@ impl MerchantCustomerService {
         let tx_desc = description.unwrap_or("Payment to merchant").to_string();
 
         // Calculate USD amount
-        let ct_enum = crate::payment::models::CryptoType::from_string(&normalized_crypto).unwrap_or(crate::payment::models::CryptoType::Bnb);
+        let ct_enum = crate::payment::models::CryptoType::from_string(&normalized_crypto)
+            .unwrap_or(crate::payment::models::CryptoType::Bnb);
         let price = self.price_service.get_price(ct_enum).await.unwrap_or(0.0);
-        let amount_usd = (amount * Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO)).round_dp(2);
+        let amount_usd =
+            (amount * Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO)).round_dp(2);
 
         let customer_tx = sqlx::query_as::<_, CustomerTransaction>(
             r#"
@@ -736,12 +849,14 @@ impl MerchantCustomerService {
             "reference_id": reference_id.unwrap_or(""),
             "description": description.unwrap_or("")
         });
-        sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
-            .bind(merchant_id)
-            .bind("customer.payment")
-            .bind(&audit_details)
-            .execute(&mut *tx)
-            .await?;
+        sqlx::query(
+            "INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)",
+        )
+        .bind(merchant_id)
+        .bind("customer.payment")
+        .bind(&audit_details)
+        .execute(&mut *tx)
+        .await?;
 
         tx.commit().await?;
 
@@ -760,16 +875,20 @@ impl MerchantCustomerService {
         sandbox_mode: bool,
         config: &crate::config::Config,
     ) -> Result<Vec<(String, Decimal)>, ServiceError> {
-        let customer = self.get_verified_customer(merchant_id, external_id, sandbox_mode).await?;
+        let customer = self
+            .get_verified_customer(merchant_id, external_id, sandbox_mode)
+            .await?;
 
         let mut target_cryptos: Vec<String> = Vec::new();
         let mode_str = req.sweep_mode.to_uppercase();
-        
+
         if mode_str == "SPECIFIC" {
             if let Some(types) = &req.crypto_types {
                 target_cryptos = types.clone();
             } else {
-                return Err(ServiceError::ValidationError("Must specify crypto_types if sweep_mode is SPECIFIC".to_string()));
+                return Err(ServiceError::ValidationError(
+                    "Must specify crypto_types if sweep_mode is SPECIFIC".to_string(),
+                ));
             }
         }
 
@@ -782,17 +901,23 @@ impl MerchantCustomerService {
         .await?;
 
         if locked_balances.is_empty() {
-             return Err(ServiceError::ValidationError("No locked funds available to sweep".to_string()));
+            return Err(ServiceError::ValidationError(
+                "No locked funds available to sweep".to_string(),
+            ));
         }
 
         let mut balances_to_sweep = Vec::new();
         for b in locked_balances {
             let crypto_enum = CryptoType::from_string(&b.crypto_type).unwrap_or(CryptoType::Eth);
-            
+
             let is_stablecoin = matches!(
-                crypto_enum, 
-                CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtSpl | 
-                CryptoType::UsdtPolygon | CryptoType::UsdtEth | CryptoType::BusdBep20
+                crypto_enum,
+                CryptoType::UsdtBep20
+                    | CryptoType::UsdtArbitrum
+                    | CryptoType::UsdtSpl
+                    | CryptoType::UsdtPolygon
+                    | CryptoType::UsdtEth
+                    | CryptoType::BusdBep20
             );
 
             let should_sweep = match mode_str.as_str() {
@@ -800,23 +925,28 @@ impl MerchantCustomerService {
                 "NATIVE_ONLY" => crypto_enum.is_native_currency(),
                 "STABLE_ONLY" => is_stablecoin,
                 _ => target_cryptos.iter().any(|c| {
-                    CryptoType::from_string(c).map(|ct| ct.to_string()).unwrap_or_default() == crypto_enum.to_string()
+                    CryptoType::from_string(c)
+                        .map(|ct| ct.to_string())
+                        .unwrap_or_default()
+                        == crypto_enum.to_string()
                 }),
             };
-            
+
             if should_sweep {
                 balances_to_sweep.push(b);
             }
         }
-        
+
         if balances_to_sweep.is_empty() {
-            return Err(ServiceError::ValidationError("No matching funds available to sweep for the requested criteria".to_string()));
+            return Err(ServiceError::ValidationError(
+                "No matching funds available to sweep for the requested criteria".to_string(),
+            ));
         }
 
         // Calculate total USD volume for this sweep and check limits
         let mut total_sweep_usd = Decimal::ZERO;
         let mut sweep_item_details = Vec::new();
-        
+
         for b in &balances_to_sweep {
             let amount = if mode_str == "SPECIFIC" && target_cryptos.len() == 1 {
                 if let Some(ref amt_str) = req.amount {
@@ -827,32 +957,38 @@ impl MerchantCustomerService {
             } else {
                 b.locked_balance
             };
-            
+
             if amount <= Decimal::ZERO || b.locked_balance < amount {
                 continue;
             }
 
             let c_type = CryptoType::from_string(&b.crypto_type).unwrap_or(CryptoType::Eth);
             let price = self.price_service.get_price(c_type).await.unwrap_or(0.0);
-            let item_usd = (amount * Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO)).round_dp(2);
-            
+            let item_usd =
+                (amount * Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO)).round_dp(2);
+
             total_sweep_usd += item_usd;
             sweep_item_details.push((b.id, amount, item_usd));
         }
 
         // Fetch merchant KYC status and limit
-        let merchant_row = sqlx::query("SELECT kyc_verified, daily_limit_usd FROM merchants WHERE id = $1")
-            .bind(merchant_id)
-            .fetch_one(&self.db_pool)
-            .await?;
-        
+        let merchant_row =
+            sqlx::query("SELECT kyc_verified, daily_limit_usd FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&self.db_pool)
+                .await?;
+
         let kyc_verified: bool = merchant_row.get("kyc_verified");
         let daily_limit_usd: Option<Decimal> = merchant_row.get("daily_limit_usd");
 
         if !kyc_verified {
             let limit = daily_limit_usd.unwrap_or(config.daily_volume_limit_non_kyc_usd);
-            let remaining = self.volume_tracking.get_remaining_daily_volume(merchant_id, limit, kyc_verified).await?.unwrap_or(Decimal::ZERO);
-            
+            let remaining = self
+                .volume_tracking
+                .get_remaining_daily_volume(merchant_id, limit, kyc_verified)
+                .await?
+                .unwrap_or(Decimal::ZERO);
+
             if total_sweep_usd > remaining {
                 return Err(ServiceError::Forbidden(format!(
                     "Daily volume limit exceeded. This sweep would cost ${}, but you only have ${} remaining today. Please complete KYC to remove this limit.",
@@ -866,7 +1002,9 @@ impl MerchantCustomerService {
 
         for balance_record in balances_to_sweep {
             // Find the pre-calculated USD amount for this record
-            let item_detail = sweep_item_details.iter().find(|(id, _, _)| *id == balance_record.id);
+            let item_detail = sweep_item_details
+                .iter()
+                .find(|(id, _, _)| *id == balance_record.id);
             let amount_usd = item_detail.map(|(_, _, usd)| *usd).unwrap_or(Decimal::ZERO);
 
             let amount = if mode_str == "SPECIFIC" && target_cryptos.len() == 1 {
@@ -878,14 +1016,15 @@ impl MerchantCustomerService {
             } else {
                 balance_record.locked_balance
             };
-            
+
             if amount <= Decimal::ZERO || balance_record.locked_balance < amount {
                 continue;
             }
 
             let normalized_crypto = balance_record.crypto_type.clone();
-            let crypto_enum = CryptoType::from_string(&normalized_crypto).unwrap_or(CryptoType::Eth);
-            
+            let crypto_enum =
+                CryptoType::from_string(&normalized_crypto).unwrap_or(CryptoType::Eth);
+
             let mut fee_to_save = Decimal::ZERO;
 
             if !crypto_enum.is_native_currency() {
@@ -899,14 +1038,26 @@ impl MerchantCustomerService {
                 };
 
                 let sender = crate::services::blockchain_transaction_sender::BlockchainTransactionSender::new(config.clone());
-                let gas_price = sender.get_current_gas_price(crypto_enum.clone(), sandbox_mode).await.unwrap_or(web3::types::U256::from(50_000_000_000u64));
-                let estimated_gas_limit = sender.estimate_gas(crypto_enum.clone(), "", "", amount).await.unwrap_or(web3::types::U256::from(65000));
+                let gas_price = sender
+                    .get_current_gas_price(crypto_enum.clone(), sandbox_mode)
+                    .await
+                    .unwrap_or(web3::types::U256::from(50_000_000_000u64));
+                let estimated_gas_limit = sender
+                    .estimate_gas(crypto_enum.clone(), "", "", amount)
+                    .await
+                    .unwrap_or(web3::types::U256::from(65000));
                 let required_native_u128 = (gas_price * estimated_gas_limit).as_u128();
-                
-                let divisor = if native_currency == "SOL" { 1_000_000_000f64 } else { 1_000_000_000_000_000_000f64 };
-                let mut required_gas_dec = Decimal::from_f64_retain(required_native_u128 as f64 / divisor).unwrap_or(Decimal::new(25, 4));
+
+                let divisor = if native_currency == "SOL" {
+                    1_000_000_000f64
+                } else {
+                    1_000_000_000_000_000_000f64
+                };
+                let mut required_gas_dec =
+                    Decimal::from_f64_retain(required_native_u128 as f64 / divisor)
+                        .unwrap_or(Decimal::new(25, 4));
                 required_gas_dec.rescale(6);
-                
+
                 let customer_wallet_address: String = sqlx::query_scalar(
                     "SELECT address FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 LIMIT 1"
                 )
@@ -917,14 +1068,16 @@ impl MerchantCustomerService {
                 .await?
                 .unwrap_or_default();
 
-                let native_enum = CryptoType::from_string(native_currency).unwrap_or(CryptoType::Eth);
+                let native_enum =
+                    CryptoType::from_string(native_currency).unwrap_or(CryptoType::Eth);
                 // get_native_balance returns U256 (raw smallest unit). Convert to Decimal for comparison.
-                let onchain_raw_u256 = sender.get_native_balance(native_enum, &customer_wallet_address, sandbox_mode)
+                let onchain_raw_u256 = sender
+                    .get_native_balance(native_enum, &customer_wallet_address, sandbox_mode)
                     .await
                     .unwrap_or(U256::zero());
-                let onchain_native_balance = Decimal::from_f64_retain(
-                    onchain_raw_u256.low_u128() as f64 / divisor
-                ).unwrap_or(Decimal::ZERO);
+                let onchain_native_balance =
+                    Decimal::from_f64_retain(onchain_raw_u256.low_u128() as f64 / divisor)
+                        .unwrap_or(Decimal::ZERO);
 
                 // 1. Calculate Merchant/Customer balances assigned to this sub-wallet
                 let db_customer_native: Decimal = sqlx::query_scalar(
@@ -932,7 +1085,7 @@ impl MerchantCustomerService {
                     SELECT COALESCE(SUM(available_balance + locked_balance + reserved_balance), 0)
                     FROM merchant_customer_balances 
                     WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3
-                    "#
+                    "#,
                 )
                 .bind(customer.id)
                 .bind(native_currency)
@@ -968,12 +1121,27 @@ impl MerchantCustomerService {
                 let mut gas_to_deduct = required_gas_dec;
                 if unallocated_dust >= required_gas_dec {
                     gas_to_deduct = Decimal::ZERO;
-                    tracing::info!("Sweep gas fully covered by unallocated dust {} {} for customer {}", unallocated_dust, native_currency, customer.id);
+                    tracing::info!(
+                        "Sweep gas fully covered by unallocated dust {} {} for customer {}",
+                        unallocated_dust,
+                        native_currency,
+                        customer.id
+                    );
                 } else if unallocated_dust > Decimal::ZERO {
                     gas_to_deduct = required_gas_dec - unallocated_dust;
-                    tracing::info!("Sweep gas partially covered. Total: {}, Dust: {}, Deficit: {} {}", required_gas_dec, unallocated_dust, gas_to_deduct, native_currency);
+                    tracing::info!(
+                        "Sweep gas partially covered. Total: {}, Dust: {}, Deficit: {} {}",
+                        required_gas_dec,
+                        unallocated_dust,
+                        gas_to_deduct,
+                        native_currency
+                    );
                 } else {
-                    tracing::info!("No gas dust available. Charging full estimate {} {}", gas_to_deduct, native_currency);
+                    tracing::info!(
+                        "No gas dust available. Charging full estimate {} {}",
+                        gas_to_deduct,
+                        native_currency
+                    );
                 }
 
                 fee_to_save = gas_to_deduct;
@@ -1037,9 +1205,11 @@ impl MerchantCustomerService {
             .fetch_optional(&mut *tx)
             .await?;
 
-            let merchant_address = merchant_wallet_address.unwrap_or_else(|| "Internal Ledger".to_string());
+            let merchant_address =
+                merchant_wallet_address.unwrap_or_else(|| "Internal Ledger".to_string());
 
-            let withdrawal_id = format!("swp_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
+            let withdrawal_id =
+                format!("swp_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));
             sqlx::query(
                 r#"
                 INSERT INTO withdrawals (
@@ -1084,12 +1254,14 @@ impl MerchantCustomerService {
                 "crypto_type": &normalized_crypto,
                 "withdrawal_id": withdrawal_id
             });
-            sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
-                .bind(merchant_id)
-                .bind("customer.sweep")
-                .bind(&audit_details)
-                .execute(&mut *tx)
-                .await?;
+            sqlx::query(
+                "INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)",
+            )
+            .bind(merchant_id)
+            .bind("customer.sweep")
+            .bind(&audit_details)
+            .execute(&mut *tx)
+            .await?;
 
             swept_results.push((normalized_crypto, amount));
         }
@@ -1113,18 +1285,24 @@ impl MerchantCustomerService {
     ) -> Result<MerchantCustomer, ServiceError> {
         // Validate status value
         match status {
-            "active" | "flagged" | "suspended" | "blocked" => {},
-            _ => return Err(ServiceError::ValidationError(format!("Invalid status: {}. Use: active, flagged, suspended, blocked", status))),
+            "active" | "flagged" | "suspended" | "blocked" => {}
+            _ => {
+                return Err(ServiceError::ValidationError(format!(
+                    "Invalid status: {}. Use: active, flagged, suspended, blocked",
+                    status
+                )))
+            }
         }
 
-        let customer = sqlx::query_as::<_, MerchantCustomer>(
-            &format!(r#"
+        let customer = sqlx::query_as::<_, MerchantCustomer>(&format!(
+            r#"
             UPDATE merchant_customers 
             SET status = $3, status_reason = $4, updated_at = NOW()
             WHERE merchant_id = $1 AND external_id = $2 AND sandbox_mode = $5
             RETURNING {}
-            "#, CUSTOMER_COLS)
-        )
+            "#,
+            CUSTOMER_COLS
+        ))
         .bind(merchant_id)
         .bind(external_id)
         .bind(status)
@@ -1132,19 +1310,23 @@ impl MerchantCustomerService {
         .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await
-        .map_err(|_| ServiceError::ValidationError(format!("Customer {} not found", external_id)))?;
+        .map_err(|_| {
+            ServiceError::ValidationError(format!("Customer {} not found", external_id))
+        })?;
 
         let audit_details = serde_json::json!({
             "customer_external_id": external_id,
             "status": status,
             "reason": reason.unwrap_or("")
         });
-        let _ = sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
-            .bind(merchant_id)
-            .bind("customer.status_updated")
-            .bind(&audit_details)
-            .execute(&self.db_pool)
-            .await;
+        let _ = sqlx::query(
+            "INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)",
+        )
+        .bind(merchant_id)
+        .bind("customer.status_updated")
+        .bind(&audit_details)
+        .execute(&self.db_pool)
+        .await;
 
         Ok(customer)
     }
@@ -1157,16 +1339,17 @@ impl MerchantCustomerService {
         withdrawal_limit: Option<Decimal>,
         sandbox_mode: bool,
     ) -> Result<MerchantCustomer, ServiceError> {
-        let customer = sqlx::query_as::<_, MerchantCustomer>(
-            &format!(r#"
+        let customer = sqlx::query_as::<_, MerchantCustomer>(&format!(
+            r#"
             UPDATE merchant_customers 
             SET can_withdraw = COALESCE($3, can_withdraw),
                 withdrawal_limit = COALESCE($4, withdrawal_limit),
                 updated_at = NOW()
             WHERE merchant_id = $1 AND external_id = $2 AND sandbox_mode = $5
             RETURNING {}
-            "#, CUSTOMER_COLS)
-        )
+            "#,
+            CUSTOMER_COLS
+        ))
         .bind(merchant_id)
         .bind(external_id)
         .bind(can_withdraw)
@@ -1174,19 +1357,23 @@ impl MerchantCustomerService {
         .bind(sandbox_mode)
         .fetch_one(&self.db_pool)
         .await
-        .map_err(|_| ServiceError::ValidationError(format!("Customer {} not found", external_id)))?;
+        .map_err(|_| {
+            ServiceError::ValidationError(format!("Customer {} not found", external_id))
+        })?;
 
         let audit_details = serde_json::json!({
             "customer_external_id": external_id,
             "can_withdraw": can_withdraw,
             "withdrawal_limit": withdrawal_limit.map(|l| l.to_string())
         });
-        let _ = sqlx::query("INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)")
-            .bind(merchant_id)
-            .bind("customer.permissions_updated")
-            .bind(&audit_details)
-            .execute(&self.db_pool)
-            .await;
+        let _ = sqlx::query(
+            "INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)",
+        )
+        .bind(merchant_id)
+        .bind("customer.permissions_updated")
+        .bind(&audit_details)
+        .execute(&self.db_pool)
+        .await;
 
         Ok(customer)
     }
@@ -1217,8 +1404,11 @@ impl MerchantCustomerService {
                     .execute(&self.db_pool)
                     .await;
                 Ok(())
-            },
-            Ok(_) => Err(ServiceError::ValidationError(format!("Customer {} not found", external_id))),
+            }
+            Ok(_) => Err(ServiceError::ValidationError(format!(
+                "Customer {} not found",
+                external_id
+            ))),
             Err(e) => Err(ServiceError::DatabaseError(e.to_string())),
         }
     }
@@ -1237,7 +1427,7 @@ impl MerchantCustomerService {
                 COUNT(*) FILTER (WHERE status = 'flagged') as flagged
             FROM merchant_customers
             WHERE merchant_id = $1 AND sandbox_mode = $2
-            "#
+            "#,
         )
         .bind(merchant_id)
         .bind(sandbox_mode)
@@ -1264,7 +1454,7 @@ impl MerchantCustomerService {
             FROM merchant_customer_balances
             WHERE merchant_id = $1 AND sandbox_mode = $2
             GROUP BY crypto_type
-            "#
+            "#,
         )
         .bind(merchant_id)
         .bind(sandbox_mode)
@@ -1275,9 +1465,13 @@ impl MerchantCustomerService {
         for row in balance_rows {
             let crypto_type_str: String = row.get("crypto_type");
             let amount: Decimal = row.get("total_amount");
-            
+
             if let Ok(crypto_type) = CryptoType::from_string(&crypto_type_str) {
-                let price = self.price_service.get_price(crypto_type).await.unwrap_or(0.0);
+                let price = self
+                    .price_service
+                    .get_price(crypto_type)
+                    .await
+                    .unwrap_or(0.0);
                 let price_dec = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
                 total_balance_usd += (amount * price_dec).round_dp(2);
             }
@@ -1297,7 +1491,7 @@ fn mask_email(email: &str) -> String {
     if let Some(pos) = email.find('@') {
         let (name, domain) = email.split_at(pos);
         if name.len() > 6 {
-            format!("{}...{}{}", &name[..3], &name[name.len()-3..], domain)
+            format!("{}...{}{}", &name[..3], &name[name.len() - 3..], domain)
         } else {
             format!("***{}", domain)
         }
@@ -1308,7 +1502,7 @@ fn mask_email(email: &str) -> String {
 
 fn mask_address(addr: &str) -> String {
     if addr.len() > 10 {
-        format!("{}...{}", &addr[..6], &addr[addr.len()-4..])
+        format!("{}...{}", &addr[..6], &addr[addr.len() - 4..])
     } else {
         addr.to_string()
     }

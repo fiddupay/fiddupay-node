@@ -9,8 +9,8 @@
 //   cargo run --bin eth_test_util -- ETH 0x399e9971ddff89ee537744e5cde976e94ce2f2034b9fb54e1b2ba06d94c701fc
 
 use fiddupay::config::Config;
-use fiddupay::payment::models::CryptoType;
 use fiddupay::payment::blockchain_monitor::get_blockchain_monitor;
+use fiddupay::payment::models::CryptoType;
 use std::env;
 
 #[tokio::main]
@@ -44,13 +44,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("╚══════════════════════════════════════════════════════╝");
     println!("  Network  : {}", crypto_type.network());
     println!("  Asset    : {}", crypto_type);
-    println!("  Mode     : {}", if sandbox { "Sandbox" } else { "Mainnet" });
+    println!(
+        "  Mode     : {}",
+        if sandbox { "Sandbox" } else { "Mainnet" }
+    );
     println!("  TXID     : {}", txid);
     println!("  Token    : {:?}", crypto_type.token_address());
     println!();
 
     println!("▶  Fetching transaction details...");
-    
+
     // We pass None for target_address because EvmMonitor relies on its internal parsed token matches
     let monitor = get_blockchain_monitor(&crypto_type, config, sandbox);
 
@@ -61,7 +64,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             println!("     To         : {}", tx.to_address);
             println!("     Amount     : {} {}", tx.amount, crypto_type.as_str());
             println!("     Success    : {}", tx.success);
-            println!("     Confirmed  : {}", if tx.confirmations >= 1 { "true" } else { "false" });
+            println!(
+                "     Confirmed  : {}",
+                if tx.confirmations >= 1 {
+                    "true"
+                } else {
+                    "false"
+                }
+            );
             println!("     Confs      : {}", tx.confirmations);
             println!("     Block      : {:?}", tx.block_number);
         }

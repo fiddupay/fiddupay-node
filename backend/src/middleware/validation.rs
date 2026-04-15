@@ -11,9 +11,7 @@ use serde_json::json;
 use validator::{Validate, ValidationErrors};
 
 /// Validation middleware for JSON payloads
-pub async fn validation_middleware<T>(
-    Json(payload): Json<T>,
-) -> Result<Json<T>, ValidationError>
+pub async fn validation_middleware<T>(Json(payload): Json<T>) -> Result<Json<T>, ValidationError>
 where
     T: Validate,
 {
@@ -43,7 +41,11 @@ impl IntoResponse for ValidationError {
             .iter()
             .flat_map(|(field, errors)| {
                 errors.iter().map(move |error| {
-                    format!("{}: {}", field, error.message.as_ref().unwrap_or(&"Invalid value".into()))
+                    format!(
+                        "{}: {}",
+                        field,
+                        error.message.as_ref().unwrap_or(&"Invalid value".into())
+                    )
                 })
             })
             .collect();
@@ -53,8 +55,9 @@ impl IntoResponse for ValidationError {
             Json(json!({
                 "error": "Validation failed",
                 "details": error_messages
-            }))
-        ).into_response()
+            })),
+        )
+            .into_response()
     }
 }
 
@@ -74,7 +77,7 @@ pub async fn request_size_middleware(
                         Json(json!({
                             "error": "Request too large",
                             "max_size": MAX_REQUEST_SIZE
-                        }))
+                        })),
                     ));
                 }
             }
@@ -85,53 +88,73 @@ pub async fn request_size_middleware(
 }
 
 /// Security headers middleware
-pub async fn security_headers_middleware(
-    request: Request,
-    next: Next,
-) -> Response {
+pub async fn security_headers_middleware(request: Request, next: Next) -> Response {
     let mut response = next.run(request).await;
-    
+
     let headers = response.headers_mut();
-    
+
     // Prevent XSS attacks
     headers.insert("X-Content-Type-Options", "nosniff".parse().unwrap());
     headers.insert("X-Frame-Options", "DENY".parse().unwrap());
     headers.insert("X-XSS-Protection", "1; mode=block".parse().unwrap());
-    
+
     // HTTPS enforcement
-    headers.insert("Strict-Transport-Security", "max-age=31536000; includeSubDomains".parse().unwrap());
-    
+    headers.insert(
+        "Strict-Transport-Security",
+        "max-age=31536000; includeSubDomains".parse().unwrap(),
+    );
+
     // Content Security Policy
-    headers.insert("Content-Security-Policy", 
-        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'".parse().unwrap());
-    
+    headers.insert(
+        "Content-Security-Policy",
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+            .parse()
+            .unwrap(),
+    );
+
     // Referrer policy
-    headers.insert("Referrer-Policy", "strict-origin-when-cross-origin".parse().unwrap());
-    
+    headers.insert(
+        "Referrer-Policy",
+        "strict-origin-when-cross-origin".parse().unwrap(),
+    );
+
     response
 }
 
 /// Password strength validation
 pub fn validate_password_strength(password: &str) -> Result<(), validator::ValidationError> {
     let mut score = 0;
-    
+
     // Length check
-    if password.len() >= 8 { score += 1; }
-    if password.len() >= 12 { score += 1; }
-    
-    // Character variety
-    if password.chars().any(|c| c.is_lowercase()) { score += 1; }
-    if password.chars().any(|c| c.is_uppercase()) { score += 1; }
-    if password.chars().any(|c| c.is_numeric()) { score += 1; }
-    if password.chars().any(|c| !c.is_alphanumeric()) { score += 1; }
-    
-    // Common patterns
-    if !password.to_lowercase().contains("password") &&
-       !password.to_lowercase().contains("123456") &&
-       !password.to_lowercase().contains("qwerty") {
+    if password.len() >= 8 {
         score += 1;
     }
-    
+    if password.len() >= 12 {
+        score += 1;
+    }
+
+    // Character variety
+    if password.chars().any(|c| c.is_lowercase()) {
+        score += 1;
+    }
+    if password.chars().any(|c| c.is_uppercase()) {
+        score += 1;
+    }
+    if password.chars().any(|c| c.is_numeric()) {
+        score += 1;
+    }
+    if password.chars().any(|c| !c.is_alphanumeric()) {
+        score += 1;
+    }
+
+    // Common patterns
+    if !password.to_lowercase().contains("password")
+        && !password.to_lowercase().contains("123456")
+        && !password.to_lowercase().contains("qwerty")
+    {
+        score += 1;
+    }
+
     if score >= 5 {
         Ok(())
     } else {
@@ -143,65 +166,77 @@ pub fn validate_password_strength(password: &str) -> Result<(), validator::Valid
 pub fn validate_business_email(email: &str) -> Result<(), validator::ValidationError> {
     // Block common disposable email domains
     let disposable_domains = [
-        "10minutemail.com", "tempmail.org", "guerrillamail.com",
-        "mailinator.com", "yopmail.com", "temp-mail.org"
+        "10minutemail.com",
+        "tempmail.org",
+        "guerrillamail.com",
+        "mailinator.com",
+        "yopmail.com",
+        "temp-mail.org",
     ];
-    
+
     if let Some(domain) = email.split('@').nth(1) {
         if disposable_domains.contains(&domain.to_lowercase().as_str()) {
-            return Err(validator::ValidationError::new("Disposable email addresses not allowed"));
+            return Err(validator::ValidationError::new(
+                "Disposable email addresses not allowed",
+            ));
         }
     }
-    
+
     Ok(())
 }
 
 /// URL validation for webhooks
 pub fn validate_webhook_url(url: &str) -> Result<(), validator::ValidationError> {
     use url::Url;
-    
-    let parsed = Url::parse(url)
-        .map_err(|_| validator::ValidationError::new("Invalid URL format"))?;
-    
+
+    let parsed =
+        Url::parse(url).map_err(|_| validator::ValidationError::new("Invalid URL format"))?;
+
     // Must be HTTPS
     if parsed.scheme() != "https" {
-        return Err(validator::ValidationError::new("Webhook URL must use HTTPS"));
+        return Err(validator::ValidationError::new(
+            "Webhook URL must use HTTPS",
+        ));
     }
-    
+
     // Check for private/localhost IPs to prevent SSRF
     if let Some(host) = parsed.host_str() {
         if is_private_or_localhost(host) {
-            return Err(validator::ValidationError::new("Private IP addresses not allowed"));
+            return Err(validator::ValidationError::new(
+                "Private IP addresses not allowed",
+            ));
         }
     }
-    
+
     Ok(())
 }
 
 /// Check if host is private IP or localhost
 fn is_private_or_localhost(host: &str) -> bool {
     use std::net::IpAddr;
-    
+
     // Check for localhost names
     if host == "localhost" || host == "127.0.0.1" || host == "::1" {
         return true;
     }
-    
+
     // Parse as IP and check if private
     if let Ok(ip) = host.parse::<IpAddr>() {
         match ip {
             IpAddr::V4(ipv4) => {
-                ipv4.is_private() || ipv4.is_loopback() || ipv4.is_link_local() || ipv4.is_unspecified()
+                ipv4.is_private()
+                    || ipv4.is_loopback()
+                    || ipv4.is_link_local()
+                    || ipv4.is_unspecified()
             }
             IpAddr::V6(ipv6) => {
                 // Adjust to standard methods where available, keeping fallback compatibility
                 ipv6.is_loopback() || 
                 ipv6.segments()[0] & 0xfe00 == 0xfc00 || // Unique local (fc00::/7)
-                (ipv6.segments()[0] & 0xffc0) == 0xfe80  // Link-local (fe80::/10)
+                (ipv6.segments()[0] & 0xffc0) == 0xfe80 // Link-local (fe80::/10)
             }
         }
     } else {
         false
     }
 }
-

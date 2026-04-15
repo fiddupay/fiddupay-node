@@ -1,22 +1,19 @@
-use fiddupay::{
-    config::Config,
-    utils::encryption::Encryption,
-};
-use sqlx::postgres::PgPoolOptions;
+use fiddupay::{config::Config, utils::encryption::Encryption};
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{
-    signature::{Keypair, Signer},
     pubkey::Pubkey,
+    signature::{Keypair, Signer},
     system_instruction,
     transaction::Transaction,
 };
+use sqlx::postgres::PgPoolOptions;
 use std::env;
 use std::str::FromStr;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv().ok();
-    
+
     // Load config
     let config = Config::from_env()?;
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL not set");
@@ -32,29 +29,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     // 2. Fetch the record
-    let record = sqlx::query("SELECT encrypted_private_key FROM merchant_wallet_history WHERE id = $1")
-        .bind(history_id)
-        .fetch_optional(&pool)
-        .await?;
+    let record =
+        sqlx::query("SELECT encrypted_private_key FROM merchant_wallet_history WHERE id = $1")
+            .bind(history_id)
+            .fetch_optional(&pool)
+            .await?;
 
     let record = match record {
         Some(r) => r,
         None => {
-            println!("❌ Record with ID {} not found in merchant_wallet_history", history_id);
+            println!(
+                "❌ Record with ID {} not found in merchant_wallet_history",
+                history_id
+            );
             return Ok(());
         }
     };
 
     use sqlx::Row;
     let encrypted_key: String = record.get("encrypted_private_key");
-    
+
     // Default to Mainnet for history withdrawal unless specified
     let force_devnet = env::var("SOLANA_NETWORK").unwrap_or_default() == "devnet";
     let sandbox_mode = force_devnet;
 
     // 3. Decrypt key
     let encryption = Encryption::new().map_err(|e| format!("Encryption init failed: {}", e))?;
-    let private_key = encryption.decrypt(&encrypted_key).map_err(|e| format!("Decryption failed: {}", e))?;
+    let private_key = encryption
+        .decrypt(&encrypted_key)
+        .map_err(|e| format!("Decryption failed: {}", e))?;
 
     // 4. Initialize Solana Client
     let rpc_url = if sandbox_mode {
@@ -76,7 +79,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 6. Check Balance
     let balance = rpc_client.get_balance(&sender_pubkey).await?;
-    println!("💰 Current Balance: {} lamports ({} SOL)", balance, balance as f64 / 1_000_000_000.0);
+    println!(
+        "💰 Current Balance: {} lamports ({} SOL)",
+        balance,
+        balance as f64 / 1_000_000_000.0
+    );
 
     if balance == 0 {
         println!("⚠️ Balance is 0. Nothing to withdraw.");
@@ -85,13 +92,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 7. Get Fee
     let recent_blockhash = rpc_client.get_latest_blockhash().await?;
-    
+
     // Create a dummy message to estimate fee
     let message = solana_sdk::message::Message::new(
-        &[system_instruction::transfer(&sender_pubkey, &to_pubkey, balance)],
+        &[system_instruction::transfer(
+            &sender_pubkey,
+            &to_pubkey,
+            balance,
+        )],
         Some(&sender_pubkey),
     );
-    let fee = rpc_client.get_fee_for_message(&message).await.unwrap_or(5000);
+    let fee = rpc_client
+        .get_fee_for_message(&message)
+        .await
+        .unwrap_or(5000);
     println!("💸 Estimated Fee: {} lamports", fee);
 
     if balance <= fee {
@@ -100,7 +114,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let transfer_amount = balance - fee;
-    println!("✨ Transferring: {} lamports ({} SOL)", transfer_amount, transfer_amount as f64 / 1_000_000_000.0);
+    println!(
+        "✨ Transferring: {} lamports ({} SOL)",
+        transfer_amount,
+        transfer_amount as f64 / 1_000_000_000.0
+    );
 
     // 8. Create and Send Transaction
     let instruction = system_instruction::transfer(&sender_pubkey, &to_pubkey, transfer_amount);
@@ -130,8 +148,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let signature = rpc_client.send_and_confirm_transaction(&tx).await?;
     println!("🎉 Withdrawal successful!");
     println!("🔗 Signature: {}", signature);
-    println!("🔍 View on Explorer: https://explorer.solana.com/tx/{}?cluster={}", 
-        signature, if sandbox_mode { "devnet" } else { "mainnet-beta" });
+    println!(
+        "🔍 View on Explorer: https://explorer.solana.com/tx/{}?cluster={}",
+        signature,
+        if sandbox_mode {
+            "devnet"
+        } else {
+            "mainnet-beta"
+        }
+    );
 
     Ok(())
 }

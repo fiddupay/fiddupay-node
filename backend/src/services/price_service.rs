@@ -1,14 +1,14 @@
 use crate::payment::models::CryptoType;
 use crate::payment::price_fetcher::PriceFetcher;
+use futures::future::BoxFuture;
+use futures::future::Shared;
+use futures::FutureExt;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{info, warn};
-use futures::FutureExt;
-use futures::future::BoxFuture;
-use futures::future::Shared;
 
 #[derive(Clone)]
 pub struct PriceCache {
@@ -31,7 +31,14 @@ pub struct PriceService {
     failure_threshold: u32,
     failure_reset_duration: Duration,
     config: crate::config::Config,
-    in_flight_requests: Arc<RwLock<HashMap<String, futures::future::Shared<futures::future::BoxFuture<'static, Result<f64, String>>>>>>,
+    in_flight_requests: Arc<
+        RwLock<
+            HashMap<
+                String,
+                futures::future::Shared<futures::future::BoxFuture<'static, Result<f64, String>>>,
+            >,
+        >,
+    >,
 }
 
 impl PriceService {
@@ -65,7 +72,7 @@ impl PriceService {
             return Ok(price);
         }
 
-        // 3. Fallback to fetch only if absolutely necessary 
+        // 3. Fallback to fetch only if absolutely necessary
         // In the new model, this is only hit if background polling hasn't finished yet
         let shared_future = {
             let mut in_flight = self.in_flight_requests.write().await;
@@ -76,25 +83,30 @@ impl PriceService {
                 let key_clone = cache_key.clone();
                 let future = async move {
                     let res = service.fetch_price(crypto_type).await;
-                    
+
                     if let Ok(price) = res {
                         // Update singleton and cache concurrently
                         let mut p_map = service.prices.write().await;
                         p_map.insert(crypto_type, price);
 
                         let mut cache = service.cache.write().await;
-                        cache.insert(key_clone.clone(), PriceCache {
-                            price,
-                            timestamp: Instant::now(),
-                        });
+                        cache.insert(
+                            key_clone.clone(),
+                            PriceCache {
+                                price,
+                                timestamp: Instant::now(),
+                            },
+                        );
                     }
-                    
+
                     let mut in_flight = service.in_flight_requests.write().await;
                     in_flight.remove(&key_clone);
-                    
+
                     res
-                }.boxed().shared();
-                
+                }
+                .boxed()
+                .shared();
+
                 in_flight.insert(cache_key, future.clone());
                 future
             }
@@ -109,7 +121,7 @@ impl PriceService {
         let service = self.clone();
         tokio::spawn(async move {
             info!("[PRICE] High-Performance Background Sync initialized");
-            
+
             // Immediate warmup on start
             let _ = service.warmup_prices().await;
 
@@ -130,7 +142,7 @@ impl PriceService {
             CryptoType::Bnb,
             CryptoType::Btc,
         ];
-        
+
         for crypto in cryptos {
             // Fetch fresh price
             match self.fetch_price(crypto).await {
@@ -174,16 +186,21 @@ impl PriceService {
 
     async fn record_api_failure(&self, api_name: &str) {
         let mut tracker = self.failure_tracker.write().await;
-        let failure_info = tracker.entry(api_name.to_string()).or_insert(ApiFailureTracker {
-            failure_count: 0,
-            last_failure: Instant::now(),
-        });
-        
+        let failure_info = tracker
+            .entry(api_name.to_string())
+            .or_insert(ApiFailureTracker {
+                failure_count: 0,
+                last_failure: Instant::now(),
+            });
+
         failure_info.failure_count += 1;
         failure_info.last_failure = Instant::now();
-        
+
         if failure_info.failure_count >= self.failure_threshold {
-            warn!("[PRICE] API {} marked as failed after {} failures", api_name, failure_info.failure_count);
+            warn!(
+                "[PRICE] API {} marked as failed after {} failures",
+                api_name, failure_info.failure_count
+            );
         }
     }
 
@@ -200,9 +217,12 @@ impl PriceService {
             CryptoType::Matic => self.fetch_matic_price().await,
             CryptoType::Bnb => self.fetch_bnb_price().await,
             CryptoType::Btc => self.fetch_btc_price().await,
-            CryptoType::UsdtSpl | CryptoType::UsdtBep20 | CryptoType::UsdtEth | CryptoType::UsdtPolygon | CryptoType::UsdtArbitrum | CryptoType::BusdBep20 => {
-                Ok(1.0)
-            }
+            CryptoType::UsdtSpl
+            | CryptoType::UsdtBep20
+            | CryptoType::UsdtEth
+            | CryptoType::UsdtPolygon
+            | CryptoType::UsdtArbitrum
+            | CryptoType::BusdBep20 => Ok(1.0),
         }
     }
 
@@ -297,13 +317,16 @@ impl PriceService {
     }
 
     async fn fetch_from_coingecko(&self, coin_id: &str) -> Option<f64> {
-        let url = format!("https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=usd", coin_id);
+        let url = format!(
+            "https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=usd",
+            coin_id
+        );
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
             .user_agent("Mozilla/5.0 (compatible; FidduPay/1.0)")
             .build()
             .ok()?;
-        
+
         match client.get(&url).send().await {
             Ok(resp) => {
                 if !resp.status().is_success() {
@@ -320,7 +343,10 @@ impl PriceService {
     }
 
     async fn fetch_from_cryptocompare(&self, symbol: &str) -> Option<f64> {
-        let url = format!("https://min-api.cryptocompare.com/data/price?fsym={}&tsyms=USD", symbol);
+        let url = format!(
+            "https://min-api.cryptocompare.com/data/price?fsym={}&tsyms=USD",
+            symbol
+        );
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
             .user_agent("Mozilla/5.0 (compatible; FidduPay/1.0)")

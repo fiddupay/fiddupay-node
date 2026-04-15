@@ -3,31 +3,19 @@
 
 use crate::config::Config;
 use crate::services::{
-    analytics_service::AnalyticsService,
-    merchant_customer_service::MerchantCustomerService,
-    merchant_service::MerchantService,
-    payment_service::PaymentService,
-    refund_service::RefundService,
-    sandbox_service::SandboxService,
-    admin_service::AdminService,
-    webhook_service::WebhookService,
-    ip_whitelist_service::IpWhitelistService,
-    audit_service::AuditService,
-    balance_service::BalanceService,
-    withdrawal_service::WithdrawalService,
-    wallet_config_service::WalletConfigService,
-    currency_service::CurrencyService,
-    price_service::PriceService,
-    volume_tracking_service::VolumeTrackingService,
-    invoice_service::InvoiceService,
-    p2p_service::P2pService,
-    report_service::ReportService,
-    notification_service::NotificationService,
-    monitoring_service::MonitoringService,
+    admin_service::AdminService, analytics_service::AnalyticsService, audit_service::AuditService,
+    balance_service::BalanceService, currency_service::CurrencyService,
+    invoice_service::InvoiceService, ip_whitelist_service::IpWhitelistService,
+    merchant_customer_service::MerchantCustomerService, merchant_service::MerchantService,
+    monitoring_service::MonitoringService, notification_service::NotificationService,
+    p2p_service::P2pService, payment_service::PaymentService, price_service::PriceService,
+    refund_service::RefundService, report_service::ReportService, sandbox_service::SandboxService,
+    volume_tracking_service::VolumeTrackingService, wallet_config_service::WalletConfigService,
+    webhook_service::WebhookService, withdrawal_service::WithdrawalService,
 };
+use redis::Client as RedisClient;
 use sqlx::PgPool;
 use std::sync::Arc;
-use redis::Client as RedisClient;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -58,51 +46,64 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(
-        db_pool: PgPool,
-        config: Config,
-        redis_client: RedisClient,
-    ) -> Self {
-        let webhook_service = Arc::new(WebhookService::new(db_pool.clone(), config.webhook_signing_key.clone()));
-        
+    pub fn new(db_pool: PgPool, config: Config, redis_client: RedisClient) -> Self {
+        let webhook_service = Arc::new(WebhookService::new(
+            db_pool.clone(),
+            config.webhook_signing_key.clone(),
+        ));
+
         let price_service = Arc::new(PriceService::new(config.clone()));
         price_service.start_background_polling();
-        
+
         let invoice_service = Arc::new(InvoiceService::new(db_pool.clone()));
         let balance_service = Arc::new(BalanceService::new(db_pool.clone(), price_service.clone()));
 
         let audit_service = Arc::new(AuditService::new(db_pool.clone()));
         let volume_tracking_service = Arc::new(VolumeTrackingService::new(db_pool.clone()));
-        let merchant_service = Arc::new(MerchantService::new(db_pool.clone(), config.clone(), audit_service.clone(), volume_tracking_service.clone()));
-        
-        let notification_service = Arc::new(NotificationService::new(db_pool.clone()));
-        
-        let merchant_customer_service = Arc::new(crate::services::merchant_customer_service::MerchantCustomerService::new(
+        let merchant_service = Arc::new(MerchantService::new(
             db_pool.clone(),
-            price_service.clone(),
+            config.clone(),
+            audit_service.clone(),
             volume_tracking_service.clone(),
-            notification_service.clone(),
         ));
 
-        let monitoring_service = Arc::new(MonitoringService::new(db_pool.clone(), config.clone(), redis_client.clone()));
+        let notification_service = Arc::new(NotificationService::new(db_pool.clone()));
+
+        let merchant_customer_service = Arc::new(
+            crate::services::merchant_customer_service::MerchantCustomerService::new(
+                db_pool.clone(),
+                price_service.clone(),
+                volume_tracking_service.clone(),
+                notification_service.clone(),
+            ),
+        );
+
+        let monitoring_service = Arc::new(MonitoringService::new(
+            db_pool.clone(),
+            config.clone(),
+            redis_client.clone(),
+        ));
         monitoring_service.clone().start_polling();
 
         Self {
             merchant_service,
             payment_service: Arc::new(PaymentService::new(
-                db_pool.clone(), 
-                &config.payment_page_base_url, 
-                price_service.clone(), 
-                invoice_service.clone(), 
-                audit_service.clone(), 
-                &config.webhook_signing_key, 
-                config.clone(), 
-                redis_client.clone(), 
+                db_pool.clone(),
+                &config.payment_page_base_url,
+                price_service.clone(),
+                invoice_service.clone(),
+                audit_service.clone(),
+                &config.webhook_signing_key,
+                config.clone(),
+                redis_client.clone(),
                 volume_tracking_service.clone(),
-                notification_service.clone()
+                notification_service.clone(),
             )),
             refund_service: Arc::new(RefundService::new(db_pool.clone(), webhook_service.clone())),
-            analytics_service: Arc::new(AnalyticsService::new(db_pool.clone(), price_service.clone())),
+            analytics_service: Arc::new(AnalyticsService::new(
+                db_pool.clone(),
+                price_service.clone(),
+            )),
             sandbox_service: Arc::new(SandboxService::new(db_pool.clone(), config.clone())),
             admin_service: Arc::new(AdminService::new(db_pool.clone())),
             webhook_service: webhook_service.clone(),
@@ -110,14 +111,12 @@ impl AppState {
             audit_service,
             balance_service: balance_service.clone(),
             withdrawal_service: Arc::new(WithdrawalService::new(
-                db_pool.clone(), 
-                price_service.clone(), 
-                volume_tracking_service.clone(), 
-                config.clone()
+                db_pool.clone(),
+                price_service.clone(),
+                volume_tracking_service.clone(),
+                config.clone(),
             )),
-            wallet_config_service: Arc::new(WalletConfigService::new(
-                db_pool.clone()
-            )),
+            wallet_config_service: Arc::new(WalletConfigService::new(db_pool.clone())),
             currency_service: Arc::new(CurrencyService::new(db_pool.clone())),
             price_service,
             volume_tracking_service,

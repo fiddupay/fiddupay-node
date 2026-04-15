@@ -1,14 +1,14 @@
-use crate::middleware::admin_auth::AdminContext;
-use crate::api::state::AppState;
 use crate::api::admin::auth::verify_admin_access;
+use crate::api::state::AppState;
+use crate::middleware::admin_auth::AdminContext;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Json},
     Extension,
 };
-use serde_json::json;
 use serde::Deserialize;
+use serde_json::json;
 
 /// Get all merchants summary
 pub async fn get_merchants_summary(
@@ -27,8 +27,9 @@ pub async fn get_merchants_summary(
             Json(json!({
                 "error": "Failed to get merchants summary",
                 "message": e.to_string()
-            }))
-        ).into_response(),
+            })),
+        )
+            .into_response(),
     }
 }
 
@@ -46,7 +47,8 @@ pub async fn get_merchant_details(
         "merchant_id": merchant_id,
         "status": "active",
         "message": "Merchant details retrieved"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Suspend merchant
@@ -63,7 +65,8 @@ pub async fn suspend_merchant(
         "merchant_id": merchant_id,
         "status": "suspended",
         "message": "Merchant suspended successfully"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Activate merchant
@@ -80,7 +83,8 @@ pub async fn activate_merchant(
         "merchant_id": merchant_id,
         "status": "active",
         "message": "Merchant activated successfully"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Delete merchant
@@ -96,7 +100,8 @@ pub async fn delete_merchant(
     Json(json!({
         "merchant_id": merchant_id,
         "message": "Merchant deleted successfully"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 #[derive(Deserialize)]
@@ -135,7 +140,8 @@ pub async fn update_merchant_fee(
                 "fee_percentage": req.fee_percentage,
                 "customer_pays_fee": req.customer_pays_fee
             }
-        })).into_response(),
+        }))
+        .into_response(),
         Err(e) => {
             tracing::error!("Failed to update merchant fee: {:?}", e);
             (StatusCode::INTERNAL_SERVER_ERROR, "Database error").into_response()

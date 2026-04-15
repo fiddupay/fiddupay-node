@@ -1,14 +1,14 @@
-use crate::middleware::admin_auth::AdminContext;
-use crate::api::state::AppState;
 use crate::api::admin::auth::verify_admin_access;
+use crate::api::state::AppState;
+use crate::middleware::admin_auth::AdminContext;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Json},
     Extension,
 };
-use serde_json::json;
 use serde::Deserialize;
+use serde_json::json;
 use tracing::info;
 
 #[derive(Deserialize)]
@@ -44,7 +44,8 @@ pub async fn get_all_payments(
         "total": 0,
         "limit": query.limit.unwrap_or(50),
         "offset": query.offset.unwrap_or(0)
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Get payment details (admin view)
@@ -61,7 +62,8 @@ pub async fn get_payment_details(
         "payment_id": payment_id,
         "status": "pending",
         "message": "Payment details retrieved"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Force confirm payment
@@ -78,7 +80,8 @@ pub async fn force_confirm_payment(
         "payment_id": payment_id,
         "status": "confirmed",
         "message": "Payment force confirmed by admin"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Force fail payment
@@ -95,7 +98,8 @@ pub async fn force_fail_payment(
         "payment_id": payment_id,
         "status": "failed",
         "message": "Payment force failed by admin"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Manual re-verification for static deposits
@@ -108,12 +112,15 @@ pub async fn reverify_transaction(
         return response.into_response();
     }
 
-    info!("[ADMIN-REVERIFY] Manual re-verification requested by {} for hash: {}", context.admin_id, req.hash);
+    info!(
+        "[ADMIN-REVERIFY] Manual re-verification requested by {} for hash: {}",
+        context.admin_id, req.hash
+    );
 
     let result = if req.tx_type == "customer" {
         // Need merchant_id for customer deposits
         let merchant_id_res = sqlx::query_scalar::<_, i64>(
-            "SELECT merchant_id FROM merchant_customers WHERE id = $1"
+            "SELECT merchant_id FROM merchant_customers WHERE id = $1",
         )
         .bind(req.id)
         .fetch_optional(&state.db_pool)
@@ -121,13 +128,37 @@ pub async fn reverify_transaction(
 
         match merchant_id_res {
             Ok(Some(m_id)) => {
-                state.payment_service.verify_customer_deposit(req.id, &req.hash, m_id, &req.crypto_type, req.sandbox_mode).await
-            },
-            Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Customer not found"}))).into_response(),
-            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+                state
+                    .payment_service
+                    .verify_customer_deposit(
+                        req.id,
+                        &req.hash,
+                        m_id,
+                        &req.crypto_type,
+                        req.sandbox_mode,
+                    )
+                    .await
+            }
+            Ok(None) => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({"error": "Customer not found"})),
+                )
+                    .into_response()
+            }
+            Err(e) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"error": e.to_string()})),
+                )
+                    .into_response()
+            }
         }
     } else {
-        state.payment_service.verify_merchant_deposit(req.id, &req.hash, &req.crypto_type, req.sandbox_mode).await
+        state
+            .payment_service
+            .verify_merchant_deposit(req.id, &req.hash, &req.crypto_type, req.sandbox_mode)
+            .await
     };
 
     match result {

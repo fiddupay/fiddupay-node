@@ -113,7 +113,8 @@ impl NotificationService {
             }
         };
 
-        let result = query.execute(&self.db_pool)
+        let result = query
+            .execute(&self.db_pool)
             .await
             .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
@@ -141,7 +142,8 @@ impl NotificationService {
             }
         };
 
-        let result = query.execute(&self.db_pool)
+        let result = query
+            .execute(&self.db_pool)
             .await
             .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 

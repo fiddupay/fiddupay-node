@@ -22,9 +22,9 @@ pub struct MerchantUser {
 pub struct MerchantCurrency {
     pub id: i64,
     pub merchant_id: i64,
-    pub currency_group: String,   // 'USDT', 'ETH', 'SOL', 'BTC'
-    pub network: String,           // 'ETH', 'BSC', 'POLYGON', 'ARBITRUM', 'SOL'
-    pub crypto_type: String,       // 'USDT_ETH', 'USDT_BSC', etc.
+    pub currency_group: String, // 'USDT', 'ETH', 'SOL', 'BTC'
+    pub network: String,        // 'ETH', 'BSC', 'POLYGON', 'ARBITRUM', 'SOL'
+    pub crypto_type: String,    // 'USDT_ETH', 'USDT_BSC', etc.
     pub is_enabled: bool,
     pub wallet_address: Option<String>,
     pub created_at: DateTime<Utc>,

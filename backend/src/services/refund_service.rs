@@ -40,7 +40,7 @@ impl RefundService {
             SELECT id, merchant_id, amount, amount_usd, crypto_type, status, from_address
             FROM payment_transactions
             WHERE payment_id = $1
-            "#
+            "#,
         )
         .bind(&payment_id)
         .fetch_optional(&self.db_pool)
@@ -63,7 +63,7 @@ impl RefundService {
         // Verify the payment is confirmed
         if p_status != "CONFIRMED" {
             return Err(ServiceError::Internal(
-                "Can only refund confirmed payments".to_string()
+                "Can only refund confirmed payments".to_string(),
             ));
         }
 
@@ -73,15 +73,21 @@ impl RefundService {
             SELECT COALESCE(SUM(amount), 0) as total_refunded
             FROM refunds
             WHERE payment_id = $1 AND status IN ('pending', 'completed')
-            "#
+            "#,
         )
         .bind(p_id)
         .fetch_one(&self.db_pool)
         .await?;
-        let total_refunded: Decimal = total_refunded_row.try_get::<Option<Decimal>, _>("total_refunded").ok().flatten().unwrap_or(Decimal::ZERO);
+        let total_refunded: Decimal = total_refunded_row
+            .try_get::<Option<Decimal>, _>("total_refunded")
+            .ok()
+            .flatten()
+            .unwrap_or(Decimal::ZERO);
 
         // Determine refund amount
-        let refund_amount = amount.or(p_amount).ok_or_else(|| ServiceError::Internal("Payment amount is missing".to_string()))?;
+        let refund_amount = amount
+            .or(p_amount)
+            .ok_or_else(|| ServiceError::Internal("Payment amount is missing".to_string()))?;
 
         // Validate refund amount
         let payment_amount = p_amount.unwrap_or(Decimal::ZERO);
@@ -95,7 +101,7 @@ impl RefundService {
 
         if refund_amount <= Decimal::ZERO {
             return Err(ServiceError::Internal(
-                "Refund amount must be positive".to_string()
+                "Refund amount must be positive".to_string(),
             ));
         }
 
@@ -120,7 +126,7 @@ impl RefundService {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING id, refund_id, merchant_id, payment_id, amount, amount_usd,
                       reason, status, transaction_hash, created_at, completed_at
-            "#
+            "#,
         )
         .bind(&refund_id)
         .bind(merchant_id)
@@ -164,7 +170,7 @@ impl RefundService {
             SELECT id, merchant_id, payment_id, status
             FROM refunds
             WHERE refund_id = $1
-            "#
+            "#,
         )
         .bind(&refund_id)
         .fetch_optional(&self.db_pool)
@@ -188,7 +194,7 @@ impl RefundService {
             UPDATE refunds
             SET transaction_hash = $1, status = $2, completed_at = $3
             WHERE refund_id = $4
-            "#
+            "#,
         )
         .bind(&transaction_hash)
         .bind("completed")
@@ -208,15 +214,23 @@ impl RefundService {
             SELECT payment_id, amount, crypto_type
             FROM payment_transactions
             WHERE id = $1
-            "#
+            "#,
         )
         .bind(r_payment_id)
         .fetch_one(&self.db_pool)
         .await?;
 
         let pay_payment_id: String = payment.get("payment_id");
-        let pay_amount: Decimal = payment.try_get::<Option<Decimal>, _>("amount").ok().flatten().unwrap_or_default();
-        let pay_crypto_type: String = payment.try_get::<Option<String>, _>("crypto_type").ok().flatten().unwrap_or_else(|| "UNKNOWN".to_string());
+        let pay_amount: Decimal = payment
+            .try_get::<Option<Decimal>, _>("amount")
+            .ok()
+            .flatten()
+            .unwrap_or_default();
+        let pay_crypto_type: String = payment
+            .try_get::<Option<String>, _>("crypto_type")
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| "UNKNOWN".to_string());
 
         // Trigger webhook notification
         let webhook_payload = WebhookPayload {
@@ -251,7 +265,7 @@ impl RefundService {
             FROM refunds r
             JOIN payment_transactions p ON r.payment_id = p.id
             WHERE r.refund_id = $1
-            "#
+            "#,
         )
         .bind(&refund_id)
         .fetch_optional(&self.db_pool)
@@ -268,7 +282,11 @@ impl RefundService {
             transaction_hash: refund.get("transaction_hash"),
             created_at: refund.get("created_at"),
             completed_at: refund.get("completed_at"),
-            crypto_type: refund.try_get::<Option<String>, _>("crypto_type").ok().flatten().unwrap_or_else(|| "UNKNOWN".to_string()),
+            crypto_type: refund
+                .try_get::<Option<String>, _>("crypto_type")
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "UNKNOWN".to_string()),
             target_address: refund.get("from_address"),
         })
     }
@@ -282,24 +300,32 @@ impl RefundService {
             SELECT COALESCE(SUM(amount_usd), 0) as total
             FROM payment_transactions
             WHERE merchant_id = $1 AND status = 'CONFIRMED'
-            "#
+            "#,
         )
         .bind(merchant_id)
         .fetch_one(&self.db_pool)
         .await?;
-        let total_payments: Decimal = total_payments_row.try_get::<Option<Decimal>, _>("total").ok().flatten().unwrap_or(Decimal::ZERO);
+        let total_payments: Decimal = total_payments_row
+            .try_get::<Option<Decimal>, _>("total")
+            .ok()
+            .flatten()
+            .unwrap_or(Decimal::ZERO);
 
         let total_refunds_row = sqlx::query(
             r#"
             SELECT COALESCE(SUM(amount_usd), 0) as total
             FROM refunds
             WHERE merchant_id = $1 AND status = 'completed'
-            "#
+            "#,
         )
         .bind(merchant_id)
         .fetch_one(&self.db_pool)
         .await?;
-        let total_refunds: Decimal = total_refunds_row.try_get::<Option<Decimal>, _>("total").ok().flatten().unwrap_or(Decimal::ZERO);
+        let total_refunds: Decimal = total_refunds_row
+            .try_get::<Option<Decimal>, _>("total")
+            .ok()
+            .flatten()
+            .unwrap_or(Decimal::ZERO);
 
         let balance = total_payments - total_refunds;
 
@@ -320,7 +346,7 @@ impl RefundService {
     ) -> Result<(Vec<RefundResponse>, i64), ServiceError> {
         // 1. Get total count
         let total_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM refunds WHERE merchant_id = $1 AND sandbox_mode = $2"
+            "SELECT COUNT(*) FROM refunds WHERE merchant_id = $1 AND sandbox_mode = $2",
         )
         .bind(merchant_id)
         .bind(is_sandbox)
@@ -338,7 +364,7 @@ impl RefundService {
             WHERE r.merchant_id = $1 AND r.sandbox_mode = $2
             ORDER BY r.created_at DESC
             LIMIT $3 OFFSET $4
-            "#
+            "#,
         )
         .bind(merchant_id)
         .bind(is_sandbox)
@@ -347,8 +373,9 @@ impl RefundService {
         .fetch_all(&self.db_pool)
         .await?;
 
-        let refunds = rows.into_iter().map(|row| {
-            RefundResponse {
+        let refunds = rows
+            .into_iter()
+            .map(|row| RefundResponse {
                 refund_id: row.get("refund_id"),
                 payment_id: row.get("public_payment_id"),
                 amount: row.get("amount"),
@@ -358,10 +385,14 @@ impl RefundService {
                 transaction_hash: row.get("transaction_hash"),
                 created_at: row.get("created_at"),
                 completed_at: row.get("completed_at"),
-                crypto_type: row.try_get::<Option<String>, _>("crypto_type").ok().flatten().unwrap_or_else(|| "UNKNOWN".to_string()),
+                crypto_type: row
+                    .try_get::<Option<String>, _>("crypto_type")
+                    .ok()
+                    .flatten()
+                    .unwrap_or_else(|| "UNKNOWN".to_string()),
                 target_address: row.get("from_address"),
-            }
-        }).collect();
+            })
+            .collect();
 
         Ok((refunds, total_count))
     }

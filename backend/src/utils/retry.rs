@@ -1,6 +1,6 @@
 use std::time::Duration;
 use tokio::time::sleep;
-use tracing::{warn, error};
+use tracing::{error, warn};
 
 pub async fn retry_with_backoff<F, Fut, T, E>(
     operation: F,
@@ -13,30 +13,32 @@ where
     E: std::fmt::Display,
 {
     let mut attempt = 0;
-    
+
     loop {
         match operation().await {
             Ok(result) => return Ok(result),
             Err(e) => {
                 attempt += 1;
                 if attempt >= max_retries {
-                    error!("{} failed after {} attempts: {}", operation_name, max_retries, e);
+                    error!(
+                        "{} failed after {} attempts: {}",
+                        operation_name, max_retries, e
+                    );
                     return Err(e);
                 }
-                
+
                 let delay = Duration::from_secs(2u64.pow(attempt - 1));
-                warn!("{} failed (attempt {}/{}), retrying in {:?}: {}", 
-                    operation_name, attempt, max_retries, delay, e);
+                warn!(
+                    "{} failed (attempt {}/{}), retrying in {:?}: {}",
+                    operation_name, attempt, max_retries, delay, e
+                );
                 sleep(delay).await;
             }
         }
     }
 }
 
-pub async fn query_blockchain_with_retry<F, Fut, T>(
-    query: F,
-    blockchain: &str,
-) -> Result<T, String>
+pub async fn query_blockchain_with_retry<F, Fut, T>(query: F, blockchain: &str) -> Result<T, String>
 where
     F: Fn() -> Fut,
     Fut: std::future::Future<Output = Result<T, String>>,

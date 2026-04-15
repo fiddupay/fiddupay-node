@@ -8,9 +8,9 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde_json::json;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use std::collections::HashMap;
 use uuid::Uuid;
 
 /// CSRF token storage
@@ -54,7 +54,10 @@ pub async fn csrf_middleware(
     next: Next,
 ) -> Result<Response, impl IntoResponse> {
     // Only check CSRF for state-changing methods
-    if !matches!(request.method(), &Method::POST | &Method::PUT | &Method::DELETE) {
+    if !matches!(
+        request.method(),
+        &Method::POST | &Method::PUT | &Method::DELETE
+    ) {
         return Ok(next.run(request).await);
     }
 
@@ -86,7 +89,7 @@ pub async fn csrf_middleware(
                     axum::Json(json!({
                         "error": "Invalid CSRF token",
                         "message": "CSRF token is missing or invalid"
-                    }))
+                    })),
                 ))
             }
         }
@@ -95,8 +98,7 @@ pub async fn csrf_middleware(
             axum::Json(json!({
                 "error": "CSRF protection",
                 "message": "X-CSRF-Token header required for state-changing operations"
-            }))
+            })),
         )),
     }
 }
-

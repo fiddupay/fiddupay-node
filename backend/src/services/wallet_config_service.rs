@@ -42,21 +42,27 @@ impl WalletConfigService {
     ) -> Result<WalletConfig, ServiceError> {
         let network = crypto_type.network().to_string();
         let crypto_type_str = crypto_type.to_string();
-        let mode = if encrypted_private_key.is_some() { "managed" } else { "address_only" };
+        let mode = if encrypted_private_key.is_some() {
+            "managed"
+        } else {
+            "address_only"
+        };
 
         tracing::info!(
             "set_wallet_address: merchant={}, crypto={}, mode={}, sandbox={}",
-            merchant_id, crypto_type_str, mode, sandbox_mode
+            merchant_id,
+            crypto_type_str,
+            mode,
+            sandbox_mode
         );
 
         // 1. Check if the merchant has wallets locked
-        let wallets_locked = sqlx::query_scalar::<_, bool>(
-            "SELECT wallets_locked FROM merchants WHERE id = $1"
-        )
-        .bind(merchant_id)
-        .fetch_one(&self.db_pool)
-        .await
-        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+        let wallets_locked =
+            sqlx::query_scalar::<_, bool>("SELECT wallets_locked FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&self.db_pool)
+                .await
+                .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
         // 2. Fetch current wallet if it exists
         let current_wallet_row = sqlx::query(
@@ -82,7 +88,10 @@ impl WalletConfigService {
 
             if address_changed || mode_changed || active_changed {
                 if wallets_locked {
-                    tracing::warn!("Blocked wallet change for merchant {} (wallets locked)", merchant_id);
+                    tracing::warn!(
+                        "Blocked wallet change for merchant {} (wallets locked)",
+                        merchant_id
+                    );
                     return Err(ServiceError::BadRequest(
                         "Wallets are locked. Please unlock in settings to change wallet configuration.".to_string()
                     ));
@@ -101,7 +110,7 @@ impl WalletConfigService {
                         old_address, new_address, changed_by, reason
                     )
                     VALUES ($1, $2, $3, $4, $5, 'merchant', $6)
-                    "#
+                    "#,
                 )
                 .bind(merchant_id)
                 .bind(&crypto_type_str)
@@ -131,7 +140,7 @@ impl WalletConfigService {
                 updated_at = NOW()
             RETURNING id, merchant_id, crypto_type, network, address, is_active, sandbox_mode, 
                       wallet_mode, encrypted_private_key, created_at, updated_at
-            "#
+            "#,
         )
         .bind(merchant_id)
         .bind(&crypto_type_str)
@@ -147,16 +156,22 @@ impl WalletConfigService {
         let config = config_res?;
 
         let sisters = match crypto_type {
-            CryptoType::Sol | CryptoType::WSol | CryptoType::UsdtSpl => vec!["SOL", "WSOL", "USDT_SPL"],
+            CryptoType::Sol | CryptoType::WSol | CryptoType::UsdtSpl => {
+                vec!["SOL", "WSOL", "USDT_SPL"]
+            }
             CryptoType::Eth | CryptoType::UsdtEth => vec!["ETH", "USDT_ETH"],
-            CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 => vec!["BNB", "USDT_BEP20", "BUSD_BEP20"],
+            CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 => {
+                vec!["BNB", "USDT_BEP20", "BUSD_BEP20"]
+            }
             CryptoType::Matic | CryptoType::UsdtPolygon => vec!["MATIC", "USDT_POLYGON"],
             CryptoType::Arb | CryptoType::UsdtArbitrum => vec!["ARB", "USDT_ARBITRUM"],
             CryptoType::Btc => vec!["BTC"],
         };
 
         for sister in sisters {
-            if sister == crypto_type.to_string() { continue; }
+            if sister == crypto_type.to_string() {
+                continue;
+            }
 
             // Fetch current sister state to determine if we should archive
             let current_sister_row = sqlx::query(
@@ -180,8 +195,12 @@ impl WalletConfigService {
                 let active_changed = current_active != is_active;
 
                 if address_changed || mode_changed || active_changed {
-                    tracing::info!("Archiving sister wallet state for merchant {}: crypto={}", merchant_id, sister);
-                    
+                    tracing::info!(
+                        "Archiving sister wallet state for merchant {}: crypto={}",
+                        merchant_id,
+                        sister
+                    );
+
                     sqlx::query(
                         r#"
                         INSERT INTO merchant_wallet_history (
@@ -189,7 +208,7 @@ impl WalletConfigService {
                             old_address, new_address, changed_by, reason
                         )
                         VALUES ($1, $2, $3, $4, $5, 'merchant', $6)
-                        "#
+                        "#,
                     )
                     .bind(merchant_id)
                     .bind(sister)
@@ -260,10 +279,16 @@ impl WalletConfigService {
         .fetch_optional(&self.db_pool)
         .await?;
 
-        Ok(balance.map(|b| b.get::<Decimal, _>("available_balance")).unwrap_or(Decimal::ZERO))
+        Ok(balance
+            .map(|b| b.get::<Decimal, _>("available_balance"))
+            .unwrap_or(Decimal::ZERO))
     }
 
-    pub async fn get_wallet_configs(&self, merchant_id: i64, sandbox_mode: bool) -> Result<Vec<WalletConfig>, ServiceError> {
+    pub async fn get_wallet_configs(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+    ) -> Result<Vec<WalletConfig>, ServiceError> {
         let configs = sqlx::query_as::<_, WalletConfig>(
             "SELECT id, merchant_id, crypto_type, network, address, is_active, sandbox_mode, wallet_mode, encrypted_private_key, created_at, updated_at FROM merchant_wallets WHERE merchant_id = $1 AND sandbox_mode = $2"
         )
@@ -275,33 +300,56 @@ impl WalletConfigService {
         Ok(configs)
     }
 
-    pub async fn configure_address_only(&self, merchant_id: i64, sandbox_mode: bool, request: ConfigureWalletRequest) -> Result<WalletConfig, ServiceError> {
+    pub async fn configure_address_only(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+        request: ConfigureWalletRequest,
+    ) -> Result<WalletConfig, ServiceError> {
         let crypto_type = CryptoType::from_string(&request.crypto_type)?;
-        self.set_wallet_address(merchant_id, crypto_type, request.address, request.is_active.unwrap_or(true), sandbox_mode, None).await
+        self.set_wallet_address(
+            merchant_id,
+            crypto_type,
+            request.address,
+            request.is_active.unwrap_or(true),
+            sandbox_mode,
+            None,
+        )
+        .await
     }
 
-    pub async fn generate_wallet(&self, merchant_id: i64, sandbox_mode: bool, request: GenerateWalletRequest) -> Result<GeneratedWalletResponse, ServiceError> {
+    pub async fn generate_wallet(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+        request: GenerateWalletRequest,
+    ) -> Result<GeneratedWalletResponse, ServiceError> {
         let crypto_type = CryptoType::from_string(&request.crypto_type)?;
-        
+
         let wallet = match crypto_type {
-            CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => KeyGenerator::generate_solana_wallet()?,
+            CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => {
+                KeyGenerator::generate_solana_wallet()?
+            }
             CryptoType::Btc => KeyGenerator::generate_btc_wallet(sandbox_mode)?,
             _ => KeyGenerator::generate_evm_wallet()?,
         };
-        
+
         let encryption = crate::utils::encryption::Encryption::new()
             .map_err(|e| ServiceError::InternalError(format!("Encryption error: {}", e)))?;
-        let encrypted_key = encryption.encrypt(&wallet.private_key)
+        let encrypted_key = encryption
+            .encrypt(&wallet.private_key)
             .map_err(|e| ServiceError::InternalError(format!("Encryption error: {}", e)))?;
 
-        let config = self.set_wallet_address(
-            merchant_id, 
-            crypto_type.clone(), 
-            wallet.address.clone(), 
-            true, 
-            sandbox_mode,
-            Some(encrypted_key.clone())
-        ).await?;
+        let config = self
+            .set_wallet_address(
+                merchant_id,
+                crypto_type.clone(),
+                wallet.address.clone(),
+                true,
+                sandbox_mode,
+                Some(encrypted_key.clone()),
+            )
+            .await?;
 
         if is_evm(&crypto_type) {
             let evm_networks = vec![
@@ -318,24 +366,36 @@ impl WalletConfigService {
                         wallet.address.clone(),
                         true,
                         sandbox_mode,
-                        Some(encrypted_key.clone())
-                    ).await?;
+                        Some(encrypted_key.clone()),
+                    )
+                    .await?;
                 }
             }
         }
-        
-        Ok(GeneratedWalletResponse {
-            config,
-        })
+
+        Ok(GeneratedWalletResponse { config })
     }
 
-    pub async fn generate_wallet_managed(&self, merchant_id: i64, sandbox_mode: bool, request: GenerateWalletRequest) -> Result<GeneratedWalletResponse, ServiceError> {
-        self.generate_wallet(merchant_id, sandbox_mode, request).await
+    pub async fn generate_wallet_managed(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+        request: GenerateWalletRequest,
+    ) -> Result<GeneratedWalletResponse, ServiceError> {
+        self.generate_wallet(merchant_id, sandbox_mode, request)
+            .await
     }
 
-
-    pub async fn validate_gas_for_withdrawal(&self, merchant_id: i64, sandbox_mode: bool, crypto_type: CryptoType, amount: Decimal) -> Result<GasValidationResult, ServiceError> {
-        let balance = self.get_balance(merchant_id, crypto_type, sandbox_mode).await?;
+    pub async fn validate_gas_for_withdrawal(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+        crypto_type: CryptoType,
+        amount: Decimal,
+    ) -> Result<GasValidationResult, ServiceError> {
+        let balance = self
+            .get_balance(merchant_id, crypto_type, sandbox_mode)
+            .await?;
         if balance >= amount {
             Ok(GasValidationResult {
                 valid: true,
@@ -349,33 +409,51 @@ impl WalletConfigService {
         }
     }
 
-    pub async fn can_withdraw(&self, merchant_id: i64, sandbox_mode: bool, crypto_type: CryptoType, amount: Decimal) -> Result<bool, ServiceError> {
-        let balance = self.get_balance(merchant_id, crypto_type, sandbox_mode).await?;
+    pub async fn can_withdraw(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+        crypto_type: CryptoType,
+        amount: Decimal,
+    ) -> Result<bool, ServiceError> {
+        let balance = self
+            .get_balance(merchant_id, crypto_type, sandbox_mode)
+            .await?;
         Ok(balance >= amount)
     }
 
-    pub async fn delete_wallet_config(&self, merchant_id: i64, sandbox_mode: bool, crypto_type_str: String) -> Result<(), ServiceError> {
+    pub async fn delete_wallet_config(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+        crypto_type_str: String,
+    ) -> Result<(), ServiceError> {
         let crypto_type = CryptoType::from_string(&crypto_type_str)?;
         let network = crypto_type.network().to_string();
 
         tracing::info!(
             "delete_wallet_config: merchant={}, crypto={}, sandbox={}",
-            merchant_id, crypto_type_str, sandbox_mode
+            merchant_id,
+            crypto_type_str,
+            sandbox_mode
         );
 
         // Check if the merchant has wallets locked
-        let wallets_locked = sqlx::query_scalar::<_, bool>(
-            "SELECT wallets_locked FROM merchants WHERE id = $1"
-        )
-        .bind(merchant_id)
-        .fetch_one(&self.db_pool)
-        .await
-        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+        let wallets_locked =
+            sqlx::query_scalar::<_, bool>("SELECT wallets_locked FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&self.db_pool)
+                .await
+                .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
         if wallets_locked {
-            tracing::warn!("Blocked wallet deletion for merchant {} (locked)", merchant_id);
+            tracing::warn!(
+                "Blocked wallet deletion for merchant {} (locked)",
+                merchant_id
+            );
             return Err(ServiceError::BadRequest(
-                "Wallets are locked. Please unlock in settings to remove configuration.".to_string()
+                "Wallets are locked. Please unlock in settings to remove configuration."
+                    .to_string(),
             ));
         }
 
@@ -398,7 +476,10 @@ impl WalletConfigService {
             if !current_address.is_empty() {
                 let mode_desc = current_mode.as_deref().unwrap_or("unknown");
                 let has_key = current_key.is_some();
-                let reason = format!("Deleted {} wallet (managed={}) via dashboard", mode_desc, has_key);
+                let reason = format!(
+                    "Deleted {} wallet (managed={}) via dashboard",
+                    mode_desc, has_key
+                );
 
                 sqlx::query(
                     r#"
@@ -407,7 +488,7 @@ impl WalletConfigService {
                         old_address, new_address, changed_by, reason
                     )
                     VALUES ($1, $2, $3, $4, '', 'merchant', $5)
-                    "#
+                    "#,
                 )
                 .bind(merchant_id)
                 .bind(&crypto_type_str)
@@ -419,10 +500,10 @@ impl WalletConfigService {
                 .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
             }
         }
-        
+
         sqlx::query(
             "UPDATE merchant_wallets SET address = '', is_active = false, updated_at = NOW() 
-             WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
+             WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
         )
         .bind(merchant_id)
         .bind(crypto_type.to_string())
@@ -431,19 +512,25 @@ impl WalletConfigService {
         .await?;
 
         let sisters = match crypto_type {
-            CryptoType::Sol | CryptoType::WSol | CryptoType::UsdtSpl => vec!["SOL", "WSOL", "USDT_SPL"],
+            CryptoType::Sol | CryptoType::WSol | CryptoType::UsdtSpl => {
+                vec!["SOL", "WSOL", "USDT_SPL"]
+            }
             CryptoType::Eth | CryptoType::UsdtEth => vec!["ETH", "USDT_ETH"],
-            CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 => vec!["BNB", "USDT_BEP20", "BUSD_BEP20"],
+            CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 => {
+                vec!["BNB", "USDT_BEP20", "BUSD_BEP20"]
+            }
             CryptoType::Matic | CryptoType::UsdtPolygon => vec!["MATIC", "USDT_POLYGON"],
             CryptoType::Arb | CryptoType::UsdtArbitrum => vec!["ARB", "USDT_ARBITRUM"],
             CryptoType::Btc => vec!["BTC"],
         };
 
         for sister in sisters {
-            if sister == crypto_type.to_string() { continue; }
+            if sister == crypto_type.to_string() {
+                continue;
+            }
             sqlx::query(
                 "UPDATE merchant_wallets SET address = '', is_active = false, updated_at = NOW() 
-                 WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
+                 WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3",
             )
             .bind(merchant_id)
             .bind(sister)
@@ -473,17 +560,18 @@ impl WalletConfigService {
 
         tracing::info!(
             "set_forwarding_address: merchant={}, crypto={}, sandbox={}",
-            merchant_id, crypto_type_str, sandbox_mode
+            merchant_id,
+            crypto_type_str,
+            sandbox_mode
         );
 
         // Check if the merchant has wallets locked
-        let wallets_locked = sqlx::query_scalar::<_, bool>(
-            "SELECT wallets_locked FROM merchants WHERE id = $1"
-        )
-        .bind(merchant_id)
-        .fetch_one(&self.db_pool)
-        .await
-        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+        let wallets_locked =
+            sqlx::query_scalar::<_, bool>("SELECT wallets_locked FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&self.db_pool)
+                .await
+                .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
         // Archive if changing
         let current_address = sqlx::query_scalar::<_, String>(
@@ -498,9 +586,13 @@ impl WalletConfigService {
         if let Some(current) = current_address {
             if current != address && !current.is_empty() {
                 if wallets_locked {
-                    tracing::warn!("Blocked forwarding address change for merchant {} (locked)", merchant_id);
+                    tracing::warn!(
+                        "Blocked forwarding address change for merchant {} (locked)",
+                        merchant_id
+                    );
                     return Err(ServiceError::BadRequest(
-                        "Wallets are locked. Please unlock in settings to change address.".to_string()
+                        "Wallets are locked. Please unlock in settings to change address."
+                            .to_string(),
                     ));
                 }
 
@@ -514,7 +606,7 @@ impl WalletConfigService {
                         old_address, new_address, changed_by, reason
                     )
                     VALUES ($1, $2, $3, $4, $5, 'merchant', $6)
-                    "#
+                    "#,
                 )
                 .bind(merchant_id)
                 .bind(&crypto_type_str)
@@ -549,16 +641,22 @@ impl WalletConfigService {
         .await?;
 
         let sisters = match crypto_type {
-            CryptoType::Sol | CryptoType::WSol | CryptoType::UsdtSpl => vec!["SOL", "WSOL", "USDT_SPL"],
+            CryptoType::Sol | CryptoType::WSol | CryptoType::UsdtSpl => {
+                vec!["SOL", "WSOL", "USDT_SPL"]
+            }
             CryptoType::Eth | CryptoType::UsdtEth => vec!["ETH", "USDT_ETH"],
-            CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 => vec!["BNB", "USDT_BEP20", "BUSD_BEP20"],
+            CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 => {
+                vec!["BNB", "USDT_BEP20", "BUSD_BEP20"]
+            }
             CryptoType::Matic | CryptoType::UsdtPolygon => vec!["MATIC", "USDT_POLYGON"],
             CryptoType::Arb | CryptoType::UsdtArbitrum => vec!["ARB", "USDT_ARBITRUM"],
             CryptoType::Btc => vec!["BTC"],
         };
 
         for sister in sisters {
-            if sister == crypto_type.to_string() { continue; }
+            if sister == crypto_type.to_string() {
+                continue;
+            }
             sqlx::query(
                 "INSERT INTO merchant_forwarding_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode)
                  VALUES ($1, $2, $3, $4, $5, $6)
@@ -578,7 +676,11 @@ impl WalletConfigService {
         Ok(config)
     }
 
-    pub async fn get_forwarding_configs(&self, merchant_id: i64, sandbox_mode: bool) -> Result<Vec<WalletConfig>, ServiceError> {
+    pub async fn get_forwarding_configs(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+    ) -> Result<Vec<WalletConfig>, ServiceError> {
         let configs = sqlx::query_as::<_, WalletConfig>(
             r#"
             SELECT id, merchant_id, crypto_type, network, address, is_active, sandbox_mode,
@@ -595,28 +697,38 @@ impl WalletConfigService {
         Ok(configs)
     }
 
-    pub async fn delete_forwarding_config(&self, merchant_id: i64, sandbox_mode: bool, crypto_type_str: String) -> Result<(), ServiceError> {
+    pub async fn delete_forwarding_config(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+        crypto_type_str: String,
+    ) -> Result<(), ServiceError> {
         let crypto_type = CryptoType::from_string(&crypto_type_str)?;
         let network = crypto_type.network().to_string();
 
         tracing::info!(
             "delete_forwarding_config: merchant={}, crypto={}, sandbox={}",
-            merchant_id, crypto_type_str, sandbox_mode
+            merchant_id,
+            crypto_type_str,
+            sandbox_mode
         );
 
         // Check if the merchant has wallets locked
-        let wallets_locked = sqlx::query_scalar::<_, bool>(
-            "SELECT wallets_locked FROM merchants WHERE id = $1"
-        )
-        .bind(merchant_id)
-        .fetch_one(&self.db_pool)
-        .await
-        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+        let wallets_locked =
+            sqlx::query_scalar::<_, bool>("SELECT wallets_locked FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&self.db_pool)
+                .await
+                .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
         if wallets_locked {
-            tracing::warn!("Blocked forwarding deletion for merchant {} (locked)", merchant_id);
+            tracing::warn!(
+                "Blocked forwarding deletion for merchant {} (locked)",
+                merchant_id
+            );
             return Err(ServiceError::BadRequest(
-                "Wallets are locked. Please unlock in settings to remove configuration.".to_string()
+                "Wallets are locked. Please unlock in settings to remove configuration."
+                    .to_string(),
             ));
         }
 
@@ -639,7 +751,7 @@ impl WalletConfigService {
                         old_address, new_address, changed_by, reason
                     )
                     VALUES ($1, $2, $3, $4, '', 'merchant', $5)
-                    "#
+                    "#,
                 )
                 .bind(merchant_id)
                 .bind(&crypto_type_str)
@@ -677,18 +789,21 @@ pub struct GenerateWalletRequest {
     pub crypto_type: String,
 }
 
-
 // Helper to determine if a CryptoType is an EVM network
 fn is_evm(crypto_type: &CryptoType) -> bool {
     matches!(
         crypto_type,
-        CryptoType::Eth | CryptoType::UsdtEth |
-        CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 |
-        CryptoType::Matic | CryptoType::UsdtPolygon |
-        CryptoType::Arb | CryptoType::UsdtArbitrum
+        CryptoType::Eth
+            | CryptoType::UsdtEth
+            | CryptoType::Bnb
+            | CryptoType::UsdtBep20
+            | CryptoType::BusdBep20
+            | CryptoType::Matic
+            | CryptoType::UsdtPolygon
+            | CryptoType::Arb
+            | CryptoType::UsdtArbitrum
     )
 }
-
 
 #[derive(Debug, Serialize)]
 pub struct GeneratedWalletResponse {

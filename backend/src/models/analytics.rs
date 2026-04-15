@@ -43,6 +43,3 @@ pub struct BlockchainStats {
     pub payment_count: i64,
     pub average_value: Decimal,
 }
-
-
-

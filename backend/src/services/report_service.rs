@@ -1,10 +1,10 @@
+use crate::error::ServiceError;
 use chrono::{DateTime, Utc};
-use rust_decimal::Decimal;
-use sqlx::{PgPool, FromRow};
-use serde::Serialize;
 use csv::Writer;
 use genpdf::{elements, fonts, style, Element};
-use crate::error::ServiceError;
+use rust_decimal::Decimal;
+use serde::Serialize;
+use sqlx::{FromRow, PgPool};
 
 #[derive(Debug, FromRow, Serialize)]
 pub struct PaymentReportRow {
@@ -90,17 +90,18 @@ impl ReportService {
         Ok(rows)
     }
 
-    pub async fn generate_csv(
-        &self,
-        data: Vec<PaymentReportRow>,
-    ) -> Result<Vec<u8>, ServiceError> {
+    pub async fn generate_csv(&self, data: Vec<PaymentReportRow>) -> Result<Vec<u8>, ServiceError> {
         let mut wtr = Writer::from_writer(vec![]);
-        
+
         for row in data {
-            wtr.serialize(row).map_err(|e| ServiceError::InternalError(format!("CSV serialization failed: {}", e)))?;
+            wtr.serialize(row).map_err(|e| {
+                ServiceError::InternalError(format!("CSV serialization failed: {}", e))
+            })?;
         }
-        
-        let inner = wtr.into_inner().map_err(|e| ServiceError::InternalError(format!("CSV generation failed: {}", e)))?;
+
+        let inner = wtr
+            .into_inner()
+            .map_err(|e| ServiceError::InternalError(format!("CSV generation failed: {}", e)))?;
         Ok(inner)
     }
 
@@ -123,9 +124,10 @@ impl ReportService {
 
         let font_bytes = std::fs::read(font_path)
             .map_err(|e| ServiceError::InternalError(format!("Failed to read font file: {}", e)))?;
-        
-        let font_data = fonts::FontData::new(font_bytes, None)
-            .map_err(|e| ServiceError::InternalError(format!("Failed to create font data: {}", e)))?;
+
+        let font_data = fonts::FontData::new(font_bytes, None).map_err(|e| {
+            ServiceError::InternalError(format!("Failed to create font data: {}", e))
+        })?;
         let font_family = fonts::FontFamily {
             regular: font_data.clone(),
             bold: font_data.clone(),
@@ -145,30 +147,46 @@ impl ReportService {
         doc.set_page_decorator(decorator);
 
         // --- Header Section ---
-        doc.push(elements::Text::new("FidduPay")
-            .styled(style::Style::new().bold().with_font_size(24).with_color(brand_color)));
-        doc.push(elements::Text::new("Decentralized Payment Gateway")
-            .styled(style::Style::new().with_font_size(10).with_color(style::Color::Rgb(100, 100, 100))));
+        doc.push(
+            elements::Text::new("FidduPay").styled(
+                style::Style::new()
+                    .bold()
+                    .with_font_size(24)
+                    .with_color(brand_color),
+            ),
+        );
+        doc.push(
+            elements::Text::new("Decentralized Payment Gateway").styled(
+                style::Style::new()
+                    .with_font_size(10)
+                    .with_color(style::Color::Rgb(100, 100, 100)),
+            ),
+        );
         doc.push(elements::Break::new(1.0));
-        
+
         // Accent Line
         doc.push(elements::PaddedElement::new(
             elements::Break::new(0.1),
-            genpdf::Margins::trbl(0, 0, 1, 0)
+            genpdf::Margins::trbl(0, 0, 1, 0),
         ));
 
-        doc.push(elements::Paragraph::new("Transaction Report")
-            .styled(style::Style::new().bold().with_font_size(16)));
-        
+        doc.push(
+            elements::Paragraph::new("Transaction Report")
+                .styled(style::Style::new().bold().with_font_size(16)),
+        );
+
         let mut meta_table = elements::TableLayout::new(vec![1, 3]);
-        let _ = meta_table.row()
+        let _ = meta_table
+            .row()
             .element(elements::Text::new("Merchant:").styled(style::Style::new().bold()))
             .element(elements::Text::new(merchant_name))
             .push();
-        let _ = meta_table.row()
+        let _ = meta_table
+            .row()
             .element(elements::Text::new("Period:").styled(style::Style::new().bold()))
-            .element(elements::Text::new(format!("{} to {}", 
-                start_date.format("%Y-%m-%d"), 
+            .element(elements::Text::new(format!(
+                "{} to {}",
+                start_date.format("%Y-%m-%d"),
                 end_date.format("%Y-%m-%d")
             )))
             .push();
@@ -181,16 +199,31 @@ impl ReportService {
         let total_fees_usd: Decimal = data.iter().map(|d| d.fee_amount_usd).sum();
 
         let mut summary_box = elements::LinearLayout::vertical();
-        summary_box.push(elements::Text::new("Financial Summary")
-            .styled(style::Style::new().bold().with_font_size(14).with_color(brand_color)));
+        summary_box.push(
+            elements::Text::new("Financial Summary").styled(
+                style::Style::new()
+                    .bold()
+                    .with_font_size(14)
+                    .with_color(brand_color),
+            ),
+        );
         summary_box.push(elements::Break::new(0.5));
-        summary_box.push(elements::Text::new(format!("Total Transactions: {}", total_count)));
-        summary_box.push(elements::Text::new(format!("Total Volume:       ${:.2} USD", total_amount_usd)));
-        summary_box.push(elements::Text::new(format!("Total Fees:         ${:.2} USD", total_fees_usd)));
-        
+        summary_box.push(elements::Text::new(format!(
+            "Total Transactions: {}",
+            total_count
+        )));
+        summary_box.push(elements::Text::new(format!(
+            "Total Volume:       ${:.2} USD",
+            total_amount_usd
+        )));
+        summary_box.push(elements::Text::new(format!(
+            "Total Fees:         ${:.2} USD",
+            total_fees_usd
+        )));
+
         doc.push(elements::PaddedElement::new(
             summary_box,
-            genpdf::Margins::trbl(5, 10, 5, 10)
+            genpdf::Margins::trbl(5, 10, 5, 10),
         ));
         doc.push(elements::Break::new(2.0));
 
@@ -209,16 +242,35 @@ impl ReportService {
         };
 
         // Header Row
-        let header_style = style::Style::new().bold().with_font_size(11).with_color(style::Color::Rgb(255, 255, 255));
+        let header_style = style::Style::new()
+            .bold()
+            .with_font_size(11)
+            .with_color(style::Color::Rgb(255, 255, 255));
         // Note: genpdf doesn't support cell background colors easily in 0.2 without custom decorators,
         // so we'll just use bold text and standard borders for now but with better spacing.
 
-        let _ = table.row()
-            .element(elements::PaddedElement::new(elements::Text::new("Date").styled(style::Style::new().bold()), 2))
-            .element(elements::PaddedElement::new(elements::Text::new("Payment ID").styled(style::Style::new().bold()), 2))
-            .element(elements::PaddedElement::new(elements::Text::new("Crypto / Network").styled(style::Style::new().bold()), 2))
-            .element(elements::PaddedElement::new(elements::Text::new("Amount USD").styled(style::Style::new().bold()), 2))
-            .element(elements::PaddedElement::new(elements::Text::new("Status").styled(style::Style::new().bold()), 2))
+        let _ = table
+            .row()
+            .element(elements::PaddedElement::new(
+                elements::Text::new("Date").styled(style::Style::new().bold()),
+                2,
+            ))
+            .element(elements::PaddedElement::new(
+                elements::Text::new("Payment ID").styled(style::Style::new().bold()),
+                2,
+            ))
+            .element(elements::PaddedElement::new(
+                elements::Text::new("Crypto / Network").styled(style::Style::new().bold()),
+                2,
+            ))
+            .element(elements::PaddedElement::new(
+                elements::Text::new("Amount USD").styled(style::Style::new().bold()),
+                2,
+            ))
+            .element(elements::PaddedElement::new(
+                elements::Text::new("Status").styled(style::Style::new().bold()),
+                2,
+            ))
             .push();
 
         // Data Rows
@@ -232,15 +284,35 @@ impl ReportService {
                 style::Color::Rgb(0, 0, 0)
             };
 
-            let _ = table.row()
-                .element(elements::PaddedElement::new(elements::Text::new(row.created_at.format("%Y-%m-%d").to_string()).styled(row_style), 2))
-                .element(elements::PaddedElement::new(elements::Text::new(truncate_id(&row.payment_id)).styled(row_style), 2))
-                .element(elements::PaddedElement::new(elements::Text::new(format!("{} on {}", 
-                    row.crypto_type.as_deref().unwrap_or("N/A"),
-                    row.network.as_deref().unwrap_or("N/A")
-                )).styled(row_style), 2))
-                .element(elements::PaddedElement::new(elements::Text::new(format!("${:.2}", row.amount_usd)).styled(row_style), 2))
-                .element(elements::PaddedElement::new(elements::Text::new(row.status.to_string()).styled(row_style.with_color(status_color)), 2))
+            let _ = table
+                .row()
+                .element(elements::PaddedElement::new(
+                    elements::Text::new(row.created_at.format("%Y-%m-%d").to_string())
+                        .styled(row_style),
+                    2,
+                ))
+                .element(elements::PaddedElement::new(
+                    elements::Text::new(truncate_id(&row.payment_id)).styled(row_style),
+                    2,
+                ))
+                .element(elements::PaddedElement::new(
+                    elements::Text::new(format!(
+                        "{} on {}",
+                        row.crypto_type.as_deref().unwrap_or("N/A"),
+                        row.network.as_deref().unwrap_or("N/A")
+                    ))
+                    .styled(row_style),
+                    2,
+                ))
+                .element(elements::PaddedElement::new(
+                    elements::Text::new(format!("${:.2}", row.amount_usd)).styled(row_style),
+                    2,
+                ))
+                .element(elements::PaddedElement::new(
+                    elements::Text::new(row.status.to_string())
+                        .styled(row_style.with_color(status_color)),
+                    2,
+                ))
                 .push();
         }
 
@@ -248,8 +320,10 @@ impl ReportService {
 
         // Footer
         doc.push(elements::Break::new(2.0));
-        doc.push(elements::Paragraph::new("Generated by FidduPay - Decentralized Payment Gateway")
-            .styled(style::Color::Rgb(128, 128, 128)));
+        doc.push(
+            elements::Paragraph::new("Generated by FidduPay - Decentralized Payment Gateway")
+                .styled(style::Color::Rgb(128, 128, 128)),
+        );
 
         let mut buffer = Vec::new();
         doc.render(&mut buffer)

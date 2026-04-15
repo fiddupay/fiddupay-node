@@ -1,8 +1,8 @@
-use sqlx::{PgPool, QueryBuilder};
+use crate::error::ServiceError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use crate::error::ServiceError;
+use sqlx::{PgPool, QueryBuilder};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AuditScope {
@@ -58,9 +58,13 @@ impl AuditService {
         Ok(())
     }
 
-    pub async fn get_logs(&self, scope: AuditScope, query: AuditLogQuery) -> Result<Vec<AuditLog>, ServiceError> {
+    pub async fn get_logs(
+        &self,
+        scope: AuditScope,
+        query: AuditLogQuery,
+    ) -> Result<Vec<AuditLog>, ServiceError> {
         let limit = query.limit.unwrap_or(100).min(1000);
-        
+
         let mut builder: QueryBuilder<'_, sqlx::Postgres> = QueryBuilder::new(
             "SELECT id, merchant_id, action_type, ip_address, details, created_at FROM audit_logs WHERE 1=1"
         );
@@ -94,7 +98,10 @@ impl AuditService {
         builder.push(" ORDER BY created_at DESC LIMIT ");
         builder.push_bind(limit);
 
-        let logs = builder.build_query_as::<AuditLog>().fetch_all(&self.pool).await?;
+        let logs = builder
+            .build_query_as::<AuditLog>()
+            .fetch_all(&self.pool)
+            .await?;
 
         Ok(logs)
     }

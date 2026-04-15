@@ -1,9 +1,9 @@
-pub mod retry;
+pub mod api_keys;
+pub mod bitcoin_api;
 pub mod circuit_breaker;
 pub mod encryption;
-pub mod qr;
 pub mod keygen;
-pub mod api_keys;
 pub mod network_config;
+pub mod qr;
+pub mod retry;
 pub mod validation;
-pub mod bitcoin_api;

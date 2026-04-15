@@ -3,19 +3,19 @@
 
 use async_trait::async_trait;
 use chrono::Utc;
+use futures_util::{SinkExt, StreamExt};
 use reqwest::Client;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
-use tracing::{info, warn, error};
-use std::sync::Arc;
-use futures_util::{StreamExt, SinkExt};
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use solana_sdk::pubkey::Pubkey;
 use spl_associated_token_account::get_associated_token_address;
+use std::str::FromStr;
+use std::sync::Arc;
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use tracing::{error, info, warn};
 
-use super::models::{BlockchainTransaction, CryptoType};
 use super::blockchain_monitor::BlockchainMonitor;
+use super::models::{BlockchainTransaction, CryptoType};
 
 // Get Solana RPC URL from config
 fn get_solana_rpc_url(config: &crate::config::Config) -> &str {
@@ -29,7 +29,7 @@ fn redact_url(url: &str) -> String {
     } else {
         match url.find("alchemy.com/v2/") {
             Some(idx) => format!("{}alchemy.com/v2/***REDACTED***", &url[..idx]),
-            None => url.to_string()
+            None => url.to_string(),
         }
     }
 }
@@ -42,8 +42,8 @@ fn get_solana_ws_url(config: &crate::config::Config, rpc_url: &str) -> String {
     if rpc_url == config.solana_devnet_rpc_url {
         return config.solana_devnet_ws_url.clone();
     }
-    
-    // Convert https:// -> wss:// and http:// -> ws:// 
+
+    // Convert https:// -> wss:// and http:// -> ws://
     if rpc_url.starts_with("https://") {
         rpc_url.replace("https://", "wss://")
     } else if rpc_url.starts_with("http://") {
@@ -156,7 +156,11 @@ pub struct SolanaMonitor {
 }
 
 impl SolanaMonitor {
-    pub fn new(config: &crate::config::Config, is_sandbox: bool, expected_mint: Option<String>) -> Self {
+    pub fn new(
+        config: &crate::config::Config,
+        is_sandbox: bool,
+        expected_mint: Option<String>,
+    ) -> Self {
         let mut rpc_urls = Vec::new();
         let mut historical_rpc_urls = Vec::new();
 
@@ -167,9 +171,15 @@ impl SolanaMonitor {
             // SVS - Priority 1
             for key in &config.svs_api_keys {
                 // Live endpoint
-                rpc_urls.push(format!("https://basic.rpc.solanavibestation.com/?api_key={}", key));
+                rpc_urls.push(format!(
+                    "https://basic.rpc.solanavibestation.com/?api_key={}",
+                    key
+                ));
                 // Historical endpoint for backfill catch-up
-                historical_rpc_urls.push(format!("https://basic.rpc.solanavibestation.com/historical?api_key={}", key));
+                historical_rpc_urls.push(format!(
+                    "https://basic.rpc.solanavibestation.com/historical?api_key={}",
+                    key
+                ));
             }
 
             // Helius - Priority 2 (Backup)
@@ -196,7 +206,7 @@ impl SolanaMonitor {
         for rpc in &rpc_urls {
             ws_urls.push(get_solana_ws_url(config, rpc));
         }
-        
+
         Self {
             client: Client::builder()
                 .timeout(std::time::Duration::from_secs(10))
@@ -218,12 +228,17 @@ impl SolanaMonitor {
     }
 
     async fn rpc_request<T: serde::de::DeserializeOwned>(
-        &self, 
-        method: &str, 
+        &self,
+        method: &str,
         params: serde_json::Value,
         is_historical: bool,
     ) -> Result<RpcResponse<T>, Box<dyn std::error::Error + Send + Sync>> {
-        let request = RpcRequest { jsonrpc: "2.0".to_string(), id: 1, method: method.to_string(), params };
+        let request = RpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: 1,
+            method: method.to_string(),
+            params,
+        };
         let mut last_error = None;
 
         let urls = if is_historical {
@@ -236,7 +251,10 @@ impl SolanaMonitor {
             match self.client.post(url).json(&request).send().await {
                 Ok(response) => {
                     if response.status() == 429 {
-                        warn!("Solana rate limit hit on {}, trying next RPC...", redact_url(url));
+                        warn!(
+                            "Solana rate limit hit on {}, trying next RPC...",
+                            redact_url(url)
+                        );
                         last_error = Some("Rate limit hit".to_string());
                         continue;
                     }
@@ -247,7 +265,7 @@ impl SolanaMonitor {
                             last_error = Some(e.to_string());
                         }
                     }
-                },
+                }
                 Err(e) => {
                     warn!("Network error connecting to {}: {}", redact_url(url), e);
                     last_error = Some(e.to_string());
@@ -285,20 +303,29 @@ impl SolanaMonitor {
         let mut all_signatures = std::collections::HashSet::new();
 
         for addr in addresses_to_check {
-            let rpc_response: RpcResponse<Vec<GetSignaturesResult>> = match self.rpc_request(
-                "getSignaturesForAddress", 
-                serde_json::json!([addr, { "limit": limit, "commitment": "finalized" }]),
-                true
-            ).await {
+            let rpc_response: RpcResponse<Vec<GetSignaturesResult>> = match self
+                .rpc_request(
+                    "getSignaturesForAddress",
+                    serde_json::json!([addr, { "limit": limit, "commitment": "finalized" }]),
+                    true,
+                )
+                .await
+            {
                 Ok(res) => res,
                 Err(e) => {
-                    error!("Solana RPC getSignaturesForAddress error for {}: {}", addr, e);
+                    error!(
+                        "Solana RPC getSignaturesForAddress error for {}: {}",
+                        addr, e
+                    );
                     continue;
                 }
             };
 
             if let Some(err) = rpc_response.error {
-                error!("Solana RPC getSignaturesForAddress error for {} {}: {}", addr, err.code, err.message);
+                error!(
+                    "Solana RPC getSignaturesForAddress error for {} {}: {}",
+                    addr, err.code, err.message
+                );
                 continue;
             }
 
@@ -322,13 +349,16 @@ impl SolanaMonitor {
 
         // Get details for each transaction
         for signature in all_signatures {
-            match self.get_transaction_details_with_slot(&signature, Some(current_slot)).await {
+            match self
+                .get_transaction_details_with_slot(&signature, Some(current_slot))
+                .await
+            {
                 Ok(tx) => {
                     // Only include if it's a successful transaction and has some value
                     if tx.success && (tx.amount > Decimal::ZERO || self.expected_mint.is_none()) {
                         blockchain_txs.push(tx);
                     }
-                },
+                }
                 Err(e) => {
                     warn!("Failed to get transaction {}: {}", signature, e);
                 }
@@ -350,30 +380,35 @@ impl SolanaMonitor {
         let max_retries = 3;
 
         while retry_count <= max_retries {
-            let rpc_response: Result<RpcResponse<Option<TransactionResult>>, _> = self.rpc_request(
-                "getTransaction",
-                serde_json::json!([
-                    signature,
-                    {
-                        "encoding": "json",
-                        "maxSupportedTransactionVersion": 0,
-                        "commitment": "confirmed"
-                    }
-                ]),
-                false
-            ).await;
+            let rpc_response: Result<RpcResponse<Option<TransactionResult>>, _> = self
+                .rpc_request(
+                    "getTransaction",
+                    serde_json::json!([
+                        signature,
+                        {
+                            "encoding": "json",
+                            "maxSupportedTransactionVersion": 0,
+                            "commitment": "confirmed"
+                        }
+                    ]),
+                    false,
+                )
+                .await;
 
             match rpc_response {
                 Ok(res) => {
                     if let Some(err) = res.error {
-                        error!("Solana RPC getTransaction error for {}: {}: {}", signature, err.code, err.message);
+                        error!(
+                            "Solana RPC getTransaction error for {}: {}: {}",
+                            signature, err.code, err.message
+                        );
                         return Err(format!("RPC Error: {}", err.message).into());
                     }
                     if let Some(Some(tx)) = res.result {
                         tx_result = Some(tx);
                         break;
                     }
-                },
+                }
                 Err(e) => {
                     error!("Solana RPC getTransaction error for {}: {}", signature, e);
                     return Err(e);
@@ -410,24 +445,34 @@ impl SolanaMonitor {
 
                 for post_tb in &meta.post_token_balances {
                     // MINT VALIDATION: skip if we expect a specific mint and this doesn't match
-                    if let (Some(expected), Some(actual_mint)) = (&self.expected_mint, &post_tb.mint) {
+                    if let (Some(expected), Some(actual_mint)) =
+                        (&self.expected_mint, &post_tb.mint)
+                    {
                         if expected != actual_mint {
                             continue;
                         }
                     }
 
-                    let post_raw = post_tb.ui_token_amount.as_ref()
+                    let post_raw = post_tb
+                        .ui_token_amount
+                        .as_ref()
                         .and_then(|u| u.amount.as_ref())
                         .and_then(|a| a.parse::<u128>().ok())
                         .unwrap_or(0);
 
-                    let decimals = post_tb.ui_token_amount.as_ref()
+                    let decimals = post_tb
+                        .ui_token_amount
+                        .as_ref()
                         .and_then(|u| u.decimals)
                         .unwrap_or(6);
 
                     // Find matching pre-balance for same account index AND mint
-                    let pre_raw = meta.pre_token_balances.iter()
-                        .find(|pre| pre.account_index == post_tb.account_index && pre.mint == post_tb.mint)
+                    let pre_raw = meta
+                        .pre_token_balances
+                        .iter()
+                        .find(|pre| {
+                            pre.account_index == post_tb.account_index && pre.mint == post_tb.mint
+                        })
                         .and_then(|pre| pre.ui_token_amount.as_ref())
                         .and_then(|u| u.amount.as_ref())
                         .and_then(|a| a.parse::<u128>().ok())
@@ -435,7 +480,8 @@ impl SolanaMonitor {
 
                     if post_raw > pre_raw {
                         let increase = post_raw - pre_raw;
-                        let token_amount = Decimal::from(increase) / Decimal::from(10u64.pow(decimals));
+                        let token_amount =
+                            Decimal::from(increase) / Decimal::from(10u64.pow(decimals));
 
                         if token_amount > best_amount {
                             best_amount = token_amount;
@@ -447,35 +493,77 @@ impl SolanaMonitor {
                 }
 
                 if let Some(owner) = best_recipient_owner {
-                    info!("[SOL-MONITOR] SPL token transfer detected: {} (mint: {:?}) to owner {}", best_amount, best_mint, owner);
+                    info!(
+                        "[SOL-MONITOR] SPL token transfer detected: {} (mint: {:?}) to owner {}",
+                        best_amount, best_mint, owner
+                    );
                     (owner, best_amount, best_mint)
                 } else if self.expected_mint.is_none() {
                     // Fall back to SOL diff only if we aren't looking for a specific token
-                    let (addr, amt) = Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.account_keys);
+                    let (addr, amt) = Self::parse_sol_balance_diff(
+                        meta,
+                        &tx_result.transaction.message.account_keys,
+                    );
                     (addr, amt, None)
                 } else {
                     // We expected a token but didn't find a matching increase
-                    (tx_result.transaction.message.account_keys.get(1).cloned().unwrap_or_default(), Decimal::ZERO, None)
+                    (
+                        tx_result
+                            .transaction
+                            .message
+                            .account_keys
+                            .get(1)
+                            .cloned()
+                            .unwrap_or_default(),
+                        Decimal::ZERO,
+                        None,
+                    )
                 }
             } else if self.expected_mint.is_none() {
                 // --- Native SOL Transfer ---
-                let (addr, amt) = Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.account_keys);
+                let (addr, amt) =
+                    Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.account_keys);
                 (addr, amt, None)
             } else {
                 // Not an SPL transfer and we were expecting one
-                (tx_result.transaction.message.account_keys.get(1).cloned().unwrap_or_default(), Decimal::ZERO, None)
+                (
+                    tx_result
+                        .transaction
+                        .message
+                        .account_keys
+                        .get(1)
+                        .cloned()
+                        .unwrap_or_default(),
+                    Decimal::ZERO,
+                    None,
+                )
             }
         } else {
-            (tx_result.transaction.message.account_keys.get(1).cloned().unwrap_or_default(), Decimal::ZERO, None)
+            (
+                tx_result
+                    .transaction
+                    .message
+                    .account_keys
+                    .get(1)
+                    .cloned()
+                    .unwrap_or_default(),
+                Decimal::ZERO,
+                None,
+            )
         };
 
         // Get sender address (the account that paid for the transaction or the first account)
-        let from_address = tx_result.transaction.message.account_keys.get(0)
+        let from_address = tx_result
+            .transaction
+            .message
+            .account_keys
+            .get(0)
             .cloned()
             .unwrap_or_default();
 
         // Check if transaction succeeded
-        let success = tx_result.meta
+        let success = tx_result
+            .meta
             .as_ref()
             .map(|m| m.err.is_none())
             .unwrap_or(false);
@@ -490,7 +578,11 @@ impl SolanaMonitor {
         let confirmations = if current_slot > tx_result.slot {
             let count = (current_slot - tx_result.slot) as u32;
             // Cap at 32 (standard finalization) to avoid confusingly high numbers for users
-            if count > 32 { 32 } else { count }
+            if count > 32 {
+                32
+            } else {
+                count
+            }
         } else {
             0
         };
@@ -504,7 +596,7 @@ impl SolanaMonitor {
             block_number: Some(tx_result.slot),
             timestamp: chrono::DateTime::from_timestamp(
                 tx_result.block_time.unwrap_or(0) as i64,
-                0
+                0,
             ),
             success,
             token_mint,
@@ -516,12 +608,15 @@ impl SolanaMonitor {
         &self,
         signature: &str,
     ) -> Result<BlockchainTransaction, Box<dyn std::error::Error + Send + Sync>> {
-        self.get_transaction_details_with_slot(signature, None).await
+        self.get_transaction_details_with_slot(signature, None)
+            .await
     }
 
     /// Get current slot number
     async fn get_current_slot(&self) -> Result<u64, Box<dyn std::error::Error + Send + Sync>> {
-        let rpc_response: RpcResponse<u64> = self.rpc_request("getSlot", serde_json::json!([]), false).await?;
+        let rpc_response: RpcResponse<u64> = self
+            .rpc_request("getSlot", serde_json::json!([]), false)
+            .await?;
         if let Some(err) = rpc_response.error {
             error!("Solana RPC getSlot error {}: {}", err.code, err.message);
             return Err(format!("RPC Error: {}", err.message).into());
@@ -538,7 +633,7 @@ impl SolanaMonitor {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut ws_stream_opt = None;
         let mut connected_ws_url = String::new();
-        
+
         for url in &self.ws_urls {
             let safe_url = redact_url(url);
             info!("🔌 Attempting connection to Solana WebSocket: {}", safe_url);
@@ -546,11 +641,17 @@ impl SolanaMonitor {
                 Ok((stream, _)) => {
                     ws_stream_opt = Some(stream);
                     connected_ws_url = url.clone();
-                    info!("✅ Successfully connected to Solana WebSocket: {}", redact_url(&connected_ws_url));
+                    info!(
+                        "✅ Successfully connected to Solana WebSocket: {}",
+                        redact_url(&connected_ws_url)
+                    );
                     break;
                 }
                 Err(e) => {
-                    warn!("❌ Failed to connect to Solana WebSocket {}: {}", safe_url, e);
+                    warn!(
+                        "❌ Failed to connect to Solana WebSocket {}: {}",
+                        safe_url, e
+                    );
                     continue;
                 }
             }
@@ -571,7 +672,7 @@ impl SolanaMonitor {
         let mut subscription_map = std::collections::HashMap::new();
         // Map of monitored_address -> owner_address (for ATAs, owner_address is the wallet; for native, both are same)
         let mut owner_map = std::collections::HashMap::new();
-        
+
         let mut next_request_id = 1u64;
 
         // Combine owner addresses and their ATAs for monitoring
@@ -599,11 +700,11 @@ impl SolanaMonitor {
         // Subscribe to logs for each address
         let mut wallet_count = 0;
         let mut ata_count = 0;
-        
+
         for address in &initial_monitor_addresses {
             let request_id = next_request_id;
             next_request_id += 1;
-            
+
             let subscribe_msg = serde_json::json!({
                 "jsonrpc": "2.0",
                 "id": request_id,
@@ -615,14 +716,19 @@ impl SolanaMonitor {
             });
             write.send(Message::Text(subscribe_msg.to_string())).await?;
             subscription_map.insert(request_id, address.clone());
-            
+
             if addresses.contains(address) {
                 wallet_count += 1;
             } else {
                 ata_count += 1;
             }
         }
-        info!("✅ Solana WS: Sent {} wallet and {} ATA subscription requests (Total: {})", wallet_count, ata_count, initial_monitor_addresses.len());
+        info!(
+            "✅ Solana WS: Sent {} wallet and {} ATA subscription requests (Total: {})",
+            wallet_count,
+            ata_count,
+            initial_monitor_addresses.len()
+        );
 
         // ✅ NOTE: Automatic history backfill for existing addresses has been disabled.
         // It should now be triggered manually by an admin using the /historical endpoint.
@@ -642,7 +748,7 @@ impl SolanaMonitor {
                     // Monitor new owner and its ATAs
                     let mut to_add = vec![new_owner.clone()];
                     owner_map.insert(new_owner.clone(), new_owner.clone());
-                    
+
                     let tokens_to_monitor = vec![CryptoType::UsdtSpl, CryptoType::WSol];
                     for token in &tokens_to_monitor {
                         if let Some(mint) = token.token_address() {
@@ -658,7 +764,7 @@ impl SolanaMonitor {
                     for addr in &to_add {
                         let request_id = next_request_id;
                         next_request_id += 1;
-                        
+
                         let subscribe_msg = serde_json::json!({
                             "jsonrpc": "2.0",
                             "id": request_id,
@@ -687,7 +793,7 @@ impl SolanaMonitor {
                     match message {
                         Ok(Message::Text(text)) => {
                             let v: serde_json::Value = serde_json::from_str(&text)?;
-                            
+
                             // 1. Check if it's a response to a subscription request
                             if let Some(id) = v["id"].as_u64() {
                                 if let Some(address) = subscription_map.remove(&id) {
@@ -744,7 +850,10 @@ impl SolanaMonitor {
 
         loop {
             let min_ts = Utc::now() - chrono::Duration::minutes(10);
-            match self.get_transactions_to_address(address, 50, Some(min_ts)).await {
+            match self
+                .get_transactions_to_address(address, 50, Some(min_ts))
+                .await
+            {
                 Ok(transactions) => {
                     for tx in transactions {
                         if !known_txs.contains(&tx.hash) {
@@ -765,7 +874,10 @@ impl SolanaMonitor {
     }
 
     /// Helper method to parse native SOL transfers from pre/post lamport balances
-    fn parse_sol_balance_diff(meta: &TransactionMeta, account_keys: &[String]) -> (String, Decimal) {
+    fn parse_sol_balance_diff(
+        meta: &TransactionMeta,
+        account_keys: &[String],
+    ) -> (String, Decimal) {
         let mut max_increase = 0u64;
         let mut recipient_idx = None;
 
@@ -785,16 +897,17 @@ impl SolanaMonitor {
 
         match recipient_idx {
             Some(idx) => {
-                let addr = account_keys.get(idx)
-                    .cloned()
-                    .unwrap_or_default();
+                let addr = account_keys.get(idx).cloned().unwrap_or_default();
                 // Convert from lamports to SOL (1 SOL = 1_000_000_000 lamports)
                 let decimal_amount = Decimal::from(max_increase) / Decimal::from(1_000_000_000u64);
                 (addr, decimal_amount)
             }
             None => {
                 // Fallback to second account if no increase found
-                (account_keys.get(1).cloned().unwrap_or_default(), Decimal::ZERO)
+                (
+                    account_keys.get(1).cloned().unwrap_or_default(),
+                    Decimal::ZERO,
+                )
             }
         }
     }
@@ -817,11 +930,11 @@ impl BlockchainMonitor for SolanaMonitor {
         limit: usize,
         min_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
-        self.get_transactions_to_address(address, limit, min_timestamp).await
+        self.get_transactions_to_address(address, limit, min_timestamp)
+            .await
     }
 
     fn blockchain_name(&self) -> &'static str {
         "Solana"
     }
 }
-

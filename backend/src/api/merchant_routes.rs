@@ -1,123 +1,336 @@
 // Merchant Routes
 // All merchant-specific API endpoints with API key authentication
 
-use crate::api::{merchant_handlers, wallet_management, security_monitoring, address_only, merchant_ws, notification_handlers};
+use crate::api::state::AppState;
+use crate::api::{
+    address_only, merchant_handlers, merchant_ws, notification_handlers, security_monitoring,
+    wallet_management,
+};
 use crate::middleware::auth;
 use axum::{
     middleware as axum_middleware,
-    routing::{get, post, put, patch, delete},
+    routing::{delete, get, patch, post, put},
     Router,
 };
-use crate::api::state::AppState;
 
 pub fn create_merchant_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Dashboard Notifications WebSocket
-        .route("/api/v1/merchants/ws", get(merchant_ws::merchant_ws_handler))
-        
+        .route(
+            "/api/v1/merchants/ws",
+            get(merchant_ws::merchant_ws_handler),
+        )
         // Merchant profile management
-        .route("/api/v1/merchants/profile", get(merchant_handlers::get_merchant_profile))
-        .route("/api/v1/merchants/status", get(merchant_handlers::get_merchant_readiness))
-        .route("/api/v1/merchants/environment/switch", post(merchant_handlers::switch_environment))
-        .route("/api/v1/merchants/api-keys/generate", post(merchant_handlers::generate_api_key))
-        .route("/api/v1/merchants/api-keys/rotate", post(merchant_handlers::rotate_api_key))
-        .route("/api/v1/merchants/settings", get(merchant_handlers::get_merchant_settings).patch(merchant_handlers::update_merchant_settings))
-        .route("/api/v1/merchants/webhook/test", post(merchant_handlers::send_test_webhook))
-
+        .route(
+            "/api/v1/merchants/profile",
+            get(merchant_handlers::get_merchant_profile),
+        )
+        .route(
+            "/api/v1/merchants/status",
+            get(merchant_handlers::get_merchant_readiness),
+        )
+        .route(
+            "/api/v1/merchants/environment/switch",
+            post(merchant_handlers::switch_environment),
+        )
+        .route(
+            "/api/v1/merchants/api-keys/generate",
+            post(merchant_handlers::generate_api_key),
+        )
+        .route(
+            "/api/v1/merchants/api-keys/rotate",
+            post(merchant_handlers::rotate_api_key),
+        )
+        .route(
+            "/api/v1/merchants/settings",
+            get(merchant_handlers::get_merchant_settings)
+                .patch(merchant_handlers::update_merchant_settings),
+        )
+        .route(
+            "/api/v1/merchants/webhook/test",
+            post(merchant_handlers::send_test_webhook),
+        )
         // Notifications history
-        .route("/api/v1/merchants/notifications", get(notification_handlers::list_notifications))
-        .route("/api/v1/merchants/notifications/mark-read", post(notification_handlers::mark_notification_read))
-        .route("/api/v1/merchants/notifications/:notification_id/mark-read", post(notification_handlers::mark_notification_read))
-        .route("/api/v1/merchants/notifications", delete(notification_handlers::delete_notifications))
-        .route("/api/v1/merchants/notifications/:notification_id", delete(notification_handlers::delete_notifications))
-        
+        .route(
+            "/api/v1/merchants/notifications",
+            get(notification_handlers::list_notifications),
+        )
+        .route(
+            "/api/v1/merchants/notifications/mark-read",
+            post(notification_handlers::mark_notification_read),
+        )
+        .route(
+            "/api/v1/merchants/notifications/:notification_id/mark-read",
+            post(notification_handlers::mark_notification_read),
+        )
+        .route(
+            "/api/v1/merchants/notifications",
+            delete(notification_handlers::delete_notifications),
+        )
+        .route(
+            "/api/v1/merchants/notifications/:notification_id",
+            delete(notification_handlers::delete_notifications),
+        )
         // Payment management
-        .route("/api/v1/merchants/payments", post(merchant_handlers::create_payment))
-        .route("/api/v1/merchants/payments", get(merchant_handlers::list_payments))
-        .route("/api/v1/merchants/payments/:payment_id", get(merchant_handlers::get_payment))
-        .route("/api/v1/merchants/payments/:payment_id/cancel", post(merchant_handlers::cancel_payment))
-        .route("/api/v1/merchants/payments/:payment_id/verify", post(merchant_handlers::verify_payment))
-        .route("/api/v1/merchants/payments/:payment_id/select", post(merchant_handlers::finalize_payment_selection))
-        
+        .route(
+            "/api/v1/merchants/payments",
+            post(merchant_handlers::create_payment),
+        )
+        .route(
+            "/api/v1/merchants/payments",
+            get(merchant_handlers::list_payments),
+        )
+        .route(
+            "/api/v1/merchants/payments/:payment_id",
+            get(merchant_handlers::get_payment),
+        )
+        .route(
+            "/api/v1/merchants/payments/:payment_id/cancel",
+            post(merchant_handlers::cancel_payment),
+        )
+        .route(
+            "/api/v1/merchants/payments/:payment_id/verify",
+            post(merchant_handlers::verify_payment),
+        )
+        .route(
+            "/api/v1/merchants/payments/:payment_id/select",
+            post(merchant_handlers::finalize_payment_selection),
+        )
         // Refund management
-        .route("/api/v1/merchants/refunds", post(merchant_handlers::create_refund).get(merchant_handlers::list_refunds))
-        .route("/api/v1/merchants/refunds/:refund_id", get(merchant_handlers::get_refund))
-        .route("/api/v1/merchants/refunds/:refund_id/complete", post(merchant_handlers::complete_refund))
-        
+        .route(
+            "/api/v1/merchants/refunds",
+            post(merchant_handlers::create_refund).get(merchant_handlers::list_refunds),
+        )
+        .route(
+            "/api/v1/merchants/refunds/:refund_id",
+            get(merchant_handlers::get_refund),
+        )
+        .route(
+            "/api/v1/merchants/refunds/:refund_id/complete",
+            post(merchant_handlers::complete_refund),
+        )
         // Analytics and reporting
-        .route("/api/v1/merchants/analytics", get(merchant_handlers::get_analytics))
-        .route("/api/v1/merchants/transactions", get(merchant_handlers::list_unified_transactions))
-        .route("/api/v1/merchants/analytics/export", get(merchant_handlers::export_analytics))
-        .route("/api/v1/merchants/audit-logs", get(merchant_handlers::get_audit_logs))
-
+        .route(
+            "/api/v1/merchants/analytics",
+            get(merchant_handlers::get_analytics),
+        )
+        .route(
+            "/api/v1/merchants/transactions",
+            get(merchant_handlers::list_unified_transactions),
+        )
+        .route(
+            "/api/v1/merchants/analytics/export",
+            get(merchant_handlers::export_analytics),
+        )
+        .route(
+            "/api/v1/merchants/audit-logs",
+            get(merchant_handlers::get_audit_logs),
+        )
         // Fee Settings (GET only — updates via PATCH /settings)
-        .route("/api/v1/merchants/fee-setting", get(merchant_handlers::get_fee_setting))
-        
+        .route(
+            "/api/v1/merchants/fee-setting",
+            get(merchant_handlers::get_fee_setting),
+        )
         // Balance and financial
-        .route("/api/v1/merchants/balance", get(merchant_handlers::get_balance))
-        .route("/api/v1/merchants/balance/history", get(merchant_handlers::get_balance_history))
-        
+        .route(
+            "/api/v1/merchants/balance",
+            get(merchant_handlers::get_balance),
+        )
+        .route(
+            "/api/v1/merchants/balance/history",
+            get(merchant_handlers::get_balance_history),
+        )
         // Withdrawal management
-        .route("/api/v1/merchants/withdrawals", post(merchant_handlers::create_withdrawal))
-        .route("/api/v1/merchants/withdrawals", get(merchant_handlers::list_withdrawals))
-        .route("/api/v1/merchants/withdrawals/:withdrawal_id", get(merchant_handlers::get_withdrawal))
-        .route("/api/v1/merchants/withdrawals/:withdrawal_id/cancel", post(merchant_handlers::cancel_withdrawal))
-        .route("/api/v1/merchants/withdrawals/:withdrawal_id/process", post(wallet_management::process_withdrawal))
-        
+        .route(
+            "/api/v1/merchants/withdrawals",
+            post(merchant_handlers::create_withdrawal),
+        )
+        .route(
+            "/api/v1/merchants/withdrawals",
+            get(merchant_handlers::list_withdrawals),
+        )
+        .route(
+            "/api/v1/merchants/withdrawals/:withdrawal_id",
+            get(merchant_handlers::get_withdrawal),
+        )
+        .route(
+            "/api/v1/merchants/withdrawals/:withdrawal_id/cancel",
+            post(merchant_handlers::cancel_withdrawal),
+        )
+        .route(
+            "/api/v1/merchants/withdrawals/:withdrawal_id/process",
+            post(wallet_management::process_withdrawal),
+        )
         // Wallet management (unified setup via POST /wallets with mode field)
-        .route("/api/v1/merchants/wallets/balances", get(wallet_management::get_wallet_balances))
-        .route("/api/v1/merchants/wallets", get(wallet_management::get_wallets).post(wallet_management::setup_wallet))
-        .route("/api/v1/merchants/wallets/:crypto_type", axum::routing::delete(wallet_management::delete_wallet))
-        .route("/api/v1/merchants/wallets/gas-check", get(wallet_management::check_gas_requirements))
-        .route("/api/v1/merchants/wallets/gas-estimates", get(wallet_management::get_gas_estimates))
-        .route("/api/v1/merchants/wallets/withdrawal-capability/:crypto_type", get(wallet_management::check_withdrawal_capability))
-        
+        .route(
+            "/api/v1/merchants/wallets/balances",
+            get(wallet_management::get_wallet_balances),
+        )
+        .route(
+            "/api/v1/merchants/wallets",
+            get(wallet_management::get_wallets).post(wallet_management::setup_wallet),
+        )
+        .route(
+            "/api/v1/merchants/wallets/:crypto_type",
+            axum::routing::delete(wallet_management::delete_wallet),
+        )
+        .route(
+            "/api/v1/merchants/wallets/gas-check",
+            get(wallet_management::check_gas_requirements),
+        )
+        .route(
+            "/api/v1/merchants/wallets/gas-estimates",
+            get(wallet_management::get_gas_estimates),
+        )
+        .route(
+            "/api/v1/merchants/wallets/withdrawal-capability/:crypto_type",
+            get(wallet_management::check_withdrawal_capability),
+        )
         // Security settings (merchant's own security preferences)
-        .route("/api/v1/merchants/security/settings", get(security_monitoring::get_security_settings).put(security_monitoring::update_security_settings))
-        .route("/api/v1/merchants/security/wallets/lock", post(merchant_handlers::toggle_wallet_lock))
-        .route("/api/v1/merchants/security/customers/wallets/lock", post(merchant_handlers::toggle_customer_wallet_lock))
-        .route("/api/v1/merchants/security/transaction-pin", post(merchant_handlers::set_transaction_pin))
-        .route("/api/v1/merchants/security/transaction-pin/verify", post(merchant_handlers::verify_transaction_pin))
-        .route("/api/v1/merchants/security/events", get(security_monitoring::get_security_events))
-        .route("/api/v1/merchants/security/alerts", get(security_monitoring::get_security_alerts))
-        .route("/api/v1/merchants/security/alerts/:alert_id/acknowledge", post(security_monitoring::acknowledge_security_alert))
-        .route("/api/v1/merchants/security/balance-alerts", get(security_monitoring::get_balance_alerts))
-        .route("/api/v1/merchants/security/balance-alerts/:alert_id/resolve", post(security_monitoring::resolve_balance_alert))
-        .route("/api/v1/merchants/security/gas-check", get(security_monitoring::check_gas_balances))
-        
+        .route(
+            "/api/v1/merchants/security/settings",
+            get(security_monitoring::get_security_settings)
+                .put(security_monitoring::update_security_settings),
+        )
+        .route(
+            "/api/v1/merchants/security/wallets/lock",
+            post(merchant_handlers::toggle_wallet_lock),
+        )
+        .route(
+            "/api/v1/merchants/security/customers/wallets/lock",
+            post(merchant_handlers::toggle_customer_wallet_lock),
+        )
+        .route(
+            "/api/v1/merchants/security/transaction-pin",
+            post(merchant_handlers::set_transaction_pin),
+        )
+        .route(
+            "/api/v1/merchants/security/transaction-pin/verify",
+            post(merchant_handlers::verify_transaction_pin),
+        )
+        .route(
+            "/api/v1/merchants/security/events",
+            get(security_monitoring::get_security_events),
+        )
+        .route(
+            "/api/v1/merchants/security/alerts",
+            get(security_monitoring::get_security_alerts),
+        )
+        .route(
+            "/api/v1/merchants/security/alerts/:alert_id/acknowledge",
+            post(security_monitoring::acknowledge_security_alert),
+        )
+        .route(
+            "/api/v1/merchants/security/balance-alerts",
+            get(security_monitoring::get_balance_alerts),
+        )
+        .route(
+            "/api/v1/merchants/security/balance-alerts/:alert_id/resolve",
+            post(security_monitoring::resolve_balance_alert),
+        )
+        .route(
+            "/api/v1/merchants/security/gas-check",
+            get(security_monitoring::check_gas_balances),
+        )
         // IP whitelist management (GET only — updates via PATCH /settings)
-        .route("/api/v1/merchants/ip-whitelist", get(merchant_handlers::get_ip_whitelist))
-        
+        .route(
+            "/api/v1/merchants/ip-whitelist",
+            get(merchant_handlers::get_ip_whitelist),
+        )
         // Customer management (Sub-Account Designated Wallets)
-        .route("/api/v1/merchants/customers/summary", get(crate::api::customer_handlers::get_customers_summary))
-        .route("/api/v1/merchants/customers", get(crate::api::customer_handlers::list_customers).post(crate::api::customer_handlers::register_customer))
-        .route("/api/v1/merchants/customers/bulk-provision", post(crate::api::customer_handlers::bulk_provision_customer_wallets))
-        .route("/api/v1/merchants/customers/:external_id/wallets", get(crate::api::customer_handlers::get_customer_wallets).post(crate::api::customer_handlers::provision_customer_wallets))
-        .route("/api/v1/merchants/customers/:external_id/balances", get(crate::api::customer_handlers::get_customer_balances))
-        .route("/api/v1/merchants/customers/:external_id/deposit-address/:crypto_type", get(crate::api::customer_handlers::get_deposit_address))
-        .route("/api/v1/merchants/customers/:external_id/transactions", get(crate::api::customer_handlers::get_customer_transactions))
-        .route("/api/v1/merchants/customers/:external_id/pay-merchant", post(crate::api::customer_handlers::pay_merchant))
-        .route("/api/v1/merchants/customers/:external_id/status", patch(crate::api::customer_handlers::update_customer_status))
-        .route("/api/v1/merchants/customers/:external_id/permissions", patch(crate::api::customer_handlers::update_customer_permissions))
-        .route("/api/v1/merchants/customers/:external_id/sweep", post(crate::api::customer_handlers::sweep_customer_wallet))
-        .route("/api/v1/merchants/customers/:external_id/deactivate", post(crate::api::customer_handlers::deactivate_customer))
-        
+        .route(
+            "/api/v1/merchants/customers/summary",
+            get(crate::api::customer_handlers::get_customers_summary),
+        )
+        .route(
+            "/api/v1/merchants/customers",
+            get(crate::api::customer_handlers::list_customers)
+                .post(crate::api::customer_handlers::register_customer),
+        )
+        .route(
+            "/api/v1/merchants/customers/bulk-provision",
+            post(crate::api::customer_handlers::bulk_provision_customer_wallets),
+        )
+        .route(
+            "/api/v1/merchants/customers/:external_id/wallets",
+            get(crate::api::customer_handlers::get_customer_wallets)
+                .post(crate::api::customer_handlers::provision_customer_wallets),
+        )
+        .route(
+            "/api/v1/merchants/customers/:external_id/balances",
+            get(crate::api::customer_handlers::get_customer_balances),
+        )
+        .route(
+            "/api/v1/merchants/customers/:external_id/deposit-address/:crypto_type",
+            get(crate::api::customer_handlers::get_deposit_address),
+        )
+        .route(
+            "/api/v1/merchants/customers/:external_id/transactions",
+            get(crate::api::customer_handlers::get_customer_transactions),
+        )
+        .route(
+            "/api/v1/merchants/customers/:external_id/pay-merchant",
+            post(crate::api::customer_handlers::pay_merchant),
+        )
+        .route(
+            "/api/v1/merchants/customers/:external_id/status",
+            patch(crate::api::customer_handlers::update_customer_status),
+        )
+        .route(
+            "/api/v1/merchants/customers/:external_id/permissions",
+            patch(crate::api::customer_handlers::update_customer_permissions),
+        )
+        .route(
+            "/api/v1/merchants/customers/:external_id/sweep",
+            post(crate::api::customer_handlers::sweep_customer_wallet),
+        )
+        .route(
+            "/api/v1/merchants/customers/:external_id/deactivate",
+            post(crate::api::customer_handlers::deactivate_customer),
+        )
         // Invoice management
-        .route("/api/v1/merchants/invoices", post(merchant_handlers::create_invoice))
-        .route("/api/v1/merchants/invoices", get(merchant_handlers::list_invoices))
-        .route("/api/v1/merchants/invoices/:invoice_id", get(merchant_handlers::get_invoice))
-        
+        .route(
+            "/api/v1/merchants/invoices",
+            post(merchant_handlers::create_invoice),
+        )
+        .route(
+            "/api/v1/merchants/invoices",
+            get(merchant_handlers::list_invoices),
+        )
+        .route(
+            "/api/v1/merchants/invoices/:invoice_id",
+            get(merchant_handlers::get_invoice),
+        )
         // Sandbox testing
-        .route("/api/v1/merchants/sandbox/payments/:payment_id/simulate", post(merchant_handlers::simulate_payment))
-        
+        .route(
+            "/api/v1/merchants/sandbox/payments/:payment_id/simulate",
+            post(merchant_handlers::simulate_payment),
+        )
         // Address-Only Mode (Phase 1)
-        .route("/api/v1/merchants/address-only/create", post(address_only::create_address_only_payment))
-        .route("/api/v1/merchants/address-only/status", get(address_only::get_address_only_payment_status))
-        .route("/api/v1/merchants/address-only/currencies", get(address_only::get_supported_native_currencies))
-        .route("/api/v1/merchants/address-only/stats", get(address_only::get_address_only_stats))
-        .route("/api/v1/merchants/address-only/fee-setting", get(address_only::get_fee_setting).put(address_only::update_fee_setting))
-        .route("/api/v1/merchants/address-only/health", get(address_only::get_address_only_health))
-        
+        .route(
+            "/api/v1/merchants/address-only/create",
+            post(address_only::create_address_only_payment),
+        )
+        .route(
+            "/api/v1/merchants/address-only/status",
+            get(address_only::get_address_only_payment_status),
+        )
+        .route(
+            "/api/v1/merchants/address-only/currencies",
+            get(address_only::get_supported_native_currencies),
+        )
+        .route(
+            "/api/v1/merchants/address-only/stats",
+            get(address_only::get_address_only_stats),
+        )
+        .route(
+            "/api/v1/merchants/address-only/fee-setting",
+            get(address_only::get_fee_setting).put(address_only::update_fee_setting),
+        )
+        .route(
+            "/api/v1/merchants/address-only/health",
+            get(address_only::get_address_only_health),
+        )
         // Apply merchant API key authentication
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),

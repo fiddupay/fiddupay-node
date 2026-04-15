@@ -2,20 +2,20 @@
 // Business logic for payment operations
 
 use crate::error::ServiceError;
-use crate::services::price_service::PriceService;
-use crate::services::webhook_service::WebhookService;
 use crate::payment::models::{
-    CreatePaymentRequest, PaymentFilters, PaymentList, PaymentResponse, PaymentStatus,
-    PaymentTransaction, PartialPaymentInfo, PartialPaymentRecord, CryptoType,
+    CreatePaymentRequest, CryptoType, PartialPaymentInfo, PartialPaymentRecord, PaymentFilters,
+    PaymentList, PaymentResponse, PaymentStatus, PaymentTransaction,
 };
-use crate::services::invoice_service::InvoiceService;
-use crate::services::notification_service::NotificationService;
 use crate::payment::processor::PaymentProcessor;
 use crate::payment::verifier::PaymentVerifier;
-use std::sync::Arc;
+use crate::services::invoice_service::InvoiceService;
+use crate::services::notification_service::NotificationService;
+use crate::services::price_service::PriceService;
+use crate::services::webhook_service::WebhookService;
 use chrono::Utc;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
+use std::sync::Arc;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PaymentServiceError {
@@ -43,8 +43,12 @@ impl axum::response::IntoResponse for PaymentServiceError {
             PaymentServiceError::ServiceError(e) => e,
             PaymentServiceError::InvalidFilters(msg) => ServiceError::ValidationError(msg),
             PaymentServiceError::VerificationError(msg) => ServiceError::ValidationError(msg),
-            PaymentServiceError::PaymentExpired => ServiceError::ValidationError("Payment has expired".to_string()),
-            PaymentServiceError::PaymentAlreadyConfirmed => ServiceError::ValidationError("Payment already confirmed".to_string()),
+            PaymentServiceError::PaymentExpired => {
+                ServiceError::ValidationError("Payment has expired".to_string())
+            }
+            PaymentServiceError::PaymentAlreadyConfirmed => {
+                ServiceError::ValidationError("Payment already confirmed".to_string())
+            }
         };
         service_err.into_response()
     }
@@ -59,37 +63,37 @@ pub struct PaymentService {
 
 impl PaymentService {
     pub fn new(
-        db_pool: PgPool, 
-        payment_page_base_url: &str, 
-        price_service: Arc<PriceService>, 
-        invoice_service: Arc<InvoiceService>, 
-        audit_service: Arc<crate::services::audit_service::AuditService>, 
-        webhook_signing_key: &str, 
-        config: crate::config::Config, 
-        redis_client: redis::Client, 
+        db_pool: PgPool,
+        payment_page_base_url: &str,
+        price_service: Arc<PriceService>,
+        invoice_service: Arc<InvoiceService>,
+        audit_service: Arc<crate::services::audit_service::AuditService>,
+        webhook_signing_key: &str,
+        config: crate::config::Config,
+        redis_client: redis::Client,
         volume_tracking: Arc<crate::services::volume_tracking_service::VolumeTrackingService>,
         notification_service: Arc<NotificationService>,
     ) -> Self {
         let webhook_service = WebhookService::new(db_pool.clone(), webhook_signing_key.to_string());
-        
+
         Self {
             processor: PaymentProcessor::new(
-                db_pool.clone(), 
-                payment_page_base_url.to_string(), 
-                price_service.clone(), 
-                invoice_service.clone(), 
-                audit_service, 
-                config.clone(), 
+                db_pool.clone(),
+                payment_page_base_url.to_string(),
+                price_service.clone(),
+                invoice_service.clone(),
+                audit_service,
+                config.clone(),
                 volume_tracking,
-                notification_service.clone()
+                notification_service.clone(),
             ),
             verifier: PaymentVerifier::new(
-                db_pool.clone(), 
-                webhook_service, 
-                price_service, 
-                config.clone(), 
+                db_pool.clone(),
+                webhook_service,
+                price_service,
+                config.clone(),
                 redis_client,
-                notification_service.clone()
+                notification_service.clone(),
             ),
             db_pool,
             config,
@@ -97,14 +101,14 @@ impl PaymentService {
     }
 
     /// Create a new payment request
-    /// 
+    ///
     /// # Arguments
     /// * `merchant_id` - The merchant creating the payment
     /// * `request` - Payment creation request details
-    /// 
+    ///
     /// # Returns
     /// * `PaymentResponse` with payment details
-    /// 
+    ///
     /// # Requirements
     /// * 2.1: Generate unique payment identifier
     /// * 2.2: Calculate crypto amount using real-time exchange rates
@@ -123,20 +127,23 @@ impl PaymentService {
         merchant_id: i64,
         payment_id: &str,
     ) -> Result<(), PaymentServiceError> {
-        Ok(self.processor.cancel_payment(merchant_id, payment_id).await?)
+        Ok(self
+            .processor
+            .cancel_payment(merchant_id, payment_id)
+            .await?)
     }
 
     /// Verify a payment with transaction hash
-    /// 
+    ///
     /// # Arguments
     /// * `payment_id` - Public payment ID (e.g., "pay_abc123")
     /// * `transaction_hash` - Blockchain transaction hash
     /// * `merchant_id` - Merchant ID for ownership verification
-    /// 
+    ///
     /// # Returns
     /// * `true` if payment is confirmed
     /// * `false` if payment is pending more confirmations
-    /// 
+    ///
     /// # Requirements
     /// * 3.1: Verify transaction hash exists on blockchain
     /// * 3.2: Confirm amount matches expected payment amount
@@ -154,11 +161,11 @@ impl PaymentService {
     }
 
     /// Verify payment by scanning address
-    /// 
+    ///
     /// # Arguments
     /// * `payment_id` - Public payment ID
     /// * `merchant_id` - Merchant ID
-    /// 
+    ///
     /// # Returns
     /// * `true` if payment confirmed
     pub async fn verify_payment_by_address(
@@ -202,11 +209,11 @@ impl PaymentService {
     }
 
     /// Get a single payment by payment ID
-    /// 
+    ///
     /// # Arguments
     /// * `payment_id` - Public payment ID (e.g., "pay_abc123")
     /// * `merchant_id` - Merchant ID for ownership verification
-    /// 
+    ///
     /// # Returns
     /// * `PaymentResponse` with payment details
     pub async fn get_payment(
@@ -215,7 +222,7 @@ impl PaymentService {
         merchant_id: i64,
     ) -> Result<PaymentResponse, PaymentServiceError> {
         let payment = sqlx::query_as::<_, PaymentTransaction>(
-            "SELECT * FROM payment_transactions WHERE payment_id = $1"
+            "SELECT * FROM payment_transactions WHERE payment_id = $1",
         )
         .bind(payment_id)
         .fetch_optional(&self.db_pool)
@@ -230,14 +237,14 @@ impl PaymentService {
     }
 
     /// List payments for a merchant with optional filters and pagination
-    /// 
+    ///
     /// # Arguments
     /// * `merchant_id` - The merchant ID to filter payments for
     /// * `filters` - Optional filters for status, blockchain, date range, and pagination
-    /// 
+    ///
     /// # Returns
     /// * `PaymentList` - Paginated list of payments with total count
-    /// 
+    ///
     /// # Requirements
     /// Validates: Requirements 11.3 - Support filtering analytics by date range, blockchain, and payment status
     pub async fn list_payments(
@@ -251,9 +258,7 @@ impl PaymentService {
         let offset = ((page - 1) * page_size) as i64;
 
         // Build the base query
-        let mut query = String::from(
-            "SELECT * FROM payment_transactions WHERE merchant_id = $1"
-        );
+        let mut query = String::from("SELECT * FROM payment_transactions WHERE merchant_id = $1");
         let mut param_count = 1;
 
         // Add status filter
@@ -293,8 +298,7 @@ impl PaymentService {
         query.push_str(&format!(" OFFSET ${}", param_count));
 
         // Build the query with parameters
-        let mut sql_query = sqlx::query_as::<_, PaymentTransaction>(&query)
-            .bind(merchant_id);
+        let mut sql_query = sqlx::query_as::<_, PaymentTransaction>(&query).bind(merchant_id);
 
         // Bind status filter
         if let Some(status) = &filters.status {
@@ -359,9 +363,8 @@ impl PaymentService {
         merchant_id: i64,
         filters: &PaymentFilters,
     ) -> Result<i64, PaymentServiceError> {
-        let mut query = String::from(
-            "SELECT COUNT(*) FROM payment_transactions WHERE merchant_id = $1"
-        );
+        let mut query =
+            String::from("SELECT COUNT(*) FROM payment_transactions WHERE merchant_id = $1");
         let mut param_count = 1;
 
         // Add status filter
@@ -392,10 +395,9 @@ impl PaymentService {
             param_count += 1;
             query.push_str(&format!(" AND sandbox_mode = ${}", param_count));
         }
-    
+
         // Build the query with parameters
-        let mut sql_query = sqlx::query_scalar::<_, i64>(&query)
-            .bind(merchant_id);
+        let mut sql_query = sqlx::query_scalar::<_, i64>(&query).bind(merchant_id);
 
         // Bind status filter
         if let Some(status) = &filters.status {
@@ -430,19 +432,24 @@ impl PaymentService {
         payment: PaymentTransaction,
     ) -> Result<PaymentResponse, PaymentServiceError> {
         // Parse crypto type from string if exists
-        let crypto_type = payment.crypto_type.as_deref().map(|s| self.parse_crypto_type(s));
+        let crypto_type = payment
+            .crypto_type
+            .as_deref()
+            .map(|s| self.parse_crypto_type(s));
 
         // Parse status from string
         let status = self.parse_status(&payment.status);
 
         // Fetch payment link from database
-        let payment_link = format!("{}/{}", 
-            self.config.payment_page_base_url,
-            payment.payment_id
+        let payment_link = format!(
+            "{}/{}",
+            self.config.payment_page_base_url, payment.payment_id
         );
-        
+
         // Generate QR code data only if we have the necessary info
-        let qr_code_data = if let (Some(ct), Some(addr), Some(amt)) = (&crypto_type, &payment.to_address, &payment.amount) {
+        let qr_code_data = if let (Some(ct), Some(addr), Some(amt)) =
+            (&crypto_type, &payment.to_address, &payment.amount)
+        {
             Some(format!(
                 "{}:{}?amount={}",
                 ct.network().to_lowercase(),
@@ -479,7 +486,6 @@ impl PaymentService {
             last_verification_at: payment.last_verification_at,
         })
     }
-
 
     /// Parse crypto type from string
     fn parse_crypto_type(&self, crypto_type_str: &str) -> CryptoType {

@@ -1,6 +1,6 @@
+use crate::api::state::AppState;
 use axum::{extract::State, http::StatusCode, response::Json};
 use serde::{Deserialize, Serialize};
-use crate::api::state::AppState;
 
 #[derive(Serialize, Deserialize)]
 pub struct JobPosting {
@@ -75,7 +75,8 @@ pub async fn get_careers(
 
     let company_info = CompanyInfo {
         name: "FidduPay".to_string(),
-        description: "Leading cryptocurrency payment gateway trusted by businesses worldwide".to_string(),
+        description: "Leading cryptocurrency payment gateway trusted by businesses worldwide"
+            .to_string(),
         values: vec![
             "Trust and Security".to_string(),
             "Innovation".to_string(),
@@ -89,10 +90,7 @@ pub async fn get_careers(
         ],
     };
 
-    let response = CareersResponse {
-        jobs,
-        company_info,
-    };
+    let response = CareersResponse { jobs, company_info };
 
     Ok(Json(response))
 }

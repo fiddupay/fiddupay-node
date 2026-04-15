@@ -20,7 +20,7 @@ pub struct MerchantContext {
 }
 
 /// Extract API key from Authorization header
-/// 
+///
 /// Expected format: "Bearer <api_key>"
 fn extract_api_key(headers: &HeaderMap) -> Option<String> {
     headers
@@ -39,9 +39,9 @@ fn extract_api_key(headers: &HeaderMap) -> Option<String> {
 }
 
 /// Authentication middleware
-/// 
+///
 /// Validates API key and attaches merchant context to request
-/// 
+///
 /// # Requirements
 /// * 7.1: Authenticate requests with valid API key
 /// * 7.2: Reject requests with invalid or missing API key (401)
@@ -52,41 +52,43 @@ pub async fn auth_middleware(
     mut request: Request,
     next: Next,
 ) -> Result<Response, impl IntoResponse> {
-    
     // Extract token from Sec-WebSocket-Protocol header (more secure for WebSockets)
-    let protocol_token = headers.get("sec-websocket-protocol").and_then(|v| v.to_str().ok());
+    let protocol_token = headers
+        .get("sec-websocket-protocol")
+        .and_then(|v| v.to_str().ok());
 
     // Extract query token for legacy WebSocket authenticity
     let query_token = uri.query().and_then(|q| {
-         q.split('&')
-          .find(|s| s.starts_with("token="))
-          .map(|s| s[6..].to_string())
+        q.split('&')
+            .find(|s| s.starts_with("token="))
+            .map(|s| s[6..].to_string())
     });
 
     // Extract API key from header, fallback to protocol or query parameter
     let api_key = match extract_api_key(&headers) {
         Some(key) => key,
-        None => match protocol_token {
-            Some(token) => token.to_string(),
-            None => match query_token {
-                Some(token) => token,
-                None => {
-                    tracing::warn!("Missing or invalid Authorization header and no WebSocket token provided");
-                    return Err((
-                        StatusCode::UNAUTHORIZED,
-                        axum::Json(json!({
-                            "error": "Missing or invalid Authorization header",
-                            "message": "Expected format: Authorization: Bearer <api_key> or URL Sec-WebSocket-Protocol header"
-                        }))
-                    ));
-                }
+        None => {
+            match protocol_token {
+                Some(token) => token.to_string(),
+                None => match query_token {
+                    Some(token) => token,
+                    None => {
+                        tracing::warn!("Missing or invalid Authorization header and no WebSocket token provided");
+                        return Err((
+                            StatusCode::UNAUTHORIZED,
+                            axum::Json(json!({
+                                "error": "Missing or invalid Authorization header",
+                                "message": "Expected format: Authorization: Bearer <api_key> or URL Sec-WebSocket-Protocol header"
+                            })),
+                        ));
+                    }
+                },
             }
         }
     };
 
-    
     // Check if it's an API Key (starts with sk_) or likely a JWT
-    // This middleware protects RESOURCES (e.g. Profile, Payments). 
+    // This middleware protects RESOURCES (e.g. Profile, Payments).
     // It is NOT used for Login/Register.
     if api_key.starts_with("sk_") {
         // Merchant API Integration Flow (server-to-server)
@@ -101,31 +103,35 @@ pub async fn auth_middleware(
                 };
                 request.extensions_mut().insert(context);
                 Ok(next.run(request).await)
-            },
+            }
             Err(e) => {
-                let prefix = if api_key.len() > 10 { &api_key[..10] } else { &api_key };
+                let prefix = if api_key.len() > 10 {
+                    &api_key[..10]
+                } else {
+                    &api_key
+                };
                 tracing::warn!("API Key authentication failed: {} - {:?}", prefix, e);
                 Err((
                     StatusCode::UNAUTHORIZED,
                     axum::Json(json!({
                         "error": "Invalid API key",
                         "message": "The provided API key is not valid"
-                    }))
+                    })),
                 ))
             }
         }
     } else {
         // JWT / Dashboard Session Flow
-        use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
-        
+        use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+
         let secret = &state.config.jwt_secret;
         let decoding_key = DecodingKey::from_secret(secret.as_bytes());
         let validation = Validation::new(Algorithm::HS256);
-        
+
         match decode::<DashboardClaims>(&api_key, &decoding_key, &validation) {
             Ok(token_data) => {
                 let merchant_id = token_data.claims.sub.parse::<i64>().unwrap_or_default();
-                
+
                 // Read sandbox_mode from DB to ensure it's always current with the merchant's choice
                 // This ensures environment switching in the dashboard is instant.
                 let (sandbox_mode, settlement_mode) = match sqlx::query(
@@ -165,10 +171,10 @@ pub async fn auth_middleware(
                     sandbox_mode,
                     settlement_mode,
                 };
-                
+
                 request.extensions_mut().insert(context);
                 Ok(next.run(request).await)
-            },
+            }
             Err(e) => {
                 tracing::warn!("JWT validation failed: {:?}", e);
                 Err((
@@ -176,7 +182,7 @@ pub async fn auth_middleware(
                     axum::Json(json!({
                         "error": "Invalid Session",
                         "message": "Your session has expired or is invalid. Please login again."
-                    }))
+                    })),
                 ))
             }
         }
@@ -194,7 +200,7 @@ pub struct DashboardClaims {
 }
 
 /// Extract merchant context from request
-/// 
+///
 /// Use this in handlers to get the authenticated merchant
 pub fn get_merchant_context(request: &Request) -> Option<&MerchantContext> {
     request.extensions().get::<MerchantContext>()

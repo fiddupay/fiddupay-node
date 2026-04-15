@@ -33,7 +33,7 @@ impl SecurityMonitoringService {
         sqlx::query(
             r#"INSERT INTO audit_logs 
                (action_type, ip_address, details, created_at)
-               VALUES ($1, $2, $3, $4)"#
+               VALUES ($1, $2, $3, $4)"#,
         )
         .bind(&event.event_type)
         .bind(&event.source_ip)
@@ -45,7 +45,10 @@ impl SecurityMonitoringService {
         Ok(())
     }
 
-    pub async fn get_security_summary(&self, merchant_id: i64) -> Result<SecuritySummary, ServiceError> {
+    pub async fn get_security_summary(
+        &self,
+        merchant_id: i64,
+    ) -> Result<SecuritySummary, ServiceError> {
         Ok(SecuritySummary {
             total_events: 0,
             high_severity_events: 0,
@@ -54,7 +57,11 @@ impl SecurityMonitoringService {
         })
     }
 
-    pub async fn get_recent_events(&self, merchant_id: i64, limit: i32) -> Result<Vec<SecurityEvent>, ServiceError> {
+    pub async fn get_recent_events(
+        &self,
+        merchant_id: i64,
+        limit: i32,
+    ) -> Result<Vec<SecurityEvent>, ServiceError> {
         Ok(vec![])
     }
 }

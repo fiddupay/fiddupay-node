@@ -1,10 +1,14 @@
 // API endpoints for Address-Only Mode (Phase 1)
+use crate::api::state::AppState;
 use crate::error::ServiceError;
 use crate::middleware::auth::MerchantContext;
 use crate::payment::models::CryptoType;
-use crate::services::address_only_service::{AddressOnlyService, AddressOnlyPayment};
-use axum::{extract::{Query, State}, response::Json, Extension};
-use crate::api::state::AppState;
+use crate::services::address_only_service::{AddressOnlyPayment, AddressOnlyService};
+use axum::{
+    extract::{Query, State},
+    response::Json,
+    Extension,
+};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
@@ -54,7 +58,7 @@ pub async fn create_address_only_payment(
             "Address-Only payments are not available in Managed mode. Please use Standard payments.".to_string()
         ));
     }
-    
+
     let payment = address_service
         .create_payment_request(
             context.merchant_id,
@@ -83,7 +87,7 @@ pub async fn create_address_only_payment(
         ),
         supported_currencies: vec![
             "ETH".to_string(),
-            "BNB".to_string(), 
+            "BNB".to_string(),
             "MATIC".to_string(),
             "ARB".to_string(),
             "SOL".to_string(),
@@ -91,16 +95,22 @@ pub async fn create_address_only_payment(
     };
 
     // Log audit event
-    let _ = state.audit_service.log_event(
-        context.merchant_id,
-        "address_only_payment_creation",
-        Some(&format!("Created address-only payment request {}", response.payment_id)),
-        Some(serde_json::json!({
-            "payment_id": response.payment_id,
-            "crypto_type": request.crypto_type.to_string(),
-            "requested_amount": request.requested_amount
-        }))
-    ).await;
+    let _ = state
+        .audit_service
+        .log_event(
+            context.merchant_id,
+            "address_only_payment_creation",
+            Some(&format!(
+                "Created address-only payment request {}",
+                response.payment_id
+            )),
+            Some(serde_json::json!({
+                "payment_id": response.payment_id,
+                "crypto_type": request.crypto_type.to_string(),
+                "requested_amount": request.requested_amount
+            })),
+        )
+        .await;
 
     Ok(Json(response))
 }
@@ -111,10 +121,9 @@ pub async fn get_address_only_payment_status(
     Extension(address_service): Extension<AddressOnlyService>,
     Query(query): Query<PaymentStatusQuery>,
 ) -> Result<Json<AddressOnlyPayment>, ServiceError> {
-    
     // TODO: Add merchant ownership validation
     let payment = address_service.get_payment_by_id(&query.payment_id).await?;
-    
+
     Ok(Json(payment))
 }
 
@@ -123,7 +132,7 @@ pub async fn get_supported_native_currencies() -> Json<Vec<String>> {
     Json(vec![
         "ETH".to_string(),
         "BNB".to_string(),
-        "MATIC".to_string(), 
+        "MATIC".to_string(),
         "ARB".to_string(),
         "SOL".to_string(),
     ])
@@ -131,7 +140,9 @@ pub async fn get_supported_native_currencies() -> Json<Vec<String>> {
 
 /// Get address-only mode health status
 pub async fn get_address_only_health(
-    Extension(manager): Extension<std::sync::Arc<crate::services::address_only_manager::AddressOnlyManager>>,
+    Extension(manager): Extension<
+        std::sync::Arc<crate::services::address_only_manager::AddressOnlyManager>,
+    >,
 ) -> Result<Json<crate::services::address_only_manager::AddressOnlyHealthStatus>, ServiceError> {
     let health = manager.health_check().await?;
     Ok(Json(health))
@@ -142,7 +153,9 @@ pub async fn get_address_only_stats(
     Extension(context): Extension<MerchantContext>,
     Extension(address_service): Extension<AddressOnlyService>,
 ) -> Result<Json<AddressOnlyStats>, ServiceError> {
-    let stats = address_service.get_merchant_stats(context.merchant_id).await?;
+    let stats = address_service
+        .get_merchant_stats(context.merchant_id)
+        .await?;
     Ok(Json(stats))
 }
 
@@ -154,17 +167,25 @@ pub async fn update_fee_setting(
     Json(request): Json<UpdateFeeSettingRequest>,
 ) -> Result<Json<serde_json::Value>, ServiceError> {
     // Update merchant fee setting in database
-    address_service.update_merchant_fee_setting(context.merchant_id, request.customer_pays_fee).await?;
+    address_service
+        .update_merchant_fee_setting(context.merchant_id, request.customer_pays_fee)
+        .await?;
 
     // Log audit event
-    let _ = state.audit_service.log_event(
-        context.merchant_id,
-        "address_only_fee_setting_update",
-        Some(&format!("Updated address-only fee setting: customer_pays_fee={}", request.customer_pays_fee)),
-        Some(serde_json::json!({
-            "customer_pays_fee": request.customer_pays_fee
-        }))
-    ).await;
+    let _ = state
+        .audit_service
+        .log_event(
+            context.merchant_id,
+            "address_only_fee_setting_update",
+            Some(&format!(
+                "Updated address-only fee setting: customer_pays_fee={}",
+                request.customer_pays_fee
+            )),
+            Some(serde_json::json!({
+                "customer_pays_fee": request.customer_pays_fee
+            })),
+        )
+        .await;
 
     Ok(Json(serde_json::json!({
         "success": true,
@@ -181,14 +202,16 @@ pub async fn get_fee_setting(
     Extension(context): Extension<MerchantContext>,
     Extension(address_service): Extension<AddressOnlyService>,
 ) -> Result<Json<serde_json::Value>, ServiceError> {
-    let customer_pays_fee = address_service.get_merchant_fee_setting(context.merchant_id).await?;
+    let customer_pays_fee = address_service
+        .get_merchant_fee_setting(context.merchant_id)
+        .await?;
 
     Ok(Json(serde_json::json!({
         "customer_pays_fee": customer_pays_fee,
-        "description": if customer_pays_fee { 
-            "Customer pays processing fee" 
-        } else { 
-            "Merchant pays processing fee" 
+        "description": if customer_pays_fee {
+            "Customer pays processing fee"
+        } else {
+            "Merchant pays processing fee"
         }
     })))
 }

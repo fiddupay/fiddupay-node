@@ -4,9 +4,9 @@
 use crate::error::ServiceError;
 use crate::models::merchant::Merchant;
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
-use rust_decimal::Decimal;
 
 #[derive(Debug, Serialize)]
 pub struct AdminDashboard {
@@ -76,40 +76,33 @@ impl AdminService {
     /// Check if merchant has admin privileges
     /// Check if user has admin privileges
     pub async fn verify_admin_access(&self, admin_id: i64) -> Result<bool, ServiceError> {
-        let result: Option<(String,)> = sqlx::query_as(
-            "SELECT role FROM admin_users WHERE id = $1 AND is_active = true"
-        )
-        .bind(admin_id as i32)
-        .fetch_optional(&self.db_pool)
-        .await?;
+        let result: Option<(String,)> =
+            sqlx::query_as("SELECT role FROM admin_users WHERE id = $1 AND is_active = true")
+                .bind(admin_id as i32)
+                .fetch_optional(&self.db_pool)
+                .await?;
 
         match result {
-            Some((role,)) => {
-                Ok(role == "ADMIN" || role == "SUPER_ADMIN")
-            }
+            Some((role,)) => Ok(role == "ADMIN" || role == "SUPER_ADMIN"),
             None => Ok(false),
         }
     }
 
     /// Get admin dashboard statistics
     pub async fn get_dashboard_stats(&self) -> Result<AdminDashboard, ServiceError> {
-        let total_merchants: i64 = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM merchants"
-        )
-        .fetch_one(&self.db_pool)
-        .await?;
+        let total_merchants: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM merchants")
+            .fetch_one(&self.db_pool)
+            .await?;
 
-        let active_merchants: i64 = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM merchants WHERE is_active = true"
-        )
-        .fetch_one(&self.db_pool)
-        .await?;
+        let active_merchants: i64 =
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM merchants WHERE is_active = true")
+                .fetch_one(&self.db_pool)
+                .await?;
 
-        let total_payments: i64 = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM payment_transactions"
-        )
-        .fetch_one(&self.db_pool)
-        .await?;
+        let total_payments: i64 =
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM payment_transactions")
+                .fetch_one(&self.db_pool)
+                .await?;
 
         let total_volume: Decimal = sqlx::query_scalar::<_, Decimal>(
             "SELECT COALESCE(SUM(amount_usd), 0) FROM payment_transactions WHERE status = 'CONFIRMED'"
@@ -118,13 +111,13 @@ impl AdminService {
         .await?;
 
         let pending_payments: i64 = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM payment_transactions WHERE status = 'PENDING'"
+            "SELECT COUNT(*) FROM payment_transactions WHERE status = 'PENDING'",
         )
         .fetch_one(&self.db_pool)
         .await?;
 
         let failed_payments: i64 = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM payment_transactions WHERE status = 'FAILED'"
+            "SELECT COUNT(*) FROM payment_transactions WHERE status = 'FAILED'",
         )
         .fetch_one(&self.db_pool)
         .await?;
@@ -139,20 +132,21 @@ impl AdminService {
         })
     }
 
-
     /// Get platform analytics (Real Data)
     pub async fn get_platform_analytics(&self) -> Result<PlatformAnalytics, ServiceError> {
         let total_merchants: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM merchants")
             .fetch_one(&self.db_pool)
             .await?;
 
-        let active_merchants: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM merchants WHERE is_active = true")
-            .fetch_one(&self.db_pool)
-            .await?;
+        let active_merchants: i64 =
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM merchants WHERE is_active = true")
+                .fetch_one(&self.db_pool)
+                .await?;
 
-        let total_payments: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM payment_transactions")
-            .fetch_one(&self.db_pool)
-            .await?;
+        let total_payments: i64 =
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM payment_transactions")
+                .fetch_one(&self.db_pool)
+                .await?;
 
         let total_volume: Decimal = sqlx::query_scalar::<_, Decimal>(
             "SELECT COALESCE(SUM(amount_usd), 0) FROM payment_transactions WHERE status = 'CONFIRMED'"
@@ -206,13 +200,30 @@ impl AdminService {
                 merchant_id: row.get("id"),
                 email: row.get("email"),
                 business_name: row.get("business_name"),
-                role: row.try_get::<Option<String>, _>("role").ok().flatten().unwrap_or("MERCHANT".to_string()),
+                role: row
+                    .try_get::<Option<String>, _>("role")
+                    .ok()
+                    .flatten()
+                    .unwrap_or("MERCHANT".to_string()),
                 is_active: row.get("is_active"),
                 sandbox_mode: row.get("sandbox_mode"),
                 created_at: row.get::<DateTime<Utc>, _>("created_at").to_rfc3339(),
-                last_payment: row.try_get::<Option<DateTime<Utc>>, _>("last_payment").ok().flatten().map(|dt| dt.to_rfc3339()),
-                total_payments: row.try_get::<Option<i64>, _>("total_payments").ok().flatten().unwrap_or(0),
-                total_volume_usd: row.try_get::<Option<Decimal>, _>("total_volume").ok().flatten().unwrap_or(Decimal::ZERO).to_string(),
+                last_payment: row
+                    .try_get::<Option<DateTime<Utc>>, _>("last_payment")
+                    .ok()
+                    .flatten()
+                    .map(|dt| dt.to_rfc3339()),
+                total_payments: row
+                    .try_get::<Option<i64>, _>("total_payments")
+                    .ok()
+                    .flatten()
+                    .unwrap_or(0),
+                total_volume_usd: row
+                    .try_get::<Option<Decimal>, _>("total_volume")
+                    .ok()
+                    .flatten()
+                    .unwrap_or(Decimal::ZERO)
+                    .to_string(),
             });
         }
 
@@ -233,13 +244,13 @@ impl AdminService {
             WHERE status = 'FAILED'
             ORDER BY created_at DESC
             LIMIT 10
-            "#
+            "#,
         )
         .fetch_all(&self.db_pool)
         .await?;
-        
+
         let mut events = Vec::new();
-        
+
         for payment in failed_payments {
             let payment_id: String = payment.get("payment_id");
             let amount_usd: Decimal = payment.get("amount_usd");
@@ -254,7 +265,7 @@ impl AdminService {
                 created_at: created_at.to_rfc3339(),
             });
         }
-        
+
         // Query high-value transactions as security events
         let high_value = sqlx::query(
             r#"
@@ -266,11 +277,11 @@ impl AdminService {
             WHERE amount_usd > 500
             ORDER BY created_at DESC
             LIMIT 10
-            "#
+            "#,
         )
         .fetch_all(&self.db_pool)
         .await?;
-        
+
         for tx in high_value {
             let payment_id: String = tx.get("payment_id");
             let amount_usd: Decimal = tx.get("amount_usd");
@@ -285,10 +296,10 @@ impl AdminService {
                 created_at: created_at.to_rfc3339(),
             });
         }
-        
+
         // Sort by date descending
         events.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-        
+
         Ok(events)
     }
 
@@ -306,38 +317,49 @@ impl AdminService {
         )
         .fetch_all(&self.db_pool)
         .await?;
-        
-        let mut alerts: Vec<SecurityAlert> = db_alert_rows.into_iter().map(|a| SecurityAlert {
-            alert_id: a.get("alert_id"),
-            alert_type: a.get("alert_type"),
-            severity: a.get("severity"),
-            message: a.get("message"),
-            acknowledged: a.get("acknowledged"),
-            acknowledged_at: a.try_get::<Option<DateTime<Utc>>, _>("acknowledged_at").ok().flatten().map(|t| t.to_rfc3339()),
-            created_at: a.get::<DateTime<Utc>, _>("created_at").to_rfc3339(),
-        }).collect();
-        
+
+        let mut alerts: Vec<SecurityAlert> = db_alert_rows
+            .into_iter()
+            .map(|a| SecurityAlert {
+                alert_id: a.get("alert_id"),
+                alert_type: a.get("alert_type"),
+                severity: a.get("severity"),
+                message: a.get("message"),
+                acknowledged: a.get("acknowledged"),
+                acknowledged_at: a
+                    .try_get::<Option<DateTime<Utc>>, _>("acknowledged_at")
+                    .ok()
+                    .flatten()
+                    .map(|t| t.to_rfc3339()),
+                created_at: a.get::<DateTime<Utc>, _>("created_at").to_rfc3339(),
+            })
+            .collect();
+
         // Generate and persist dynamic alerts if they don't exist
-        let today_start = Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
-        
+        let today_start = Utc::now()
+            .date_naive()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc();
+
         // Check for high failure rate
         let total_today: i64 = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM payment_transactions WHERE created_at >= $1"
+            "SELECT COUNT(*) FROM payment_transactions WHERE created_at >= $1",
         )
         .bind(today_start)
         .fetch_one(&self.db_pool)
         .await?;
-        
+
         let failed_today: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM payment_transactions WHERE created_at >= $1 AND status = 'FAILED'"
         )
         .bind(today_start)
         .fetch_one(&self.db_pool)
         .await?;
-        
+
         if total_today > 10 && (failed_today as f64 / total_today as f64) > 0.3 {
             let alert_id = format!("alert_failure_{}", Utc::now().format("%Y%m%d"));
-            
+
             let _ = sqlx::query(
                 "INSERT INTO security_alerts (alert_id, alert_type, severity, message, expires_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (alert_id) DO NOTHING"
             )
@@ -349,7 +371,7 @@ impl AdminService {
             .execute(&self.db_pool)
             .await;
         }
-        
+
         // Refresh alerts list after inserting dynamic ones
         if alerts.is_empty() {
             let refreshed = sqlx::query(
@@ -357,18 +379,25 @@ impl AdminService {
             )
             .fetch_all(&self.db_pool)
             .await?;
-            
-            alerts = refreshed.into_iter().map(|a| SecurityAlert {
-                alert_id: a.get("alert_id"),
-                alert_type: a.get("alert_type"),
-                severity: a.get("severity"),
-                message: a.get("message"),
-                acknowledged: a.get("acknowledged"),
-                acknowledged_at: a.try_get::<Option<DateTime<Utc>>, _>("acknowledged_at").ok().flatten().map(|t| t.to_rfc3339()),
-                created_at: a.get::<DateTime<Utc>, _>("created_at").to_rfc3339(),
-            }).collect();
+
+            alerts = refreshed
+                .into_iter()
+                .map(|a| SecurityAlert {
+                    alert_id: a.get("alert_id"),
+                    alert_type: a.get("alert_type"),
+                    severity: a.get("severity"),
+                    message: a.get("message"),
+                    acknowledged: a.get("acknowledged"),
+                    acknowledged_at: a
+                        .try_get::<Option<DateTime<Utc>>, _>("acknowledged_at")
+                        .ok()
+                        .flatten()
+                        .map(|t| t.to_rfc3339()),
+                    created_at: a.get::<DateTime<Utc>, _>("created_at").to_rfc3339(),
+                })
+                .collect();
         }
-        
+
         Ok(alerts)
     }
 
@@ -380,13 +409,15 @@ impl AdminService {
         .bind(alert_id)
         .execute(&self.db_pool)
         .await?;
-        
+
         tracing::info!("Security alert {} acknowledged", alert_id);
         Ok(())
     }
 
     /// Get fee sweep settings
-    pub async fn get_fee_sweep_settings(&self) -> Result<crate::models::fee_sweep::FeeSweepSettings, ServiceError> {
+    pub async fn get_fee_sweep_settings(
+        &self,
+    ) -> Result<crate::models::fee_sweep::FeeSweepSettings, ServiceError> {
         let row = sqlx::query(
             "SELECT id, is_auto_sweep_enabled, min_accumulated_usd, schedule_cron, discord_webhook_url, gas_alert_threshold_gwei, gas_alert_threshold_lamports, updated_at FROM fee_sweep_settings LIMIT 1"
         )
@@ -421,7 +452,10 @@ impl AdminService {
     }
 
     /// Update fee sweep settings
-    pub async fn update_fee_sweep_settings(&self, req: crate::models::fee_sweep::UpdateFeeSweepSettingsRequest) -> Result<crate::models::fee_sweep::FeeSweepSettings, ServiceError> {
+    pub async fn update_fee_sweep_settings(
+        &self,
+        req: crate::models::fee_sweep::UpdateFeeSweepSettingsRequest,
+    ) -> Result<crate::models::fee_sweep::FeeSweepSettings, ServiceError> {
         sqlx::query(
             r#"
             INSERT INTO fee_sweep_settings (id, is_auto_sweep_enabled, min_accumulated_usd, schedule_cron, discord_webhook_url, gas_alert_threshold_gwei, gas_alert_threshold_lamports, updated_at)
@@ -447,5 +481,4 @@ impl AdminService {
 
         self.get_fee_sweep_settings().await
     }
-
 }

@@ -1,14 +1,14 @@
-use crate::middleware::admin_auth::AdminContext;
-use crate::api::state::AppState;
 use crate::api::admin::auth::verify_admin_access;
+use crate::api::state::AppState;
+use crate::middleware::admin_auth::AdminContext;
 use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Json},
     Extension,
 };
-use serde_json::json;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 #[derive(Deserialize, Serialize)]
 pub struct UnifiedAdminConfigRequest {
@@ -47,7 +47,8 @@ pub async fn get_security_settings(
         "withdrawal_enabled": state.config.withdrawal_enabled,
         "max_login_attempts": state.config.max_login_attempts,
         "account_lockout_duration_minutes": state.config.account_lockout_duration_minutes
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Update fee configuration (now handled by unified PATCH /admin/config)
@@ -63,7 +64,8 @@ pub async fn get_fee_config(
     Json(json!({
         "platform_fee_percentage": state.config.default_fee_percentage,
         "withdrawal_auto_approval_limit_usd": state.config.withdrawal_auto_approval_limit_usd
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Unified admin config update — handles environment, fees, limits, and security in one call
@@ -82,7 +84,7 @@ pub async fn update_admin_config(
     if let Some(platform_fee) = config.platform_fee_percentage {
         let _ = sqlx::query(
             "INSERT INTO system_settings (key, value) VALUES ('DEFAULT_FEE_PERCENTAGE', $1) 
-             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value"
+             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
         )
         .bind(platform_fee.to_string())
         .execute(&state.db_pool)
@@ -117,7 +119,9 @@ pub async fn update_admin_config(
     } else if config.max_monthly_transaction_volume.is_some() {
         updated_sections.push("limits");
     }
-    if config.require_2fa_for_withdrawals.is_some() || config.auto_suspend_suspicious_accounts.is_some() {
+    if config.require_2fa_for_withdrawals.is_some()
+        || config.auto_suspend_suspicious_accounts.is_some()
+    {
         updated_sections.push("security");
     }
 
@@ -126,7 +130,8 @@ pub async fn update_admin_config(
         "message": "Admin configuration updated successfully",
         "updated_sections": updated_sections,
         "config": config
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Get system limits (GET-only — updates via PATCH /admin/config)
@@ -143,5 +148,6 @@ pub async fn get_system_limits(
         "max_monthly_transaction_volume": 10000000.0,
         "max_merchants_per_day": 100,
         "max_api_requests_per_hour": 10000
-    })).into_response()
+    }))
+    .into_response()
 }

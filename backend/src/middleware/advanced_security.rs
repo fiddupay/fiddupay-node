@@ -8,12 +8,12 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use chrono::{DateTime, Duration, Utc};
 use serde_json::json;
-use std::sync::Arc;
-use uuid::Uuid;
-use tokio::sync::RwLock;
 use std::collections::HashMap;
-use chrono::{DateTime, Utc, Duration};
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use uuid::Uuid;
 
 /// Advanced security middleware combining all remaining features
 pub struct AdvancedSecurityMiddleware {
@@ -73,8 +73,11 @@ impl RequestTracker {
             started_at: Utc::now(),
             endpoint: endpoint.to_string(),
         };
-        
-        self.active_requests.write().await.insert(request_id.clone(), info);
+
+        self.active_requests
+            .write()
+            .await
+            .insert(request_id.clone(), info);
         request_id
     }
 
@@ -105,7 +108,7 @@ impl ThreatDetector {
 
     pub async fn analyze_request(&self, request_info: &RequestInfo) -> ThreatLevel {
         let mut threat_level = ThreatLevel::Low;
-        
+
         // Check for rapid requests from same IP
         let recent_requests = self.count_recent_requests(&request_info.ip_address).await;
         if recent_requests > 100 {
@@ -113,12 +116,12 @@ impl ThreatDetector {
         } else if recent_requests > 50 {
             threat_level = ThreatLevel::Medium;
         }
-        
+
         // Check for suspicious endpoints
         if request_info.endpoint.contains("admin") || request_info.endpoint.contains("debug") {
             threat_level = ThreatLevel::Critical;
         }
-        
+
         threat_level
     }
 
@@ -150,12 +153,14 @@ impl AdvancedRateLimiter {
 
     pub async fn check_rate_limit(&self, api_key: &str) -> Result<(), SecurityError> {
         let mut buckets = self.buckets.write().await;
-        let bucket = buckets.entry(api_key.to_string()).or_insert_with(|| TokenBucket {
-            tokens: 100.0,
-            last_refill: Utc::now(),
-            capacity: 100.0,
-            refill_rate: 1.67, // ~100 per minute
-        });
+        let bucket = buckets
+            .entry(api_key.to_string())
+            .or_insert_with(|| TokenBucket {
+                tokens: 100.0,
+                last_refill: Utc::now(),
+                capacity: 100.0,
+                refill_rate: 1.67, // ~100 per minute
+            });
 
         // Refill tokens based on time elapsed
         let now = Utc::now();
@@ -195,18 +200,29 @@ pub async fn advanced_security_middleware(
     let endpoint = request.uri().path().to_string();
 
     // 1. Validate API key format
-    security.api_validator.validate_format(&api_key)
-        .map_err(|_| (StatusCode::UNAUTHORIZED, Json(json!({
-            "error": "Invalid API key format",
-            "message": "API key must be in format: pk_live_xxx or pk_test_xxx"
-        }))))?;
+    security
+        .api_validator
+        .validate_format(&api_key)
+        .map_err(|_| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({
+                    "error": "Invalid API key format",
+                    "message": "API key must be in format: pk_live_xxx or pk_test_xxx"
+                })),
+            )
+        })?;
 
     // 2. Start request tracking
-    let request_id = security.request_tracker
-        .start_request(&api_key, &ip_address, &endpoint).await;
-    
+    let request_id = security
+        .request_tracker
+        .start_request(&api_key, &ip_address, &endpoint)
+        .await;
+
     // Add request ID to headers for downstream services
-    request.headers_mut().insert("X-Request-ID", request_id.parse().unwrap());
+    request
+        .headers_mut()
+        .insert("X-Request-ID", request_id.parse().unwrap());
 
     // 3. Threat detection
     let request_info = RequestInfo {
@@ -217,14 +233,20 @@ pub async fn advanced_security_middleware(
         endpoint: endpoint.clone(),
     };
 
-    let threat_level = security.threat_detector.analyze_request(&request_info).await;
+    let threat_level = security
+        .threat_detector
+        .analyze_request(&request_info)
+        .await;
     match threat_level {
         ThreatLevel::Critical => {
             security.request_tracker.end_request(&request_id).await;
-            return Err((StatusCode::FORBIDDEN, Json(json!({
-                "error": "Security threat detected",
-                "request_id": request_id
-            }))));
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "error": "Security threat detected",
+                    "request_id": request_id
+                })),
+            ));
         }
         ThreatLevel::High => {
             // Log but allow with extra monitoring
@@ -243,7 +265,9 @@ pub async fn advanced_security_middleware(
 }
 
 /// Helper functions
-fn extract_api_key(headers: &HeaderMap) -> Result<String, (StatusCode, axum::Json<serde_json::Value>)> {
+fn extract_api_key(
+    headers: &HeaderMap,
+) -> Result<String, (StatusCode, axum::Json<serde_json::Value>)> {
     headers
         .get("authorization")
         .and_then(|value| value.to_str().ok())
@@ -254,10 +278,12 @@ fn extract_api_key(headers: &HeaderMap) -> Result<String, (StatusCode, axum::Jso
                 None
             }
         })
-        .ok_or_else(|| (
-            StatusCode::UNAUTHORIZED,
-            axum::Json(json!({"error": "Missing Authorization header"}))
-        ))
+        .ok_or_else(|| {
+            (
+                StatusCode::UNAUTHORIZED,
+                axum::Json(json!({"error": "Missing Authorization header"})),
+            )
+        })
 }
 
 fn extract_ip_address(headers: &HeaderMap) -> String {
@@ -290,4 +316,3 @@ impl ApiVersionManager {
         Ok(())
     }
 }
-

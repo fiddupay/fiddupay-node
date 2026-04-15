@@ -4,12 +4,12 @@
 use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
 use crate::services::gas_fee_service::GasFeeService;
-use rust_decimal::Decimal;
+use crate::services::notification_service::NotificationService;
 use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::sync::Arc;
-use crate::services::notification_service::NotificationService;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
@@ -48,8 +48,18 @@ pub struct AddressOnlyService {
 }
 
 impl AddressOnlyService {
-    pub fn new(db_pool: PgPool, gas_service: GasFeeService, config: crate::config::Config, notification_service: Arc<NotificationService>) -> Self {
-        Self { db_pool, gas_service, config, notification_service }
+    pub fn new(
+        db_pool: PgPool,
+        gas_service: GasFeeService,
+        config: crate::config::Config,
+        notification_service: Arc<NotificationService>,
+    ) -> Self {
+        Self {
+            db_pool,
+            gas_service,
+            config,
+            notification_service,
+        }
     }
 
     /// Create payment request for address-only mode (native currencies only)
@@ -69,7 +79,7 @@ impl AddressOnlyService {
 
         let payment_id = Uuid::new_v4().to_string();
         let gateway_deposit_address = self.generate_deposit_address(crypto_type).await?;
-        
+
         // Get merchant fee configuration
         let merchant_row = sqlx::query(
             "SELECT fee_percentage, COALESCE(customer_pays_fee, true) as customer_pays_fee FROM merchants WHERE id = $1"
@@ -105,7 +115,7 @@ impl AddressOnlyService {
                      requested_amount, customer_amount,
                      processing_fee, forwarding_amount,
                      status, created_at
-            "#
+            "#,
         )
         .bind(&payment_id)
         .bind(merchant_id)
@@ -132,26 +142,33 @@ impl AddressOnlyService {
     ) -> Result<(), ServiceError> {
         // Get payment details
         let payment = self.get_payment_by_id(payment_id).await?;
-        
+
         // Verify received amount matches or exceeds requested
         if received_amount < payment.requested_amount {
             return Err(ServiceError::ValidationError(
-                "Received amount is less than requested".to_string()
+                "Received amount is less than requested".to_string(),
             ));
         }
 
         // Update status to received
-        self.update_payment_status(payment_id, AddressOnlyStatus::PaymentReceived).await?;
+        self.update_payment_status(payment_id, AddressOnlyStatus::PaymentReceived)
+            .await?;
 
         // Create in-app notification
-        let _ = self.notification_service.create_notification(
-            payment.merchant_id,
-            "Payment Received (Address-Only)",
-            &format!("Received {} {} (Payment ID: {})", received_amount, payment.crypto_type, payment_id),
-            "success",
-            "payment.received",
-            false // Mode tracking not fully implemented for AddressOnly yet
-        ).await;
+        let _ = self
+            .notification_service
+            .create_notification(
+                payment.merchant_id,
+                "Payment Received (Address-Only)",
+                &format!(
+                    "Received {} {} (Payment ID: {})",
+                    received_amount, payment.crypto_type, payment_id
+                ),
+                "success",
+                "payment.received",
+                false, // Mode tracking not fully implemented for AddressOnly yet
+            )
+            .await;
 
         // Initiate auto-forwarding
         self.initiate_auto_forwarding(&payment, tx_hash).await?;
@@ -172,7 +189,8 @@ impl AddressOnlyService {
         // Update status to partial payment received if not already completed/forwarding
         match payment.status {
             AddressOnlyStatus::PendingPayment | AddressOnlyStatus::PartialPaymentReceived => {
-                 self.update_payment_status(payment_id, AddressOnlyStatus::PartialPaymentReceived).await?;
+                self.update_payment_status(payment_id, AddressOnlyStatus::PartialPaymentReceived)
+                    .await?;
             }
             _ => {
                 // If already completed or forwarding, do nothing or log warning
@@ -183,16 +201,25 @@ impl AddressOnlyService {
         // Send webhook notification with partial payment details
         if let Ok(updated_payment) = self.get_payment_by_id(payment_id).await {
             // Create in-app notification
-            let _ = self.notification_service.create_notification(
-                updated_payment.merchant_id,
-                "Partial Payment Received (Address-Only)",
-                &format!("Received partial payment of {} {} (Payment ID: {})", received_amount, updated_payment.crypto_type, payment_id),
-                "info",
-                "payment.partial",
-                false
-            ).await;
+            let _ = self
+                .notification_service
+                .create_notification(
+                    updated_payment.merchant_id,
+                    "Partial Payment Received (Address-Only)",
+                    &format!(
+                        "Received partial payment of {} {} (Payment ID: {})",
+                        received_amount, updated_payment.crypto_type, payment_id
+                    ),
+                    "info",
+                    "payment.partial",
+                    false,
+                )
+                .await;
 
-            let webhook_service = crate::services::webhook_notification_service::WebhookNotificationService::new(self.db_pool.clone());
+            let webhook_service =
+                crate::services::webhook_notification_service::WebhookNotificationService::new(
+                    self.db_pool.clone(),
+                );
             let _ = webhook_service.notify_status_change(&updated_payment).await;
         }
 
@@ -206,34 +233,36 @@ impl AddressOnlyService {
         _received_tx_hash: &str,
     ) -> Result<(), ServiceError> {
         // Update status to forwarding
-        self.update_payment_status(&payment.payment_id, AddressOnlyStatus::ForwardingInProgress).await?;
+        self.update_payment_status(&payment.payment_id, AddressOnlyStatus::ForwardingInProgress)
+            .await?;
 
         // Get current gas estimate
-        let gas_estimate = self.gas_service.get_gas_estimate(payment.crypto_type).await?;
-        
+        let gas_estimate = self
+            .gas_service
+            .get_gas_estimate(payment.crypto_type)
+            .await?;
+
         // Calculate net forwarding amount (deduct gas fee)
         let net_forwarding_amount = payment.forwarding_amount - gas_estimate.standard_fee;
-        
+
         if net_forwarding_amount <= Decimal::ZERO {
             return Err(ServiceError::ValidationError(
-                "Forwarding amount too small after gas fees".to_string()
+                "Forwarding amount too small after gas fees".to_string(),
             ));
         }
 
         // Send actual blockchain transaction
-        let forwarding_tx_hash = self.send_forwarding_transaction(
-            payment,
-            net_forwarding_amount,
-            &gas_estimate,
-        ).await?;
-        
+        let forwarding_tx_hash = self
+            .send_forwarding_transaction(payment, net_forwarding_amount, &gas_estimate)
+            .await?;
+
         // Record forwarding transaction
         sqlx::query(
             r#"
             INSERT INTO address_only_forwarding_txs (
                 payment_id, destination_address, amount, gas_fee, tx_hash, status
             ) VALUES ($1, $2, $3, $4, $5, 'completed')
-            "#
+            "#,
         )
         .bind(&payment.payment_id)
         .bind(&payment.merchant_destination_address)
@@ -244,11 +273,15 @@ impl AddressOnlyService {
         .await?;
 
         // Update payment status to completed
-        self.update_payment_status(&payment.payment_id, AddressOnlyStatus::Completed).await?;
+        self.update_payment_status(&payment.payment_id, AddressOnlyStatus::Completed)
+            .await?;
 
         // Send webhook notification
         if let Ok(updated_payment) = self.get_payment_by_id(&payment.payment_id).await {
-            let webhook_service = crate::services::webhook_notification_service::WebhookNotificationService::new(self.db_pool.clone());
+            let webhook_service =
+                crate::services::webhook_notification_service::WebhookNotificationService::new(
+                    self.db_pool.clone(),
+                );
             let _ = webhook_service.notify_status_change(&updated_payment).await;
         }
 
@@ -256,18 +289,25 @@ impl AddressOnlyService {
     }
 
     /// Generate unique deposit address for payment tracking
-    async fn generate_deposit_address(&self, crypto_type: CryptoType) -> Result<String, ServiceError> {
+    async fn generate_deposit_address(
+        &self,
+        crypto_type: CryptoType,
+    ) -> Result<String, ServiceError> {
         // Use existing KeyGenerator for real address generation
         use crate::utils::keygen::KeyGenerator;
-        
+
         let network = match crypto_type {
             CryptoType::Eth => "ethereum",
-            CryptoType::Bnb => "bsc", 
+            CryptoType::Bnb => "bsc",
             CryptoType::Matic => "polygon",
             CryptoType::Arb => "arbitrum",
             CryptoType::Sol => "solana",
             CryptoType::Btc => "bitcoin",
-            _ => return Err(ServiceError::ValidationError("Unsupported crypto type".to_string())),
+            _ => {
+                return Err(ServiceError::ValidationError(
+                    "Unsupported crypto type".to_string(),
+                ))
+            }
         };
 
         let wallet = match crypto_type {
@@ -281,20 +321,22 @@ impl AddressOnlyService {
 
         // Store private key securely for later forwarding
         let payment_id = uuid::Uuid::new_v4().to_string();
-        self.store_deposit_keypair(&payment_id, &wallet.private_key, &wallet.address).await?;
+        self.store_deposit_keypair(&payment_id, &wallet.private_key, &wallet.address)
+            .await?;
 
         Ok(wallet.address)
     }
 
     /// Check if crypto type is native currency (Phase 1 support only)
     fn is_native_currency(&self, crypto_type: CryptoType) -> bool {
-        matches!(crypto_type, 
-            CryptoType::Eth | 
-            CryptoType::Bnb | 
-            CryptoType::Matic | 
-            CryptoType::Arb | 
-            CryptoType::Sol |
-            CryptoType::Btc
+        matches!(
+            crypto_type,
+            CryptoType::Eth
+                | CryptoType::Bnb
+                | CryptoType::Matic
+                | CryptoType::Arb
+                | CryptoType::Sol
+                | CryptoType::Btc
         )
     }
 
@@ -306,7 +348,7 @@ impl AddressOnlyService {
         address: &str,
     ) -> Result<(), ServiceError> {
         use crate::utils::encryption::encrypt_data;
-        
+
         let encrypted_key = encrypt_data(private_key)
             .map_err(|e| ServiceError::Internal(format!("Key encryption failed: {}", e)))?;
 
@@ -330,22 +372,26 @@ impl AddressOnlyService {
         gas_estimate: &crate::services::gas_fee_service::GasFeeEstimate,
     ) -> Result<String, ServiceError> {
         // Get private key for deposit address
-        let private_key = self.get_deposit_private_key(&payment.gateway_deposit_address).await?;
-        
+        let private_key = self
+            .get_deposit_private_key(&payment.gateway_deposit_address)
+            .await?;
+
         match payment.crypto_type {
             CryptoType::Sol => {
                 self.send_solana_transaction(
                     &private_key,
                     &payment.merchant_destination_address,
                     amount,
-                ).await
+                )
+                .await
             }
             CryptoType::Btc => {
                 self.send_bitcoin_transaction(
                     &private_key,
                     &payment.merchant_destination_address,
                     amount,
-                ).await
+                )
+                .await
             }
             _ => {
                 self.send_evm_transaction(
@@ -354,7 +400,8 @@ impl AddressOnlyService {
                     &payment.merchant_destination_address,
                     amount,
                     gas_estimate,
-                ).await
+                )
+                .await
             }
         }
     }
@@ -366,9 +413,21 @@ impl AddressOnlyService {
         to_address: &str,
         amount: Decimal,
     ) -> Result<String, ServiceError> {
-        let tx_sender = crate::services::blockchain_transaction_sender::BlockchainTransactionSender::new(self.config.clone());
+        let tx_sender =
+            crate::services::blockchain_transaction_sender::BlockchainTransactionSender::new(
+                self.config.clone(),
+            );
         let is_sandbox = self.config.bitcoin_rpc_url.contains("testnet");
-        tx_sender.send_transaction(CryptoType::Btc, private_key, to_address, amount, None, is_sandbox).await
+        tx_sender
+            .send_transaction(
+                CryptoType::Btc,
+                private_key,
+                to_address,
+                amount,
+                None,
+                is_sandbox,
+            )
+            .await
     }
 
     /// Send Solana transaction
@@ -378,10 +437,22 @@ impl AddressOnlyService {
         to_address: &str,
         amount: Decimal,
     ) -> Result<String, ServiceError> {
-        let tx_sender = crate::services::blockchain_transaction_sender::BlockchainTransactionSender::new(self.config.clone());
-        // For Phase 1 address-only mode, we default to false (mainnet) as the legacy table 
+        let tx_sender =
+            crate::services::blockchain_transaction_sender::BlockchainTransactionSender::new(
+                self.config.clone(),
+            );
+        // For Phase 1 address-only mode, we default to false (mainnet) as the legacy table
         // doesn't have a sandbox_mode column yet.
-        tx_sender.send_transaction(CryptoType::Sol, private_key, to_address, amount, None, false).await
+        tx_sender
+            .send_transaction(
+                CryptoType::Sol,
+                private_key,
+                to_address,
+                amount,
+                None,
+                false,
+            )
+            .await
     }
 
     /// Send EVM transaction  
@@ -393,26 +464,39 @@ impl AddressOnlyService {
         amount: Decimal,
         gas_estimate: &crate::services::gas_fee_service::GasFeeEstimate,
     ) -> Result<String, ServiceError> {
-        let tx_sender = crate::services::blockchain_transaction_sender::BlockchainTransactionSender::new(self.config.clone());
-        
+        let tx_sender =
+            crate::services::blockchain_transaction_sender::BlockchainTransactionSender::new(
+                self.config.clone(),
+            );
+
         // Convert gas price to U256
-        let gas_price_wei = (gas_estimate.standard_fee * Decimal::new(1_000_000_000_000_000_000i64, 0))
-            .to_u128()
-            .map(web3::types::U256::from);
-            
-        tx_sender.send_transaction(crypto_type, private_key, to_address, amount, gas_price_wei, false).await
+        let gas_price_wei = (gas_estimate.standard_fee
+            * Decimal::new(1_000_000_000_000_000_000i64, 0))
+        .to_u128()
+        .map(web3::types::U256::from);
+
+        tx_sender
+            .send_transaction(
+                crypto_type,
+                private_key,
+                to_address,
+                amount,
+                gas_price_wei,
+                false,
+            )
+            .await
     }
 
     /// Get private key for deposit address
     async fn get_deposit_private_key(&self, address: &str) -> Result<String, ServiceError> {
-        let record_res = sqlx::query(
-            "SELECT encrypted_private_key FROM deposit_keypairs WHERE address = $1"
-        )
-        .bind(address)
-        .fetch_optional(&self.db_pool)
-        .await;
+        let record_res =
+            sqlx::query("SELECT encrypted_private_key FROM deposit_keypairs WHERE address = $1")
+                .bind(address)
+                .fetch_optional(&self.db_pool)
+                .await;
 
-        let record = record_res?.ok_or_else(|| ServiceError::NotFound("Deposit keypair not found".to_string()))?;
+        let record = record_res?
+            .ok_or_else(|| ServiceError::NotFound("Deposit keypair not found".to_string()))?;
 
         // For now, return a placeholder since we don't have decrypt_data
         // In production, this would decrypt the stored key
@@ -420,7 +504,10 @@ impl AddressOnlyService {
     }
 
     /// Get merchant statistics for address-only payments
-    pub async fn get_merchant_stats(&self, merchant_id: i64) -> Result<crate::api::address_only::AddressOnlyStats, ServiceError> {
+    pub async fn get_merchant_stats(
+        &self,
+        merchant_id: i64,
+    ) -> Result<crate::api::address_only::AddressOnlyStats, ServiceError> {
         let stats_row = sqlx::query(
             r#"
             SELECT 
@@ -431,7 +518,7 @@ impl AddressOnlyService {
                 COALESCE(SUM(processing_fee), 0) as total_fees_collected
             FROM address_only_payments 
             WHERE merchant_id = $1
-            "#
+            "#,
         )
         .bind(merchant_id)
         .fetch_one(&self.db_pool)
@@ -447,7 +534,10 @@ impl AddressOnlyService {
         })
     }
 
-    pub async fn get_payment_by_id(&self, payment_id: &str) -> Result<AddressOnlyPayment, ServiceError> {
+    pub async fn get_payment_by_id(
+        &self,
+        payment_id: &str,
+    ) -> Result<AddressOnlyPayment, ServiceError> {
         let payment = sqlx::query_as::<_, AddressOnlyPayment>(
             r#"
             SELECT id, payment_id, merchant_id, crypto_type,
@@ -456,7 +546,7 @@ impl AddressOnlyService {
                    processing_fee, forwarding_amount,
                    status, created_at
             FROM address_only_payments WHERE payment_id = $1
-            "#
+            "#,
         )
         .bind(payment_id)
         .fetch_one(&self.db_pool)
@@ -482,9 +572,13 @@ impl AddressOnlyService {
     }
 
     /// Update merchant fee payment setting
-    pub async fn update_merchant_fee_setting(&self, merchant_id: i64, customer_pays_fee: bool) -> Result<(), ServiceError> {
+    pub async fn update_merchant_fee_setting(
+        &self,
+        merchant_id: i64,
+        customer_pays_fee: bool,
+    ) -> Result<(), ServiceError> {
         sqlx::query(
-            "UPDATE merchants SET customer_pays_fee = $1, updated_at = NOW() WHERE id = $2"
+            "UPDATE merchants SET customer_pays_fee = $1, updated_at = NOW() WHERE id = $2",
         )
         .bind(customer_pays_fee)
         .bind(merchant_id)
@@ -496,12 +590,10 @@ impl AddressOnlyService {
 
     /// Get merchant fee payment setting
     pub async fn get_merchant_fee_setting(&self, merchant_id: i64) -> Result<bool, ServiceError> {
-        let merchant = sqlx::query(
-            "SELECT customer_pays_fee FROM merchants WHERE id = $1"
-        )
-        .bind(merchant_id)
-        .fetch_one(&self.db_pool)
-        .await?;
+        let merchant = sqlx::query("SELECT customer_pays_fee FROM merchants WHERE id = $1")
+            .bind(merchant_id)
+            .fetch_one(&self.db_pool)
+            .await?;
 
         use sqlx::Row;
         Ok(merchant.get("customer_pays_fee"))

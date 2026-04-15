@@ -1,10 +1,10 @@
 // Advanced Performance Optimizations
 // Additional performance improvements for critical paths
 
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::OnceCell;
-use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 
 /// Connection pool with optimized settings for high performance
 pub struct HighPerformancePool {
@@ -23,12 +23,24 @@ impl HighPerformancePool {
             .after_connect(|conn, _meta| {
                 Box::pin(async move {
                     // Optimize connection settings
-                    sqlx::query("SET statement_timeout = '30s'").execute(&mut *conn).await?;
-                    sqlx::query("SET lock_timeout = '10s'").execute(&mut *conn).await?;
-                    sqlx::query("SET idle_in_transaction_session_timeout = '60s'").execute(&mut *conn).await?;
-                    sqlx::query("SET tcp_keepalives_idle = '300'").execute(&mut *conn).await?;
-                    sqlx::query("SET tcp_keepalives_interval = '30'").execute(&mut *conn).await?;
-                    sqlx::query("SET tcp_keepalives_count = '3'").execute(&mut *conn).await?;
+                    sqlx::query("SET statement_timeout = '30s'")
+                        .execute(&mut *conn)
+                        .await?;
+                    sqlx::query("SET lock_timeout = '10s'")
+                        .execute(&mut *conn)
+                        .await?;
+                    sqlx::query("SET idle_in_transaction_session_timeout = '60s'")
+                        .execute(&mut *conn)
+                        .await?;
+                    sqlx::query("SET tcp_keepalives_idle = '300'")
+                        .execute(&mut *conn)
+                        .await?;
+                    sqlx::query("SET tcp_keepalives_interval = '30'")
+                        .execute(&mut *conn)
+                        .await?;
+                    sqlx::query("SET tcp_keepalives_count = '3'")
+                        .execute(&mut *conn)
+                        .await?;
                     Ok(())
                 })
             })
@@ -118,7 +130,7 @@ impl OptimizedQueries {
                        unnest($2::text[]) as status
             ) as data
             WHERE payment_transactions.payment_id = data.payment_id
-            "#
+            "#,
         )
         .bind(&payment_ids)
         .bind(&statuses)
@@ -154,7 +166,11 @@ impl ResponseCache {
         let cache = self.cache.read().await;
         if let Some(cached) = cache.get(key) {
             // Check if still valid (5 minutes)
-            if chrono::Utc::now().signed_duration_since(cached.cached_at).num_minutes() < 5 {
+            if chrono::Utc::now()
+                .signed_duration_since(cached.cached_at)
+                .num_minutes()
+                < 5
+            {
                 return Some(cached.clone());
             }
         }
@@ -169,9 +185,7 @@ impl ResponseCache {
     pub async fn cleanup_expired(&self) {
         let mut cache = self.cache.write().await;
         let now = chrono::Utc::now();
-        cache.retain(|_, cached| {
-            now.signed_duration_since(cached.cached_at).num_minutes() < 5
-        });
+        cache.retain(|_, cached| now.signed_duration_since(cached.cached_at).num_minutes() < 5);
     }
 }
 
@@ -205,20 +219,20 @@ static HTTP_CLIENT: OnceCell<OptimizedHttpClient> = OnceCell::const_new();
 static RESPONSE_CACHE: OnceCell<ResponseCache> = OnceCell::const_new();
 
 pub async fn get_http_client() -> &'static OptimizedHttpClient {
-    HTTP_CLIENT.get_or_init(|| async {
-        OptimizedHttpClient::new()
-    }).await
+    HTTP_CLIENT
+        .get_or_init(|| async { OptimizedHttpClient::new() })
+        .await
 }
 
 pub async fn get_response_cache() -> &'static ResponseCache {
-    RESPONSE_CACHE.get_or_init(|| async {
-        ResponseCache::new()
-    }).await
+    RESPONSE_CACHE
+        .get_or_init(|| async { ResponseCache::new() })
+        .await
 }
 
 /// Optimized serialization helpers
 pub mod serialization {
-    use serde::{Serialize, Deserialize};
+    use serde::{Deserialize, Serialize};
     use std::sync::Arc;
 
     /// Pre-allocated buffer for JSON serialization
@@ -244,7 +258,7 @@ pub mod serialization {
     impl StringInterner {
         pub fn new() -> Self {
             let mut common = std::collections::HashMap::new();
-            
+
             // Pre-intern common values
             common.insert("PENDING", "PENDING".into());
             common.insert("CONFIRMED", "CONFIRMED".into());

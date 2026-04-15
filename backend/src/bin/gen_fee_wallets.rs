@@ -7,14 +7,18 @@ fn main() {
     println!("");
 
     // Generate Solana Wallet
-    let solana_wallet = KeyGenerator::generate_solana_wallet().expect("Failed to generate Solana wallet");
-    
+    let solana_wallet =
+        KeyGenerator::generate_solana_wallet().expect("Failed to generate Solana wallet");
+
     // Generate EVM Wallet (used for ETH, BSC, Polygon, Arbitrum)
     let evm_wallet = KeyGenerator::generate_evm_wallet().expect("Failed to generate EVM wallet");
 
     println!("--- GENERATED WALLETS ---");
     println!("SOLANA:  {}", solana_wallet.address);
-    println!("EVM:     {} (Used for ETH, BSC, Polygon, Arbitrum)", evm_wallet.address);
+    println!(
+        "EVM:     {} (Used for ETH, BSC, Polygon, Arbitrum)",
+        evm_wallet.address
+    );
     println!("");
 
     println!("--- .env CONFIGURATION ---");

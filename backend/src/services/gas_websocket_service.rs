@@ -37,9 +37,14 @@ impl GasWebSocketService {
 
     /// Monitor Ethereum gas prices via WebSocket
     async fn monitor_ethereum_gas(&self) -> Result<(), ServiceError> {
-        let ws_url = self.config.ethereum_rpc_url.replace("https://", "wss://").replace("http://", "ws://");
-        let (ws_stream, _) = connect_async(&ws_url).await
-            .map_err(|e| ServiceError::Internal(format!("ETH WebSocket connection failed: {}", e)))?;
+        let ws_url = self
+            .config
+            .ethereum_rpc_url
+            .replace("https://", "wss://")
+            .replace("http://", "ws://");
+        let (ws_stream, _) = connect_async(&ws_url).await.map_err(|e| {
+            ServiceError::Internal(format!("ETH WebSocket connection failed: {}", e))
+        })?;
 
         let (mut write, mut read) = ws_stream.split();
 
@@ -51,7 +56,9 @@ impl GasWebSocketService {
             "params": ["newHeads"]
         });
 
-        write.send(Message::Text(subscribe_msg.to_string())).await
+        write
+            .send(Message::Text(subscribe_msg.to_string()))
+            .await
             .map_err(|e| ServiceError::Internal(format!("ETH subscription failed: {}", e)))?;
 
         let gas_updates = self.gas_updates.clone();
@@ -61,18 +68,28 @@ impl GasWebSocketService {
                     if let Ok(data) = serde_json::from_str::<Value>(&text) {
                         if let Some(params) = data.get("params") {
                             if let Some(result) = params.get("result") {
-                                if let Some(base_fee) = result.get("baseFeePerGas").and_then(|v| v.as_str()) {
-                                    if let Ok(base_fee_wei) = u64::from_str_radix(&base_fee[2..], 16) {
+                                if let Some(base_fee) =
+                                    result.get("baseFeePerGas").and_then(|v| v.as_str())
+                                {
+                                    if let Ok(base_fee_wei) =
+                                        u64::from_str_radix(&base_fee[2..], 16)
+                                    {
                                         let gas_limit = 21000u64;
-                                        let base_fee_eth = Decimal::new(base_fee_wei as i64 * gas_limit as i64, 18);
-                                        let priority_fee_eth = Decimal::new(2000000000i64 * gas_limit as i64, 18); // 2 gwei default
-                                        
+                                        let base_fee_eth = Decimal::new(
+                                            base_fee_wei as i64 * gas_limit as i64,
+                                            18,
+                                        );
+                                        let priority_fee_eth =
+                                            Decimal::new(2000000000i64 * gas_limit as i64, 18); // 2 gwei default
+
                                         let estimate = GasFeeEstimate {
                                             network: "ethereum".to_string(),
                                             native_currency: "ETH".to_string(),
                                             standard_fee: base_fee_eth + priority_fee_eth,
-                                            fast_fee: (base_fee_eth + priority_fee_eth) * Decimal::new(15, 1),
-                                            estimated_withdrawal_cost: base_fee_eth + priority_fee_eth,
+                                            fast_fee: (base_fee_eth + priority_fee_eth)
+                                                * Decimal::new(15, 1),
+                                            estimated_withdrawal_cost: base_fee_eth
+                                                + priority_fee_eth,
                                             base_fee: Some(base_fee_eth),
                                             priority_fee: Some(priority_fee_eth),
                                         };
@@ -94,9 +111,14 @@ impl GasWebSocketService {
 
     /// Monitor Solana gas prices via WebSocket
     async fn monitor_solana_gas(&self) -> Result<(), ServiceError> {
-        let ws_url = self.config.solana_rpc_url.replace("https://", "wss://").replace("http://", "ws://");
-        let (ws_stream, _) = connect_async(&ws_url).await
-            .map_err(|e| ServiceError::Internal(format!("SOL WebSocket connection failed: {}", e)))?;
+        let ws_url = self
+            .config
+            .solana_rpc_url
+            .replace("https://", "wss://")
+            .replace("http://", "ws://");
+        let (ws_stream, _) = connect_async(&ws_url).await.map_err(|e| {
+            ServiceError::Internal(format!("SOL WebSocket connection failed: {}", e))
+        })?;
 
         let (mut write, mut read) = ws_stream.split();
 
@@ -107,12 +129,14 @@ impl GasWebSocketService {
             "method": "slotSubscribe"
         });
 
-        write.send(Message::Text(subscribe_msg.to_string())).await
+        write
+            .send(Message::Text(subscribe_msg.to_string()))
+            .await
             .map_err(|e| ServiceError::Internal(format!("SOL subscription failed: {}", e)))?;
 
         let gas_updates = self.gas_updates.clone();
         let config = self.config.clone();
-        
+
         tokio::spawn(async move {
             while let Some(msg) = read.next().await {
                 if let Ok(Message::Text(_)) = msg {
@@ -130,7 +154,9 @@ impl GasWebSocketService {
     }
 
     /// Fetch current Solana fees via RPC
-    async fn fetch_solana_fees(config: &crate::config::Config) -> Result<GasFeeEstimate, ServiceError> {
+    async fn fetch_solana_fees(
+        config: &crate::config::Config,
+    ) -> Result<GasFeeEstimate, ServiceError> {
         let client = reqwest::Client::new();
         let rpc_payload = json!({
             "jsonrpc": "2.0",
@@ -156,7 +182,11 @@ impl GasWebSocketService {
                 .collect();
 
             fees.sort();
-            let median_priority_fee = if fees.is_empty() { 0 } else { fees[fees.len() / 2] };
+            let median_priority_fee = if fees.is_empty() {
+                0
+            } else {
+                fees[fees.len() / 2]
+            };
             let base_fee_lamports = 5000u64;
             let total_fee_lamports = base_fee_lamports + median_priority_fee;
             let total_fee_sol = Decimal::new(total_fee_lamports as i64, 9);
@@ -171,7 +201,9 @@ impl GasWebSocketService {
                 priority_fee: Some(Decimal::new(median_priority_fee as i64, 9)),
             })
         } else {
-            Err(ServiceError::Internal("Invalid Solana RPC response".to_string()))
+            Err(ServiceError::Internal(
+                "Invalid Solana RPC response".to_string(),
+            ))
         }
     }
 }

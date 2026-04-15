@@ -75,7 +75,7 @@ pub async fn per_key_rate_limit_middleware(
                 axum::Json(json!({
                     "error": "Rate limit exceeded",
                     "message": "Too many requests for this API key. Limit: 100 requests per minute"
-                }))
+                })),
             )),
         }
     } else {
@@ -83,4 +83,3 @@ pub async fn per_key_rate_limit_middleware(
         Ok(next.run(request).await)
     }
 }
-

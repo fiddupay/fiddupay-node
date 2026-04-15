@@ -1,8 +1,8 @@
-use crate::models::p2p::*;
 use crate::error::ServiceError;
-use sqlx::{PgPool, Row};
-use rust_decimal::Decimal;
+use crate::models::p2p::*;
 use chrono::Utc;
+use rust_decimal::Decimal;
+use sqlx::{PgPool, Row};
 
 #[derive(Clone)]
 pub struct P2pService {
@@ -14,13 +14,17 @@ impl P2pService {
         Self { db_pool }
     }
 
-    pub async fn register_profile(&self, req: &CreateProfileRequest) -> Result<P2pProfile, ServiceError> {
+    pub async fn register_profile(
+        &self,
+        req: &CreateProfileRequest,
+    ) -> Result<P2pProfile, ServiceError> {
         // 1. Hash the Password
-        use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+        use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
         use rand::rngs::OsRng;
         let argon2 = Argon2::default();
         let password_salt = SaltString::generate(&mut OsRng);
-        let password_hash = argon2.hash_password(req.password.as_bytes(), &password_salt)
+        let password_hash = argon2
+            .hash_password(req.password.as_bytes(), &password_salt)
             .map_err(|_| ServiceError::InternalError("Failed to hash password".to_string()))?
             .to_string();
 
@@ -64,7 +68,12 @@ impl P2pService {
         Ok(profile)
     }
 
-    pub async fn get_balance(&self, user_id: i64, crypto_type: &str, sandbox_mode: bool) -> Result<P2pBalance, ServiceError> {
+    pub async fn get_balance(
+        &self,
+        user_id: i64,
+        crypto_type: &str,
+        sandbox_mode: bool,
+    ) -> Result<P2pBalance, ServiceError> {
         let balance = sqlx::query_as::<_, P2pBalance>(
             r#"SELECT id, user_id, crypto_type, available_balance, locked_balance, total_balance, sandbox_mode, last_updated FROM p2p_balances WHERE user_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"#
         )
@@ -86,12 +95,17 @@ impl P2pService {
                 locked_balance: rust_decimal::Decimal::ZERO,
                 total_balance: rust_decimal::Decimal::ZERO,
                 sandbox_mode,
-                last_updated: Utc::now()
+                last_updated: Utc::now(),
             })
         }
     }
 
-    pub async fn create_ad(&self, user_id: i64, request: CreateAdRequest, sandbox_mode: bool) -> Result<P2pAd, ServiceError> {
+    pub async fn create_ad(
+        &self,
+        user_id: i64,
+        request: CreateAdRequest,
+        sandbox_mode: bool,
+    ) -> Result<P2pAd, ServiceError> {
         // Validation logic can go here (e.g., check if vendor)
 
         let ad = sqlx::query_as::<_, P2pAd>(
@@ -128,8 +142,14 @@ impl P2pService {
         Ok(ad)
     }
 
-    pub async fn list_ads(&self, fiat_currency: &str, crypto_type: &str, ad_type: &str, sandbox_mode: bool) -> Result<Vec<P2pAd>, ServiceError> {
-         let ads = sqlx::query_as::<_, P2pAd>(
+    pub async fn list_ads(
+        &self,
+        fiat_currency: &str,
+        crypto_type: &str,
+        ad_type: &str,
+        sandbox_mode: bool,
+    ) -> Result<Vec<P2pAd>, ServiceError> {
+        let ads = sqlx::query_as::<_, P2pAd>(
             "SELECT id, user_id, ad_type, crypto_type, fiat_currency, price, total_amount, min_limit, max_limit, payment_time_limit, status, terms_and_conditions, auto_reply, sandbox_mode, created_at, updated_at 
              FROM p2p_ads 
              WHERE fiat_currency = $1 AND crypto_type = $2 AND ad_type = $3 AND status = 'ACTIVE' AND sandbox_mode = $4
@@ -142,11 +162,16 @@ impl P2pService {
          .fetch_all(&self.db_pool)
          .await?;
 
-         Ok(ads)
+        Ok(ads)
     }
 
     // Trades
-    pub async fn create_trade(&self, taker_id: i64, request: CreateTradeRequest, sandbox_mode: bool) -> Result<P2pTrade, ServiceError> {
+    pub async fn create_trade(
+        &self,
+        taker_id: i64,
+        request: CreateTradeRequest,
+        sandbox_mode: bool,
+    ) -> Result<P2pTrade, ServiceError> {
         let mut tx = self.db_pool.begin().await?;
 
         // 1. Fetch Ad
@@ -159,25 +184,41 @@ impl P2pService {
         .ok_or_else(|| ServiceError::NotFound("Ad not found or inactive".into()))?;
 
         if ad.user_id == taker_id {
-            return Err(ServiceError::ValidationError("Cannot trade with your own Ad".into()));
+            return Err(ServiceError::ValidationError(
+                "Cannot trade with your own Ad".into(),
+            ));
         }
 
         // 2. Calculate Amounts
-        let crypto_amount = if let Some(c) = request.crypto_amount { c } else if let Some(f) = request.fiat_amount { f / ad.price } else { return Err(ServiceError::ValidationError("Must specify amount".into())); };
-        let fiat_amount = if let Some(f) = request.fiat_amount { f } else if let Some(c) = request.crypto_amount { c * ad.price } else { return Err(ServiceError::ValidationError("Must specify amount".into())); };
+        let crypto_amount = if let Some(c) = request.crypto_amount {
+            c
+        } else if let Some(f) = request.fiat_amount {
+            f / ad.price
+        } else {
+            return Err(ServiceError::ValidationError("Must specify amount".into()));
+        };
+        let fiat_amount = if let Some(f) = request.fiat_amount {
+            f
+        } else if let Some(c) = request.crypto_amount {
+            c * ad.price
+        } else {
+            return Err(ServiceError::ValidationError("Must specify amount".into()));
+        };
 
         if fiat_amount < ad.min_limit || fiat_amount > ad.max_limit {
-            return Err(ServiceError::ValidationError("Amount out of ad limits".into()));
+            return Err(ServiceError::ValidationError(
+                "Amount out of ad limits".into(),
+            ));
         }
 
         let trade_id = uuid::Uuid::new_v4().to_string(); // Or a shorter generated ID
         let expires_at = Utc::now() + chrono::Duration::minutes(ad.payment_time_limit as i64);
-        
+
         // Determine Maker and Taker
         let (seller_id, buyer_id) = if ad.ad_type == "SELL" {
-             (ad.user_id, taker_id)
+            (ad.user_id, taker_id)
         } else {
-             (taker_id, ad.user_id)
+            (taker_id, ad.user_id)
         };
 
         // 3. Create Trade record
@@ -201,25 +242,21 @@ impl P2pService {
         .await?;
 
         // 4. Lock funds via Stored Procedure (with Fee)
-        sqlx::query(
-            "SELECT p2p_lock_funds_in_escrow_with_fee($1, $2, $3, $4, $5)"
-        )
-        .bind(seller_id)
-        .bind(&ad.crypto_type)
-        .bind(crypto_amount)
-        .bind(&trade_id)
-        .bind(sandbox_mode)
-        .execute(&mut *tx)
-        .await?;
-        
+        sqlx::query("SELECT p2p_lock_funds_in_escrow_with_fee($1, $2, $3, $4, $5)")
+            .bind(seller_id)
+            .bind(&ad.crypto_type)
+            .bind(crypto_amount)
+            .bind(&trade_id)
+            .bind(sandbox_mode)
+            .execute(&mut *tx)
+            .await?;
+
         // 5. Deduct from Ad
-        sqlx::query(
-             "UPDATE p2p_ads SET total_amount = total_amount - $1 WHERE id = $2"
-        )
-        .bind(crypto_amount)
-        .bind(ad.id)
-        .execute(&mut *tx)
-        .await?;
+        sqlx::query("UPDATE p2p_ads SET total_amount = total_amount - $1 WHERE id = $2")
+            .bind(crypto_amount)
+            .bind(ad.id)
+            .execute(&mut *tx)
+            .await?;
 
         tx.commit().await?;
         Ok(trade)
@@ -244,35 +281,37 @@ impl P2pService {
         let ad_type: String = ad_row.get("ad_type");
         let ad_crypto_type: String = ad_row.get("crypto_type");
         let (seller_id, buyer_id) = if ad_type == "SELL" {
-             (trade.maker_id, trade.taker_id)
+            (trade.maker_id, trade.taker_id)
         } else {
-             (trade.taker_id, trade.maker_id)
+            (trade.taker_id, trade.maker_id)
         };
 
         if user_id != seller_id {
-             return Err(ServiceError::Unauthorized("Only the seller can release the trade".into()));
+            return Err(ServiceError::Unauthorized(
+                "Only the seller can release the trade".into(),
+            ));
         }
 
         if trade.status != "PAID" && trade.status != "DISPUTED" {
-            return Err(ServiceError::ValidationError("Trade is not in a releasable state".into()));
+            return Err(ServiceError::ValidationError(
+                "Trade is not in a releasable state".into(),
+            ));
         }
 
         // Call stored procedure
-        sqlx::query(
-            "SELECT p2p_release_funds_from_escrow($1, $2, $3, $4, $5, $6)"
-        )
-        .bind(seller_id)
-        .bind(buyer_id)
-        .bind(&ad_crypto_type)
-        .bind(trade.crypto_amount)
-        .bind(&trade.trade_id)
-        .bind(trade.sandbox_mode)
-        .execute(&mut *tx)
-        .await?;
+        sqlx::query("SELECT p2p_release_funds_from_escrow($1, $2, $3, $4, $5, $6)")
+            .bind(seller_id)
+            .bind(buyer_id)
+            .bind(&ad_crypto_type)
+            .bind(trade.crypto_amount)
+            .bind(&trade.trade_id)
+            .bind(trade.sandbox_mode)
+            .execute(&mut *tx)
+            .await?;
 
         // Update trade status
         sqlx::query(
-            "UPDATE p2p_trades SET status = 'RELEASED', completed_at = NOW() WHERE id = $1"
+            "UPDATE p2p_trades SET status = 'RELEASED', completed_at = NOW() WHERE id = $1",
         )
         .bind(trade.id)
         .execute(&mut *tx)
@@ -282,7 +321,12 @@ impl P2pService {
         Ok(())
     }
 
-    pub async fn submit_rating(&self, reviewer_id: i64, trade_id_str: &str, request: CreateRatingRequest) -> Result<P2pRating, ServiceError> {
+    pub async fn submit_rating(
+        &self,
+        reviewer_id: i64,
+        trade_id_str: &str,
+        request: CreateRatingRequest,
+    ) -> Result<P2pRating, ServiceError> {
         let mut tx = self.db_pool.begin().await?;
 
         // 1. Fetch trade to ensure it's completed and reviewer was part of it
@@ -293,12 +337,13 @@ impl P2pService {
         .bind(trade_id_str)
         .fetch_optional(&mut *tx)
         .await;
-        
-        let trade = trade_res?
-            .ok_or_else(|| ServiceError::NotFound("Trade not found".into()))?;
+
+        let trade = trade_res?.ok_or_else(|| ServiceError::NotFound("Trade not found".into()))?;
 
         if trade.status != "RELEASED" && trade.status != "COMPLETED" {
-            return Err(ServiceError::ValidationError("Trade must be completed to rate".into()));
+            return Err(ServiceError::ValidationError(
+                "Trade must be completed to rate".into(),
+            ));
         }
 
         let target_id = if reviewer_id == trade.maker_id {
@@ -306,14 +351,16 @@ impl P2pService {
         } else if reviewer_id == trade.taker_id {
             trade.maker_id
         } else {
-            return Err(ServiceError::Unauthorized("You are not part of this trade".into()));
+            return Err(ServiceError::Unauthorized(
+                "You are not part of this trade".into(),
+            ));
         };
 
         // 2. Insert Rating (will fail on conflict due to UNIQUE constraint)
         let rating_res: Result<P2pRating, sqlx::Error> = sqlx::query_as::<_, P2pRating>(
             "INSERT INTO p2p_ratings (trade_id, reviewer_id, target_id, rating, comment)
              VALUES ($1, $2, $3, $4, $5)
-             RETURNING id, trade_id, reviewer_id, target_id, rating, comment, created_at"
+             RETURNING id, trade_id, reviewer_id, target_id, rating, comment, created_at",
         )
         .bind(trade.id)
         .bind(reviewer_id)
@@ -323,11 +370,12 @@ impl P2pService {
         .fetch_one(&mut *tx)
         .await;
 
-        let rating = rating_res
-        .map_err(|e| {
+        let rating = rating_res.map_err(|e| {
             if let sqlx::Error::Database(db_error) = &e {
                 if db_error.code() == Some(std::borrow::Cow::Borrowed("23505")) {
-                    return ServiceError::ValidationError("You have already rated this trade".into());
+                    return ServiceError::ValidationError(
+                        "You have already rated this trade".into(),
+                    );
                 }
             }
             ServiceError::DatabaseError(e.to_string())
@@ -335,15 +383,23 @@ impl P2pService {
 
         // 3. Update target profile counts
         if request.rating.to_uppercase() == "THUMBS_UP" {
-            sqlx::query("UPDATE p2p_profiles SET thumbs_up_count = thumbs_up_count + 1 WHERE id = $1")
-                .bind(target_id)
-                .execute(&mut *tx).await?;
+            sqlx::query(
+                "UPDATE p2p_profiles SET thumbs_up_count = thumbs_up_count + 1 WHERE id = $1",
+            )
+            .bind(target_id)
+            .execute(&mut *tx)
+            .await?;
         } else if request.rating.to_uppercase() == "THUMBS_DOWN" {
-            sqlx::query("UPDATE p2p_profiles SET thumbs_down_count = thumbs_down_count + 1 WHERE id = $1")
-                .bind(target_id)
-                .execute(&mut *tx).await?;
+            sqlx::query(
+                "UPDATE p2p_profiles SET thumbs_down_count = thumbs_down_count + 1 WHERE id = $1",
+            )
+            .bind(target_id)
+            .execute(&mut *tx)
+            .await?;
         } else {
-            return Err(ServiceError::ValidationError("Invalid rating type: must be THUMBS_UP or THUMBS_DOWN".into()));
+            return Err(ServiceError::ValidationError(
+                "Invalid rating type: must be THUMBS_UP or THUMBS_DOWN".into(),
+            ));
         }
 
         // 4. Update completion rate calculation dynamically based on totals
@@ -359,7 +415,11 @@ impl P2pService {
         Ok(rating)
     }
 
-    pub async fn create_support_ticket(&self, user_id: i64, request: CreateSupportTicketRequest) -> Result<P2pSupportTicket, ServiceError> {
+    pub async fn create_support_ticket(
+        &self,
+        user_id: i64,
+        request: CreateSupportTicketRequest,
+    ) -> Result<P2pSupportTicket, ServiceError> {
         let ticket = sqlx::query_as::<_, P2pSupportTicket>(
             "INSERT INTO p2p_support_tickets (user_id, subject, category, description, status, reported_user_id, trade_id, attachment_url)
              VALUES ($1, $2, $3, $4, 'OPEN', $5, $6, $7)

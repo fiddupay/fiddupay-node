@@ -24,7 +24,7 @@ use crate::payment::models::CryptoType;
 use crate::utils::encryption::Encryption;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 pub struct FeeCollectionService {
     db_pool: PgPool,
@@ -49,19 +49,20 @@ impl FeeCollectionService {
         let crypto_type = CryptoType::from_string(crypto_type_str)?;
 
         // 1. Check merchant settlement mode
-        let merchant = sqlx::query(
-            "SELECT settlement_mode FROM merchants WHERE id = $1"
-        )
-        .bind(merchant_id)
-        .fetch_one(&self.db_pool)
-        .await?;
+        let merchant = sqlx::query("SELECT settlement_mode FROM merchants WHERE id = $1")
+            .bind(merchant_id)
+            .fetch_one(&self.db_pool)
+            .await?;
 
         use sqlx::Row;
         let settlement_mode: String = merchant.get("settlement_mode");
         match settlement_mode.as_str() {
             "managed" | "imported" => {}
             _ => {
-                info!("Skipping fee sweep for merchant {} (mode: {})", merchant_id, settlement_mode);
+                info!(
+                    "Skipping fee sweep for merchant {} (mode: {})",
+                    merchant_id, settlement_mode
+                );
                 return Ok(None);
             }
         }
@@ -76,7 +77,7 @@ impl FeeCollectionService {
               AND crypto_type = $3
               AND status = 'CONFIRMED'
               AND fee_collected = FALSE
-            "#
+            "#,
         )
         .bind(merchant_id)
         .bind(merchant_wallet_address)
@@ -87,7 +88,10 @@ impl FeeCollectionService {
         let total_fee: Decimal = sum_record.get("total_fee");
 
         if total_fee <= Decimal::ZERO {
-            info!("No accumulated fees to sweep for wallet {}", merchant_wallet_address);
+            info!(
+                "No accumulated fees to sweep for wallet {}",
+                merchant_wallet_address
+            );
             return Ok(None);
         }
 
@@ -104,17 +108,20 @@ impl FeeCollectionService {
         let encrypted_key: String = wallet_record.get("encrypted_private_key");
 
         let encryption = Encryption::new().map_err(|e| format!("Encryption init failed: {}", e))?;
-        let private_key = encryption.decrypt(&encrypted_key).map_err(|e| format!("Key decryption failed: {}", e))?;
+        let private_key = encryption
+            .decrypt(&encrypted_key)
+            .map_err(|e| format!("Key decryption failed: {}", e))?;
 
         // 4. Get the platform fee wallet for this network
         let network = self.crypto_type_to_network(crypto_type.clone());
-        let platform_wallet = sqlx::query(
-            "SELECT address FROM platform_fee_wallets WHERE network = $1"
-        )
-        .bind(&network)
-        .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or_else(|| format!("No platform fee wallet configured for network: {}", network))?;
+        let platform_wallet =
+            sqlx::query("SELECT address FROM platform_fee_wallets WHERE network = $1")
+                .bind(&network)
+                .fetch_optional(&self.db_pool)
+                .await?
+                .ok_or_else(|| {
+                    format!("No platform fee wallet configured for network: {}", network)
+                })?;
 
         let platform_wallet_address: String = platform_wallet.get("address");
 
@@ -123,17 +130,28 @@ impl FeeCollectionService {
             total_fee, crypto_type_str, merchant_wallet_address, platform_wallet_address
         );
 
-        let tx_sender = crate::services::blockchain_transaction_sender::BlockchainTransactionSender::new(self.config.clone());
+        let tx_sender =
+            crate::services::blockchain_transaction_sender::BlockchainTransactionSender::new(
+                self.config.clone(),
+            );
 
         // For simplicity in batching, we assume sandbox status is consistent with the merchant
-        let merchant_sandbox: bool = sqlx::query("SELECT sandbox_mode FROM merchants WHERE id = $1")
-            .bind(merchant_id)
-            .fetch_one(&self.db_pool)
-            .await?
-            .get("sandbox_mode");
+        let merchant_sandbox: bool =
+            sqlx::query("SELECT sandbox_mode FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&self.db_pool)
+                .await?
+                .get("sandbox_mode");
 
         let tx_hash = tx_sender
-            .send_transaction(crypto_type, &private_key, &platform_wallet_address, total_fee, None, merchant_sandbox)
+            .send_transaction(
+                crypto_type,
+                &private_key,
+                &platform_wallet_address,
+                total_fee,
+                None,
+                merchant_sandbox,
+            )
             .await
             .map_err(|e| format!("Fee sweep transfer failed: {}", e))?;
 
@@ -147,7 +165,7 @@ impl FeeCollectionService {
               AND crypto_type = $3
               AND status = 'CONFIRMED'
               AND fee_collected = FALSE
-            "#
+            "#,
         )
         .bind(merchant_id)
         .bind(merchant_wallet_address)
@@ -164,7 +182,7 @@ impl FeeCollectionService {
                 created_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, 'COMPLETED', NOW())
-            "#
+            "#,
         )
         .bind(merchant_id)
         .bind(&network)
@@ -175,7 +193,10 @@ impl FeeCollectionService {
         .execute(&self.db_pool)
         .await?;
 
-        info!("✅ Smart sweep collected {} {} -> tx {}", total_fee, crypto_type_str, tx_hash);
+        info!(
+            "✅ Smart sweep collected {} {} -> tx {}",
+            total_fee, crypto_type_str, tx_hash
+        );
 
         Ok(Some(tx_hash))
     }
@@ -187,10 +208,11 @@ impl FeeCollectionService {
     ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
         // 1. Check if auto sweep is enabled and get settings
         let settings = match sqlx::query(
-            "SELECT is_auto_sweep_enabled, min_accumulated_usd FROM fee_sweep_settings LIMIT 1"
+            "SELECT is_auto_sweep_enabled, min_accumulated_usd FROM fee_sweep_settings LIMIT 1",
         )
         .fetch_optional(&self.db_pool)
-        .await? {
+        .await?
+        {
             Some(row) => row,
             None => {
                 info!("Fee sweep settings not found. Auto-sweep skipped.");
@@ -204,7 +226,9 @@ impl FeeCollectionService {
             return Ok(vec![]);
         }
 
-        let min_usd: Decimal = settings.try_get("min_accumulated_usd").unwrap_or(Decimal::ZERO);
+        let min_usd: Decimal = settings
+            .try_get("min_accumulated_usd")
+            .unwrap_or(Decimal::ZERO);
 
         // 2. Find all eligible wallets
         let eligible_wallets = sqlx::query(
@@ -216,7 +240,7 @@ impl FeeCollectionService {
               AND fee_collected = FALSE
             GROUP BY merchant_id, crypto_type, to_address
             HAVING SUM(fee_amount_usd) >= $2
-            "#
+            "#,
         )
         .bind(network_str)
         .bind(min_usd)
@@ -230,11 +254,17 @@ impl FeeCollectionService {
             let crypto_type_str: String = wallet.get("crypto_type");
             let to_address: String = wallet.get("to_address");
 
-            match self.sweep_wallet_fees(merchant_id, &crypto_type_str, &to_address).await {
+            match self
+                .sweep_wallet_fees(merchant_id, &crypto_type_str, &to_address)
+                .await
+            {
                 Ok(Some(tx_hash)) => successful_txs.push(tx_hash),
-                Ok(None) => {}, // Skipped
+                Ok(None) => {} // Skipped
                 Err(e) => {
-                    error!("Error sweeping fees for merchant {} wallet {}: {}", merchant_id, to_address, e);
+                    error!(
+                        "Error sweeping fees for merchant {} wallet {}: {}",
+                        merchant_id, to_address, e
+                    );
                 }
             }
         }
@@ -244,24 +274,25 @@ impl FeeCollectionService {
 
     /// Background task to run scheduled sweeps
     pub async fn start_auto_sweeper(&self) {
-        let networks = vec!["ETHEREUM", "BSC", "POLYGON", "ARBITRUM", "SOLANA", "BITCOIN"];
-        
+        let networks = vec![
+            "ETHEREUM", "BSC", "POLYGON", "ARBITRUM", "SOLANA", "BITCOIN",
+        ];
+
         loop {
             // Check once per hour
             tokio::time::sleep(std::time::Duration::from_secs(3600)).await;
 
             // Simple verification if sweep is enabled
-            let settings = sqlx::query(
-                "SELECT is_auto_sweep_enabled FROM fee_sweep_settings LIMIT 1"
-            )
-            .fetch_optional(&self.db_pool)
-            .await;
+            let settings =
+                sqlx::query("SELECT is_auto_sweep_enabled FROM fee_sweep_settings LIMIT 1")
+                    .fetch_optional(&self.db_pool)
+                    .await;
 
             let is_enabled = match settings {
                 Ok(Some(row)) => {
                     use sqlx::Row;
                     row.get("is_auto_sweep_enabled")
-                },
+                }
                 _ => false,
             };
 

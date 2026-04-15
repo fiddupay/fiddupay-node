@@ -67,7 +67,9 @@ impl PriceFetcher {
     ) -> Result<Decimal, Box<dyn std::error::Error + Send + Sync>> {
         let url = format!(
             "{}/v5/market/tickers?category={}&symbol={}",
-            get_bybit_api_url(&self.config), category, symbol
+            get_bybit_api_url(&self.config),
+            category,
+            symbol
         );
 
         let response = self.client.get(&url).send().await?;
@@ -77,7 +79,10 @@ impl PriceFetcher {
             return Err(format!("Bybit API error: {}", bybit_response.ret_msg).into());
         }
 
-        let ticker = bybit_response.result.list.first()
+        let ticker = bybit_response
+            .result
+            .list
+            .first()
             .ok_or("No ticker data found")?;
 
         let price = Decimal::from_str(&ticker.last_price)?;
@@ -109,4 +114,3 @@ impl PriceFetcher {
         }
     }
 }
-

@@ -1,7 +1,7 @@
-use axum::{extract::State, http::StatusCode, response::Json};
-use serde::{Deserialize, Serialize};
 use crate::api::state::AppState;
-use chrono::{Utc, DateTime};
+use axum::{extract::State, http::StatusCode, response::Json};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct SystemStatus {
@@ -113,16 +113,19 @@ async fn fetch_service_history(pool: &sqlx::PgPool, service_name: &str) -> Vec<U
     .await;
 
     match result {
-        Ok(rows) => rows.into_iter().map(|r| UptimePoint {
-            date: r.day.unwrap_or_else(|| Utc::now()).to_rfc3339(),
-            status: if r.uptime_percent.unwrap_or(0.0) >= 99.0 { 
-                "operational".to_string() 
-            } else if r.uptime_percent.unwrap_or(0.0) >= 90.0 {
-                "degraded".to_string()
-            } else {
-                "outage".to_string()
-            },
-        }).collect(),
+        Ok(rows) => rows
+            .into_iter()
+            .map(|r| UptimePoint {
+                date: r.day.unwrap_or_else(|| Utc::now()).to_rfc3339(),
+                status: if r.uptime_percent.unwrap_or(0.0) >= 99.0 {
+                    "operational".to_string()
+                } else if r.uptime_percent.unwrap_or(0.0) >= 90.0 {
+                    "degraded".to_string()
+                } else {
+                    "outage".to_string()
+                },
+            })
+            .collect(),
         Err(_) => vec![],
     }
 }
@@ -163,15 +166,18 @@ async fn fetch_recent_incidents(pool: &sqlx::PgPool) -> Vec<SystemIncident> {
     .await;
 
     match result {
-        Ok(rows) => rows.into_iter().map(|r| SystemIncident {
-            id: r.id,
-            title: r.title,
-            description: r.description,
-            status: r.status,
-            severity: r.severity,
-            created_at: r.created_at.to_rfc3339(),
-            resolved_at: r.resolved_at.map(|d: chrono::DateTime<Utc>| d.to_rfc3339()),
-        }).collect(),
+        Ok(rows) => rows
+            .into_iter()
+            .map(|r| SystemIncident {
+                id: r.id,
+                title: r.title,
+                description: r.description,
+                status: r.status,
+                severity: r.severity,
+                created_at: r.created_at.to_rfc3339(),
+                resolved_at: r.resolved_at.map(|d: chrono::DateTime<Utc>| d.to_rfc3339()),
+            })
+            .collect(),
         Err(_) => vec![],
     }
 }

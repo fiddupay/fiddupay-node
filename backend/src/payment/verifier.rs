@@ -3,13 +3,13 @@
 
 use chrono::Utc;
 use rust_decimal::Decimal;
-use std::str::FromStr;
-use sqlx::{PgPool, Postgres, Transaction, Row};
-use tracing::{info, warn, error};
 use serde_json::json;
+use sqlx::{PgPool, Postgres, Row, Transaction};
+use std::str::FromStr;
+use tracing::{error, info, warn};
 
-use super::models::{PaymentTransaction, PaymentStatus, CryptoType, BlockchainTransaction};
 use super::blockchain_monitor::get_blockchain_monitor;
+use super::models::{BlockchainTransaction, CryptoType, PaymentStatus, PaymentTransaction};
 use crate::services::webhook_service::WebhookService;
 
 #[derive(Clone)]
@@ -19,17 +19,20 @@ pub struct PaymentVerifier {
     price_service: std::sync::Arc<crate::services::price_service::PriceService>,
     config: crate::config::Config,
     redis_client: redis::Client,
-    notification_service: std::sync::Arc<crate::services::notification_service::NotificationService>,
+    notification_service:
+        std::sync::Arc<crate::services::notification_service::NotificationService>,
 }
 
 impl PaymentVerifier {
     pub fn new(
-        db_pool: PgPool, 
-        webhook_service: WebhookService, 
-        price_service: std::sync::Arc<crate::services::price_service::PriceService>, 
+        db_pool: PgPool,
+        webhook_service: WebhookService,
+        price_service: std::sync::Arc<crate::services::price_service::PriceService>,
         config: crate::config::Config,
         redis_client: redis::Client,
-        notification_service: std::sync::Arc<crate::services::notification_service::NotificationService>,
+        notification_service: std::sync::Arc<
+            crate::services::notification_service::NotificationService,
+        >,
     ) -> Self {
         Self {
             db_pool,
@@ -42,15 +45,15 @@ impl PaymentVerifier {
     }
 
     /// Verify a payment using public payment_id and transaction hash
-    /// 
+    ///
     /// This is the public API method that accepts the payment_id string (e.g., "pay_abc123")
     /// and verifies merchant ownership before delegating to the internal verification method.
-    /// 
+    ///
     /// # Arguments
     /// * `payment_id` - Public-facing payment ID (e.g., "pay_abc123")
     /// * `transaction_hash` - Blockchain transaction hash
     /// * `merchant_id` - ID of the merchant requesting verification
-    /// 
+    ///
     /// # Returns
     /// * `Ok(true)` if payment is confirmed
     /// * `Ok(false)` if payment is pending more confirmations
@@ -66,7 +69,7 @@ impl PaymentVerifier {
             r#"
             SELECT id, merchant_id FROM payment_transactions
             WHERE payment_id = $1
-            "#
+            "#,
         )
         .bind(payment_id)
         .fetch_optional(&self.db_pool)
@@ -80,16 +83,18 @@ impl PaymentVerifier {
             return Err(format!(
                 "Payment {} does not belong to merchant {}. Access denied.",
                 payment_id, merchant_id
-            ).into());
+            )
+            .into());
         }
 
         // Delegate to internal verification method
-        self.verify_payment_by_hash(payment_db_id, transaction_hash, merchant_id).await
+        self.verify_payment_by_hash(payment_db_id, transaction_hash, merchant_id)
+            .await
     }
 
     /// Verify a payment using user-provided transaction hash
     /// This is the PRIMARY verification method - prevents duplicate payments
-    /// 
+    ///
     /// # Requirements
     /// * 3.1: Verify transaction hash exists on blockchain
     /// * 3.2: Confirm amount matches expected payment amount
@@ -103,8 +108,10 @@ impl PaymentVerifier {
         transaction_hash: &str,
         merchant_id: i64,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        info!(" Verifying payment {} with transaction hash {} for merchant {}", 
-            payment_id, transaction_hash, merchant_id);
+        info!(
+            " Verifying payment {} with transaction hash {} for merchant {}",
+            payment_id, transaction_hash, merchant_id
+        );
 
         // 1. Check if transaction hash is already used by another payment
         let existing_payment = sqlx::query_scalar::<_, i64>(
@@ -113,7 +120,7 @@ impl PaymentVerifier {
             WHERE transaction_hash = $1
             AND id != $2
             LIMIT 1
-            "#
+            "#,
         )
         .bind(transaction_hash)
         .bind(payment_id)
@@ -125,14 +132,21 @@ impl PaymentVerifier {
                 "Transaction hash already used for payment #{}. Each transaction can only be used once.",
                 existing_id
             );
-            warn!("[VERIFY-HEARTBEAT] Payment {} | BLOCKED: {}", payment_id, err_msg);
+            warn!(
+                "[VERIFY-HEARTBEAT] Payment {} | BLOCKED: {}",
+                payment_id, err_msg
+            );
             return Err(err_msg.into());
         }
-        info!("[VERIFY-HEARTBEAT] Payment {} | STEP 1: Uniqueness check passed", payment_id);
+        info!(
+            "[VERIFY-HEARTBEAT] Payment {} | STEP 1: Uniqueness check passed",
+            payment_id
+        );
 
         // 2. Get payment from database and verify merchant ownership
-        let payment_res: Result<Option<crate::models::payment::Payment>, sqlx::Error> = sqlx::query_as(
-            r#"
+        let payment_res: Result<Option<crate::models::payment::Payment>, sqlx::Error> =
+            sqlx::query_as(
+                r#"
             SELECT id, payment_id, merchant_id, amount, amount_usd, crypto_type, 
                    network, status, to_address, from_address, created_at, expires_at, confirmed_at, 
                    confirmations, required_confirmations, description, metadata, 
@@ -142,67 +156,102 @@ impl PaymentVerifier {
                    last_verification_at, sandbox_mode
             FROM payment_transactions
             WHERE id = $1
-            "#
-        )
-        .bind(payment_id)
-        .fetch_optional(&self.db_pool)
-        .await;
+            "#,
+            )
+            .bind(payment_id)
+            .fetch_optional(&self.db_pool)
+            .await;
 
-        let payment = payment_res?
-            .ok_or_else(|| {
-                error!("[VERIFY-HEARTBEAT] Payment {} | ERROR: Payment not found in DB", payment_id);
-                "Payment not found"
-            })?;
-        info!("[VERIFY-HEARTBEAT] Payment {} | STEP 2: DB record retrieved", payment_id);
+        let payment = payment_res?.ok_or_else(|| {
+            error!(
+                "[VERIFY-HEARTBEAT] Payment {} | ERROR: Payment not found in DB",
+                payment_id
+            );
+            "Payment not found"
+        })?;
+        info!(
+            "[VERIFY-HEARTBEAT] Payment {} | STEP 2: DB record retrieved",
+            payment_id
+        );
 
         // 3. Verify merchant ownership
         if payment.merchant_id != merchant_id {
             return Err(format!(
                 "Payment {} does not belong to merchant {}. Access denied.",
                 payment_id, merchant_id
-            ).into());
+            )
+            .into());
         }
 
         // 4. Check if payment is already confirmed
         if payment.status == "CONFIRMED" {
-            info!("[VERIFY-HEARTBEAT] Payment {} | SKIP: Already confirmed", payment_id);
+            info!(
+                "[VERIFY-HEARTBEAT] Payment {} | SKIP: Already confirmed",
+                payment_id
+            );
             return Ok(true);
         }
 
         // 5. Check if payment has expired
         if payment.expires_at < Utc::now() {
-            self.mark_payment_failed(payment_id, "Payment expired").await?;
+            self.mark_payment_failed(payment_id, "Payment expired")
+                .await?;
             return Err("Payment has expired. Please create a new payment request.".into());
         }
 
         // 6. Fetch blockchain transaction using the provided hash
         let crypto_type_str = payment.crypto_type.as_ref().ok_or_else(|| {
-            error!("[VERIFY-HEARTBEAT] Payment {} | ERROR: Crypto type missing", payment_id);
+            error!(
+                "[VERIFY-HEARTBEAT] Payment {} | ERROR: Crypto type missing",
+                payment_id
+            );
             "Currency selection required before verification"
         })?;
         let crypto_type = CryptoType::from_string(crypto_type_str)?;
-        info!("[VERIFY-HEARTBEAT] Payment {} | STEP 3: Starting blockchain lookup for {}", payment_id, transaction_hash);
+        info!(
+            "[VERIFY-HEARTBEAT] Payment {} | STEP 3: Starting blockchain lookup for {}",
+            payment_id, transaction_hash
+        );
 
         // Get appropriate blockchain monitor for this crypto type using payment's sandbox mode
-        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), payment.sandbox_mode);
+        let monitor =
+            get_blockchain_monitor(&crypto_type, self.config.clone(), payment.sandbox_mode);
 
         // Fetch transaction from blockchain (Requirement 3.1)
         let blockchain_tx = monitor
             .get_transaction_details(transaction_hash, payment.to_address.as_deref())
             .await
             .map_err(|e| {
-                error!("[VERIFY-HEARTBEAT] Payment {} | ERROR: Blockchain fetch failed: {}", payment_id, e);
-                format!("Failed to fetch transaction from {}: {}", monitor.blockchain_name(), e)
+                error!(
+                    "[VERIFY-HEARTBEAT] Payment {} | ERROR: Blockchain fetch failed: {}",
+                    payment_id, e
+                );
+                format!(
+                    "Failed to fetch transaction from {}: {}",
+                    monitor.blockchain_name(),
+                    e
+                )
             })?;
-        info!("[VERIFY-HEARTBEAT] Payment {} | STEP 4: Transaction found on {}", payment_id, monitor.blockchain_name());
+        info!(
+            "[VERIFY-HEARTBEAT] Payment {} | STEP 4: Transaction found on {}",
+            payment_id,
+            monitor.blockchain_name()
+        );
 
         // 7. Verify transaction details match payment (Requirements 3.2, 3.3, 3.5)
         if !self.validate_transaction(&payment, &blockchain_tx)? {
-            warn!("[VERIFY-HEARTBEAT] Payment {} | FAILED: validation mismatch", payment_id);
-            self.mark_payment_failed(payment_id, "Transaction validation failed").await?;
+            warn!(
+                "[VERIFY-HEARTBEAT] Payment {} | FAILED: validation mismatch",
+                payment_id
+            );
+            self.mark_payment_failed(payment_id, "Transaction validation failed")
+                .await?;
             return Err("Transaction validation failed: amount or address mismatch".into());
         }
-        info!("[VERIFY-HEARTBEAT] Payment {} | STEP 5: Validation successful (Amount/Address match)", payment_id);
+        info!(
+            "[VERIFY-HEARTBEAT] Payment {} | STEP 5: Validation successful (Amount/Address match)",
+            payment_id
+        );
 
         // 8. Update payment with transaction details
         sqlx::query(
@@ -217,7 +266,7 @@ impl PaymentVerifier {
                     ELSE 'CONFIRMING'
                 END
             WHERE id = $5
-            "#
+            "#,
         )
         .bind(transaction_hash)
         .bind(&blockchain_tx.from_address)
@@ -227,24 +276,35 @@ impl PaymentVerifier {
         .execute(&self.db_pool)
         .await
         .map_err(|e| {
-            error!("[VERIFY-HEARTBEAT] Payment {} | ERROR: DB update failed: {}", payment_id, e);
+            error!(
+                "[VERIFY-HEARTBEAT] Payment {} | ERROR: DB update failed: {}",
+                payment_id, e
+            );
             e
         })?;
-        
-        info!("[VERIFY-HEARTBEAT] Payment {} | STEP 6: DB updated (status={}, confs={})", 
-            payment_id, 
-            if (blockchain_tx.confirmations as i32) >= payment.required_confirmations.unwrap_or(1) { "CONFIRMED" } else { "CONFIRMING" },
+
+        info!(
+            "[VERIFY-HEARTBEAT] Payment {} | STEP 6: DB updated (status={}, confs={})",
+            payment_id,
+            if (blockchain_tx.confirmations as i32) >= payment.required_confirmations.unwrap_or(1) {
+                "CONFIRMED"
+            } else {
+                "CONFIRMING"
+            },
             blockchain_tx.confirmations
         );
 
         // 9. If enough confirmations, confirm the payment (Requirements 3.4, 3.7)
         if (blockchain_tx.confirmations as i32) >= payment.required_confirmations.unwrap_or(1) {
             self.confirm_payment(payment_id, merchant_id).await?;
-            info!(" Payment {} confirmed with {} confirmations for merchant {}!",
-                payment_id, blockchain_tx.confirmations, merchant_id);
+            info!(
+                " Payment {} confirmed with {} confirmations for merchant {}!",
+                payment_id, blockchain_tx.confirmations, merchant_id
+            );
             return Ok(true);
         } else {
-            info!("⏳ Payment {} confirming ({}/{} confirmations)",
+            info!(
+                "⏳ Payment {} confirming ({}/{} confirmations)",
                 payment_id,
                 blockchain_tx.confirmations,
                 payment.required_confirmations.unwrap_or(1)
@@ -265,7 +325,7 @@ impl PaymentVerifier {
             r#"
             SELECT * FROM payment_transactions
             WHERE payment_id = $1
-            "#
+            "#,
         )
         .bind(payment_id)
         .fetch_optional(&self.db_pool)
@@ -276,7 +336,10 @@ impl PaymentVerifier {
             return Err("Access denied".into());
         }
 
-        if payment.status == "CONFIRMED" || payment.status == "FAILED" || payment.status == "CANCELLED" {
+        if payment.status == "CONFIRMED"
+            || payment.status == "FAILED"
+            || payment.status == "CANCELLED"
+        {
             return Ok(true);
         }
 
@@ -284,14 +347,18 @@ impl PaymentVerifier {
         if let Some(last_v) = payment.last_verification_at {
             let elapsed = Utc::now() - last_v;
             if elapsed < chrono::Duration::seconds(5) {
-                tracing::debug!("Skipping verification for payment {}: cooldown active ({}s elapsed)", 
-                    payment_id, elapsed.num_seconds());
+                tracing::debug!(
+                    "Skipping verification for payment {}: cooldown active ({}s elapsed)",
+                    payment_id,
+                    elapsed.num_seconds()
+                );
                 return Ok(false);
             }
         }
 
-        if payment.to_address.is_none() || payment.amount.is_none() || payment.crypto_type.is_none() {
-             return Ok(false); // Not ready for verification
+        if payment.to_address.is_none() || payment.amount.is_none() || payment.crypto_type.is_none()
+        {
+            return Ok(false); // Not ready for verification
         }
 
         // Update last_verification_at before starting the scan to prevent concurrent triggers
@@ -303,18 +370,21 @@ impl PaymentVerifier {
 
         let crypto_type_str = payment.crypto_type.as_ref().unwrap();
         let crypto_type = CryptoType::from_string(crypto_type_str)?;
-        let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), payment.sandbox_mode);
+        let monitor =
+            get_blockchain_monitor(&crypto_type, self.config.clone(), payment.sandbox_mode);
         let address = payment.to_address.as_ref().unwrap();
 
         // Get recent transactions for the address
         // Check last 20 transactions to find a match, filtering by payment creation time
-        let transactions = monitor.get_transactions_to_address(address, 20, Some(payment.created_at)).await?;
+        let transactions = monitor
+            .get_transactions_to_address(address, 20, Some(payment.created_at))
+            .await?;
 
         for tx in transactions {
             // Check if this transaction is already linked to another payment
             // (Unless it's this payment, which shouldn't happen if status is pending)
-             let existing_payment = sqlx::query_scalar::<_, i64>(
-                "SELECT id FROM payment_transactions WHERE transaction_hash = $1 AND id != $2"
+            let existing_payment = sqlx::query_scalar::<_, i64>(
+                "SELECT id FROM payment_transactions WHERE transaction_hash = $1 AND id != $2",
             )
             .bind(&tx.hash)
             .bind(payment.id)
@@ -327,10 +397,12 @@ impl PaymentVerifier {
 
             // Validate against payment details
             if self.validate_transaction(&payment, &tx)? {
-                 // Found a match! Process it.
-                 // We can reuse the verify_payment_by_hash logic or duplicate the update logic here.
-                 // passing payment.id (which is i64) as required by verify_payment_by_hash
-                 return self.verify_payment_by_hash(payment.id, &tx.hash, merchant_id).await;
+                // Found a match! Process it.
+                // We can reuse the verify_payment_by_hash logic or duplicate the update logic here.
+                // passing payment.id (which is i64) as required by verify_payment_by_hash
+                return self
+                    .verify_payment_by_hash(payment.id, &tx.hash, merchant_id)
+                    .await;
             }
         }
 
@@ -338,7 +410,7 @@ impl PaymentVerifier {
     }
 
     /// Validate blockchain transaction matches payment request
-    /// 
+    ///
     /// # Requirements
     /// * 3.2: Confirm amount matches expected payment amount (with 0.1% tolerance)
     /// * 3.3: Confirm recipient address matches merchant's wallet
@@ -365,13 +437,13 @@ impl PaymentVerifier {
                     // Normalize and compare
                     let actual_norm = actual_mint.trim().to_lowercase();
                     let expected_norm = expected_addr.trim().to_lowercase();
-                    
+
                     if actual_norm != expected_norm {
                         warn!("[VERIFY-VALIDATION] Payment {} | FAILED: Token mismatch: expected {}, got {}", 
                             payment.payment_id, expected_addr, actual_mint);
                         return Ok(false);
                     }
-                },
+                }
                 None => {
                     warn!("[VERIFY-VALIDATION] Payment {} | FAILED: Expected token {}, but transaction is native", 
                         payment.payment_id, expected_addr);
@@ -388,18 +460,28 @@ impl PaymentVerifier {
         }
 
         // Check recipient address matches merchant's wallet (Requirement 3.3)
-        let payment_to_address = payment.to_address.as_ref().ok_or("Merchant address missing")?;
-        
-        let addresses_match = if payment.network.as_ref().map(|n| n.to_lowercase().contains("solana")).unwrap_or(false) {
+        let payment_to_address = payment
+            .to_address
+            .as_ref()
+            .ok_or("Merchant address missing")?;
+
+        let addresses_match = if payment
+            .network
+            .as_ref()
+            .map(|n| n.to_lowercase().contains("solana"))
+            .unwrap_or(false)
+        {
             // Solana addresses are case-sensitive (Base58)
             blockchain_tx.to_address.trim() == payment_to_address.trim()
         } else {
             // Ethereum/EVM addresses are case-insensitive
-            blockchain_tx.to_address.trim().to_lowercase() == payment_to_address.trim().to_lowercase()
+            blockchain_tx.to_address.trim().to_lowercase()
+                == payment_to_address.trim().to_lowercase()
         };
 
         if !addresses_match {
-            tracing::debug!("[VERIFY-VALIDATION] Payment {} | FAILED: Recipient address mismatch",
+            tracing::debug!(
+                "[VERIFY-VALIDATION] Payment {} | FAILED: Recipient address mismatch",
                 payment.payment_id
             );
             return Ok(false);
@@ -410,7 +492,8 @@ impl PaymentVerifier {
         if let Some(tx_time) = blockchain_tx.timestamp {
             // Allow a small buffer (e.g., 60 seconds) for clock skew, though normally tx_time must be > created_at
             if tx_time < payment.created_at - chrono::Duration::seconds(60) {
-                tracing::debug!("[VERIFY-VALIDATION] Payment {} | FAILED: Timestamp mismatch (Replay attack?)",
+                tracing::debug!(
+                    "[VERIFY-VALIDATION] Payment {} | FAILED: Timestamp mismatch (Replay attack?)",
                     payment.payment_id
                 );
                 return Ok(false);
@@ -423,13 +506,17 @@ impl PaymentVerifier {
         let tolerance = payment_amount * Decimal::from_str("0.001")?; // 0.1%
 
         if amount_diff > tolerance {
-            tracing::debug!("[VERIFY-VALIDATION] Payment {} | FAILED: Amount mismatch",
+            tracing::debug!(
+                "[VERIFY-VALIDATION] Payment {} | FAILED: Amount mismatch",
                 payment.payment_id
             );
             return Ok(false);
         }
 
-        info!("✅ Transaction validation successful for {}", blockchain_tx.hash);
+        info!(
+            "✅ Transaction validation successful for {}",
+            blockchain_tx.hash
+        );
         Ok(true)
     }
 
@@ -457,7 +544,7 @@ impl PaymentVerifier {
         .bind(payment_id)
         .fetch_one(&mut *tx)
         .await?;
-        
+
         use sqlx::Row;
         struct ConfirmPaymentData {
             public_id: String,
@@ -487,7 +574,7 @@ impl PaymentVerifier {
             SET status = 'CONFIRMED',
                 confirmed_at = $1
             WHERE id = $2
-            "#
+            "#,
         )
         .bind(Utc::now())
         .bind(payment_id)
@@ -498,7 +585,10 @@ impl PaymentVerifier {
         let gross_amount = payment.amount.unwrap_or(Decimal::ZERO);
         let fee_amount = payment.fee_amount.unwrap_or(Decimal::ZERO);
         let net_amount = gross_amount - fee_amount;
-        let crypto_type_str = payment.crypto_type.clone().unwrap_or_else(|| "UNKNOWN".to_string());
+        let crypto_type_str = payment
+            .crypto_type
+            .clone()
+            .unwrap_or_else(|| "UNKNOWN".to_string());
         let sandbox_mode = payment.sandbox_mode;
 
         if net_amount > Decimal::ZERO {
@@ -546,17 +636,20 @@ impl PaymentVerifier {
             merchant_id,
             status: crate::payment::models::PaymentStatus::Confirmed,
             amount: payment.amount.clone().unwrap_or_default(),
-            crypto_type: payment.crypto_type.clone().unwrap_or_else(|| "UNKNOWN".to_string()),
+            crypto_type: payment
+                .crypto_type
+                .clone()
+                .unwrap_or_else(|| "UNKNOWN".to_string()),
             transaction_hash: payment.transaction_hash.clone(),
             customer_external_id: None,
             timestamp: chrono::Utc::now().timestamp(),
         };
-        
-        if let Err(e) = self.webhook_service.queue_webhook(
-            merchant_id,
-            Some(payment_id),
-            webhook_payload
-        ).await {
+
+        if let Err(e) = self
+            .webhook_service
+            .queue_webhook(merchant_id, Some(payment_id), webhook_payload)
+            .await
+        {
             warn!("Failed to queue webhook for payment {}: {}", payment_id, e);
         }
 
@@ -569,10 +662,12 @@ impl PaymentVerifier {
             "crypto_type": payment.crypto_type.clone().unwrap_or_else(|| "UNKNOWN".to_string()),
             "payment_id": payment.public_id.clone(),
         });
-        
+
         if let Ok(mut redis_conn) = self.redis_client.get_multiplexed_async_connection().await {
             use redis::AsyncCommands;
-            let _: Result<(), _> = redis_conn.publish::<_, _, ()>(channel_name, notification.to_string()).await;
+            let _: Result<(), _> = redis_conn
+                .publish::<_, _, ()>(channel_name, notification.to_string())
+                .await;
         }
 
         // Platform fee will be collected by the smart fee sweeping background job
@@ -580,7 +675,6 @@ impl PaymentVerifier {
         // The old immediate FeeCollectionService call has been removed.
 
         Ok(())
-
     }
 
     /// Mark payment as failed
@@ -594,7 +688,7 @@ impl PaymentVerifier {
             UPDATE payment_transactions
             SET status = 'FAILED'
             WHERE id = $1
-            "#
+            "#,
         )
         .bind(payment_id)
         .execute(&self.db_pool)
@@ -605,7 +699,7 @@ impl PaymentVerifier {
     }
 
     /// Record a partial payment
-    /// 
+    ///
     /// # Requirements
     /// * 20.2: Track total amount paid across multiple transactions
     /// * 20.3: Update remaining balance
@@ -665,7 +759,7 @@ impl PaymentVerifier {
         } else {
             false
         };
-        
+
         if is_complete {
             sqlx::query(
                 "UPDATE payment_transactions SET status = 'CONFIRMED', confirmed_at = $1 WHERE id = $2"
@@ -678,18 +772,30 @@ impl PaymentVerifier {
 
         tx.commit().await?;
 
-        info!(" Partial payment recorded for payment {}: {} (total: {:?}/{:?})", 
-            payment_id, amount, total_paid, payment_amount);
+        info!(
+            " Partial payment recorded for payment {}: {} (total: {:?}/{:?})",
+            payment_id, amount, total_paid, payment_amount
+        );
 
         // PERSISTENT NOTIFICATION: Payment Received
-        let _ = self.notification_service.create_notification(
-            merchant_id,
-            if is_complete { "✅ Payment Fully Received" } else { "💰 Partial Payment Received" },
-            &format!("Received {} {} for payment {}. (USD: ${})", amount, crypto_type_str, public_id, amount_usd),
-            "success",
-            "payment.received",
-            sandbox_mode
-        ).await;
+        let _ = self
+            .notification_service
+            .create_notification(
+                merchant_id,
+                if is_complete {
+                    "✅ Payment Fully Received"
+                } else {
+                    "💰 Partial Payment Received"
+                },
+                &format!(
+                    "Received {} {} for payment {}. (USD: ${})",
+                    amount, crypto_type_str, public_id, amount_usd
+                ),
+                "success",
+                "payment.received",
+                sandbox_mode,
+            )
+            .await;
 
         // Publish to Redis for real-time dashboard notification
         if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
@@ -721,18 +827,24 @@ impl PaymentVerifier {
         crypto_str: &str,
         sandbox_mode: bool,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        info!("Verifying static deposit for customer {} with hash {}", customer_id, transaction_hash);
+        info!(
+            "Verifying static deposit for customer {} with hash {}",
+            customer_id, transaction_hash
+        );
 
         // 1. Check if transaction hash is already used for customer_transactions (Idempotency)
         let existing_tx = sqlx::query_scalar::<_, i64>(
-            "SELECT id FROM customer_transactions WHERE transaction_hash = $1 LIMIT 1"
+            "SELECT id FROM customer_transactions WHERE transaction_hash = $1 LIMIT 1",
         )
         .bind(transaction_hash)
         .fetch_optional(&self.db_pool)
         .await?;
 
         if existing_tx.is_some() {
-            info!("Transaction hash {} already processed for customer", transaction_hash);
+            info!(
+                "Transaction hash {} already processed for customer",
+                transaction_hash
+            );
             return Ok(true);
         }
 
@@ -750,7 +862,9 @@ impl PaymentVerifier {
         // 3. Fetch blockchain details
         let crypto_type = CryptoType::from_string(crypto_str)?;
         let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), sandbox_mode);
-        let blockchain_tx = monitor.get_transaction_details(transaction_hash, Some(&customer_wallet_address)).await?;
+        let blockchain_tx = monitor
+            .get_transaction_details(transaction_hash, Some(&customer_wallet_address))
+            .await?;
 
         if !blockchain_tx.success {
             warn!("Transaction {} failed on blockchain", transaction_hash);
@@ -760,11 +874,15 @@ impl PaymentVerifier {
         let addresses_match = if crypto_str.to_lowercase().contains("sol") {
             blockchain_tx.to_address.trim() == customer_wallet_address.trim()
         } else {
-            blockchain_tx.to_address.trim().to_lowercase() == customer_wallet_address.trim().to_lowercase()
+            blockchain_tx.to_address.trim().to_lowercase()
+                == customer_wallet_address.trim().to_lowercase()
         };
 
         if !addresses_match {
-            warn!("Address mismatch for static deposit {}: expected {}, got {}", transaction_hash, customer_wallet_address, blockchain_tx.to_address);
+            warn!(
+                "Address mismatch for static deposit {}: expected {}, got {}",
+                transaction_hash, customer_wallet_address, blockchain_tx.to_address
+            );
             return Err("Recipient address mismatch".into());
         }
 
@@ -784,15 +902,24 @@ impl PaymentVerifier {
         .await?;
 
         if is_from_master.is_some() {
-            tracing::info!("[VERIFIER] Silently ignoring internal gas auto-fund deposit {} from Merchant {}", transaction_hash, merchant_id);
+            tracing::info!(
+                "[VERIFIER] Silently ignoring internal gas auto-fund deposit {} from Merchant {}",
+                transaction_hash,
+                merchant_id
+            );
             return Ok(true); // Return success so the scanner marks it processed and ignores it forever
         }
 
         // 3.5. Dynamic Asset Detection & Mint Check
         let (actual_crypto, actual_amount) = if let Some(mint) = &blockchain_tx.token_mint {
             // It's a token transfer - resolve the CryptoType
-            let detected = CryptoType::from_mint(crypto_type.network(), mint)
-                .ok_or_else(|| format!("Unsupported token mint: {} on network {}", mint, crypto_type.network()))?;
+            let detected = CryptoType::from_mint(crypto_type.network(), mint).ok_or_else(|| {
+                format!(
+                    "Unsupported token mint: {} on network {}",
+                    mint,
+                    crypto_type.network()
+                )
+            })?;
             (detected, blockchain_tx.amount)
         } else {
             // It's a native transfer
@@ -829,12 +956,11 @@ impl PaymentVerifier {
         };
 
         // Fetch merchant's dynamic fee percentage
-        let fee_percentage = sqlx::query_scalar::<_, Decimal>(
-            "SELECT fee_percentage FROM merchants WHERE id = $1"
-        )
-        .bind(merchant_id)
-        .fetch_one(&self.db_pool)
-        .await?;
+        let fee_percentage =
+            sqlx::query_scalar::<_, Decimal>("SELECT fee_percentage FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&self.db_pool)
+                .await?;
 
         let fee_amount = (actual_amount * (fee_percentage / Decimal::from(100))).round_dp(8);
         let net_amount = actual_amount - fee_amount;
@@ -866,8 +992,14 @@ impl PaymentVerifier {
         .await?;
 
         // Calculate USD amount for ledger
-        let crypto_price = self.price_service.get_price(final_crypto_type.clone()).await.unwrap_or(1.0);
-        let amount_usd = (actual_amount * Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE)).round_dp(2);
+        let crypto_price = self
+            .price_service
+            .get_price(final_crypto_type.clone())
+            .await
+            .unwrap_or(1.0);
+        let amount_usd = (actual_amount
+            * Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE))
+        .round_dp(2);
 
         // Record Ledger transaction
         sqlx::query(
@@ -893,18 +1025,26 @@ impl PaymentVerifier {
 
         tx.commit().await?;
 
-        info!("💰 Static deposit confirmed for customer {}: {} {} (Fee: {} {})", 
-            customer_id, net_amount, final_crypto_str, fee_amount, final_crypto_str);
+        info!(
+            "💰 Static deposit confirmed for customer {}: {} {} (Fee: {} {})",
+            customer_id, net_amount, final_crypto_str, fee_amount, final_crypto_str
+        );
 
         // PERSISTENT NOTIFICATION: Static Deposit Received
-        let _ = self.notification_service.create_notification(
-            merchant_id,
-            "📩 Static Deposit Received",
-            &format!("Customer {} deposited {} {}. (USD: ${})", customer_id, actual_amount, final_crypto_str, amount_usd),
-            "success",
-            "customer.deposit",
-            sandbox_mode
-        ).await;
+        let _ = self
+            .notification_service
+            .create_notification(
+                merchant_id,
+                "📩 Static Deposit Received",
+                &format!(
+                    "Customer {} deposited {} {}. (USD: ${})",
+                    customer_id, actual_amount, final_crypto_str, amount_usd
+                ),
+                "success",
+                "customer.deposit",
+                sandbox_mode,
+            )
+            .await;
 
         // Publish to Redis for Merchant Dashboard Toast Notification (Customer Activity)
         if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
@@ -926,7 +1066,7 @@ impl PaymentVerifier {
 
         // Fetch customer external_id for webhook identification
         let customer_external_id = sqlx::query_scalar::<_, String>(
-            "SELECT external_id FROM merchant_customers WHERE id = $1"
+            "SELECT external_id FROM merchant_customers WHERE id = $1",
         )
         .bind(customer_id)
         .fetch_optional(&self.db_pool)
@@ -936,7 +1076,11 @@ impl PaymentVerifier {
         // 5. Trigger Webhook
         let webhook_payload = crate::models::webhook::WebhookPayload {
             event_type: "customer.deposit".to_string(),
-            payment_id: format!("dep_c_{}_{}", Utc::now().timestamp_millis(), &transaction_hash[0..10]), // Synthetic Payment ID for webhook conformity
+            payment_id: format!(
+                "dep_c_{}_{}",
+                Utc::now().timestamp_millis(),
+                &transaction_hash[0..10]
+            ), // Synthetic Payment ID for webhook conformity
             merchant_id,
             status: PaymentStatus::Confirmed,
             amount: actual_amount,
@@ -946,12 +1090,15 @@ impl PaymentVerifier {
             timestamp: Utc::now().timestamp(),
         };
 
-        if let Err(e) = self.webhook_service.queue_webhook(
-            merchant_id,
-            None, 
-            webhook_payload
-        ).await {
-            warn!("Failed to queue webhook for static deposit {}: {}", transaction_hash, e);
+        if let Err(e) = self
+            .webhook_service
+            .queue_webhook(merchant_id, None, webhook_payload)
+            .await
+        {
+            warn!(
+                "Failed to queue webhook for static deposit {}: {}",
+                transaction_hash, e
+            );
         }
 
         Ok(true)
@@ -965,18 +1112,24 @@ impl PaymentVerifier {
         crypto_str: &str,
         sandbox_mode: bool,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        info!("Verifying static deposit for merchant {} with hash {}", merchant_id, transaction_hash);
+        info!(
+            "Verifying static deposit for merchant {} with hash {}",
+            merchant_id, transaction_hash
+        );
 
         // 1. Check if transaction hash is already used in payment_transactions (Idempotency)
         let existing_tx = sqlx::query_scalar::<_, i64>(
-            "SELECT id FROM payment_transactions WHERE transaction_hash = $1 LIMIT 1"
+            "SELECT id FROM payment_transactions WHERE transaction_hash = $1 LIMIT 1",
         )
         .bind(transaction_hash)
         .fetch_optional(&self.db_pool)
         .await?;
 
         if existing_tx.is_some() {
-            info!("Transaction hash {} already processed for merchant", transaction_hash);
+            info!(
+                "Transaction hash {} already processed for merchant",
+                transaction_hash
+            );
             return Ok(true);
         }
 
@@ -994,7 +1147,9 @@ impl PaymentVerifier {
         // 3. Fetch blockchain details
         let crypto_type = CryptoType::from_string(crypto_str)?;
         let monitor = get_blockchain_monitor(&crypto_type, self.config.clone(), sandbox_mode);
-        let blockchain_tx = monitor.get_transaction_details(transaction_hash, Some(&expected_address)).await?;
+        let blockchain_tx = monitor
+            .get_transaction_details(transaction_hash, Some(&expected_address))
+            .await?;
 
         if !blockchain_tx.success {
             warn!("Transaction {} failed on blockchain", transaction_hash);
@@ -1015,8 +1170,13 @@ impl PaymentVerifier {
         // 3.5. Dynamic Asset Detection & Mint Check
         let (actual_crypto, actual_amount) = if let Some(mint) = &blockchain_tx.token_mint {
             // It's a token transfer - resolve the CryptoType
-            let detected = CryptoType::from_mint(crypto_type.network(), mint)
-                .ok_or_else(|| format!("Unsupported token mint: {} on network {}", mint, crypto_type.network()))?;
+            let detected = CryptoType::from_mint(crypto_type.network(), mint).ok_or_else(|| {
+                format!(
+                    "Unsupported token mint: {} on network {}",
+                    mint,
+                    crypto_type.network()
+                )
+            })?;
             (detected, blockchain_tx.amount)
         } else {
             // It's a native transfer
@@ -1053,15 +1213,18 @@ impl PaymentVerifier {
         };
 
         // Fetch merchant's dynamic fee percentage
-        let fee_percentage = sqlx::query_scalar::<_, Decimal>(
-            "SELECT fee_percentage FROM merchants WHERE id = $1"
-        )
-        .bind(merchant_id)
-        .fetch_one(&self.db_pool)
-        .await?;
+        let fee_percentage =
+            sqlx::query_scalar::<_, Decimal>("SELECT fee_percentage FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&self.db_pool)
+                .await?;
 
         // Calculate USD amounts using PriceService
-        let crypto_price = self.price_service.get_price(final_crypto_type.clone()).await.unwrap_or(1.0);
+        let crypto_price = self
+            .price_service
+            .get_price(final_crypto_type.clone())
+            .await
+            .unwrap_or(1.0);
         let price_decimal = Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE);
         let amount_usd = (actual_amount * price_decimal).round_dp(2);
 
@@ -1073,8 +1236,12 @@ impl PaymentVerifier {
         let mut tx = self.db_pool.begin().await?;
 
         // Generate synthetic row in payment_transactions with a short ID to prevent UI modal overflow
-        let payment_id_str = format!("dep_m_{}_{}", Utc::now().timestamp_millis(), &transaction_hash[0..10]);
-        
+        let payment_id_str = format!(
+            "dep_m_{}_{}",
+            Utc::now().timestamp_millis(),
+            &transaction_hash[0..10]
+        );
+
         let payment_id: i64 = sqlx::query_scalar(
             r#"
             INSERT INTO payment_transactions (
@@ -1122,7 +1289,10 @@ impl PaymentVerifier {
 
         tx.commit().await?;
 
-        info!("💰 Static deposit confirmed for merchant {}: {} {}", merchant_id, actual_amount, final_crypto_str);
+        info!(
+            "💰 Static deposit confirmed for merchant {}: {} {}",
+            merchant_id, actual_amount, final_crypto_str
+        );
 
         // Publish to Redis for Merchant Dashboard Toast Notification
         if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
@@ -1155,12 +1325,15 @@ impl PaymentVerifier {
             timestamp: Utc::now().timestamp(),
         };
 
-        if let Err(e) = self.webhook_service.queue_webhook(
-            merchant_id,
-            Some(payment_id), 
-            webhook_payload
-        ).await {
-            warn!("Failed to queue webhook for static merchant deposit {}: {}", transaction_hash, e);
+        if let Err(e) = self
+            .webhook_service
+            .queue_webhook(merchant_id, Some(payment_id), webhook_payload)
+            .await
+        {
+            warn!(
+                "Failed to queue webhook for static merchant deposit {}: {}",
+                transaction_hash, e
+            );
         }
 
         Ok(true)

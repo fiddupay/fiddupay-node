@@ -15,15 +15,24 @@ impl BitcoinApiConfig {
     pub fn mainnet(config: &crate::config::Config) -> Self {
         Self {
             primary_url: config.bitcoin_rpc_url.trim_end_matches('/').to_string(),
-            backup_url: config.bitcoin_rpc_url_backup.trim_end_matches('/').to_string(),
+            backup_url: config
+                .bitcoin_rpc_url_backup
+                .trim_end_matches('/')
+                .to_string(),
         }
     }
 
     /// Create a testnet config from global app config.
     pub fn testnet(config: &crate::config::Config) -> Self {
         Self {
-            primary_url: config.bitcoin_testnet_rpc_url.trim_end_matches('/').to_string(),
-            backup_url: config.bitcoin_testnet_rpc_url_backup.trim_end_matches('/').to_string(),
+            primary_url: config
+                .bitcoin_testnet_rpc_url
+                .trim_end_matches('/')
+                .to_string(),
+            backup_url: config
+                .bitcoin_testnet_rpc_url_backup
+                .trim_end_matches('/')
+                .to_string(),
         }
     }
 
@@ -69,12 +78,12 @@ pub async fn get_with_failover(
     let backup_url = format!("{}/{}", config.backup_url, path.trim_start_matches('/'));
     info!(backup_url = %backup_url, "Retrying Bitcoin API request using backup provider");
 
-    fetch_json(&client, &backup_url)
-        .await
-        .map_err(|e| format!(
+    fetch_json(&client, &backup_url).await.map_err(|e| {
+        format!(
             "Bitcoin API failover also failed. Primary: {}, Backup: {}, Error: {}",
             primary_url, backup_url, e
-        ))
+        )
+    })
 }
 
 /// Performs a POST request to broadcast a raw Bitcoin transaction.
@@ -110,10 +119,12 @@ pub async fn post_tx_with_failover(
 
     broadcast_tx(&client, &backup_url, tx_hex)
         .await
-        .map_err(|e| format!(
-            "Bitcoin broadcast failover also failed. Primary: {}, Backup: {}, Error: {}",
-            primary_url, backup_url, e
-        ))
+        .map_err(|e| {
+            format!(
+                "Bitcoin broadcast failover also failed. Primary: {}, Backup: {}, Error: {}",
+                primary_url, backup_url, e
+            )
+        })
 }
 
 /// Internal helper: perform a GET and parse JSON response.

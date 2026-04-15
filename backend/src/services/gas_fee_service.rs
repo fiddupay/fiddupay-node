@@ -39,7 +39,6 @@ struct InfuraGasApiResponse {
     estimated_base_fee: String,
 }
 
-
 #[derive(Clone)]
 pub struct GasFeeService {
     client: Client,
@@ -49,21 +48,34 @@ pub struct GasFeeService {
 impl GasFeeService {
     pub fn new(config: crate::config::Config) -> Self {
         Self {
-            client: Client::builder().timeout(std::time::Duration::from_secs(5)).build().unwrap_or_default(),
+            client: Client::builder()
+                .timeout(std::time::Duration::from_secs(5))
+                .build()
+                .unwrap_or_default(),
             config,
         }
     }
 
     /// Helper for Infura Gas API
-    async fn get_infura_gas_api(&self, chain_id: u64, network: &str, native_currency: &str) -> Result<GasFeeEstimate, ServiceError> {
+    async fn get_infura_gas_api(
+        &self,
+        chain_id: u64,
+        network: &str,
+        native_currency: &str,
+    ) -> Result<GasFeeEstimate, ServiceError> {
         let keys = &self.config.infura_api_keys;
         if keys.is_empty() {
-            return Err(ServiceError::Internal("No Infura API keys configured".to_string()));
+            return Err(ServiceError::Internal(
+                "No Infura API keys configured".to_string(),
+            ));
         }
 
         let mut last_err = None;
         for key in keys {
-            let url = format!("https://gas.api.infura.io/v3/{}/networks/{}/suggestedGasFees", key, chain_id);
+            let url = format!(
+                "https://gas.api.infura.io/v3/{}/networks/{}/suggestedGasFees",
+                key, chain_id
+            );
             match self.client.get(&url).send().await {
                 Ok(resp) if resp.status().is_success() => {
                     match resp.json::<InfuraGasApiResponse>().await {
@@ -76,12 +88,16 @@ impl GasFeeService {
                                 result.set_scale(result.scale() + 9).unwrap_or(());
                                 result
                             };
-                            
+
                             let base_fee_eth = parse_gwei_to_primary(&data.estimated_base_fee);
-                            let standard_fee = parse_gwei_to_primary(&data.medium.suggested_max_fee_per_gas);
-                            let fast_fee = parse_gwei_to_primary(&data.high.suggested_max_fee_per_gas);
-                            let priority_fee = parse_gwei_to_primary(&data.medium.suggested_max_priority_fee_per_gas);
-                            
+                            let standard_fee =
+                                parse_gwei_to_primary(&data.medium.suggested_max_fee_per_gas);
+                            let fast_fee =
+                                parse_gwei_to_primary(&data.high.suggested_max_fee_per_gas);
+                            let priority_fee = parse_gwei_to_primary(
+                                &data.medium.suggested_max_priority_fee_per_gas,
+                            );
+
                             return Ok(GasFeeEstimate {
                                 network: network.to_string(),
                                 native_currency: native_currency.to_string(),
@@ -98,19 +114,28 @@ impl GasFeeService {
                     }
                 }
                 Ok(resp) => {
-                    last_err = Some(format!("Infura Gas API HTTP {}, chain {}", resp.status(), chain_id));
+                    last_err = Some(format!(
+                        "Infura Gas API HTTP {}, chain {}",
+                        resp.status(),
+                        chain_id
+                    ));
                 }
                 Err(e) => {
                     last_err = Some(e.to_string());
                 }
             }
         }
-        
-        Err(ServiceError::Internal(format!("Infura Gas API failed: {:?}", last_err)))
+
+        Err(ServiceError::Internal(format!(
+            "Infura Gas API failed: {:?}",
+            last_err
+        )))
     }
 
     /// Get real-time gas fees for all supported networks (Parallel Execution)
-    pub async fn get_all_gas_estimates(&self) -> Result<HashMap<String, GasFeeEstimate>, ServiceError> {
+    pub async fn get_all_gas_estimates(
+        &self,
+    ) -> Result<HashMap<String, GasFeeEstimate>, ServiceError> {
         let (eth, bsc, poly, arb, sol) = tokio::try_join!(
             self.get_ethereum_gas_rpc(),
             self.get_bsc_gas_rpc(),
@@ -130,13 +155,20 @@ impl GasFeeService {
     }
 
     /// Get gas estimate for specific crypto type
-    pub async fn get_gas_estimate(&self, crypto_type: CryptoType) -> Result<GasFeeEstimate, ServiceError> {
+    pub async fn get_gas_estimate(
+        &self,
+        crypto_type: CryptoType,
+    ) -> Result<GasFeeEstimate, ServiceError> {
         match crypto_type {
             CryptoType::Eth | CryptoType::UsdtEth => self.get_ethereum_gas_rpc().await,
-            CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 => self.get_bsc_gas_rpc().await,
+            CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 => {
+                self.get_bsc_gas_rpc().await
+            }
             CryptoType::Matic | CryptoType::UsdtPolygon => self.get_polygon_gas_rpc().await,
             CryptoType::Arb | CryptoType::UsdtArbitrum => self.get_arbitrum_gas_rpc().await,
-            CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => self.get_solana_gas_rpc().await,
+            CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => {
+                self.get_solana_gas_rpc().await
+            }
             CryptoType::Btc => {
                 // Return a flat estimate for BTC for now
                 Ok(GasFeeEstimate {
@@ -169,7 +201,8 @@ impl GasFeeService {
             "id": 1
         });
 
-        let response: Value = self.client
+        let response: Value = self
+            .client
             .post(&self.config.ethereum_rpc_url)
             .json(&rpc_payload)
             .send()
@@ -215,7 +248,9 @@ impl GasFeeService {
                 priority_fee: Some(priority_fee_eth),
             })
         } else {
-            Err(ServiceError::Internal("Invalid ETH RPC response".to_string()))
+            Err(ServiceError::Internal(
+                "Invalid ETH RPC response".to_string(),
+            ))
         }
     }
 
@@ -232,7 +267,8 @@ impl GasFeeService {
             "id": 1
         });
 
-        let response: Value = self.client
+        let response: Value = self
+            .client
             .post(&self.config.bsc_rpc_url)
             .json(&rpc_payload)
             .send()
@@ -259,7 +295,9 @@ impl GasFeeService {
                 priority_fee: None,
             })
         } else {
-            Err(ServiceError::Internal("Invalid BSC RPC response".to_string()))
+            Err(ServiceError::Internal(
+                "Invalid BSC RPC response".to_string(),
+            ))
         }
     }
 
@@ -280,7 +318,8 @@ impl GasFeeService {
             "id": 1
         });
 
-        let response: Value = self.client
+        let response: Value = self
+            .client
             .post(&self.config.polygon_rpc_url)
             .json(&rpc_payload)
             .send()
@@ -323,7 +362,9 @@ impl GasFeeService {
                 priority_fee: Some(priority_fee_matic),
             })
         } else {
-            Err(ServiceError::Internal("Invalid Polygon RPC response".to_string()))
+            Err(ServiceError::Internal(
+                "Invalid Polygon RPC response".to_string(),
+            ))
         }
     }
 
@@ -340,7 +381,8 @@ impl GasFeeService {
             "id": 1
         });
 
-        let response: Value = self.client
+        let response: Value = self
+            .client
             .post(&self.config.arbitrum_rpc_url)
             .json(&rpc_payload)
             .send()
@@ -351,8 +393,9 @@ impl GasFeeService {
             .map_err(|e| ServiceError::Internal(format!("Arbitrum RPC parse error: {}", e)))?;
 
         if let Some(result) = response.get("result").and_then(|v| v.as_str()) {
-            let gas_price_wei = u64::from_str_radix(&result[2..], 16)
-                .map_err(|_| ServiceError::Internal("Invalid Arbitrum gas price hex".to_string()))?;
+            let gas_price_wei = u64::from_str_radix(&result[2..], 16).map_err(|_| {
+                ServiceError::Internal("Invalid Arbitrum gas price hex".to_string())
+            })?;
 
             let gas_limit = 21000u64;
             let gas_fee_arb = Decimal::new(gas_price_wei as i64 * gas_limit as i64, 18);
@@ -367,7 +410,9 @@ impl GasFeeService {
                 priority_fee: None,
             })
         } else {
-            Err(ServiceError::Internal("Invalid Arbitrum RPC response".to_string()))
+            Err(ServiceError::Internal(
+                "Invalid Arbitrum RPC response".to_string(),
+            ))
         }
     }
 
@@ -382,7 +427,8 @@ impl GasFeeService {
             "id": 1
         });
 
-        let response: Value = self.client
+        let response: Value = self
+            .client
             .post(&self.config.solana_rpc_url)
             .json(&rpc_payload)
             .send()
@@ -409,7 +455,7 @@ impl GasFeeService {
             // Base transaction fee is 5000 lamports per signature
             let base_fee_lamports = 5000u64;
             let total_fee_lamports = base_fee_lamports + median_priority_fee;
-            
+
             // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
             let total_fee_sol = Decimal::new(total_fee_lamports as i64, 9);
             let priority_fee_sol = Decimal::new(median_priority_fee as i64, 9);
@@ -424,7 +470,9 @@ impl GasFeeService {
                 priority_fee: Some(priority_fee_sol),
             })
         } else {
-            Err(ServiceError::Internal("Invalid Solana RPC response".to_string()))
+            Err(ServiceError::Internal(
+                "Invalid Solana RPC response".to_string(),
+            ))
         }
     }
 
@@ -436,17 +484,25 @@ impl GasFeeService {
         withdrawal_amount: Decimal,
     ) -> Result<bool, ServiceError> {
         let gas_estimate = self.get_gas_estimate(crypto_type).await?;
-        
+
         match crypto_type {
             // Native currencies: deduct gas from withdrawal amount
-            CryptoType::Eth | CryptoType::Bnb | CryptoType::Matic | CryptoType::Arb | CryptoType::Sol | CryptoType::Btc => {
+            CryptoType::Eth
+            | CryptoType::Bnb
+            | CryptoType::Matic
+            | CryptoType::Arb
+            | CryptoType::Sol
+            | CryptoType::Btc => {
                 Ok(native_balance >= withdrawal_amount + gas_estimate.estimated_withdrawal_cost)
             }
             // USDT variants: need separate gas deposit
-            CryptoType::UsdtEth | CryptoType::UsdtBep20 | CryptoType::UsdtPolygon | CryptoType::UsdtArbitrum | CryptoType::UsdtSpl | CryptoType::WSol | CryptoType::BusdBep20 => {
-                Ok(native_balance >= gas_estimate.estimated_withdrawal_cost)
-            }
+            CryptoType::UsdtEth
+            | CryptoType::UsdtBep20
+            | CryptoType::UsdtPolygon
+            | CryptoType::UsdtArbitrum
+            | CryptoType::UsdtSpl
+            | CryptoType::WSol
+            | CryptoType::BusdBep20 => Ok(native_balance >= gas_estimate.estimated_withdrawal_cost),
         }
     }
 }
-

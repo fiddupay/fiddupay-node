@@ -8,8 +8,8 @@ use sha2::Sha256;
 use sqlx::PgPool;
 use std::time::Duration;
 use tracing::{info, warn};
-use uuid::Uuid;
 use url::Url;
+use uuid::Uuid;
 
 use crate::error::ServiceError;
 use crate::models::webhook::WebhookPayload;
@@ -49,7 +49,7 @@ impl WebhookService {
         payload_format: Option<String>,
     ) -> Result<(), ServiceError> {
         let format = payload_format.unwrap_or_else(|| "standard".to_string());
-        
+
         if let Some(url_str) = url {
             // Validate URL format
             let parsed_url = Url::parse(&url_str)
@@ -58,7 +58,7 @@ impl WebhookService {
             // Validate HTTPS scheme
             if parsed_url.scheme() != "https" {
                 return Err(ServiceError::InvalidWebhookUrl(
-                    "Webhook URL must use HTTPS protocol".to_string()
+                    "Webhook URL must use HTTPS protocol".to_string(),
                 ));
             }
 
@@ -81,12 +81,12 @@ impl WebhookService {
             .await
             .map_err(|e| ServiceError::Internal(format!("Failed to set webhook URL: {}", e)))?;
         } else {
-             sqlx::query(
+            sqlx::query(
                 r#"
                 UPDATE webhook_configs 
                 SET is_active = false, updated_at = NOW()
                 WHERE merchant_id = $1 AND payload_format = $2
-                "#
+                "#,
             )
             .bind(merchant_id)
             .bind(&format)
@@ -101,11 +101,11 @@ impl WebhookService {
     /// Generate HMAC-SHA256 signature for webhook payload
     fn generate_signature(&self, payload: &str, timestamp: i64, secret: &str) -> String {
         let message = format!("{}.{}", timestamp, payload);
-        
-        let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
-            .expect("HMAC can take key of any size");
+
+        let mut mac =
+            HmacSha256::new_from_slice(secret.as_bytes()).expect("HMAC can take key of any size");
         mac.update(message.as_bytes());
-        
+
         let result = mac.finalize();
         hex::encode(result.into_bytes())
     }
@@ -119,9 +119,10 @@ impl WebhookService {
         skip_signature: bool,
     ) -> Result<(u16, String), ServiceError> {
         let payload_json = payload_value.to_string();
-        
+
         // Build request — add HMAC signature headers only for standard format
-        let mut request = self.http_client
+        let mut request = self
+            .http_client
             .post(url)
             .header("Content-Type", "application/json");
 
@@ -132,24 +133,25 @@ impl WebhookService {
             request = request.header("signature", signature_header);
         }
 
-        let response = request
-            .body(payload_json)
-            .send()
-            .await
-            .map_err(|e| ServiceError::WebhookDeliveryFailed(format!("HTTP request failed: {}", e)))?;
-        
+        let response = request.body(payload_json).send().await.map_err(|e| {
+            ServiceError::WebhookDeliveryFailed(format!("HTTP request failed: {}", e))
+        })?;
+
         let status_code = response.status().as_u16();
-        let response_body = response.text().await
+        let response_body = response
+            .text()
+            .await
             .unwrap_or_else(|_| "Failed to read response body".to_string());
-        
+
         if status_code >= 200 && status_code < 300 {
             info!("Webhook delivered successfully to {}: {}", url, status_code);
             Ok((status_code, response_body))
         } else {
             warn!("Webhook delivery failed to {}: {}", url, status_code);
-            Err(ServiceError::WebhookDeliveryFailed(
-                format!("HTTP {}", status_code)
-            ))
+            Err(ServiceError::WebhookDeliveryFailed(format!(
+                "HTTP {}",
+                status_code
+            )))
         }
     }
 
@@ -176,8 +178,11 @@ impl WebhookService {
             let config_payload_format: String = config.get("payload_format");
             let payload_value = if config_payload_format == "discord" {
                 let payment_link = format!("https://pay.fiddupay.com/{}", payload.payment_id);
-                let tx_hash_display = payload.transaction_hash.as_deref().unwrap_or("Pending/Unknown");
-                
+                let tx_hash_display = payload
+                    .transaction_hash
+                    .as_deref()
+                    .unwrap_or("Pending/Unknown");
+
                 let (color, title, body_text) = match payload.event_type.as_str() {
                     "payment.confirmed" | "merchant.deposit" | "customer.deposit" => {
                         let explorer_link = if payload.crypto_type.to_lowercase().contains("sol") {
@@ -231,7 +236,7 @@ impl WebhookService {
                         )
                     ),
                 };
-                
+
                 serde_json::json!({
                     "embeds": [{
                         "title": title,
@@ -245,13 +250,31 @@ impl WebhookService {
                 })
             } else if config_payload_format == "slack" {
                 let text = match payload.event_type.as_str() {
-                    "payment.confirmed" => format!("✅ *Payment Confirmed*\nID: `{}`\nAmount: `{} {}`{}", 
-                        payload.payment_id, payload.amount, payload.crypto_type,
-                        payload.customer_external_id.as_ref().map(|id| format!("\nCustomer: `{}`", id)).unwrap_or_default()),
-                    "payment.expired" => format!("❌ *Payment Expired*\nID: `{}`", payload.payment_id),
-                    "customer.deposit" => format!("💰 *Customer Deposit*\nID: `{}`\nAmount: `{} {}`\nCustomer: `{}`", 
-                        payload.payment_id, payload.amount, payload.crypto_type, payload.customer_external_id.as_deref().unwrap_or("Unknown")),
-                    _ => format!("🔔 *Webhook Alert*: `{}` for payment `{}`", payload.event_type, payload.payment_id),
+                    "payment.confirmed" => format!(
+                        "✅ *Payment Confirmed*\nID: `{}`\nAmount: `{} {}`{}",
+                        payload.payment_id,
+                        payload.amount,
+                        payload.crypto_type,
+                        payload
+                            .customer_external_id
+                            .as_ref()
+                            .map(|id| format!("\nCustomer: `{}`", id))
+                            .unwrap_or_default()
+                    ),
+                    "payment.expired" => {
+                        format!("❌ *Payment Expired*\nID: `{}`", payload.payment_id)
+                    }
+                    "customer.deposit" => format!(
+                        "💰 *Customer Deposit*\nID: `{}`\nAmount: `{} {}`\nCustomer: `{}`",
+                        payload.payment_id,
+                        payload.amount,
+                        payload.crypto_type,
+                        payload.customer_external_id.as_deref().unwrap_or("Unknown")
+                    ),
+                    _ => format!(
+                        "🔔 *Webhook Alert*: `{}` for payment `{}`",
+                        payload.event_type, payload.payment_id
+                    ),
                 };
                 serde_json::json!({ "text": text })
             } else {
@@ -284,4 +307,3 @@ impl WebhookService {
         Ok(())
     }
 }
-

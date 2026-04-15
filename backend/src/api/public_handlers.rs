@@ -38,13 +38,16 @@ pub async fn get_supported_currencies(
     Query(filters): Query<CurrencyFilters>,
 ) -> impl IntoResponse {
     let currencies = if let Some(merchant_id) = filters.merchant_id {
-        state.currency_service.get_merchant_enabled_currencies(merchant_id).await
+        state
+            .currency_service
+            .get_merchant_enabled_currencies(merchant_id)
+            .await
     } else {
         state.currency_service.get_supported_currencies().await
     };
-    
+
     let mut currency_groups = std::collections::HashMap::new();
-    
+
     for (crypto_type, group, network, icon_url) in currencies {
         // Parse into CryptoType to fetch price
         let price = match crypto_type.parse::<crate::payment::models::CryptoType>() {
@@ -52,15 +55,18 @@ pub async fn get_supported_currencies(
             Err(_) => 1.0,
         };
 
-        currency_groups.entry(group).or_insert_with(Vec::new).push(json!({
-            "crypto_type": crypto_type,
-            "network": network,
-            "icon_url": icon_url,
-            "confirmations": state.currency_service.get_required_confirmations(crypto_type),
-            "price_usd": price
-        }));
+        currency_groups
+            .entry(group)
+            .or_insert_with(Vec::new)
+            .push(json!({
+                "crypto_type": crypto_type,
+                "network": network,
+                "icon_url": icon_url,
+                "confirmations": state.currency_service.get_required_confirmations(crypto_type),
+                "price_usd": price
+            }));
     }
-    
+
     (StatusCode::OK, Json(json!({
         "currency_groups": currency_groups,
         "description": "USDT can be accepted on multiple networks. Native currencies are network-specific."
@@ -75,13 +81,13 @@ pub async fn get_supported_currencies(
 pub struct ContactFormRequest {
     #[validate(length(min = 1, max = 100))]
     pub name: String,
-    
+
     #[validate(email)]
     pub email: String,
-    
+
     #[validate(length(min = 1, max = 200))]
     pub subject: String,
-    
+
     #[validate(length(min = 1, max = 2000))]
     pub message: String,
 }
@@ -92,10 +98,14 @@ pub async fn submit_contact_form(
 ) -> impl IntoResponse {
     // Validate input
     if let Err(validation_errors) = req.validate() {
-        return (StatusCode::BAD_REQUEST, Json(json!({
-            "error": "Validation failed",
-            "details": validation_errors.to_string()
-        }))).into_response();
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "error": "Validation failed",
+                "details": validation_errors.to_string()
+            })),
+        )
+            .into_response();
     }
 
     // Sanitize inputs to prevent XSS and injection attacks
@@ -105,28 +115,47 @@ pub async fn submit_contact_form(
     let sanitized_message = sanitize_input(&req.message);
 
     // Additional security checks
-    if contains_malicious_content(&sanitized_name) || 
-       contains_malicious_content(&sanitized_subject) || 
-       contains_malicious_content(&sanitized_message) {
-        return (StatusCode::BAD_REQUEST, Json(json!({
-            "error": "Invalid content detected"
-        }))).into_response();
+    if contains_malicious_content(&sanitized_name)
+        || contains_malicious_content(&sanitized_subject)
+        || contains_malicious_content(&sanitized_message)
+    {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "error": "Invalid content detected"
+            })),
+        )
+            .into_response();
     }
 
     // Save to database
-    match save_contact_message(&state.db_pool, &sanitized_name, &sanitized_email, &sanitized_subject, &sanitized_message).await {
-        Ok(contact_id) => {
-            (StatusCode::OK, Json(json!({
+    match save_contact_message(
+        &state.db_pool,
+        &sanitized_name,
+        &sanitized_email,
+        &sanitized_subject,
+        &sanitized_message,
+    )
+    .await
+    {
+        Ok(contact_id) => (
+            StatusCode::OK,
+            Json(json!({
                 "message": "Contact form submitted successfully",
                 "status": "received",
                 "id": contact_id
-            }))).into_response()
-        },
+            })),
+        )
+            .into_response(),
         Err(e) => {
             tracing::error!(error = ?e, "Failed to save contact message");
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
-                "error": "Failed to process contact form"
-            }))).into_response()
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "error": "Failed to process contact form"
+                })),
+            )
+                .into_response()
         }
     }
 }
@@ -152,16 +181,42 @@ fn sanitize_input(input: &str) -> String {
 
 fn contains_malicious_content(input: &str) -> bool {
     let malicious_patterns = [
-        "javascript:", "data:", "vbscript:", "onload", "onerror", "onclick",
-        "<script", "</script", "eval(", "alert(", "confirm(", "prompt(",
-        "document.cookie", "window.location", "innerHTML", "outerHTML",
-        "exec(", "system(", "cmd", "powershell", "bash", "sh",
-        "drop table", "delete from", "insert into", "update set",
-        "../", "..\\", "/etc/passwd", "c:\\windows"
+        "javascript:",
+        "data:",
+        "vbscript:",
+        "onload",
+        "onerror",
+        "onclick",
+        "<script",
+        "</script",
+        "eval(",
+        "alert(",
+        "confirm(",
+        "prompt(",
+        "document.cookie",
+        "window.location",
+        "innerHTML",
+        "outerHTML",
+        "exec(",
+        "system(",
+        "cmd",
+        "powershell",
+        "bash",
+        "sh",
+        "drop table",
+        "delete from",
+        "insert into",
+        "update set",
+        "../",
+        "..\\",
+        "/etc/passwd",
+        "c:\\windows",
     ];
-    
+
     let input_lower = input.to_lowercase();
-    malicious_patterns.iter().any(|pattern| input_lower.contains(pattern))
+    malicious_patterns
+        .iter()
+        .any(|pattern| input_lower.contains(pattern))
 }
 
 async fn save_contact_message(
@@ -177,7 +232,7 @@ async fn save_contact_message(
         INSERT INTO contact_messages (name, email, subject, message, created_at, status)
         VALUES ($1, $2, $3, $4, NOW(), 'new')
         RETURNING id
-        "#
+        "#,
     )
     .bind(name)
     .bind(email)
@@ -193,16 +248,14 @@ async fn save_contact_message(
 // Pricing
 // ============================================================================
 
-pub async fn get_pricing_info(
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+pub async fn get_pricing_info(State(state): State<AppState>) -> impl IntoResponse {
     let limit_str = state.config.daily_volume_limit_non_kyc_usd.to_string();
     let pricing_data = json!({
         "transaction_fee_percentage": state.config.default_fee_percentage,
         "daily_volume_limit_non_kyc_usd": limit_str,
         "supported_networks": 5,
         "supported_cryptocurrencies": [
-            "SOL", "USDT (SPL)", "ETH", "USDT (ERC-20)", 
+            "SOL", "USDT (SPL)", "ETH", "USDT (ERC-20)",
             "BNB", "USDT (BEP-20)", "MATIC", "USDT (Polygon)",
             "ARB", "USDT (Arbitrum)"
         ],
@@ -252,8 +305,20 @@ pub async fn public_cancel_payment(
 
     let payment = match payment_res {
         Ok(Some(p)) => p,
-        Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Ok(None) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error": "Payment not found"})),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": e.to_string()})),
+            )
+                .into_response()
+        }
     };
 
     use sqlx::Row;
@@ -263,45 +328,57 @@ pub async fn public_cancel_payment(
     // 2. Check status
     let status: Option<String> = payment.try_get("status").ok();
     let status = status.unwrap_or_default();
-    
+
     if status != "PENDING" && status != "SELECTION_REQUIRED" {
-         return (StatusCode::BAD_REQUEST, Json(json!({
-             "error": "Cannot cancel payment in current status",
-             "current_status": status
-         }))).into_response();
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "error": "Cannot cancel payment in current status",
+                "current_status": status
+            })),
+        )
+            .into_response();
     }
 
     // 3. Update status to CANCELLED
-    let update_res = sqlx::query(
-        "UPDATE payment_transactions SET status = 'CANCELLED' WHERE id = $1"
-    )
-    .bind(p_id)
-    .execute(&state.db_pool)
-    .await;
+    let update_res =
+        sqlx::query("UPDATE payment_transactions SET status = 'CANCELLED' WHERE id = $1")
+            .bind(p_id)
+            .execute(&state.db_pool)
+            .await;
 
     if let Err(e) = update_res {
-        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response();
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()})),
+        )
+            .into_response();
     }
 
     // 4. Get redirect URL
-    let merchant_settings = sqlx::query(
-        "SELECT redirect_url FROM merchants WHERE id = $1"
-    )
-    .bind(p_merchant_id)
-    .fetch_optional(&state.db_pool)
-    .await;
+    let merchant_settings = sqlx::query("SELECT redirect_url FROM merchants WHERE id = $1")
+        .bind(p_merchant_id)
+        .fetch_optional(&state.db_pool)
+        .await;
 
-    let redirect_url: Option<String> = merchant_settings.ok().flatten().and_then(|m| m.get("redirect_url"));
+    let redirect_url: Option<String> = merchant_settings
+        .ok()
+        .flatten()
+        .and_then(|m| m.get("redirect_url"));
 
     // 5. Return success with redirect info
-    (StatusCode::OK, Json(json!({
-        "status": "CANCELLED",
-        "redirect_url": redirect_url.map(|url: String| {
-            if url.contains('?') {
-                format!("{}&status=cancelled&payment_id={}", url, payment_id)
-            } else {
-                format!("{}?status=cancelled&payment_id={}", url, payment_id)
-            }
-        })
-    }))).into_response()
+    (
+        StatusCode::OK,
+        Json(json!({
+            "status": "CANCELLED",
+            "redirect_url": redirect_url.map(|url: String| {
+                if url.contains('?') {
+                    format!("{}&status=cancelled&payment_id={}", url, payment_id)
+                } else {
+                    format!("{}?status=cancelled&payment_id={}", url, payment_id)
+                }
+            })
+        })),
+    )
+        .into_response()
 }

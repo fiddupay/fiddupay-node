@@ -2,62 +2,30 @@
 // Re-exports for merchant-specific request handlers used by merchant_routes.rs
 
 // Auth handlers
-pub use crate::api::merchant_auth_handlers::{
-    register_merchant,
-    login_merchant,
-    debug_auth,
-};
+pub use crate::api::merchant_auth_handlers::{debug_auth, login_merchant, register_merchant};
 
 // Settings handlers
 pub use crate::api::settings_handlers::{
-    get_merchant_profile,
-    get_merchant_readiness,
-    switch_environment,
-    generate_api_key,
-    rotate_api_key,
-    update_merchant_settings,
-    get_merchant_settings,
-    toggle_wallet_lock,
-    toggle_customer_wallet_lock,
-    send_test_webhook,
-    get_ip_whitelist,
-    get_fee_setting,
-    create_invoice,
-    list_invoices,
-    get_invoice,
-    set_transaction_pin,
+    create_invoice, generate_api_key, get_fee_setting, get_invoice, get_ip_whitelist,
+    get_merchant_profile, get_merchant_readiness, get_merchant_settings, list_invoices,
+    rotate_api_key, send_test_webhook, set_transaction_pin, switch_environment,
+    toggle_customer_wallet_lock, toggle_wallet_lock, update_merchant_settings,
     verify_transaction_pin,
 };
 
 // Payment handlers
 pub use crate::api::payment_handlers::{
-    create_payment,
-    get_payment,
-    cancel_payment,
-    verify_payment,
-    list_payments,
-    finalize_payment_selection,
-    create_refund,
-    get_refund,
-    list_refunds,
-    complete_refund,
-    simulate_payment,
+    cancel_payment, complete_refund, create_payment, create_refund, finalize_payment_selection,
+    get_payment, get_refund, list_payments, list_refunds, simulate_payment, verify_payment,
 };
 
 // Analytics handlers
 pub use crate::api::analytics_handlers::{
-    get_analytics,
-    export_analytics,
-    get_audit_logs,
-    get_balance,
-    get_balance_history,
+    export_analytics, get_analytics, get_audit_logs, get_balance, get_balance_history,
     list_unified_transactions,
 };
 
 // Withdrawal handlers
 pub use crate::api::withdrawal_handlers::{
-    create_withdrawal,
-    get_withdrawal,
-    list_withdrawals,
-    cancel_withdrawal,
+    cancel_withdrawal, create_withdrawal, get_withdrawal, list_withdrawals,
 };

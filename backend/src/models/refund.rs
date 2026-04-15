@@ -19,5 +19,3 @@ pub struct RefundResponse {
     pub created_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
 }
-
-

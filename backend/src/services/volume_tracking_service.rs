@@ -1,7 +1,7 @@
+use crate::error::ServiceError;
+use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use sqlx::PgPool;
-use chrono::{DateTime, Utc, NaiveDate};
-use crate::error::ServiceError;
 
 /// Service for tracking and validating daily transaction volumes
 pub struct VolumeTrackingService {
@@ -14,7 +14,11 @@ impl VolumeTrackingService {
     }
 
     /// Get total daily volume (deposits + withdrawals + sweeps) for a merchant
-    pub async fn get_daily_volume(&self, merchant_id: i64, date: NaiveDate) -> Result<Decimal, ServiceError> {
+    pub async fn get_daily_volume(
+        &self,
+        merchant_id: i64,
+        date: NaiveDate,
+    ) -> Result<Decimal, ServiceError> {
         let start_of_day = date.and_hms_opt(0, 0, 0).unwrap().and_utc();
 
         // 1. Sum up all confirmed payments (Inflow)
@@ -77,4 +81,3 @@ impl VolumeTrackingService {
         Ok(Some(remaining.max(Decimal::ZERO)))
     }
 }
-

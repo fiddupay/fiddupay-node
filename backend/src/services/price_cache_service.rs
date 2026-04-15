@@ -1,10 +1,10 @@
+use crate::error::ServiceError;
+use crate::payment::models::CryptoType;
+use crate::payment::price_fetcher::PriceFetcher;
+use crate::utils::circuit_breaker::CircuitBreaker;
 use redis::AsyncCommands;
 use rust_decimal::Decimal;
 use std::str::FromStr;
-use crate::payment::price_fetcher::PriceFetcher;
-use crate::payment::models::CryptoType;
-use crate::error::ServiceError;
-use crate::utils::circuit_breaker::CircuitBreaker;
 use std::sync::Arc;
 
 pub struct CachedPriceFetcher {
@@ -17,7 +17,7 @@ impl CachedPriceFetcher {
     pub fn new(redis_url: &str, config: crate::config::Config) -> Result<Self, ServiceError> {
         let redis = redis::Client::open(redis_url)
             .map_err(|e| ServiceError::InternalError(format!("Redis connection failed: {}", e)))?;
-        
+
         Ok(Self {
             redis,
             fetcher: PriceFetcher::new(config),
@@ -27,7 +27,7 @@ impl CachedPriceFetcher {
 
     pub async fn get_price(&self, crypto_type: &CryptoType) -> Result<Decimal, ServiceError> {
         let cache_key = format!("price:{:?}", crypto_type);
-        
+
         // Try cache first
         if let Ok(mut conn) = self.redis.get_multiplexed_async_connection().await {
             if let Ok(Some(cached)) = conn.get::<_, Option<String>>(&cache_key).await {
@@ -39,7 +39,11 @@ impl CachedPriceFetcher {
 
         // For USDT variants, return 1.0 directly
         match crypto_type {
-            CryptoType::UsdtSpl | CryptoType::UsdtBep20 | CryptoType::UsdtArbitrum | CryptoType::UsdtPolygon | CryptoType::UsdtEth => {
+            CryptoType::UsdtSpl
+            | CryptoType::UsdtBep20
+            | CryptoType::UsdtArbitrum
+            | CryptoType::UsdtPolygon
+            | CryptoType::UsdtEth => {
                 return Ok(Decimal::ONE);
             }
             _ => {}
@@ -55,10 +59,15 @@ impl CachedPriceFetcher {
             _ => ("BTCUSDT", "spot"), // Should not reach here for supported types
         };
 
-        let price: Decimal = self.circuit_breaker.call(|| async {
-            self.fetcher.get_price(symbol, category).await
-                .map_err(|e| ServiceError::InternalError(e.to_string()))
-        }).await?;
+        let price: Decimal = self
+            .circuit_breaker
+            .call(|| async {
+                self.fetcher
+                    .get_price(symbol, category)
+                    .await
+                    .map_err(|e| ServiceError::InternalError(e.to_string()))
+            })
+            .await?;
 
         // Cache for 30 seconds
         if let Ok(mut conn) = self.redis.get_multiplexed_async_connection().await {
@@ -68,7 +77,10 @@ impl CachedPriceFetcher {
         Ok(price)
     }
 
-    pub async fn get_price_with_fallback(&self, crypto_type: &CryptoType) -> Result<Decimal, ServiceError> {
+    pub async fn get_price_with_fallback(
+        &self,
+        crypto_type: &CryptoType,
+    ) -> Result<Decimal, ServiceError> {
         match self.get_price(crypto_type).await {
             Ok(price) => Ok(price),
             Err(_) => {
@@ -86,9 +98,13 @@ impl CachedPriceFetcher {
         }
     }
 
-    pub async fn get_price_in_currency(&self, crypto_type: &CryptoType, currency: &str) -> Result<Decimal, ServiceError> {
+    pub async fn get_price_in_currency(
+        &self,
+        crypto_type: &CryptoType,
+        currency: &str,
+    ) -> Result<Decimal, ServiceError> {
         let usd_price = self.get_price(crypto_type).await?;
-        
+
         if currency == "USD" {
             return Ok(usd_price);
         }
@@ -100,7 +116,7 @@ impl CachedPriceFetcher {
 
     async fn get_exchange_rate(&self, currency: &str) -> Result<Decimal, ServiceError> {
         let cache_key = format!("exchange_rate:{}", currency);
-        
+
         // Try cache
         if let Ok(mut conn) = self.redis.get_multiplexed_async_connection().await {
             if let Ok(Some(cached)) = conn.get::<_, Option<String>>(&cache_key).await {
@@ -114,7 +130,12 @@ impl CachedPriceFetcher {
         let rate = match currency {
             "EUR" => Decimal::from_str("0.92").unwrap(),
             "GBP" => Decimal::from_str("0.79").unwrap(),
-            _ => return Err(ServiceError::ValidationError(format!("Unsupported currency: {}", currency))),
+            _ => {
+                return Err(ServiceError::ValidationError(format!(
+                    "Unsupported currency: {}",
+                    currency
+                )))
+            }
         };
 
         // Cache for 5 minutes

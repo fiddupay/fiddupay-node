@@ -1,9 +1,9 @@
-use futures_util::{StreamExt, SinkExt};
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
-use url::Url;
-use tracing::{info, error, warn};
+use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 use tokio::sync::broadcast;
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use tracing::{error, info, warn};
+use url::Url;
 
 use crate::error::ServiceError;
 use crate::models::webhook::WebhookPayload;
@@ -15,7 +15,10 @@ pub struct WebSocketClient {
 }
 
 impl WebSocketClient {
-    pub fn new(config: crate::config::Config, event_sender: broadcast::Sender<WebhookPayload>) -> Self {
+    pub fn new(
+        config: crate::config::Config,
+        event_sender: broadcast::Sender<WebhookPayload>,
+    ) -> Self {
         Self {
             config,
             event_sender,
@@ -30,8 +33,9 @@ impl WebSocketClient {
 
         info!("Connecting to Solana WebSocket: {}", url);
 
-        let (ws_stream, _) = connect_async(url).await
-            .map_err(|e| ServiceError::Internal(format!("Failed to connect to Solana WS: {}", e)))?;
+        let (ws_stream, _) = connect_async(url).await.map_err(|e| {
+            ServiceError::Internal(format!("Failed to connect to Solana WS: {}", e))
+        })?;
 
         let (mut write, mut read) = ws_stream.split();
 
@@ -50,7 +54,9 @@ impl WebSocketClient {
             ]
         });
 
-        write.send(Message::Text(subscription_msg.to_string())).await
+        write
+            .send(Message::Text(subscription_msg.to_string()))
+            .await
             .map_err(|e| ServiceError::Internal(format!("Failed to send sub request: {}", e)))?;
 
         // Process incoming messages
@@ -60,7 +66,7 @@ impl WebSocketClient {
                     // Parse text and trigger payment.detected if relevant
                     // This logic would need to filter for our addresses
                     // For now, we just log detection
-                    // info!("Solana WS Message: {}", text); 
+                    // info!("Solana WS Message: {}", text);
                 }
                 Ok(Message::Close(_)) => {
                     warn!("Solana WS connection closed");
@@ -73,22 +79,29 @@ impl WebSocketClient {
                 _ => {}
             }
         }
-        
+
         Ok(())
     }
 
     /// Start EVM WebSocket listener (Generic)
-    pub async fn start_evm_listener(&self, rpc_url: &str, network: &str) -> Result<(), ServiceError> {
+    pub async fn start_evm_listener(
+        &self,
+        rpc_url: &str,
+        network: &str,
+    ) -> Result<(), ServiceError> {
         if !rpc_url.starts_with("ws") {
-             warn!("RPC URL for {} is not WebSocket enabled (skipping real-time)", network);
-             return Ok(());
+            warn!(
+                "RPC URL for {} is not WebSocket enabled (skipping real-time)",
+                network
+            );
+            return Ok(());
         }
 
         let url = Url::parse(rpc_url)
             .map_err(|e| ServiceError::Internal(format!("Invalid EVM WS URL: {}", e)))?;
-            
+
         info!("Connecting to {} WebSocket: {}", network, url);
-        
+
         // Similar connection logic...
         Ok(())
     }

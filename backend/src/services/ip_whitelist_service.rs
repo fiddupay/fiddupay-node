@@ -1,7 +1,7 @@
+use crate::error::ServiceError;
+use ipnetwork::IpNetwork;
 use sqlx::PgPool;
 use std::net::IpAddr;
-use ipnetwork::IpNetwork;
-use crate::error::ServiceError;
 
 pub struct IpWhitelistService {
     pool: PgPool,
@@ -12,9 +12,15 @@ impl IpWhitelistService {
         Self { pool }
     }
 
-    pub async fn set_whitelist(&self, merchant_id: i64, ip_addresses: Vec<String>) -> Result<(), ServiceError> {
+    pub async fn set_whitelist(
+        &self,
+        merchant_id: i64,
+        ip_addresses: Vec<String>,
+    ) -> Result<(), ServiceError> {
         if ip_addresses.len() > 10 {
-            return Err(ServiceError::ValidationError("Maximum 10 IP addresses allowed".to_string()));
+            return Err(ServiceError::ValidationError(
+                "Maximum 10 IP addresses allowed".to_string(),
+            ));
         }
 
         // Validate all IPs
@@ -30,13 +36,11 @@ impl IpWhitelistService {
 
         // Insert new whitelist
         for ip in ip_addresses {
-            sqlx::query(
-                "INSERT INTO ip_whitelist (merchant_id, ip_address) VALUES ($1, $2)"
-            )
-            .bind(merchant_id)
-            .bind(&ip)
-            .execute(&self.pool)
-            .await?;
+            sqlx::query("INSERT INTO ip_whitelist (merchant_id, ip_address) VALUES ($1, $2)")
+                .bind(merchant_id)
+                .bind(&ip)
+                .execute(&self.pool)
+                .await?;
         }
 
         Ok(())
@@ -55,26 +59,29 @@ impl IpWhitelistService {
 
     pub async fn is_ip_allowed(&self, merchant_id: i64, ip: &str) -> Result<bool, ServiceError> {
         let whitelist = self.get_whitelist(merchant_id).await?;
-        
+
         // Empty whitelist = allow all
         if whitelist.is_empty() {
             return Ok(true);
         }
 
-        let client_ip: IpAddr = ip.parse()
+        let client_ip: IpAddr = ip
+            .parse()
             .map_err(|_| ServiceError::ValidationError("Invalid IP address".to_string()))?;
 
         for entry in whitelist {
             if entry.contains('/') {
                 // CIDR range
-                let network: IpNetwork = entry.parse()
+                let network: IpNetwork = entry
+                    .parse()
                     .map_err(|_| ServiceError::ValidationError("Invalid CIDR range".to_string()))?;
                 if network.contains(client_ip) {
                     return Ok(true);
                 }
             } else {
                 // Single IP
-                let allowed_ip: IpAddr = entry.parse()
+                let allowed_ip: IpAddr = entry
+                    .parse()
                     .map_err(|_| ServiceError::ValidationError("Invalid IP address".to_string()))?;
                 if client_ip == allowed_ip {
                     return Ok(true);
@@ -85,7 +92,12 @@ impl IpWhitelistService {
         Ok(false)
     }
 
-    pub async fn log_rejected_request(&self, merchant_id: i64, ip: &str, endpoint: &str) -> Result<(), ServiceError> {
+    pub async fn log_rejected_request(
+        &self,
+        merchant_id: i64,
+        ip: &str,
+        endpoint: &str,
+    ) -> Result<(), ServiceError> {
         let details = serde_json::json!({
             "endpoint": endpoint,
             "reason": "Non-whitelisted IP"
@@ -106,12 +118,14 @@ impl IpWhitelistService {
     fn validate_ip(&self, ip: &str) -> Result<(), ServiceError> {
         if ip.contains('/') {
             // CIDR range
-            ip.parse::<IpNetwork>()
-                .map_err(|_| ServiceError::ValidationError(format!("Invalid CIDR range: {}", ip)))?;
+            ip.parse::<IpNetwork>().map_err(|_| {
+                ServiceError::ValidationError(format!("Invalid CIDR range: {}", ip))
+            })?;
         } else {
             // Single IP
-            ip.parse::<IpAddr>()
-                .map_err(|_| ServiceError::ValidationError(format!("Invalid IP address: {}", ip)))?;
+            ip.parse::<IpAddr>().map_err(|_| {
+                ServiceError::ValidationError(format!("Invalid IP address: {}", ip))
+            })?;
         }
         Ok(())
     }

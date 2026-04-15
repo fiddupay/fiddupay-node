@@ -23,9 +23,9 @@ pub struct BalanceHistory {
     pub merchant_id: i64,
     pub crypto_type: String,
     pub amount: Decimal,
-    pub balance_type: String,   // 'AVAILABLE' or 'RESERVED'
-    pub change_type: String,    // 'CREDIT' or 'DEBIT'
-    pub reason: String,         // 'PAYMENT_CONFIRMED', 'REFUND', 'WITHDRAWAL', etc.
+    pub balance_type: String, // 'AVAILABLE' or 'RESERVED'
+    pub change_type: String,  // 'CREDIT' or 'DEBIT'
+    pub reason: String,       // 'PAYMENT_CONFIRMED', 'REFUND', 'WITHDRAWAL', etc.
     pub reference_id: Option<String>,
     pub balance_before: Decimal,
     pub balance_after: Decimal,

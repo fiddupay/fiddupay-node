@@ -1,7 +1,7 @@
-use crate::middleware::admin_auth::AdminContext;
-use crate::api::state::AppState;
 use crate::api::admin::auth::verify_admin_access;
 use crate::api::admin::payments::AdminQuery;
+use crate::api::state::AppState;
+use crate::middleware::admin_auth::AdminContext;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -26,7 +26,8 @@ pub async fn get_all_withdrawals(
         "total": 0,
         "limit": query.limit.unwrap_or(50),
         "offset": query.offset.unwrap_or(0)
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Approve withdrawal
@@ -43,7 +44,8 @@ pub async fn approve_withdrawal(
         "withdrawal_id": withdrawal_id,
         "status": "approved",
         "message": "Withdrawal approved by admin"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Reject withdrawal
@@ -60,7 +62,8 @@ pub async fn reject_withdrawal(
         "withdrawal_id": withdrawal_id,
         "status": "rejected",
         "message": "Withdrawal rejected by admin"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 /// Resolve manual refunds for items frozen in [REFUND FAILED] lockout
@@ -83,8 +86,20 @@ pub async fn resolve_failed_refund(
 
     let wd = match withdrawal {
         Ok(Some(w)) => w,
-        Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Withdrawal not found"}))).into_response(),
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Ok(None) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error": "Withdrawal not found"})),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": e.to_string()})),
+            )
+                .into_response()
+        }
     };
 
     let wd_status: String = wd.get("status");
@@ -108,7 +123,7 @@ pub async fn resolve_failed_refund(
 
     // 2. Lookup if there is a customer_id for this withdrawal Reference
     let customer_id: Option<i64> = sqlx::query_scalar::<_, i64>(
-        "SELECT customer_id FROM customer_transactions WHERE reference_id = $1"
+        "SELECT customer_id FROM customer_transactions WHERE reference_id = $1",
     )
     .bind(&withdrawal_id)
     .fetch_optional(&state.db_pool)
@@ -117,7 +132,13 @@ pub async fn resolve_failed_refund(
 
     let mut tx = match state.db_pool.begin().await {
         Ok(t) => t,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": e.to_string()})),
+            )
+                .into_response()
+        }
     };
 
     if let Some(c_id) = customer_id {
@@ -133,7 +154,11 @@ pub async fn resolve_failed_refund(
         .await;
 
         if let Err(e) = res {
-             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Customer refund query failed: {}", e)}))).into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": format!("Customer refund query failed: {}", e)})),
+            )
+                .into_response();
         }
     } else {
         // Merchant Refund Retry
@@ -148,14 +173,21 @@ pub async fn resolve_failed_refund(
         .await;
 
         if let Err(e) = res {
-             return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Merchant refund query failed: {}", e)}))).into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": format!("Merchant refund query failed: {}", e)})),
+            )
+                .into_response();
         }
     }
 
     // 3. Clear [REFUND FAILED] tag from rejection reason
-    let clean_reason = reason.replace("[REFUND FAILED - Manual Intervention Required]", "[REFUND PROCESSED BY ADMIN]");
+    let clean_reason = reason.replace(
+        "[REFUND FAILED - Manual Intervention Required]",
+        "[REFUND PROCESSED BY ADMIN]",
+    );
     let _ = sqlx::query(
-        "UPDATE withdrawals SET rejection_reason = $1, updated_at = NOW() WHERE withdrawal_id = $2"
+        "UPDATE withdrawals SET rejection_reason = $1, updated_at = NOW() WHERE withdrawal_id = $2",
     )
     .bind(clean_reason)
     .bind(&withdrawal_id)
@@ -179,12 +211,17 @@ pub async fn resolve_failed_refund(
     .await;
 
     if tx.commit().await.is_err() {
-        return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Failed to commit transaction"}))).into_response();
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": "Failed to commit transaction"})),
+        )
+            .into_response();
     }
 
     Json(json!({
         "status": "success",
         "message": "Manual refund resolved successfully by admin",
         "withdrawal_id": withdrawal_id
-    })).into_response()
+    }))
+    .into_response()
 }

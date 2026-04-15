@@ -7,9 +7,9 @@
 // Example (mainnet):
 //   cargo run --bin btc_test_util -- ced14b7fb86f552d409dc7b017305bd9641ccc5a3c0559a367326ec2be344641
 
-use fiddupay::utils::bitcoin_api::{BitcoinApiConfig, get_with_failover};
-use std::env;
+use fiddupay::utils::bitcoin_api::{get_with_failover, BitcoinApiConfig};
 use rust_decimal::Decimal;
+use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -29,8 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         env::var("BITCOIN_TESTNET_RPC_URL")
             .unwrap_or_else(|_| "https://blockstream.info/testnet/api".to_string())
     } else {
-        env::var("BITCOIN_RPC_URL")
-            .unwrap_or_else(|_| "https://blockstream.info/api".to_string())
+        env::var("BITCOIN_RPC_URL").unwrap_or_else(|_| "https://blockstream.info/api".to_string())
     };
 
     let backup_url = if sandbox {
@@ -44,7 +43,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("╔══════════════════════════════════════════════════════╗");
     println!("║       Bitcoin API Failover Test                      ║");
     println!("╚══════════════════════════════════════════════════════╝");
-    println!("  Network  : {}", if sandbox { "Testnet" } else { "Mainnet" });
+    println!(
+        "  Network  : {}",
+        if sandbox { "Testnet" } else { "Mainnet" }
+    );
     println!("  TXID     : {}", txid);
     println!("  Primary  : {}", primary_url);
     println!("  Backup   : {}", backup_url);
@@ -82,8 +84,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut total_sats = 0u64;
             if let Some(vout) = data.get("vout").and_then(|v| v.as_array()) {
                 for out in vout {
-                    let addr = out.get("scriptpubkey_address").and_then(|a| a.as_str()).unwrap_or("");
-                    let val  = out.get("value").and_then(|v| v.as_u64()).unwrap_or(0);
+                    let addr = out
+                        .get("scriptpubkey_address")
+                        .and_then(|a| a.as_str())
+                        .unwrap_or("");
+                    let val = out.get("value").and_then(|v| v.as_u64()).unwrap_or(0);
                     if !addr.is_empty() && first_recipient == "unknown" {
                         first_recipient = addr.to_string();
                     }

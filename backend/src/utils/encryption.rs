@@ -2,7 +2,7 @@ use aes_gcm::{
     aead::{Aead, KeyInit, OsRng},
     Aes256Gcm, Key, Nonce,
 };
-use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use std::env;
 
 pub fn encrypt_data(data: &str) -> Result<String, String> {
@@ -18,10 +18,10 @@ impl Encryption {
     pub fn new() -> Result<Self, String> {
         let key_hex = env::var("ENCRYPTION_KEY")
             .map_err(|_| "ENCRYPTION_KEY not set in environment".to_string())?;
-        
-        let key_bytes = hex::decode(&key_hex)
-            .map_err(|e| format!("Invalid ENCRYPTION_KEY hex: {}", e))?;
-        
+
+        let key_bytes =
+            hex::decode(&key_hex).map_err(|e| format!("Invalid ENCRYPTION_KEY hex: {}", e))?;
+
         if key_bytes.len() != 32 {
             return Err("ENCRYPTION_KEY must be 32 bytes (64 hex chars)".to_string());
         }
@@ -38,20 +38,22 @@ impl Encryption {
         let nonce = Nonce::from_slice(&nonce_bytes);
 
         // Encrypt
-        let ciphertext = self.cipher
+        let ciphertext = self
+            .cipher
             .encrypt(nonce, plaintext.as_bytes())
             .map_err(|e| format!("Encryption failed: {}", e))?;
 
         // Combine nonce + ciphertext and encode
         let mut result = nonce_bytes.to_vec();
         result.extend_from_slice(&ciphertext);
-        
+
         Ok(BASE64.encode(&result))
     }
 
     pub fn decrypt(&self, encrypted: &str) -> Result<String, String> {
         // Decode
-        let data = BASE64.decode(encrypted)
+        let data = BASE64
+            .decode(encrypted)
             .map_err(|e| format!("Base64 decode failed: {}", e))?;
 
         if data.len() < 12 {
@@ -63,12 +65,11 @@ impl Encryption {
         let nonce = Nonce::from_slice(nonce_bytes);
 
         // Decrypt
-        let plaintext = self.cipher
+        let plaintext = self
+            .cipher
             .decrypt(nonce, ciphertext)
             .map_err(|e| format!("Decryption failed: {}", e))?;
 
-        String::from_utf8(plaintext)
-            .map_err(|e| format!("Invalid UTF-8: {}", e))
+        String::from_utf8(plaintext).map_err(|e| format!("Invalid UTF-8: {}", e))
     }
 }
-

@@ -20,7 +20,7 @@ impl SandboxService {
     }
 
     /// Create sandbox credentials for a merchant
-    /// 
+    ///
     /// # Requirements
     /// * 10.1: Generate test API credentials when sandbox mode enabled
     /// * 10.4: Clearly distinguish sandbox from production
@@ -30,16 +30,16 @@ impl SandboxService {
     ) -> Result<SandboxCredentials, ServiceError> {
         // Use searchable session key format for better security and performance
         let api_key = ApiKeyGenerator::generate_session_key(merchant_id, false);
-        
+
         // Hash the API key using Argon2 (consistent with MerchantService)
-        use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
+        use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
         use rand::rngs::OsRng;
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
-        let api_key_hash = argon2.hash_password(api_key.as_bytes(), &salt)
+        let api_key_hash = argon2
+            .hash_password(api_key.as_bytes(), &salt)
             .map_err(|_| ServiceError::InternalError("Failed to hash API key".to_string()))?
             .to_string();
-        
 
         sqlx::query(
             "UPDATE merchants SET sandbox_mode = true, test_api_key_hash = $1, updated_at = $2 WHERE id = $3"
@@ -58,7 +58,7 @@ impl SandboxService {
     }
 
     /// Check if an API key is a sandbox key
-    /// 
+    ///
     /// # Requirements
     /// * 10.4: Distinguish sandbox from production
     pub fn is_sandbox_key(&self, api_key: &str) -> bool {
@@ -66,23 +66,18 @@ impl SandboxService {
     }
 
     /// Verify merchant is in sandbox mode
-    pub async fn verify_sandbox_merchant(
-        &self,
-        merchant_id: i64,
-    ) -> Result<bool, ServiceError> {
-        let row = sqlx::query(
-            "SELECT sandbox_mode FROM merchants WHERE id = $1"
-        )
-        .bind(merchant_id)
-        .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or_else(|| ServiceError::NotFound("Merchant not found".to_string()))?;
+    pub async fn verify_sandbox_merchant(&self, merchant_id: i64) -> Result<bool, ServiceError> {
+        let row = sqlx::query("SELECT sandbox_mode FROM merchants WHERE id = $1")
+            .bind(merchant_id)
+            .fetch_optional(&self.db_pool)
+            .await?
+            .ok_or_else(|| ServiceError::NotFound("Merchant not found".to_string()))?;
 
         Ok(row.get("sandbox_mode"))
     }
 
     /// Simulate payment confirmation in sandbox mode
-    /// 
+    ///
     /// # Requirements
     /// * 10.2: Simulate payment confirmations without blockchain verification
     /// * 10.5: Allow manual payment status changes for testing
@@ -96,17 +91,16 @@ impl SandboxService {
     ) -> Result<(), ServiceError> {
         if !self.verify_sandbox_merchant(merchant_id).await? {
             return Err(ServiceError::Forbidden(
-                "Simulation only available in sandbox mode".to_string()
+                "Simulation only available in sandbox mode".to_string(),
             ));
         }
 
-        let payment_row = sqlx::query(
-            "SELECT id, merchant_id FROM payment_transactions WHERE payment_id = $1"
-        )
-        .bind(payment_id)
-        .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or_else(|| ServiceError::NotFound("Payment not found".to_string()))?;
+        let payment_row =
+            sqlx::query("SELECT id, merchant_id FROM payment_transactions WHERE payment_id = $1")
+                .bind(payment_id)
+                .fetch_optional(&self.db_pool)
+                .await?
+                .ok_or_else(|| ServiceError::NotFound("Payment not found".to_string()))?;
 
         let payment_db_id: i64 = payment_row.get("id");
         let payment_merchant_id: i64 = payment_row.get("merchant_id");
@@ -117,14 +111,14 @@ impl SandboxService {
 
         let new_status = if success { "CONFIRMED" } else { "FAILED" };
         let confirmed_at = if success { Some(Utc::now()) } else { None };
-        
+
         // Use provided values or defaults for successful payments
-        let tx_hash = if success { 
+        let tx_hash = if success {
             Some(transaction_hash.unwrap_or_else(|| format!("sandbox_tx_{}", nanoid!(16))))
-        } else { 
-            None 
+        } else {
+            None
         };
-        
+
         // Only set from_address if success
         let sender = if success {
             Some(from_address.unwrap_or_else(|| "0x_sandbox_mock_sender".to_string()))
@@ -154,10 +148,22 @@ impl SandboxService {
             .fetch_one(&self.db_pool)
             .await?;
 
-            let gross_amount: Decimal = payment_data.try_get::<Option<Decimal>, _>("amount").ok().flatten().unwrap_or(Decimal::ZERO);
-            let fee_amount: Decimal = payment_data.try_get::<Option<Decimal>, _>("fee_amount").ok().flatten().unwrap_or(Decimal::ZERO);
+            let gross_amount: Decimal = payment_data
+                .try_get::<Option<Decimal>, _>("amount")
+                .ok()
+                .flatten()
+                .unwrap_or(Decimal::ZERO);
+            let fee_amount: Decimal = payment_data
+                .try_get::<Option<Decimal>, _>("fee_amount")
+                .ok()
+                .flatten()
+                .unwrap_or(Decimal::ZERO);
             let net_amount = gross_amount - fee_amount;
-            let crypto_type_str: String = payment_data.try_get::<Option<String>, _>("crypto_type").ok().flatten().unwrap_or_else(|| "UNKNOWN".to_string());
+            let crypto_type_str: String = payment_data
+                .try_get::<Option<String>, _>("crypto_type")
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "UNKNOWN".to_string());
             let sandbox_mode_val: bool = payment_data.get("sandbox_mode");
 
             if net_amount > Decimal::ZERO {
@@ -184,7 +190,7 @@ impl SandboxService {
     }
 
     /// Enforce sandbox data isolation
-    /// 
+    ///
     /// # Requirements
     /// * 10.6: Prevent sandbox keys from accessing production data
     pub async fn enforce_sandbox_isolation(
@@ -197,7 +203,7 @@ impl SandboxService {
 
         if is_sandbox_key != merchant_sandbox_mode {
             return Err(ServiceError::Forbidden(
-                "Sandbox/production mode mismatch".to_string()
+                "Sandbox/production mode mismatch".to_string(),
             ));
         }
 

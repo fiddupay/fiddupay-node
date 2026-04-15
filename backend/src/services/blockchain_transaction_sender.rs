@@ -3,12 +3,12 @@
 
 use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
-use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 use web3::{
+    signing::Key,
     transports::Http,
     types::{Address, TransactionParameters, U256},
-    signing::Key,
     Web3,
 };
 
@@ -24,36 +24,81 @@ impl BlockchainTransactionSender {
     fn get_evm_rpc_urls(&self, crypto_type: &CryptoType, sandbox_mode: bool) -> Vec<(String, u64)> {
         match (crypto_type, sandbox_mode) {
             (CryptoType::Eth | CryptoType::UsdtEth, false) => vec![
-                (self.config.ethereum_rpc_url.clone(), self.config.ethereum_chain_id),
-                (self.config.ethereum_rpc_url_backup.clone(), self.config.ethereum_chain_id),
+                (
+                    self.config.ethereum_rpc_url.clone(),
+                    self.config.ethereum_chain_id,
+                ),
+                (
+                    self.config.ethereum_rpc_url_backup.clone(),
+                    self.config.ethereum_chain_id,
+                ),
             ],
             (CryptoType::Eth | CryptoType::UsdtEth, true) => vec![
-                (self.config.ethereum_sepolia_rpc_url.clone(), self.config.ethereum_sepolia_chain_id),
-                (self.config.ethereum_sepolia_rpc_url_backup.clone(), self.config.ethereum_sepolia_chain_id),
+                (
+                    self.config.ethereum_sepolia_rpc_url.clone(),
+                    self.config.ethereum_sepolia_chain_id,
+                ),
+                (
+                    self.config.ethereum_sepolia_rpc_url_backup.clone(),
+                    self.config.ethereum_sepolia_chain_id,
+                ),
             ],
             (CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20, false) => vec![
                 (self.config.bsc_rpc_url.clone(), self.config.bsc_chain_id),
-                (self.config.bsc_rpc_url_backup.clone(), self.config.bsc_chain_id),
+                (
+                    self.config.bsc_rpc_url_backup.clone(),
+                    self.config.bsc_chain_id,
+                ),
             ],
             (CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20, true) => vec![
-                (self.config.bsc_testnet_rpc_url.clone(), self.config.bsc_testnet_chain_id),
-                (self.config.bsc_testnet_rpc_url_backup.clone(), self.config.bsc_testnet_chain_id),
+                (
+                    self.config.bsc_testnet_rpc_url.clone(),
+                    self.config.bsc_testnet_chain_id,
+                ),
+                (
+                    self.config.bsc_testnet_rpc_url_backup.clone(),
+                    self.config.bsc_testnet_chain_id,
+                ),
             ],
             (CryptoType::Matic | CryptoType::UsdtPolygon, false) => vec![
-                (self.config.polygon_rpc_url.clone(), self.config.polygon_chain_id),
-                (self.config.polygon_rpc_url_backup.clone(), self.config.polygon_chain_id),
+                (
+                    self.config.polygon_rpc_url.clone(),
+                    self.config.polygon_chain_id,
+                ),
+                (
+                    self.config.polygon_rpc_url_backup.clone(),
+                    self.config.polygon_chain_id,
+                ),
             ],
             (CryptoType::Matic | CryptoType::UsdtPolygon, true) => vec![
-                (self.config.polygon_amoy_rpc_url.clone(), self.config.polygon_amoy_chain_id),
-                (self.config.polygon_amoy_rpc_url_backup.clone(), self.config.polygon_amoy_chain_id),
+                (
+                    self.config.polygon_amoy_rpc_url.clone(),
+                    self.config.polygon_amoy_chain_id,
+                ),
+                (
+                    self.config.polygon_amoy_rpc_url_backup.clone(),
+                    self.config.polygon_amoy_chain_id,
+                ),
             ],
             (CryptoType::Arb | CryptoType::UsdtArbitrum, false) => vec![
-                (self.config.arbitrum_rpc_url.clone(), self.config.arbitrum_chain_id),
-                (self.config.arbitrum_rpc_url_backup.clone(), self.config.arbitrum_chain_id),
+                (
+                    self.config.arbitrum_rpc_url.clone(),
+                    self.config.arbitrum_chain_id,
+                ),
+                (
+                    self.config.arbitrum_rpc_url_backup.clone(),
+                    self.config.arbitrum_chain_id,
+                ),
             ],
             (CryptoType::Arb | CryptoType::UsdtArbitrum, true) => vec![
-                (self.config.arbitrum_sepolia_rpc_url.clone(), self.config.arbitrum_sepolia_chain_id),
-                (self.config.arbitrum_sepolia_rpc_url_backup.clone(), self.config.arbitrum_sepolia_chain_id),
+                (
+                    self.config.arbitrum_sepolia_rpc_url.clone(),
+                    self.config.arbitrum_sepolia_chain_id,
+                ),
+                (
+                    self.config.arbitrum_sepolia_rpc_url_backup.clone(),
+                    self.config.arbitrum_sepolia_chain_id,
+                ),
             ],
             _ => vec![],
         }
@@ -89,22 +134,46 @@ impl BlockchainTransactionSender {
         let is_solana_native = crypto_type == CryptoType::Sol;
         let is_spl = is_solana && !is_solana_native;
         let is_bitcoin = crypto_type.network() == "BITCOIN";
-        
+
         let is_evm_token = !is_solana && !is_bitcoin && !crypto_type.is_native_currency();
 
         if is_solana_native {
-            self.send_solana_transaction(private_key, to_address, amount, sandbox_mode).await
+            self.send_solana_transaction(private_key, to_address, amount, sandbox_mode)
+                .await
         } else if is_bitcoin {
-            self.send_bitcoin_transaction(private_key, to_address, amount, sandbox_mode).await
+            self.send_bitcoin_transaction(private_key, to_address, amount, sandbox_mode)
+                .await
         } else if is_spl {
-            let mint = crypto_type.token_address().ok_or_else(|| ServiceError::ValidationError("Missing SPL mint address".to_string()))?;
-            self.send_solana_token_transaction(&mint, private_key, to_address, amount, sandbox_mode).await
+            let mint = crypto_type.token_address().ok_or_else(|| {
+                ServiceError::ValidationError("Missing SPL mint address".to_string())
+            })?;
+            self.send_solana_token_transaction(&mint, private_key, to_address, amount, sandbox_mode)
+                .await
         } else if is_evm_token {
-            let token_address = crypto_type.token_address().ok_or_else(|| ServiceError::ValidationError("Missing token contract address".to_string()))?;
-            self.send_evm_token_transaction(crypto_type, &token_address, private_key, to_address, amount, gas_price, sandbox_mode).await
+            let token_address = crypto_type.token_address().ok_or_else(|| {
+                ServiceError::ValidationError("Missing token contract address".to_string())
+            })?;
+            self.send_evm_token_transaction(
+                crypto_type,
+                &token_address,
+                private_key,
+                to_address,
+                amount,
+                gas_price,
+                sandbox_mode,
+            )
+            .await
         } else {
             // It's a native EVM currency
-            self.send_evm_transaction(crypto_type, private_key, to_address, amount, gas_price, sandbox_mode).await
+            self.send_evm_transaction(
+                crypto_type,
+                private_key,
+                to_address,
+                amount,
+                gas_price,
+                sandbox_mode,
+            )
+            .await
         }
     }
 
@@ -117,8 +186,8 @@ impl BlockchainTransactionSender {
     ) -> Result<String, ServiceError> {
         use solana_client::nonblocking::rpc_client::RpcClient;
         use solana_sdk::{
-            signature::{Keypair, Signer},
             pubkey::Pubkey,
+            signature::{Keypair, Signer},
         };
         use std::str::FromStr;
 
@@ -126,15 +195,18 @@ impl BlockchainTransactionSender {
         let sender_keypair = Keypair::from_base58_string(private_key);
 
         // Parse destination address
-        let to_pubkey = Pubkey::from_str(to_address)
-            .map_err(|_| ServiceError::ValidationError("Invalid Solana destination address".to_string()))?;
+        let to_pubkey = Pubkey::from_str(to_address).map_err(|_| {
+            ServiceError::ValidationError("Invalid Solana destination address".to_string())
+        })?;
 
         let lamports = (amount * Decimal::new(1_000_000_000, 0))
             .to_u64()
             .ok_or_else(|| ServiceError::ValidationError("Invalid SOL amount".to_string()))?;
 
         if lamports == 0 {
-            return Err(ServiceError::ValidationError("Amount must be greater than 0".to_string()));
+            return Err(ServiceError::ValidationError(
+                "Amount must be greater than 0".to_string(),
+            ));
         }
 
         let rpc_urls = self.get_solana_rpc_urls(sandbox_mode);
@@ -187,7 +259,10 @@ impl BlockchainTransactionSender {
             }
         }
 
-        Err(ServiceError::Internal(format!("All Solana RPCs failed. Last error: {:?}", last_err)))
+        Err(ServiceError::Internal(format!(
+            "All Solana RPCs failed. Last error: {:?}",
+            last_err
+        )))
     }
 
     /// Send Solana SPL Token transaction
@@ -201,35 +276,44 @@ impl BlockchainTransactionSender {
     ) -> Result<String, ServiceError> {
         use solana_client::nonblocking::rpc_client::RpcClient;
         use solana_sdk::{
-            signature::{Keypair, Signer},
+            instruction::Instruction,
             pubkey::Pubkey,
+            signature::{Keypair, Signer},
             system_instruction,
             transaction::Transaction,
-            instruction::Instruction,
+        };
+        use spl_associated_token_account::{
+            get_associated_token_address, instruction::create_associated_token_account_idempotent,
         };
         use spl_token::instruction::transfer_checked;
         use std::str::FromStr;
-        use spl_associated_token_account::{get_associated_token_address, instruction::create_associated_token_account_idempotent};
 
         let sender_keypair = Keypair::from_base58_string(private_key);
-        
-        let to_pubkey = Pubkey::from_str(to_address)
-            .map_err(|_| ServiceError::ValidationError("Invalid destination address".to_string()))?;
-            
+
+        let to_pubkey = Pubkey::from_str(to_address).map_err(|_| {
+            ServiceError::ValidationError("Invalid destination address".to_string())
+        })?;
+
         let mint_pubkey = Pubkey::from_str(mint_address)
             .map_err(|_| ServiceError::ValidationError("Invalid mint address".to_string()))?;
 
         // Most SPL tokens have 6 decimals (like USDT), but we need to check mint info dynamically
         // or hardcode based on known assets. We will use 6 for stablecoins and 9 for WSOL.
-        let decimals: u8 = if mint_address == "So11111111111111111111111111111111111111112" { 9 } else { 6 };
+        let decimals: u8 = if mint_address == "So11111111111111111111111111111111111111112" {
+            9
+        } else {
+            6
+        };
         let multiplier = 10u64.pow(decimals as u32);
-        
+
         let token_amount = (amount * Decimal::new(multiplier as i64, 0))
             .to_u64()
             .ok_or_else(|| ServiceError::ValidationError("Invalid token amount".to_string()))?;
 
         if token_amount == 0 {
-            return Err(ServiceError::ValidationError("Amount must be greater than 0".to_string()));
+            return Err(ServiceError::ValidationError(
+                "Amount must be greater than 0".to_string(),
+            ));
         }
 
         let rpc_urls = self.get_solana_rpc_urls(sandbox_mode);
@@ -249,14 +333,26 @@ impl BlockchainTransactionSender {
             let dest_account = rpc_client.get_account(&destination_ata).await;
             if dest_account.is_err() {
                 instructions.push(create_associated_token_account_idempotent(
-                    &sender_pubkey, &to_pubkey, &mint_pubkey, &spl_token::id()
+                    &sender_pubkey,
+                    &to_pubkey,
+                    &mint_pubkey,
+                    &spl_token::id(),
                 ));
             }
 
-            instructions.push(transfer_checked(
-                &spl_token::id(), &source_ata, &mint_pubkey, &destination_ata, &sender_keypair.pubkey(),
-                &[&sender_keypair.pubkey()], token_amount, decimals,
-            ).map_err(|e| ServiceError::Internal(format!("Failed to build transfer: {}", e)))?);
+            instructions.push(
+                transfer_checked(
+                    &spl_token::id(),
+                    &source_ata,
+                    &mint_pubkey,
+                    &destination_ata,
+                    &sender_keypair.pubkey(),
+                    &[&sender_keypair.pubkey()],
+                    token_amount,
+                    decimals,
+                )
+                .map_err(|e| ServiceError::Internal(format!("Failed to build transfer: {}", e)))?,
+            );
 
             let recent_blockhash = match rpc_client.get_latest_blockhash().await {
                 Ok(bh) => bh,
@@ -266,7 +362,12 @@ impl BlockchainTransactionSender {
                 }
             };
 
-            let tx = Transaction::new_signed_with_payer(&instructions, Some(&sender_keypair.pubkey()), &[&sender_keypair], recent_blockhash);
+            let tx = Transaction::new_signed_with_payer(
+                &instructions,
+                Some(&sender_keypair.pubkey()),
+                &[&sender_keypair],
+                recent_blockhash,
+            );
 
             if let Err(e) = rpc_client.simulate_transaction(&tx).await {
                 last_err = Some(e);
@@ -282,7 +383,10 @@ impl BlockchainTransactionSender {
             }
         }
 
-        Err(ServiceError::Internal(format!("All Solana RPCs failed. Last error: {:?}", last_err)))
+        Err(ServiceError::Internal(format!(
+            "All Solana RPCs failed. Last error: {:?}",
+            last_err
+        )))
     }
 
     /// Send EVM transaction (ETH, BNB, MATIC, ARB)
@@ -320,10 +424,14 @@ impl BlockchainTransactionSender {
                 Err(_) => return Err(ServiceError::ValidationError("Invalid private key".into())),
             };
             let from_address = (&secret_key).address();
-            let to_address_parsed: Address = to_address.parse().map_err(|_| ServiceError::ValidationError("Invalid dest addr".into()))?;
+            let to_address_parsed: Address = to_address
+                .parse()
+                .map_err(|_| ServiceError::ValidationError("Invalid dest addr".into()))?;
 
             // Convert Decimal to native amount using crypto_type.decimals()
-            let wei_amount = (amount * Decimal::from(10u64.pow(crypto_type.decimals()))).to_u128().unwrap_or(0);
+            let wei_amount = (amount * Decimal::from(10u64.pow(crypto_type.decimals())))
+                .to_u128()
+                .unwrap_or(0);
 
             // Nonce & Gas
             let nonce = match web3.eth().transaction_count(from_address, None).await {
@@ -341,7 +449,7 @@ impl BlockchainTransactionSender {
                         last_err = Some(e.to_string());
                         continue;
                     }
-                }
+                },
             };
 
             let tx_params = TransactionParameters {
@@ -354,7 +462,11 @@ impl BlockchainTransactionSender {
                 ..Default::default()
             };
 
-            let signed_tx = match web3.accounts().sign_transaction(tx_params, &secret_key).await {
+            let signed_tx = match web3
+                .accounts()
+                .sign_transaction(tx_params, &secret_key)
+                .await
+            {
                 Ok(s) => s,
                 Err(e) => {
                     last_err = Some(e.to_string());
@@ -362,7 +474,11 @@ impl BlockchainTransactionSender {
                 }
             };
 
-            match web3.eth().send_raw_transaction(signed_tx.raw_transaction).await {
+            match web3
+                .eth()
+                .send_raw_transaction(signed_tx.raw_transaction)
+                .await
+            {
                 Ok(hash) => return Ok(format!("0x{:x}", hash)),
                 Err(e) => {
                     last_err = Some(e.to_string());
@@ -371,7 +487,10 @@ impl BlockchainTransactionSender {
             }
         }
 
-        Err(ServiceError::Internal(format!("All EVM RPCs failed. Last error: {:?}", last_err)))
+        Err(ServiceError::Internal(format!(
+            "All EVM RPCs failed. Last error: {:?}",
+            last_err
+        )))
     }
 
     /// Send EVM Token (ERC20/BEP20) transaction
@@ -410,11 +529,17 @@ impl BlockchainTransactionSender {
                 Err(_) => return Err(ServiceError::ValidationError("Invalid secret".into())),
             };
             let from_address = (&secret_key).address();
-            let to_address_parsed: Address = to_address.parse().map_err(|_| ServiceError::ValidationError("Invalid to addr".into()))?;
-            let token_contract_address: Address = token_address_str.parse().map_err(|_| ServiceError::ValidationError("Invalid token addr".into()))?;
+            let to_address_parsed: Address = to_address
+                .parse()
+                .map_err(|_| ServiceError::ValidationError("Invalid to addr".into()))?;
+            let token_contract_address: Address = token_address_str
+                .parse()
+                .map_err(|_| ServiceError::ValidationError("Invalid token addr".into()))?;
 
             // Convert Decimal to token amount using crypto_type.decimals()
-            let token_amount = (amount * Decimal::from(10u64.pow(crypto_type.decimals()))).to_u128().unwrap_or(0);
+            let token_amount = (amount * Decimal::from(10u64.pow(crypto_type.decimals())))
+                .to_u128()
+                .unwrap_or(0);
 
             let nonce = match web3.eth().transaction_count(from_address, None).await {
                 Ok(n) => n,
@@ -431,7 +556,7 @@ impl BlockchainTransactionSender {
                         last_err = Some(e.to_string());
                         continue;
                     }
-                }
+                },
             };
 
             // Data
@@ -454,7 +579,11 @@ impl BlockchainTransactionSender {
                 ..Default::default()
             };
 
-            let signed_tx = match web3.accounts().sign_transaction(tx_params, &secret_key).await {
+            let signed_tx = match web3
+                .accounts()
+                .sign_transaction(tx_params, &secret_key)
+                .await
+            {
                 Ok(s) => s,
                 Err(e) => {
                     last_err = Some(e.to_string());
@@ -462,7 +591,11 @@ impl BlockchainTransactionSender {
                 }
             };
 
-            match web3.eth().send_raw_transaction(signed_tx.raw_transaction).await {
+            match web3
+                .eth()
+                .send_raw_transaction(signed_tx.raw_transaction)
+                .await
+            {
                 Ok(hash) => return Ok(format!("0x{:x}", hash)),
                 Err(e) => {
                     last_err = Some(e.to_string());
@@ -471,7 +604,10 @@ impl BlockchainTransactionSender {
             }
         }
 
-        Err(ServiceError::Internal(format!("All EVM Token RPCs failed. Last error: {:?}", last_err)))
+        Err(ServiceError::Internal(format!(
+            "All EVM Token RPCs failed. Last error: {:?}",
+            last_err
+        )))
     }
 
     /// Estimate gas for transaction
@@ -504,45 +640,76 @@ impl BlockchainTransactionSender {
         sandbox_mode: bool,
     ) -> Result<U256, ServiceError> {
         let is_solana = crypto_type.network() == "SOLANA";
-        
+
         if is_solana {
             use solana_client::nonblocking::rpc_client::RpcClient;
-            use std::str::FromStr;
             use solana_sdk::pubkey::Pubkey;
-            
+            use std::str::FromStr;
+
             let rpc_url = if sandbox_mode {
                 self.config.solana_devnet_rpc_url.clone()
             } else {
                 self.config.solana_rpc_url.clone()
             };
             let rpc_client = RpcClient::new(rpc_url);
-            
+
             let to_pubkey = Pubkey::from_str(address)
                 .map_err(|_| ServiceError::ValidationError("Invalid Solana address".to_string()))?;
-                
-            let balance = rpc_client.get_balance(&to_pubkey)
-                .await
-                .map_err(|e| ServiceError::Internal(format!("Failed to get Solana balance: {}", e)))?;
-                
+
+            let balance = rpc_client.get_balance(&to_pubkey).await.map_err(|e| {
+                ServiceError::Internal(format!("Failed to get Solana balance: {}", e))
+            })?;
+
             Ok(U256::from(balance))
         } else {
             let (rpc_url, _) = match (crypto_type.clone(), sandbox_mode) {
-                (CryptoType::Eth | CryptoType::UsdtEth, false) => (&self.config.ethereum_rpc_url, self.config.ethereum_chain_id),
-                (CryptoType::Eth | CryptoType::UsdtEth, true) => (&self.config.ethereum_sepolia_rpc_url, self.config.ethereum_sepolia_chain_id),
-                (CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20, false) => (&self.config.bsc_rpc_url, self.config.bsc_chain_id),
-                (CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20, true) => (&self.config.bsc_testnet_rpc_url, self.config.bsc_testnet_chain_id),
-                (CryptoType::Matic | CryptoType::UsdtPolygon, false) => (&self.config.polygon_rpc_url, self.config.polygon_chain_id),
-                (CryptoType::Matic | CryptoType::UsdtPolygon, true) => (&self.config.polygon_amoy_rpc_url, self.config.polygon_amoy_chain_id),
-                (CryptoType::Arb | CryptoType::UsdtArbitrum, false) => (&self.config.arbitrum_rpc_url, self.config.arbitrum_chain_id),
-                (CryptoType::Arb | CryptoType::UsdtArbitrum, true) => (&self.config.arbitrum_sepolia_rpc_url, self.config.arbitrum_sepolia_chain_id),
-                _ => return Err(ServiceError::ValidationError("Unsupported network for balance query".to_string())),
+                (CryptoType::Eth | CryptoType::UsdtEth, false) => {
+                    (&self.config.ethereum_rpc_url, self.config.ethereum_chain_id)
+                }
+                (CryptoType::Eth | CryptoType::UsdtEth, true) => (
+                    &self.config.ethereum_sepolia_rpc_url,
+                    self.config.ethereum_sepolia_chain_id,
+                ),
+                (CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20, false) => {
+                    (&self.config.bsc_rpc_url, self.config.bsc_chain_id)
+                }
+                (CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20, true) => (
+                    &self.config.bsc_testnet_rpc_url,
+                    self.config.bsc_testnet_chain_id,
+                ),
+                (CryptoType::Matic | CryptoType::UsdtPolygon, false) => {
+                    (&self.config.polygon_rpc_url, self.config.polygon_chain_id)
+                }
+                (CryptoType::Matic | CryptoType::UsdtPolygon, true) => (
+                    &self.config.polygon_amoy_rpc_url,
+                    self.config.polygon_amoy_chain_id,
+                ),
+                (CryptoType::Arb | CryptoType::UsdtArbitrum, false) => {
+                    (&self.config.arbitrum_rpc_url, self.config.arbitrum_chain_id)
+                }
+                (CryptoType::Arb | CryptoType::UsdtArbitrum, true) => (
+                    &self.config.arbitrum_sepolia_rpc_url,
+                    self.config.arbitrum_sepolia_chain_id,
+                ),
+                _ => {
+                    return Err(ServiceError::ValidationError(
+                        "Unsupported network for balance query".to_string(),
+                    ))
+                }
             };
 
-            let transport = Http::new(rpc_url).map_err(|e| ServiceError::Internal(format!("Failed to connect to EVM: {}", e)))?;
+            let transport = Http::new(rpc_url)
+                .map_err(|e| ServiceError::Internal(format!("Failed to connect to EVM: {}", e)))?;
             let web3 = Web3::new(transport);
-            
-            let addr: Address = address.parse().map_err(|_| ServiceError::ValidationError("Invalid EVM address".to_string()))?;
-            let balance = web3.eth().balance(addr, None).await.map_err(|e| ServiceError::Internal(format!("Failed EVM balance: {}", e)))?;
+
+            let addr: Address = address
+                .parse()
+                .map_err(|_| ServiceError::ValidationError("Invalid EVM address".to_string()))?;
+            let balance = web3
+                .eth()
+                .balance(addr, None)
+                .await
+                .map_err(|e| ServiceError::Internal(format!("Failed EVM balance: {}", e)))?;
             Ok(balance)
         }
     }
@@ -554,27 +721,52 @@ impl BlockchainTransactionSender {
         sandbox_mode: bool,
     ) -> Result<U256, ServiceError> {
         let (rpc_url, _) = match (crypto_type.clone(), sandbox_mode) {
-            (CryptoType::Eth, false) => (&self.config.ethereum_rpc_url, self.config.ethereum_chain_id),
-            (CryptoType::Eth, true) => (&self.config.ethereum_sepolia_rpc_url, self.config.ethereum_sepolia_chain_id),
+            (CryptoType::Eth, false) => {
+                (&self.config.ethereum_rpc_url, self.config.ethereum_chain_id)
+            }
+            (CryptoType::Eth, true) => (
+                &self.config.ethereum_sepolia_rpc_url,
+                self.config.ethereum_sepolia_chain_id,
+            ),
             (CryptoType::Bnb, false) => (&self.config.bsc_rpc_url, self.config.bsc_chain_id),
-            (CryptoType::Bnb, true) => (&self.config.bsc_testnet_rpc_url, self.config.bsc_testnet_chain_id),
-            (CryptoType::Matic, false) => (&self.config.polygon_rpc_url, self.config.polygon_chain_id),
-            (CryptoType::Matic, true) => (&self.config.polygon_amoy_rpc_url, self.config.polygon_amoy_chain_id),
-            (CryptoType::Arb, false) => (&self.config.arbitrum_rpc_url, self.config.arbitrum_chain_id),
-            (CryptoType::Arb, true) => (&self.config.arbitrum_sepolia_rpc_url, self.config.arbitrum_sepolia_chain_id),
+            (CryptoType::Bnb, true) => (
+                &self.config.bsc_testnet_rpc_url,
+                self.config.bsc_testnet_chain_id,
+            ),
+            (CryptoType::Matic, false) => {
+                (&self.config.polygon_rpc_url, self.config.polygon_chain_id)
+            }
+            (CryptoType::Matic, true) => (
+                &self.config.polygon_amoy_rpc_url,
+                self.config.polygon_amoy_chain_id,
+            ),
+            (CryptoType::Arb, false) => {
+                (&self.config.arbitrum_rpc_url, self.config.arbitrum_chain_id)
+            }
+            (CryptoType::Arb, true) => (
+                &self.config.arbitrum_sepolia_rpc_url,
+                self.config.arbitrum_sepolia_chain_id,
+            ),
             (CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol, _) => {
                 // For Solana, return the base fee (5000 lamports) as the "price"
                 // This ensures generic (price * limit) logic works: 5000 * 1 = 5000 lamports
                 return Ok(U256::from(5000));
-            },
-            _ => return Err(ServiceError::ValidationError(format!("Gas price query not implemented for network: {}", crypto_type.network()))),
+            }
+            _ => {
+                return Err(ServiceError::ValidationError(format!(
+                    "Gas price query not implemented for network: {}",
+                    crypto_type.network()
+                )))
+            }
         };
 
         let transport = Http::new(rpc_url)
             .map_err(|e| ServiceError::Internal(format!("Failed to create transport: {}", e)))?;
         let web3 = Web3::new(transport);
 
-        web3.eth().gas_price().await
+        web3.eth()
+            .gas_price()
+            .await
             .map_err(|e| ServiceError::Internal(format!("Failed to get gas price: {}", e)))
     }
 
@@ -589,7 +781,8 @@ impl BlockchainTransactionSender {
         };
         let rpc_client = RpcClient::new(rpc_url);
 
-        let fee_calculator = rpc_client.get_fee_for_message(&solana_sdk::message::Message::default())
+        let fee_calculator = rpc_client
+            .get_fee_for_message(&solana_sdk::message::Message::default())
             .await
             .unwrap_or(5000); // 5000 is default base fee
 
@@ -604,23 +797,33 @@ impl BlockchainTransactionSender {
         amount: Decimal,
         sandbox_mode: bool,
     ) -> Result<String, ServiceError> {
-        use bitcoin::{Network, Address, PrivateKey, Transaction, TxIn, TxOut, OutPoint, ScriptBuf, Sequence, Witness};
-        use bitcoin::sighash::{SighashCache, EcdsaSighashType};
         use bitcoin::blockdata::transaction::Version;
         use bitcoin::locktime::absolute::LockTime;
+        use bitcoin::sighash::{EcdsaSighashType, SighashCache};
+        use bitcoin::{
+            Address, Network, OutPoint, PrivateKey, ScriptBuf, Sequence, Transaction, TxIn, TxOut,
+            Witness,
+        };
         use std::str::FromStr;
 
-        let network = if sandbox_mode { Network::Testnet } else { Network::Bitcoin };
-        let api_config = crate::utils::bitcoin_api::BitcoinApiConfig::from_config(&self.config, sandbox_mode);
+        let network = if sandbox_mode {
+            Network::Testnet
+        } else {
+            Network::Bitcoin
+        };
+        let api_config =
+            crate::utils::bitcoin_api::BitcoinApiConfig::from_config(&self.config, sandbox_mode);
 
         let pk = PrivateKey::from_wif(private_key)
             .map_err(|e| ServiceError::Internal(format!("Invalid BTC Private Key: {}", e)))?;
-        
+
         let secp = bitcoin::key::Secp256k1::new();
         let pubkey = pk.public_key(&secp);
-        
-        let compressed_public_key = bitcoin::CompressedPublicKey::try_from(pubkey)
-            .map_err(|_| ServiceError::Internal("Failed to create compressed public key".to_string()))?;
+
+        let compressed_public_key =
+            bitcoin::CompressedPublicKey::try_from(pubkey).map_err(|_| {
+                ServiceError::Internal("Failed to create compressed public key".to_string())
+            })?;
         let from_address = Address::p2wpkh(&compressed_public_key, network);
 
         // 1. Fetch UTXOs
@@ -630,13 +833,19 @@ impl BlockchainTransactionSender {
         )
         .await
         .map_err(|e| ServiceError::Internal(format!("Failed to fetch UTXOs: {}", e)))
-        .and_then(|v| v.as_array().cloned().ok_or_else(|| ServiceError::Internal("Invalid UTXO response format".to_string())))?;
+        .and_then(|v| {
+            v.as_array()
+                .cloned()
+                .ok_or_else(|| ServiceError::Internal("Invalid UTXO response format".to_string()))
+        })?;
 
         // 2. Select UTXOs
-        let target_sats = (amount * Decimal::new(100_000_000, 0)).to_u64().unwrap_or(0);
+        let target_sats = (amount * Decimal::new(100_000_000, 0))
+            .to_u64()
+            .unwrap_or(0);
         let mut selected_utxos = Vec::new();
         let mut total_input_sats = 0u64;
-        let fee_sats = 1500u64; // Flat estimate or vsize weight multiplied by rate 
+        let fee_sats = 1500u64; // Flat estimate or vsize weight multiplied by rate
 
         for utxo in utxos {
             let value = utxo["value"].as_u64().unwrap_or(0);
@@ -653,7 +862,11 @@ impl BlockchainTransactionSender {
         }
 
         if total_input_sats < target_sats + fee_sats {
-            return Err(ServiceError::ValidationError(format!("Insufficient BTC balance. Need {} sats, have {} sats", target_sats + fee_sats, total_input_sats)));
+            return Err(ServiceError::ValidationError(format!(
+                "Insufficient BTC balance. Need {} sats, have {} sats",
+                target_sats + fee_sats,
+                total_input_sats
+            )));
         }
 
         // 3. Build Transaction
@@ -666,7 +879,8 @@ impl BlockchainTransactionSender {
 
         // Inputs
         for (txid_str, vout, _) in &selected_utxos {
-            let txid = bitcoin::Txid::from_str(txid_str).map_err(|_| ServiceError::Internal("Invalid Txid".to_string()))?;
+            let txid = bitcoin::Txid::from_str(txid_str)
+                .map_err(|_| ServiceError::Internal("Invalid Txid".to_string()))?;
             tx.input.push(TxIn {
                 previous_output: OutPoint { txid, vout: *vout },
                 script_sig: ScriptBuf::new(),
@@ -677,10 +891,11 @@ impl BlockchainTransactionSender {
 
         // Outputs
         use bitcoin::Amount;
-        let dest_addr = Address::from_str(to_address).map_err(|_| ServiceError::ValidationError("Invalid destination addr".to_string()))?
+        let dest_addr = Address::from_str(to_address)
+            .map_err(|_| ServiceError::ValidationError("Invalid destination addr".to_string()))?
             .require_network(network)
             .map_err(|_| ServiceError::ValidationError("Address network mismatch".to_string()))?;
-            
+
         tx.output.push(TxOut {
             value: Amount::from_sat(target_sats),
             script_pubkey: dest_addr.script_pubkey(),
@@ -688,7 +903,8 @@ impl BlockchainTransactionSender {
 
         // Change output
         let change_sats = total_input_sats - target_sats - fee_sats;
-        if change_sats > 546 { // Dust limit
+        if change_sats > 546 {
+            // Dust limit
             tx.output.push(TxOut {
                 value: Amount::from_sat(change_sats),
                 script_pubkey: from_address.script_pubkey(),
@@ -705,10 +921,14 @@ impl BlockchainTransactionSender {
             let script_code = ScriptBuf::new_p2wpkh(&pubkey_hash);
 
             for (idx, (_, _, value)) in selected_utxos.iter().enumerate() {
-                let sighash = cache.p2wpkh_signature_hash(idx, &script_code, Amount::from_sat(*value), sighash_all)
+                let sighash = cache
+                    .p2wpkh_signature_hash(idx, &script_code, Amount::from_sat(*value), sighash_all)
                     .map_err(|e| ServiceError::Internal(format!("Sighash error: {}", e)))?;
-                
-                let sig = secp.sign_ecdsa(&bitcoin::secp256k1::Message::from_slice(&sighash[..]).unwrap(), &pk.inner);
+
+                let sig = secp.sign_ecdsa(
+                    &bitcoin::secp256k1::Message::from_slice(&sighash[..]).unwrap(),
+                    &pk.inner,
+                );
                 signatures.push(sig);
             }
         }

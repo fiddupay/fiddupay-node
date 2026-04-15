@@ -48,7 +48,8 @@ impl WebhookNotificationService {
             "created_at": chrono::Utc::now().to_rfc3339()
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(webhook_url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(10))
@@ -57,21 +58,32 @@ impl WebhookNotificationService {
             .map_err(|e| ServiceError::Internal(format!("Webhook request failed: {}", e)))?;
 
         if response.status().is_success() {
-            tracing::info!("Webhook sent successfully for payment {}", payment.payment_id);
+            tracing::info!(
+                "Webhook sent successfully for payment {}",
+                payment.payment_id
+            );
         } else {
-            tracing::warn!("Webhook failed with status {} for payment {}", response.status(), payment.payment_id);
+            tracing::warn!(
+                "Webhook failed with status {} for payment {}",
+                response.status(),
+                payment.payment_id
+            );
         }
 
         // Log webhook attempt
-        self.log_webhook_attempt(&payment.payment_id, webhook_url, response.status().as_u16()).await?;
+        self.log_webhook_attempt(&payment.payment_id, webhook_url, response.status().as_u16())
+            .await?;
 
         Ok(())
     }
 
     /// Get merchant webhook URL
-    pub async fn get_merchant_webhook_url(&self, merchant_id: i64) -> Result<Option<String>, ServiceError> {
+    pub async fn get_merchant_webhook_url(
+        &self,
+        merchant_id: i64,
+    ) -> Result<Option<String>, ServiceError> {
         let record = sqlx::query(
-            "SELECT webhook_url FROM merchants WHERE id = $1 AND webhook_url IS NOT NULL"
+            "SELECT webhook_url FROM merchants WHERE id = $1 AND webhook_url IS NOT NULL",
         )
         .bind(merchant_id)
         .fetch_optional(&self.db_pool)
@@ -91,7 +103,7 @@ impl WebhookNotificationService {
             r#"
             INSERT INTO webhook_logs (payment_id, webhook_url, status_code, attempted_at)
             VALUES ($1, $2, $3, NOW())
-            "#
+            "#,
         )
         .bind(payment_id)
         .bind(webhook_url)
@@ -108,7 +120,8 @@ impl WebhookNotificationService {
         payment: &AddressOnlyPayment,
     ) -> Result<(), ServiceError> {
         if let Some(webhook_url) = self.get_merchant_webhook_url(payment.merchant_id).await? {
-            self.send_payment_status_webhook(payment, &webhook_url).await?;
+            self.send_payment_status_webhook(payment, &webhook_url)
+                .await?;
         }
 
         Ok(())

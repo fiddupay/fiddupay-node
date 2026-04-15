@@ -13,16 +13,24 @@ pub struct WithdrawalProcessor {
 }
 
 impl WithdrawalProcessor {
-    pub fn new(db_pool: PgPool, config: crate::config::Config, notification_service: Arc<NotificationService>) -> Self {
-        Self { db_pool, config, notification_service }
+    pub fn new(
+        db_pool: PgPool,
+        config: crate::config::Config,
+        notification_service: Arc<NotificationService>,
+    ) -> Self {
+        Self {
+            db_pool,
+            config,
+            notification_service,
+        }
     }
 
     pub async fn process_withdrawal(&self, withdrawal_id: &str) -> Result<(), ServiceError> {
         tracing::info!("Starting processing for withdrawal: {}", withdrawal_id);
-        
+
         // 1. Fetch the withdrawal with FOR UPDATE lock inside a transaction
         let mut tx = self.db_pool.begin().await?;
-        
+
         let withdrawal = sqlx::query(
             r#"
             SELECT id, withdrawal_id, merchant_id, crypto_type, amount, destination_address, status, sandbox_mode
@@ -43,8 +51,14 @@ impl WithdrawalProcessor {
         let wd_sandbox_mode: bool = withdrawal.get("sandbox_mode");
 
         if wd_status != "PENDING" {
-            tracing::warn!("Withdrawal {} requested for processing but has status {}", withdrawal_id, wd_status);
-            return Err(ServiceError::ValidationError("Withdrawal already processed or processing".to_string()));
+            tracing::warn!(
+                "Withdrawal {} requested for processing but has status {}",
+                withdrawal_id,
+                wd_status
+            );
+            return Err(ServiceError::ValidationError(
+                "Withdrawal already processed or processing".to_string(),
+            ));
         }
 
         // Atomically set state to PROCESSING to lock it against concurrent handlers
@@ -57,17 +71,20 @@ impl WithdrawalProcessor {
         tx.commit().await?;
 
         tracing::debug!(
-            "Withdrawal {}: merchant={}, crypto={}, amount={}, sandbox={}", 
-            withdrawal_id, wd_merchant_id, wd_crypto_type, wd_amount, wd_sandbox_mode
+            "Withdrawal {}: merchant={}, crypto={}, amount={}, sandbox={}",
+            withdrawal_id,
+            wd_merchant_id,
+            wd_crypto_type,
+            wd_amount,
+            wd_sandbox_mode
         );
 
         // 2. Determine Source Wallet
-        let customer_tx = sqlx::query(
-            "SELECT customer_id FROM customer_transactions WHERE reference_id = $1"
-        )
-        .bind(withdrawal_id)
-        .fetch_optional(&self.db_pool)
-        .await?;
+        let customer_tx =
+            sqlx::query("SELECT customer_id FROM customer_transactions WHERE reference_id = $1")
+                .bind(withdrawal_id)
+                .fetch_optional(&self.db_pool)
+                .await?;
 
         let mut wd_fee = Decimal::ZERO;
         if let Some(fee_val) = withdrawal.try_get::<Decimal, _>("fee").ok() {
@@ -88,15 +105,17 @@ impl WithdrawalProcessor {
                 SELECT address, encrypted_private_key 
                 FROM merchant_customer_wallets 
                 WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND address != ''
-                "#
+                "#,
             )
             .bind(customer_id)
             .bind(&wd_crypto_type)
             .bind(wd_sandbox_mode)
             .fetch_optional(&self.db_pool)
             .await?
-            .ok_or_else(|| ServiceError::NotFound("Customer wallet not found for sweep".to_string()))?;
-            
+            .ok_or_else(|| {
+                ServiceError::NotFound("Customer wallet not found for sweep".to_string())
+            })?;
+
             encrypted_key_opt = c_wallet.get("encrypted_private_key");
             source_address = c_wallet.get("address");
 
@@ -130,20 +149,39 @@ impl WithdrawalProcessor {
                     if let Some(m_enc) = mw.get::<Option<String>, _>("encrypted_private_key") {
                         if let Ok(encryption) = Encryption::new() {
                             if let Ok(m_priv) = encryption.decrypt(&m_enc) {
-                                let native_enum = CryptoType::from_string(native_crypto_str).unwrap_or(CryptoType::Eth);
-                                
-                                match sender.send_transaction(native_enum, &m_priv, &source_address, wd_fee, None, wd_sandbox_mode).await {
+                                let native_enum = CryptoType::from_string(native_crypto_str)
+                                    .unwrap_or(CryptoType::Eth);
+
+                                match sender
+                                    .send_transaction(
+                                        native_enum,
+                                        &m_priv,
+                                        &source_address,
+                                        wd_fee,
+                                        None,
+                                        wd_sandbox_mode,
+                                    )
+                                    .await
+                                {
                                     Ok(gas_tx) => {
                                         tracing::info!("Merchant Gas funded successfully, tx: {}. Waiting 15s...", gas_tx);
-                                        tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
-                                    },
-                                    Err(e) => tracing::error!("Merchant Auto-fund failed securely: {}", e),
+                                        tokio::time::sleep(tokio::time::Duration::from_secs(15))
+                                            .await;
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("Merchant Auto-fund failed securely: {}", e)
+                                    }
                                 }
                             }
                         }
                     }
                 } else {
-                    tracing::warn!("Merchant {} has no {} master wallet configured for auto-funding sweep {}", wd_merchant_id, native_crypto_str, withdrawal_id);
+                    tracing::warn!(
+                        "Merchant {} has no {} master wallet configured for auto-funding sweep {}",
+                        wd_merchant_id,
+                        native_crypto_str,
+                        withdrawal_id
+                    );
                 }
             }
         } else {
@@ -153,27 +191,36 @@ impl WithdrawalProcessor {
                 SELECT address, encrypted_private_key 
                 FROM merchant_wallets 
                 WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND address != ''
-                "#
+                "#,
             )
             .bind(wd_merchant_id)
             .bind(&wd_crypto_type)
             .bind(wd_sandbox_mode)
             .fetch_optional(&self.db_pool)
             .await?
-            .ok_or_else(|| ServiceError::NotFound("Merchant wallet not found or not configured".to_string()))?;
-            
+            .ok_or_else(|| {
+                ServiceError::NotFound("Merchant wallet not found or not configured".to_string())
+            })?;
+
             encrypted_key_opt = m_wallet.get("encrypted_private_key");
             source_address = m_wallet.get("address");
         }
 
-        let encrypted_key = encrypted_key_opt
-            .ok_or_else(|| ServiceError::ValidationError("Source wallet has no private key available".to_string()))?;
+        let encrypted_key = encrypted_key_opt.ok_or_else(|| {
+            ServiceError::ValidationError("Source wallet has no private key available".to_string())
+        })?;
 
         // 3. Decrypt the private key
         let encryption = Encryption::new().map_err(|e| ServiceError::Internal(e))?;
-        let private_key = encryption.decrypt(&encrypted_key).map_err(|e| ServiceError::Internal(e))?;
+        let private_key = encryption
+            .decrypt(&encrypted_key)
+            .map_err(|e| ServiceError::Internal(e))?;
 
-        tracing::info!("Blockchain submission started for withdrawal {} to address {}", withdrawal_id, wd_destination_address);
+        tracing::info!(
+            "Blockchain submission started for withdrawal {} to address {}",
+            withdrawal_id,
+            wd_destination_address
+        );
 
         // 4. Send the transaction on-chain
         if wd_destination_address == "Internal Ledger" {
@@ -186,47 +233,70 @@ impl WithdrawalProcessor {
         }
 
         let sender = BlockchainTransactionSender::new(self.config.clone());
-        let tx_hash = match sender.send_transaction(
-            crypto_type_enum,
-            &private_key,
-            &wd_destination_address,
-            wd_amount,
-            None,
-            wd_sandbox_mode,
-        ).await {
+        let tx_hash = match sender
+            .send_transaction(
+                crypto_type_enum,
+                &private_key,
+                &wd_destination_address,
+                wd_amount,
+                None,
+                wd_sandbox_mode,
+            )
+            .await
+        {
             Ok(hash) => {
-                tracing::info!("Withdrawal {} submitted successfully. TX Hash: {}", withdrawal_id, hash);
-                
+                tracing::info!(
+                    "Withdrawal {} submitted successfully. TX Hash: {}",
+                    withdrawal_id,
+                    hash
+                );
+
                 // Create successful notification
-                let _ = self.notification_service.create_notification(
-                    wd_merchant_id,
-                    "Withdrawal Completed",
-                    &format!("Your withdrawal of {} {} has been submitted successfully.", wd_amount, wd_crypto_type),
-                    "success",
-                    "withdrawal.completed",
-                    wd_sandbox_mode
-                ).await;
+                let _ = self
+                    .notification_service
+                    .create_notification(
+                        wd_merchant_id,
+                        "Withdrawal Completed",
+                        &format!(
+                            "Your withdrawal of {} {} has been submitted successfully.",
+                            wd_amount, wd_crypto_type
+                        ),
+                        "success",
+                        "withdrawal.completed",
+                        wd_sandbox_mode,
+                    )
+                    .await;
 
                 hash
-            },
+            }
             Err(e) => {
                 // If it fails on-chain, reject the withdrawal with the error
-                tracing::error!("Withdrawal {} on-chain submission FAILED: {}", withdrawal_id, e);
+                tracing::error!(
+                    "Withdrawal {} on-chain submission FAILED: {}",
+                    withdrawal_id,
+                    e
+                );
                 let error_msg = e.to_string();
 
                 // Create error notification
-                let _ = self.notification_service.create_notification(
-                    wd_merchant_id,
-                    "Withdrawal Failed",
-                    &format!("Your withdrawal of {} {} failed: {}", wd_amount, wd_crypto_type, error_msg),
-                    "error",
-                    "withdrawal.failed",
-                    wd_sandbox_mode
-                ).await;
-                
+                let _ = self
+                    .notification_service
+                    .create_notification(
+                        wd_merchant_id,
+                        "Withdrawal Failed",
+                        &format!(
+                            "Your withdrawal of {} {} failed: {}",
+                            wd_amount, wd_crypto_type, error_msg
+                        ),
+                        "error",
+                        "withdrawal.failed",
+                        wd_sandbox_mode,
+                    )
+                    .await;
+
                 // Lookup IF this withdrawal belongs to a Customer Transaction
                 let customer_id: Option<i64> = sqlx::query_scalar::<_, i64>(
-                    "SELECT customer_id FROM customer_transactions WHERE reference_id = $1"
+                    "SELECT customer_id FROM customer_transactions WHERE reference_id = $1",
                 )
                 .bind(withdrawal_id)
                 .fetch_optional(&self.db_pool)
@@ -235,11 +305,22 @@ impl WithdrawalProcessor {
 
                 if let Some(c_id) = customer_id {
                     // REFUND Customer Ledger (inverse of lock: lock -, avail +)
-                    if let Err(refund_err) = self.refund_customer_balance(c_id, &wd_crypto_type, wd_amount, wd_sandbox_mode).await {
+                    if let Err(refund_err) = self
+                        .refund_customer_balance(c_id, &wd_crypto_type, wd_amount, wd_sandbox_mode)
+                        .await
+                    {
                         tracing::error!("CRITICAL: Automatic customer refund FAILED for withdrawal {}: {}. Manual intervention required.", withdrawal_id, refund_err);
-                        error_msg = format!("{} [REFUND FAILED - Manual Intervention Required]", error_msg);
+                        error_msg = format!(
+                            "{} [REFUND FAILED - Manual Intervention Required]",
+                            error_msg
+                        );
                     } else {
-                        tracing::info!("Refunded {} {} to customer {} ledger after failed withdrawal", wd_amount, &wd_crypto_type, c_id);
+                        tracing::info!(
+                            "Refunded {} {} to customer {} ledger after failed withdrawal",
+                            wd_amount,
+                            &wd_crypto_type,
+                            c_id
+                        );
                     }
 
                     // Set customer transaction failure status
@@ -249,11 +330,31 @@ impl WithdrawalProcessor {
                         .await;
                 } else {
                     // Merchant ledger refund fallback
-                    if let Err(refund_err) = self.refund_withdrawal_balance(wd_merchant_id, &wd_crypto_type, wd_amount, wd_sandbox_mode).await {
-                        tracing::error!("CRITICAL: Failed to refund balance for failed withdrawal {}: {}", withdrawal_id, refund_err);
-                        error_msg = format!("{} [REFUND FAILED - Manual Intervention Required]", error_msg);
+                    if let Err(refund_err) = self
+                        .refund_withdrawal_balance(
+                            wd_merchant_id,
+                            &wd_crypto_type,
+                            wd_amount,
+                            wd_sandbox_mode,
+                        )
+                        .await
+                    {
+                        tracing::error!(
+                            "CRITICAL: Failed to refund balance for failed withdrawal {}: {}",
+                            withdrawal_id,
+                            refund_err
+                        );
+                        error_msg = format!(
+                            "{} [REFUND FAILED - Manual Intervention Required]",
+                            error_msg
+                        );
                     } else {
-                        tracing::info!("Refunded {} {} to merchant {} ledger after failed withdrawal", wd_amount, wd_crypto_type, wd_merchant_id);
+                        tracing::info!(
+                            "Refunded {} {} to merchant {} ledger after failed withdrawal",
+                            wd_amount,
+                            wd_crypto_type,
+                            wd_merchant_id
+                        );
                     }
                 }
 
@@ -275,24 +376,27 @@ impl WithdrawalProcessor {
         .execute(&self.db_pool)
         .await?;
 
-        tracing::info!("Withdrawal {} fully completed and recorded in DB", withdrawal_id);
+        tracing::info!(
+            "Withdrawal {} fully completed and recorded in DB",
+            withdrawal_id
+        );
 
         Ok(())
     }
 
     pub async fn refund_withdrawal_balance(
-        &self, 
-        merchant_id: i64, 
-        crypto_type: &str, 
+        &self,
+        merchant_id: i64,
+        crypto_type: &str,
         amount: Decimal,
-        sandbox_mode: bool
+        sandbox_mode: bool,
     ) -> Result<(), ServiceError> {
         sqlx::query(
             r#"
             UPDATE merchant_balances 
             SET available_balance = available_balance + $1, last_updated = NOW()
             WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
-            "#
+            "#,
         )
         .bind(amount)
         .bind(merchant_id)
@@ -305,11 +409,11 @@ impl WithdrawalProcessor {
     }
 
     pub async fn refund_customer_balance(
-        &self, 
-        customer_id: i64, 
-        crypto_type: &str, 
+        &self,
+        customer_id: i64,
+        crypto_type: &str,
         amount: Decimal,
-        sandbox_mode: bool
+        sandbox_mode: bool,
     ) -> Result<(), ServiceError> {
         sqlx::query(
             r#"
@@ -328,7 +432,11 @@ impl WithdrawalProcessor {
         Ok(())
     }
 
-    pub async fn reject_withdrawal(&self, withdrawal_id: &str, reason: &str) -> Result<(), ServiceError> {
+    pub async fn reject_withdrawal(
+        &self,
+        withdrawal_id: &str,
+        reason: &str,
+    ) -> Result<(), ServiceError> {
         sqlx::query(
             "UPDATE withdrawals SET status = 'REJECTED', rejection_reason = $1, updated_at = NOW() WHERE withdrawal_id = $2"
         )

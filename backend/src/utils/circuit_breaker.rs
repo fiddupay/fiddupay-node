@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use tracing::{warn, info};
+use tracing::{info, warn};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CircuitState {

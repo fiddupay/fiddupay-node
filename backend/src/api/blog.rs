@@ -1,6 +1,6 @@
+use crate::api::state::AppState;
 use axum::{extract::State, http::StatusCode, response::Json};
 use serde::{Deserialize, Serialize};
-use crate::api::state::AppState;
 
 #[derive(Serialize, Deserialize)]
 pub struct BlogPost {

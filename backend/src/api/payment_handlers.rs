@@ -3,16 +3,16 @@
 
 use crate::api::state::AppState;
 use crate::middleware::auth::MerchantContext;
-use crate::payment::models::{CreatePaymentRequest, PaymentFilters, CryptoType};
+use crate::payment::models::{CreatePaymentRequest, CryptoType, PaymentFilters};
 use axum::{
     extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Json},
 };
-use serde::Deserialize;
-use serde_json::json;
 use html_escape::encode_text;
 use rust_decimal::Decimal;
+use serde::Deserialize;
+use serde_json::json;
 use sqlx::Row;
 
 // ============================================================================
@@ -35,21 +35,28 @@ pub async fn create_payment(
         ).into_response();
     }
 
-    match state.payment_service.create_payment(context.merchant_id, req).await {
+    match state
+        .payment_service
+        .create_payment(context.merchant_id, req)
+        .await
+    {
         Ok(response) => {
             // Log audit event
-            let _ = state.audit_service.log_event(
-                context.merchant_id,
-                "payment_creation",
-                Some(&format!("Created payment request {}", response.payment_id)),
-                Some(json!({
-                    "payment_id": response.payment_id,
-                    "amount_usd": response.amount_usd
-                }))
-            ).await;
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "payment_creation",
+                    Some(&format!("Created payment request {}", response.payment_id)),
+                    Some(json!({
+                        "payment_id": response.payment_id,
+                        "amount_usd": response.amount_usd
+                    })),
+                )
+                .await;
 
             (StatusCode::CREATED, Json(response)).into_response()
-        },
+        }
         Err(e) => e.into_response(),
     }
 }
@@ -59,7 +66,11 @@ pub async fn get_payment(
     Extension(context): Extension<MerchantContext>,
     Path(payment_id): Path<String>,
 ) -> impl IntoResponse {
-    match state.payment_service.get_payment(&payment_id, context.merchant_id).await {
+    match state
+        .payment_service
+        .get_payment(&payment_id, context.merchant_id)
+        .await
+    {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(e) => e.into_response(),
     }
@@ -70,18 +81,29 @@ pub async fn cancel_payment(
     Extension(context): Extension<MerchantContext>,
     Path(payment_id): Path<String>,
 ) -> impl IntoResponse {
-    match state.payment_service.cancel_payment(context.merchant_id, &payment_id).await {
+    match state
+        .payment_service
+        .cancel_payment(context.merchant_id, &payment_id)
+        .await
+    {
         Ok(_) => {
             // Log audit event
-            let _ = state.audit_service.log_event(
-                context.merchant_id,
-                "payment_cancellation",
-                Some(&format!("Cancelled payment request {}", payment_id)),
-                Some(json!({"payment_id": payment_id}))
-            ).await;
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "payment_cancellation",
+                    Some(&format!("Cancelled payment request {}", payment_id)),
+                    Some(json!({"payment_id": payment_id})),
+                )
+                .await;
 
-            (StatusCode::OK, Json(json!({"status": "success", "message": "Payment cancelled"}))).into_response()
-        },
+            (
+                StatusCode::OK,
+                Json(json!({"status": "success", "message": "Payment cancelled"})),
+            )
+                .into_response()
+        }
         Err(e) => e.into_response(),
     }
 }
@@ -97,22 +119,32 @@ pub async fn verify_payment(
     Path(payment_id): Path<String>,
     Json(req): Json<VerifyPaymentRequest>,
 ) -> impl IntoResponse {
-    match state.payment_service.verify_payment(&payment_id, &req.transaction_hash, context.merchant_id).await {
+    match state
+        .payment_service
+        .verify_payment(&payment_id, &req.transaction_hash, context.merchant_id)
+        .await
+    {
         Ok(confirmed) => {
             // Log audit event
-            let _ = state.audit_service.log_event(
-                context.merchant_id,
-                "payment_verification",
-                Some(&format!("Triggered verification for payment {}. Confirmed: {}", payment_id, confirmed)),
-                Some(json!({
-                    "payment_id": payment_id,
-                    "transaction_hash": req.transaction_hash,
-                    "confirmed": confirmed
-                }))
-            ).await;
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "payment_verification",
+                    Some(&format!(
+                        "Triggered verification for payment {}. Confirmed: {}",
+                        payment_id, confirmed
+                    )),
+                    Some(json!({
+                        "payment_id": payment_id,
+                        "transaction_hash": req.transaction_hash,
+                        "confirmed": confirmed
+                    })),
+                )
+                .await;
 
             (StatusCode::OK, Json(json!({"confirmed": confirmed}))).into_response()
-        },
+        }
         Err(e) => e.into_response(),
     }
 }
@@ -123,7 +155,11 @@ pub async fn list_payments(
     Query(mut filters): Query<PaymentFilters>,
 ) -> impl IntoResponse {
     filters.is_sandbox = Some(context.sandbox_mode);
-    match state.payment_service.list_payments(context.merchant_id, filters).await {
+    match state
+        .payment_service
+        .list_payments(context.merchant_id, filters)
+        .await
+    {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(e) => e.into_response(),
     }
@@ -145,23 +181,38 @@ pub async fn create_refund(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<CreateRefundRequest>,
 ) -> impl IntoResponse {
-    match state.refund_service.create_refund(context.merchant_id, req.payment_id, req.amount, req.reason).await {
+    match state
+        .refund_service
+        .create_refund(context.merchant_id, req.payment_id, req.amount, req.reason)
+        .await
+    {
         Ok(response) => {
             // Log refund creation and trace
-            let _ = state.audit_service.log_event(
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "refund_creation",
+                    Some(&format!(
+                        "Created refund for payment {}",
+                        response.payment_id
+                    )),
+                    Some(json!({
+                        "refund_id": response.refund_id,
+                        "payment_id": response.payment_id,
+                        "amount": response.amount
+                    })),
+                )
+                .await;
+            tracing::info!(
+                "EVENT: refund_creation | Merchant: {} | Payment: {} | Refund: {}",
                 context.merchant_id,
-                "refund_creation",
-                Some(&format!("Created refund for payment {}", response.payment_id)),
-                Some(json!({
-                    "refund_id": response.refund_id,
-                    "payment_id": response.payment_id,
-                    "amount": response.amount
-                }))
-            ).await;
-            tracing::info!("EVENT: refund_creation | Merchant: {} | Payment: {} | Refund: {}", context.merchant_id, response.payment_id, response.refund_id);
+                response.payment_id,
+                response.refund_id
+            );
 
             (StatusCode::CREATED, Json(response)).into_response()
-        },
+        }
         Err(e) => e.into_response(),
     }
 }
@@ -187,22 +238,33 @@ pub async fn complete_refund(
     Path(refund_id): Path<String>,
     Json(req): Json<CompleteRefundRequest>,
 ) -> impl IntoResponse {
-    match state.refund_service.complete_refund(refund_id.clone(), req.transaction_hash.clone()).await {
+    match state
+        .refund_service
+        .complete_refund(refund_id.clone(), req.transaction_hash.clone())
+        .await
+    {
         Ok(_) => {
             // Log refund completion and trace
-            let _ = state.audit_service.log_event(
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "refund_completion",
+                    Some(&format!("Completed refund {}", refund_id)),
+                    Some(json!({
+                        "refund_id": refund_id,
+                        "transaction_hash": req.transaction_hash
+                    })),
+                )
+                .await;
+            tracing::info!(
+                "EVENT: refund_completion | Merchant: {} | Refund: {}",
                 context.merchant_id,
-                "refund_completion",
-                Some(&format!("Completed refund {}", refund_id)),
-                Some(json!({
-                    "refund_id": refund_id,
-                    "transaction_hash": req.transaction_hash
-                }))
-            ).await;
-            tracing::info!("EVENT: refund_completion | Merchant: {} | Refund: {}", context.merchant_id, refund_id);
+                refund_id
+            );
 
             (StatusCode::OK, Json(json!({"success": true}))).into_response()
-        },
+        }
         Err(e) => e.into_response(),
     }
 }
@@ -221,17 +283,20 @@ pub async fn list_refunds(
     let limit = params.limit.unwrap_or(50).min(100).max(1);
     let offset = params.offset.unwrap_or(0).max(0);
 
-    match state.refund_service.list_refunds(
-        context.merchant_id,
-        limit,
-        offset,
-        context.sandbox_mode
-    ).await {
-        Ok((refunds, total)) => (StatusCode::OK, Json(json!({
-            "refunds": refunds,
-            "total": total,
-            "has_more": (offset + limit) < total
-        }))).into_response(),
+    match state
+        .refund_service
+        .list_refunds(context.merchant_id, limit, offset, context.sandbox_mode)
+        .await
+    {
+        Ok((refunds, total)) => (
+            StatusCode::OK,
+            Json(json!({
+                "refunds": refunds,
+                "total": total,
+                "has_more": (offset + limit) < total
+            })),
+        )
+            .into_response(),
         Err(e) => e.into_response(),
     }
 }
@@ -253,26 +318,46 @@ pub async fn simulate_payment(
     Path(payment_id): Path<String>,
     Json(req): Json<SimulatePaymentRequest>,
 ) -> impl IntoResponse {
-    match state.sandbox_service.simulate_confirmation(&payment_id, context.merchant_id, req.success, req.transaction_hash.clone(), req.from_address.clone()).await {
+    match state
+        .sandbox_service
+        .simulate_confirmation(
+            &payment_id,
+            context.merchant_id,
+            req.success,
+            req.transaction_hash.clone(),
+            req.from_address.clone(),
+        )
+        .await
+    {
         Ok(_) => {
             // Log audit event
-            let _ = state.audit_service.log_event(
-                context.merchant_id,
-                "payment_simulation",
-                Some(&format!("Simulated payment {} (success: {})", payment_id, req.success)),
-                Some(json!({
-                    "payment_id": payment_id,
-                    "success": req.success,
-                    "transaction_hash": req.transaction_hash
-                }))
-            ).await;
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "payment_simulation",
+                    Some(&format!(
+                        "Simulated payment {} (success: {})",
+                        payment_id, req.success
+                    )),
+                    Some(json!({
+                        "payment_id": payment_id,
+                        "success": req.success,
+                        "transaction_hash": req.transaction_hash
+                    })),
+                )
+                .await;
 
             if req.success {
-                (StatusCode::OK, Json(json!({"success": true, "message": "Payment simulated successfully"}))).into_response()
+                (
+                    StatusCode::OK,
+                    Json(json!({"success": true, "message": "Payment simulated successfully"})),
+                )
+                    .into_response()
             } else {
                 (StatusCode::OK, Json(json!({"success": true, "message": "Payment simulation failed as requested"}))).into_response()
             }
-        },
+        }
         Err(e) => e.into_response(),
     }
 }
@@ -291,25 +376,34 @@ pub async fn payment_page(
     }
 
     use axum::response::Html;
-    
+
     // 1. Try to look up by link_id in payment_links (vanity/shareable links)
-    let (internal_id, public_id) = match sqlx::query(
-        "SELECT payment_id FROM payment_links WHERE link_id = $1"
-    )
-    .bind(&link_id)
-    .fetch_optional(&state.db_pool)
-    .await
-    {
-        Ok(Some(link)) => (Some(link.get::<i64, _>("payment_id")), None),
-        Ok(None) => {
-            if link_id.starts_with("pay_") {
-                (None, Some(link_id.clone()))
-            } else {
-                return (StatusCode::NOT_FOUND, Html("Payment link not found".to_string())).into_response();
+    let (internal_id, public_id) =
+        match sqlx::query("SELECT payment_id FROM payment_links WHERE link_id = $1")
+            .bind(&link_id)
+            .fetch_optional(&state.db_pool)
+            .await
+        {
+            Ok(Some(link)) => (Some(link.get::<i64, _>("payment_id")), None),
+            Ok(None) => {
+                if link_id.starts_with("pay_") {
+                    (None, Some(link_id.clone()))
+                } else {
+                    return (
+                        StatusCode::NOT_FOUND,
+                        Html("Payment link not found".to_string()),
+                    )
+                        .into_response();
+                }
             }
-        },
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("Error: {}", e))).into_response(),
-    };
+            Err(e) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Html(format!("Error: {}", e)),
+                )
+                    .into_response()
+            }
+        };
 
     // 3. Get payment details
     let payment_res = sqlx::query(
@@ -320,7 +414,7 @@ pub async fn payment_page(
                last_verification_at
         FROM payment_transactions 
         WHERE id = $1 OR payment_id = $2
-        "#
+        "#,
     )
     .bind(internal_id)
     .bind(&public_id)
@@ -329,8 +423,16 @@ pub async fn payment_page(
 
     let payment = match payment_res {
         Ok(Some(p)) => p,
-        Ok(None) => return (StatusCode::NOT_FOUND, Html("Payment not found".to_string())).into_response(),
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("Error: {}", e))).into_response(),
+        Ok(None) => {
+            return (StatusCode::NOT_FOUND, Html("Payment not found".to_string())).into_response()
+        }
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html(format!("Error: {}", e)),
+            )
+                .into_response()
+        }
     };
 
     let p_merchant_id: i64 = payment.get("merchant_id");
@@ -344,19 +446,20 @@ pub async fn payment_page(
     let p_fee_amount_usd: Decimal = payment.get("fee_amount_usd");
     let p_expires_at: chrono::DateTime<chrono::Utc> = payment.get("expires_at");
     let p_transaction_hash: Option<String> = payment.get("transaction_hash");
-    let p_last_verification_at: Option<chrono::DateTime<chrono::Utc>> = payment.get("last_verification_at");
+    let p_last_verification_at: Option<chrono::DateTime<chrono::Utc>> =
+        payment.get("last_verification_at");
 
     // Generate QR code for payment (only if selection is finished)
     let qr_code = if let (Some(ct_str), Some(addr)) = (&p_crypto_type, &p_to_address) {
         let ct = CryptoType::from_string(ct_str).unwrap_or(CryptoType::Sol);
         let prefix = ct.uri_scheme();
-        
+
         let qr_data = if let Some(amt) = p_amount {
             format!("{}:{}?amount={}", prefix, addr, amt)
         } else {
             format!("{}:{}", prefix, addr)
         };
-        
+
         match crate::utils::qr::generate_qr_code(&qr_data) {
             Ok(qr) => qr,
             Err(_) => "QR_ERROR".to_string(),
@@ -369,7 +472,11 @@ pub async fn payment_page(
     let now = chrono::Utc::now();
     let time_remaining = if p_expires_at > now {
         let duration = p_expires_at - now;
-        format!("{}m {}s", duration.num_minutes(), duration.num_seconds() % 60)
+        format!(
+            "{}m {}s",
+            duration.num_minutes(),
+            duration.num_seconds() % 60
+        )
     } else {
         "Expired".to_string()
     };
@@ -380,11 +487,12 @@ pub async fn payment_page(
     let is_confirming = p_status == "CONFIRMING";
     let is_confirmed = p_status == "CONFIRMED";
     let is_cancelled = p_status == "CANCELLED";
-    let is_expired = (p_status == "FAILED" || (p_expires_at < now)) && !is_confirmed && !is_cancelled;
+    let is_expired =
+        (p_status == "FAILED" || (p_expires_at < now)) && !is_confirmed && !is_cancelled;
 
     // Parallelize merchant info and supported currencies queries
     let merchant_info_fut = sqlx::query(
-        "SELECT sandbox_mode, redirect_url, customer_pays_fee FROM merchants WHERE id = $1"
+        "SELECT sandbox_mode, redirect_url, customer_pays_fee FROM merchants WHERE id = $1",
     )
     .bind(p_merchant_id)
     .fetch_optional(&state.db_pool);
@@ -407,13 +515,21 @@ pub async fn payment_page(
     };
 
     let (merchant_info_res, currencies_res) = tokio::join!(merchant_info_fut, currencies_fut);
-    
+
     let merchant_info = merchant_info_res.ok().flatten();
     let supported_currencies = currencies_res.unwrap_or_default();
-    
-    let sandbox = merchant_info.as_ref().map(|m| m.get::<bool, _>("sandbox_mode")).unwrap_or(false);
-    let redirect_url = merchant_info.as_ref().and_then(|m| m.get::<Option<String>, _>("redirect_url"));
-    let customer_pays_fee = merchant_info.as_ref().map(|m| m.get::<bool, _>("customer_pays_fee")).unwrap_or(true);
+
+    let sandbox = merchant_info
+        .as_ref()
+        .map(|m| m.get::<bool, _>("sandbox_mode"))
+        .unwrap_or(false);
+    let redirect_url = merchant_info
+        .as_ref()
+        .and_then(|m| m.get::<Option<String>, _>("redirect_url"));
+    let customer_pays_fee = merchant_info
+        .as_ref()
+        .map(|m| m.get::<bool, _>("customer_pays_fee"))
+        .unwrap_or(true);
 
     // Smart Verification: Trigger address scan in background if pending (respecting cooldown)
     if is_pending {
@@ -423,13 +539,23 @@ pub async fn payment_page(
         };
 
         if needs_verification {
-            tracing::info!("Triggering background smart verification for payment {}", link_id);
+            tracing::info!(
+                "Triggering background smart verification for payment {}",
+                link_id
+            );
             let p_id_clone = p_payment_id.clone();
             let m_id_clone = p_merchant_id;
             let svc_clone = state.payment_service.clone();
             tokio::spawn(async move {
-                if let Err(e) = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await {
-                    tracing::error!("Background smart verification failed for payment {}: {}", p_id_clone, e);
+                if let Err(e) = svc_clone
+                    .verify_payment_by_address(&p_id_clone, m_id_clone)
+                    .await
+                {
+                    tracing::error!(
+                        "Background smart verification failed for payment {}: {}",
+                        p_id_clone,
+                        e
+                    );
                 }
             });
         }
@@ -479,7 +605,9 @@ pub async fn payment_status(
     State(state): State<AppState>,
     Path(link_id): Path<String>,
 ) -> impl IntoResponse {
-    let payment_info: Result<Option<PaymentStatusInfo>, sqlx::Error> = if link_id.starts_with("pay_") {
+    let payment_info: Result<Option<PaymentStatusInfo>, sqlx::Error> = if link_id
+        .starts_with("pay_")
+    {
         sqlx::query_as::<_, PaymentStatusInfo>(
             "SELECT payment_id, merchant_id, status, last_verification_at FROM payment_transactions WHERE payment_id = $1"
         )
@@ -493,7 +621,7 @@ pub async fn payment_status(
             FROM payment_transactions pt
             JOIN payment_links pl ON pl.payment_id = pt.id
             WHERE pl.link_id = $1
-            "#
+            "#,
         )
         .bind(&link_id)
         .fetch_optional(&state.db_pool)
@@ -503,33 +631,49 @@ pub async fn payment_status(
     match payment_info {
         Ok(Some(payment)) => {
             let current_status = payment.status.clone();
-            
-            if current_status == "PENDING" || current_status == "CONFIRMING" {
-                 let needs_verification = match payment.last_verification_at {
-                     Some(last_v) => (chrono::Utc::now() - last_v) > chrono::Duration::seconds(20),
-                     None => true,
-                 };
 
-                  if needs_verification {
-                      let p_id_clone = payment.payment_id.clone();
-                      let m_id_clone = payment.merchant_id;
-                      let svc_clone = state.payment_service.clone();
-                      tokio::spawn(async move {
-                          if let Err(e) = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await {
-                              tracing::error!("Background status verification failed for payment {}: {}", p_id_clone, e);
-                          }
-                      });
-                  }
+            if current_status == "PENDING" || current_status == "CONFIRMING" {
+                let needs_verification = match payment.last_verification_at {
+                    Some(last_v) => (chrono::Utc::now() - last_v) > chrono::Duration::seconds(20),
+                    None => true,
+                };
+
+                if needs_verification {
+                    let p_id_clone = payment.payment_id.clone();
+                    let m_id_clone = payment.merchant_id;
+                    let svc_clone = state.payment_service.clone();
+                    tokio::spawn(async move {
+                        if let Err(e) = svc_clone
+                            .verify_payment_by_address(&p_id_clone, m_id_clone)
+                            .await
+                        {
+                            tracing::error!(
+                                "Background status verification failed for payment {}: {}",
+                                p_id_clone,
+                                e
+                            );
+                        }
+                    });
+                }
             }
 
             (
-                StatusCode::OK, 
+                StatusCode::OK,
                 [("Cache-Control", "no-cache, no-store, must-revalidate")],
-                Json(json!({"status": current_status}))
-            ).into_response()
-        },
-        Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+                Json(json!({"status": current_status})),
+            )
+                .into_response()
+        }
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(json!({"error": "Payment not found"})),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()})),
+        )
+            .into_response(),
     }
 }
 
@@ -548,19 +692,29 @@ pub async fn finalize_payment_selection(
     Json(req): Json<SelectionRequest>,
 ) -> impl IntoResponse {
     let pool = state.db_pool.clone();
-    
+
     // 1. Look up payment by link_id
-    let payment_link_res = sqlx::query(
-        "SELECT payment_id FROM payment_links WHERE link_id = $1"
-    )
-    .bind(&link_id)
-    .fetch_optional(&pool)
-    .await;
+    let payment_link_res = sqlx::query("SELECT payment_id FROM payment_links WHERE link_id = $1")
+        .bind(&link_id)
+        .fetch_optional(&pool)
+        .await;
 
     let payment_link = match payment_link_res {
         Ok(Some(link)) => link,
-        Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment link not found"}))).into_response(),
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Ok(None) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error": "Payment link not found"})),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": e.to_string()})),
+            )
+                .into_response()
+        }
     };
 
     let pl_payment_id: i64 = payment_link.get("payment_id");
@@ -576,7 +730,7 @@ pub async fn finalize_payment_selection(
                 total_paid, remaining_balance, is_non_custodial, last_verification_at, sandbox_mode
         FROM payment_transactions 
         WHERE id = $1
-        "#
+        "#,
     )
     .bind(pl_payment_id)
     .fetch_optional(&pool)
@@ -584,19 +738,39 @@ pub async fn finalize_payment_selection(
 
     let payment_record = match payment_record_res {
         Ok(Some(p)) => p,
-        Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Payment record not found"}))).into_response(),
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+        Ok(None) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error": "Payment record not found"})),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": e.to_string()})),
+            )
+                .into_response()
+        }
     };
 
     if payment_record.status != "SELECTION_REQUIRED" {
-        return (StatusCode::BAD_REQUEST, Json(json!({"error": "Payment currency already selected"}))).into_response();
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "Payment currency already selected"})),
+        )
+            .into_response();
     }
 
     // 3. Resolve crypto type and calculate amounts
     let crypto_type = req.crypto_type;
     let merchant_id = payment_record.merchant_id;
-    
-    let to_address = match state.merchant_service.get_wallet_address(merchant_id, crypto_type).await {
+
+    let to_address = match state
+        .merchant_service
+        .get_wallet_address(merchant_id, crypto_type)
+        .await
+    {
         Ok(addr) => addr,
         Err(e) => return e.into_response(),
     };
@@ -604,7 +778,9 @@ pub async fn finalize_payment_selection(
     let price_service = state.price_service.clone();
     let price = match price_service.get_price(crypto_type).await {
         Ok(p) => p,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e}))).into_response(),
+        Err(e) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e}))).into_response()
+        }
     };
     use rust_decimal::prelude::FromPrimitive;
     let price_decimal = Decimal::from_f64(price).unwrap_or(Decimal::ONE);
@@ -634,17 +810,27 @@ pub async fn finalize_payment_selection(
     }
 
     // Log audit event
-    let _ = state.audit_service.log_event(
-        payment_record.merchant_id,
-        "payment_selection_finalized",
-        Some(&format!("Finalized currency selection for payment {}", payment_record.payment_id)),
-        Some(json!({
-            "payment_id": payment_record.payment_id,
-            "crypto_type": crypto_type.to_string()
-        }))
-    ).await;
+    let _ = state
+        .audit_service
+        .log_event(
+            payment_record.merchant_id,
+            "payment_selection_finalized",
+            Some(&format!(
+                "Finalized currency selection for payment {}",
+                payment_record.payment_id
+            )),
+            Some(json!({
+                "payment_id": payment_record.payment_id,
+                "crypto_type": crypto_type.to_string()
+            })),
+        )
+        .await;
 
-    (StatusCode::OK, Json(json!({"message": "Selection finalized", "crypto_type": crypto_type.to_string()}))).into_response()
+    (
+        StatusCode::OK,
+        Json(json!({"message": "Selection finalized", "crypto_type": crypto_type.to_string()})),
+    )
+        .into_response()
 }
 
 /// Lightweight trigger to start a background verification scan
@@ -665,7 +851,7 @@ pub async fn verify_payment_trigger(
             FROM payment_transactions pt
             JOIN payment_links pl ON pl.payment_id = pt.id
             WHERE pl.link_id = $1
-            "#
+            "#,
         )
         .bind(&link_id)
         .fetch_optional(&state.db_pool)
@@ -679,7 +865,8 @@ pub async fn verify_payment_trigger(
             let p_status: String = row.get("status");
 
             if p_status == "PENDING" || p_status == "CONFIRMING" {
-                let last_v_opt: Option<chrono::DateTime<chrono::Utc>> = row.get("last_verification_at");
+                let last_v_opt: Option<chrono::DateTime<chrono::Utc>> =
+                    row.get("last_verification_at");
                 let needs_verification = match last_v_opt {
                     Some(last_v) => (chrono::Utc::now() - last_v) > chrono::Duration::seconds(5),
                     None => true,
@@ -690,17 +877,36 @@ pub async fn verify_payment_trigger(
                     let m_id_clone = p_merchant_id;
                     let svc_clone = state.payment_service.clone();
                     tokio::spawn(async move {
-                        if let Err(e) = svc_clone.verify_payment_by_address(&p_id_clone, m_id_clone).await {
-                            tracing::error!("Manual trigger verification failed for payment {}: {}", p_id_clone, e);
+                        if let Err(e) = svc_clone
+                            .verify_payment_by_address(&p_id_clone, m_id_clone)
+                            .await
+                        {
+                            tracing::error!(
+                                "Manual trigger verification failed for payment {}: {}",
+                                p_id_clone,
+                                e
+                            );
                         }
                     });
                 }
             }
 
-            (StatusCode::ACCEPTED, Json(json!({"status": "verification_started"}))).into_response()
-        },
-        Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Payment not found"}))).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))).into_response(),
+            (
+                StatusCode::ACCEPTED,
+                Json(json!({"status": "verification_started"})),
+            )
+                .into_response()
+        }
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(json!({"error": "Payment not found"})),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": e.to_string()})),
+        )
+            .into_response(),
     }
 }
 
@@ -734,7 +940,7 @@ struct PaymentPageData {
 
 fn render_payment_page(data: PaymentPageData) -> String {
     let template = include_str!("../../templates/payment_page.html");
-    
+
     let status_html = if data.is_confirmed {
         "✅ Confirmed"
     } else if data.is_confirming {
@@ -747,10 +953,13 @@ fn render_payment_page(data: PaymentPageData) -> String {
         "⏳ Pending"
     };
 
-    let currencies_json = data.supported_currencies.iter()
+    let currencies_json = data
+        .supported_currencies
+        .iter()
         .map(|(s, n)| json!({"symbol": s, "network": n}))
         .collect::<Vec<_>>();
-    let supported_currencies_json = serde_json::to_string(&currencies_json).unwrap_or_else(|_| "[]".to_string());
+    let supported_currencies_json =
+        serde_json::to_string(&currencies_json).unwrap_or_else(|_| "[]".to_string());
 
     let mut html = template
         .replace("{{payment_id}}", &encode_text(&data.payment_id))
@@ -763,26 +972,76 @@ fn render_payment_page(data: PaymentPageData) -> String {
         .replace("{{qr_code}}", &encode_text(&data.qr_code))
         .replace("{{time_remaining}}", &encode_text(&data.time_remaining))
         .replace("{{expires_at}}", &encode_text(&data.expires_at))
-        .replace("{{transaction_hash}}", &encode_text(&data.transaction_hash.unwrap_or_default()))
+        .replace(
+            "{{transaction_hash}}",
+            &encode_text(&data.transaction_hash.unwrap_or_default()),
+        )
         .replace("{{status_display}}", status_html)
-        .replace("{{redirect_url}}", &encode_text(&data.redirect_url.clone().unwrap_or_default()))
-        .replace("{{status}}", &encode_text(if data.is_confirmed { "CONFIRMED" } else if data.is_confirming { "CONFIRMING" } else if data.is_cancelled { "CANCELLED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" }))
-        .replace("{{is_confirmed_bool}}", if data.is_confirmed { "true" } else { "false" })
-        .replace("{{is_expired_bool}}", if data.is_expired { "true" } else { "false" })
-        .replace("{{is_selection_required_bool}}", if data.is_selection_required { "true" } else { "false" })
+        .replace(
+            "{{redirect_url}}",
+            &encode_text(&data.redirect_url.clone().unwrap_or_default()),
+        )
+        .replace(
+            "{{status}}",
+            &encode_text(if data.is_confirmed {
+                "CONFIRMED"
+            } else if data.is_confirming {
+                "CONFIRMING"
+            } else if data.is_cancelled {
+                "CANCELLED"
+            } else if data.is_expired {
+                "EXPIRED"
+            } else if data.is_selection_required {
+                "SELECTION_REQUIRED"
+            } else {
+                "PENDING"
+            }),
+        )
+        .replace(
+            "{{is_confirmed_bool}}",
+            if data.is_confirmed { "true" } else { "false" },
+        )
+        .replace(
+            "{{is_expired_bool}}",
+            if data.is_expired { "true" } else { "false" },
+        )
+        .replace(
+            "{{is_selection_required_bool}}",
+            if data.is_selection_required {
+                "true"
+            } else {
+                "false"
+            },
+        )
         .replace("{{supported_currencies_json}}", &supported_currencies_json);
 
-    let status = if data.is_confirmed { "CONFIRMED" } else if data.is_confirming { "CONFIRMING" } else if data.is_cancelled { "CANCELLED" } else if data.is_expired { "EXPIRED" } else if data.is_selection_required { "SELECTION_REQUIRED" } else { "PENDING" };
-    
+    let status = if data.is_confirmed {
+        "CONFIRMED"
+    } else if data.is_confirming {
+        "CONFIRMING"
+    } else if data.is_cancelled {
+        "CANCELLED"
+    } else if data.is_expired {
+        "EXPIRED"
+    } else if data.is_selection_required {
+        "SELECTION_REQUIRED"
+    } else {
+        "PENDING"
+    };
+
     html = toggle_status_block(&html, "PENDING", status == "PENDING");
     html = toggle_status_block(&html, "CONFIRMING", status == "CONFIRMING");
     html = toggle_status_block(&html, "CONFIRMED", status == "CONFIRMED");
     html = toggle_status_block(&html, "EXPIRED", status == "EXPIRED");
     html = toggle_status_block(&html, "CANCELLED", status == "CANCELLED");
     html = toggle_status_block(&html, "SELECTION_REQUIRED", status == "SELECTION_REQUIRED");
-    
+
     html = toggle_feature_block(&html, "sandbox", data.sandbox);
-    html = toggle_feature_block(&html, "fee_amount_usd", data.customer_pays_fee && !data.fee_amount_usd.is_empty() && data.fee_amount_usd != "0.00");
+    html = toggle_feature_block(
+        &html,
+        "fee_amount_usd",
+        data.customer_pays_fee && !data.fee_amount_usd.is_empty() && data.fee_amount_usd != "0.00",
+    );
     html = toggle_feature_block(&html, "redirect_url", data.redirect_url.is_some());
 
     html
@@ -800,15 +1059,15 @@ fn toggle_feature_block(html: &str, feature: &str, show: bool) -> String {
 fn toggle_named_conditional(html: &str, name: &str, show: bool) -> String {
     let start_tag = format!("{{{{#if_{}}}}}", name);
     let end_tag = format!("{{{{/if_{}}}}}", name);
-    
+
     let parts: Vec<&str> = html.split(&start_tag).collect();
     if parts.len() < 2 {
         return html.to_string();
     }
-    
+
     let mut result = String::new();
     result.push_str(parts[0]);
-    
+
     for part in parts.iter().skip(1) {
         if let Some(end_index) = part.find(&end_tag) {
             if show {
@@ -831,9 +1090,9 @@ fn toggle_named_conditional(html: &str, name: &str, show: bool) -> String {
 
 #[allow(dead_code)]
 fn generate_qr_code(data: &str) -> Result<String, Box<dyn std::error::Error>> {
-    use qrcode::QrCode;
     use base64::Engine;
     use image::{ImageBuffer, Luma};
+    use qrcode::QrCode;
     use std::io::Cursor;
 
     let code = QrCode::new(data.as_bytes())?;
@@ -857,6 +1116,6 @@ fn generate_qr_code(data: &str) -> Result<String, Box<dyn std::error::Error>> {
 
     let mut buffer = Cursor::new(Vec::new());
     image.write_to(&mut buffer, image::ImageFormat::Png)?;
-    
+
     Ok(base64::engine::general_purpose::STANDARD.encode(buffer.into_inner()))
 }

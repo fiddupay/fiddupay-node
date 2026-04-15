@@ -1,11 +1,11 @@
+use crate::config::Config;
+use crate::error::ServiceError;
+use crate::utils::encryption::Encryption;
+use crate::utils::keygen::KeyGenerator;
+use chrono::{DateTime, Duration, Utc};
+use serde::Serialize;
 use sqlx::{PgPool, Row};
 use std::sync::Arc;
-use crate::config::Config;
-use chrono::{DateTime, Utc, Duration};
-use serde::Serialize;
-use crate::error::ServiceError;
-use crate::utils::keygen::KeyGenerator;
-use crate::utils::encryption::Encryption;
 
 #[derive(Debug, Serialize)]
 pub struct DepositAddress {
@@ -27,8 +27,12 @@ impl DepositAddressService {
     pub fn new(pool: PgPool, config: Arc<Config>) -> Result<Self, ServiceError> {
         let encryption = Encryption::new()
             .map_err(|e| ServiceError::InternalError(format!("Encryption init failed: {}", e)))?;
-        
-        Ok(Self { pool, encryption, config })
+
+        Ok(Self {
+            pool,
+            encryption,
+            config,
+        })
     }
 
     /// Generate temporary deposit address for payment
@@ -50,7 +54,9 @@ impl DepositAddressService {
         let keypair = self.generate_keypair(crypto_type)?;
 
         // Encrypt private key
-        let private_key_encrypted = self.encryption.encrypt(&keypair.private_key)
+        let private_key_encrypted = self
+            .encryption
+            .encrypt(&keypair.private_key)
             .map_err(|e| ServiceError::InternalError(format!("Encryption failed: {}", e)))?;
 
         sqlx::query(
@@ -77,7 +83,10 @@ impl DepositAddressService {
         })
     }
 
-    pub async fn get_deposit_address(&self, payment_id: &str) -> Result<DepositAddress, ServiceError> {
+    pub async fn get_deposit_address(
+        &self,
+        payment_id: &str,
+    ) -> Result<DepositAddress, ServiceError> {
         let record = sqlx::query(
             "SELECT payment_id, crypto_type, deposit_address, merchant_destination, expires_at, status
              FROM deposit_addresses WHERE payment_id = $1"
@@ -99,7 +108,7 @@ impl DepositAddressService {
 
     pub async fn get_private_key(&self, payment_id: &str) -> Result<String, ServiceError> {
         let record = sqlx::query(
-            "SELECT private_key_encrypted FROM deposit_addresses WHERE payment_id = $1"
+            "SELECT private_key_encrypted FROM deposit_addresses WHERE payment_id = $1",
         )
         .bind(payment_id)
         .fetch_optional(&self.pool)
@@ -107,11 +116,16 @@ impl DepositAddressService {
         .ok_or_else(|| ServiceError::NotFound("Deposit address not found".to_string()))?;
 
         let private_key: String = record.get("private_key_encrypted");
-        self.encryption.decrypt(&private_key)
+        self.encryption
+            .decrypt(&private_key)
             .map_err(|e| ServiceError::InternalError(format!("Decryption failed: {}", e)))
     }
 
-    pub async fn mark_as_used(&self, payment_id: &str, forward_tx_hash: &str) -> Result<(), ServiceError> {
+    pub async fn mark_as_used(
+        &self,
+        payment_id: &str,
+        forward_tx_hash: &str,
+    ) -> Result<(), ServiceError> {
         sqlx::query(
             "UPDATE deposit_addresses SET status = 'USED', forwarded_at = NOW(), forward_tx_hash = $2
              WHERE payment_id = $1"
@@ -127,7 +141,7 @@ impl DepositAddressService {
     pub async fn expire_old_addresses(&self) -> Result<u64, ServiceError> {
         let result = sqlx::query(
             "UPDATE deposit_addresses SET status = 'EXPIRED'
-             WHERE expires_at < NOW() AND status = 'ACTIVE'"
+             WHERE expires_at < NOW() AND status = 'ACTIVE'",
         )
         .execute(&self.pool)
         .await?;
@@ -135,19 +149,21 @@ impl DepositAddressService {
         Ok(result.rows_affected())
     }
 
-    fn generate_keypair(&self, crypto_type: &str) -> Result<crate::utils::keygen::WalletKeyPair, ServiceError> {
+    fn generate_keypair(
+        &self,
+        crypto_type: &str,
+    ) -> Result<crate::utils::keygen::WalletKeyPair, ServiceError> {
         match crypto_type {
-            "SOL" | "USDT_SPL" => {
-                KeyGenerator::generate_solana_wallet()
-            }
-            "USDT_BEP20" | "USDT_ARBITRUM" | "USDT_POLYGON" => {
-                KeyGenerator::generate_evm_wallet()
-            }
+            "SOL" | "USDT_SPL" => KeyGenerator::generate_solana_wallet(),
+            "USDT_BEP20" | "USDT_ARBITRUM" | "USDT_POLYGON" => KeyGenerator::generate_evm_wallet(),
             "BTC" => {
                 let is_sandbox = self.config.bitcoin_rpc_url.contains("testnet");
                 KeyGenerator::generate_btc_wallet(is_sandbox)
             }
-            _ => Err(ServiceError::ValidationError(format!("Unsupported crypto type: {}", crypto_type)))
+            _ => Err(ServiceError::ValidationError(format!(
+                "Unsupported crypto type: {}",
+                crypto_type
+            ))),
         }
     }
 }

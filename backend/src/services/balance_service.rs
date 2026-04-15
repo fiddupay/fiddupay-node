@@ -57,7 +57,7 @@ impl BalanceService {
                 last_updated
             FROM merchant_balances 
             WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3
-            "#
+            "#,
         )
         .bind(merchant_id)
         .bind(crypto_type.to_string())
@@ -65,23 +65,47 @@ impl BalanceService {
         .fetch_optional(&self.db_pool)
         .await?;
 
-        let total = balance_record.as_ref()
-            .and_then(|r| r.try_get::<Option<Decimal>, _>("total_balance").ok().flatten())
+        let total = balance_record
+            .as_ref()
+            .and_then(|r| {
+                r.try_get::<Option<Decimal>, _>("total_balance")
+                    .ok()
+                    .flatten()
+            })
             .unwrap_or(Decimal::ZERO);
-        let available = balance_record.as_ref()
-            .and_then(|r| r.try_get::<Option<Decimal>, _>("available_balance").ok().flatten())
+        let available = balance_record
+            .as_ref()
+            .and_then(|r| {
+                r.try_get::<Option<Decimal>, _>("available_balance")
+                    .ok()
+                    .flatten()
+            })
             .unwrap_or(Decimal::ZERO);
-        let pending = balance_record.as_ref()
-            .and_then(|r| r.try_get::<Option<Decimal>, _>("reserved_balance").ok().flatten())
+        let pending = balance_record
+            .as_ref()
+            .and_then(|r| {
+                r.try_get::<Option<Decimal>, _>("reserved_balance")
+                    .ok()
+                    .flatten()
+            })
             .unwrap_or(Decimal::ZERO);
-        let last_updated = balance_record.as_ref()
-            .and_then(|r| r.try_get::<Option<DateTime<Utc>>, _>("last_updated").ok().flatten())
+        let last_updated = balance_record
+            .as_ref()
+            .and_then(|r| {
+                r.try_get::<Option<DateTime<Utc>>, _>("last_updated")
+                    .ok()
+                    .flatten()
+            })
             .unwrap_or_else(Utc::now);
 
         // Get current USD value
-        let price: f64 = self.price_service.get_price(crypto_type).await.unwrap_or(0.0);
+        let price: f64 = self
+            .price_service
+            .get_price(crypto_type)
+            .await
+            .unwrap_or(0.0);
         let price_decimal = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
-        
+
         let available_usd = available * price_decimal;
         let reserved_usd = pending * price_decimal;
         let balance_usd = available_usd;
@@ -98,7 +122,11 @@ impl BalanceService {
         })
     }
 
-    pub async fn get_all_balances(&self, merchant_id: i64, sandbox_mode: bool) -> Result<BalanceSummary, ServiceError> {
+    pub async fn get_all_balances(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+    ) -> Result<BalanceSummary, ServiceError> {
         let crypto_types = vec![
             CryptoType::Sol,
             CryptoType::WSol,
@@ -127,13 +155,13 @@ impl BalanceService {
 
         for result in results {
             if let Ok(balance) = result {
-                 total_available_usd += balance.available_usd;
-                 total_reserved_usd += balance.reserved_usd;
-                 
-                 // Only include non-zero balances
-                 if balance.total_balance > Decimal::ZERO {
-                     balances.push(balance);
-                 }
+                total_available_usd += balance.available_usd;
+                total_reserved_usd += balance.reserved_usd;
+
+                // Only include non-zero balances
+                if balance.total_balance > Decimal::ZERO {
+                    balances.push(balance);
+                }
             }
         }
 
@@ -156,7 +184,8 @@ impl BalanceService {
         sandbox_mode: bool,
     ) -> Result<(), ServiceError> {
         // Ensure balance record exists
-        self.initialize_balance(merchant_id, crypto_type, sandbox_mode).await?;
+        self.initialize_balance(merchant_id, crypto_type, sandbox_mode)
+            .await?;
 
         match balance_type {
             "available" => {
@@ -166,7 +195,7 @@ impl BalanceService {
                     SET available_balance = available_balance + $1,
                         last_updated = $2
                     WHERE merchant_id = $3 AND crypto_type = $4 AND sandbox_mode = $5
-                    "#
+                    "#,
                 )
                 .bind(amount_change)
                 .bind(Utc::now())
@@ -184,7 +213,7 @@ impl BalanceService {
                         
                         last_updated = $2
                     WHERE merchant_id = $3 AND crypto_type = $4 AND sandbox_mode = $5
-                    "#
+                    "#,
                 )
                 .bind(amount_change)
                 .bind(Utc::now())
@@ -200,7 +229,7 @@ impl BalanceService {
                     UPDATE merchant_balances 
                     SET last_updated = $1
                     WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
-                    "#
+                    "#,
                 )
                 .bind(Utc::now())
                 .bind(merchant_id)
@@ -211,7 +240,7 @@ impl BalanceService {
             }
             _ => {
                 return Err(ServiceError::ValidationError(
-                    "Invalid balance type".to_string()
+                    "Invalid balance type".to_string(),
                 ));
             }
         }
@@ -233,7 +262,7 @@ impl BalanceService {
                 available_balance = available_balance + $1,
                 last_updated = $2
             WHERE merchant_id = $3 AND crypto_type = $4 AND sandbox_mode = $5
-            "#
+            "#,
         )
         .bind(amount)
         .bind(Utc::now())
@@ -318,9 +347,21 @@ impl BalanceService {
             .fetch_one(&self.db_pool)
             .await?;
 
-            let confirmed_balance: Decimal = balance_data.try_get::<Option<Decimal>, _>("confirmed_total").ok().flatten().unwrap_or(Decimal::ZERO);
-            let reserved_balance: Decimal = balance_data.try_get::<Option<Decimal>, _>("pending_total").ok().flatten().unwrap_or(Decimal::ZERO);
-            let withdrawn: Decimal = withdrawal_data.try_get::<Option<Decimal>, _>("total_withdrawn").ok().flatten().unwrap_or(Decimal::ZERO);
+            let confirmed_balance: Decimal = balance_data
+                .try_get::<Option<Decimal>, _>("confirmed_total")
+                .ok()
+                .flatten()
+                .unwrap_or(Decimal::ZERO);
+            let reserved_balance: Decimal = balance_data
+                .try_get::<Option<Decimal>, _>("pending_total")
+                .ok()
+                .flatten()
+                .unwrap_or(Decimal::ZERO);
+            let withdrawn: Decimal = withdrawal_data
+                .try_get::<Option<Decimal>, _>("total_withdrawn")
+                .ok()
+                .flatten()
+                .unwrap_or(Decimal::ZERO);
 
             let available_balance = confirmed_balance - withdrawn;
             let _total_balance = available_balance + reserved_balance;

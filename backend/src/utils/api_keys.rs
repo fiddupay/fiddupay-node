@@ -6,13 +6,10 @@ pub struct ApiKeyGenerator;
 
 impl ApiKeyGenerator {
     const ALPHABET: [char; 62] = [
-        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
-        'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
-        'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd',
-        'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-        'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
-        'y', 'z',
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+        'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
+        's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
     ];
 
     /// Generate sandbox API key (sk_ prefix)
@@ -52,12 +49,22 @@ impl ApiKeyGenerator {
     /// Generate session API key (sk_sandbox_ or sk_live_ prefix)
     pub fn generate_session_key(merchant_id: i64, is_live: bool) -> String {
         let prefix = if is_live { "sk_live" } else { "sk_sandbox" };
-        format!("{}_{}_{}", prefix, merchant_id, nanoid!(24, &Self::ALPHABET))
+        format!(
+            "{}_{}_{}",
+            prefix,
+            merchant_id,
+            nanoid!(24, &Self::ALPHABET)
+        )
     }
 
     /// Generate publishable key for public frontends (pub_sandbox_ or pub_live_ prefix)
     pub fn generate_publishable_key(merchant_id: i64, is_live: bool) -> String {
         let prefix = if is_live { "pub_live" } else { "pub_sandbox" };
-        format!("{}_{}_{}", prefix, merchant_id, nanoid!(24, &Self::ALPHABET))
+        format!(
+            "{}_{}_{}",
+            prefix,
+            merchant_id,
+            nanoid!(24, &Self::ALPHABET)
+        )
     }
 }

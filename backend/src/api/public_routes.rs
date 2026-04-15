@@ -1,19 +1,16 @@
 use axum::{
-    extract::{State, Json, DefaultBodyLimit},
-    routing::{post},
-    Router,
+    extract::{DefaultBodyLimit, Json, State},
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
-    http::{StatusCode, HeaderMap},
+    routing::post,
+    Router,
 };
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::{
-    api::state::AppState,
-    payment::models::CryptoType,
-};
 use crate::payment::models::CreatePaymentRequest;
+use crate::{api::state::AppState, payment::models::CryptoType};
 
 #[derive(Debug, Deserialize)]
 pub struct PublicPaymentRequest {
@@ -27,9 +24,8 @@ pub struct PublicPaymentRequest {
 }
 
 pub fn public_routes(_state: AppState) -> Router<AppState> {
-    let api = Router::new()
-        .route("/payments/create", post(create_public_payment));
-        
+    let api = Router::new().route("/payments/create", post(create_public_payment));
+
     Router::new().nest("/api/v1/public", api)
 }
 
@@ -39,7 +35,6 @@ async fn create_public_payment(
     headers: HeaderMap,
     Json(payload): Json<PublicPaymentRequest>,
 ) -> impl IntoResponse {
-    
     // Extract IP address from headers safely to bypass InsecureClientIp generic bounds
     let ip_str = headers
         .get("x-forwarded-for")
@@ -52,15 +47,16 @@ async fn create_public_payment(
                 .and_then(|value| value.to_str().ok())
                 .unwrap_or("0.0.0.0")
         });
-    
+
     // 1. Authenticate using publishable key instead of standard API secret
     let merchant = match state
         .merchant_service
         .authenticate_publishable_key(&payload.publishable_key)
-        .await {
-            Ok(m) => m,
-            Err(e) => return e.into_response(),
-        };
+        .await
+    {
+        Ok(m) => m,
+        Err(e) => return e.into_response(),
+    };
 
     // Rejection Forwarding mode from using Standard payments (Security enforcement)
     if merchant.settlement_mode == "forwarding" {
@@ -111,11 +107,15 @@ async fn create_public_payment(
 
             // 4. Return widget-friendly data
             // We only need to return the paymentLink (payment_id)
-            (StatusCode::CREATED, Json(json!({
-                "payment_id": response.payment_id,
-                "payment_url": response.payment_link, // URL generated automatically inside `create_payment`
-            }))).into_response()
-        },
+            (
+                StatusCode::CREATED,
+                Json(json!({
+                    "payment_id": response.payment_id,
+                    "payment_url": response.payment_link, // URL generated automatically inside `create_payment`
+                })),
+            )
+                .into_response()
+        }
         Err(e) => e.into_response(),
     }
 }

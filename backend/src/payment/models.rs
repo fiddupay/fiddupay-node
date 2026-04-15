@@ -1,9 +1,9 @@
+use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::Type;
 use std::fmt;
 use std::str::FromStr;
-use rust_decimal::Decimal;
-use chrono::{DateTime, Utc};
 
 /// Payment status enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -40,31 +40,31 @@ impl PaymentStatus {
 #[sqlx(type_name = "varchar", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum CryptoType {
     #[serde(rename = "USDT_BEP20")]
-    UsdtBep20,        // USDT on Binance Smart Chain (BEP20)
+    UsdtBep20, // USDT on Binance Smart Chain (BEP20)
     #[serde(rename = "USDT_ARBITRUM")]
-    UsdtArbitrum,     // USDT on Arbitrum One
+    UsdtArbitrum, // USDT on Arbitrum One
     #[serde(rename = "USDT_SPL")]
-    UsdtSpl,          // USDT on Solana (SPL token)
+    UsdtSpl, // USDT on Solana (SPL token)
     #[serde(rename = "USDT_POLYGON")]
-    UsdtPolygon,      // USDT on Polygon
+    UsdtPolygon, // USDT on Polygon
     #[serde(rename = "USDT_ETH")]
-    UsdtEth,          // USDT on Ethereum (ERC20)
+    UsdtEth, // USDT on Ethereum (ERC20)
     #[serde(rename = "SOL")]
-    Sol,              // Solana native
+    Sol, // Solana native
     #[serde(rename = "ETH")]
-    Eth,              // Ethereum native
+    Eth, // Ethereum native
     #[serde(rename = "ARB")]
-    Arb,              // Arbitrum native
+    Arb, // Arbitrum native
     #[serde(rename = "MATIC")]
-    Matic,            // Polygon native
+    Matic, // Polygon native
     #[serde(rename = "BNB")]
-    Bnb,              // BSC native
+    Bnb, // BSC native
     #[serde(rename = "WSOL")]
-    WSol,             // Wrapped SOL (SPL token)
+    WSol, // Wrapped SOL (SPL token)
     #[serde(rename = "BTC")]
-    Btc,              // Bitcoin native
+    Btc, // Bitcoin native
     #[serde(rename = "BUSD_BEP20")]
-    BusdBep20,        // BUSD on Binance Smart Chain (BEP20)
+    BusdBep20, // BUSD on Binance Smart Chain (BEP20)
 }
 
 impl std::fmt::Display for CryptoType {
@@ -130,9 +130,10 @@ impl CryptoType {
             "BUSD_BEP20" | "BUSD_BSC" => Ok(CryptoType::BusdBep20),
             unknown => {
                 tracing::warn!("Unknown crypto type string: '{}', rejecting", unknown);
-                Err(crate::error::ServiceError::ValidationError(
-                    format!("Unknown crypto type: '{}'", s)
-                ))
+                Err(crate::error::ServiceError::ValidationError(format!(
+                    "Unknown crypto type: '{}'",
+                    s
+                )))
             }
         }
     }
@@ -185,19 +186,19 @@ impl CryptoType {
         // These should be configurable via environment variables
         // For now, using reasonable defaults that match the config
         match self {
-            CryptoType::UsdtBep20 => 15,     // BSC: configurable via CONFIRMATION_BLOCKS_BSC
-            CryptoType::UsdtArbitrum => 1,   // Arbitrum: configurable via CONFIRMATION_BLOCKS_ARBITRUM
-            CryptoType::UsdtSpl => 32,       // Solana SPL: configurable via CONFIRMATION_BLOCKS_SOL
-            CryptoType::UsdtPolygon => 30,   // Polygon: configurable via CONFIRMATION_BLOCKS_POLYGON
-            CryptoType::UsdtEth => 5,        // Ethereum: configurable via CONFIRMATION_BLOCKS_ETH
-            CryptoType::Sol => 32,           // Solana: configurable via CONFIRMATION_BLOCKS_SOL
-            CryptoType::Eth => 5,            // Ethereum: configurable via CONFIRMATION_BLOCKS_ETH
-            CryptoType::Arb => 1,            // Arbitrum: configurable via CONFIRMATION_BLOCKS_ARBITRUM
-            CryptoType::Matic => 30,         // Polygon: configurable via CONFIRMATION_BLOCKS_POLYGON
-            CryptoType::Bnb => 15,           // BSC: configurable via CONFIRMATION_BLOCKS_BSC
-            CryptoType::WSol => 32,          // Solana SPL: configurable via CONFIRMATION_BLOCKS_SOL
-            CryptoType::Btc => 1,            // Bitcoin: 1 confirmation
-            CryptoType::BusdBep20 => 15,     // BSC: 15 confirmations
+            CryptoType::UsdtBep20 => 15, // BSC: configurable via CONFIRMATION_BLOCKS_BSC
+            CryptoType::UsdtArbitrum => 1, // Arbitrum: configurable via CONFIRMATION_BLOCKS_ARBITRUM
+            CryptoType::UsdtSpl => 32,     // Solana SPL: configurable via CONFIRMATION_BLOCKS_SOL
+            CryptoType::UsdtPolygon => 30, // Polygon: configurable via CONFIRMATION_BLOCKS_POLYGON
+            CryptoType::UsdtEth => 5,      // Ethereum: configurable via CONFIRMATION_BLOCKS_ETH
+            CryptoType::Sol => 32,         // Solana: configurable via CONFIRMATION_BLOCKS_SOL
+            CryptoType::Eth => 5,          // Ethereum: configurable via CONFIRMATION_BLOCKS_ETH
+            CryptoType::Arb => 1, // Arbitrum: configurable via CONFIRMATION_BLOCKS_ARBITRUM
+            CryptoType::Matic => 30, // Polygon: configurable via CONFIRMATION_BLOCKS_POLYGON
+            CryptoType::Bnb => 15, // BSC: configurable via CONFIRMATION_BLOCKS_BSC
+            CryptoType::WSol => 32, // Solana SPL: configurable via CONFIRMATION_BLOCKS_SOL
+            CryptoType::Btc => 1, // Bitcoin: 1 confirmation
+            CryptoType::BusdBep20 => 15, // BSC: 15 confirmations
         }
     }
 
@@ -205,7 +206,9 @@ impl CryptoType {
         match self {
             CryptoType::UsdtBep20 | CryptoType::Bnb => config.confirmation_blocks_bsc,
             CryptoType::UsdtArbitrum | CryptoType::Arb => config.confirmation_blocks_arbitrum,
-            CryptoType::UsdtSpl | CryptoType::Sol | CryptoType::WSol => config.confirmation_blocks_sol,
+            CryptoType::UsdtSpl | CryptoType::Sol | CryptoType::WSol => {
+                config.confirmation_blocks_sol
+            }
             CryptoType::UsdtPolygon | CryptoType::Matic => config.confirmation_blocks_polygon,
             CryptoType::UsdtEth | CryptoType::Eth => config.confirmation_blocks_eth,
             CryptoType::Btc => config.confirmation_blocks_btc,
@@ -226,7 +229,15 @@ impl CryptoType {
     }
 
     pub fn is_native_currency(&self) -> bool {
-        matches!(self, CryptoType::Sol | CryptoType::Eth | CryptoType::Bnb | CryptoType::Matic | CryptoType::Arb | CryptoType::Btc)
+        matches!(
+            self,
+            CryptoType::Sol
+                | CryptoType::Eth
+                | CryptoType::Bnb
+                | CryptoType::Matic
+                | CryptoType::Arb
+                | CryptoType::Btc
+        )
     }
 
     pub fn get_native_currency(&self) -> CryptoType {
@@ -246,7 +257,7 @@ impl CryptoType {
     /// Returns None for native currencies.
     pub fn token_address(&self) -> Option<&'static str> {
         match self {
-            CryptoType::UsdtSpl => Some("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"), 
+            CryptoType::UsdtSpl => Some("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"),
             CryptoType::UsdtEth => Some("0xdAC17F958D2ee523a2206206994597C13D831ec7"),
             CryptoType::UsdtBep20 => Some("0x55d398326f99059fF775485246999027B3197955"),
             CryptoType::UsdtPolygon => Some("0xc2132D05D31c914a87C6611C10748AEb04B58e8F"),
@@ -273,9 +284,10 @@ impl CryptoType {
     pub fn from_mint(network: &str, mint_address: &str) -> Option<Self> {
         let net = network.to_uppercase();
         let addr = mint_address.trim().to_lowercase();
-        
+
         match net.as_str() {
-            "SOLANA" => match mint_address.trim() { // Solana is case-sensitive
+            "SOLANA" => match mint_address.trim() {
+                // Solana is case-sensitive
                 "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" => Some(CryptoType::UsdtSpl),
                 "So11111111111111111111111111111111111111112" => Some(CryptoType::WSol),
                 _ => None,
@@ -322,7 +334,7 @@ pub struct CreatePaymentRequest {
     pub expiration_minutes: Option<i32>,
     #[serde(default)]
     pub partial_payments_enabled: Option<bool>,
-    
+
     // Invoice-specific fields
     #[serde(default)]
     pub is_invoice: bool,
@@ -380,7 +392,7 @@ impl CreatePaymentRequest {
 #[derive(Debug, Serialize)]
 pub struct PaymentResponse {
     pub payment_id: String,
-    pub crypto_type: Option<String>, 
+    pub crypto_type: Option<String>,
     #[serde(with = "rust_decimal::serde::str_option")]
     pub amount: Option<Decimal>,
     #[serde(with = "rust_decimal::serde::str")]
@@ -412,7 +424,7 @@ impl From<crate::models::payment::Payment> for PaymentResponse {
     fn from(payment: crate::models::payment::Payment) -> Self {
         Self {
             payment_id: payment.payment_id,
-            crypto_type: payment.crypto_type, 
+            crypto_type: payment.crypto_type,
             amount: payment.amount,
             amount_usd: payment.amount_usd,
             to_address: payment.to_address.clone(),
