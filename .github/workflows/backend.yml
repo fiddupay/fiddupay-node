@@ -88,3 +88,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           workingDirectory: backend
           denyWarnings: false
+          createIssues: false
