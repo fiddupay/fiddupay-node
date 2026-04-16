@@ -367,11 +367,23 @@ pub async fn get_balance(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    match state
+    let balance_res = state
         .balance_service
         .get_all_balances(context.merchant_id, context.sandbox_mode)
-        .await
-    {
+        .await;
+
+    // Trigger on-demand on-chain balance check (Lazy-Check)
+    // Runs in background to avoid blocking the API response
+    let balance_monitor = state.balance_monitor.clone();
+    let merchant_id = context.merchant_id;
+    let is_live = !context.sandbox_mode;
+    tokio::spawn(async move {
+        let _ = balance_monitor
+            .check_merchant_on_demand(merchant_id, is_live)
+            .await;
+    });
+
+    match balance_res {
         Ok(balance) => {
             use futures::future::join_all;
             use std::collections::HashMap;

@@ -1,7 +1,6 @@
 // Rate Limiting Middleware
 // Limits requests per merchant per time window
 
-use crate::middleware::auth::MerchantContext;
 use axum::{
     extract::Request,
     http::StatusCode,

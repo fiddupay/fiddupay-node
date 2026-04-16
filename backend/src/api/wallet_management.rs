@@ -6,7 +6,7 @@ use crate::error::ServiceError;
 use crate::middleware::auth::MerchantContext;
 use crate::payment::models::CryptoType;
 use crate::services::wallet_config_service::{
-    ConfigureWalletRequest, GasValidationResult, GenerateWalletRequest, WalletConfigService,
+    ConfigureWalletRequest, GenerateWalletRequest, WalletConfigService,
 };
 use crate::services::withdrawal_processor::WithdrawalProcessor;
 use axum::{
@@ -16,7 +16,7 @@ use axum::{
     Extension, Json,
 };
 use rust_decimal::Decimal;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::json;
 use sqlx::{PgPool, Row};
 

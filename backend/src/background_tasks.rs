@@ -15,6 +15,9 @@ use crate::payment::models::CryptoType;
 use crate::payment::models::PaymentStatus;
 use crate::payment::sol_monitor::SolanaMonitor;
 use crate::payment::verifier::PaymentVerifier;
+use crate::services::balance_monitor::BalanceMonitor;
+use crate::services::blockchain_transaction_sender::BlockchainTransactionSender;
+use crate::services::webhook_notification_service::WebhookNotificationService;
 use crate::services::webhook_service::WebhookService;
 
 struct ExpiredPaymentRow {
@@ -98,10 +101,10 @@ impl BackgroundTasks {
             tasks_btc_prod.run_btc_monitor(false).await;
         });
 
-        let tasks_btc_sandbox = self.clone();
+        let _tasks_btc_sandbox = self.clone();
         tokio::spawn(async move {
             // Disabled BTC Testnet monitor to reduce API usage as requested
-            // tasks_btc_sandbox.run_btc_monitor(true).await;
+            // _tasks_btc_sandbox.run_btc_monitor(true).await;
             tracing::info!("BTC Testnet monitor is disabled.");
         });
 
@@ -149,6 +152,18 @@ impl BackgroundTasks {
         tokio::spawn(async move {
             monitor.start_monitoring().await;
         });
+
+        // Initialize On-Chain Balance Monitor
+        let btc_sender = Arc::new(BlockchainTransactionSender::new(self.config.clone()));
+        let webhook_notif = Arc::new(WebhookNotificationService::new(self.db_pool.clone()));
+        let balance_monitor = BalanceMonitor::new(
+            self.db_pool.clone(),
+            btc_sender,
+            self.price_service.clone(),
+            self.notification_service.clone(),
+            webhook_notif,
+        );
+        // On-demand balance monitoring is handled via API triggers in AppState
 
         let fee_service = crate::services::fee_collection_service::FeeCollectionService::new(
             self.db_pool.clone(),

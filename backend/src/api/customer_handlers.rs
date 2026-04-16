@@ -8,7 +8,7 @@ use crate::models::merchant_customer::{
     UpdateCustomerStatusRequest,
 };
 use crate::services::merchant_customer_service::MerchantCustomerService;
-// use argon2::{Argon2, PasswordHash, PasswordVerifier};
+const _V1_PLACEHOLDER: &str = "v1";
 use crate::error::ServiceError;
 use axum::{
     extract::{Path, State},
@@ -16,7 +16,8 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
-use serde_json::json;
+use rust_decimal::Decimal;
+use serde_json::{json, Value};
 use validator::Validate;
 
 // Helper removed, now using state.merchant_service.verify_transaction_pin
@@ -654,7 +655,7 @@ pub async fn sweep_customer_wallet(
     {
         Ok(swept_results) => {
             // Log audit event
-            let sweeps_json: Vec<_> = swept_results
+            let sweeps_json: Vec<Value> = swept_results
                 .iter()
                 .map(|(ct, amt)| json!({"crypto_type": ct, "amount": amt}))
                 .collect();
@@ -676,7 +677,7 @@ pub async fn sweep_customer_wallet(
                 )
                 .await;
 
-            let response_sweeps: Vec<_> = swept_results
+            let response_sweeps: Vec<Value> = swept_results
                 .into_iter()
                 .map(|(ct, amt)| {
                     json!({

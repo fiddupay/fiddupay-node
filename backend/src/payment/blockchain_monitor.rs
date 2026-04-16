@@ -949,8 +949,6 @@ impl BlockchainMonitor for EvmMonitor {
             return Err("Transaction not found".into());
         }
 
-        use crate::utils::api_keys::ApiKeyGenerator; // If needed, otherwise string manipulation
-
         let from_address = result
             .get("from")
             .and_then(|v| v.as_str())

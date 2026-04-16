@@ -11,8 +11,6 @@ use ethers::{
 };
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
-use std::sync::Arc;
-use std::time::Duration;
 
 pub struct BlockchainTransactionSender {
     config: crate::config::Config,

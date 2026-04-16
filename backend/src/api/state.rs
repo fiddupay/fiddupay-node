@@ -4,14 +4,16 @@
 use crate::config::Config;
 use crate::services::{
     admin_service::AdminService, analytics_service::AnalyticsService, audit_service::AuditService,
-    balance_service::BalanceService, currency_service::CurrencyService,
+    balance_monitor::BalanceMonitor, balance_service::BalanceService,
+    blockchain_transaction_sender::BlockchainTransactionSender, currency_service::CurrencyService,
     invoice_service::InvoiceService, ip_whitelist_service::IpWhitelistService,
     merchant_customer_service::MerchantCustomerService, merchant_service::MerchantService,
     monitoring_service::MonitoringService, notification_service::NotificationService,
     p2p_service::P2pService, payment_service::PaymentService, price_service::PriceService,
     refund_service::RefundService, report_service::ReportService, sandbox_service::SandboxService,
     volume_tracking_service::VolumeTrackingService, wallet_config_service::WalletConfigService,
-    webhook_service::WebhookService, withdrawal_service::WithdrawalService,
+    webhook_notification_service::WebhookNotificationService, webhook_service::WebhookService,
+    withdrawal_service::WithdrawalService,
 };
 use redis::Client as RedisClient;
 use sqlx::PgPool;
@@ -42,6 +44,7 @@ pub struct AppState {
     pub report_service: Arc<ReportService>,
     pub notification_service: Arc<NotificationService>,
     pub monitoring_service: Arc<MonitoringService>,
+    pub balance_monitor: Arc<BalanceMonitor>,
     pub redis_client: RedisClient,
 }
 
@@ -85,6 +88,16 @@ impl AppState {
         ));
         monitoring_service.clone().start_polling();
 
+        let blockchain_sender = Arc::new(BlockchainTransactionSender::new(config.clone()));
+        let webhook_notif = Arc::new(WebhookNotificationService::new(db_pool.clone()));
+        let balance_monitor = Arc::new(BalanceMonitor::new(
+            db_pool.clone(),
+            blockchain_sender,
+            price_service.clone(),
+            notification_service.clone(),
+            webhook_notif,
+        ));
+
         Self {
             merchant_service,
             payment_service: Arc::new(PaymentService::new(
@@ -126,6 +139,7 @@ impl AppState {
             report_service: Arc::new(ReportService::new(db_pool.clone())),
             notification_service,
             monitoring_service,
+            balance_monitor,
             config,
             db_pool,
             redis_client,

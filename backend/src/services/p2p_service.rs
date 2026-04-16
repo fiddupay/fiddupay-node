@@ -1,7 +1,6 @@
 use crate::error::ServiceError;
 use crate::models::p2p::*;
 use chrono::Utc;
-use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
 
 #[derive(Clone)]
@@ -215,7 +214,7 @@ impl P2pService {
         let expires_at = Utc::now() + chrono::Duration::minutes(ad.payment_time_limit as i64);
 
         // Determine Maker and Taker
-        let (seller_id, buyer_id) = if ad.ad_type == "SELL" {
+        let (seller_id, _buyer_id) = if ad.ad_type == "SELL" {
             (ad.user_id, taker_id)
         } else {
             (taker_id, ad.user_id)

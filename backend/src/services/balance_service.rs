@@ -149,7 +149,7 @@ impl BalanceService {
         let results = futures::future::join_all(tasks).await;
 
         let mut balances = Vec::new();
-        let mut total_usd = Decimal::ZERO;
+        let total_usd;
         let mut total_available_usd = Decimal::ZERO;
         let mut total_reserved_usd = Decimal::ZERO;
 

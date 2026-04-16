@@ -2,7 +2,6 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::Type;
-use std::fmt;
 use std::str::FromStr;
 
 /// Payment status enumeration

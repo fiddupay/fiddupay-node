@@ -3,7 +3,7 @@
 
 use crate::api::state::AppState;
 use crate::error::ServiceError;
-use crate::middleware::auth::{require_any_role, require_role, MerchantContext};
+use crate::middleware::auth::{require_role, MerchantContext};
 use crate::models::merchant::UserRole;
 use axum::{
     extract::{Extension, Path, Query, State},

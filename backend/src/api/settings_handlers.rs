@@ -4,7 +4,6 @@
 use crate::api::state::AppState;
 use crate::error::ServiceError;
 use crate::middleware::auth::MerchantContext;
-use crate::payment::models::CryptoType;
 use axum::{
     extract::{Extension, Query, State},
     http::StatusCode,
@@ -17,7 +16,6 @@ use sqlx::Row;
 use validator::Validate;
 
 use crate::middleware::validation::validate_webhook_url;
-use crate::models::merchant::Merchant;
 
 // ============================================================================
 // Profile & Readiness

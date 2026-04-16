@@ -1,12 +1,11 @@
 use crate::error::ServiceError;
-use crate::middleware::validation::validate_positive_amount;
 use axum::{
     extract::{Extension, Path, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
-use serde::{Deserialize, Serialize};
+// use serde::{Deserialize, Serialize};
 use serde_json::json;
 use validator::Validate;
 

@@ -5,7 +5,7 @@ use reqwest::Client;
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use std::str::FromStr;
-use tracing::{info, warn};
+use tracing::info;
 
 // Get Bybit API URL from environment or use default
 fn get_bybit_api_url(config: &crate::config::Config) -> String {

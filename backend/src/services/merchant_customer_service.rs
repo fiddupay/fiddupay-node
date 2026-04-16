@@ -741,18 +741,7 @@ impl MerchantCustomerService {
             ));
         }
 
-        // 2. Get customer's wallet (need private key for on-chain tx)
-        let wallet = sqlx::query_as::<_, MerchantCustomerWallet>(
-            "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at, sandbox_mode FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
-        )
-        .bind(customer.id)
-        .bind(&normalized_crypto)
-        .bind(sandbox_mode)
-        .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or_else(|| ServiceError::ValidationError(format!("No designated wallet found for {}", normalized_crypto)))?;
-
-        // 3. Get merchant's receiving wallet address
+        // 2. Get merchant's receiving wallet address (for ledger documentation)
         let merchant_wallet_address: Option<String> = sqlx::query_scalar::<_, String>(
             "SELECT address FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND is_active = true"
         )
@@ -1364,7 +1353,7 @@ impl MerchantCustomerService {
         let audit_details = serde_json::json!({
             "customer_external_id": external_id,
             "can_withdraw": can_withdraw,
-            "withdrawal_limit": withdrawal_limit.map(|l| l.to_string())
+            "withdrawal_limit": withdrawal_limit.map(|l: Decimal| l.to_string())
         });
         let _ = sqlx::query(
             "INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)",

@@ -632,7 +632,6 @@ impl SolanaMonitor {
         callback: Arc<dyn Fn(String, String) + Send + Sync>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut ws_stream_opt = None;
-        let mut connected_ws_url = String::new();
 
         for url in &self.ws_urls {
             let safe_url = redact_url(url);
@@ -640,10 +639,9 @@ impl SolanaMonitor {
             match connect_async(url).await {
                 Ok((stream, _)) => {
                     ws_stream_opt = Some(stream);
-                    connected_ws_url = url.clone();
                     info!(
                         "✅ Successfully connected to Solana WebSocket: {}",
-                        redact_url(&connected_ws_url)
+                        redact_url(url)
                     );
                     break;
                 }

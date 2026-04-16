@@ -424,6 +424,16 @@ async fn finalize_login(
         user_id
     );
 
+    // Trigger on-demand on-chain balance check (Lazy-Check)
+    let balance_monitor = state.balance_monitor.clone();
+    let merchant_id = m.id;
+    let is_live = !m.sandbox_mode;
+    tokio::spawn(async move {
+        let _ = balance_monitor
+            .check_merchant_on_demand(merchant_id, is_live)
+            .await;
+    });
+
     (
         StatusCode::OK,
         Json(AuthResponse {
