@@ -35,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .max_connections(config.database_max_connections)
         .min_connections(10) // Increase warm connections for high concurrency
         .acquire_timeout(std::time::Duration::from_secs(
-            config.database_timeout_seconds as u64,
+            config.database_timeout_seconds,
         ))
         .idle_timeout(std::time::Duration::from_secs(120)) // Reduce idle timeout to cycle connections faster
         .max_lifetime(std::time::Duration::from_secs(1800)) // 30 minutes max life
