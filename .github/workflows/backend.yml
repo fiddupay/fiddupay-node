@@ -66,6 +66,13 @@ jobs:
         working-directory: backend
         run: cargo clippy -- -D warnings
 
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli --no-default-features --features postgres
+
+      - name: Run migrations
+        working-directory: backend
+        run: sqlx migrate run
+
       - name: Run tests
         working-directory: backend
         run: cargo test --bin fiddupay
