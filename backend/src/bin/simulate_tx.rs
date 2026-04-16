@@ -225,7 +225,7 @@ async fn simulate_solana(
     Ok(())
 }
 
-async fn simulate_evm(network: &str, tx_hash: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn simulate_evm(network: &str, _tx_hash: &str) -> Result<(), Box<dyn std::error::Error>> {
     println!("EVM Simulation lookup via Web3 for {}...", network);
     Ok(())
 }

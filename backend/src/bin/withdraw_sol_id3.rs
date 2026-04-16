@@ -95,7 +95,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create a dummy message to estimate fee
     let message = solana_sdk::message::Message::new(
-        &[solana_program::system_instruction::transfer(
+        &[system_instruction::transfer(
             &sender_pubkey,
             &to_pubkey,
             balance,

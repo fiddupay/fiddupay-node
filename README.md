@@ -55,7 +55,32 @@ npm run build:frontend
 
 ### Production Service Management (VPS)
 
-FidduPay uses `systemd` to manage processes and Caddy as a high-performance reverse proxy. **Always use `systemctl`** to manage services in production to avoid port conflicts.
+FidduPay uses an **Atomic Symlink Deployment** strategy. This ensures that production is never interrupted by build processes and provides instant rollback capabilities.
+
+#### Deployment Architecture
+
+- **Isolated Builds**: New versions are built in `/home/vibes/apps/deployments/build_<timestamp>`.
+- **Atomic Swap**: The production environment points to a symlink at `/home/vibes/apps/current`. Once a build is successful and migrations pass, the link is "swapped" instantly.
+- **Rollback**: To rollback, simply point `/home/vibes/apps/current` back to a previous build folder.
+
+#### Managing Secrets (.env)
+
+Production secrets are stored permanently at `/home/vibes/apps/.env.production`.
+
+**1. To update/replace a secret:**
+Access your VPS and run the following to perform a clean overwrite:
+
+```bash
+cat > /home/vibes/apps/.env.production << 'EOF'
+[PASTE YOUR NEW .ENV CONTENT HERE]
+EOF
+```
+
+_Alternatively, you can use `nano /home/vibes/apps/.env.production` and hold `Ctrl+K` to clear old lines before pasting._
+
+**2. To apply changes:**
+Run `sudo systemctl restart fiddupay`.
+_Note: Every automated deployment automatically links this permanent file into the new build folders._
 
 #### Core API (fiddupay.service)
 
@@ -128,6 +153,7 @@ cargo fmt
 cargo fmt --check -p fiddupay
 cargo clippy -- -D warnings
 cargo check --bin fiddupay
+cargo test
 
 To sync code AND push a version tag manually (triggering the automated pipeline):
 

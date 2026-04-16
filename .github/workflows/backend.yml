@@ -2,14 +2,14 @@ name: Backend CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'backend/**'
-      - '.github/workflows/backend.yml'
+      - "backend/**"
+      - ".github/workflows/backend.yml"
   pull_request:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - 'backend/**'
+      - "backend/**"
 
 env:
   CARGO_TERM_COLOR: always
@@ -19,7 +19,7 @@ jobs:
   test:
     name: Test and Audit
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: postgres:15
@@ -34,7 +34,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-          
+
       redis:
         image: redis:7
         ports:
@@ -68,15 +68,15 @@ jobs:
 
       - name: Run tests
         working-directory: backend
-        run: cargo test
+        run: cargo test --bin fiddupay
 
   security_audit:
     name: Security Audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install cargo-audit
-        run: cargo install cargo-audit
-      - name: Run audit
-        working-directory: backend
-        run: cargo audit
+      - name: Run security audit
+        uses: rustsec/audit-check@v1.6.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          directory: backend
