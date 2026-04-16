@@ -20,24 +20,6 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::{PgPool, Row};
 
-// Helper: get sandbox_mode for a merchant
-async fn get_sandbox_mode(pool: &PgPool, merchant_id: i64) -> bool {
-    sqlx::query_scalar::<_, bool>("SELECT sandbox_mode FROM merchants WHERE id = $1")
-        .bind(merchant_id)
-        .fetch_one(pool)
-        .await
-        .unwrap_or(false)
-}
-
-// Helper: get settlement_mode for a merchant
-async fn get_settlement_mode(pool: &PgPool, merchant_id: i64) -> String {
-    sqlx::query_scalar::<_, String>("SELECT settlement_mode FROM merchants WHERE id = $1")
-        .bind(merchant_id)
-        .fetch_one(pool)
-        .await
-        .unwrap_or_else(|_| "managed".to_string())
-}
-
 // Helper: get both sandbox_mode and settlement_mode
 async fn get_merchant_modes(pool: &PgPool, merchant_id: i64) -> (bool, String) {
     let row = sqlx::query("SELECT sandbox_mode, settlement_mode FROM merchants WHERE id = $1")
@@ -266,6 +248,7 @@ pub async fn process_withdrawal(
         state.db_pool.clone(),
         state.config.clone(),
         state.notification_service.clone(),
+        state.blockchain_sender.clone(),
     );
 
     match processor.process_withdrawal(&withdrawal_id).await {

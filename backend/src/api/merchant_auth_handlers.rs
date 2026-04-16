@@ -15,6 +15,7 @@ use validator::Validate;
 
 use crate::middleware::validation::{validate_business_email, validate_password_strength};
 use crate::models::merchant::UserRole;
+use sqlx::Row;
 
 // ============================================================================
 // Request/Response Types
@@ -200,12 +201,23 @@ pub async fn login_merchant(
     State(state): State<AppState>,
     Json(req): Json<LoginMerchantRequest>,
 ) -> impl IntoResponse {
-    // 1. Validate input (basic format)
-    if let Err(e) = req.validate() {
-        return ServiceError::ValidationError(e.to_string()).into_response();
+    // 2. Check for account lockout
+    match state.account_lockout_service.check_lockout(&req.email).await {
+        Ok(true) => {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "error": "Account locked",
+                    "message": "Too many failed attempts. Please try again in 15 minutes."
+                })),
+            )
+                .into_response();
+        }
+        Err(e) => return e.into_response(),
+        _ => {}
     }
 
-    // 2. Attempt Owner Login first
+    // 3. Attempt Owner Login first
     let merchant_query = sqlx::query(
         "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at FROM merchants WHERE email = $1 AND is_active = true"
     )
@@ -241,6 +253,21 @@ pub async fn login_merchant(
             }
 
             // Password failed or no hash
+            if let Ok(true) = state
+                .account_lockout_service
+                .record_failed_attempt(&req.email, "dashboard")
+                .await 
+            {
+                let _ = state.security_monitoring_service.log_security_event(crate::services::security_monitoring_service::SecurityEvent {
+                    merchant_id: Some(merchant.get("id")),
+                    event_type: "security.account_locked".to_string(),
+                    severity: "HIGH".to_string(),
+                    source_ip: "dashboard".to_string(),
+                    details: serde_json::json!({ "email": req.email, "reason": "Consecutive failed login attempts" }),
+                    timestamp: chrono::Utc::now(),
+                }).await;
+            }
+
             (
                 StatusCode::UNAUTHORIZED,
                 Json(
@@ -272,7 +299,27 @@ pub async fn login_merchant(
                         Err(e) => ServiceError::Database(e).into_response(),
                     }
                 }
-                Err(_) => (StatusCode::UNAUTHORIZED, Json(json!({"error": "Invalid credentials", "message": "Invalid email or password"}))).into_response(),
+                Err(_) => {
+                    if let Ok(true) = state
+                        .account_lockout_service
+                        .record_failed_attempt(&req.email, "dashboard")
+                        .await
+                    {
+                         let _ = state.security_monitoring_service.log_security_event(crate::services::security_monitoring_service::SecurityEvent {
+                            merchant_id: None, // We don't have the merchant ID for team member failures easily here without more queries
+                            event_type: "security.account_locked_attempt".to_string(),
+                            severity: "HIGH".to_string(),
+                            source_ip: "dashboard".to_string(),
+                            details: serde_json::json!({ "email": req.email, "reason": "Consecutive failed team member login attempts" }),
+                            timestamp: chrono::Utc::now(),
+                        }).await;
+                    }
+                    (
+                        StatusCode::UNAUTHORIZED,
+                        Json(json!({"error": "Invalid credentials", "message": "Invalid email or password"})),
+                    )
+                        .into_response()
+                }
             }
         }
         Err(e) => ServiceError::Database(e).into_response(),
@@ -424,13 +471,18 @@ async fn finalize_login(
         user_id
     );
 
-    // Trigger on-demand on-chain balance check (Lazy-Check)
     let balance_monitor = state.balance_monitor.clone();
+    let lockout_service = state.account_lockout_service.clone();
+    let email_clone = m.email.clone();
     let merchant_id = m.id;
     let is_live = !m.sandbox_mode;
+
     tokio::spawn(async move {
         let _ = balance_monitor
             .check_merchant_on_demand(merchant_id, is_live)
+            .await;
+        let _ = lockout_service
+            .record_successful_login(&email_clone, "dashboard")
             .await;
     });
 

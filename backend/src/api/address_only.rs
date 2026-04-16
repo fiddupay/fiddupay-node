@@ -78,7 +78,7 @@ pub async fn create_address_only_payment(
         customer_instructions: format!(
             "Send exactly {} {} to the deposit address. {} (Work In Progress - Experimental)",
             payment.customer_amount,
-            request.crypto_type.to_string(),
+            request.crypto_type,
             if payment.customer_amount > payment.requested_amount {
                 "This includes the processing fee."
             } else {

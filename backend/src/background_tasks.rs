@@ -46,6 +46,7 @@ pub struct BackgroundTasks {
     price_service: Arc<crate::services::price_service::PriceService>,
     redis_client: redis::Client,
     notification_service: Arc<crate::services::notification_service::NotificationService>,
+    blockchain_sender: Arc<BlockchainTransactionSender>,
 }
 
 impl BackgroundTasks {
@@ -55,6 +56,7 @@ impl BackgroundTasks {
         price_service: Arc<crate::services::price_service::PriceService>,
         redis_client: redis::Client,
         notification_service: Arc<crate::services::notification_service::NotificationService>,
+        blockchain_sender: Arc<BlockchainTransactionSender>,
     ) -> Self {
         let webhook_service = Arc::new(WebhookService::new(
             db_pool.clone(),
@@ -67,6 +69,7 @@ impl BackgroundTasks {
             price_service,
             redis_client,
             notification_service,
+            blockchain_sender,
         }
     }
 
@@ -153,16 +156,6 @@ impl BackgroundTasks {
             monitor.start_monitoring().await;
         });
 
-        // Initialize On-Chain Balance Monitor
-        let btc_sender = Arc::new(BlockchainTransactionSender::new(self.config.clone()));
-        let webhook_notif = Arc::new(WebhookNotificationService::new(self.db_pool.clone()));
-        let balance_monitor = BalanceMonitor::new(
-            self.db_pool.clone(),
-            btc_sender,
-            self.price_service.clone(),
-            self.notification_service.clone(),
-            webhook_notif,
-        );
         // On-demand balance monitoring is handled via API triggers in AppState
 
         let fee_service = crate::services::fee_collection_service::FeeCollectionService::new(
@@ -1258,6 +1251,7 @@ impl BackgroundTasks {
             self.db_pool.clone(),
             self.config.clone(),
             self.notification_service.clone(),
+            self.blockchain_sender.clone(),
         );
 
         loop {
@@ -1288,10 +1282,14 @@ impl BackgroundTasks {
     /// Background task to monitor merchant balances and send alerts
     async fn run_balance_monitor(&self) {
         let mut interval = interval(Duration::from_secs(3600)); // Check every hour
+        let webhook_notif = Arc::new(crate::services::webhook_notification_service::WebhookNotificationService::new(
+            self.db_pool.clone()
+        ));
         let monitor = crate::services::balance_monitoring_service::BalanceMonitoringService::new(
             self.db_pool.clone(),
             self.notification_service.clone(),
             self.price_service.clone(),
+            webhook_notif,
         );
 
         loop {

@@ -280,7 +280,7 @@ impl WebhookService {
             } else {
                 // Wrap in a structured event for SDK compatibility
                 serde_json::json!({
-                    "id": format!("evt_{}", uuid::Uuid::new_v4().simple()),
+                    "id": format!("evt_{}", Uuid::new_v4().simple()),
                     "type": payload.event_type,
                     "data": payload,
                     "created_at": chrono::Utc::now().to_rfc3339(),

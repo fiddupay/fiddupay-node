@@ -76,6 +76,7 @@ pub async fn create_withdrawal(
                         state.db_pool.clone(),
                         state.config.clone(),
                         state.notification_service.clone(),
+                        state.blockchain_sender.clone(),
                     );
                     let withdrawal_id = withdrawal.withdrawal_id.clone();
 

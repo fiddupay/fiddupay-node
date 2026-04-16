@@ -16,7 +16,7 @@ pub struct EmailService {
     enabled: bool,
     from_email: String,
     smtp_host: Option<String>,
-    smtp_port: Option<u16>,
+    _smtp_port: Option<u16>,
     smtp_username: Option<String>,
     smtp_password: Option<String>,
 }
@@ -34,7 +34,7 @@ impl EmailService {
             enabled,
             from_email,
             smtp_host,
-            smtp_port,
+            _smtp_port: smtp_port,
             smtp_username,
             smtp_password,
         }

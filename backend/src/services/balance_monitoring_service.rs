@@ -2,6 +2,7 @@ use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
 use crate::services::notification_service::NotificationService;
 use crate::services::price_service::PriceService;
+use crate::services::webhook_notification_service::WebhookNotificationService;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -24,6 +25,7 @@ pub struct BalanceMonitoringService {
     db_pool: PgPool,
     notification_service: Arc<NotificationService>,
     price_service: Arc<PriceService>,
+    webhook_notif: Arc<WebhookNotificationService>,
 }
 
 impl BalanceMonitoringService {
@@ -31,11 +33,13 @@ impl BalanceMonitoringService {
         db_pool: PgPool,
         notification_service: Arc<NotificationService>,
         price_service: Arc<PriceService>,
+        webhook_notif: Arc<WebhookNotificationService>,
     ) -> Self {
         Self {
             db_pool,
             notification_service,
             price_service,
+            webhook_notif,
         }
     }
 
@@ -152,6 +156,20 @@ impl BalanceMonitoringService {
                 "balance.low",
                 false, // Default to production mode for system alerts, or implement mode tracking
             )
+            .await;
+
+        // Create webhook alert
+        let details = serde_json::json!({
+            "alert_type": alert.alert_type,
+            "crypto_type": alert.crypto_type,
+            "current_balance": alert.current_balance,
+            "threshold": alert.threshold,
+            "timestamp": alert.created_at.to_rfc3339()
+        });
+
+        let _ = self
+            .webhook_notif
+            .send_balance_alert_webhook(alert.merchant_id, "balance.low", details)
             .await;
 
         Ok(())

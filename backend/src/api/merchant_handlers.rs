@@ -16,7 +16,7 @@ pub use crate::api::settings_handlers::{
 // Payment handlers
 pub use crate::api::payment_handlers::{
     cancel_payment, complete_refund, create_payment, create_refund, finalize_payment_selection,
-    get_payment, get_refund, list_payments, list_refunds, simulate_payment, verify_payment,
+    get_payment, get_refund, list_payments, list_refunds, verify_payment,
 };
 
 // Analytics handlers

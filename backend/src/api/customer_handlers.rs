@@ -16,7 +16,6 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
-use rust_decimal::Decimal;
 use serde_json::{json, Value};
 use validator::Validate;
 

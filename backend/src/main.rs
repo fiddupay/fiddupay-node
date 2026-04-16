@@ -93,6 +93,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         app_state.price_service.clone(),
         app_state.redis_client.clone(),
         app_state.notification_service.clone(),
+        app_state.blockchain_sender.clone(),
     ));
     background_tasks.start();
     tracing::info!(" Background tasks started");

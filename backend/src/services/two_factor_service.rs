@@ -1,6 +1,6 @@
 use crate::error::ServiceError;
 use crate::utils::encryption::Encryption;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::{PgPool, Row};
 use std::time::{SystemTime, UNIX_EPOCH};
 use totp_lite::{totp_custom, Sha1};

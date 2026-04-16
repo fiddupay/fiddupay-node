@@ -301,11 +301,6 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
             "/api/v1/merchants/invoices/:invoice_id",
             get(merchant_handlers::get_invoice),
         )
-        // Sandbox testing
-        .route(
-            "/api/v1/merchants/sandbox/payments/:payment_id/simulate",
-            post(merchant_handlers::simulate_payment),
-        )
         // Address-Only Mode (Phase 1)
         .route(
             "/api/v1/merchants/address-only/create",

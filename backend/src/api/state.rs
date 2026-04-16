@@ -10,10 +10,11 @@ use crate::services::{
     merchant_customer_service::MerchantCustomerService, merchant_service::MerchantService,
     monitoring_service::MonitoringService, notification_service::NotificationService,
     p2p_service::P2pService, payment_service::PaymentService, price_service::PriceService,
-    refund_service::RefundService, report_service::ReportService, sandbox_service::SandboxService,
+    refund_service::RefundService, report_service::ReportService,
     volume_tracking_service::VolumeTrackingService, wallet_config_service::WalletConfigService,
     webhook_notification_service::WebhookNotificationService, webhook_service::WebhookService,
-    withdrawal_service::WithdrawalService,
+    withdrawal_service::WithdrawalService, account_lockout_service::AccountLockoutService,
+    security_monitoring_service::SecurityMonitoringService,
 };
 use redis::Client as RedisClient;
 use sqlx::PgPool;
@@ -28,7 +29,6 @@ pub struct AppState {
     pub payment_service: Arc<PaymentService>,
     pub refund_service: Arc<RefundService>,
     pub analytics_service: Arc<AnalyticsService>,
-    pub sandbox_service: Arc<SandboxService>,
     pub admin_service: Arc<AdminService>,
     pub webhook_service: Arc<WebhookService>,
     pub ip_whitelist_service: Arc<IpWhitelistService>,
@@ -45,6 +45,9 @@ pub struct AppState {
     pub notification_service: Arc<NotificationService>,
     pub monitoring_service: Arc<MonitoringService>,
     pub balance_monitor: Arc<BalanceMonitor>,
+    pub account_lockout_service: Arc<AccountLockoutService>,
+    pub security_monitoring_service: Arc<SecurityMonitoringService>,
+    pub blockchain_sender: Arc<BlockchainTransactionSender>,
     pub redis_client: RedisClient,
 }
 
@@ -95,7 +98,6 @@ impl AppState {
             blockchain_sender,
             price_service.clone(),
             notification_service.clone(),
-            webhook_notif,
         ));
 
         Self {
@@ -117,7 +119,6 @@ impl AppState {
                 db_pool.clone(),
                 price_service.clone(),
             )),
-            sandbox_service: Arc::new(SandboxService::new(db_pool.clone(), config.clone())),
             admin_service: Arc::new(AdminService::new(db_pool.clone())),
             webhook_service: webhook_service.clone(),
             ip_whitelist_service: Arc::new(IpWhitelistService::new(db_pool.clone())),
@@ -142,6 +143,9 @@ impl AppState {
             balance_monitor,
             config,
             db_pool,
+            account_lockout_service: Arc::new(AccountLockoutService::new(db_pool.clone(), 5, 15)),
+            security_monitoring_service: Arc::new(SecurityMonitoringService::new(db_pool.clone())),
+            blockchain_sender,
             redis_client,
         }
     }

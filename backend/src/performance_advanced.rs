@@ -235,7 +235,7 @@ pub mod serialization {
     use serde::Serialize;
     use std::sync::Arc;
 
-    /// Pre-allocated buffer for JSON serialization
+    // Pre-allocated buffer for JSON serialization
     thread_local! {
         static JSON_BUFFER: std::cell::RefCell<Vec<u8>> = std::cell::RefCell::new(Vec::with_capacity(4096));
     }

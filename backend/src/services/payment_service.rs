@@ -3,8 +3,8 @@
 
 use crate::error::ServiceError;
 use crate::payment::models::{
-    CreatePaymentRequest, CryptoType, PartialPaymentInfo, PartialPaymentRecord, PaymentFilters,
-    PaymentList, PaymentResponse, PaymentStatus, PaymentTransaction,
+    CreatePaymentRequest, CryptoType, PaymentFilters, PaymentList, PaymentResponse, PaymentStatus,
+    PaymentTransaction,
 };
 use crate::payment::processor::PaymentProcessor;
 use crate::payment::verifier::PaymentVerifier;
@@ -12,8 +12,7 @@ use crate::services::invoice_service::InvoiceService;
 use crate::services::notification_service::NotificationService;
 use crate::services::price_service::PriceService;
 use crate::services::webhook_service::WebhookService;
-use chrono::Utc;
-use rust_decimal::Decimal;
+// Removed unused imports: use chrono::Utc; use rust_decimal::Decimal;
 use sqlx::PgPool;
 use std::sync::Arc;
 

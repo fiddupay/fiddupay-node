@@ -85,8 +85,9 @@ impl WalletConfigService {
             let address_changed = current_address != address;
             let mode_changed = current_mode.as_deref().unwrap_or("address_only") != mode;
             let active_changed = current_active != is_active;
+            let key_changed = current_key != Some(encrypted_private_key.clone());
 
-            if address_changed || mode_changed || active_changed {
+            if address_changed || mode_changed || active_changed || key_changed {
                 if wallets_locked {
                     tracing::warn!(
                         "Blocked wallet change for merchant {} (wallets locked)",
@@ -98,8 +99,8 @@ impl WalletConfigService {
                 }
 
                 tracing::info!(
-                    "Archiving wallet state for merchant {}: address_changed={}, mode_changed={}, active_changed={}",
-                    merchant_id, address_changed, mode_changed, active_changed
+                    "Archiving wallet state for merchant {}: address_changed={}, mode_changed={}, active_changed={}, key_changed={}",
+                    merchant_id, address_changed, mode_changed, active_changed, key_changed
                 );
 
                 // Archive the old address to history before updating (including key and mode)
@@ -193,8 +194,9 @@ impl WalletConfigService {
                 let address_changed = current_address != address;
                 let mode_changed = current_mode.as_deref().unwrap_or("address_only") != mode;
                 let active_changed = current_active != is_active;
+                let key_changed = current_key != Some(encrypted_private_key.clone());
 
-                if address_changed || mode_changed || active_changed {
+                if address_changed || mode_changed || active_changed || key_changed {
                     tracing::info!(
                         "Archiving sister wallet state for merchant {}: crypto={}",
                         merchant_id,

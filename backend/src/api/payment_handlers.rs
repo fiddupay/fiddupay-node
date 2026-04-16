@@ -302,67 +302,6 @@ pub async fn list_refunds(
 }
 
 // ============================================================================
-// Sandbox Endpoints
-// ============================================================================
-
-#[derive(Deserialize)]
-pub struct SimulatePaymentRequest {
-    pub success: bool,
-    pub transaction_hash: Option<String>,
-    pub from_address: Option<String>,
-}
-
-pub async fn simulate_payment(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
-    Path(payment_id): Path<String>,
-    Json(req): Json<SimulatePaymentRequest>,
-) -> impl IntoResponse {
-    match state
-        .sandbox_service
-        .simulate_confirmation(
-            &payment_id,
-            context.merchant_id,
-            req.success,
-            req.transaction_hash.clone(),
-            req.from_address.clone(),
-        )
-        .await
-    {
-        Ok(_) => {
-            // Log audit event
-            let _ = state
-                .audit_service
-                .log_event(
-                    context.merchant_id,
-                    "payment_simulation",
-                    Some(&format!(
-                        "Simulated payment {} (success: {})",
-                        payment_id, req.success
-                    )),
-                    Some(json!({
-                        "payment_id": payment_id,
-                        "success": req.success,
-                        "transaction_hash": req.transaction_hash
-                    })),
-                )
-                .await;
-
-            if req.success {
-                (
-                    StatusCode::OK,
-                    Json(json!({"success": true, "message": "Payment simulated successfully"})),
-                )
-                    .into_response()
-            } else {
-                (StatusCode::OK, Json(json!({"success": true, "message": "Payment simulation failed as requested"}))).into_response()
-            }
-        }
-        Err(e) => e.into_response(),
-    }
-}
-
-// ============================================================================
 // Hosted Payment Page
 // ============================================================================
 

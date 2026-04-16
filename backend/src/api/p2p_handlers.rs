@@ -37,14 +37,11 @@ pub async fn get_p2p_balance(
 
     // Check sandbox mode
     let sandbox_mode =
-        match sqlx::query_scalar::<_, bool>("SELECT sandbox_mode FROM merchants WHERE id = $1")
+        sqlx::query_scalar::<_, bool>("SELECT sandbox_mode FROM merchants WHERE id = $1")
             .bind(context.merchant_id)
             .fetch_one(&state.db_pool)
             .await
-        {
-            Ok(s) => s,
-            Err(_) => false,
-        };
+            .unwrap_or_default();
 
     match service
         .get_balance(context.merchant_id, &crypto_type, sandbox_mode)
@@ -72,18 +69,8 @@ pub async fn create_p2p_ad(
 
     let service = state.p2p_service.clone();
 
-    let sandbox_mode =
-        match sqlx::query_scalar::<_, bool>("SELECT sandbox_mode FROM merchants WHERE id = $1")
-            .bind(context.merchant_id)
-            .fetch_one(&state.db_pool)
-            .await
-        {
-            Ok(s) => s,
-            Err(_) => false,
-        };
-
     match service
-        .create_ad(context.merchant_id, payload, sandbox_mode)
+        .create_ad(context.merchant_id, payload, context.sandbox_mode)
         .await
     {
         Ok(ad) => (StatusCode::CREATED, Json(json!({"ad": ad}))).into_response(),
@@ -98,11 +85,12 @@ pub async fn create_p2p_ad(
 pub async fn list_p2p_ads(
     State(state): State<AppState>,
     Path((fiat_currency, crypto_type, ad_type)): Path<(String, String, String)>,
+    Extension(context): Extension<crate::middleware::auth::MerchantContext>,
 ) -> impl IntoResponse {
     let service = state.p2p_service.clone();
 
     match service
-        .list_ads(&fiat_currency, &crypto_type, &ad_type, false)
+        .list_ads(&fiat_currency, &crypto_type, &ad_type, context.sandbox_mode)
         .await
     {
         Ok(ads) => (StatusCode::OK, Json(json!({"ads": ads}))).into_response(),
@@ -114,33 +102,31 @@ pub async fn list_p2p_ads(
     }
 }
 
-// Trades & Escrow
+pub async fn get_p2p_ad(
+    State(state): State<AppState>,
+    Path(ad_id): Path<i64>,
+) -> impl IntoResponse {
+    let service = state.p2p_service.clone();
+
+    match service.get_ad_by_id(ad_id).await {
+        Ok(ad) => (StatusCode::OK, Json(json!({"ad": ad}))).into_response(),
+        Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+// Trades
 pub async fn create_p2p_trade(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
     Json(payload): Json<CreateTradeRequest>,
 ) -> impl IntoResponse {
-    // 0. Validate input
     if let Err(e) = payload.validate() {
         return ServiceError::ValidationError(e.to_string()).into_response();
     }
 
     let service = state.p2p_service.clone();
 
-    let sandbox_mode =
-        match sqlx::query_scalar::<_, bool>("SELECT sandbox_mode FROM merchants WHERE id = $1")
-            .bind(context.merchant_id)
-            .fetch_one(&state.db_pool)
-            .await
-        {
-            Ok(s) => s,
-            Err(_) => false,
-        };
-
-    match service
-        .create_trade(context.merchant_id, payload, sandbox_mode)
-        .await
-    {
+    match service.create_trade(context.merchant_id, payload, context.sandbox_mode).await {
         Ok(trade) => (StatusCode::CREATED, Json(json!({"trade": trade}))).into_response(),
         Err(e) => (
             StatusCode::BAD_REQUEST,
@@ -150,19 +136,43 @@ pub async fn create_p2p_trade(
     }
 }
 
-pub async fn release_p2p_trade(
+pub async fn get_p2p_trade(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
-    Path(trade_id): Path<String>,
+    Path(trade_id): Path<i64>,
 ) -> impl IntoResponse {
     let service = state.p2p_service.clone();
 
-    match service.release_trade(context.merchant_id, &trade_id).await {
-        Ok(_) => (
-            StatusCode::OK,
-            Json(json!({"message": "Escrow released successfully"})),
-        )
-            .into_response(),
+    match service.get_trade_by_id(trade_id).await {
+        Ok(trade) => {
+            // Verify ownership
+            if trade.buyer_id != context.merchant_id && trade.seller_id != context.merchant_id {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(json!({"error": "You do not have access to this trade"})),
+                )
+                    .into_response();
+            }
+            (StatusCode::OK, Json(json!({"trade": trade}))).into_response()
+        }
+        Err(e) => (StatusCode::NOT_FOUND, Json(json!({"error": e.to_string()}))).into_response(),
+    }
+}
+
+// Ratings & Support
+pub async fn rate_p2p_user(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(payload): Json<CreateRatingRequest>,
+) -> impl IntoResponse {
+    if let Err(e) = payload.validate() {
+        return ServiceError::ValidationError(e.to_string()).into_response();
+    }
+
+    let service = state.p2p_service.clone();
+
+    match service.rate_user(context.merchant_id, payload).await {
+        Ok(rating) => (StatusCode::CREATED, Json(json!({"rating": rating}))).into_response(),
         Err(e) => (
             StatusCode::BAD_REQUEST,
             Json(json!({"error": e.to_string()})),
@@ -171,42 +181,23 @@ pub async fn release_p2p_trade(
     }
 }
 
-pub async fn submit_p2p_rating(
+pub async fn create_p2p_dispute(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
-    Path(trade_id): Path<String>,
-    Json(payload): Json<CreateRatingRequest>,
-) -> impl IntoResponse {
-    let service = state.p2p_service.clone();
-
-    match service
-        .submit_rating(context.merchant_id, &trade_id, payload)
-        .await
-    {
-        Ok(rating) => (StatusCode::CREATED, Json(json!({"rating": rating}))).into_response(),
-        Err(e) => {
-            let status = if e.to_string().contains("already rated") {
-                StatusCode::CONFLICT
-            } else {
-                StatusCode::BAD_REQUEST
-            };
-            (status, Json(json!({"error": e.to_string()}))).into_response()
-        }
-    }
-}
-
-pub async fn create_p2p_support_ticket(
-    State(state): State<AppState>,
-    Extension(context): Extension<MerchantContext>,
+    Path(trade_id): Path<i64>,
     Json(payload): Json<CreateSupportTicketRequest>,
 ) -> impl IntoResponse {
+    if let Err(e) = payload.validate() {
+        return ServiceError::ValidationError(e.to_string()).into_response();
+    }
+
     let service = state.p2p_service.clone();
 
     match service
-        .create_support_ticket(context.merchant_id, payload)
+        .create_dispute(context.merchant_id, trade_id, payload)
         .await
     {
-        Ok(ticket) => (StatusCode::CREATED, Json(json!({"ticket": ticket}))).into_response(),
+        Ok(ticket) => (StatusCode::CREATED, Json(json!({"dispute": ticket}))).into_response(),
         Err(e) => (
             StatusCode::BAD_REQUEST,
             Json(json!({"error": e.to_string()})),

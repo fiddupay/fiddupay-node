@@ -6,18 +6,16 @@ use crate::services::price_service::PriceService;
 use crate::services::webhook_notification_service::WebhookNotificationService;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
-use serde_json::json;
 use sqlx::{PgPool, Row};
 use std::str::FromStr;
 use std::sync::Arc;
-use tracing::{info, warn};
+use tracing::info;
 
 pub struct BalanceMonitor {
     db_pool: PgPool,
     blockchain_sender: Arc<BlockchainTransactionSender>,
     price_service: Arc<PriceService>,
     notification_service: Arc<NotificationService>,
-    webhook_service: Arc<WebhookNotificationService>,
 }
 
 impl BalanceMonitor {
@@ -26,14 +24,12 @@ impl BalanceMonitor {
         blockchain_sender: Arc<BlockchainTransactionSender>,
         price_service: Arc<PriceService>,
         notification_service: Arc<NotificationService>,
-        webhook_service: Arc<WebhookNotificationService>,
     ) -> Self {
         Self {
             db_pool,
             blockchain_sender,
             price_service,
             notification_service,
-            webhook_service,
         }
     }
 

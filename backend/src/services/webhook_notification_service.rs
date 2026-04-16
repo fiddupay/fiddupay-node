@@ -2,7 +2,7 @@
 // Sends status updates to merchants via webhooks
 
 use crate::error::ServiceError;
-use crate::services::address_only_service::{AddressOnlyPayment, AddressOnlyStatus};
+use crate::services::address_only_service::AddressOnlyPayment;
 use reqwest::Client;
 use serde_json::json;
 use sqlx::{PgPool, Row};
@@ -122,6 +122,47 @@ impl WebhookNotificationService {
         if let Some(webhook_url) = self.get_merchant_webhook_url(payment.merchant_id).await? {
             self.send_payment_status_webhook(payment, &webhook_url)
                 .await?;
+        }
+
+        Ok(())
+    }
+    /// Send a low balance alert webhook to the merchant
+    pub async fn send_balance_alert_webhook(
+        &self,
+        merchant_id: i64,
+        event_type: &str,
+        details: serde_json::Value,
+    ) -> Result<(), ServiceError> {
+        if let Some(webhook_url) = self.get_merchant_webhook_url(merchant_id).await? {
+            let payload = json!({
+                "id": format!("evt_{}", Uuid::new_v4().simple()),
+                "type": event_type,
+                "merchant_id": merchant_id,
+                "data": details,
+                "created_at": chrono::Utc::now().to_rfc3339()
+            });
+
+            let response = self
+                .client
+                .post(&webhook_url)
+                .json(&payload)
+                .timeout(std::time::Duration::from_secs(10))
+                .send()
+                .await
+                .map_err(|e| ServiceError::Internal(format!("Balance webhook request failed: {}", e)))?;
+
+            if !response.status().is_success() {
+                tracing::warn!(
+                    "Balance alert webhook failed with status {} for merchant {}",
+                    response.status(),
+                    merchant_id
+                );
+            }
+
+            // Log attempt (reusing existing log table, potentially using a dummy payment_id or making it optional)
+            let dummy_payment_id = format!("balance_alert_{}", merchant_id);
+            let _ = self.log_webhook_attempt(&dummy_payment_id, &webhook_url, response.status().as_u16())
+                .await;
         }
 
         Ok(())

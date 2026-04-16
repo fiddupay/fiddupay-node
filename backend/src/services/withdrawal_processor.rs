@@ -12,6 +12,7 @@ pub struct WithdrawalProcessor {
     db_pool: PgPool,
     config: crate::config::Config,
     notification_service: Arc<NotificationService>,
+    sender: Arc<BlockchainTransactionSender>,
 }
 
 impl WithdrawalProcessor {
@@ -19,11 +20,13 @@ impl WithdrawalProcessor {
         db_pool: PgPool,
         config: crate::config::Config,
         notification_service: Arc<NotificationService>,
+        sender: Arc<BlockchainTransactionSender>,
     ) -> Self {
         Self {
             db_pool,
             config,
             notification_service,
+            sender,
         }
     }
 
@@ -97,7 +100,6 @@ impl WithdrawalProcessor {
         let source_address: String;
 
         let crypto_type_enum = CryptoType::from_string(&wd_crypto_type)?;
-        let sender = BlockchainTransactionSender::new(self.config.clone());
 
         if let Some(c_row) = customer_tx {
             // Sweep from Customer Wallet
@@ -155,7 +157,7 @@ impl WithdrawalProcessor {
                                 let native_enum = CryptoType::from_string(native_crypto_str)
                                     .unwrap_or(CryptoType::Eth);
 
-                                match sender
+                                match self.sender
                                     .send_transaction(
                                         native_enum,
                                         &m_priv,
@@ -235,8 +237,7 @@ impl WithdrawalProcessor {
             return Ok(());
         }
 
-        let sender = BlockchainTransactionSender::new(self.config.clone());
-        let tx_hash = match sender
+        let tx_hash = match self.sender
             .send_transaction(
                 crypto_type_enum,
                 &private_key,

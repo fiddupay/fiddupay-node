@@ -34,7 +34,7 @@ pub async fn get_analytics(
     let from = query
         .from_date
         .unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
-    let to = query.to_date.unwrap_or_else(|| chrono::Utc::now());
+    let to = query.to_date.unwrap_or_else(chrono::Utc::now);
 
     match state
         .analytics_service
@@ -65,7 +65,7 @@ pub async fn export_analytics(
     let from = query
         .from_date
         .unwrap_or_else(|| chrono::Utc::now() - chrono::Duration::days(30));
-    let to = query.to_date.unwrap_or_else(|| chrono::Utc::now());
+    let to = query.to_date.unwrap_or_else(chrono::Utc::now);
 
     let data = match state
         .report_service
@@ -161,7 +161,7 @@ pub async fn list_unified_transactions(
 ) -> impl IntoResponse {
     let merchant_id = context.merchant_id;
     let is_sandbox = context.sandbox_mode;
-    let limit = params.limit.unwrap_or(50).min(100).max(1);
+    let limit = params.limit.unwrap_or(50).clamp(1, 100);
 
     let query = r#"
         (SELECT 
