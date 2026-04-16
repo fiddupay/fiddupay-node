@@ -120,7 +120,7 @@ async fn fetch_service_history(pool: &sqlx::PgPool, service_name: &str) -> Vec<U
                 let day: Option<DateTime<Utc>> = r.get("day");
                 let uptime_percent: Option<f64> = r.get("uptime_percent");
                 UptimePoint {
-                    date: day.unwrap_or_else(|| Utc::now()).to_rfc3339(),
+                    date: day.unwrap_or_else(Utc::now).to_rfc3339(),
                     status: if uptime_percent.unwrap_or(0.0) >= 99.0 {
                         "operational".to_string()
                     } else if uptime_percent.unwrap_or(0.0) >= 90.0 {

@@ -9,6 +9,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use tokio::sync::broadcast;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tracing::info;
 
 pub struct GasWebSocketService {
     config: crate::config::Config,
@@ -30,12 +31,14 @@ impl GasWebSocketService {
 
     /// Start WebSocket connections for real-time gas price updates
     pub async fn start_gas_monitoring(&self) -> Result<(), ServiceError> {
-        // Simplified implementation without actual WebSocket connections
-        tracing::info!("Gas monitoring started (placeholder implementation)");
+        info!("Starting Gas WebSocket monitoring service...");
+        // Start Ethereum monitoring
+        self.monitor_ethereum_gas().await?;
         Ok(())
     }
 
     /// Monitor Ethereum gas prices via WebSocket
+    #[allow(dead_code)]
     async fn monitor_ethereum_gas(&self) -> Result<(), ServiceError> {
         let ws_url = self
             .config
@@ -68,7 +71,9 @@ impl GasWebSocketService {
             .map_err(|e| ServiceError::Internal(format!("ETH subscription failed: {}", e)))?;
 
         let gas_updates = self.gas_updates.clone();
+
         tokio::spawn(async move {
+            info!("ETH Gas WebSocket: Monitoring loop started");
             while let Some(msg) = read.next().await {
                 if let Ok(Message::Text(text)) = msg {
                     if let Ok(data) = serde_json::from_str::<Value>(&text) {
@@ -113,103 +118,5 @@ impl GasWebSocketService {
         });
 
         Ok(())
-    }
-
-    /// Monitor Solana gas prices via WebSocket
-    async fn monitor_solana_gas(&self) -> Result<(), ServiceError> {
-        let ws_url = self
-            .config
-            .solana_rpc_url
-            .replace("https://", "wss://")
-            .replace("http://", "ws://");
-        let (ws_stream, _) = connect_async(ws_url.as_str()).await.map_err(|e| {
-            ServiceError::Internal(format!("SOL WebSocket connection failed: {}", e))
-        })?;
-
-        let (mut write, mut read) = ws_stream.split();
-
-        // Subscribe to slot updates for fee monitoring
-        let subscribe_msg = json!({
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "slotSubscribe"
-        });
-
-        write
-            .send(Message::Text(subscribe_msg.to_string()))
-            .await
-            .map_err(|e| ServiceError::Internal(format!("SOL subscription failed: {}", e)))?;
-
-        let gas_updates = self.gas_updates.clone();
-        let config = self.config.clone();
-
-        tokio::spawn(async move {
-            while let Some(msg) = read.next().await {
-                if let Ok(Message::Text(_)) = msg {
-                    // On each slot update, fetch recent prioritization fees
-                    if let Ok(estimate) = Self::fetch_solana_fees(&config).await {
-                        let mut updates = HashMap::new();
-                        updates.insert("solana".to_string(), estimate);
-                        let _ = gas_updates.send(updates);
-                    }
-                }
-            }
-        });
-
-        Ok(())
-    }
-
-    /// Fetch current Solana fees via RPC
-    async fn fetch_solana_fees(
-        config: &crate::config::Config,
-    ) -> Result<GasFeeEstimate, ServiceError> {
-        let client = reqwest::Client::new();
-        let rpc_payload = json!({
-            "jsonrpc": "2.0",
-            "method": "getRecentPrioritizationFees",
-            "params": [[]],
-            "id": 1
-        });
-
-        let response: Value = client
-            .post(&config.solana_rpc_url)
-            .json(&rpc_payload)
-            .send()
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Solana RPC error: {}", e)))?
-            .json()
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Solana RPC parse error: {}", e)))?;
-
-        if let Some(result) = response.get("result").and_then(|v| v.as_array()) {
-            let mut fees: Vec<u64> = result
-                .iter()
-                .filter_map(|item| item.get("prioritizationFee").and_then(|v| v.as_u64()))
-                .collect();
-
-            fees.sort();
-            let median_priority_fee = if fees.is_empty() {
-                0
-            } else {
-                fees[fees.len() / 2]
-            };
-            let base_fee_lamports = 5000u64;
-            let total_fee_lamports = base_fee_lamports + median_priority_fee;
-            let total_fee_sol = Decimal::new(total_fee_lamports as i64, 9);
-
-            Ok(GasFeeEstimate {
-                network: "solana".to_string(),
-                native_currency: "SOL".to_string(),
-                standard_fee: total_fee_sol,
-                fast_fee: total_fee_sol * Decimal::new(2, 0),
-                estimated_withdrawal_cost: total_fee_sol,
-                base_fee: Some(Decimal::new(base_fee_lamports as i64, 9)),
-                priority_fee: Some(Decimal::new(median_priority_fee as i64, 9)),
-            })
-        } else {
-            Err(ServiceError::Internal(
-                "Invalid Solana RPC response".to_string(),
-            ))
-        }
     }
 }

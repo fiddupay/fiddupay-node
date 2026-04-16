@@ -32,7 +32,6 @@ struct InfuraGasFeeLevel {
 
 #[derive(Debug, Deserialize)]
 struct InfuraGasApiResponse {
-    low: InfuraGasFeeLevel,
     medium: InfuraGasFeeLevel,
     high: InfuraGasFeeLevel,
     #[serde(rename = "estimatedBaseFee")]
@@ -416,64 +415,21 @@ impl GasFeeService {
         }
     }
 
-    /// Solana gas fees using getRecentPrioritizationFees RPC method - 2026 method
+    /// Solana gas fees (Static 5000 Lamports)
     async fn get_solana_gas_rpc(&self) -> Result<GasFeeEstimate, ServiceError> {
-        let rpc_payload = json!({
-            "jsonrpc": "2.0",
-            "method": "getRecentPrioritizationFees",
-            "params": [
-                [] // Empty array for global fees, or specify account addresses for targeted fees
-            ],
-            "id": 1
-        });
+        // Base transaction fee is 5000 lamports per signature (0.000005 SOL)
+        let base_fee_lamports = 5000u128;
+        let total_fee_sol = Decimal::new(base_fee_lamports as i64, 9);
 
-        let response: Value = self
-            .client
-            .post(&self.config.solana_rpc_url)
-            .json(&rpc_payload)
-            .send()
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Solana RPC error: {}", e)))?
-            .json()
-            .await
-            .map_err(|e| ServiceError::Internal(format!("Solana RPC parse error: {}", e)))?;
-
-        if let Some(result) = response.get("result").and_then(|v| v.as_array()) {
-            // Calculate median prioritization fee from recent blocks
-            let mut fees: Vec<u64> = result
-                .iter()
-                .filter_map(|item| item.get("prioritizationFee").and_then(|v| v.as_u64()))
-                .collect();
-
-            fees.sort();
-            let median_priority_fee = if fees.is_empty() {
-                0
-            } else {
-                fees[fees.len() / 2]
-            };
-
-            // Base transaction fee is 5000 lamports per signature
-            let base_fee_lamports = 5000u64;
-            let total_fee_lamports = base_fee_lamports + median_priority_fee;
-
-            // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
-            let total_fee_sol = Decimal::new(total_fee_lamports as i64, 9);
-            let priority_fee_sol = Decimal::new(median_priority_fee as i64, 9);
-
-            Ok(GasFeeEstimate {
-                network: "solana".to_string(),
-                native_currency: "SOL".to_string(),
-                standard_fee: total_fee_sol,
-                fast_fee: total_fee_sol + (priority_fee_sol * Decimal::new(2, 0)), // 2x priority for fast
-                estimated_withdrawal_cost: total_fee_sol,
-                base_fee: Some(Decimal::new(base_fee_lamports as i64, 9)),
-                priority_fee: Some(priority_fee_sol),
-            })
-        } else {
-            Err(ServiceError::Internal(
-                "Invalid Solana RPC response".to_string(),
-            ))
-        }
+        Ok(GasFeeEstimate {
+            network: "solana".to_string(),
+            native_currency: "SOL".to_string(),
+            standard_fee: total_fee_sol,
+            fast_fee: total_fee_sol,
+            estimated_withdrawal_cost: total_fee_sol,
+            base_fee: Some(total_fee_sol),
+            priority_fee: Some(Decimal::ZERO),
+        })
     }
 
     /// Check if merchant has sufficient gas for withdrawal

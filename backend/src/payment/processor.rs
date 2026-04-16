@@ -29,10 +29,8 @@ pub struct PaymentProcessor {
     price_service: Arc<PriceService>,
     merchant_service: MerchantService,
     invoice_service: Arc<InvoiceService>,
-    audit_service: Arc<crate::services::audit_service::AuditService>,
     notification_service: Arc<NotificationService>,
     config: crate::config::Config,
-    volume_tracking: Arc<crate::services::volume_tracking_service::VolumeTrackingService>,
 }
 
 impl PaymentProcessor {
@@ -47,10 +45,8 @@ impl PaymentProcessor {
                 config.volume_tracking.clone(),
             ),
             invoice_service: config.invoice_service,
-            audit_service: config.audit_service,
             notification_service: config.notification_service,
             config: config.config,
-            volume_tracking: config.volume_tracking,
         }
     }
 

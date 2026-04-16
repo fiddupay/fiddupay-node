@@ -90,8 +90,8 @@ pub async fn get_merchant_profile(
             &m_live_api_key_hash
         };
         let is_valid = hash_opt
-            .as_ref()
-            .map(|h: &String| h != "PENDING" && !h.is_empty())
+            .as_deref()
+            .map(|h: &str| h != "PENDING" && !h.is_empty())
             .unwrap_or(false);
 
         if !is_valid {
@@ -429,7 +429,7 @@ pub struct UnifiedSettingsRequest {
     pub low_balance_threshold_usd: Option<Decimal>,
 }
 
-fn validate_optional_webhook_url(url: &String) -> Result<(), validator::ValidationError> {
+fn validate_optional_webhook_url(url: &str) -> Result<(), validator::ValidationError> {
     validate_webhook_url(url)
 }
 

@@ -9,6 +9,7 @@ use axum::{
     Json,
 };
 use chrono::{DateTime, Utc};
+use redis::AsyncCommands;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -17,9 +18,19 @@ use uuid::Uuid;
 
 /// Advanced security middleware combining all remaining features
 pub struct AdvancedSecurityMiddleware {
-    threat_detector: Arc<ThreatDetector>,
-    request_tracker: Arc<RequestTracker>,
-    api_validator: Arc<ApiKeyValidator>,
+    pub threat_detector: Arc<ThreatDetector>,
+    pub request_tracker: Arc<RequestTracker>,
+    pub api_validator: Arc<ApiKeyValidator>,
+}
+
+impl AdvancedSecurityMiddleware {
+    pub fn new(redis_client: redis::Client) -> Self {
+        Self {
+            threat_detector: Arc::new(ThreatDetector::new(redis_client)),
+            request_tracker: Arc::new(RequestTracker::new()),
+            api_validator: Arc::new(ApiKeyValidator),
+        }
+    }
 }
 
 /// API Key Format Validator
@@ -57,6 +68,12 @@ pub struct RequestInfo {
     pub endpoint: String,
 }
 
+impl Default for RequestTracker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RequestTracker {
     pub fn new() -> Self {
         Self {
@@ -89,6 +106,7 @@ impl RequestTracker {
 /// Advanced Threat Detection
 pub struct ThreatDetector {
     suspicious_patterns: RwLock<HashMap<String, ThreatLevel>>,
+    redis_client: redis::Client,
 }
 
 #[derive(Debug, Clone)]
@@ -99,11 +117,39 @@ pub enum ThreatLevel {
     Critical,
 }
 
+// ThreatDetector no longer implements Default as it requires a Redis client for construction.
+
 impl ThreatDetector {
-    pub fn new() -> Self {
+    pub fn new(redis_client: redis::Client) -> Self {
+        let mut patterns = HashMap::new();
+
+        // Critical Threats (Immediate block candidates)
+        patterns.insert("/etc/passwd".to_string(), ThreatLevel::Critical);
+        patterns.insert("/.env".to_string(), ThreatLevel::Critical);
+        patterns.insert("/.git".to_string(), ThreatLevel::Critical);
+        patterns.insert("/wp-admin".to_string(), ThreatLevel::Critical);
+        patterns.insert("phpinfo".to_string(), ThreatLevel::Critical);
+
+        // High Threats (Deep inspection required)
+        patterns.insert("debug".to_string(), ThreatLevel::High);
+        patterns.insert("eval(".to_string(), ThreatLevel::High);
+        patterns.insert("test-endpoint".to_string(), ThreatLevel::High);
+
         Self {
-            suspicious_patterns: RwLock::new(HashMap::new()),
+            suspicious_patterns: RwLock::new(patterns),
+            redis_client,
         }
+    }
+
+    pub async fn add_pattern(&self, pattern: String, level: ThreatLevel) {
+        self.suspicious_patterns
+            .write()
+            .await
+            .insert(pattern, level);
+    }
+
+    pub async fn remove_pattern(&self, pattern: &str) {
+        self.suspicious_patterns.write().await.remove(pattern);
     }
 
     pub async fn analyze_request(&self, request_info: &RequestInfo) -> ThreatLevel {
@@ -117,17 +163,62 @@ impl ThreatDetector {
             threat_level = ThreatLevel::Medium;
         }
 
-        // Check for suspicious endpoints
-        if request_info.endpoint.contains("admin") || request_info.endpoint.contains("debug") {
-            threat_level = ThreatLevel::Critical;
+        // Check for suspicious patterns via signature matching
+        let endpoint = request_info.endpoint.to_lowercase();
+        let patterns = self.suspicious_patterns.read().await;
+
+        for (pattern, level) in patterns.iter() {
+            if endpoint.contains(&pattern.to_lowercase()) {
+                // If the found pattern has a higher threat level than current, upgrade it
+                match (&threat_level, level) {
+                    (ThreatLevel::Low, _) => threat_level = level.clone(),
+                    (ThreatLevel::Medium, ThreatLevel::High | ThreatLevel::Critical) => {
+                        threat_level = level.clone()
+                    }
+                    (ThreatLevel::High, ThreatLevel::Critical) => threat_level = level.clone(),
+                    _ => {}
+                }
+            }
         }
 
         threat_level
     }
 
-    async fn count_recent_requests(&self, _ip: &str) -> u32 {
-        // Simplified implementation - in production, use Redis or similar
-        42 // Placeholder
+    async fn count_recent_requests(&self, ip: &str) -> u32 {
+        // Explicitly typing the connection variable to fix inference errors
+        let mut conn: redis::aio::MultiplexedConnection =
+            match self.redis_client.get_multiplexed_async_connection().await {
+                Ok(c) => c,
+                Err(e) => {
+                    tracing::error!("Redis connection error in ThreatDetector: {}", e);
+                    return 0; // Return safe default if Redis is down
+                }
+            };
+
+        let key = format!("threat:ips:{}", ip);
+        let now = Utc::now().timestamp();
+        let window = 60i64; // 60 second window
+
+        // 1. Add current request timestamp
+        let _: () = conn
+            .zadd::<&str, i64, i64, ()>(&key, now, now)
+            .await
+            .unwrap_or(());
+
+        // 2. Remove old records outside of the window
+        let _: () = conn
+            .zrembyscore::<&str, i64, i64, ()>(&key, now - window, now + 1000)
+            .await
+            .unwrap_or(());
+
+        // 3. Count remaining records
+        let count: u32 = conn.zcard::<&str, u32>(&key).await.unwrap_or(0);
+
+        // 4. Set expiration for cleanup (explicitly typing the result to fix inference)
+        let expire_res: redis::RedisResult<()> = conn.expire(&key, window).await;
+        expire_res.unwrap_or(());
+
+        count
     }
 }
 
@@ -142,6 +233,12 @@ pub struct TokenBucket {
     last_refill: DateTime<Utc>,
     capacity: f64,
     refill_rate: f64, // tokens per second
+}
+
+impl Default for AdvancedRateLimiter {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AdvancedRateLimiter {
@@ -292,7 +389,6 @@ fn extract_ip_address(headers: &HeaderMap) -> String {
 /// API Version Security Manager
 pub struct ApiVersionManager {
     deprecated_versions: Vec<String>,
-    sunset_dates: HashMap<String, DateTime<Utc>>,
 }
 
 impl Default for ApiVersionManager {
@@ -305,7 +401,6 @@ impl ApiVersionManager {
     pub fn new() -> Self {
         Self {
             deprecated_versions: vec!["v1".to_string()],
-            sunset_dates: HashMap::new(),
         }
     }
 

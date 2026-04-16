@@ -31,6 +31,18 @@ impl WithdrawalProcessor {
     }
 
     pub async fn process_withdrawal(&self, withdrawal_id: &str) -> Result<(), ServiceError> {
+        // Global Safety Checks
+        if !self.config.withdrawal_enabled {
+            return Err(ServiceError::ValidationError(
+                "Withdrawals are globally disabled in system configuration".to_string(),
+            ));
+        }
+        if self.config.maintenance_mode {
+            return Err(ServiceError::ValidationError(
+                "System is currently in maintenance mode. Withdrawals are paused.".to_string(),
+            ));
+        }
+
         tracing::info!("Starting processing for withdrawal: {}", withdrawal_id);
 
         // 1. Fetch the withdrawal with FOR UPDATE lock inside a transaction
@@ -96,8 +108,8 @@ impl WithdrawalProcessor {
             wd_fee = fee_val;
         }
 
-        let mut encrypted_key_opt: Option<String> = None;
-        let mut source_address: String = String::new();
+        let encrypted_key_opt: Option<String>;
+        let source_address: String;
 
         let crypto_type_enum = CryptoType::from_string(&wd_crypto_type)?;
 

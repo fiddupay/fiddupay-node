@@ -34,13 +34,7 @@ fn extract_session_token(headers: &HeaderMap) -> Option<String> {
     if let Some(auth) = headers
         .get("authorization")
         .and_then(|value| value.to_str().ok())
-        .and_then(|auth| {
-            if auth.starts_with("Bearer ") {
-                Some(auth[7..].to_string())
-            } else {
-                None
-            }
-        })
+        .and_then(|auth| auth.strip_prefix("Bearer ").map(|s| s.to_string()))
     {
         return Some(auth);
     }
@@ -51,12 +45,10 @@ fn extract_session_token(headers: &HeaderMap) -> Option<String> {
         .and_then(|value| value.to_str().ok())
         .and_then(|cookies| {
             cookies.split(';').find_map(|cookie| {
-                let cookie = cookie.trim();
-                if cookie.starts_with("admin_session=") {
-                    Some(cookie[14..].to_string())
-                } else {
-                    None
-                }
+                cookie
+                    .trim()
+                    .strip_prefix("admin_session=")
+                    .map(|s| s.to_string())
             })
         })
 }

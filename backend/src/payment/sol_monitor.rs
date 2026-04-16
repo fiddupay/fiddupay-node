@@ -10,17 +10,12 @@ use serde::{Deserialize, Serialize};
 use solana_sdk::pubkey::Pubkey;
 use spl_associated_token_account::get_associated_token_address;
 use std::str::FromStr;
-use std::sync::Arc;
+
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tracing::{error, info, warn};
 
 use super::blockchain_monitor::BlockchainMonitor;
 use super::models::{BlockchainTransaction, CryptoType};
-
-// Get Solana RPC URL from config
-fn get_solana_rpc_url(config: &crate::config::Config) -> &str {
-    &config.solana_rpc_url
-}
 
 // Redact queries from URLs to prevent leaking API keys
 fn redact_url(url: &str) -> String {
@@ -73,20 +68,15 @@ struct RpcError {
 
 #[derive(Debug, Deserialize)]
 struct RpcResponse<T> {
-    jsonrpc: String,
     result: Option<T>,
     error: Option<RpcError>,
-    id: u64,
 }
 
 #[derive(Debug, Deserialize)]
 struct GetSignaturesResult {
     signature: String,
-    slot: u64,
     #[serde(rename = "blockTime")]
     block_time: Option<i64>,
-    #[serde(rename = "confirmationStatus")]
-    confirmation_status: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -101,14 +91,12 @@ struct TransactionResult {
 #[derive(Debug, Deserialize)]
 struct SolanaTransaction {
     message: TransactionMessage,
-    signatures: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
 struct TransactionMessage {
     #[serde(rename = "accountKeys")]
     account_keys: Vec<String>,
-    instructions: Vec<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -125,10 +113,6 @@ struct TokenBalanceInfo {
 struct UiTokenAmount {
     amount: Option<String>,
     decimals: Option<u32>,
-    #[serde(rename = "uiAmount")]
-    ui_amount: Option<f64>,
-    #[serde(rename = "uiAmountString")]
-    ui_amount_string: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

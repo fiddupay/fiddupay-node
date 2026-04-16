@@ -4,7 +4,7 @@
 use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
 use alloy::{
-    network::{EthereumWallet, TransactionBuilder},
+    network::EthereumWallet,
     primitives::{Address, Bytes, U256},
     providers::{Provider, ProviderBuilder},
     rpc::types::TransactionRequest,
@@ -710,7 +710,7 @@ impl BlockchainTransactionSender {
         crypto_type: CryptoType,
         sandbox_mode: bool,
     ) -> Result<U256, ServiceError> {
-        let (rpc_url, _) = match (crypto_type.clone(), sandbox_mode) {
+        let (rpc_url, _) = match (crypto_type, sandbox_mode) {
             (CryptoType::Eth, false) => {
                 (&self.config.ethereum_rpc_url, self.config.ethereum_chain_id)
             }

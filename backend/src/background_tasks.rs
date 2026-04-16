@@ -13,7 +13,6 @@ use crate::models::webhook::WebhookPayload;
 use crate::payment::blockchain_monitor::BlockchainMonitor;
 use crate::payment::models::CryptoType;
 use crate::payment::models::PaymentStatus;
-use crate::payment::sol_monitor::SolanaMonitor;
 use crate::payment::verifier::PaymentVerifier;
 use crate::services::balance_monitoring_service::BalanceMonitoringService;
 use crate::services::blockchain_transaction_sender::BlockchainTransactionSender;
@@ -31,7 +30,7 @@ struct ExpiredPaymentRow {
 struct PendingWebhookRow {
     id: i64,
     merchant_id: i64,
-    payment_id: Option<i64>,
+
     event_type: String,
     url: String,
     payload: String,
@@ -376,7 +375,7 @@ impl BackgroundTasks {
                     .map(|r| PendingWebhookRow {
                         id: r.get("id"),
                         merchant_id: r.get("merchant_id"),
-                        payment_id: r.get("payment_id"),
+
                         event_type: r.get("event_type"),
                         url: r.get("url"),
                         payload: r.get("payload"),

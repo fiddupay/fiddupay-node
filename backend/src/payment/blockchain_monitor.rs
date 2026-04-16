@@ -9,7 +9,7 @@ use tracing::{error, info, warn};
 use super::models::{BlockchainTransaction, CryptoType};
 use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
-use std::sync::Arc;
+
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
 pub mod btc_monitor;
@@ -339,7 +339,7 @@ impl EvmMonitor {
         callback: std::sync::Arc<dyn Fn(String, String) + Send + Sync>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut ws_stream_opt = None;
-        let mut connected_ws_url;
+        let connected_ws_url;
 
         for url in &self.ws_urls {
             let safe_url = redact_url(url);

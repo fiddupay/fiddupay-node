@@ -10,18 +10,14 @@ use crate::models::webhook::WebhookPayload;
 
 pub struct WebSocketClient {
     config: crate::config::Config,
-    event_sender: broadcast::Sender<WebhookPayload>,
 }
 
 impl WebSocketClient {
     pub fn new(
         config: crate::config::Config,
-        event_sender: broadcast::Sender<WebhookPayload>,
+        _event_sender: broadcast::Sender<WebhookPayload>,
     ) -> Self {
-        Self {
-            config,
-            event_sender,
-        }
+        Self { config }
     }
 
     /// Start Solana WebSocket listener

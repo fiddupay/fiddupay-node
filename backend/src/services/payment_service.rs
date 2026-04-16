@@ -256,7 +256,7 @@ impl PaymentService {
     ) -> Result<PaymentList, PaymentServiceError> {
         let page = filters.page.unwrap_or(1).max(1);
         let page_size = filters.page_size.unwrap_or(20).clamp(1, 100);
-        let offset = (page as i64 - 1) * page_size as i64;
+        let offset = (page - 1) * page_size;
 
         // Build the base query
         let mut query = String::from("SELECT * FROM payment_transactions WHERE merchant_id = $1");

@@ -105,14 +105,17 @@ impl MerchantCustomerService {
         customer: &MerchantCustomer,
         amount: Decimal,
     ) -> Result<(), ServiceError> {
+        // 1. Basic status check (active/flagged/suspended)
         Self::check_permissions(customer, "withdraw")?;
 
+        // 2. Explicit withdrawal toggle (Requirement 4.5)
         if !customer.can_withdraw {
             return Err(ServiceError::ValidationError(
                 "Withdrawals are disabled for this customer".to_string(),
             ));
         }
 
+        // 3. Spending Limit enforcement (Requirement 4.6)
         if let Some(limit) = customer.withdrawal_limit {
             if amount > limit {
                 return Err(ServiceError::ValidationError(format!(
@@ -207,7 +210,7 @@ impl MerchantCustomerService {
                 &format!(
                     "Customer {} ({}) has been successfully registered.",
                     req.external_id,
-                    req.email.as_deref().unwrap_or("No email")
+                    mask_email(req.email.as_deref().unwrap_or("No email"))
                 ),
                 "success",
                 "customer.registered",
@@ -848,7 +851,8 @@ impl MerchantCustomerService {
             "amount": params.amount_str,
             "crypto_type": params.crypto_type_str,
             "reference_id": params.reference_id.unwrap_or(""),
-            "description": params.description.unwrap_or("")
+            "description": params.description.unwrap_or(""),
+            "masked_address": mask_address(&merchant_address)
         });
         sqlx::query(
             "INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)",
@@ -1274,6 +1278,156 @@ impl MerchantCustomerService {
         Ok(swept_results)
     }
 
+    /// Request a withdrawal for a customer sub-account — bridges to global withdrawal queue
+    pub async fn request_customer_withdrawal(
+        &self,
+        merchant_id: i64,
+        external_id: &str,
+        req: crate::models::merchant_customer::CustomerWithdrawalRequest,
+        sandbox_mode: bool,
+    ) -> Result<CustomerTransaction, ServiceError> {
+        let customer = self
+            .get_verified_customer(merchant_id, external_id, sandbox_mode)
+            .await?;
+
+        // 1. Validate Amount
+        let amount = Decimal::from_str(&req.amount).map_err(|_| {
+            ServiceError::ValidationError(format!("Invalid amount format: {}", req.amount))
+        })?;
+
+        if amount <= Decimal::ZERO {
+            return Err(ServiceError::ValidationError(
+                "Withdrawal amount must be greater than zero".to_string(),
+            ));
+        }
+
+        // 2. Perform exhaustive security checks (Toggle + Limits)
+        Self::check_withdrawal_permissions(&customer, amount)?;
+
+        // 3. Normalize crypto type
+        let crypto_enum = CryptoType::from_string(&req.crypto_type)?;
+        let normalized_crypto = crypto_enum.to_string();
+
+        // 4. Withdrawal Transaction
+        let mut tx = self.db_pool.begin().await?;
+
+        // Check and lock balance
+        let balance = sqlx::query_as::<_, MerchantCustomerBalance>(
+            "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at, sandbox_mode FROM merchant_customer_balances WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 FOR UPDATE"
+        )
+        .bind(customer.id)
+        .bind(&normalized_crypto)
+        .bind(sandbox_mode)
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        match balance {
+            Some(b) if b.available_balance >= amount => {}
+            _ => return Err(ServiceError::InsufficientFunds(normalized_crypto.clone())),
+        }
+
+        // Move funds to locked (pending withdrawal)
+        sqlx::query(
+            "UPDATE merchant_customer_balances SET available_balance = available_balance - $1, locked_balance = locked_balance + $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4"
+        )
+        .bind(amount)
+        .bind(customer.id)
+        .bind(&normalized_crypto)
+        .bind(sandbox_mode)
+        .execute(&mut *tx)
+        .await?;
+
+        // Generate unique withdrawal ID
+        let withdrawal_id = format!("wd_cust_{}", uuid::Uuid::new_v4());
+
+        // Calculate USD amount (for analytics and tiered security later)
+        let price = self
+            .price_service
+            .get_price(crypto_enum)
+            .await
+            .unwrap_or(0.0);
+        let amount_usd =
+            (amount * Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO)).round_dp(2);
+
+        // 5. Insert into shared withdrawals table for Processor to handle on-chain
+        sqlx::query(
+            r#"
+            INSERT INTO withdrawals (withdrawal_id, merchant_id, crypto_type, amount, amount_usd, destination_address, status, sandbox_mode)
+            VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', $7)
+            "#
+        )
+        .bind(&withdrawal_id)
+        .bind(merchant_id)
+        .bind(&normalized_crypto)
+        .bind(amount)
+        .bind(amount_usd)
+        .bind(&req.destination_address)
+        .bind(sandbox_mode)
+        .execute(&mut *tx)
+        .await?;
+
+        // 6. Record Customer Transaction
+        let customer_tx = sqlx::query_as::<_, CustomerTransaction>(
+            r#"
+            INSERT INTO customer_transactions (customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status, destination_address, reference_id, description, sandbox_mode)
+            VALUES ($1, $2, 'WITHDRAWAL', $3, $4, $5, 0, 'PENDING', $6, $7, $8, $9)
+            RETURNING id, customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status,
+                      destination_address, transaction_hash, reference_id, description,
+                      created_at, updated_at, sandbox_mode
+            "#
+        )
+        .bind(customer.id)
+        .bind(merchant_id)
+        .bind(&normalized_crypto)
+        .bind(amount)
+        .bind(amount_usd)
+        .bind(&req.destination_address)
+        .bind(&withdrawal_id)
+        .bind("Sub-account withdrawal request")
+        .bind(sandbox_mode)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        // 7. Audit Log with Privacy Masking
+        let audit_details = json!({
+            "customer_id": customer.id,
+            "withdrawal_id": withdrawal_id,
+            "masked_email": customer.email.as_ref().map(|e| mask_email(e)),
+            "masked_address": mask_address(&req.destination_address),
+            "amount": amount.to_string(),
+            "crypto_type": normalized_crypto
+        });
+
+        sqlx::query(
+            "INSERT INTO audit_logs (merchant_id, action_type, details) VALUES ($1, $2, $3)",
+        )
+        .bind(merchant_id)
+        .bind("customer.withdrawal_request")
+        .bind(&audit_details)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        // Notify merchant of request
+        let _ = self
+            .notification_service
+            .create_notification(
+                merchant_id,
+                "🏧 Withdrawal Requested",
+                &format!(
+                    "A withdrawal of {} {} has been requested for customer {}.",
+                    amount, normalized_crypto, external_id
+                ),
+                "info",
+                "customer.withdrawal.pending",
+                sandbox_mode,
+            )
+            .await;
+
+        Ok(customer_tx)
+    }
+
     // =========================================================================
     // Status & Permission Management (Merchant controls)
     // =========================================================================
@@ -1493,10 +1647,14 @@ impl MerchantCustomerService {
 fn mask_email(email: &str) -> String {
     if let Some(pos) = email.find('@') {
         let (name, domain) = email.split_at(pos);
-        if name.len() > 6 {
-            format!("{}...{}{}", &name[..3], &name[name.len() - 3..], domain)
-        } else {
-            format!("***{}", domain)
+        match name.len() {
+            0 => email.to_string(),
+            1 => format!("*{}", domain),
+            2 => format!("{}*{}", &name[..1], domain),
+            _ => {
+                // Show first and last characters of the name part, e.g. j****n@example.com
+                format!("{}****{}{}", &name[..1], &name[name.len() - 1..], domain)
+            }
         }
     } else {
         email.to_string()

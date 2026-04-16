@@ -28,7 +28,6 @@ struct TickerResult {
 
 #[derive(Debug, Deserialize)]
 struct TickerData {
-    symbol: String,
     #[serde(rename = "lastPrice")]
     last_price: String,
 }
