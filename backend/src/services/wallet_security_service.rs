@@ -76,7 +76,8 @@ impl WalletSecurityService {
         if ip_event_count > 15 {
             tracing::warn!(
                 "Suspicious activity detected from IP {}: {} events in 1 minute",
-                ip_address, ip_event_count
+                ip_address,
+                ip_event_count
             );
             return Ok(true);
         }
@@ -91,9 +92,10 @@ impl WalletSecurityService {
         .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
         if merchant_event_count > 50 {
-             tracing::warn!(
+            tracing::warn!(
                 "Suspicious activity detected for merchant {}: {} events in 5 minutes",
-                merchant_id, merchant_event_count
+                merchant_id,
+                merchant_event_count
             );
             return Ok(true);
         }

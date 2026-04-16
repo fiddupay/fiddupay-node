@@ -202,7 +202,11 @@ pub async fn login_merchant(
     Json(req): Json<LoginMerchantRequest>,
 ) -> impl IntoResponse {
     // 2. Check for account lockout
-    match state.account_lockout_service.check_lockout(&req.email).await {
+    match state
+        .account_lockout_service
+        .check_lockout(&req.email)
+        .await
+    {
         Ok(true) => {
             return (
                 StatusCode::FORBIDDEN,
@@ -256,7 +260,7 @@ pub async fn login_merchant(
             if let Ok(true) = state
                 .account_lockout_service
                 .record_failed_attempt(&req.email, "dashboard")
-                .await 
+                .await
             {
                 let _ = state.security_monitoring_service.log_security_event(crate::services::security_monitoring_service::SecurityEvent {
                     merchant_id: Some(merchant.get("id")),
@@ -280,7 +284,10 @@ pub async fn login_merchant(
             // 3. Fallback to Team Member login
             let multi_user_service =
                 crate::services::multi_user_service::MultiUserService::new(state.db_pool.clone());
-            match multi_user_service.authenticate(&req.email, &req.password).await {
+            match multi_user_service
+                .authenticate(&req.email, &req.password)
+                .await
+            {
                 Ok(user) => {
                     // Fetch the parent merchant info for the context
                     let merchant_res = sqlx::query(
@@ -293,9 +300,19 @@ pub async fn login_merchant(
                     match merchant_res {
                         Ok(Some(m_row)) => {
                             // SUCCESS: Team Member Login
-                            finalize_login(state, merchant_context_from_row(m_row), user.role, Some(user.id), req.remember_me.unwrap_or(false)).await
+                            finalize_login(
+                                state,
+                                merchant_context_from_row(m_row),
+                                user.role,
+                                Some(user.id),
+                                req.remember_me.unwrap_or(false),
+                            )
+                            .await
                         }
-                        Ok(None) => ServiceError::InternalError("Parent merchant not found".to_string()).into_response(),
+                        Ok(None) => {
+                            ServiceError::InternalError("Parent merchant not found".to_string())
+                                .into_response()
+                        }
                         Err(e) => ServiceError::Database(e).into_response(),
                     }
                 }
@@ -305,7 +322,7 @@ pub async fn login_merchant(
                         .record_failed_attempt(&req.email, "dashboard")
                         .await
                     {
-                         let _ = state.security_monitoring_service.log_security_event(crate::services::security_monitoring_service::SecurityEvent {
+                        let _ = state.security_monitoring_service.log_security_event(crate::services::security_monitoring_service::SecurityEvent {
                             merchant_id: None, // We don't have the merchant ID for team member failures easily here without more queries
                             event_type: "security.account_locked_attempt".to_string(),
                             severity: "HIGH".to_string(),

@@ -1282,9 +1282,11 @@ impl BackgroundTasks {
     /// Background task to monitor merchant balances and send alerts
     async fn run_balance_monitor(&self) {
         let mut interval = interval(Duration::from_secs(3600)); // Check every hour
-        let webhook_notif = Arc::new(crate::services::webhook_notification_service::WebhookNotificationService::new(
-            self.db_pool.clone()
-        ));
+        let webhook_notif = Arc::new(
+            crate::services::webhook_notification_service::WebhookNotificationService::new(
+                self.db_pool.clone(),
+            ),
+        );
         let monitor = crate::services::balance_monitoring_service::BalanceMonitoringService::new(
             self.db_pool.clone(),
             self.notification_service.clone(),

@@ -107,25 +107,30 @@ impl SecurityMonitoringService {
               AND (action_type LIKE 'security.%' OR details->>'severity' IS NOT NULL)
             ORDER BY created_at DESC
             LIMIT $2
-            "#
+            "#,
         )
         .bind(merchant_id)
         .bind(limit)
         .fetch_all(&self.db_pool)
         .await?;
 
-        let events = rows.into_iter().map(|row| {
-            use sqlx::Row;
-            let details: serde_json::Value = row.get("details");
-            SecurityEvent {
-                merchant_id: row.get("merchant_id"),
-                event_type: row.get("action_type"),
-                severity: details["severity"].as_str().unwrap_or("INFO").to_string(),
-                source_ip: row.get::<Option<String>, _>("ip_address").unwrap_or_default(),
-                details: details["details"].clone(),
-                timestamp: row.get("created_at"),
-            }
-        }).collect();
+        let events = rows
+            .into_iter()
+            .map(|row| {
+                use sqlx::Row;
+                let details: serde_json::Value = row.get("details");
+                SecurityEvent {
+                    merchant_id: row.get("merchant_id"),
+                    event_type: row.get("action_type"),
+                    severity: details["severity"].as_str().unwrap_or("INFO").to_string(),
+                    source_ip: row
+                        .get::<Option<String>, _>("ip_address")
+                        .unwrap_or_default(),
+                    details: details["details"].clone(),
+                    timestamp: row.get("created_at"),
+                }
+            })
+            .collect();
 
         Ok(events)
     }

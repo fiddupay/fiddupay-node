@@ -126,7 +126,10 @@ pub async fn create_p2p_trade(
 
     let service = state.p2p_service.clone();
 
-    match service.create_trade(context.merchant_id, payload, context.sandbox_mode).await {
+    match service
+        .create_trade(context.merchant_id, payload, context.sandbox_mode)
+        .await
+    {
         Ok(trade) => (StatusCode::CREATED, Json(json!({"trade": trade}))).into_response(),
         Err(e) => (
             StatusCode::BAD_REQUEST,

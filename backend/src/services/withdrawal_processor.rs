@@ -157,7 +157,8 @@ impl WithdrawalProcessor {
                                 let native_enum = CryptoType::from_string(native_crypto_str)
                                     .unwrap_or(CryptoType::Eth);
 
-                                match self.sender
+                                match self
+                                    .sender
                                     .send_transaction(
                                         native_enum,
                                         &m_priv,
@@ -237,7 +238,8 @@ impl WithdrawalProcessor {
             return Ok(());
         }
 
-        let tx_hash = match self.sender
+        let tx_hash = match self
+            .sender
             .send_transaction(
                 crypto_type_enum,
                 &private_key,

@@ -149,7 +149,9 @@ impl WebhookNotificationService {
                 .timeout(std::time::Duration::from_secs(10))
                 .send()
                 .await
-                .map_err(|e| ServiceError::Internal(format!("Balance webhook request failed: {}", e)))?;
+                .map_err(|e| {
+                    ServiceError::Internal(format!("Balance webhook request failed: {}", e))
+                })?;
 
             if !response.status().is_success() {
                 tracing::warn!(
@@ -161,7 +163,8 @@ impl WebhookNotificationService {
 
             // Log attempt (reusing existing log table, potentially using a dummy payment_id or making it optional)
             let dummy_payment_id = format!("balance_alert_{}", merchant_id);
-            let _ = self.log_webhook_attempt(&dummy_payment_id, &webhook_url, response.status().as_u16())
+            let _ = self
+                .log_webhook_attempt(&dummy_payment_id, &webhook_url, response.status().as_u16())
                 .await;
         }
 

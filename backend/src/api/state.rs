@@ -3,7 +3,8 @@
 
 use crate::config::Config;
 use crate::services::{
-    admin_service::AdminService, analytics_service::AnalyticsService, audit_service::AuditService,
+    account_lockout_service::AccountLockoutService, admin_service::AdminService,
+    analytics_service::AnalyticsService, audit_service::AuditService,
     balance_monitor::BalanceMonitor, balance_service::BalanceService,
     blockchain_transaction_sender::BlockchainTransactionSender, currency_service::CurrencyService,
     invoice_service::InvoiceService, ip_whitelist_service::IpWhitelistService,
@@ -11,10 +12,10 @@ use crate::services::{
     monitoring_service::MonitoringService, notification_service::NotificationService,
     p2p_service::P2pService, payment_service::PaymentService, price_service::PriceService,
     refund_service::RefundService, report_service::ReportService,
+    security_monitoring_service::SecurityMonitoringService,
     volume_tracking_service::VolumeTrackingService, wallet_config_service::WalletConfigService,
     webhook_notification_service::WebhookNotificationService, webhook_service::WebhookService,
-    withdrawal_service::WithdrawalService, account_lockout_service::AccountLockoutService,
-    security_monitoring_service::SecurityMonitoringService,
+    withdrawal_service::WithdrawalService,
 };
 use redis::Client as RedisClient;
 use sqlx::PgPool;

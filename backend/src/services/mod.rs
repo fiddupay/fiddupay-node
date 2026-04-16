@@ -32,7 +32,6 @@ pub mod price_cache_service;
 pub mod price_service;
 pub mod refund_service;
 pub mod report_service;
-pub mod sandbox_service;
 pub mod security_monitoring_service;
 pub mod two_factor_service;
 pub mod volume_tracking_service;
