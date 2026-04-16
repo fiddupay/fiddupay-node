@@ -1047,7 +1047,8 @@ impl MerchantCustomerService {
                     .estimate_gas(crypto_enum, "", "", amount)
                     .await
                     .unwrap_or(U256::from(65000));
-                let required_native_u128 = (gas_price * estimated_gas_limit).as_u128();
+                let required_native_u128: u128 =
+                    (gas_price * estimated_gas_limit).try_into().unwrap_or(0);
 
                 let divisor = if native_currency == "SOL" {
                     1_000_000_000f64
@@ -1075,9 +1076,10 @@ impl MerchantCustomerService {
                 let onchain_raw_u256 = sender
                     .get_native_balance(native_enum, &customer_wallet_address, sandbox_mode)
                     .await
-                    .unwrap_or(U256::zero());
+                    .unwrap_or(U256::ZERO);
+                let onchain_raw_u128: u128 = onchain_raw_u256.try_into().unwrap_or(0);
                 let onchain_native_balance =
-                    Decimal::from_f64_retain(onchain_raw_u256.low_u128() as f64 / divisor)
+                    Decimal::from_f64_retain(onchain_raw_u128 as f64 / divisor)
                         .unwrap_or(Decimal::ZERO);
 
                 // 1. Calculate Merchant/Customer balances assigned to this sub-wallet

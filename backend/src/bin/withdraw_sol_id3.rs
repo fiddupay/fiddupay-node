@@ -3,9 +3,9 @@ use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{
     pubkey::Pubkey,
     signature::{Keypair, Signer},
-    system_instruction,
     transaction::Transaction,
 };
+use solana_system_interface::instruction as system_instruction;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 use std::str::FromStr;
@@ -95,7 +95,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create a dummy message to estimate fee
     let message = solana_sdk::message::Message::new(
-        &[system_instruction::transfer(
+        &[solana_program::system_instruction::transfer(
             &sender_pubkey,
             &to_pubkey,
             balance,

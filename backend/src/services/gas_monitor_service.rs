@@ -76,7 +76,8 @@ impl GasMonitorService {
         if let Some(target_gwei) = threshold_gwei {
             for crypto in evm_networks {
                 if let Ok(gas_wei) = sender.get_current_gas_price(crypto, false).await {
-                    let gas_gwei = Decimal::new(gas_wei.as_u128() as i64, 9); // Wei to Gwei
+                    let gas_u128: u128 = gas_wei.try_into().unwrap_or(0);
+                    let gas_gwei = Decimal::new(gas_u128 as i64, 9); // Wei to Gwei
 
                     // Save to history
                     let network_str = match crypto {

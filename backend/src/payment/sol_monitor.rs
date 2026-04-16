@@ -633,7 +633,7 @@ impl SolanaMonitor {
         for url in &self.ws_urls {
             let safe_url = redact_url(url);
             info!("🔌 Attempting connection to Solana WebSocket: {}", safe_url);
-            match connect_async(url).await {
+            match connect_async(url.as_str()).await {
                 Ok((stream, _)) => {
                     ws_stream_opt = Some(stream);
                     info!(

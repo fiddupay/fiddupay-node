@@ -148,8 +148,9 @@ impl BalanceMonitor {
             _ => 1_000_000_000_000_000_000.0,
         };
 
-        let balance_decimal = Decimal::from_f64_retain(balance_u256.as_u128() as f64 / divisor)
-            .unwrap_or(Decimal::ZERO);
+        let balance_u128: u128 = balance_u256.try_into().unwrap_or(0);
+        let balance_decimal =
+            Decimal::from_f64_retain(balance_u128 as f64 / divisor).unwrap_or(Decimal::ZERO);
 
         let price = self
             .price_service

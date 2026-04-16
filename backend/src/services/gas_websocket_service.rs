@@ -42,9 +42,15 @@ impl GasWebSocketService {
             .ethereum_rpc_url
             .replace("https://", "wss://")
             .replace("http://", "ws://");
-        let (ws_stream, _) = connect_async(&ws_url).await.map_err(|e| {
-            ServiceError::Internal(format!("ETH WebSocket connection failed: {}", e))
-        })?;
+        let (ws_stream, _) = match connect_async(ws_url.as_str()).await {
+            Ok(stream) => stream,
+            Err(e) => {
+                return Err(ServiceError::Internal(format!(
+                    "ETH WebSocket connection failed: {}",
+                    e
+                )))
+            }
+        };
 
         let (mut write, mut read) = ws_stream.split();
 
@@ -116,7 +122,7 @@ impl GasWebSocketService {
             .solana_rpc_url
             .replace("https://", "wss://")
             .replace("http://", "ws://");
-        let (ws_stream, _) = connect_async(&ws_url).await.map_err(|e| {
+        let (ws_stream, _) = connect_async(ws_url.as_str()).await.map_err(|e| {
             ServiceError::Internal(format!("SOL WebSocket connection failed: {}", e))
         })?;
 

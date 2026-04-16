@@ -32,7 +32,7 @@ impl WebSocketClient {
 
         info!("Connecting to Solana WebSocket: {}", url);
 
-        let (ws_stream, _) = connect_async(url).await.map_err(|e| {
+        let (ws_stream, _) = connect_async(url.as_str()).await.map_err(|e| {
             ServiceError::Internal(format!("Failed to connect to Solana WS: {}", e))
         })?;
 

@@ -347,7 +347,7 @@ impl EvmMonitor {
                 "🔌 Attempting connection to {} WebSocket: {}",
                 self.chain_name, safe_url
             );
-            match connect_async(url).await {
+            match connect_async(url.as_str()).await {
                 Ok((stream, _)) => {
                     ws_stream_opt = Some(stream);
                     connected_ws_url = url.clone();

@@ -4,10 +4,10 @@
 use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
 use alloy::{
-    network::EthereumWallet,
+    network::{EthereumWallet, TransactionBuilder},
     primitives::{Address, Bytes, U256},
     providers::{Provider, ProviderBuilder},
-    rpc::types::eth::TransactionRequest,
+    rpc::types::TransactionRequest,
     signers::local::PrivateKeySigner,
 };
 use rust_decimal::prelude::ToPrimitive;
@@ -209,6 +209,7 @@ impl BlockchainTransactionSender {
             pubkey::Pubkey,
             signature::{Keypair, Signer},
         };
+        use solana_system_interface::instruction as system_instruction;
         use std::str::FromStr;
 
         // Parse sender private key (expected as base58 string)
@@ -247,7 +248,6 @@ impl BlockchainTransactionSender {
             };
 
             use solana_sdk::transaction::Transaction;
-            use solana_system_interface::instruction as system_instruction;
 
             let instructions = vec![system_instruction::transfer(
                 &sender_keypair.pubkey(),
@@ -429,22 +429,16 @@ impl BlockchainTransactionSender {
                 Ok(s) => s,
                 Err(_) => return Err(ServiceError::ValidationError("Invalid private key".into())),
             };
+            let from_address = signer.address();
             let wallet = EthereumWallet::from(signer);
 
-            let provider = match ProviderBuilder::new()
+            let provider = ProviderBuilder::new()
                 .with_recommended_fillers()
                 .wallet(wallet)
-                .on_http(match url.parse() {
-                    Ok(u) => u,
-                    Err(e) => {
-                        last_err = Some(e.to_string());
-                        continue;
-                    }
-                }) {
-                p => p,
-            };
+                .on_http(url.parse().map_err(|e| {
+                    ServiceError::Internal(format!("Invalid RPC URL: {} ({})", url, e))
+                })?);
 
-            let from_address = provider.default_signer_address();
             let to_address_parsed: Address = params
                 .to_address
                 .parse()
@@ -466,7 +460,7 @@ impl BlockchainTransactionSender {
             };
 
             let gas_price_val = match params.gas_price {
-                Some(p) => p.to::<u128>(),
+                Some(p) => u128::try_from(p).unwrap_or(0),
                 None => match provider.get_gas_price().await {
                     Ok(p) => p,
                     Err(e) => {
@@ -476,13 +470,15 @@ impl BlockchainTransactionSender {
                 },
             };
 
-            let tx = TransactionRequest::default()
-                .with_nonce(nonce)
-                .with_to(to_address_parsed)
-                .with_value(U256::from(wei_amount))
-                .with_gas_limit(21000)
-                .with_gas_price(gas_price_val)
-                .with_chain_id(chain_id);
+            let tx = TransactionRequest {
+                nonce: Some(nonce),
+                to: Some(to_address_parsed.into()),
+                value: Some(U256::from(wei_amount)),
+                gas: Some(21000),
+                gas_price: Some(gas_price_val),
+                chain_id: Some(chain_id),
+                ..Default::default()
+            };
 
             let signature = match provider.send_transaction(tx).await {
                 Ok(pending_tx) => *pending_tx.tx_hash(),
@@ -522,20 +518,17 @@ impl BlockchainTransactionSender {
                 Ok(s) => s,
                 Err(_) => return Err(ServiceError::ValidationError("Invalid secret".into())),
             };
+            let from_address = signer.address();
             let wallet = EthereumWallet::from(signer);
 
             let provider = ProviderBuilder::new()
                 .with_recommended_fillers()
                 .wallet(wallet)
-                .on_http(match url.parse() {
-                    Ok(u) => u,
-                    Err(e) => {
-                        last_err = Some(e.to_string());
-                        continue;
-                    }
-                });
+                .on_http(url.parse().map_err(|e| {
+                    last_err = Some(format!("Invalid RPC URL: {}", e));
+                    ServiceError::Internal(format!("Invalid RPC URL: {}", e))
+                })?);
 
-            let from_address = provider.default_signer_address();
             let to_address_parsed: Address = params
                 .to_address
                 .parse()
@@ -559,7 +552,7 @@ impl BlockchainTransactionSender {
                 }
             };
             let gas_price_val = match params.gas_price {
-                Some(p) => p.to::<u128>(),
+                Some(p) => u128::try_from(p).unwrap_or(0),
                 None => match provider.get_gas_price().await {
                     Ok(p) => p,
                     Err(e) => {
@@ -577,14 +570,16 @@ impl BlockchainTransactionSender {
             let padded_amount = U256::from(token_amount).to_be_bytes::<32>();
             data.extend(padded_amount);
 
-            let tx = TransactionRequest::default()
-                .with_nonce(nonce)
-                .with_to(token_contract_address)
-                .with_value(U256::ZERO)
-                .with_gas_limit(65000)
-                .with_gas_price(gas_price_val)
-                .with_chain_id(chain_id)
-                .with_input(Bytes::from(data));
+            let tx = TransactionRequest {
+                nonce: Some(nonce),
+                to: Some(token_contract_address.into()),
+                value: Some(U256::ZERO),
+                gas: Some(65000),
+                gas_price: Some(gas_price_val),
+                chain_id: Some(chain_id),
+                input: alloy::rpc::types::eth::TransactionInput::new(Bytes::from(data)),
+                ..Default::default()
+            };
 
             let signature = match provider.send_transaction(tx).await {
                 Ok(pending_tx) => *pending_tx.tx_hash(),
@@ -691,15 +686,11 @@ impl BlockchainTransactionSender {
                 }
             };
 
-            let provider = ProviderBuilder::new().on_http(match rpc_url.parse() {
-                Ok(u) => u,
-                Err(e) => {
-                    return Err(ServiceError::Internal(format!(
-                        "Failed to parse EVM RPC URL: {}",
-                        e
-                    )))
-                }
-            });
+            let provider = ProviderBuilder::new().with_recommended_fillers().on_http(
+                rpc_url.parse().map_err(|e| {
+                    ServiceError::Internal(format!("Invalid RPC URL: {} ({})", rpc_url, e))
+                })?,
+            );
 
             let addr: Address = address
                 .parse()

@@ -156,7 +156,7 @@ impl PaymentMonitorService {
             .await
             .map_err(|e| ServiceError::Internal(format!("ETH RPC error: {}", e)))?;
 
-        let balance_wei = balance.to::<u128>();
+        let balance_wei: u128 = balance.try_into().unwrap_or(0);
         let mut dec = Decimal::from_i128_with_scale(balance_wei as i128, 18);
         dec.rescale(18);
         Ok(dec)
@@ -179,7 +179,7 @@ impl PaymentMonitorService {
             .await
             .map_err(|e| ServiceError::Internal(format!("BNB RPC error: {}", e)))?;
 
-        let balance_wei = balance.to::<u128>();
+        let balance_wei: u128 = balance.try_into().unwrap_or(0);
         let mut dec = Decimal::from_i128_with_scale(balance_wei as i128, 18);
         dec.rescale(18);
         Ok(dec)
@@ -202,7 +202,7 @@ impl PaymentMonitorService {
             .await
             .map_err(|e| ServiceError::Internal(format!("Polygon RPC error: {}", e)))?;
 
-        let balance_wei = balance.to::<u128>();
+        let balance_wei: u128 = balance.try_into().unwrap_or(0);
         let mut dec = Decimal::from_i128_with_scale(balance_wei as i128, 18);
         dec.rescale(18);
         Ok(dec)
@@ -225,7 +225,7 @@ impl PaymentMonitorService {
             .await
             .map_err(|e| ServiceError::Internal(format!("Arbitrum RPC error: {}", e)))?;
 
-        let balance_wei = balance.to::<u128>();
+        let balance_wei: u128 = balance.try_into().unwrap_or(0);
         let mut dec = Decimal::from_i128_with_scale(balance_wei as i128, 18);
         dec.rescale(18);
         Ok(dec)
