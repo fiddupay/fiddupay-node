@@ -86,4 +86,5 @@ jobs:
         uses: actions-rust-lang/audit@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          directory: backend
+          workingDirectory: backend
+          denyWarnings: false
