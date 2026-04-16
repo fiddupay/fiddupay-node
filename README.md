@@ -125,7 +125,7 @@ bash ./scripts/push-sdk.sh main
 Precheck before pushing to github:
 cargo audit
 cargo fmt
-cargo fmt -- --check -p fiddupay
+cargo fmt --check -p fiddupay
 cargo clippy -- -D warnings
 cargo check
 
