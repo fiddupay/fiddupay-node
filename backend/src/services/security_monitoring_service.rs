@@ -1,7 +1,7 @@
 use crate::error::ServiceError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityEvent {
@@ -117,7 +117,6 @@ impl SecurityMonitoringService {
         let events = rows
             .into_iter()
             .map(|row| {
-                use sqlx::Row;
                 let details: serde_json::Value = row.get("details");
                 SecurityEvent {
                     merchant_id: row.get("merchant_id"),

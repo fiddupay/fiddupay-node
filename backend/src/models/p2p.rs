@@ -233,13 +233,13 @@ pub struct CreateDisputeRequest {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Validate)]
 pub struct CreateRatingRequest {
     pub rating: String,
     pub comment: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Validate)]
 pub struct CreateSupportTicketRequest {
     pub subject: String,
     pub category: String,

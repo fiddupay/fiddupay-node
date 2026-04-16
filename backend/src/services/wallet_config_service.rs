@@ -85,7 +85,7 @@ impl WalletConfigService {
             let address_changed = current_address != address;
             let mode_changed = current_mode.as_deref().unwrap_or("address_only") != mode;
             let active_changed = current_active != is_active;
-            let key_changed = current_key != Some(encrypted_private_key.clone());
+            let key_changed = current_key != encrypted_private_key;
 
             if address_changed || mode_changed || active_changed || key_changed {
                 if wallets_locked {
@@ -194,7 +194,7 @@ impl WalletConfigService {
                 let address_changed = current_address != address;
                 let mode_changed = current_mode.as_deref().unwrap_or("address_only") != mode;
                 let active_changed = current_active != is_active;
-                let key_changed = current_key != Some(encrypted_private_key.clone());
+                let key_changed = current_key != encrypted_private_key;
 
                 if address_changed || mode_changed || active_changed || key_changed {
                     tracing::info!(

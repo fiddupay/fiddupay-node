@@ -164,6 +164,18 @@ impl P2pService {
         Ok(ads)
     }
 
+    pub async fn get_ad_by_id(&self, ad_id: i64) -> Result<P2pAd, ServiceError> {
+        let ad = sqlx::query_as::<_, P2pAd>(
+            "SELECT id, user_id, ad_type, crypto_type, fiat_currency, price, total_amount, min_limit, max_limit, payment_time_limit, status, terms_and_conditions, auto_reply, sandbox_mode, created_at, updated_at FROM p2p_ads WHERE id = $1"
+        )
+        .bind(ad_id)
+        .fetch_optional(&self.db_pool)
+        .await?
+        .ok_or_else(|| ServiceError::NotFound("Ad not found".into()))?;
+
+        Ok(ad)
+    }
+
     // Trades
     pub async fn create_trade(
         &self,
@@ -261,6 +273,18 @@ impl P2pService {
         Ok(trade)
     }
 
+    pub async fn get_trade_by_id(&self, trade_id: i64) -> Result<P2pTrade, ServiceError> {
+        let trade = sqlx::query_as::<_, P2pTrade>(
+            "SELECT id, trade_id, ad_id, maker_id, taker_id, crypto_amount, fiat_amount, price, status, payment_method_id, expires_at, paid_at, completed_at, disputed_at, cancel_reason, sandbox_mode, created_at, updated_at FROM p2p_trades WHERE id = $1"
+        )
+        .bind(trade_id)
+        .fetch_optional(&self.db_pool)
+        .await?
+        .ok_or_else(|| ServiceError::NotFound("Trade not found".into()))?;
+
+        Ok(trade)
+    }
+
     pub async fn release_trade(&self, user_id: i64, trade_id: &str) -> Result<(), ServiceError> {
         let mut tx = self.db_pool.begin().await?;
 
@@ -320,7 +344,7 @@ impl P2pService {
         Ok(())
     }
 
-    pub async fn submit_rating(
+    pub async fn rate_user(
         &self,
         reviewer_id: i64,
         trade_id_str: &str,
@@ -414,7 +438,7 @@ impl P2pService {
         Ok(rating)
     }
 
-    pub async fn create_support_ticket(
+    pub async fn create_dispute(
         &self,
         user_id: i64,
         request: CreateSupportTicketRequest,

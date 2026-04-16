@@ -134,7 +134,7 @@ pub async fn check_gas_requirements(
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
 
-    let sandbox_mode = get_sandbox_mode(&state.db_pool, context.merchant_id).await;
+    let sandbox_mode = context.sandbox_mode;
 
     match wallet_service
         .validate_gas_for_withdrawal(
@@ -202,7 +202,7 @@ pub async fn check_withdrawal_capability(
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
 
-    let sandbox_mode = get_sandbox_mode(&state.db_pool, context.merchant_id).await;
+    let sandbox_mode = context.sandbox_mode;
 
     match wallet_service
         .can_withdraw(

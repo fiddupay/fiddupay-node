@@ -96,9 +96,10 @@ impl AppState {
         let webhook_notif = Arc::new(WebhookNotificationService::new(db_pool.clone()));
         let balance_monitor = Arc::new(BalanceMonitor::new(
             db_pool.clone(),
-            blockchain_sender,
+            blockchain_sender.clone(),
             price_service.clone(),
             notification_service.clone(),
+            webhook_notif,
         ));
 
         Self {
@@ -143,10 +144,10 @@ impl AppState {
             monitoring_service,
             balance_monitor,
             config,
-            db_pool,
+            db_pool: db_pool.clone(),
             account_lockout_service: Arc::new(AccountLockoutService::new(db_pool.clone(), 5, 15)),
             security_monitoring_service: Arc::new(SecurityMonitoringService::new(db_pool.clone())),
-            blockchain_sender,
+            blockchain_sender: blockchain_sender.clone(),
             redis_client,
         }
     }

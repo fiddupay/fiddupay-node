@@ -49,7 +49,7 @@ impl BalanceMonitoringService {
         // 1. Fetch merchants with active thresholds
         let merchants = sqlx::query(
             r#"
-            SELECT id, business_name, low_balance_threshold_usd 
+            SELECT id, business_name, low_balance_threshold_usd, last_low_balance_total_alert_at 
             FROM merchants 
             WHERE low_balance_threshold_usd > 0 AND is_active = true
             "#,
@@ -63,6 +63,14 @@ impl BalanceMonitoringService {
             let merchant_id: i64 = merchant.get("id");
             let low_balance_threshold_usd: Option<Decimal> =
                 merchant.get("low_balance_threshold_usd");
+            let last_alert: Option<DateTime<Utc>> = merchant.get("last_low_balance_total_alert_at");
+
+            // Cooldown logic (12 hours)
+            if let Some(last) = last_alert {
+                if Utc::now().signed_duration_since(last).num_hours() < 12 {
+                    continue;
+                }
+            }
 
             // 2. Fetch balances for this merchant
             let balances = sqlx::query(
@@ -141,6 +149,12 @@ impl BalanceMonitoringService {
         .bind(&details)
         .execute(&self.db_pool)
         .await?;
+
+        // Update merchant last alert time
+        sqlx::query("UPDATE merchants SET last_low_balance_total_alert_at = NOW() WHERE id = $1")
+            .bind(alert.merchant_id)
+            .execute(&self.db_pool)
+            .await?;
 
         // Create in-app notification
         let _ = self

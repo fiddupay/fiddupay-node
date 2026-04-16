@@ -16,6 +16,7 @@ pub struct BalanceMonitor {
     blockchain_sender: Arc<BlockchainTransactionSender>,
     price_service: Arc<PriceService>,
     notification_service: Arc<NotificationService>,
+    webhook_service: Arc<WebhookNotificationService>,
 }
 
 impl BalanceMonitor {
@@ -24,12 +25,14 @@ impl BalanceMonitor {
         blockchain_sender: Arc<BlockchainTransactionSender>,
         price_service: Arc<PriceService>,
         notification_service: Arc<NotificationService>,
+        webhook_service: Arc<WebhookNotificationService>,
     ) -> Self {
         Self {
             db_pool,
             blockchain_sender,
             price_service,
             notification_service,
+            webhook_service,
         }
     }
 
@@ -91,7 +94,7 @@ impl BalanceMonitor {
 
             // Cooldown logic
             if let Some(last) = last_alert {
-                let cooldown_hours = if is_on_demand { 1 } else { 24 }; // Faster refresh if user is active
+                let cooldown_hours = 12; // Standardized 12-hour cooldown for balance alerts
                 if Utc::now().signed_duration_since(last).num_hours() < cooldown_hours {
                     continue;
                 }
@@ -177,6 +180,23 @@ impl BalanceMonitor {
                     "balance.low_onchain",
                     !is_live,
                 )
+                .await;
+
+            // Trigger external webhook alert
+            let webhook_details = serde_json::json!({
+                "alert_type": "LOW_BALANCE_USD_ONCHAIN",
+                "crypto_type": crypto_type.to_string(),
+                "current_balance": balance_decimal,
+                "current_balance_usd": balance_usd,
+                "threshold_usd": threshold_usd,
+                "address": address,
+                "network": network,
+                "timestamp": Utc::now().to_rfc3339()
+            });
+
+            let _ = self
+                .webhook_service
+                .send_balance_alert_webhook(merchant_id, "balance.low", webhook_details)
                 .await;
 
             // Update last_alert time
