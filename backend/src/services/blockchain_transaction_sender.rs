@@ -4,7 +4,7 @@
 use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
 use alloy::{
-    network::EthereumWallet,
+    network::{Ethereum, EthereumWallet},
     primitives::{Address, Bytes, U256},
     providers::{Provider, ProviderBuilder},
     rpc::types::TransactionRequest,
@@ -239,7 +239,7 @@ impl BlockchainTransactionSender {
 
             // Get latest blockhash
             let recent_blockhash = match rpc_client.get_latest_blockhash().await {
-                Ok(bh) => bh,
+                Ok(bh) => bh, // In Agave/Solana 3.x get_latest_blockhash returns Hash directly
                 Err(e) => {
                     tracing::warn!("[SOLANA] RPC {} failed (blockhash): {}", url, e);
                     last_err = Some(e);
@@ -414,7 +414,7 @@ impl BlockchainTransactionSender {
         params: EvmTransferParams<'_>,
     ) -> Result<String, ServiceError> {
         let rpc_configs = self.get_evm_rpc_urls(&params.crypto_type, params.sandbox_mode);
-        let mut last_err = None;
+        let mut last_err: Option<String> = None;
 
         for (url, chain_id) in rpc_configs {
             tracing::info!("[EVM] Attempting transaction via RPC: {}", url);
@@ -433,9 +433,9 @@ impl BlockchainTransactionSender {
             let wallet = EthereumWallet::from(signer);
 
             let provider = ProviderBuilder::new()
-                .with_recommended_fillers()
+                .network::<Ethereum>()
                 .wallet(wallet)
-                .on_http(url.parse().map_err(|e| {
+                .connect_http(url.parse().map_err(|e| {
                     ServiceError::Internal(format!("Invalid RPC URL: {} ({})", url, e))
                 })?);
 
@@ -475,12 +475,12 @@ impl BlockchainTransactionSender {
                 to: Some(to_address_parsed.into()),
                 value: Some(U256::from(wei_amount)),
                 gas: Some(21000),
-                gas_price: Some(gas_price_val),
+                gas_price: Some(gas_price_val as u128),
                 chain_id: Some(chain_id),
                 ..Default::default()
             };
 
-            let signature = match provider.send_transaction(tx).await {
+            let signature: alloy::primitives::B256 = match provider.send_transaction(tx).await {
                 Ok(pending_tx) => *pending_tx.tx_hash(),
                 Err(e) => {
                     last_err = Some(e.to_string());
@@ -503,7 +503,7 @@ impl BlockchainTransactionSender {
         params: EvmTokenTransferParams<'_>,
     ) -> Result<String, ServiceError> {
         let rpc_configs = self.get_evm_rpc_urls(&params.crypto_type, params.sandbox_mode);
-        let mut last_err = None;
+        let mut last_err: Option<String> = None;
 
         for (url, chain_id) in rpc_configs {
             tracing::info!("[EVM-TOKEN] Attempting transaction via RPC: {}", url);
@@ -522,9 +522,9 @@ impl BlockchainTransactionSender {
             let wallet = EthereumWallet::from(signer);
 
             let provider = ProviderBuilder::new()
-                .with_recommended_fillers()
+                .network::<Ethereum>()
                 .wallet(wallet)
-                .on_http(url.parse().map_err(|e| {
+                .connect_http(url.parse().map_err(|e| {
                     last_err = Some(format!("Invalid RPC URL: {}", e));
                     ServiceError::Internal(format!("Invalid RPC URL: {}", e))
                 })?);
@@ -575,13 +575,13 @@ impl BlockchainTransactionSender {
                 to: Some(token_contract_address.into()),
                 value: Some(U256::ZERO),
                 gas: Some(65000),
-                gas_price: Some(gas_price_val),
+                gas_price: Some(gas_price_val as u128),
                 chain_id: Some(chain_id),
-                input: alloy::rpc::types::eth::TransactionInput::new(Bytes::from(data)),
                 ..Default::default()
-            };
+            }
+            .input(alloy::rpc::types::TransactionInput::new(Bytes::from(data)));
 
-            let signature = match provider.send_transaction(tx).await {
+            let signature: alloy::primitives::B256 = match provider.send_transaction(tx).await {
                 Ok(pending_tx) => *pending_tx.tx_hash(),
                 Err(e) => {
                     last_err = Some(e.to_string());
@@ -686,7 +686,7 @@ impl BlockchainTransactionSender {
                 }
             };
 
-            let provider = ProviderBuilder::new().with_recommended_fillers().on_http(
+            let provider = ProviderBuilder::new().network::<Ethereum>().connect_http(
                 rpc_url.parse().map_err(|e| {
                     ServiceError::Internal(format!("Invalid RPC URL: {} ({})", rpc_url, e))
                 })?,
@@ -696,7 +696,7 @@ impl BlockchainTransactionSender {
                 .parse()
                 .map_err(|_| ServiceError::ValidationError("Invalid EVM address".to_string()))?;
 
-            let balance = provider
+            let balance: U256 = provider
                 .get_balance(addr)
                 .await
                 .map_err(|e| ServiceError::Internal(format!("Failed EVM balance: {}", e)))?;
@@ -750,17 +750,20 @@ impl BlockchainTransactionSender {
             }
         };
 
-        let provider = ProviderBuilder::new().on_http(match rpc_url.parse() {
-            Ok(u) => u,
-            Err(e) => {
-                return Err(ServiceError::Internal(format!(
-                    "Failed to parse provider URL: {}",
-                    e
-                )))
-            }
-        });
+        let provider =
+            ProviderBuilder::new()
+                .network::<Ethereum>()
+                .connect_http(match rpc_url.parse() {
+                    Ok(u) => u,
+                    Err(e) => {
+                        return Err(ServiceError::Internal(format!(
+                            "Failed to parse provider URL: {}",
+                            e
+                        )))
+                    }
+                });
 
-        let gas_price = provider
+        let gas_price: u128 = provider
             .get_gas_price()
             .await
             .map_err(|e| ServiceError::Internal(format!("Failed to get gas price: {}", e)))?;

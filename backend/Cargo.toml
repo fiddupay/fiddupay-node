@@ -34,9 +34,9 @@ reqwest = { version = "0.12", features = ["json"] }
 tokio-tungstenite = { version = "0.23", features = ["native-tls"] }
 futures-util = "0.3"
 
-# Blockchain transaction libraries (minimal set)
-alloy = { version = "0.1", features = ["full", "signer-local"] }
-alloy-primitives = { version = "0.8", features = ["serde"] }
+# Blockchain transaction libraries (modern v1 suite)
+alloy = { version = "1.8", features = ["full", "signer-local"] }
+alloy-primitives = { version = "0.8.26", features = ["serde"] }
 solana-client = "3.0.0"
 solana-sdk = "3.0.0"
 solana-program = "3.0.0"
@@ -125,4 +125,5 @@ proptest = "1.4"
 mockall = "0.12"
 
 [patch.crates-io]
-# Patches removed - migrated to maintained libraries
+# Standard security synchronization
+

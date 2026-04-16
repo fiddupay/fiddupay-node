@@ -7,6 +7,7 @@ use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
 
 use alloy::{
+    network::Ethereum,
     primitives::Address,
     providers::{Provider, ProviderBuilder},
 };
@@ -140,30 +141,31 @@ impl PaymentMonitorService {
     }
 
     async fn get_eth_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
-        let provider = ProviderBuilder::new().on_http(
-            self.config
-                .ethereum_rpc_url
-                .parse()
-                .map_err(|e| ServiceError::Internal(format!("Invalid RPC URL: {}", e)))?,
-        );
+        let rpc_url = &self.config.ethereum_rpc_url;
+        let provider =
+            ProviderBuilder::new()
+                .network::<Ethereum>()
+                .connect_http(rpc_url.parse().map_err(|e| {
+                    ServiceError::Internal(format!("Invalid RPC URL: {} ({})", rpc_url, e))
+                })?);
 
         let addr: Address = address
             .parse()
             .map_err(|_| ServiceError::ValidationError("Invalid address".to_string()))?;
 
-        let balance = provider
+        let balance: alloy::primitives::U256 = provider
             .get_balance(addr)
             .await
             .map_err(|e| ServiceError::Internal(format!("ETH RPC error: {}", e)))?;
 
-        let balance_wei: u128 = balance.try_into().unwrap_or(0);
+        let balance_wei: u128 = balance.to::<u128>();
         let mut dec = Decimal::from_i128_with_scale(balance_wei as i128, 18);
         dec.rescale(18);
         Ok(dec)
     }
 
     async fn get_bnb_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
-        let provider = ProviderBuilder::new().on_http(
+        let provider = ProviderBuilder::new().network::<Ethereum>().connect_http(
             self.config
                 .bsc_rpc_url
                 .parse()
@@ -174,19 +176,19 @@ impl PaymentMonitorService {
             .parse()
             .map_err(|_| ServiceError::ValidationError("Invalid address".to_string()))?;
 
-        let balance = provider
+        let balance: alloy::primitives::U256 = provider
             .get_balance(addr)
             .await
             .map_err(|e| ServiceError::Internal(format!("BNB RPC error: {}", e)))?;
 
-        let balance_wei: u128 = balance.try_into().unwrap_or(0);
+        let balance_wei: u128 = balance.to::<u128>();
         let mut dec = Decimal::from_i128_with_scale(balance_wei as i128, 18);
         dec.rescale(18);
         Ok(dec)
     }
 
     async fn get_matic_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
-        let provider = ProviderBuilder::new().on_http(
+        let provider = ProviderBuilder::new().network::<Ethereum>().connect_http(
             self.config
                 .polygon_rpc_url
                 .parse()
@@ -197,19 +199,19 @@ impl PaymentMonitorService {
             .parse()
             .map_err(|_| ServiceError::ValidationError("Invalid address".to_string()))?;
 
-        let balance = provider
+        let balance: alloy::primitives::U256 = provider
             .get_balance(addr)
             .await
             .map_err(|e| ServiceError::Internal(format!("Polygon RPC error: {}", e)))?;
 
-        let balance_wei: u128 = balance.try_into().unwrap_or(0);
+        let balance_wei: u128 = balance.to::<u128>();
         let mut dec = Decimal::from_i128_with_scale(balance_wei as i128, 18);
         dec.rescale(18);
         Ok(dec)
     }
 
     async fn get_arb_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
-        let provider = ProviderBuilder::new().on_http(
+        let provider = ProviderBuilder::new().network::<Ethereum>().connect_http(
             self.config
                 .arbitrum_rpc_url
                 .parse()
@@ -220,12 +222,12 @@ impl PaymentMonitorService {
             .parse()
             .map_err(|_| ServiceError::ValidationError("Invalid address".to_string()))?;
 
-        let balance = provider
+        let balance: alloy::primitives::U256 = provider
             .get_balance(addr)
             .await
             .map_err(|e| ServiceError::Internal(format!("Arbitrum RPC error: {}", e)))?;
 
-        let balance_wei: u128 = balance.try_into().unwrap_or(0);
+        let balance_wei: u128 = balance.to::<u128>();
         let mut dec = Decimal::from_i128_with_scale(balance_wei as i128, 18);
         dec.rescale(18);
         Ok(dec)
