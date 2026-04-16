@@ -34,6 +34,14 @@ pub trait BlockchainMonitor: Send + Sync {
 
     /// Get blockchain name
     fn blockchain_name(&self) -> &'static str;
+
+    /// Listen for new transactions using WebSockets (Optimized Push Model)
+    async fn listen_for_events(
+        &self,
+        addresses: Vec<String>,
+        new_addresses_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
+        callback: std::sync::Arc<dyn Fn(String, String) + Send + Sync>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
 }
 
 /// EVM-based blockchain monitor (BSC, Arbitrum, Polygon)
@@ -324,14 +332,14 @@ impl EvmMonitor {
     }
 
     /// Listen for new transactions using WebSockets (Optimized Push Model)
-    pub async fn listen_for_evm_events(
+    async fn listen_for_events(
         &self,
         addresses: Vec<String>,
         mut new_addresses_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
-        callback: Arc<dyn Fn(String, String) + Send + Sync>,
+        callback: std::sync::Arc<dyn Fn(String, String) + Send + Sync>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut ws_stream_opt = None;
-        let mut connected_ws_url = String::new();
+        let mut connected_ws_url;
 
         for url in &self.ws_urls {
             let safe_url = redact_url(url);
@@ -695,7 +703,7 @@ impl EvmMonitor {
                     if let Some(arr) = params.as_array() {
                         format!(
                             "&txhash={}",
-                            arr.get(0).and_then(|v| v.as_str()).unwrap_or("")
+                            arr.first().and_then(|v| v.as_str()).unwrap_or("")
                         )
                     } else {
                         "".to_string()
@@ -705,7 +713,7 @@ impl EvmMonitor {
                     if let Some(arr) = params.as_array() {
                         format!(
                             "&tag={}&boolean=false",
-                            arr.get(0).and_then(|v| v.as_str()).unwrap_or("")
+                            arr.first().and_then(|v| v.as_str()).unwrap_or("")
                         )
                     } else {
                         "".to_string()
@@ -760,7 +768,7 @@ impl EvmMonitor {
             moralis_chain
         };
 
-        let url = if let Some(ref token) = self.token_address {
+        let url = if let Some(ref _token) = self.token_address {
             format!(
                 "https://deep-index.moralis.io/api/v2.2/{}/erc20/transfers?chain={}&limit={}",
                 address, chain_str, limit
@@ -942,9 +950,6 @@ impl BlockchainMonitor for EvmMonitor {
             .filter(|v| !v.is_null())
             .ok_or("Transaction not found")?;
 
-        // Parse transaction data
-        let result = data.get("result").ok_or("No result in response")?;
-
         if result.is_null() {
             return Err("Transaction not found".into());
         }
@@ -1090,6 +1095,16 @@ impl BlockchainMonitor for EvmMonitor {
 
     fn blockchain_name(&self) -> &'static str {
         self.chain_name
+    }
+
+    async fn listen_for_events(
+        &self,
+        addresses: Vec<String>,
+        new_addresses_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
+        callback: std::sync::Arc<dyn Fn(String, String) + Send + Sync>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.listen_for_events(addresses, new_addresses_rx, callback)
+            .await
     }
 }
 

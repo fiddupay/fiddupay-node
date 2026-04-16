@@ -5,7 +5,7 @@ use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
 use crate::services::gas_fee_service::GasFeeService;
 use crate::services::notification_service::NotificationService;
-use ethers::core::types::U256;
+use alloy_primitives::U256;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -26,6 +26,7 @@ pub struct AddressOnlyPayment {
     pub processing_fee: Decimal,
     pub forwarding_amount: Decimal,
     pub status: AddressOnlyStatus,
+    pub last_tx_hash: Option<String>,
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
@@ -109,13 +110,13 @@ impl AddressOnlyService {
             INSERT INTO address_only_payments (
                 payment_id, merchant_id, crypto_type, gateway_deposit_address,
                 merchant_destination_address, requested_amount, processing_fee,
-                forwarding_amount, status, customer_amount
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                forwarding_amount, status, customer_amount, last_tx_hash
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NULL)
             RETURNING id, payment_id, merchant_id, crypto_type,
                      gateway_deposit_address, merchant_destination_address,
                      requested_amount, customer_amount,
                      processing_fee, forwarding_amount,
-                     status, created_at
+                     status, last_tx_hash, created_at
             "#,
         )
         .bind(&payment_id)
@@ -151,19 +152,23 @@ impl AddressOnlyService {
             ));
         }
 
-        // Update status to received
-        self.update_payment_status(payment_id, AddressOnlyStatus::PaymentReceived)
-            .await?;
+        // Update status to received and save hash
+        self.update_payment_status(
+            payment_id,
+            AddressOnlyStatus::PaymentReceived,
+            Some(tx_hash),
+        )
+        .await?;
 
-        // Create in-app notification
+        // Create in-app notification with tx hash
         let _ = self
             .notification_service
             .create_notification(
                 payment.merchant_id,
                 "Payment Received (Address-Only)",
                 &format!(
-                    "Received {} {} (Payment ID: {})",
-                    received_amount, payment.crypto_type, payment_id
+                    "Received {} {} (Tx: {}) (Payment ID: {})",
+                    received_amount, payment.crypto_type, tx_hash, payment_id
                 ),
                 "success",
                 "payment.received",
@@ -187,11 +192,15 @@ impl AddressOnlyService {
         // Get payment details
         let payment = self.get_payment_by_id(payment_id).await?;
 
-        // Update status to partial payment received if not already completed/forwarding
+        // Update status to partial payment received and save hash
         match payment.status {
             AddressOnlyStatus::PendingPayment | AddressOnlyStatus::PartialPaymentReceived => {
-                self.update_payment_status(payment_id, AddressOnlyStatus::PartialPaymentReceived)
-                    .await?;
+                self.update_payment_status(
+                    payment_id,
+                    AddressOnlyStatus::PartialPaymentReceived,
+                    Some(tx_hash),
+                )
+                .await?;
             }
             _ => {
                 // If already completed or forwarding, do nothing or log warning
@@ -201,15 +210,15 @@ impl AddressOnlyService {
 
         // Send webhook notification with partial payment details
         if let Ok(updated_payment) = self.get_payment_by_id(payment_id).await {
-            // Create in-app notification
+            // Create in-app notification with tx hash
             let _ = self
                 .notification_service
                 .create_notification(
                     updated_payment.merchant_id,
                     "Partial Payment Received (Address-Only)",
                     &format!(
-                        "Received partial payment of {} {} (Payment ID: {})",
-                        received_amount, updated_payment.crypto_type, payment_id
+                        "Received partial payment of {} {} (Tx: {}) (Payment ID: {})",
+                        received_amount, updated_payment.crypto_type, tx_hash, payment_id
                     ),
                     "info",
                     "payment.partial",
@@ -231,11 +240,15 @@ impl AddressOnlyService {
     async fn initiate_auto_forwarding(
         &self,
         payment: &AddressOnlyPayment,
-        _received_tx_hash: &str,
+        received_tx_hash: &str,
     ) -> Result<(), ServiceError> {
-        // Update status to forwarding
-        self.update_payment_status(&payment.payment_id, AddressOnlyStatus::ForwardingInProgress)
-            .await?;
+        // Update status to forwarding and preserve hash
+        self.update_payment_status(
+            &payment.payment_id,
+            AddressOnlyStatus::ForwardingInProgress,
+            Some(received_tx_hash),
+        )
+        .await?;
 
         // Get current gas estimate
         let gas_estimate = self
@@ -274,7 +287,7 @@ impl AddressOnlyService {
         .await?;
 
         // Update payment status to completed
-        self.update_payment_status(&payment.payment_id, AddressOnlyStatus::Completed)
+        self.update_payment_status(&payment.payment_id, AddressOnlyStatus::Completed, None)
             .await?;
 
         // Send webhook notification
@@ -545,7 +558,7 @@ impl AddressOnlyService {
                    gateway_deposit_address, merchant_destination_address,
                    requested_amount, COALESCE(customer_amount, requested_amount) as customer_amount,
                    processing_fee, forwarding_amount,
-                   status, created_at
+                   status, last_tx_hash, created_at
             FROM address_only_payments WHERE payment_id = $1
             "#,
         )
@@ -560,14 +573,26 @@ impl AddressOnlyService {
         &self,
         payment_id: &str,
         status: AddressOnlyStatus,
+        tx_hash: Option<&str>,
     ) -> Result<(), ServiceError> {
-        sqlx::query(
-            "UPDATE address_only_payments SET status = $1, updated_at = NOW() WHERE payment_id = $2"
-        )
-        .bind(status as i32)
-        .bind(payment_id)
-        .execute(&self.db_pool)
-        .await?;
+        if let Some(hash) = tx_hash {
+            sqlx::query(
+                "UPDATE address_only_payments SET status = $1, last_tx_hash = $2, updated_at = NOW() WHERE payment_id = $3"
+            )
+            .bind(status as i32)
+            .bind(hash)
+            .bind(payment_id)
+            .execute(&self.db_pool)
+            .await?;
+        } else {
+            sqlx::query(
+                "UPDATE address_only_payments SET status = $1, updated_at = NOW() WHERE payment_id = $2"
+            )
+            .bind(status as i32)
+            .bind(payment_id)
+            .execute(&self.db_pool)
+            .await?;
+        }
 
         Ok(())
     }

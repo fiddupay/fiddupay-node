@@ -76,7 +76,7 @@ impl InvoiceService {
         .bind(subtotal)
         .bind(tax)
         .bind(total)
-        .bind(&req.due_date)
+        .bind(req.due_date)
         .bind(&req.notes)
         .execute(&self.pool)
         .await?;

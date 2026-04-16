@@ -156,7 +156,7 @@ impl MonitoringService {
 
         // Persist history (once every 10 minutes to avoid DB bloat)
         let now = Utc::now();
-        if now.minute() % 10 == 0 {
+        if now.minute().is_multiple_of(10) {
             for service in services {
                 let _ = sqlx::query(
                     "INSERT INTO system_health_history (service_name, status, latency_ms, cpu_usage, memory_usage_gb) 

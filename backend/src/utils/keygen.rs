@@ -99,10 +99,7 @@ impl KeyGenerator {
     }
 
     /// Generate encrypted wallet for storage
-    pub fn generate_encrypted_wallet(
-        network: &str,
-        encryption_key: &str,
-    ) -> Result<GeneratedWallet, ServiceError> {
+    pub fn generate_encrypted_wallet(network: &str) -> Result<GeneratedWallet, ServiceError> {
         let wallet = match network {
             "ethereum" | "bsc" | "polygon" | "arbitrum" => Self::generate_evm_wallet()?,
             "solana" => Self::generate_solana_wallet()?,

@@ -105,16 +105,18 @@ impl AppState {
         Self {
             merchant_service,
             payment_service: Arc::new(PaymentService::new(
-                db_pool.clone(),
-                &config.payment_page_base_url,
-                price_service.clone(),
-                invoice_service.clone(),
-                audit_service.clone(),
-                &config.webhook_signing_key,
-                config.clone(),
-                redis_client.clone(),
-                volume_tracking_service.clone(),
-                notification_service.clone(),
+                crate::services::payment_service::PaymentServiceConfig {
+                    db_pool: db_pool.clone(),
+                    payment_page_base_url: config.payment_page_base_url.clone(),
+                    price_service: price_service.clone(),
+                    invoice_service: invoice_service.clone(),
+                    audit_service: audit_service.clone(),
+                    webhook_signing_key: config.webhook_signing_key.clone(),
+                    config: config.clone(),
+                    redis_client: redis_client.clone(),
+                    volume_tracking: volume_tracking_service.clone(),
+                    notification_service: notification_service.clone(),
+                },
             )),
             refund_service: Arc::new(RefundService::new(db_pool.clone(), webhook_service.clone())),
             analytics_service: Arc::new(AnalyticsService::new(

@@ -60,42 +60,45 @@ pub struct PaymentService {
     config: crate::config::Config,
 }
 
+pub struct PaymentServiceConfig {
+    pub db_pool: PgPool,
+    pub payment_page_base_url: String,
+    pub price_service: Arc<PriceService>,
+    pub invoice_service: Arc<InvoiceService>,
+    pub audit_service: Arc<crate::services::audit_service::AuditService>,
+    pub webhook_signing_key: String,
+    pub config: crate::config::Config,
+    pub redis_client: redis::Client,
+    pub volume_tracking: Arc<crate::services::volume_tracking_service::VolumeTrackingService>,
+    pub notification_service: Arc<NotificationService>,
+}
+
 impl PaymentService {
-    pub fn new(
-        db_pool: PgPool,
-        payment_page_base_url: &str,
-        price_service: Arc<PriceService>,
-        invoice_service: Arc<InvoiceService>,
-        audit_service: Arc<crate::services::audit_service::AuditService>,
-        webhook_signing_key: &str,
-        config: crate::config::Config,
-        redis_client: redis::Client,
-        volume_tracking: Arc<crate::services::volume_tracking_service::VolumeTrackingService>,
-        notification_service: Arc<NotificationService>,
-    ) -> Self {
-        let webhook_service = WebhookService::new(db_pool.clone(), webhook_signing_key.to_string());
+    pub fn new(deps: PaymentServiceConfig) -> Self {
+        let webhook_service =
+            WebhookService::new(deps.db_pool.clone(), deps.webhook_signing_key.clone());
 
         Self {
-            processor: PaymentProcessor::new(
-                db_pool.clone(),
-                payment_page_base_url.to_string(),
-                price_service.clone(),
-                invoice_service.clone(),
-                audit_service,
-                config.clone(),
-                volume_tracking,
-                notification_service.clone(),
-            ),
+            processor: PaymentProcessor::new(crate::payment::processor::PaymentProcessorConfig {
+                db_pool: deps.db_pool.clone(),
+                payment_page_base_url: deps.payment_page_base_url,
+                price_service: deps.price_service.clone(),
+                invoice_service: deps.invoice_service.clone(),
+                audit_service: deps.audit_service,
+                config: deps.config.clone(),
+                volume_tracking: deps.volume_tracking,
+                notification_service: deps.notification_service.clone(),
+            }),
             verifier: PaymentVerifier::new(
-                db_pool.clone(),
+                deps.db_pool.clone(),
                 webhook_service,
-                price_service,
-                config.clone(),
-                redis_client,
-                notification_service.clone(),
+                deps.price_service,
+                deps.config.clone(),
+                deps.redis_client,
+                deps.notification_service.clone(),
             ),
-            db_pool,
-            config,
+            db_pool: deps.db_pool,
+            config: deps.config,
         }
     }
 
@@ -251,10 +254,9 @@ impl PaymentService {
         merchant_id: i64,
         filters: PaymentFilters,
     ) -> Result<PaymentList, PaymentServiceError> {
-        // Validate and set pagination parameters
         let page = filters.page.unwrap_or(1).max(1);
-        let page_size = filters.page_size.unwrap_or(20).min(100).max(1);
-        let offset = ((page - 1) * page_size) as i64;
+        let page_size = filters.page_size.unwrap_or(20).clamp(1, 100);
+        let offset = (page as i64 - 1) * page_size as i64;
 
         // Build the base query
         let mut query = String::from("SELECT * FROM payment_transactions WHERE merchant_id = $1");
@@ -323,8 +325,7 @@ impl PaymentService {
             sql_query = sql_query.bind(is_sandbox);
         }
 
-        // Bind pagination
-        sql_query = sql_query.bind(page_size as i64).bind(offset);
+        sql_query = sql_query.bind(page_size).bind(offset);
 
         // Execute queries in parallel
         let (payments_res, total_res) = tokio::join!(

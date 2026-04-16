@@ -27,6 +27,12 @@ pub struct PerKeyRateLimiter {
     limiters: RwLock<HashMap<String, KeyRateLimiter>>,
 }
 
+impl Default for PerKeyRateLimiter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PerKeyRateLimiter {
     pub fn new() -> Self {
         Self {

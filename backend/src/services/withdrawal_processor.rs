@@ -92,12 +92,12 @@ impl WithdrawalProcessor {
                 .await?;
 
         let mut wd_fee = Decimal::ZERO;
-        if let Some(fee_val) = withdrawal.try_get::<Decimal, _>("fee").ok() {
+        if let Ok(fee_val) = withdrawal.try_get::<Decimal, _>("fee") {
             wd_fee = fee_val;
         }
 
-        let encrypted_key_opt: Option<String>;
-        let source_address: String;
+        let mut encrypted_key_opt: Option<String> = None;
+        let mut source_address: String = String::new();
 
         let crypto_type_enum = CryptoType::from_string(&wd_crypto_type)?;
 
@@ -223,8 +223,9 @@ impl WithdrawalProcessor {
             .map_err(|e: String| ServiceError::Internal(e))?;
 
         tracing::info!(
-            "Blockchain submission started for withdrawal {} to address {}",
+            "Blockchain submission started for withdrawal {} from {} to address {}",
             withdrawal_id,
+            source_address,
             wd_destination_address
         );
 

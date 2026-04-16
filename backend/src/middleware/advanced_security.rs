@@ -271,13 +271,7 @@ fn extract_api_key(
     headers
         .get("authorization")
         .and_then(|value| value.to_str().ok())
-        .and_then(|auth| {
-            if auth.starts_with("Bearer ") {
-                Some(auth[7..].to_string())
-            } else {
-                None
-            }
-        })
+        .and_then(|auth| auth.strip_prefix("Bearer ").map(|s| s.to_string()))
         .ok_or_else(|| {
             (
                 StatusCode::UNAUTHORIZED,
@@ -299,6 +293,12 @@ fn extract_ip_address(headers: &HeaderMap) -> String {
 pub struct ApiVersionManager {
     deprecated_versions: Vec<String>,
     sunset_dates: HashMap<String, DateTime<Utc>>,
+}
+
+impl Default for ApiVersionManager {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ApiVersionManager {

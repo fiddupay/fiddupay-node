@@ -155,6 +155,12 @@ pub struct ResponseCache {
     cache: Arc<tokio::sync::RwLock<HashMap<String, CachedResponse>>>,
 }
 
+impl Default for ResponseCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ResponseCache {
     pub fn new() -> Self {
         Self {
@@ -192,6 +198,12 @@ impl ResponseCache {
 /// Optimized HTTP client with connection pooling
 pub struct OptimizedHttpClient {
     client: reqwest::Client,
+}
+
+impl Default for OptimizedHttpClient {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl OptimizedHttpClient {
@@ -253,6 +265,12 @@ pub mod serialization {
     /// Optimized string interning for common values
     pub struct StringInterner {
         common_strings: Arc<std::sync::RwLock<std::collections::HashMap<&'static str, Arc<str>>>>,
+    }
+
+    impl Default for StringInterner {
+        fn default() -> Self {
+            Self::new()
+        }
     }
 
     impl StringInterner {

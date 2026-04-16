@@ -37,19 +37,16 @@ impl CircuitBreaker {
     {
         let state = *self.state.read().await;
 
-        match state {
-            CircuitState::Open => {
-                let last_failure = self.last_failure_time.read().await;
-                if let Some(time) = *last_failure {
-                    if time.elapsed() >= self.timeout {
-                        info!("Circuit breaker transitioning to half-open");
-                        *self.state.write().await = CircuitState::HalfOpen;
-                    } else {
-                        return Err(E::from("Circuit breaker is open".to_string()));
-                    }
+        if state == CircuitState::Open {
+            let last_failure = self.last_failure_time.read().await;
+            if let Some(time) = *last_failure {
+                if time.elapsed() >= self.timeout {
+                    info!("Circuit breaker transitioning to half-open");
+                    *self.state.write().await = CircuitState::HalfOpen;
+                } else {
+                    return Err(E::from("Circuit breaker is open".to_string()));
                 }
             }
-            _ => {}
         }
 
         match operation().await {

@@ -29,16 +29,7 @@ fn extract_api_key(headers: &HeaderMap) -> Option<String> {
     headers
         .get("authorization")
         .and_then(|value| value.to_str().ok())
-        .and_then(|auth| {
-            if auth.starts_with("Bearer ") {
-                Some(auth[7..].to_string())
-            } else {
-                if !auth.is_empty() {
-                    tracing::warn!("Malformed Authorization header format");
-                }
-                None
-            }
-        })
+        .and_then(|auth| auth.strip_prefix("Bearer ").map(|s| s.to_string()))
 }
 
 /// Authentication middleware
@@ -54,7 +45,7 @@ pub async fn auth_middleware(
     uri: axum::http::Uri,
     mut request: Request,
     next: Next,
-) -> Result<Response, impl IntoResponse> {
+) -> Result<Response, Response> {
     // Extract token from Sec-WebSocket-Protocol header (more secure for WebSockets)
     let protocol_token = headers
         .get("sec-websocket-protocol")
@@ -83,7 +74,7 @@ pub async fn auth_middleware(
                                 "error": "Missing or invalid Authorization header",
                                 "message": "Expected format: Authorization: Bearer <api_key> or URL Sec-WebSocket-Protocol header"
                             })),
-                        ));
+                        ).into_response());
                     }
                 },
             }
@@ -122,7 +113,8 @@ pub async fn auth_middleware(
                         "error": "Invalid API key",
                         "message": "The provided API key is not valid"
                     })),
-                ))
+                )
+                    .into_response())
             }
         }
     } else {
@@ -156,7 +148,7 @@ pub async fn auth_middleware(
                                 "error": "Invalid Merchant",
                                 "message": "Merchant account not found"
                             }))
-                        ));
+                        ).into_response());
                     },
                     Err(e) => {
                         tracing::error!("Failed to verify merchant: {:?}", e);
@@ -166,7 +158,7 @@ pub async fn auth_middleware(
                                 "error": "Internal Error",
                                 "message": "Failed to validate session state"
                             }))
-                        ));
+                        ).into_response());
                     }
                 };
 
@@ -190,7 +182,8 @@ pub async fn auth_middleware(
                         "error": "Invalid Session",
                         "message": "Your session has expired or is invalid. Please login again."
                     })),
-                ))
+                )
+                    .into_response())
             }
         }
     }

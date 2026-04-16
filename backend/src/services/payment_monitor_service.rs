@@ -6,6 +6,10 @@ use crate::services::address_only_service::AddressOnlyService;
 use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
 
+use alloy::{
+    primitives::Address,
+    providers::{Provider, ProviderBuilder},
+};
 use tokio::time::{interval, Duration};
 
 pub struct PaymentMonitorService {
@@ -136,69 +140,95 @@ impl PaymentMonitorService {
     }
 
     async fn get_eth_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
-        let rpc_payload = serde_json::json!({
-            "jsonrpc": "2.0",
-            "method": "eth_getBalance",
-            "params": [address, "latest"],
-            "id": 1
-        });
+        let provider = ProviderBuilder::new().on_http(
+            self.config
+                .ethereum_rpc_url
+                .parse()
+                .map_err(|e| ServiceError::Internal(format!("Invalid RPC URL: {}", e)))?,
+        );
 
-        let client = reqwest::Client::new();
-        let response: serde_json::Value = client
-            .post(&self.config.ethereum_rpc_url)
-            .json(&rpc_payload)
-            .send()
+        let addr: Address = address
+            .parse()
+            .map_err(|_| ServiceError::ValidationError("Invalid address".to_string()))?;
+
+        let balance = provider
+            .get_balance(addr)
             .await
-            .map_err(|e| ServiceError::Internal(format!("ETH RPC error: {}", e)))?
-            .json()
-            .await
-            .map_err(|e| ServiceError::Internal(format!("ETH RPC parse error: {}", e)))?;
+            .map_err(|e| ServiceError::Internal(format!("ETH RPC error: {}", e)))?;
 
-        if let Some(result) = response.get("result").and_then(|v| v.as_str()) {
-            let balance_wei = u128::from_str_radix(&result[2..], 16)
-                .map_err(|_| ServiceError::Internal("Invalid balance hex".to_string()))?;
-
-            Ok(Decimal::new(balance_wei as i64, 18))
-        } else {
-            Ok(Decimal::ZERO)
-        }
+        let balance_wei = balance.to::<u128>();
+        let mut dec = Decimal::from_i128_with_scale(balance_wei as i128, 18);
+        dec.rescale(18);
+        Ok(dec)
     }
 
     async fn get_bnb_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
-        let rpc_payload = serde_json::json!({
-            "jsonrpc": "2.0",
-            "method": "eth_getBalance",
-            "params": [address, "latest"],
-            "id": 1
-        });
+        let provider = ProviderBuilder::new().on_http(
+            self.config
+                .bsc_rpc_url
+                .parse()
+                .map_err(|e| ServiceError::Internal(format!("Invalid RPC URL: {}", e)))?,
+        );
 
-        let client = reqwest::Client::new();
-        let response: serde_json::Value = client
-            .post(&self.config.bsc_rpc_url)
-            .json(&rpc_payload)
-            .send()
+        let addr: Address = address
+            .parse()
+            .map_err(|_| ServiceError::ValidationError("Invalid address".to_string()))?;
+
+        let balance = provider
+            .get_balance(addr)
             .await
-            .map_err(|e| ServiceError::Internal(format!("BNB RPC error: {}", e)))?
-            .json()
-            .await
-            .map_err(|e| ServiceError::Internal(format!("BNB RPC parse error: {}", e)))?;
+            .map_err(|e| ServiceError::Internal(format!("BNB RPC error: {}", e)))?;
 
-        if let Some(result) = response.get("result").and_then(|v| v.as_str()) {
-            let balance_wei = u128::from_str_radix(&result[2..], 16)
-                .map_err(|_| ServiceError::Internal("Invalid balance hex".to_string()))?;
-
-            Ok(Decimal::new(balance_wei as i64, 18))
-        } else {
-            Ok(Decimal::ZERO)
-        }
+        let balance_wei = balance.to::<u128>();
+        let mut dec = Decimal::from_i128_with_scale(balance_wei as i128, 18);
+        dec.rescale(18);
+        Ok(dec)
     }
 
     async fn get_matic_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
-        Ok(Decimal::ZERO)
+        let provider = ProviderBuilder::new().on_http(
+            self.config
+                .polygon_rpc_url
+                .parse()
+                .map_err(|e| ServiceError::Internal(format!("Invalid RPC URL: {}", e)))?,
+        );
+
+        let addr: Address = address
+            .parse()
+            .map_err(|_| ServiceError::ValidationError("Invalid address".to_string()))?;
+
+        let balance = provider
+            .get_balance(addr)
+            .await
+            .map_err(|e| ServiceError::Internal(format!("Polygon RPC error: {}", e)))?;
+
+        let balance_wei = balance.to::<u128>();
+        let mut dec = Decimal::from_i128_with_scale(balance_wei as i128, 18);
+        dec.rescale(18);
+        Ok(dec)
     }
 
     async fn get_arb_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
-        Ok(Decimal::ZERO)
+        let provider = ProviderBuilder::new().on_http(
+            self.config
+                .arbitrum_rpc_url
+                .parse()
+                .map_err(|e| ServiceError::Internal(format!("Invalid RPC URL: {}", e)))?,
+        );
+
+        let addr: Address = address
+            .parse()
+            .map_err(|_| ServiceError::ValidationError("Invalid address".to_string()))?;
+
+        let balance = provider
+            .get_balance(addr)
+            .await
+            .map_err(|e| ServiceError::Internal(format!("Arbitrum RPC error: {}", e)))?;
+
+        let balance_wei = balance.to::<u128>();
+        let mut dec = Decimal::from_i128_with_scale(balance_wei as i128, 18);
+        dec.rescale(18);
+        Ok(dec)
     }
 
     async fn get_sol_balance(&self, address: &str) -> Result<Decimal, ServiceError> {
@@ -225,7 +255,9 @@ impl PaymentMonitorService {
             .and_then(|v| v.get("value"))
             .and_then(|v| v.as_u64())
         {
-            Ok(Decimal::new(result as i64, 9))
+            let mut dec = Decimal::from_i128_with_scale(result as i128, 9);
+            dec.rescale(9);
+            Ok(dec)
         } else {
             Ok(Decimal::ZERO)
         }

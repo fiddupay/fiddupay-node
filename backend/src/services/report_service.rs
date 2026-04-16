@@ -56,15 +56,15 @@ impl ReportService {
         );
 
         let mut param_count = 3;
-        if let Some(_) = sandbox_mode {
+        if sandbox_mode.is_some() {
             param_count += 1;
             query.push_str(&format!(" AND sandbox_mode = ${}", param_count));
         }
-        if let Some(_) = blockchain {
+        if blockchain.is_some() {
             param_count += 1;
             query.push_str(&format!(" AND network = ${}", param_count));
         }
-        if let Some(_) = status {
+        if status.is_some() {
             param_count += 1;
             query.push_str(&format!(" AND status = ${}", param_count));
         }

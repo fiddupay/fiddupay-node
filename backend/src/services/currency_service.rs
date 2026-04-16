@@ -115,7 +115,7 @@ impl CurrencyService {
                 // and any other member of that group is active, show this one too.
                 // This handles cases where backfilling hasn't happened yet.
                 if *group == "SOL" || *crypto_type == "USDT_SPL" {
-                    let solana_siblings = vec!["SOL", "WSOL", "USDT_SPL"];
+                    let solana_siblings = ["SOL", "WSOL", "USDT_SPL"];
                     return active_wallets
                         .iter()
                         .any(|aw| solana_siblings.contains(&aw.as_str()));

@@ -125,11 +125,7 @@ impl BlockchainMonitor for BtcMonitor {
                     } else {
                         // If no target provided, we pick the first one with a valid address
                         // that isn't the return address (simplified heuristic: first one we find)
-                        if !found_target {
-                            true
-                        } else {
-                            false
-                        }
+                        !found_target
                     };
 
                     if matches {
@@ -217,6 +213,17 @@ impl BlockchainMonitor for BtcMonitor {
 
     fn blockchain_name(&self) -> &'static str {
         self.network_name
+    }
+
+    async fn listen_for_events(
+        &self,
+        _addresses: Vec<String>,
+        _new_addresses_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
+        _callback: std::sync::Arc<dyn Fn(String, String) + Send + Sync>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // Bitcoin does not have a reliable public WebSocket for address monitoring.
+        // For now, BtcMonitor only supports polling via get_transactions_to_address.
+        Err("Bitcoin WebSocket monitoring is not yet implemented".into())
     }
 }
 

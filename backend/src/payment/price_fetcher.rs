@@ -50,7 +50,7 @@ impl PriceFetcher {
     pub async fn get_sol_price(&self) -> Result<Decimal, Box<dyn std::error::Error + Send + Sync>> {
         // Try perpetual futures first (usually more liquid)
         match self.get_price("SOLUSDT", "linear").await {
-            Ok(price) => return Ok(price),
+            Ok(price) => Ok(price),
             Err(_) => {
                 // Fallback to spot price
                 info!("Falling back to spot price for SOL/USDT");

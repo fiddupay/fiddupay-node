@@ -112,10 +112,10 @@ impl FeeCollectionService {
             .map_err(|e| format!("Key decryption failed: {}", e))?;
 
         // 4. Get the platform fee wallet for this network
-        let network = self.crypto_type_to_network(crypto_type.clone());
+        let network = self.crypto_type_to_network(crypto_type);
         let platform_wallet =
             sqlx::query("SELECT address FROM platform_fee_wallets WHERE network = $1")
-                .bind(&network)
+                .bind(network)
                 .fetch_optional(&self.db_pool)
                 .await?
                 .ok_or_else(|| {
@@ -184,7 +184,7 @@ impl FeeCollectionService {
             "#,
         )
         .bind(merchant_id)
-        .bind(&network)
+        .bind(network)
         .bind(total_fee)
         .bind(merchant_wallet_address)
         .bind(&platform_wallet_address)

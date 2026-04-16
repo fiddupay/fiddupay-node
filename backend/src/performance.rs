@@ -40,6 +40,12 @@ pub struct CachedPrice {
     pub cached_at: DateTime<Utc>,
 }
 
+impl Default for PerformanceCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PerformanceCache {
     pub fn new() -> Self {
         Self {
@@ -144,6 +150,12 @@ impl PerformanceCache {
 /// String interning for commonly used strings to reduce allocations
 pub struct StringInterner {
     strings: Arc<RwLock<HashMap<String, Arc<str>>>>,
+}
+
+impl Default for StringInterner {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl StringInterner {

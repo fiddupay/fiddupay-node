@@ -143,7 +143,7 @@ impl WebhookService {
             .await
             .unwrap_or_else(|_| "Failed to read response body".to_string());
 
-        if status_code >= 200 && status_code < 300 {
+        if (200..300).contains(&status_code) {
             info!("Webhook delivered successfully to {}: {}", url, status_code);
             Ok((status_code, response_body))
         } else {

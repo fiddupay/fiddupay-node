@@ -19,6 +19,10 @@ pub struct ApiFailureTracker {
     pub last_failure: Instant,
 }
 
+type SharedPriceFuture =
+    futures::future::Shared<futures::future::BoxFuture<'static, Result<f64, String>>>;
+type PriceInFlightMap = Arc<RwLock<HashMap<String, SharedPriceFuture>>>;
+
 pub struct PriceService {
     cache: Arc<RwLock<HashMap<String, PriceCache>>>,
     // The "Singleton State" - always current, always fast
@@ -27,14 +31,7 @@ pub struct PriceService {
     cache_ttl: Duration,
     failure_threshold: u32,
     failure_reset_duration: Duration,
-    in_flight_requests: Arc<
-        RwLock<
-            HashMap<
-                String,
-                futures::future::Shared<futures::future::BoxFuture<'static, Result<f64, String>>>,
-            >,
-        >,
-    >,
+    in_flight_requests: PriceInFlightMap,
 }
 
 impl PriceService {
@@ -43,7 +40,7 @@ impl PriceService {
             cache: Arc::new(RwLock::new(HashMap::new())),
             prices: Arc::new(RwLock::new(HashMap::new())), // In-memory fast storage
             failure_tracker: Arc::new(RwLock::new(HashMap::new())),
-            cache_ttl: Duration::from_secs(config.price_cache_ttl_seconds as u64),
+            cache_ttl: Duration::from_secs(config.price_cache_ttl_seconds),
             failure_threshold: 3,
             failure_reset_duration: Duration::from_secs(900), // 15 minutes
             in_flight_requests: Arc::new(RwLock::new(HashMap::new())),

@@ -557,7 +557,7 @@ impl SolanaMonitor {
             .transaction
             .message
             .account_keys
-            .get(0)
+            .first()
             .cloned()
             .unwrap_or_default();
 
@@ -594,10 +594,7 @@ impl SolanaMonitor {
             amount,
             confirmations,
             block_number: Some(tx_result.slot),
-            timestamp: chrono::DateTime::from_timestamp(
-                tx_result.block_time.unwrap_or(0) as i64,
-                0,
-            ),
+            timestamp: chrono::DateTime::from_timestamp(tx_result.block_time.unwrap_or(0), 0),
             success,
             token_mint,
         })
@@ -625,11 +622,11 @@ impl SolanaMonitor {
     }
 
     /// Listen for new transactions using WebSockets (Requirement: Push-based)
-    pub async fn listen_for_signatures(
+    async fn listen_for_events(
         &self,
         addresses: Vec<String>,
         mut new_addresses_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
-        callback: Arc<dyn Fn(String, String) + Send + Sync>,
+        callback: std::sync::Arc<dyn Fn(String, String) + Send + Sync>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut ws_stream_opt = None;
 
@@ -685,7 +682,7 @@ impl SolanaMonitor {
             // Also monitor ATAs for supported tokens
             for token in &tokens_to_monitor {
                 if let Some(mint) = token.token_address() {
-                    if let Some(ata) = Self::get_ata_address(&address, mint) {
+                    if let Some(ata) = Self::get_ata_address(address, mint) {
                         if ata != *address {
                             owner_map.insert(ata.clone(), address.clone());
                             initial_monitor_addresses.push(ata);
@@ -911,7 +908,6 @@ impl SolanaMonitor {
     }
 }
 
-// Implement BlockchainMonitor trait for Solana
 #[async_trait]
 impl BlockchainMonitor for SolanaMonitor {
     async fn get_transaction_details(
@@ -934,5 +930,15 @@ impl BlockchainMonitor for SolanaMonitor {
 
     fn blockchain_name(&self) -> &'static str {
         "Solana"
+    }
+
+    async fn listen_for_events(
+        &self,
+        addresses: Vec<String>,
+        new_addresses_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
+        callback: std::sync::Arc<dyn Fn(String, String) + Send + Sync>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.listen_for_events(addresses, new_addresses_rx, callback)
+            .await
     }
 }

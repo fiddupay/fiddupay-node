@@ -445,13 +445,15 @@ pub async fn pay_merchant(
 
     match service
         .pay_merchant(
-            context.merchant_id,
-            &external_id,
-            &req.crypto_type,
-            &req.amount,
-            req.reference_id.as_deref(),
-            req.description.as_deref(),
-            context.sandbox_mode,
+            crate::services::merchant_customer_service::PayMerchantParams {
+                merchant_id: context.merchant_id,
+                external_id: &external_id,
+                crypto_type_str: &req.crypto_type,
+                amount_str: &req.amount,
+                reference_id: req.reference_id.as_deref(),
+                description: req.description.as_deref(),
+                sandbox_mode: context.sandbox_mode,
+            },
         )
         .await
     {

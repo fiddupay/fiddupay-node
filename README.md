@@ -127,7 +127,7 @@ cargo audit
 cargo fmt
 cargo fmt --check -p fiddupay
 cargo clippy -- -D warnings
-cargo check
+cargo check --bin fiddupay
 
 To sync code AND push a version tag manually (triggering the automated pipeline):
 

@@ -19,6 +19,17 @@ pub struct BalanceMonitor {
     webhook_service: Arc<WebhookNotificationService>,
 }
 
+pub struct BalanceCheckParams<'a> {
+    pub merchant_id: i64,
+    pub business_name: &'a str,
+    pub wallet_id: i64,
+    pub crypto_type: &'a CryptoType,
+    pub network: &'a str,
+    pub address: &'a str,
+    pub threshold_usd: Decimal,
+    pub is_live: bool,
+}
+
 impl BalanceMonitor {
     pub fn new(
         db_pool: PgPool,
@@ -58,7 +69,7 @@ impl BalanceMonitor {
             }
 
             let business_name: String = row.get("business_name");
-            self.process_merchant_wallets(merchant_id, &business_name, threshold, is_live, true)
+            self.process_merchant_wallets(merchant_id, &business_name, threshold, is_live)
                 .await?;
         }
 
@@ -71,7 +82,6 @@ impl BalanceMonitor {
         business_name: &str,
         threshold_usd: Decimal,
         is_live: bool,
-        is_on_demand: bool,
     ) -> Result<(), ServiceError> {
         let wallets = sqlx::query(
             r#"
@@ -105,18 +115,17 @@ impl BalanceMonitor {
                     continue;
                 }
 
-                let _ = self
-                    .check_wallet_balance(
-                        merchant_id,
-                        business_name,
-                        wallet_id,
-                        &crypto_type,
-                        &network,
-                        &address,
-                        threshold_usd,
-                        is_live,
-                    )
-                    .await;
+                let params = BalanceCheckParams {
+                    merchant_id,
+                    business_name,
+                    wallet_id,
+                    crypto_type: &crypto_type,
+                    network: &network,
+                    address: &address,
+                    threshold_usd,
+                    is_live,
+                };
+                let _ = self.check_wallet_balance(params).await;
             }
         }
         Ok(())
@@ -124,24 +133,17 @@ impl BalanceMonitor {
 
     async fn check_wallet_balance(
         &self,
-        merchant_id: i64,
-        business_name: &str,
-        wallet_id: i64,
-        crypto_type: &CryptoType,
-        network: &str,
-        address: &str,
-        threshold_usd: Decimal,
-        is_live: bool,
+        params: BalanceCheckParams<'_>,
     ) -> Result<(), ServiceError> {
         // [Balance check logic remains the same as previously implemented]
         // [Including U256 conversion, USD price fetching, and notification triggers]
 
         let balance_u256 = self
             .blockchain_sender
-            .get_native_balance(crypto_type.clone(), address, !is_live)
+            .get_native_balance(*params.crypto_type, params.address, !params.is_live)
             .await?;
 
-        let divisor = match crypto_type {
+        let divisor = match params.crypto_type {
             CryptoType::Sol => 1_000_000_000.0,
             _ => 1_000_000_000_000_000_000.0,
         };
@@ -151,58 +153,63 @@ impl BalanceMonitor {
 
         let price = self
             .price_service
-            .get_price(crypto_type.clone())
+            .get_price(*params.crypto_type)
             .await
             .map(|p| Decimal::from_f64_retain(p).unwrap_or(Decimal::ZERO))
             .unwrap_or(Decimal::ZERO);
 
         let balance_usd = balance_decimal * price;
 
-        if balance_usd < threshold_usd {
+        if balance_usd < params.threshold_usd {
             info!(
                 "LOW BALANCE: {} ({}) has {} {} (~${:.2}) on {}.",
-                business_name, merchant_id, balance_decimal, crypto_type, balance_usd, network
+                params.business_name,
+                params.merchant_id,
+                balance_decimal,
+                params.crypto_type,
+                balance_usd,
+                params.network
             );
 
-            let title = format!("Low Balance Alert: {}", crypto_type);
+            let title = format!("Low Balance Alert: {}", params.crypto_type);
             let message = format!(
                 "Your {} wallet ({}) balance is low: {} {} (~${:.2} USD). Please top up to pay for fees.",
-                network, address, balance_decimal, crypto_type, balance_usd
+                params.network, params.address, balance_decimal, params.crypto_type, balance_usd
             );
 
             let _ = self
                 .notification_service
                 .create_notification(
-                    merchant_id,
+                    params.merchant_id,
                     &title,
                     &message,
                     "warning",
                     "balance.low_onchain",
-                    !is_live,
+                    !params.is_live,
                 )
                 .await;
 
             // Trigger external webhook alert
             let webhook_details = serde_json::json!({
                 "alert_type": "LOW_BALANCE_USD_ONCHAIN",
-                "crypto_type": crypto_type.to_string(),
+                "crypto_type": params.crypto_type.to_string(),
                 "current_balance": balance_decimal,
                 "current_balance_usd": balance_usd,
-                "threshold_usd": threshold_usd,
-                "address": address,
-                "network": network,
+                "threshold_usd": params.threshold_usd,
+                "address": params.address,
+                "network": params.network,
                 "timestamp": Utc::now().to_rfc3339()
             });
 
             let _ = self
                 .webhook_service
-                .send_balance_alert_webhook(merchant_id, "balance.low", webhook_details)
+                .send_balance_alert_webhook(params.merchant_id, "balance.low", webhook_details)
                 .await;
 
             // Update last_alert time
             sqlx::query("UPDATE merchant_wallets SET last_low_balance_alert_at = $1 WHERE id = $2")
                 .bind(Utc::now())
-                .bind(wallet_id)
+                .bind(params.wallet_id)
                 .execute(&self.db_pool)
                 .await
                 .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
@@ -212,13 +219,13 @@ impl BalanceMonitor {
     }
 
     fn is_native_gas_currency(&self, crypto: &CryptoType) -> bool {
-        match crypto {
+        matches!(
+            crypto,
             CryptoType::Eth
-            | CryptoType::Bnb
-            | CryptoType::Matic
-            | CryptoType::Arb
-            | CryptoType::Sol => true,
-            _ => false,
-        }
+                | CryptoType::Bnb
+                | CryptoType::Matic
+                | CryptoType::Arb
+                | CryptoType::Sol
+        )
     }
 }

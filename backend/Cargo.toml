@@ -8,13 +8,13 @@ members = ["."]
 
 [dependencies]
 # Web framework
-axum = { version = "0.7", features = ["macros", "ws"] }
+axum = { version = "0.7.9", features = ["macros", "ws"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "macros"] }
 
 # Database
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "chrono", "rust_decimal", "migrate", "ipnetwork", "uuid", "json", "derive", "macros"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-native-tls", "postgres", "chrono", "rust_decimal", "migrate", "uuid", "json", "derive", "macros"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -31,11 +31,12 @@ chrono = { version = "0.4", features = ["serde"] }
 reqwest = { version = "0.12", features = ["json"] }
 
 # WebSocket for real-time gas monitoring
-tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
 futures-util = "0.3"
 
 # Blockchain transaction libraries (minimal set)
-ethers = { version = "2.0", features = ["rustls"] }
+alloy = { version = "0.9", features = ["full", "network", "signer-local", "rpc-types-eth"] }
+alloy-primitives = { version = "0.8", features = ["serde"] }
 solana-client = "3.0.0"
 solana-sdk = "3.0.0"
 solana-program = "3.0.0"
@@ -63,7 +64,7 @@ hmac = "0.12"
 # UUID/ID generation
 uuid = { version = "1.6", features = ["v4", "serde"] }
 nanoid = "0.4"
-jsonwebtoken = "9.2"
+jsonwebtoken = "10.3"
 
 # URL parsing and validation
 url = "2.5.4"

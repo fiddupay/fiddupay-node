@@ -65,7 +65,7 @@ impl MultiUserService {
         .bind(merchant_id)
         .bind(&req.email)
         .bind(&password_hash)
-        .bind(&req.role)
+        .bind(req.role)
         .fetch_one(&self.pool)
         .await?;
 

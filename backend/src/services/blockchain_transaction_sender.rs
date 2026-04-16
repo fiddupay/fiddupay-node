@@ -3,17 +3,37 @@
 
 use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
-use ethers::{
-    core::types::{Address, Bytes, TransactionRequest, U256},
-    middleware::SignerMiddleware,
-    providers::{Http, Middleware, Provider},
-    signers::{LocalWallet, Signer},
+use alloy::{
+    network::EthereumWallet,
+    primitives::{Address, Bytes, U256},
+    providers::{Provider, ProviderBuilder},
+    rpc::types::eth::TransactionRequest,
+    signers::local::PrivateKeySigner,
 };
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 
 pub struct BlockchainTransactionSender {
     config: crate::config::Config,
+}
+
+pub struct EvmTransferParams<'a> {
+    pub crypto_type: CryptoType,
+    pub private_key: &'a str,
+    pub to_address: &'a str,
+    pub amount: Decimal,
+    pub gas_price: Option<U256>,
+    pub sandbox_mode: bool,
+}
+
+pub struct EvmTokenTransferParams<'a> {
+    pub crypto_type: CryptoType,
+    pub token_address: &'a str,
+    pub private_key: &'a str,
+    pub to_address: &'a str,
+    pub amount: Decimal,
+    pub gas_price: Option<U256>,
+    pub sandbox_mode: bool,
 }
 
 impl BlockchainTransactionSender {
@@ -147,32 +167,32 @@ impl BlockchainTransactionSender {
             let mint = crypto_type.token_address().ok_or_else(|| {
                 ServiceError::ValidationError("Missing SPL mint address".to_string())
             })?;
-            self.send_solana_token_transaction(&mint, private_key, to_address, amount, sandbox_mode)
+            self.send_solana_token_transaction(mint, private_key, to_address, amount, sandbox_mode)
                 .await
         } else if is_evm_token {
             let token_address = crypto_type.token_address().ok_or_else(|| {
                 ServiceError::ValidationError("Missing token contract address".to_string())
             })?;
-            self.send_evm_token_transaction(
+            self.send_evm_token_transaction(EvmTokenTransferParams {
                 crypto_type,
-                &token_address,
+                token_address,
                 private_key,
                 to_address,
                 amount,
                 gas_price,
                 sandbox_mode,
-            )
+            })
             .await
         } else {
             // It's a native EVM currency
-            self.send_evm_transaction(
+            self.send_evm_transaction(EvmTransferParams {
                 crypto_type,
                 private_key,
                 to_address,
                 amount,
                 gas_price,
                 sandbox_mode,
-            )
+            })
             .await
         }
     }
@@ -388,55 +408,65 @@ impl BlockchainTransactionSender {
         )))
     }
 
-    /// Send EVM transaction (ETH, BNB, MATIC, ARB)
+    /// Send EVM (ETH/BNB/MATIC) transaction
     async fn send_evm_transaction(
         &self,
-        crypto_type: CryptoType,
-        private_key: &str,
-        to_address: &str,
-        amount: Decimal,
-        gas_price: Option<U256>,
-        sandbox_mode: bool,
+        params: EvmTransferParams<'_>,
     ) -> Result<String, ServiceError> {
-        let rpc_configs = self.get_evm_rpc_urls(&crypto_type, sandbox_mode);
+        let rpc_configs = self.get_evm_rpc_urls(&params.crypto_type, params.sandbox_mode);
         let mut last_err = None;
 
         for (url, chain_id) in rpc_configs {
             tracing::info!("[EVM] Attempting transaction via RPC: {}", url);
-            let provider = match Provider::<Http>::try_from(url.as_str()) {
-                Ok(p) => p,
-                Err(e) => {
-                    last_err = Some(e.to_string());
-                    continue;
-                }
-            };
 
             // Key setup
-            let private_key_clean = private_key.strip_prefix("0x").unwrap_or(private_key);
-            let wallet: LocalWallet = match private_key_clean.parse::<LocalWallet>() {
-                Ok(w) => w.with_chain_id(chain_id),
+            let private_key_clean = params
+                .private_key
+                .strip_prefix("0x")
+                .unwrap_or(params.private_key);
+
+            let signer: PrivateKeySigner = match private_key_clean.parse() {
+                Ok(s) => s,
                 Err(_) => return Err(ServiceError::ValidationError("Invalid private key".into())),
             };
-            let from_address = wallet.address();
-            let to_address_parsed: Address = to_address
+            let wallet = EthereumWallet::from(signer);
+
+            let provider = match ProviderBuilder::new()
+                .with_recommended_fillers()
+                .wallet(wallet)
+                .on_http(match url.parse() {
+                    Ok(u) => u,
+                    Err(e) => {
+                        last_err = Some(e.to_string());
+                        continue;
+                    }
+                }) {
+                p => p,
+            };
+
+            let from_address = provider.default_signer_address();
+            let to_address_parsed: Address = params
+                .to_address
                 .parse()
                 .map_err(|_| ServiceError::ValidationError("Invalid dest addr".into()))?;
 
             // Convert Decimal to native amount using crypto_type.decimals()
-            let wei_amount = (amount * Decimal::from(10u64.pow(crypto_type.decimals())))
-                .to_u128()
-                .unwrap_or(0);
+            let wei_amount = (params.amount
+                * Decimal::from(10u64.pow(params.crypto_type.decimals())))
+            .to_u128()
+            .unwrap_or(0);
 
             // Nonce & Gas
-            let nonce = match provider.get_transaction_count(from_address, None).await {
+            let nonce = match provider.get_transaction_count(from_address).await {
                 Ok(n) => n,
                 Err(e) => {
                     last_err = Some(e.to_string());
                     continue;
                 }
             };
-            let gas_price_val = match gas_price {
-                Some(p) => p,
+
+            let gas_price_val = match params.gas_price {
+                Some(p) => p.to::<u128>(),
                 None => match provider.get_gas_price().await {
                     Ok(p) => p,
                     Err(e) => {
@@ -446,17 +476,16 @@ impl BlockchainTransactionSender {
                 },
             };
 
-            let tx = TransactionRequest::new()
-                .nonce(nonce)
-                .to(to_address_parsed)
-                .value(U256::from(wei_amount))
-                .gas_price(gas_price_val)
-                .gas(U256::from(21000u64))
-                .chain_id(chain_id);
+            let tx = TransactionRequest::default()
+                .with_nonce(nonce)
+                .with_to(to_address_parsed)
+                .with_value(U256::from(wei_amount))
+                .with_gas_limit(21000)
+                .with_gas_price(gas_price_val)
+                .with_chain_id(chain_id);
 
-            let client = SignerMiddleware::new(provider, wallet);
-            let signature = match client.send_transaction(tx, None).await {
-                Ok(pending_tx) => pending_tx.tx_hash(),
+            let signature = match provider.send_transaction(tx).await {
+                Ok(pending_tx) => *pending_tx.tx_hash(),
                 Err(e) => {
                     last_err = Some(e.to_string());
                     continue;
@@ -475,55 +504,62 @@ impl BlockchainTransactionSender {
     /// Send EVM Token (ERC20/BEP20) transaction
     async fn send_evm_token_transaction(
         &self,
-        crypto_type: CryptoType,
-        token_address_str: &str,
-        private_key: &str,
-        to_address: &str,
-        amount: Decimal,
-        gas_price: Option<U256>,
-        sandbox_mode: bool,
+        params: EvmTokenTransferParams<'_>,
     ) -> Result<String, ServiceError> {
-        let rpc_configs = self.get_evm_rpc_urls(&crypto_type, sandbox_mode);
+        let rpc_configs = self.get_evm_rpc_urls(&params.crypto_type, params.sandbox_mode);
         let mut last_err = None;
 
         for (url, chain_id) in rpc_configs {
             tracing::info!("[EVM-TOKEN] Attempting transaction via RPC: {}", url);
-            let provider = match Provider::<Http>::try_from(url.as_str()) {
-                Ok(p) => p,
-                Err(e) => {
-                    last_err = Some(e.to_string());
-                    continue;
-                }
-            };
 
             // Setup
-            let private_key_clean = private_key.strip_prefix("0x").unwrap_or(private_key);
-            let wallet: LocalWallet = match private_key_clean.parse::<LocalWallet>() {
-                Ok(w) => w.with_chain_id(chain_id),
+            let private_key_clean = params
+                .private_key
+                .strip_prefix("0x")
+                .unwrap_or(params.private_key);
+
+            let signer: PrivateKeySigner = match private_key_clean.parse() {
+                Ok(s) => s,
                 Err(_) => return Err(ServiceError::ValidationError("Invalid secret".into())),
             };
-            let from_address = wallet.address();
-            let to_address_parsed: Address = to_address
+            let wallet = EthereumWallet::from(signer);
+
+            let provider = ProviderBuilder::new()
+                .with_recommended_fillers()
+                .wallet(wallet)
+                .on_http(match url.parse() {
+                    Ok(u) => u,
+                    Err(e) => {
+                        last_err = Some(e.to_string());
+                        continue;
+                    }
+                });
+
+            let from_address = provider.default_signer_address();
+            let to_address_parsed: Address = params
+                .to_address
                 .parse()
                 .map_err(|_| ServiceError::ValidationError("Invalid to addr".into()))?;
-            let token_contract_address: Address = token_address_str
+            let token_contract_address: Address = params
+                .token_address
                 .parse()
                 .map_err(|_| ServiceError::ValidationError("Invalid token addr".into()))?;
 
             // Convert Decimal to token amount using crypto_type.decimals()
-            let token_amount = (amount * Decimal::from(10u64.pow(crypto_type.decimals())))
-                .to_u128()
-                .unwrap_or(0);
+            let token_amount = (params.amount
+                * Decimal::from(10u64.pow(params.crypto_type.decimals())))
+            .to_u128()
+            .unwrap_or(0);
 
-            let nonce = match provider.get_transaction_count(from_address, None).await {
+            let nonce = match provider.get_transaction_count(from_address).await {
                 Ok(n) => n,
                 Err(e) => {
                     last_err = Some(e.to_string());
                     continue;
                 }
             };
-            let gas_price_val = match gas_price {
-                Some(p) => p,
+            let gas_price_val = match params.gas_price {
+                Some(p) => p.to::<u128>(),
                 None => match provider.get_gas_price().await {
                     Ok(p) => p,
                     Err(e) => {
@@ -536,24 +572,22 @@ impl BlockchainTransactionSender {
             // Data: transfer(address,uint256) -> a9059cbb
             let mut data = vec![0xa9, 0x05, 0x9c, 0xbb];
             let mut padded_to = vec![0u8; 32];
-            padded_to[12..32].copy_from_slice(to_address_parsed.as_bytes());
+            padded_to[12..32].copy_from_slice(to_address_parsed.as_slice());
             data.extend(padded_to);
-            let mut padded_amount = vec![0u8; 32];
-            U256::from(token_amount).to_big_endian(&mut padded_amount);
+            let padded_amount = U256::from(token_amount).to_be_bytes::<32>();
             data.extend(padded_amount);
 
-            let tx = TransactionRequest::new()
-                .nonce(nonce)
-                .to(token_contract_address)
-                .value(U256::zero())
-                .gas_price(gas_price_val)
-                .gas(U256::from(65000u64))
-                .chain_id(chain_id)
-                .data(Bytes::from(data));
+            let tx = TransactionRequest::default()
+                .with_nonce(nonce)
+                .with_to(token_contract_address)
+                .with_value(U256::ZERO)
+                .with_gas_limit(65000)
+                .with_gas_price(gas_price_val)
+                .with_chain_id(chain_id)
+                .with_input(Bytes::from(data));
 
-            let client = SignerMiddleware::new(provider, wallet);
-            let signature = match client.send_transaction(tx, None).await {
-                Ok(pending_tx) => pending_tx.tx_hash(),
+            let signature = match provider.send_transaction(tx).await {
+                Ok(pending_tx) => *pending_tx.tx_hash(),
                 Err(e) => {
                     last_err = Some(e.to_string());
                     continue;
@@ -621,7 +655,7 @@ impl BlockchainTransactionSender {
 
             Ok(U256::from(balance))
         } else {
-            let (rpc_url, _) = match (crypto_type.clone(), sandbox_mode) {
+            let (rpc_url, _) = match (crypto_type, sandbox_mode) {
                 (CryptoType::Eth | CryptoType::UsdtEth, false) => {
                     (&self.config.ethereum_rpc_url, self.config.ethereum_chain_id)
                 }
@@ -657,21 +691,22 @@ impl BlockchainTransactionSender {
                 }
             };
 
-            let provider = match Provider::<Http>::try_from(rpc_url) {
-                Ok(p) => p,
+            let provider = ProviderBuilder::new().on_http(match rpc_url.parse() {
+                Ok(u) => u,
                 Err(e) => {
                     return Err(ServiceError::Internal(format!(
-                        "Failed to connect to EVM: {}",
+                        "Failed to parse EVM RPC URL: {}",
                         e
                     )))
                 }
-            };
+            });
 
             let addr: Address = address
                 .parse()
                 .map_err(|_| ServiceError::ValidationError("Invalid EVM address".to_string()))?;
+
             let balance = provider
-                .get_balance(addr, None)
+                .get_balance(addr)
                 .await
                 .map_err(|e| ServiceError::Internal(format!("Failed EVM balance: {}", e)))?;
             Ok(balance)
@@ -724,20 +759,21 @@ impl BlockchainTransactionSender {
             }
         };
 
-        let provider = match Provider::<Http>::try_from(rpc_url) {
-            Ok(p) => p,
+        let provider = ProviderBuilder::new().on_http(match rpc_url.parse() {
+            Ok(u) => u,
             Err(e) => {
                 return Err(ServiceError::Internal(format!(
-                    "Failed to create provider: {}",
+                    "Failed to parse provider URL: {}",
                     e
                 )))
             }
-        };
+        });
 
-        provider
+        let gas_price = provider
             .get_gas_price()
             .await
-            .map_err(|e| ServiceError::Internal(format!("Failed to get gas price: {}", e)))
+            .map_err(|e| ServiceError::Internal(format!("Failed to get gas price: {}", e)))?;
+        Ok(U256::from(gas_price))
     }
 
     /// Get Solana recent blockhash fee calculator (simplified base fee)
@@ -906,7 +942,7 @@ impl BlockchainTransactionSender {
         // Apply witnesses
         for (idx, sig) in signatures.into_iter().enumerate() {
             let mut witness = Witness::new();
-            witness.push(sig.serialize_der().to_vec());
+            witness.push(sig.serialize_der());
             witness.push(pubkey.to_bytes());
             tx.input[idx].witness = witness;
         }
@@ -917,7 +953,7 @@ impl BlockchainTransactionSender {
 
         let txid = crate::utils::bitcoin_api::post_tx_with_failover(&api_config, &tx_hex)
             .await
-            .map_err(|e| ServiceError::Internal(e))?;
+            .map_err(ServiceError::Internal)?;
 
         Ok(txid)
     }

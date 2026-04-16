@@ -153,8 +153,8 @@ impl MerchantService {
                       wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at
             "#
         )
-        .bind(&email)
-        .bind(&business_name)
+        .bind(email)
+        .bind(business_name)
         .bind(&password_hash)
         .bind(self.config.default_fee_percentage)
         .bind(false) // customer_pays_fee

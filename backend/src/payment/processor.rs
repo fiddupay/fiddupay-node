@@ -13,6 +13,17 @@ use std::sync::Arc;
 
 use super::fee_calculator::FeeCalculator;
 
+pub struct PaymentProcessorConfig {
+    pub db_pool: PgPool,
+    pub payment_page_base_url: String,
+    pub price_service: Arc<PriceService>,
+    pub invoice_service: Arc<InvoiceService>,
+    pub audit_service: Arc<crate::services::audit_service::AuditService>,
+    pub config: crate::config::Config,
+    pub volume_tracking: Arc<crate::services::volume_tracking_service::VolumeTrackingService>,
+    pub notification_service: Arc<NotificationService>,
+}
+
 pub struct PaymentProcessor {
     db_pool: PgPool,
     price_service: Arc<PriceService>,
@@ -25,30 +36,21 @@ pub struct PaymentProcessor {
 }
 
 impl PaymentProcessor {
-    pub fn new(
-        db_pool: PgPool,
-        _payment_page_base_url: String,
-        price_service: Arc<PriceService>,
-        invoice_service: Arc<InvoiceService>,
-        audit_service: Arc<crate::services::audit_service::AuditService>,
-        config: crate::config::Config,
-        volume_tracking: Arc<crate::services::volume_tracking_service::VolumeTrackingService>,
-        notification_service: Arc<NotificationService>,
-    ) -> Self {
+    pub fn new(config: PaymentProcessorConfig) -> Self {
         Self {
-            db_pool: db_pool.clone(),
-            price_service,
+            db_pool: config.db_pool.clone(),
+            price_service: config.price_service,
             merchant_service: MerchantService::new(
-                db_pool,
-                config.clone(),
-                audit_service.clone(),
-                volume_tracking.clone(),
+                config.db_pool,
+                config.config.clone(),
+                config.audit_service.clone(),
+                config.volume_tracking.clone(),
             ),
-            invoice_service,
-            audit_service,
-            notification_service,
-            config,
-            volume_tracking,
+            invoice_service: config.invoice_service,
+            audit_service: config.audit_service,
+            notification_service: config.notification_service,
+            config: config.config,
+            volume_tracking: config.volume_tracking,
         }
     }
 
@@ -76,9 +78,7 @@ impl PaymentProcessor {
         request: CreatePaymentRequest,
     ) -> Result<PaymentResponse, ServiceError> {
         // Validate that exactly one of amount or amount_usd is provided
-        request
-            .validate()
-            .map_err(|e| ServiceError::ValidationError(e))?;
+        request.validate().map_err(ServiceError::ValidationError)?;
 
         // Generate unique payment ID (e.g., "pay_abc123xyz")
         let payment_id = self.generate_payment_id();

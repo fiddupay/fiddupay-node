@@ -764,45 +764,6 @@ impl BackgroundTasks {
                 sandbox_mode,
             );
 
-            // EvmMonitor is boxed, we need to downcast or handle trait methods
-            // Safety: based on get_blockchain_monitor implementation
-            // Since listen_for_evm_events isn't in the trait yet, we'll cast it if possible
-            // or modify the trait. For now, we'll call it on the concrete monitor.
-            // Actually, we can move it to the trait or just instantiate it here directly.
-
-            let evm_monitor = match network {
-                "ETH" => crate::payment::blockchain_monitor::EvmMonitor::new_ethereum(
-                    &self.config,
-                    sandbox_mode,
-                    crypto_type.token_address().map(|s| s.to_string()),
-                    crypto_type.decimals(),
-                ),
-                "BNB" => crate::payment::blockchain_monitor::EvmMonitor::new_bsc(
-                    &self.config,
-                    sandbox_mode,
-                    crypto_type.token_address().map(|s| s.to_string()),
-                    crypto_type.decimals(),
-                ),
-                "MATIC" => crate::payment::blockchain_monitor::EvmMonitor::new_polygon(
-                    &self.config,
-                    sandbox_mode,
-                    crypto_type.token_address().map(|s| s.to_string()),
-                    crypto_type.decimals(),
-                ),
-                "ARB" => crate::payment::blockchain_monitor::EvmMonitor::new_arbitrum(
-                    &self.config,
-                    sandbox_mode,
-                    crypto_type.token_address().map(|s| s.to_string()),
-                    crypto_type.decimals(),
-                ),
-                _ => crate::payment::blockchain_monitor::EvmMonitor::new_ethereum(
-                    &self.config,
-                    sandbox_mode,
-                    crypto_type.token_address().map(|s| s.to_string()),
-                    crypto_type.decimals(),
-                ),
-            };
-
             let verifier = Arc::new(PaymentVerifier::new(
                 self.db_pool.clone(),
                 (*self.webhook_service).clone(),
@@ -915,10 +876,7 @@ impl BackgroundTasks {
             });
 
             // 5. Start listener (blocks until error or disconnect)
-            if let Err(e) = evm_monitor
-                .listen_for_evm_events(addresses, rx, callback)
-                .await
-            {
+            if let Err(e) = monitor.listen_for_events(addresses, rx, callback).await {
                 error!(
                     "[EVM-{}] WebSocket listener crashed: {}. Restarting in 10s...",
                     network, e
@@ -971,7 +929,11 @@ impl BackgroundTasks {
             );
 
             // Initialize monitor and verifier
-            let monitor = SolanaMonitor::new(&self.config, sandbox_mode, None);
+            let monitor = crate::payment::blockchain_monitor::get_blockchain_monitor(
+                &CryptoType::Sol,
+                self.config.clone(),
+                sandbox_mode,
+            );
             let verifier = Arc::new(PaymentVerifier::new(
                 self.db_pool.clone(),
                 (*self.webhook_service).clone(),
@@ -1088,7 +1050,7 @@ impl BackgroundTasks {
             });
 
             // Start listening (this block is long-running)
-            if let Err(e) = monitor.listen_for_signatures(addresses, rx, callback).await {
+            if let Err(e) = monitor.listen_for_events(addresses, rx, callback).await {
                 error!(
                     "Solana WebSocket monitor crashed: {}. Reconnecting in 2s...",
                     e

@@ -345,7 +345,7 @@ impl WalletConfigService {
         let config = self
             .set_wallet_address(
                 merchant_id,
-                crypto_type.clone(),
+                crypto_type,
                 wallet.address.clone(),
                 true,
                 sandbox_mode,

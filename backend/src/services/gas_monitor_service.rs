@@ -75,11 +75,11 @@ impl GasMonitorService {
         // 2. Check EVM networks
         if let Some(target_gwei) = threshold_gwei {
             for crypto in evm_networks {
-                if let Ok(gas_wei) = sender.get_current_gas_price(crypto.clone(), false).await {
+                if let Ok(gas_wei) = sender.get_current_gas_price(crypto, false).await {
                     let gas_gwei = Decimal::new(gas_wei.as_u128() as i64, 9); // Wei to Gwei
 
                     // Save to history
-                    let network_str = match crypto.clone() {
+                    let network_str = match crypto {
                         CryptoType::Eth => "ETHEREUM",
                         CryptoType::Bnb => "BSC",
                         CryptoType::Matic => "POLYGON",
@@ -108,7 +108,7 @@ impl GasMonitorService {
                                 let msg = format!("🟢 **Low Gas Alert**: {} gas is currently at {:.2} Gwei (Threshold: {} Gwei). Good time to trigger manual fee sweeps!", network_str, gas_gwei, target_gwei);
                                 let _ = self.send_discord_alert(http_client, url, &msg).await;
                             }
-                            last_alert_times.insert(crypto.clone(), now);
+                            last_alert_times.insert(crypto, now);
                         }
                     }
                 }

@@ -149,23 +149,20 @@ impl BalanceService {
         let results = futures::future::join_all(tasks).await;
 
         let mut balances = Vec::new();
-        let total_usd;
         let mut total_available_usd = Decimal::ZERO;
         let mut total_reserved_usd = Decimal::ZERO;
 
-        for result in results {
-            if let Ok(balance) = result {
-                total_available_usd += balance.available_usd;
-                total_reserved_usd += balance.reserved_usd;
+        for balance in results.into_iter().flatten() {
+            total_available_usd += balance.available_usd;
+            total_reserved_usd += balance.reserved_usd;
 
-                // Only include non-zero balances
-                if balance.total_balance > Decimal::ZERO {
-                    balances.push(balance);
-                }
+            // Only include non-zero balances
+            if balance.total_balance > Decimal::ZERO {
+                balances.push(balance);
             }
         }
 
-        total_usd = total_available_usd + total_reserved_usd;
+        let total_usd = total_available_usd + total_reserved_usd;
 
         Ok(BalanceSummary {
             total_usd,

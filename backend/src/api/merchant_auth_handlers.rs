@@ -15,7 +15,6 @@ use validator::Validate;
 
 use crate::middleware::validation::{validate_business_email, validate_password_strength};
 use crate::models::merchant::UserRole;
-use sqlx::Row;
 
 // ============================================================================
 // Request/Response Types

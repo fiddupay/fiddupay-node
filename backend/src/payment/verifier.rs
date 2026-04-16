@@ -301,7 +301,7 @@ impl PaymentVerifier {
                 " Payment {} confirmed with {} confirmations for merchant {}!",
                 payment_id, blockchain_tx.confirmations, merchant_id
             );
-            return Ok(true);
+            Ok(true)
         } else {
             info!(
                 "⏳ Payment {} confirming ({}/{} confirmations)",
@@ -309,7 +309,7 @@ impl PaymentVerifier {
                 blockchain_tx.confirmations,
                 payment.required_confirmations.unwrap_or(1)
             );
-            return Ok(false);
+            Ok(false)
         }
     }
 
@@ -635,7 +635,7 @@ impl PaymentVerifier {
             payment_id: payment.public_id.clone(),
             merchant_id,
             status: crate::payment::models::PaymentStatus::Confirmed,
-            amount: payment.amount.clone().unwrap_or_default(),
+            amount: payment.amount.unwrap_or_default(),
             crypto_type: payment
                 .crypto_type
                 .clone()
@@ -993,7 +993,7 @@ impl PaymentVerifier {
         // Calculate USD amount for ledger
         let crypto_price = self
             .price_service
-            .get_price(final_crypto_type.clone())
+            .get_price(final_crypto_type)
             .await
             .unwrap_or(1.0);
         let amount_usd = (actual_amount
@@ -1221,7 +1221,7 @@ impl PaymentVerifier {
         // Calculate USD amounts using PriceService
         let crypto_price = self
             .price_service
-            .get_price(final_crypto_type.clone())
+            .get_price(final_crypto_type)
             .await
             .unwrap_or(1.0);
         let price_decimal = Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE);

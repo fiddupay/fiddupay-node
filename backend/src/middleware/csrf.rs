@@ -18,6 +18,12 @@ pub struct CsrfTokenStore {
     tokens: RwLock<HashMap<String, String>>, // api_key -> csrf_token
 }
 
+impl Default for CsrfTokenStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CsrfTokenStore {
     pub fn new() -> Self {
         Self {
@@ -36,7 +42,7 @@ impl CsrfTokenStore {
     /// Validate CSRF token
     pub async fn validate_token(&self, api_key: &str, token: &str) -> bool {
         let tokens = self.tokens.read().await;
-        tokens.get(api_key).map_or(false, |stored| stored == token)
+        tokens.get(api_key).is_some_and(|stored| stored == token)
     }
 
     /// Remove token after use
@@ -65,13 +71,7 @@ pub async fn csrf_middleware(
     let api_key = headers
         .get("authorization")
         .and_then(|value| value.to_str().ok())
-        .and_then(|auth| {
-            if auth.starts_with("Bearer ") {
-                Some(auth[7..].to_string())
-            } else {
-                None
-            }
-        });
+        .and_then(|auth| auth.strip_prefix("Bearer ").map(|s| s.to_string()));
 
     // Extract CSRF token from header
     let csrf_token = headers
