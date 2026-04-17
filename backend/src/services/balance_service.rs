@@ -192,7 +192,7 @@ impl BalanceService {
             });
         }
         let price_results = futures::future::join_all(tasks).await;
-        let mut price_map: std::collections::HashMap<CryptoType, f64> =
+        let price_map: std::collections::HashMap<CryptoType, f64> =
             price_results.into_iter().collect();
 
         // 5. Build the summary
@@ -211,7 +211,6 @@ impl BalanceService {
 
             let available_usd = (available_balance * price_dec).round_dp(2);
             let reserved_usd = (reserved_balance * price_dec).round_dp(2);
-            let total_usd = available_usd + reserved_usd;
 
             total_available_usd += available_usd;
             total_reserved_usd += reserved_usd;
