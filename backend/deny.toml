@@ -7,9 +7,9 @@ unmaintained = "none"
 # Determine what happens when a soundness issue is found.
 unsound = "none"
 # Determine what happens when a yanked crate is found.
-yanked = "none"
+yanked = "allow"
 # Determine what happens when a notice is found.
-notice = "none"
+notice = "allow"
 
 [licenses]
 # We don't perform license checks yet, ignore all
