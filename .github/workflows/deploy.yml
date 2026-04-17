@@ -21,6 +21,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
           script: |
+            set -e # Abort deployment immediately if any command fails
+            export PATH="$HOME/.cargo/bin:$PATH"
+            
             # --- 1. CONFIGURATION ---
             BASE_DIR="/home/vibes/apps"
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -46,6 +49,9 @@ jobs:
             fi
             
             # --- 3. BUILD PHASE ---
+            echo "📦 INSTALLING DEPENDENCIES..."
+            npm install
+            
             echo "🏗️  BUILDING BACKEND..."
             npm run build:backend
             
