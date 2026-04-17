@@ -1,0 +1,183 @@
+name: FidduPay Unified Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      sdk: ${{ steps.filter.outputs.sdk }}
+      shared: ${{ steps.filter.outputs.shared }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/pipeline.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/pipeline.yml'
+            shared:
+              - 'README.md'
+              - '.github/workflows/pipeline.yml'
+
+  backend-ci:
+    name: Backend CI
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' || needs.changes.outputs.shared == 'true' }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: fiddupay
+        ports: [5432:5432]
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7
+        ports: [6379:6379]
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend -> target
+      - name: Check Formatting & Lint
+        working-directory: backend
+        run: |
+          cargo fmt -- --check
+          cargo clippy -- -D warnings
+      - name: Run Migrations & Tests
+        working-directory: backend
+        run: |
+          cargo install sqlx-cli --no-default-features --features postgres
+          sqlx migrate run
+          cargo test --bin fiddupay
+        env:
+          DATABASE_URL: postgres://postgres:password@localhost:5432/fiddupay
+
+  frontend-ci:
+    name: Frontend CI
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' || needs.changes.outputs.shared == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build & Audit
+        working-directory: frontend
+        run: |
+          npm ci
+          npm audit --audit-level high
+          npm run build
+
+  deploy:
+    name: Atomic VPS Deploy
+    needs: [changes, backend-ci, frontend-ci]
+    # Deploy if on main and CI was either successful or skipped
+    if: |
+      github.event_name == 'push' && 
+      github.ref == 'refs/heads/main' && 
+      (needs.backend-ci.result == 'success' || needs.backend-ci.result == 'skipped') &&
+      (needs.frontend-ci.result == 'success' || needs.frontend-ci.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_PASSPHRASE }}
+          command_timeout: 45m
+          envs: BACKEND_CHANGED,FRONTEND_CHANGED
+          script: |
+            set -ex
+            export PATH="$HOME/.cargo/bin:$PATH"
+            export CARGO_TARGET_DIR="/home/vibes/apps/shared/target"
+            
+            # --- CONFIGURATION ---
+            BASE_DIR="/home/vibes/apps"
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            DEPLOY_DIR="$BASE_DIR/deployments/build_$TIMESTAMP"
+            CURRENT_LINK="$BASE_DIR/current"
+            
+            echo "[DEPLOY] Started: build_$TIMESTAMP"
+            mkdir -p $DEPLOY_DIR
+            git clone --depth 1 -b main https://github.com/${{ github.repository }}.git $DEPLOY_DIR
+            cd $DEPLOY_DIR
+            
+            # Link environment
+            ln -sfn $BASE_DIR/.env.production $DEPLOY_DIR/backend/.env.production
+            
+            # --- INTELLIGENT BUILD ---
+            
+            # 1. Database Migrations (Only if backend changed)
+            if [ "${{ needs.changes.outputs.backend }}" == "true" ]; then
+              echo "[DATABASE] Running Migrations..."
+              cd $DEPLOY_DIR/backend
+              export $(grep -v '^#' .env.production | xargs)
+              sqlx migrate run
+            else
+              echo "[DATABASE] Skipping Migrations (No backend changes)"
+            fi
+            
+            # 2. Frontend Build
+            if [ "${{ needs.changes.outputs.frontend }}" == "true" ]; then
+              echo "[BUILD] Compiling Frontend..."
+              cd $DEPLOY_DIR/frontend
+              npm install
+              npm run build
+            else
+              echo "[BUILD] Skipping Frontend Build (No frontend changes)"
+            fi
+            
+            # 3. Backend Build
+            if [ "${{ needs.changes.outputs.backend }}" == "true" ]; then
+              echo "[BUILD] Compiling Backend..."
+              cd $DEPLOY_DIR/backend
+              cargo build --release --bin fiddupay
+              mkdir -p target/release
+              cp $CARGO_TARGET_DIR/release/fiddupay target/release/fiddupay
+            else
+              echo "[BUILD] Skipping Backend Build (No backend changes)"
+              mkdir -p $DEPLOY_DIR/backend/target/release
+              cp $CARGO_TARGET_DIR/release/fiddupay $DEPLOY_DIR/backend/target/release/fiddupay
+            fi
+            
+            # --- ATOMIC SWAP ---
+            echo "[SYSTEM] Finalizing Deployment..."
+            ln -sfn $DEPLOY_DIR $CURRENT_LINK
+            sudo rm -f /etc/systemd/system/fiddupay.service
+            sudo cp $CURRENT_LINK/fiddupay.service /etc/systemd/system/fiddupay.service
+            sudo systemctl daemon-reload
+            sudo systemctl restart fiddupay
+            sudo systemctl restart caddy
+            
+            # Cleanup
+            cd $BASE_DIR/deployments
+            ls -1tr | grep "build_" | head -n -2 | xargs -r rm -rf
+            echo "🚀 DEPLOYMENT SUCCESSFUL"
