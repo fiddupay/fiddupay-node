@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
-import { withdrawalAPI, walletAPI, publicAPI } from '@/services/apiService'
-import styles from '@/styles/pages/WithdrawalsPage.module.css'
 import { useToast } from '@/contexts/ToastContext'
+import { publicAPI, walletAPI, withdrawalAPI } from '@/services/apiService'
 import { useAuthStore } from '@/stores/authStore'
+import styles from '@/styles/pages/WithdrawalsPage.module.css'
+import { Withdrawal } from '@/types'
 import { extractErrorMessage } from '@/utils/errorUtils'
+import React, { useEffect, useState } from 'react'
 
 interface WalletBalance {
     crypto_type: string
@@ -13,18 +14,6 @@ interface WalletBalance {
     available_balance: string
     total_balance: string
     transaction_count: number
-}
-
-interface Withdrawal {
-    withdrawal_id: string
-    crypto_type: string
-    amount: string
-    destination_address: string
-    status: string
-    fee: string
-    net_amount: string
-    transaction_hash: string | null
-    created_at: string
 }
 
 const WithdrawalsPage: React.FC = () => {
@@ -413,6 +402,12 @@ const WithdrawalsPage: React.FC = () => {
                                                     </button>
                                                 </div>
                                             </div>
+                                            {w.rejection_reason && (
+                                                <div className={styles.historyDetailRow} style={{ color: '#dc2626', background: '#fef2f2', padding: '8px', borderRadius: '4px', marginTop: '8px' }}>
+                                                    <span>Reason</span>
+                                                    <strong>{w.rejection_reason}</strong>
+                                                </div>
+                                            )}
                                             {w.transaction_hash && (
                                                 <div className={styles.historyDetailRow}>
                                                     <span>TX Hash</span>

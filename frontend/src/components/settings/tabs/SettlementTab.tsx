@@ -7,6 +7,8 @@ interface SettlementTabProps {
     handleUpdateSettlementMode: (mode: 'forwarding' | 'managed') => Promise<void>;
     handleToggleWalletLock: () => Promise<void>;
     handleToggleCustomerWalletLock: () => Promise<void>;
+    addressOnlyCustomerPaysFee: boolean;
+    handleUpdateAddressOnlyFeeSetting: (customerPays: boolean) => Promise<void>;
     loading: boolean;
     styles: any;
 }
@@ -17,6 +19,8 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
     handleUpdateSettlementMode,
     handleToggleWalletLock,
     handleToggleCustomerWalletLock,
+    addressOnlyCustomerPaysFee,
+    handleUpdateAddressOnlyFeeSetting,
     loading,
     styles
 }) => {
@@ -47,7 +51,56 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
                 </div>
             </div>
 
-            <div className={styles.safeguardBox}>
+            {selectedMode === 'forwarding' && (
+                <div style={{ marginTop: '24px', padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <h4 style={{ margin: 0, color: '#1e293b' }}>Forwarding Fee Preference</h4>
+                            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#64748b' }}>
+                                Who pays the processing fee for address-only payments?
+                            </p>
+                        </div>
+                        <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
+                            <button
+                                style={{
+                                    padding: '6px 16px',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    fontSize: '14px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    background: !addressOnlyCustomerPaysFee ? '#fff' : 'transparent',
+                                    boxShadow: !addressOnlyCustomerPaysFee ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                    color: !addressOnlyCustomerPaysFee ? '#2563eb' : '#64748b'
+                                }}
+                                onClick={() => handleUpdateAddressOnlyFeeSetting(false)}
+                                disabled={loading}
+                            >
+                                Merchant
+                            </button>
+                            <button
+                                style={{
+                                    padding: '6px 16px',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    fontSize: '14px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    background: addressOnlyCustomerPaysFee ? '#fff' : 'transparent',
+                                    boxShadow: addressOnlyCustomerPaysFee ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                    color: addressOnlyCustomerPaysFee ? '#2563eb' : '#64748b'
+                                }}
+                                onClick={() => handleUpdateAddressOnlyFeeSetting(true)}
+                                disabled={loading}
+                            >
+                                Customer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className={styles.safeguardBox} style={{ marginTop: '32px' }}>
                 <div className={styles.safeguardInfo}>
                     <div className={styles.safeguardIcon}>
                         {user?.wallets_locked ? <MdLock color="#34d399" /> : <MdWarning color="#fbbf24" />}

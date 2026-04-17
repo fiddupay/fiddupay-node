@@ -56,6 +56,7 @@ export interface MerchantProfile {
   has_transaction_pin: boolean;
   pin_setup_at?: string;
   low_balance_threshold_usd: string;
+  low_balance_alerts_enabled: boolean;
 }
 
 export interface CreatePaymentRequest {
@@ -247,6 +248,7 @@ export interface UnifiedSettingsRequest {
   sandbox_mode?: boolean;
   rotate_webhook_secret?: boolean;
   low_balance_threshold_usd?: string;
+  low_balance_alerts_enabled?: boolean;
 }
 
 export interface Merchant {

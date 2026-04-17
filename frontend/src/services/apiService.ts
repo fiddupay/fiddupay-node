@@ -211,6 +211,16 @@ export const notificationAPI = {
   },
 }
 
+export const addressOnlyAPI = {
+  create: (data: any) => api.post('/api/v1/merchants/address-only/create', data),
+  getStatus: (paymentId: string) => api.get(`/api/v1/merchants/address-only/status?payment_id=${paymentId}`),
+  getCurrencies: () => api.get('/api/v1/merchants/address-only/currencies'),
+  getStats: () => api.get('/api/v1/merchants/address-only/stats'),
+  getHealth: () => api.get('/api/v1/merchants/address-only/health'),
+  getFeeSetting: () => api.get('/api/v1/merchants/address-only/fee-setting'),
+  updateFeeSetting: (data: { customer_pays_fee: boolean }) => api.put('/api/v1/merchants/address-only/fee-setting', data),
+}
+
 export const publicAPI = {
   contact: (data: { name: string; email: string; subject: string; message: string }) => api.post('/api/v1/contact', data),
   getSupportedCurrencies: (merchantId?: number) => {
@@ -233,4 +243,5 @@ export default {
   sandbox: sandboxAPI,
   public: publicAPI,
   notifications: notificationAPI,
+  addressOnly: addressOnlyAPI,
 }

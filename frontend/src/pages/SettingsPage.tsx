@@ -11,7 +11,7 @@ import {
     MdError
 } from 'react-icons/md'
 import { useAuthStore } from '@/stores/authStore'
-import { merchantAPI, securityAPI } from '@/services/apiService'
+import { merchantAPI, securityAPI, addressOnlyAPI } from '@/services/apiService'
 import { useToast } from '@/contexts/ToastContext'
 import styles from '@/styles/pages/SettingsPage.module.css'
 
@@ -50,6 +50,9 @@ const SettingsPage: React.FC = () => {
     const [pin, setPin] = useState('')
     const [confirmPin, setConfirmPin] = useState('')
     const [settingPin, setSettingPin] = useState(false)
+    const [lowBalanceThreshold, setLowBalanceThreshold] = useState('0')
+    const [lowBalanceAlertsEnabled, setLowBalanceAlertsEnabled] = useState(true)
+    const [addressOnlyCustomerPaysFee, setAddressOnlyCustomerPaysFee] = useState(false)
     const [passwordConfirm, setPasswordConfirm] = useState<{
         show: boolean;
         target: 'wallet' | 'customer' | null;
@@ -96,6 +99,8 @@ const SettingsPage: React.FC = () => {
 
             setWebhookFormat(format)
             setIpWhitelist(user.ip_whitelist || [])
+            setLowBalanceThreshold(user.low_balance_threshold_usd || '0')
+            setLowBalanceAlertsEnabled(user.low_balance_alerts_enabled !== false) // Default to true if undefined
         }
     }, [user]) // Removed user?.sandbox_mode from deps to rely on the full user object check
 
@@ -144,6 +149,14 @@ const SettingsPage: React.FC = () => {
             // Let's use getMerchantSettings to get the secret.
             const settingsRes = await merchantAPI.getMerchantSettings()
             setSigningSecret(settingsRes.data.webhook_signing_secret || '••••••••••••••••••••••••••••••••')
+
+            // Fetch Address-Only fee settings if reachable
+            try {
+                const aoFeeRes = await addressOnlyAPI.getFeeSetting()
+                setAddressOnlyCustomerPaysFee(aoFeeRes.data.customer_pays_fee)
+            } catch (err) {
+                console.warn('Address-Only settings not available', err)
+            }
 
         } catch (error) {
             console.error('Failed to fetch settings', error)
@@ -195,6 +208,17 @@ const SettingsPage: React.FC = () => {
             showToast(`Fees will now be paid by ${newValue ? 'customers' : 'you'}`, 'success')
         } catch (error: any) {
             showToast('Failed to update fee preferences', 'error')
+        }
+    }
+
+    const handleUpdateAddressOnlyFeeSetting = async (customerPays: boolean) => {
+        try {
+            setLoading(true)
+            await addressOnlyAPI.updateFeeSetting({ customer_pays_fee: customerPays })
+            setAddressOnlyCustomerPaysFee(customerPays)
+            showToast(`Forwarding fees updated: ${customerPays ? 'Customer' : 'Merchant'} pays`, 'success')
+        } catch (error: any) {
+            showToast('Failed to update forwarding fee preference', 'error')
         } finally {
             setLoading(false)
         }
@@ -397,6 +421,8 @@ const SettingsPage: React.FC = () => {
                         handleUpdateSettlementMode={handleUpdateSettlementMode}
                         handleToggleWalletLock={handleToggleWalletLock}
                         handleToggleCustomerWalletLock={handleToggleCustomerWalletLock}
+                        addressOnlyCustomerPaysFee={addressOnlyCustomerPaysFee}
+                        handleUpdateAddressOnlyFeeSetting={handleUpdateAddressOnlyFeeSetting}
                         loading={loading}
                         styles={styles}
                     />
@@ -462,6 +488,11 @@ const SettingsPage: React.FC = () => {
                         setConfirmPin={setConfirmPin}
                         handleSetPin={handleSetPin}
                         settingPin={settingPin}
+                        lowBalanceThreshold={lowBalanceThreshold}
+                        setLowBalanceThreshold={setLowBalanceThreshold}
+                        lowBalanceAlertsEnabled={lowBalanceAlertsEnabled}
+                        setLowBalanceAlertsEnabled={setLowBalanceAlertsEnabled}
+                        handleUpdateSettings={handleUpdateSettings}
                         styles={styles}
                     />
                 )}

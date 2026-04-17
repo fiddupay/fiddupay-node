@@ -9,6 +9,11 @@ interface SecurityTabProps {
     setConfirmPin: (pin: string) => void;
     handleSetPin: (e: React.FormEvent) => Promise<void>;
     settingPin: boolean;
+    lowBalanceThreshold: string;
+    setLowBalanceThreshold: (value: string) => void;
+    lowBalanceAlertsEnabled: boolean;
+    setLowBalanceAlertsEnabled: (value: boolean) => void;
+    handleUpdateSettings: (updates: any) => Promise<void>;
     styles: any;
 }
 
@@ -20,6 +25,11 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
     setConfirmPin,
     handleSetPin,
     settingPin,
+    lowBalanceThreshold,
+    setLowBalanceThreshold,
+    lowBalanceAlertsEnabled,
+    setLowBalanceAlertsEnabled,
+    handleUpdateSettings,
     styles
 }) => {
     return (
@@ -87,6 +97,60 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                         <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '8px', textAlign: 'center' }}>PINs do not match.</p>
                     )}
                 </form>
+            </div>
+
+            <div style={{ marginTop: '48px', borderTop: '1px solid #e2e8f0', paddingTop: '32px' }}>
+                <h2>Risk Monitoring</h2>
+                <p>Configure automated system alerts for operational balance safety.</p>
+
+                <div className={styles.formCard} style={{ marginTop: '24px', maxWidth: '500px' }}>
+                    <div className={styles.formGroup} style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#f8fafc', borderRadius: '8px' }}>
+                        <div>
+                            <h4 style={{ margin: 0, fontSize: '0.9rem' }}>Enable Alerts</h4>
+                            <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#64748b' }}>Receive notifications when balance is low.</p>
+                        </div>
+                        <label className={styles.switch}>
+                            <input 
+                                type="checkbox" 
+                                checked={lowBalanceAlertsEnabled}
+                                onChange={e => {
+                                    const newValue = e.target.checked;
+                                    setLowBalanceAlertsEnabled(newValue);
+                                    handleUpdateSettings({ low_balance_alerts_enabled: newValue });
+                                }}
+                            />
+                            <span className={styles.slider}></span>
+                        </label>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Low Balance Threshold (USD)</label>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <div style={{ position: 'relative', flex: 1 }}>
+                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontWeight: 600 }}>$</span>
+                                <input 
+                                    type="number"
+                                    className={styles.inputStyle}
+                                    style={{ paddingLeft: '28px', width: '100%' }}
+                                    value={lowBalanceThreshold}
+                                    onChange={e => setLowBalanceThreshold(e.target.value)}
+                                    placeholder="0.00"
+                                />
+                            </div>
+                            <button 
+                                className={styles.saveBtn} 
+                                style={{ background: '#10b981', whiteSpace: 'nowrap' }}
+                                onClick={() => handleUpdateSettings({ low_balance_threshold_usd: lowBalanceThreshold })}
+                            >
+                                Update Threshold
+                            </button>
+                        </div>
+                        <p style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '12px', lineHeight: '1.5' }}>
+                            The system will trigger <strong>balance.low</strong> webhooks and in-app alerts when your total 
+                            account balance (across all supported currencies) falls below this amount.
+                        </p>
+                    </div>
+                </div>
             </div>
         </section>
     );

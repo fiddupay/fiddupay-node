@@ -85,6 +85,7 @@ pub struct Merchant {
     pub transaction_pin_hash: Option<String>,
     pub pin_setup_at: Option<DateTime<Utc>>,
     pub low_balance_threshold_usd: Decimal,
+    pub low_balance_alerts_enabled: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]

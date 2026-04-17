@@ -33,7 +33,7 @@ pub async fn get_merchant_profile(
         SELECT id, business_name, email, sandbox_mode, settlement_mode, 
                kyc_verified, daily_limit_usd, created_at, redirect_url,
                test_api_key_hash, live_api_key_hash, wallets_locked, customer_wallets_locked,
-               transaction_pin_hash, pin_setup_at, low_balance_threshold_usd
+               transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled
         FROM merchants
         WHERE id = $1
         "#,
@@ -82,6 +82,7 @@ pub async fn get_merchant_profile(
     let m_transaction_pin_hash: Option<String> = merchant.get("transaction_pin_hash");
     let m_pin_setup_at: Option<chrono::DateTime<chrono::Utc>> = merchant.get("pin_setup_at");
     let m_low_balance_threshold_usd: Decimal = merchant.get("low_balance_threshold_usd");
+    let m_low_balance_alerts_enabled: bool = merchant.get("low_balance_alerts_enabled");
 
     let display_key = if context.api_key == "DASHBOARD_SESSION" {
         let hash_opt = if m_sandbox_mode {
@@ -126,7 +127,8 @@ pub async fn get_merchant_profile(
         "two_factor_enabled": false,
         "has_transaction_pin": m_transaction_pin_hash.is_some(),
         "pin_setup_at": m_pin_setup_at.map(|d| d.to_rfc3339()),
-        "low_balance_threshold_usd": m_low_balance_threshold_usd.to_string()
+        "low_balance_threshold_usd": m_low_balance_threshold_usd.to_string(),
+        "low_balance_alerts_enabled": m_low_balance_alerts_enabled
     });
 
     // 4. Calculate daily volume remaining
@@ -427,6 +429,7 @@ pub struct UnifiedSettingsRequest {
     pub sandbox_mode: Option<bool>,
     pub rotate_webhook_secret: Option<bool>,
     pub low_balance_threshold_usd: Option<Decimal>,
+    pub low_balance_alerts_enabled: Option<bool>,
 }
 
 fn validate_optional_webhook_url(url: &str) -> Result<(), validator::ValidationError> {
@@ -452,6 +455,7 @@ pub async fn update_merchant_settings(
                 req.customer_pays_fee,
                 req.sandbox_mode,
                 req.redirect_url.clone(),
+                req.low_balance_alerts_enabled,
             )
             .await
         {
@@ -555,7 +559,7 @@ pub async fn get_merchant_settings(
 
     // 1. Get core merchant settings
     let merchant = match sqlx::query(
-        "SELECT settlement_mode, customer_pays_fee, sandbox_mode, redirect_url FROM merchants WHERE id = $1"
+        "SELECT settlement_mode, customer_pays_fee, sandbox_mode, redirect_url, low_balance_alerts_enabled FROM merchants WHERE id = $1"
     )
     .bind(merchant_id)
     .fetch_one(&state.db_pool)
@@ -595,6 +599,7 @@ pub async fn get_merchant_settings(
         "customer_pays_fee": m_customer_pays_fee,
         "sandbox_mode": m_sandbox_mode,
         "redirect_url": m_redirect_url,
+        "low_balance_alerts_enabled": merchant.get::<bool, _>("low_balance_alerts_enabled"),
         "ip_whitelist": ip_whitelist
     }))).into_response()
 }

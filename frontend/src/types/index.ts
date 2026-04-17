@@ -225,13 +225,14 @@ export interface BalanceHistory {
 // Withdrawal Types
 export interface Withdrawal {
   withdrawal_id: string
-  status: 'PENDING' | 'APPROVED' | 'COMPLETED' | 'FAILED'
+  status: 'PENDING' | 'APPROVED' | 'PROCESSING' | 'COMPLETED' | 'REJECTED' | 'FAILED' | 'CANCELLED'
   amount: string
   crypto_type: string
   destination_address: string
   fee_amount: string
   net_amount: string
   transaction_hash?: string
+  rejection_reason?: string
   created_at: string
   completed_at?: string
 }
