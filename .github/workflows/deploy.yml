@@ -81,7 +81,8 @@ jobs:
 
             # --- 7. SYSTEMD SETUP ---
             echo "[SYSTEM] Syncing Service Configuration..."
-            # Copy the file instead of linking to avoid "dangling" during cleanup
+            # Remove existing file/link first to prevent "same file" error if destination is a symlink
+            sudo rm -f /etc/systemd/system/fiddupay.service
             sudo cp $CURRENT_LINK/fiddupay.service /etc/systemd/system/fiddupay.service
             sudo systemctl daemon-reload
             sudo systemctl enable fiddupay
