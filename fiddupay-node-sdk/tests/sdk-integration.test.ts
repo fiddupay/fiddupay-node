@@ -367,7 +367,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
     });
 
     it('should provide comprehensive address-only operations', () => {
-      const addressOnlyMethods = ['createPayment', 'getStatus', 'getCurrencies', 'getStats', 'getHealth', 'updateFeeSetting', 'getFeeSetting'];
+      const addressOnlyMethods = ['create', 'getStatus', 'getSupportedCurrencies', 'getStats', 'getHealth', 'updateFeeSetting', 'getFeeSetting'];
       addressOnlyMethods.forEach(method => {
         expect(client.addressOnly).toHaveProperty(method);
         expect(typeof client.addressOnly[method as keyof typeof client.addressOnly]).toBe('function');

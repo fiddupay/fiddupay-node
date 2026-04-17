@@ -1,8 +1,8 @@
-# FidduPay Node.js SDK Guide v2.6.13
+# FidduPay Node.js SDK Guide v2.6.14
 
 **Official Node.js SDK for FidduPay Cryptocurrency Payment Gateway**
 
-##  Overview
+## Overview
 
 The FidduPay Node.js SDK provides a simple, secure way to integrate cryptocurrency payments into Node.js applications. Built to work seamlessly with the Rust backend API.
 
@@ -14,17 +14,19 @@ The FidduPay Node.js SDK provides a simple, secure way to integrate cryptocurren
 - **Tracking**: Real-time volume tracking across all transaction types
 
 Check your remaining daily volume:
+
 ```javascript
 const profile = await fiddupay.merchants.getProfile();
-console.log('KYC Status:', profile.kyc_verified);
-console.log('Daily Volume Remaining:', profile.daily_volume_remaining);
+console.log("KYC Status:", profile.kyc_verified);
+console.log("Daily Volume Remaining:", profile.daily_volume_remaining);
 ```
 
 ---
 
-##  SDK Architecture
+## SDK Architecture
 
 ### Core Components
+
 ```
 fiddupay-node-sdk/
  src/
@@ -56,9 +58,10 @@ fiddupay-node-sdk/
 
 ---
 
-##  SDK Features
+## SDK Features
 
-###  Core Functionality
+### Core Functionality
+
 - **Payment Processing**: Create, retrieve, and manage payments
 - **Webhook Handling**: Secure webhook verification and parsing
 - **Merchant Management**: Account settings and configuration
@@ -69,7 +72,8 @@ fiddupay-node-sdk/
 - **Retry Logic**: Automatic retry for failed requests
 - **Rate Limiting**: Built-in rate limit handling
 
-###  Security Features
+### Security Features
+
 - **API Key Management**: Secure key storage and rotation
 - **Webhook Verification**: HMAC signature validation
 - **Input Sanitization**: Prevent injection attacks
@@ -78,9 +82,10 @@ fiddupay-node-sdk/
 
 ---
 
-##  API Reference
+## API Reference
 
 ### Installation
+
 ```bash
 npm install @fiddupay/node-sdk
 # or
@@ -88,103 +93,111 @@ yarn add @fiddupay/node-sdk
 ```
 
 ### Basic Usage
+
 ```typescript
-import { FidduPayClient } from '@fiddupay/node-sdk';
+import { FidduPayClient } from "@fiddupay/node-sdk";
 
 const fiddupay = new FidduPayClient({
-  apiKey: 'sk_sandbox_...',
-  environment: 'sandbox' // or 'production'
+  apiKey: "sk_sandbox_...",
+  environment: "sandbox", // or 'production'
 });
 ```
 
 ### Payment Operations
+
 ```typescript
 // Create a USD-based payment
 const payment = await fiddupay.payments.create({
-  amount_usd: '100.00',
-  crypto_type: 'USDT_ETH',
-  description: 'Order #12345',
+  amount_usd: "100.00",
+  crypto_type: "USDT_ETH",
+  description: "Order #12345",
   metadata: {
-    order_id: '12345',
-    customer_id: 'cust_abc123'
+    order_id: "12345",
+    customer_id: "cust_abc123",
   },
-  expiration_minutes: 30
+  expiration_minutes: 30,
 });
 
 // Create a crypto-based payment
 const cryptoPayment = await fiddupay.payments.create({
-  amount: '2.5',
-  crypto_type: 'SOL',
-  description: 'Order #12345',
+  amount: "2.5",
+  crypto_type: "SOL",
+  description: "Order #12345",
   metadata: {
-    order_id: '12345',
-    customer_id: 'cust_abc123'
+    order_id: "12345",
+    customer_id: "cust_abc123",
   },
-  expiration_minutes: 30
+  expiration_minutes: 30,
 });
 
 // Retrieve a payment
-const payment = await fiddupay.payments.retrieve('pay_1234567890');
+const payment = await fiddupay.payments.retrieve("pay_1234567890");
 
 // List payments
 const payments = await fiddupay.payments.list({
   limit: 20,
-  status: 'confirmed',
-  crypto_type: 'USDT_ETH'
+  status: "confirmed",
+  crypto_type: "USDT_ETH",
 });
 ```
 
 ### Webhook Handling
+
 ```typescript
-import express from 'express';
+import express from "express";
 
 const app = express();
 
-app.post('/webhooks/fiddupay', express.raw({type: 'application/json'}), (req, res) => {
-  const sig = req.headers['fiddupay-signature'];
-  
-  try {
-    const event = fiddupay.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.FIDDUPAY_WEBHOOK_SECRET
-    );
-    
-    switch (event.type) {
-      case 'payment.detected':
-        console.log('Payment detected (0-conf):', event.data);
-        break;
-      case 'payment.partially_paid':
-        console.log('Partial payment received:', event.data);
-        // Check partial balance vs requested amount
-        break;
-      case 'payment.confirmed':
-        console.log('Payment confirmed:', event.data);
-        break;
-      case 'payment.failed':
-        console.log('Payment failed:', event.data);
-        break;
-      case 'wallet.low_balance':
-        console.log('Low gas wallet balance:', event.data);
-        break;
+app.post(
+  "/webhooks/fiddupay",
+  express.raw({ type: "application/json" }),
+  (req, res) => {
+    const sig = req.headers["fiddupay-signature"];
+
+    try {
+      const event = fiddupay.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.FIDDUPAY_WEBHOOK_SECRET,
+      );
+
+      switch (event.type) {
+        case "payment.detected":
+          console.log("Payment detected (0-conf):", event.data);
+          break;
+        case "payment.partially_paid":
+          console.log("Partial payment received:", event.data);
+          // Check partial balance vs requested amount
+          break;
+        case "payment.confirmed":
+          console.log("Payment confirmed:", event.data);
+          break;
+        case "payment.failed":
+          console.log("Payment failed:", event.data);
+          break;
+        case "wallet.low_balance":
+          console.log("Low gas wallet balance:", event.data);
+          break;
+      }
+
+      res.json({ received: true });
+    } catch (err) {
+      console.log("Webhook signature verification failed:", err.message);
+      res.status(400).send("Webhook signature verification failed");
     }
-    
-    res.json({received: true});
-  } catch (err) {
-    console.log('Webhook signature verification failed:', err.message);
-    res.status(400).send('Webhook signature verification failed');
-  }
-});
+  },
+);
 ```
 
 ### Merchant Operations
+
 ```typescript
 // Get merchant profile
 const merchant = await fiddupay.merchants.retrieve();
 
 // Update webhook URL
 await fiddupay.merchants.updateWebhook({
-  url: 'https://example.com/webhooks/fiddupay'
+  url: "https://example.com/webhooks/fiddupay",
 });
 
 // Get account balance
@@ -192,40 +205,41 @@ const balance = await fiddupay.merchants.getBalance();
 
 // Configure wallet addresses
 await fiddupay.merchants.setWallet({
-  crypto_type: 'SOL',
-  address: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
+  crypto_type: "SOL",
+  address: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
 });
 
 // Update settlement mode
-await fiddupay.merchants.updateSettlementMode('managed');
+await fiddupay.merchants.updateSettlementMode("managed");
 
 // NEW: Unified Settings Update
 await fiddupay.merchants.updateSettings({
-  webhook_url: 'https://example.com/webhooks',
-  settlement_mode: 'forwarding',
+  webhook_url: "https://example.com/webhooks",
+  settlement_mode: "forwarding",
   customer_pays_fee: true,
   wallets_locked: false,
-  customer_wallets_locked: false
+  customer_wallets_locked: false,
 });
 
 // NEW: Wallet Security Locks (v2.4.6)
-await fiddupay.security.toggleWalletLock(true, { reason: 'Security alert' });
+await fiddupay.security.toggleWalletLock(true, { reason: "Security alert" });
 await fiddupay.security.toggleCustomerWalletLock(true);
 
 // NEW: Operational Readiness Check
 const status = await fiddupay.merchants.getStatus();
 if (!status.is_ready) {
-  console.log('Action items:', status.issues);
+  console.log("Action items:", status.issues);
 }
 ```
 
 ### Wallet Operations
+
 ```typescript
 // NEW: Unified Wallet Setup
 await fiddupay.wallets.setup({
-  crypto_type: 'SOL',
-  mode: 'generate', // or 'import' or 'address'
-  is_active: true
+  crypto_type: "SOL",
+  mode: "generate", // or 'import' or 'address'
+  is_active: true,
 });
 
 // Get configurations
@@ -233,10 +247,11 @@ const configs = await fiddupay.wallets.getConfigurations();
 
 // NEW: Check Gas Balances (v2.4.6)
 const gasStatus = await fiddupay.security.checkGasBalances();
-console.log('Gas statuses:', gasStatus.wallets);
+console.log("Gas statuses:", gasStatus.wallets);
 ```
 
 ### Transaction Feed
+
 ```typescript
 // NEW: Unified Transaction History
 const { transactions } = await fiddupay.transactions.list();
@@ -247,83 +262,86 @@ const history = await fiddupay.merchants.getBalanceHistory({ limit: 50 });
 ```
 
 ### Analytics
+
 ```typescript
 // Get analytics data
 const analytics = await fiddupay.analytics.retrieve({
-  start_date: '2026-01-01',
-  end_date: '2026-01-31',
-  granularity: 'day'
+  start_date: "2026-01-01",
+  end_date: "2026-01-31",
+  granularity: "day",
 });
 
 // Export analytics
 const exportData = await fiddupay.analytics.export({
-  format: 'csv',
-  start_date: '2026-01-01',
-  end_date: '2026-01-31'
+  format: "csv",
+  start_date: "2026-01-01",
+  end_date: "2026-01-31",
 });
 ```
 
 ### Refund Operations
+
 ```typescript
 // Create a refund
 const refund = await fiddupay.refunds.create({
-  payment_id: 'pay_1234567890',
-  amount: '50.00', // Partial refund
-  reason: 'Customer request'
+  payment_id: "pay_1234567890",
+  amount: "50.00", // Partial refund
+  reason: "Customer request",
 });
 
 // Retrieve refund status
-const refundData = await fiddupay.refunds.retrieve('ref_1234567890');
+const refundData = await fiddupay.refunds.retrieve("ref_1234567890");
 
 // --- NEW in v2.4.6: Customer Management ---
 
 // Register customer
 const customer = await fiddupay.customers.register({
-  external_id: 'user_123',
-  email: 'user@example.com'
+  external_id: "user_123",
+  email: "user@example.com",
 });
 
 // Provision wallets
-await client.customers.createWallets('user_123', {
-  networks: ['evm']
+await client.customers.createWallets("user_123", {
+  networks: ["evm"],
 });
 
 // Customer Pay Merchant
-await client.customers.payMerchant('user_123', {
-  crypto_type: 'USDT_ETH',
-  amount: '10.0',
-  description: 'Monthly subscription'
+await client.customers.payMerchant("user_123", {
+  crypto_type: "USDT_ETH",
+  amount: "10.0",
+  description: "Monthly subscription",
 });
 
 // Update permissions
-await client.customers.updatePermissions('user_123', {
+await client.customers.updatePermissions("user_123", {
   can_withdraw: true,
-  withdrawal_limit: '1000'
+  withdrawal_limit: "1000",
 });
 
 // NEW in v2.5.5: Bulk Wallet Provisioning
 
 // Regenerate wallets for specific customers
 await fiddupay.customers.bulkProvision({
-  customer_ids: ['user_123', 'user_456', 'user_789']
+  customer_ids: ["user_123", "user_456", "user_789"],
 });
 
 // Regenerate wallets for ALL customers at once
 await fiddupay.customers.bulkProvision({
-  all_customers: true
+  all_customers: true,
 });
 ```
 
 ---
 
-##  Development Specifications
+## Development Specifications
 
 ### TypeScript Definitions
+
 ```typescript
 // Core SDK interface
 interface FidduPayConfig {
   apiKey: string;
-  environment?: 'sandbox' | 'production';
+  environment?: "sandbox" | "production";
   apiVersion?: string;
   timeout?: number;
   maxRetries?: number;
@@ -332,8 +350,8 @@ interface FidduPayConfig {
 
 // Payment types
 interface CreatePaymentRequest {
-  amount_usd?: string;  // USD amount (e.g., "100.00")
-  amount?: string;      // Crypto amount (e.g., "2.5")
+  amount_usd?: string; // USD amount (e.g., "100.00")
+  amount?: string; // Crypto amount (e.g., "2.5")
   crypto_type: CryptoType;
   description?: string;
   metadata?: Record<string, any>;
@@ -358,11 +376,25 @@ interface Payment {
   metadata?: Record<string, any>;
 }
 
-type CryptoType = 'SOL' | 'ETH' | 'USDT_ETH' | 'USDT_BEP20' | 'USDT_POLYGON' | 'USDT_ARBITRUM' | 'USDT_SPL' | 'BUSD_BEP20';
-type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED';
+type CryptoType =
+  | "SOL"
+  | "ETH"
+  | "USDT_ETH"
+  | "USDT_BEP20"
+  | "USDT_POLYGON"
+  | "USDT_ARBITRUM"
+  | "USDT_SPL"
+  | "BUSD_BEP20";
+type PaymentStatus =
+  | "PENDING"
+  | "CONFIRMING"
+  | "CONFIRMED"
+  | "FAILED"
+  | "EXPIRED";
 ```
 
 ### Error Handling
+
 ```typescript
 // Custom error classes
 class FidduPayError extends Error {
@@ -373,9 +405,14 @@ class FidduPayError extends Error {
 }
 
 class FidduPayAPIError extends FidduPayError {
-  constructor(message: string, statusCode: number, code?: string, requestId?: string) {
+  constructor(
+    message: string,
+    statusCode: number,
+    code?: string,
+    requestId?: string,
+  ) {
     super(message);
-    this.type = 'api_error';
+    this.type = "api_error";
     this.statusCode = statusCode;
     this.code = code;
     this.requestId = requestId;
@@ -385,13 +422,14 @@ class FidduPayAPIError extends FidduPayError {
 class FidduPayValidationError extends FidduPayError {
   constructor(message: string, param?: string) {
     super(message);
-    this.type = 'validation_error';
+    this.type = "validation_error";
     this.param = param;
   }
 }
 ```
 
 ### HTTP Client Implementation
+
 ```typescript
 class FidduPayClient {
   private apiKey: string;
@@ -410,7 +448,7 @@ class FidduPayClient {
     method: string,
     path: string,
     data?: any,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<T> {
     // Implementation with retry logic, error handling, and rate limiting
   }
@@ -419,70 +457,73 @@ class FidduPayClient {
 
 ---
 
-##  Testing Strategy
+## Testing Strategy
 
 ### Unit Tests
+
 ```typescript
 // Payment creation test
-describe('Payments', () => {
-  it('should create a payment successfully', async () => {
+describe("Payments", () => {
+  it("should create a payment successfully", async () => {
     const mockPayment = {
-      payment_id: 'pay_test123',
-      amount_usd: '100.00',
-      crypto_type: 'USDT_ETH',
-      status: 'PENDING'
+      payment_id: "pay_test123",
+      amount_usd: "100.00",
+      crypto_type: "USDT_ETH",
+      status: "PENDING",
     };
 
-    nock('https://api-sandbox.fiddupay.com')
-      .post('/v1/payments')
+    nock("https://api-sandbox.fiddupay.com")
+      .post("/v1/payments")
       .reply(201, mockPayment);
 
     const payment = await fiddupay.payments.create({
-      amount_usd: '100.00',
-      crypto_type: 'USDT_ETH'
+      amount_usd: "100.00",
+      crypto_type: "USDT_ETH",
     });
 
-    expect(payment.payment_id).toBe('pay_test123');
+    expect(payment.payment_id).toBe("pay_test123");
   });
 });
 ```
 
 ### Integration Tests
+
 ```typescript
 // Webhook verification test
-describe('Webhooks', () => {
-  it('should verify webhook signatures correctly', () => {
-    const payload = JSON.stringify({ type: 'payment.confirmed' });
-    const secret = 'whsec_test123';
+describe("Webhooks", () => {
+  it("should verify webhook signatures correctly", () => {
+    const payload = JSON.stringify({ type: "payment.confirmed" });
+    const secret = "whsec_test123";
     const signature = fiddupay.webhooks.generateSignature(payload, secret);
-    
+
     const event = fiddupay.webhooks.constructEvent(payload, signature, secret);
-    expect(event.type).toBe('payment.confirmed');
+    expect(event.type).toBe("payment.confirmed");
   });
 });
 ```
 
 ---
 
-##  Usage Examples
+## Usage Examples
 
 ### Express.js Integration
+
 ```typescript
-import express from 'express';
-import { FidduPayClient } from '@fiddupay/node-sdk';
+import express from "express";
+import { FidduPayClient } from "@fiddupay/node-sdk";
 
 const app = express();
 const fiddupay = new FidduPayClient({ apiKey: process.env.FIDDUPAY_API_KEY });
 
 // Create USD-based payment endpoint
-app.post('/create-payment', async (req, res) => {
+app.post("/create-payment", async (req, res) => {
   try {
     const payment = await fiddupay.payments.create({
       amount_usd: req.body.amount_usd,
       crypto_type: req.body.crypto_type,
-      description: req.body.description
+      description: req.body.description,
     });
-    
+
     res.json({ payment });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -490,14 +531,14 @@ app.post('/create-payment', async (req, res) => {
 });
 
 // Create crypto-based payment endpoint
-app.post('/create-crypto-payment', async (req, res) => {
+app.post("/create-crypto-payment", async (req, res) => {
   try {
     const payment = await fiddupay.payments.create({
       amount: req.body.amount,
       crypto_type: req.body.crypto_type,
-      description: req.body.description
+      description: req.body.description,
     });
-    
+
     res.json({ payment });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -506,15 +547,19 @@ app.post('/create-crypto-payment', async (req, res) => {
 ```
 
 ### Next.js API Route
+
 ```typescript
 // pages/api/payments.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { FidduPayClient } from '@fiddupay/node-sdk';
+import type { NextApiRequest, NextApiResponse } from "next";
+import { FidduPayClient } from "@fiddupay/node-sdk";
 
 const fiddupay = new FidduPayClient({ apiKey: process.env.FIDDUPAY_API_KEY });
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
+  if (req.method === "POST") {
     try {
       const payment = await fiddupay.payments.create(req.body);
       res.status(201).json(payment);
@@ -526,9 +571,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 ```
 
 ### NestJS Service
+
 ```typescript
-import { Injectable } from '@nestjs/common';
-import { FidduPayClient } from '@fiddupay/node-sdk';
+import { Injectable } from "@nestjs/common";
+import { FidduPayClient } from "@fiddupay/node-sdk";
 
 @Injectable()
 export class PaymentService {
@@ -537,7 +583,8 @@ export class PaymentService {
   constructor() {
     this.fiddupay = new FidduPayClient({
       apiKey: process.env.FIDDUPAY_API_KEY,
-      environment: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox'
+      environment:
+        process.env.NODE_ENV === "production" ? "production" : "sandbox",
     });
   }
 
@@ -549,41 +596,46 @@ export class PaymentService {
 
 ---
 
-##  Development Roadmap
+## Development Roadmap
 
 ### Phase 1: Core SDK (Q1 2026)
--  Basic payment operations
--  Webhook handling
--  TypeScript definitions
--  Error handling
--  Unit tests
+
+- Basic payment operations
+- Webhook handling
+- TypeScript definitions
+- Error handling
+- Unit tests
 
 ### Phase 2: Advanced Features (Q2 2026)
--  Merchant management
--  Analytics integration
--  Refund operations
--  Rate limiting
--  Retry logic
+
+- Merchant management
+- Analytics integration
+- Refund operations
+- Rate limiting
+- Retry logic
 
 ### Phase 3: Enterprise Features (Q3 2026)
--  Request signing
--  Advanced webhook features
--  Bulk operations
--  Custom middleware support
--  Performance optimizations
+
+- Request signing
+- Advanced webhook features
+- Bulk operations
+- Custom middleware support
+- Performance optimizations
 
 ### Phase 4: Ecosystem Integration (Q4 2026)
--  Framework-specific packages
--  CLI tools
--  Development plugins
--  Monitoring integrations
--  Advanced documentation
+
+- Framework-specific packages
+- CLI tools
+- Development plugins
+- Monitoring integrations
+- Advanced documentation
 
 ---
 
-##  Documentation Structure
+## Documentation Structure
 
 ### SDK Documentation
+
 ```
 docs/
  README.md                 # Getting started guide
@@ -597,6 +649,7 @@ docs/
 ```
 
 ### Code Examples Repository
+
 ```
 examples/
  express-basic/           # Basic Express.js integration
@@ -609,9 +662,10 @@ examples/
 
 ---
 
-##  Distribution Strategy
+## Distribution Strategy
 
 ### NPM Package
+
 - **Package Name**: `@fiddupay/node-sdk`
 - **Scope**: `@fiddupay`
 - **Versioning**: Semantic versioning (semver)
@@ -619,12 +673,14 @@ examples/
 - **Keywords**: cryptocurrency, payments, blockchain, fintech, api
 
 ### GitHub Repository
+
 - **Repository**: `fiddupay/fiddupay-node`
 - **Branches**: `main`, `develop`, `release/*`
 - **CI/CD**: GitHub Actions for testing and publishing
 - **Documentation**: GitHub Pages for SDK docs
 
 ### Developer Experience
+
 - **TypeScript**: Full type definitions included
 - **IDE Support**: IntelliSense and autocomplete
 - **Debugging**: Source maps and debug logging
@@ -633,21 +689,24 @@ examples/
 
 ---
 
-##  Success Metrics
+## Success Metrics
 
 ### Adoption Metrics
+
 - NPM downloads per month
 - GitHub stars and forks
 - Developer community size
 - Integration implementations
 
 ### Quality Metrics
+
 - Test coverage (target: >95%)
 - Documentation completeness
 - Issue resolution time
 - Developer satisfaction score
 
 ### Performance Metrics
+
 - API response times
 - Error rates
 - Retry success rates
@@ -655,7 +714,7 @@ examples/
 
 ---
 
-**Document Version**: 2.6.13
+**Document Version**: 2.6.14
 **Last Updated**: April 15, 2026
 **Next Review**: July 1, 2026  
 **Owner**: TechyTro Software - FidduPay SDK Team

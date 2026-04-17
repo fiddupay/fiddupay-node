@@ -160,11 +160,11 @@ To sync code AND push a version tag manually (triggering the automated pipeline)
 To delete a version on github:
 
 ```bash
-git push https://github.com/fiddupay/fiddupay-node.git --delete v2.6.13
+git push https://github.com/fiddupay/fiddupay-node.git --delete v2.6.14
 ```
 
 ```bash
-sudo bash ./scripts/push-sdk.sh main v2.6.13
+sudo bash ./scripts/push-sdk.sh main v2.6.14
 cd fiddupay-node-sdk
 npm publish --access public
 ```
