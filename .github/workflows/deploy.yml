@@ -65,8 +65,10 @@ jobs:
             # --- 4. DATABASE MIGRATION ---
             echo "[DATABASE] Running Migrations..."
             cd $DEPLOY_DIR/backend
-            # Export DATABASE_URL from the linked .env for sqlx
+            # Export DATABASE_URL from the linked .env for sqlx securely
+            set +x
             export $(grep -v '^#' .env.production | xargs)
+            set -x
             /home/vibes/.cargo/bin/sqlx migrate run
 
             # --- 5. ATOMIC SWAP ---
