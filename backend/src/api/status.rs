@@ -43,9 +43,9 @@ pub struct UptimePoint {
 
 #[derive(Serialize, Deserialize)]
 pub struct UptimeStats {
+    pub seven_days: f64,
+    pub fourteen_days: f64,
     pub thirty_days: f64,
-    pub ninety_days: f64,
-    pub one_year: f64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -107,7 +107,7 @@ async fn fetch_service_history(pool: &sqlx::PgPool, service_name: &str) -> Vec<U
     let result = sqlx::query(
         "SELECT day, uptime_percent FROM daily_uptime_summary 
          WHERE service_name = $1 
-         ORDER BY day DESC LIMIT 90",
+         ORDER BY day DESC LIMIT 14",
     )
     .bind(service_name)
     .fetch_all(pool)
@@ -139,9 +139,9 @@ async fn fetch_aggregate_uptime(pool: &sqlx::PgPool) -> UptimeStats {
     let stats = sqlx::query(
         r#"
         SELECT 
-            AVG(uptime_percent) FILTER (WHERE day >= NOW() - INTERVAL '30 days') as thirty,
-            AVG(uptime_percent) FILTER (WHERE day >= NOW() - INTERVAL '90 days') as ninety,
-            AVG(uptime_percent) FILTER (WHERE day >= NOW() - INTERVAL '365 days') as yearly
+            AVG(uptime_percent) FILTER (WHERE day >= NOW() - INTERVAL '7 days') as seven,
+            AVG(uptime_percent) FILTER (WHERE day >= NOW() - INTERVAL '14 days') as fourteen,
+            AVG(uptime_percent) FILTER (WHERE day >= NOW() - INTERVAL '30 days') as thirty
         FROM daily_uptime_summary
         "#,
     )
@@ -150,14 +150,17 @@ async fn fetch_aggregate_uptime(pool: &sqlx::PgPool) -> UptimeStats {
 
     match stats {
         Ok(row) => UptimeStats {
+            seven_days: row.get::<Option<f64>, _>("seven").unwrap_or(100.0).round(),
+            fourteen_days: row
+                .get::<Option<f64>, _>("fourteen")
+                .unwrap_or(100.0)
+                .round(),
             thirty_days: row.get::<Option<f64>, _>("thirty").unwrap_or(100.0).round(),
-            ninety_days: row.get::<Option<f64>, _>("ninety").unwrap_or(100.0).round(),
-            one_year: row.get::<Option<f64>, _>("yearly").unwrap_or(100.0).round(),
         },
         Err(_) => UptimeStats {
+            seven_days: 100.0,
+            fourteen_days: 100.0,
             thirty_days: 100.0,
-            ninety_days: 100.0,
-            one_year: 100.0,
         },
     }
 }

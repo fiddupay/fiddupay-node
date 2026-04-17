@@ -52,14 +52,15 @@ jobs:
             fi
 
             # --- 3. BUILD PHASE ---
-            echo "📦 INSTALLING DEPENDENCIES..."
+            echo "📦 BUILDING FRONTEND..."
+            cd $DEPLOY_DIR/frontend
             npm install
-
+            npm run build
+            
             echo "🏗️  BUILDING BACKEND..."
-            npm run build:backend
-
-            echo "🏗️  BUILDING FRONTEND..."
-            npm run build:frontend
+            cd $DEPLOY_DIR/backend
+            cargo check --bin fiddupay
+            cargo build --release --bin fiddupay
 
             # --- 4. DATABASE MIGRATION ---
             echo "🗄️  RUNNING DATABASE MIGRATIONS..."

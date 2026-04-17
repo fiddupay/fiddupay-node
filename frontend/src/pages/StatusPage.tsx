@@ -37,9 +37,9 @@ interface SystemStatus {
   overall_status: string
   services: ServiceStatus[]
   uptime_stats: {
+    seven_days: number
+    fourteen_days: number
     thirty_days: number
-    ninety_days: number
-    one_year: number
   }
   last_updated: string
   system_metrics?: SystemMetrics
@@ -81,9 +81,9 @@ const StatusPage: React.FC = () => {
           }
         ],
         uptime_stats: {
-          thirty_days: 99.99,
-          ninety_days: 99.98,
-          one_year: 99.95
+          seven_days: 99.99,
+          fourteen_days: 99.98,
+          thirty_days: 99.95
         },
         last_updated: new Date().toISOString(),
         past_incidents: []
@@ -145,7 +145,7 @@ const StatusPage: React.FC = () => {
               <p>Last checked: {status?.last_updated ? new Date(status.last_updated).toLocaleTimeString() : 'Just now'}</p>
             </div>
             <div className={styles.overallHealthBadge}>
-              {status?.uptime_stats.ninety_days}% Uptime
+              {status?.uptime_stats.fourteen_days}% Uptime
             </div>
           </div>
         </div>
@@ -206,16 +206,16 @@ const StatusPage: React.FC = () => {
             <div className={styles.metricsCard}>
               <h3>Uptime Report</h3>
               <div className={styles.metricItem}>
+                <label>Last 7 Days</label>
+                <div className={styles.metricValue}>{status?.uptime_stats.seven_days}%</div>
+              </div>
+              <div className={styles.metricItem}>
+                <label>Last 14 Days</label>
+                <div className={styles.metricValue}>{status?.uptime_stats.fourteen_days}%</div>
+              </div>
+              <div className={styles.metricItem}>
                 <label>Last 30 Days</label>
                 <div className={styles.metricValue}>{status?.uptime_stats.thirty_days}%</div>
-              </div>
-              <div className={styles.metricItem}>
-                <label>Last 90 Days</label>
-                <div className={styles.metricValue}>{status?.uptime_stats.ninety_days}%</div>
-              </div>
-              <div className={styles.metricItem}>
-                <label>Last 12 Months</label>
-                <div className={styles.metricValue}>{status?.uptime_stats.one_year}%</div>
               </div>
             </div>
 
@@ -227,7 +227,7 @@ const StatusPage: React.FC = () => {
               
               <div className={styles.incidentList}>
                 {status?.past_incidents.length === 0 ? (
-                  <div className={styles.noIncidents}>No incidents reported in the last 90 days.</div>
+                  <div className={styles.noIncidents}>No incidents reported in the last 14 days.</div>
                 ) : (
                   status?.past_incidents.map((incident) => (
                     <div key={incident.id} className={styles.incidentItem}>

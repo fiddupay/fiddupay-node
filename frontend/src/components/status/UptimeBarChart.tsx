@@ -6,7 +6,7 @@ interface UptimeBarChartProps {
   data?: Array<{ date: string; status: 'operational' | 'degraded' | 'outage' | 'maintenance' }>;
 }
 
-const UptimeBarChart: React.FC<UptimeBarChartProps> = ({ days = 90, data }) => {
+const UptimeBarChart: React.FC<UptimeBarChartProps> = ({ days = 14, data }) => {
   // If no data provided, generate mock data for the enterprise look
   const bars = data || Array.from({ length: days }).map((_, i) => {
     // Generate mostly green, some yellow/orange for realism
@@ -22,6 +22,10 @@ const UptimeBarChart: React.FC<UptimeBarChartProps> = ({ days = 90, data }) => {
     };
   });
 
+  const operationalCount = bars.filter(b => b.status === 'operational').length;
+  const uptimeRatio = bars.length > 0 ? (operationalCount / bars.length) * 100 : 100;
+  const uptimeDisplay = `${uptimeRatio.toFixed(2).replace(/\.00$/, '')}% uptime`;
+
   return (
     <div className={styles.uptimeBarChart}>
       <div className={styles.barsContainer}>
@@ -36,7 +40,7 @@ const UptimeBarChart: React.FC<UptimeBarChartProps> = ({ days = 90, data }) => {
       <div className={styles.chartFooter}>
         <span>{days} days ago</span>
         <div className={styles.divider} />
-        <span>100% uptime</span>
+        <span>{uptimeDisplay}</span>
         <div className={styles.divider} />
         <span>Today</span>
       </div>

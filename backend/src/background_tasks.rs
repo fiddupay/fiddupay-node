@@ -83,6 +83,11 @@ impl BackgroundTasks {
             tasks_expiration.run_expiration_checker().await;
         });
 
+        let tasks_maintenance = self.clone();
+        tokio::spawn(async move {
+            tasks_maintenance.run_database_maintenance_cron().await;
+        });
+
         let tasks_webhook = self.clone();
         tokio::spawn(async move {
             tasks_webhook.run_webhook_retry().await;
@@ -1256,6 +1261,73 @@ impl BackgroundTasks {
 
             if let Err(e) = monitor.check_low_balances().await {
                 error!("Error checking low balances: {}", e);
+            }
+        }
+    }
+
+    /// Background task to prune obsolete metrics and emit webhook telemetries
+    async fn run_database_maintenance_cron(&self) {
+        // Run completely once a day (86400 seconds)
+        let mut interval = interval(Duration::from_secs(86400));
+
+        loop {
+            interval.tick().await;
+
+            tracing::info!("Starting scheduled database maintenance cron...");
+
+            // Aggressively flush old metric payloads
+            let result = sqlx::query(
+                "DELETE FROM system_health_history WHERE timestamp < NOW() - INTERVAL '30 days'",
+            )
+            .execute(&self.db_pool)
+            .await;
+
+            match result {
+                Ok(query_result) => {
+                    let rows_affected = query_result.rows_affected();
+
+                    if rows_affected > 0 {
+                        tracing::info!("Maintenance cron pruned {} obsolete metric logs. Dispatching webhooks.", rows_affected);
+
+                        // 1. Ledger as a public System Incident (resolved Maintenance)
+                        let incident_desc = format!("Routine automated database maintenance successfully purged {} obsolete system health logs.", rows_affected);
+                        let _ = sqlx::query(
+                            "INSERT INTO system_incidents (title, description, status, severity) VALUES ($1, $2, 'resolved', 'maintenance')"
+                        )
+                        .bind("Scheduled Storage Optimization")
+                        .bind(&incident_desc)
+                        .execute(&self.db_pool)
+                        .await;
+
+                        // 2. Transmit Discord Payload precisely if defined
+                        let settings_res = sqlx::query(
+                            "SELECT discord_webhook_url FROM fee_sweep_settings LIMIT 1",
+                        )
+                        .fetch_optional(&self.db_pool)
+                        .await;
+
+                        if let Ok(Some(row)) = settings_res {
+                            use sqlx::Row;
+                            if let Ok(Some(discord_url)) =
+                                row.try_get::<Option<String>, _>("discord_webhook_url")
+                            {
+                                let client = reqwest::Client::new();
+                                let msg = serde_json::json!({
+                                    "content": format!("🧹 **Database Optimization Complete**\n`{}`", incident_desc)
+                                });
+                                let _ = client.post(&discord_url).json(&msg).send().await;
+                            }
+                        }
+                    } else {
+                        tracing::info!("Maintenance cron completed perfectly - no records old enough to purge yet.");
+                    }
+                }
+                Err(e) => {
+                    tracing::error!(
+                        "FATAL: Maintenance cron failed to clean metrics table: {}",
+                        e
+                    );
+                }
             }
         }
     }
