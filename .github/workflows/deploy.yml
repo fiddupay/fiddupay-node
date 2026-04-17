@@ -75,11 +75,18 @@ jobs:
             set -x
             /home/vibes/.cargo/bin/sqlx migrate run
 
-            # --- 5. ATOMIC SWAP ---
+            # --- 6. ATOMIC SWAP ---
             echo "[DEPLOYSYNC] Performing Atomic Swap..."
             ln -sfn $DEPLOY_DIR $CURRENT_LINK
 
-            # --- 6. RESTART SERVICES ---
+            # --- 7. SYSTEMD SETUP ---
+            echo "[SYSTEM] Syncing Service Configuration..."
+            # Link the service file to the stable 'current' path so it never dangles
+            sudo ln -sfn $CURRENT_LINK/fiddupay.service /etc/systemd/system/fiddupay.service
+            sudo systemctl daemon-reload
+            sudo systemctl enable fiddupay
+
+            # --- 8. RESTART SERVICES ---
             echo "[SYSTEM] Restarting Services..."
             sudo systemctl restart fiddupay
             sudo systemctl restart caddy
