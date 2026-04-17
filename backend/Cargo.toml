@@ -64,7 +64,7 @@ hmac = "0.12"
 # UUID/ID generation
 uuid = { version = "1.6", features = ["v4", "serde"] }
 nanoid = "0.4"
-jsonwebtoken = "10.3"
+jsonwebtoken = { version = "10.3", default-features = false, features = ["aws_lc_rs"] }
 
 # URL parsing and validation
 url = "2.5.4"
