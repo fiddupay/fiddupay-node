@@ -1,5 +1,5 @@
 import { HttpClient } from '../client';
-import { Balance, LoginRequest, LoginResponse, Merchant, MerchantProfile, RequestOptions, UnifiedSettingsRequest } from '../types';
+import { Balance, LoginRequest, LoginResponse, Merchant, MerchantProfile, MerchantSettingsUpdateResponse, RequestOptions, UnifiedSettingsRequest } from '../types';
 
 export class Merchants {
   constructor(private client: HttpClient) { }
@@ -88,7 +88,7 @@ export class Merchants {
   /**
    * Update global merchant settings (Unified)
    */
-  async updateSettings(data: UnifiedSettingsRequest, options?: RequestOptions): Promise<{ status: string; message: string }> {
+  async updateSettings(data: UnifiedSettingsRequest, options?: RequestOptions): Promise<MerchantSettingsUpdateResponse> {
     return this.client.request('PATCH', '/api/v1/merchants/settings', data);
   }
 

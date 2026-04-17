@@ -57,6 +57,7 @@ export interface MerchantProfile {
   pin_setup_at?: string;
   low_balance_threshold_usd: string;
   low_balance_alerts_enabled: boolean;
+  webhook_signing_secret?: string;
 }
 
 export interface CreatePaymentRequest {
@@ -249,6 +250,13 @@ export interface UnifiedSettingsRequest {
   rotate_webhook_secret?: boolean;
   low_balance_threshold_usd?: string;
   low_balance_alerts_enabled?: boolean;
+  webhook_signing_secret?: string;
+}
+
+export interface MerchantSettingsUpdateResponse {
+  status: string;
+  message: string;
+  new_webhook_secret?: string;
 }
 
 export interface Merchant {
@@ -337,11 +345,12 @@ export interface MerchantWalletBalance {
   address: string;
   is_active: boolean;
   available_balance: string;
-  available_balance_usd?: string;
+  available_usd?: string;
   reserved_balance: string;
-  reserved_balance_usd?: string;
+  reserved_usd?: string;
   total_balance: string;
-  total_balance_usd?: string;
+  total_usd?: string;
+  balance_usd?: string; // Legacy compatibility
   transaction_count: number;
   total_volume_crypto: string;
   total_volume_usd?: string;
@@ -397,6 +406,11 @@ export interface CreateWithdrawalRequest {
 
 export interface ProcessWithdrawalRequest {
   encryption_password: string;
+}
+
+export interface ApproveWithdrawalRequest {
+  approved: boolean;
+  rejection_reason?: string;
 }
 
 export interface Withdrawal {
@@ -494,18 +508,24 @@ export interface ListSecurityAlertsParams {
 
 // Balance Types
 export interface BalanceEntry {
-  merchant_id: number;
-  crypto_type: CryptoType;
+  crypto_type: string; // Changed to string for flexibility on some endpoints
   available_balance: string;
+  available_usd: string;
   reserved_balance: string;
+  reserved_usd: string;
   total_balance: string;
-  available_balance_usd: string;
-  reserved_balance_usd: string;
-  total_balance_usd: string;
+  total_usd: string;
   last_updated?: string;
 }
 
-export type Balance = BalanceEntry[];
+export interface BalanceSummary {
+  available_usd: string;
+  reserved_usd: string;
+  total_usd: string;
+  balances: BalanceEntry[];
+}
+
+export type Balance = BalanceSummary; // The main balance endpoint now returns a summary
 
 export interface BalanceTrendPoint {
   date: string;

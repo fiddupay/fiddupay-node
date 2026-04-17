@@ -516,17 +516,40 @@ pub async fn update_merchant_settings(
     }
 
     // 5. Rotate Webhook Secret if requested
+    let mut new_webhook_secret = None;
     if req.rotate_webhook_secret.unwrap_or(false) {
-        let new_secret = hex::encode(rand::random::<[u8; 32]>());
-        if let Err(e) = sqlx::query(
+        let secret = hex::encode(rand::random::<[u8; 32]>());
+
+        // Try update first (this updates all active endpoints for the merchant)
+        let update_res = sqlx::query(
             "UPDATE webhook_configs SET signing_secret = $1, updated_at = NOW() WHERE merchant_id = $2"
         )
-        .bind(&new_secret)
+        .bind(&secret)
         .bind(context.merchant_id)
         .execute(&state.db_pool)
-        .await {
-            return ServiceError::Database(e).into_response();
+        .await;
+
+        match update_res {
+            Ok(res) if res.rows_affected() == 0 => {
+                // If no configs exist, create a default "standard" placeholder so the secret is persisted
+                let _ = sqlx::query(
+                    r#"
+                    INSERT INTO webhook_configs (merchant_id, signing_secret, payload_format, is_active, url)
+                    VALUES ($1, $2, 'standard', false, '')
+                    "#
+                )
+                .bind(context.merchant_id)
+                .bind(&secret)
+                .execute(&state.db_pool)
+                .await;
+            }
+            Err(e) => {
+                tracing::error!(error = ?e, "Failed to rotate webhook secret");
+                return ServiceError::Database(e).into_response();
+            }
+            _ => {}
         }
+        new_webhook_secret = Some(secret);
     }
 
     // Log settings update and trace
@@ -545,7 +568,8 @@ pub async fn update_merchant_settings(
         StatusCode::OK,
         Json(json!({
             "status": "success",
-            "message": "Settings updated successfully"
+            "message": "Settings updated successfully",
+            "new_webhook_secret": new_webhook_secret
         })),
     )
         .into_response()

@@ -164,7 +164,7 @@ git push https://github.com/fiddupay/fiddupay-node.git --delete v2.6.14
 ```
 
 ```bash
-sudo bash ./scripts/push-sdk.sh main v2.6.14
+sudo bash ./scripts/push-sdk.sh main v2.6.15
 cd fiddupay-node-sdk
 npm publish --access public
 ```

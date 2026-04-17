@@ -298,10 +298,19 @@ const SettingsPage: React.FC = () => {
 
         try {
             setLoading(true)
-            await merchantAPI.updateSettings({ rotate_webhook_secret: true })
-            await fetchSettings()
+            const response = await merchantAPI.updateSettings({ rotate_webhook_secret: true })
+            
+            // Capture new secret directly from response if present
+            const newSecret = response.data.new_webhook_secret
+            if (newSecret) {
+                setSigningSecret(newSecret)
+                setShowSecret(true) // Automatically reveal it so they can copy
+                showToast('Webhook signing secret rotated and revealed below', 'success')
+            } else {
+                await fetchSettings()
+                showToast('Webhook signing secret rotated successfully', 'success')
+            }
             setShowRotateSecretConfirm(false)
-            showToast('Webhook signing secret rotated successfully', 'success')
         } catch (error: any) {
             showToast('Failed to rotate signing secret', 'error')
         } finally {
