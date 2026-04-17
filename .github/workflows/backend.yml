@@ -82,10 +82,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run security audit
-        uses: actions-rust-lang/audit@v1
+      - name: Rust Security Audit (cargo-deny)
+        uses: EmbarkStudios/cargo-deny-action@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          workingDirectory: backend
-          denyWarnings: false
-          createIssues: false
+          command: check advisories
+          arguments: --manifest-path backend/Cargo.toml

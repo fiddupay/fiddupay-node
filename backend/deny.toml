@@ -1,0 +1,24 @@
+[advisories]
+# Determine what happens when a vulnerability is found.
+vulnerability = "deny"
+# Determine what happens when an unmaintained crate is found.
+# Warn here prevents CI from failing on things like Bincode which Solana uses but are "unmaintained"
+unmaintained = "warn"
+# Determine what happens when a soundness issue is found.
+unsound = "warn"
+# Determine what happens when a yanked crate is found.
+yanked = "warn"
+# Determine what happens when a notice is found.
+notice = "warn"
+
+[licenses]
+# We don't perform license checks yet, ignore all
+unlicensed = "allow"
+allow-osi-fsf-free = "neither"
+copyleft = "allow"
+default = "allow"
+
+[bans]
+# No bans configured
+multiple-versions = "allow"
+highlight = "all"
