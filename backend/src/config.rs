@@ -183,6 +183,34 @@ impl Config {
     pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
         dotenvy::dotenv().ok();
 
+        let frontend_url = env::var("FRONTEND_URL")?
+            .trim()
+            .trim_end_matches('/')
+            .to_string();
+        let backend_url = env::var("BACKEND_URL")?
+            .trim()
+            .trim_end_matches('/')
+            .to_string();
+        let payment_page_base_url = env::var("PAYMENT_PAGE_BASE_URL")?
+            .trim()
+            .trim_end_matches('/')
+            .to_string();
+
+        let mut allowed_origins: Vec<String> = env::var("ALLOWED_ORIGINS")
+            .unwrap_or_else(|_| "http://localhost:3000".to_string())
+            .split(',')
+            .map(|s| s.trim().trim_end_matches('/').to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        // Automatically include main platform URLs if not present
+        if !allowed_origins.contains(&frontend_url) {
+            allowed_origins.push(frontend_url.clone());
+        }
+        if !allowed_origins.contains(&payment_page_base_url) {
+            allowed_origins.push(payment_page_base_url.clone());
+        }
+
         Ok(Self {
             // Database
             database_url: env::var("DATABASE_URL")?,
@@ -410,7 +438,7 @@ impl Config {
             payment_cleanup_interval_hours: env::var("PAYMENT_CLEANUP_INTERVAL_HOURS")
                 .unwrap_or_else(|_| "1".to_string())
                 .parse()?,
-            payment_page_base_url: env::var("PAYMENT_PAGE_BASE_URL")?, // Hardened: Required
+            payment_page_base_url,
 
             // Fee Configuration
             default_fee_percentage: env::var("DEFAULT_FEE_PERCENTAGE")
@@ -480,13 +508,9 @@ impl Config {
                 .parse()?,
 
             // CORS & URLs - Required in Production
-            frontend_url: env::var("FRONTEND_URL")?,
-            backend_url: env::var("BACKEND_URL")?,
-            allowed_origins: env::var("ALLOWED_ORIGINS")
-                .unwrap_or_else(|_| "http://localhost:3000".to_string())
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .collect(),
+            frontend_url,
+            backend_url,
+            allowed_origins,
 
             etherscan_api_key: env::var("ETHERSCAN_API_KEY").ok(),
 
