@@ -61,6 +61,10 @@ jobs:
             cd $DEPLOY_DIR/backend
             cargo check --bin fiddupay
             cargo build --release --bin fiddupay
+            
+            # Copy binary back into atomic release folder since CARGO_TARGET_DIR hijacked the output
+            mkdir -p $DEPLOY_DIR/backend/target/release
+            cp $CARGO_TARGET_DIR/release/fiddupay $DEPLOY_DIR/backend/target/release/fiddupay
 
             # --- 4. DATABASE MIGRATION ---
             echo "[DATABASE] Running Migrations..."
