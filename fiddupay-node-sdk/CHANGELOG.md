@@ -2,10 +2,62 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.6.13] - 2026-04-14
+## [2.6.13] - 2026-04-17
+
+### Added
+- **Address-Only Fee Setting Write**: Added `addressOnly.updateFeeSetting({ customer_pays_fee })` method to toggle who pays the processing fee via `PUT /address-only/fee-setting`.
+- **Address-Only Health Check**: Added strongly-typed `addressOnly.getHealth()` method (was previously `any` return) via `GET /address-only/health`.
+- **New Types**: Added `AddressOnlyFeeSettingResponse`, `UpdateAddressOnlyFeeSettingRequest`, `SystemMetrics`, `SystemIncident`, and `UptimePoint` interfaces.
 
 ### Changed
+- **`SystemStatus` type updated**: Now includes `system_metrics` (CPU/memory) and `past_incidents` array to match backend's system status endpoint response.
+- **`ServiceStatus` type updated**: Added `history: UptimePoint[]` field for per-service 14-day uptime history.
+- **`UptimeStats` type fixed**: Replaced incorrect `ninety_days` and `one_year` fields with correct `seven_days`, `fourteen_days`, and `thirty_days` to match backend.
+- **`Withdrawal.status` type updated**: Added `'REJECTED'` to the status union type. Withdrawals that fail on-chain are now marked as `REJECTED` with a `rejection_reason` instead of silently failing.
+- **`CustomerWallet` type updated**: Added optional `sandbox_mode` field to match backend model.
+- **`AddressOnly` resource refactored**: Methods now use strongly-typed generics (`request<T>`) and properly typed imports instead of inline types.
 - **Type Synchronization**: Updated `MerchantProfile` interface to include the `low_balance_threshold_usd` field, ensuring parity with the latest backend response.
+
+### Removed (Breaking)
+- **`UnifiedSettingsRequest.webhook_signing_secret`**: Removed. The backend no longer returns the webhook signing secret in API responses as a security hardening measure. Developers must retrieve the signing secret during initial webhook configuration only.
+- **`UnifiedSettingsRequest.low_balance_alerts_enabled`**: Removed stale field that does not exist in backend.
+- **`UnifiedSettingsRequest.alerts_enabled`**: Removed stale field that does not exist in backend.
+- **`UnifiedSettingsRequest.monitoring_enabled`**: Removed stale field that does not exist in backend.
+
+### Backend Changes (No SDK Code Impact)
+
+The following backend changes improve platform reliability and security. No SDK code changes are required, but developers should be aware:
+
+#### Security Hardening
+- **Webhook signing secret removed from API responses**: `GET /settings` no longer returns `webhook_signing_secret` to prevent signature forgery if API responses are intercepted.
+- **Sensitive data stripped from logs**: Wallet addresses, transaction amounts, and bearer tokens are no longer written to any log level.
+- **Debug logging sanitized**: Payment verifier logs no longer contain recipient address mismatches or blockchain timestamps.
+- **Webhook response bodies no longer logged**: Prevents sensitive data exposure in failure scenarios.
+
+#### Infrastructure Hardening
+- **Atomic payment verification**: Payment verification now uses `SELECT ... FOR UPDATE` row locking to prevent double-crediting under concurrent requests.
+- **Withdrawal processor hardening**: Withdrawals use `FOR UPDATE` locking and a `PROCESSING` intermediate state with crash recovery logic. Transaction hashes are persisted immediately after on-chain submission, before any other DB writes, preventing fund loss on post-submission crashes.
+- **Automatic balance refunds**: If an on-chain withdrawal fails, the merchant or customer balance is automatically refunded with the locked amount.
+- **Settlement mode enforcement**: Forwarding mode now returns `SETTLEMENT_MODE_MISMATCH` (403) when attempting Standard payments. Managed mode returns `Forbidden` when attempting Address-Only payments. Previously these were silently allowed.
+
+#### Blockchain Monitoring
+- **Unified `BlockchainMonitor` trait**: All chain monitors (EVM, Solana, BTC) now implement a generic `BlockchainMonitor` trait for consistent behavior and easier maintenance.
+- **RPC rotation**: Multi-provider RPC fallback with LlamaNodes and keyless Ankr endpoints to mitigate rate-limiting.
+- **EVM monitor staggering**: EVM monitors are now staggered on startup (3s intervals) to prevent RPC request spikes.
+- **Address-Only audit trails**: Blockchain transaction hashes are now persisted for all address-only payments for full audit trail.
+
+#### Balance Monitoring
+- **USD-based balance alerts**: Low balance monitoring switched from per-currency thresholds to a single USD total threshold using real-time price feeds via `PriceService`.
+- **12-hour alert cooldown**: Balance alerts now have a 12-hour cooldown to prevent notification flooding.
+- **Webhook balance alerts**: Low balance events now trigger `balance.low` webhooks in addition to in-app notifications.
+
+#### Webhook Delivery
+- **Extended retry policy**: Webhook retry increased from 5 to 12 attempts with exponential backoff capped at 2 hours.
+- **Per-merchant signing secrets**: Each merchant now has their own webhook signing secret instead of a global key.
+- **Discord/Slack skip signature**: Webhook deliveries to Discord/Slack format endpoints skip HMAC signatures for compatibility.
+
+#### CI/CD
+- **Deployment stability improvements**: Enhanced GitHub Actions deployment workflow for reliable Railway deployments.
 
 ## [2.6.12] - 2026-04-14
 

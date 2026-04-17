@@ -246,11 +246,7 @@ export interface UnifiedSettingsRequest {
   ip_whitelist?: string[];
   sandbox_mode?: boolean;
   rotate_webhook_secret?: boolean;
-  webhook_signing_secret?: string; // Returned from GET /settings
-  low_balance_alerts_enabled?: boolean;
   low_balance_threshold_usd?: string;
-  alerts_enabled?: boolean; // Security alerts
-  monitoring_enabled?: boolean; // Security monitoring
 }
 
 export interface Merchant {
@@ -405,9 +401,9 @@ export interface Withdrawal {
   withdrawal_id: string;
   crypto_type: CryptoType;
   amount: string;
-  amount_usd: string; // Added to match backend
+  amount_usd: string;
   destination_address: string;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'REJECTED';
   fee: string;
   net_amount: string;
   transaction_hash?: string;
@@ -687,6 +683,7 @@ export interface CustomerWallet {
   address: string;
   is_active: boolean;
   created_at?: string;
+  sandbox_mode?: boolean;
 }
 
 export interface CustomerWalletsResponse {
@@ -787,18 +784,39 @@ export interface PricingResponse {
   };
 }
 
+export interface UptimePoint {
+  date: string;
+  status: string; // 'operational' | 'degraded' | 'outage'
+}
+
 export interface ServiceStatus {
   name: string;
   description: string;
   status: string;
   response_time?: number;
   last_check: string;
+  history: UptimePoint[];
 }
 
 export interface UptimeStats {
+  seven_days: number;
+  fourteen_days: number;
   thirty_days: number;
-  ninety_days: number;
-  one_year: number;
+}
+
+export interface SystemMetrics {
+  cpu_usage: number;
+  memory_usage_percent: number;
+}
+
+export interface SystemIncident {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  severity: string;
+  created_at: string;
+  resolved_at?: string;
 }
 
 /**
@@ -827,6 +845,8 @@ export interface SystemStatus {
   services: ServiceStatus[];
   uptime_stats: UptimeStats;
   last_updated: string;
+  system_metrics?: SystemMetrics;
+  past_incidents: SystemIncident[];
 }
 
 /**
@@ -853,6 +873,13 @@ export interface BalanceHistoryEntry {
 }
 
 /**
- * Security Monitoring Types
+ * Address-Only Fee Setting Types
  */
-// Consolidated with existing Security types above
+export interface AddressOnlyFeeSettingResponse {
+  customer_pays_fee: boolean;
+  description: string;
+}
+
+export interface UpdateAddressOnlyFeeSettingRequest {
+  customer_pays_fee: boolean;
+}
