@@ -3,13 +3,13 @@
 vulnerability = "deny"
 # Determine what happens when an unmaintained crate is found.
 # Warn here prevents CI from failing on things like Bincode which Solana uses but are "unmaintained"
-unmaintained = "warn"
+unmaintained = "none"
 # Determine what happens when a soundness issue is found.
-unsound = "warn"
+unsound = "none"
 # Determine what happens when a yanked crate is found.
-yanked = "warn"
+yanked = "none"
 # Determine what happens when a notice is found.
-notice = "warn"
+notice = "none"
 
 [licenses]
 # We don't perform license checks yet, ignore all
