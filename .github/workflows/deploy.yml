@@ -81,8 +81,8 @@ jobs:
 
             # --- 7. SYSTEMD SETUP ---
             echo "[SYSTEM] Syncing Service Configuration..."
-            # Link the service file to the stable 'current' path so it never dangles
-            sudo ln -sfn $CURRENT_LINK/fiddupay.service /etc/systemd/system/fiddupay.service
+            # Copy the file instead of linking to avoid "dangling" during cleanup
+            sudo cp $CURRENT_LINK/fiddupay.service /etc/systemd/system/fiddupay.service
             sudo systemctl daemon-reload
             sudo systemctl enable fiddupay
 
