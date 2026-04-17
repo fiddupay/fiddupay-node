@@ -50,7 +50,7 @@ impl WithdrawalProcessor {
 
         let withdrawal = sqlx::query(
             r#"
-            SELECT id, withdrawal_id, merchant_id, crypto_type, amount, destination_address, status, sandbox_mode
+            SELECT id, withdrawal_id, merchant_id, crypto_type, amount, destination_address, status, transaction_hash, sandbox_mode
             FROM withdrawals 
             WHERE withdrawal_id = $1 FOR UPDATE
             "#
@@ -66,8 +66,26 @@ impl WithdrawalProcessor {
         let wd_amount: Decimal = withdrawal.get("amount");
         let wd_destination_address: String = withdrawal.get("destination_address");
         let wd_sandbox_mode: bool = withdrawal.get("sandbox_mode");
+        let wd_existing_hash: Option<String> = withdrawal.get("transaction_hash");
 
-        if wd_status != "PENDING" {
+        // CRITICAL ENFORCEMENT: If it's already COMPLETED or REJECTED, stop immediately.
+        if wd_status == "COMPLETED" || wd_status == "REJECTED" || wd_status == "CANCELLED" {
+            return Err(ServiceError::ValidationError(format!("Withdrawal already {}", wd_status)));
+        }
+
+        // RECOVERY LOGIC: If it's in PROCESSING but HAS a hash, it was successful on-chain but crashed before DB update.
+        if wd_status == "PROCESSING" {
+            if let Some(hash) = wd_existing_hash {
+                tracing::info!("RECOVERY: Withdrawal {} was already sent (hash: {}). Completing now.", withdrawal_id, hash);
+                tx.rollback().await?; // Release lock
+                self.finalize_completed_withdrawal(withdrawal_id, &hash, wd_merchant_id, &wd_crypto_type, wd_amount, wd_sandbox_mode).await?;
+                return Ok(());
+            } else {
+                tracing::warn!("Withdrawal {} is in PROCESSING without hash. Proceeding with safe retry attempt.", withdrawal_id);
+            }
+        }
+
+        if wd_status != "PENDING" && wd_status != "PROCESSING" {
             tracing::warn!(
                 "Withdrawal {} requested for processing but has status {}",
                 withdrawal_id,
@@ -264,27 +282,18 @@ impl WithdrawalProcessor {
             .await
         {
             Ok(hash) => {
+                // IMMEDIATE PERSISTENCE: Save the hash before anything else can fail
+                sqlx::query("UPDATE withdrawals SET transaction_hash = $1, updated_at = NOW() WHERE withdrawal_id = $2")
+                    .bind(&hash)
+                    .bind(withdrawal_id)
+                    .execute(&self.db_pool)
+                    .await?;
+
                 tracing::info!(
-                    "Withdrawal {} submitted successfully. TX Hash: {}",
+                    "Withdrawal {} submitted successfully. TX Hash persisted: {}",
                     withdrawal_id,
                     hash
                 );
-
-                // Create successful notification
-                let _ = self
-                    .notification_service
-                    .create_notification(
-                        wd_merchant_id,
-                        "Withdrawal Completed",
-                        &format!(
-                            "Your withdrawal of {} {} has been submitted successfully.",
-                            wd_amount, wd_crypto_type
-                        ),
-                        "success",
-                        "withdrawal.completed",
-                        wd_sandbox_mode,
-                    )
-                    .await;
 
                 hash
             }
@@ -382,7 +391,39 @@ impl WithdrawalProcessor {
             }
         };
 
-        // 5. Update the withdrawal as COMPLETED with the transaction hash
+        // 5. Finalize the withdrawal as COMPLETED
+        self.finalize_completed_withdrawal(withdrawal_id, &tx_hash, wd_merchant_id, &wd_crypto_type, wd_amount, wd_sandbox_mode).await?;
+
+        Ok(())
+    }
+
+    /// Helper to finalize a confirmed/completed withdrawal in the database and notifications
+    async fn finalize_completed_withdrawal(
+        &self,
+        withdrawal_id: &str,
+        tx_hash: &str,
+        merchant_id: i64,
+        crypto_type: &str,
+        amount: Decimal,
+        sandbox_mode: bool,
+    ) -> Result<(), ServiceError> {
+        // Create successful notification if not already done
+        let _ = self
+            .notification_service
+            .create_notification(
+                merchant_id,
+                "Withdrawal Completed",
+                &format!(
+                    "Your withdrawal of {} {} has been confirmed.",
+                    amount, crypto_type
+                ),
+                "success",
+                "withdrawal.confirmed",
+                sandbox_mode,
+            )
+            .await;
+
+        // Update to COMPLETED
         sqlx::query(
             r#"
             UPDATE withdrawals 
@@ -390,13 +431,13 @@ impl WithdrawalProcessor {
             WHERE withdrawal_id = $2
             "#
         )
-        .bind(&tx_hash)
+        .bind(tx_hash)
         .bind(withdrawal_id)
         .execute(&self.db_pool)
         .await?;
 
         tracing::info!(
-            "Withdrawal {} fully completed and recorded in DB",
+            "Withdrawal {} fully finalized in DB",
             withdrawal_id
         );
 

@@ -261,10 +261,7 @@ impl PaymentVerifier {
                 from_address = $2,
                 confirmations = $3,
                 block_number = $4,
-                status = CASE
-                    WHEN $3 >= required_confirmations THEN 'CONFIRMED'
-                    ELSE 'CONFIRMING'
-                END
+                status = 'CONFIRMING'
             WHERE id = $5
             "#,
         )
@@ -760,6 +757,39 @@ impl PaymentVerifier {
         };
 
         if is_complete {
+            // Credit merchant balance (net amount = payment amount - platform fee)
+            let gross_amount = payment_amount.unwrap_or(Decimal::ZERO);
+            let fee_percentage = sqlx::query_scalar::<_, Decimal>("SELECT fee_percentage FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&mut *tx)
+                .await?;
+            let fee_amount = (gross_amount * (fee_percentage / Decimal::from(100))).round_dp(8);
+            let net_amount = gross_amount - fee_amount;
+
+            if net_amount > Decimal::ZERO {
+                sqlx::query(
+                    r#"
+                    INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
+                    VALUES ($1, $2, $3, 0, NOW(), $4)
+                    ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
+                    DO UPDATE SET
+                        available_balance = merchant_balances.available_balance + $3,
+                        last_updated = NOW()
+                    "#
+                )
+                .bind(merchant_id)
+                .bind(&crypto_type_str)
+                .bind(net_amount)
+                .bind(sandbox_mode)
+                .execute(&mut *tx)
+                .await?;
+
+                info!(
+                    "💰 Merchant {} balance credited via partial payment completion: {} {} (gross: {}, fee: {}, sandbox: {})",
+                    merchant_id, net_amount, crypto_type_str, gross_amount, fee_amount, sandbox_mode
+                );
+            }
+
             sqlx::query(
                 "UPDATE payment_transactions SET status = 'CONFIRMED', confirmed_at = $1 WHERE id = $2"
             )

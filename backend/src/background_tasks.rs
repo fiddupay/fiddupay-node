@@ -1223,9 +1223,9 @@ impl BackgroundTasks {
         loop {
             interval.tick().await;
 
-            // Find PENDING withdrawals
+            // Find PENDING withdrawals (or stuck PROCESSING rows older than 15 mins)
             let pending_res = sqlx::query(
-                "SELECT withdrawal_id FROM withdrawals WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT 10"
+                "SELECT withdrawal_id FROM withdrawals WHERE status = 'PENDING' OR (status = 'PROCESSING' AND updated_at < NOW() - INTERVAL '15 minutes') ORDER BY created_at ASC LIMIT 10"
             )
             .fetch_all(&self.db_pool)
             .await;
