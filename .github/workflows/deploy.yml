@@ -76,7 +76,7 @@ jobs:
             # --- 6. RESTART SERVICES ---
             echo "⚡ RESTARTING SERVICES..."
             sudo systemctl restart fiddupay
-            sudo systemctl reload caddy
+            sudo systemctl restart caddy
 
             # --- 7. CLEANUP (Keep only last 2 builds) ---
             echo "🧹 CLEANING UP OLD VERSIONS..."
