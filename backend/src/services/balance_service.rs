@@ -146,15 +146,26 @@ impl BalanceService {
         .await?;
 
         // 2. Map rows to crypto_type for easy access
-        let mut balance_map: std::collections::HashMap<String, (Decimal, Decimal, Decimal, DateTime<Utc>)> = 
-            rows.into_iter().map(|r| {
+        let mut balance_map: std::collections::HashMap<
+            String,
+            (Decimal, Decimal, Decimal, DateTime<Utc>),
+        > = rows
+            .into_iter()
+            .map(|r| {
                 let ct = r.get::<String, _>("crypto_type");
-                let total = r.get::<Option<Decimal>, _>("total_balance").unwrap_or(Decimal::ZERO);
-                let available = r.get::<Option<Decimal>, _>("available_balance").unwrap_or(Decimal::ZERO);
-                let reserved = r.get::<Option<Decimal>, _>("reserved_balance").unwrap_or(Decimal::ZERO);
+                let total = r
+                    .get::<Option<Decimal>, _>("total_balance")
+                    .unwrap_or(Decimal::ZERO);
+                let available = r
+                    .get::<Option<Decimal>, _>("available_balance")
+                    .unwrap_or(Decimal::ZERO);
+                let reserved = r
+                    .get::<Option<Decimal>, _>("reserved_balance")
+                    .unwrap_or(Decimal::ZERO);
                 let updated = r.get::<DateTime<Utc>, _>("last_updated");
                 (ct, (total, available, reserved, updated))
-            }).collect();
+            })
+            .collect();
 
         // 3. Define the list of supported types to return (consistent with original logic)
         let crypto_types = vec![
@@ -181,7 +192,8 @@ impl BalanceService {
             });
         }
         let price_results = futures::future::join_all(tasks).await;
-        let mut price_map: std::collections::HashMap<CryptoType, f64> = price_results.into_iter().collect();
+        let mut price_map: std::collections::HashMap<CryptoType, f64> =
+            price_results.into_iter().collect();
 
         // 5. Build the summary
         let mut balances = Vec::new();
@@ -190,8 +202,9 @@ impl BalanceService {
 
         for crypto_type in crypto_types {
             let ct_str = crypto_type.to_string();
-            let (total_balance, available_balance, reserved_balance, last_updated) = 
-                balance_map.remove(&ct_str).unwrap_or((Decimal::ZERO, Decimal::ZERO, Decimal::ZERO, Utc::now()));
+            let (total_balance, available_balance, reserved_balance, last_updated) = balance_map
+                .remove(&ct_str)
+                .unwrap_or((Decimal::ZERO, Decimal::ZERO, Decimal::ZERO, Utc::now()));
 
             let price = price_map.get(&crypto_type).copied().unwrap_or(0.0);
             let price_dec = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
