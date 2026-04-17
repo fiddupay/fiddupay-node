@@ -70,15 +70,30 @@ impl WithdrawalProcessor {
 
         // CRITICAL ENFORCEMENT: If it's already COMPLETED or REJECTED, stop immediately.
         if wd_status == "COMPLETED" || wd_status == "REJECTED" || wd_status == "CANCELLED" {
-            return Err(ServiceError::ValidationError(format!("Withdrawal already {}", wd_status)));
+            return Err(ServiceError::ValidationError(format!(
+                "Withdrawal already {}",
+                wd_status
+            )));
         }
 
         // RECOVERY LOGIC: If it's in PROCESSING but HAS a hash, it was successful on-chain but crashed before DB update.
         if wd_status == "PROCESSING" {
             if let Some(hash) = wd_existing_hash {
-                tracing::info!("RECOVERY: Withdrawal {} was already sent (hash: {}). Completing now.", withdrawal_id, hash);
+                tracing::info!(
+                    "RECOVERY: Withdrawal {} was already sent (hash: {}). Completing now.",
+                    withdrawal_id,
+                    hash
+                );
                 tx.rollback().await?; // Release lock
-                self.finalize_completed_withdrawal(withdrawal_id, &hash, wd_merchant_id, &wd_crypto_type, wd_amount, wd_sandbox_mode).await?;
+                self.finalize_completed_withdrawal(
+                    withdrawal_id,
+                    &hash,
+                    wd_merchant_id,
+                    &wd_crypto_type,
+                    wd_amount,
+                    wd_sandbox_mode,
+                )
+                .await?;
                 return Ok(());
             } else {
                 tracing::warn!("Withdrawal {} is in PROCESSING without hash. Proceeding with safe retry attempt.", withdrawal_id);
@@ -392,7 +407,15 @@ impl WithdrawalProcessor {
         };
 
         // 5. Finalize the withdrawal as COMPLETED
-        self.finalize_completed_withdrawal(withdrawal_id, &tx_hash, wd_merchant_id, &wd_crypto_type, wd_amount, wd_sandbox_mode).await?;
+        self.finalize_completed_withdrawal(
+            withdrawal_id,
+            &tx_hash,
+            wd_merchant_id,
+            &wd_crypto_type,
+            wd_amount,
+            wd_sandbox_mode,
+        )
+        .await?;
 
         Ok(())
     }
@@ -436,10 +459,7 @@ impl WithdrawalProcessor {
         .execute(&self.db_pool)
         .await?;
 
-        tracing::info!(
-            "Withdrawal {} fully finalized in DB",
-            withdrawal_id
-        );
+        tracing::info!("Withdrawal {} fully finalized in DB", withdrawal_id);
 
         Ok(())
     }

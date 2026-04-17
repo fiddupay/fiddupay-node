@@ -759,10 +759,12 @@ impl PaymentVerifier {
         if is_complete {
             // Credit merchant balance (net amount = payment amount - platform fee)
             let gross_amount = payment_amount.unwrap_or(Decimal::ZERO);
-            let fee_percentage = sqlx::query_scalar::<_, Decimal>("SELECT fee_percentage FROM merchants WHERE id = $1")
-                .bind(merchant_id)
-                .fetch_one(&mut *tx)
-                .await?;
+            let fee_percentage = sqlx::query_scalar::<_, Decimal>(
+                "SELECT fee_percentage FROM merchants WHERE id = $1",
+            )
+            .bind(merchant_id)
+            .fetch_one(&mut *tx)
+            .await?;
             let fee_amount = (gross_amount * (fee_percentage / Decimal::from(100))).round_dp(8);
             let net_amount = gross_amount - fee_amount;
 
