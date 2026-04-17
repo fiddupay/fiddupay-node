@@ -51,7 +51,16 @@ jobs:
                 exit 1
             fi
 
-            # --- 3. BUILD PHASE ---
+            # --- 3. DATABASE MIGRATION ---
+            echo "[DATABASE] Running Migrations..."
+            cd $DEPLOY_DIR/backend
+            # Export DATABASE_URL from the linked .env for sqlx securely
+            set +x
+            export $(grep -v '^#' .env.production | xargs)
+            set -x
+            /home/vibes/.cargo/bin/sqlx migrate run
+
+            # --- 4. BUILD PHASE ---
             echo "[BUILD] Compiling Frontend..."
             cd $DEPLOY_DIR/frontend
             npm install
@@ -66,14 +75,7 @@ jobs:
             mkdir -p $DEPLOY_DIR/backend/target/release
             cp $CARGO_TARGET_DIR/release/fiddupay $DEPLOY_DIR/backend/target/release/fiddupay
 
-            # --- 4. DATABASE MIGRATION ---
-            echo "[DATABASE] Running Migrations..."
-            cd $DEPLOY_DIR/backend
-            # Export DATABASE_URL from the linked .env for sqlx securely
-            set +x
-            export $(grep -v '^#' .env.production | xargs)
-            set -x
-            /home/vibes/.cargo/bin/sqlx migrate run
+
 
             # --- 6. ATOMIC SWAP ---
             echo "[DEPLOYSYNC] Performing Atomic Swap..."

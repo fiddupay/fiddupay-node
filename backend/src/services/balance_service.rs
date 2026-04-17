@@ -127,6 +127,36 @@ impl BalanceService {
         merchant_id: i64,
         sandbox_mode: bool,
     ) -> Result<BalanceSummary, ServiceError> {
+        // 1. Fetch all balance records in a single batch query (O(1) database roundtrip)
+        let rows = sqlx::query(
+            r#"
+            SELECT 
+                crypto_type,
+                total_balance,
+                available_balance,
+                reserved_balance,
+                last_updated
+            FROM merchant_balances 
+            WHERE merchant_id = $1 AND sandbox_mode = $2
+            "#,
+        )
+        .bind(merchant_id)
+        .bind(sandbox_mode)
+        .fetch_all(&self.db_pool)
+        .await?;
+
+        // 2. Map rows to crypto_type for easy access
+        let mut balance_map: std::collections::HashMap<String, (Decimal, Decimal, Decimal, DateTime<Utc>)> = 
+            rows.into_iter().map(|r| {
+                let ct = r.get::<String, _>("crypto_type");
+                let total = r.get::<Option<Decimal>, _>("total_balance").unwrap_or(Decimal::ZERO);
+                let available = r.get::<Option<Decimal>, _>("available_balance").unwrap_or(Decimal::ZERO);
+                let reserved = r.get::<Option<Decimal>, _>("reserved_balance").unwrap_or(Decimal::ZERO);
+                let updated = r.get::<DateTime<Utc>, _>("last_updated");
+                (ct, (total, available, reserved, updated))
+            }).collect();
+
+        // 3. Define the list of supported types to return (consistent with original logic)
         let crypto_types = vec![
             CryptoType::Sol,
             CryptoType::WSol,
@@ -141,31 +171,55 @@ impl BalanceService {
             CryptoType::UsdtArbitrum,
         ];
 
+        // 4. Fetch all prices in parallel once
         let mut tasks = Vec::new();
-        for crypto_type in crypto_types {
-            tasks.push(self.get_balance(merchant_id, crypto_type, sandbox_mode));
+        for &ct in &crypto_types {
+            let service = Arc::new(self.price_service.clone()); // Assuming price_service is Arc-wrapped enough
+            tasks.push(async move {
+                let price = service.get_price(ct).await.unwrap_or(0.0);
+                (ct, price)
+            });
         }
+        let price_results = futures::future::join_all(tasks).await;
+        let mut price_map: std::collections::HashMap<CryptoType, f64> = price_results.into_iter().collect();
 
-        let results = futures::future::join_all(tasks).await;
-
+        // 5. Build the summary
         let mut balances = Vec::new();
         let mut total_available_usd = Decimal::ZERO;
         let mut total_reserved_usd = Decimal::ZERO;
 
-        for balance in results.into_iter().flatten() {
-            total_available_usd += balance.available_usd;
-            total_reserved_usd += balance.reserved_usd;
+        for crypto_type in crypto_types {
+            let ct_str = crypto_type.to_string();
+            let (total_balance, available_balance, reserved_balance, last_updated) = 
+                balance_map.remove(&ct_str).unwrap_or((Decimal::ZERO, Decimal::ZERO, Decimal::ZERO, Utc::now()));
 
-            // Only include non-zero balances
-            if balance.total_balance > Decimal::ZERO {
-                balances.push(balance);
+            let price = price_map.get(&crypto_type).copied().unwrap_or(0.0);
+            let price_dec = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);
+
+            let available_usd = (available_balance * price_dec).round_dp(2);
+            let reserved_usd = (reserved_balance * price_dec).round_dp(2);
+            let total_usd = available_usd + reserved_usd;
+
+            total_available_usd += available_usd;
+            total_reserved_usd += reserved_usd;
+
+            // Only include non-zero balances or if specifically relevant
+            if total_balance > Decimal::ZERO || available_balance > Decimal::ZERO {
+                balances.push(Balance {
+                    crypto_type,
+                    total_balance,
+                    available_balance,
+                    reserved_balance,
+                    balance_usd: available_usd,
+                    available_usd,
+                    reserved_usd,
+                    last_updated,
+                });
             }
         }
 
-        let total_usd = total_available_usd + total_reserved_usd;
-
         Ok(BalanceSummary {
-            total_usd,
+            total_usd: total_available_usd + total_reserved_usd,
             available_usd: total_available_usd,
             reserved_usd: total_reserved_usd,
             balances,
