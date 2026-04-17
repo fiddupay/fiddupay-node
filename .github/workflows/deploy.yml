@@ -12,7 +12,7 @@ jobs:
     name: Deploy to VPS
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Atomic Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -21,25 +21,27 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
+          command_timeout: 45m
           script: |
             set -e # Abort deployment immediately if any command fails
             export PATH="$HOME/.cargo/bin:$PATH"
-            
+            export CARGO_TARGET_DIR="/home/vibes/apps/shared/target"
+
             # --- 1. CONFIGURATION ---
             BASE_DIR="/home/vibes/apps"
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
             DEPLOY_DIR="$BASE_DIR/deployments/build_$TIMESTAMP"
             CURRENT_LINK="$BASE_DIR/current"
             ENV_FILE="$BASE_DIR/.env.production"
-            
+
             echo "🏹 DEPLOYMENT STARTED: build_$TIMESTAMP"
-            
+
             # --- 2. PREPARATION ---
             mkdir -p $DEPLOY_DIR
             git clone --depth 1 -b main https://github.com/${{ github.repository }}.git $DEPLOY_DIR
-            
+
             cd $DEPLOY_DIR
-            
+
             # Link permanent environment file
             if [ -f "$ENV_FILE" ]; then
                 ln -sfn $ENV_FILE $DEPLOY_DIR/backend/.env.production
@@ -48,36 +50,36 @@ jobs:
                 echo "❌ ERROR: Permanent .env.production not found at $ENV_FILE"
                 exit 1
             fi
-            
+
             # --- 3. BUILD PHASE ---
             echo "📦 INSTALLING DEPENDENCIES..."
             npm install
-            
+
             echo "🏗️  BUILDING BACKEND..."
             npm run build:backend
-            
+
             echo "🏗️  BUILDING FRONTEND..."
             npm run build:frontend
-            
+
             # --- 4. DATABASE MIGRATION ---
             echo "🗄️  RUNNING DATABASE MIGRATIONS..."
             cd $DEPLOY_DIR/backend
             # Export DATABASE_URL from the linked .env for sqlx
             export $(grep -v '^#' .env.production | xargs)
             /home/vibes/.cargo/bin/sqlx migrate run
-            
+
             # --- 5. ATOMIC SWAP ---
             echo "🔄 PERFORMING ATOMIC SWAP..."
             ln -sfn $DEPLOY_DIR $CURRENT_LINK
-            
+
             # --- 6. RESTART SERVICES ---
             echo "⚡ RESTARTING SERVICES..."
             sudo systemctl restart fiddupay
             sudo systemctl reload caddy
-            
-            # --- 7. CLEANUP (Keep only last 3 builds) ---
+
+            # --- 7. CLEANUP (Keep only last 2 builds) ---
             echo "🧹 CLEANING UP OLD VERSIONS..."
             cd $BASE_DIR/deployments
-            ls -1tr | grep "build_" | head -n -3 | xargs -r rm -rf
-            
+            ls -1tr | grep "build_" | head -n -2 | xargs -r rm -rf
+
             echo "🚀 DEPLOYMENT SUCCESSFUL: build_$TIMESTAMP"
