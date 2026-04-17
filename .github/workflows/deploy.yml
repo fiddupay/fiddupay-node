@@ -23,7 +23,7 @@ jobs:
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
           command_timeout: 45m
           script: |
-            set -e # Abort deployment immediately if any command fails
+            set -ex # Abort immediately on error and print trace
             export PATH="$HOME/.cargo/bin:$PATH"
             export CARGO_TARGET_DIR="/home/vibes/apps/shared/target"
 
@@ -34,7 +34,7 @@ jobs:
             CURRENT_LINK="$BASE_DIR/current"
             ENV_FILE="$BASE_DIR/.env.production"
 
-            echo "🏹 DEPLOYMENT STARTED: build_$TIMESTAMP"
+            echo "[DEPLOY] Started: build_$TIMESTAMP"
 
             # --- 2. PREPARATION ---
             mkdir -p $DEPLOY_DIR
@@ -45,41 +45,41 @@ jobs:
             # Link permanent environment file
             if [ -f "$ENV_FILE" ]; then
                 ln -sfn $ENV_FILE $DEPLOY_DIR/backend/.env.production
-                echo "✅ Permanent .env.production linked"
+                echo "[SUCCESS] Permanent .env.production linked"
             else
-                echo "❌ ERROR: Permanent .env.production not found at $ENV_FILE"
+                echo "[ERROR] Permanent .env.production not found at $ENV_FILE"
                 exit 1
             fi
 
             # --- 3. BUILD PHASE ---
-            echo "📦 BUILDING FRONTEND..."
+            echo "[BUILD] Compiling Frontend..."
             cd $DEPLOY_DIR/frontend
             npm install
             npm run build
             
-            echo "🏗️  BUILDING BACKEND..."
+            echo "[BUILD] Compiling Backend..."
             cd $DEPLOY_DIR/backend
             cargo check --bin fiddupay
             cargo build --release --bin fiddupay
 
             # --- 4. DATABASE MIGRATION ---
-            echo "🗄️  RUNNING DATABASE MIGRATIONS..."
+            echo "[DATABASE] Running Migrations..."
             cd $DEPLOY_DIR/backend
             # Export DATABASE_URL from the linked .env for sqlx
             export $(grep -v '^#' .env.production | xargs)
             /home/vibes/.cargo/bin/sqlx migrate run
 
             # --- 5. ATOMIC SWAP ---
-            echo "🔄 PERFORMING ATOMIC SWAP..."
+            echo "[DEPLOYSYNC] Performing Atomic Swap..."
             ln -sfn $DEPLOY_DIR $CURRENT_LINK
 
             # --- 6. RESTART SERVICES ---
-            echo "⚡ RESTARTING SERVICES..."
+            echo "[SYSTEM] Restarting Services..."
             sudo systemctl restart fiddupay
             sudo systemctl restart caddy
 
             # --- 7. CLEANUP (Keep only last 2 builds) ---
-            echo "🧹 CLEANING UP OLD VERSIONS..."
+            echo "[SYSTEM] Cleaning up old artifact versions..."
             cd $BASE_DIR/deployments
             ls -1tr | grep "build_" | head -n -2 | xargs -r rm -rf
 
