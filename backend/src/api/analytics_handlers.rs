@@ -369,7 +369,7 @@ pub async fn get_balance(
 ) -> impl IntoResponse {
     let balance_res = state
         .balance_service
-        .get_all_balances(context.merchant_id, context.sandbox_mode)
+        .get_all_balances(context.merchant_id, context.sandbox_mode, true)
         .await;
 
     // Trigger on-demand on-chain balance check (Lazy-Check)

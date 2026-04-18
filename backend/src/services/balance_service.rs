@@ -132,8 +132,36 @@ impl BalanceService {
         &self,
         merchant_id: i64,
         sandbox_mode: bool,
+        include_zero: bool,
     ) -> Result<BalanceSummary, ServiceError> {
-        // 1. Fetch all balance records in a single batch query (O(1) database roundtrip)
+        tracing::info!(
+            "[BALANCE-SERVICE] Fetching balances for merchant={}, sandbox={}, include_zero={}",
+            merchant_id,
+            sandbox_mode,
+            include_zero
+        );
+
+        // 1. Fetch configured crypto types for this merchant first to know what MUST be included
+        // We include both active and inactive wallets if include_zero is true for better visibility
+        let configured_types: Vec<String> = if include_zero {
+            sqlx::query_scalar(
+                "SELECT DISTINCT crypto_type FROM merchant_wallets WHERE merchant_id = $1 AND sandbox_mode = $2"
+            )
+            .bind(merchant_id)
+            .bind(sandbox_mode)
+            .fetch_all(&self.db_pool)
+            .await?
+        } else {
+            sqlx::query_scalar(
+                "SELECT DISTINCT crypto_type FROM merchant_wallets WHERE merchant_id = $1 AND sandbox_mode = $2 AND is_active = true"
+            )
+            .bind(merchant_id)
+            .bind(sandbox_mode)
+            .fetch_all(&self.db_pool)
+            .await?
+        };
+
+        // 2. Fetch all balance records
         let rows = sqlx::query(
             r#"
             SELECT 
@@ -151,7 +179,7 @@ impl BalanceService {
         .fetch_all(&self.db_pool)
         .await?;
 
-        // 2. Map rows to crypto_type for easy access
+        // 3. Map rows to crypto_type for easy access
         let mut balance_map: std::collections::HashMap<
             String,
             (Decimal, Decimal, Decimal, DateTime<Utc>),
@@ -173,25 +201,26 @@ impl BalanceService {
             })
             .collect();
 
-        // 3. Define the list of supported types to return (consistent with original logic)
-        let crypto_types = vec![
-            CryptoType::Sol,
-            CryptoType::WSol,
-            CryptoType::UsdtSpl,
-            CryptoType::Eth,
-            CryptoType::UsdtEth,
-            CryptoType::Bnb,
-            CryptoType::UsdtBep20,
-            CryptoType::Matic,
-            CryptoType::UsdtPolygon,
-            CryptoType::Arb,
-            CryptoType::UsdtArbitrum,
-        ];
+        // 4. Define the list of types to process
+        let mut all_found_types = balance_map
+            .keys()
+            .cloned()
+            .collect::<std::collections::HashSet<_>>();
+        for ct in &configured_types {
+            all_found_types.insert(ct.clone());
+        }
 
-        // 4. Fetch all prices in parallel once
+        let mut crypto_types = Vec::new();
+        for ct_str in all_found_types {
+            if let Ok(ct) = CryptoType::from_string(&ct_str) {
+                crypto_types.push(ct);
+            }
+        }
+
+        // 5. Fetch all prices in parallel once
         let mut tasks = Vec::new();
         for &ct in &crypto_types {
-            let service = Arc::new(self.price_service.clone()); // Assuming price_service is Arc-wrapped enough
+            let service = Arc::new(self.price_service.clone());
             tasks.push(async move {
                 let price = service.get_price(ct).await.unwrap_or(0.0);
                 (ct, price)
@@ -201,7 +230,7 @@ impl BalanceService {
         let price_map: std::collections::HashMap<CryptoType, f64> =
             price_results.into_iter().collect();
 
-        // 5. Build the summary
+        // 6. Build the summary
         let mut balances = Vec::new();
         let mut total_available_usd = Decimal::ZERO;
         let mut total_reserved_usd = Decimal::ZERO;
@@ -221,8 +250,8 @@ impl BalanceService {
             total_available_usd += available_usd;
             total_reserved_usd += reserved_usd;
 
-            // Only include non-zero balances or if specifically relevant
-            if total_balance > Decimal::ZERO || available_balance > Decimal::ZERO {
+            // Decision: include if balance > 0 OR if explicitly requested (include_zero)
+            if include_zero || total_balance > Decimal::ZERO || available_balance > Decimal::ZERO {
                 balances.push(Balance {
                     crypto_type,
                     total_balance,
@@ -235,6 +264,19 @@ impl BalanceService {
                 });
             }
         }
+
+        // Sort balances by USD value (desc) then by name
+        balances.sort_by(|a, b| {
+            b.balance_usd
+                .cmp(&a.balance_usd)
+                .then(a.crypto_type.to_string().cmp(&b.crypto_type.to_string()))
+        });
+
+        tracing::info!(
+            "[BALANCE-SERVICE] Returning {} balances for merchant {}",
+            balances.len(),
+            merchant_id
+        );
 
         Ok(BalanceSummary {
             total_usd: total_available_usd + total_reserved_usd,
@@ -490,7 +532,9 @@ impl BalanceService {
         merchant_id: i64,
         sandbox_mode: bool,
     ) -> Result<(), ServiceError> {
-        let summary = self.get_all_balances(merchant_id, sandbox_mode).await?;
+        let summary = self
+            .get_all_balances(merchant_id, sandbox_mode, true)
+            .await?;
 
         if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
             let notification = serde_json::json!({
