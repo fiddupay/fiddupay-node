@@ -41,6 +41,11 @@
       "value": "admin_password",
       "type": "string",
       "description": "Admin password"
+    },
+    {
+      "key": "adminToken",
+      "value": "YOUR_ADMIN_SESSION_TOKEN_HERE",
+      "type": "string"
     }
   ],
   "auth": {
@@ -135,7 +140,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -159,7 +165,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -188,7 +195,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -212,7 +220,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -241,7 +250,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -275,7 +285,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -301,7 +312,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -325,12 +337,13 @@
             "method": "PUT",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -369,7 +382,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -397,7 +411,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -435,7 +450,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -465,7 +481,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -495,7 +512,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -529,7 +547,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -563,7 +582,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -593,7 +613,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -619,7 +640,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -643,12 +665,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -677,7 +700,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -704,7 +728,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -729,12 +754,13 @@
             "method": "PATCH",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -763,12 +789,13 @@
             "method": "PATCH",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -807,7 +834,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -835,7 +863,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -859,7 +888,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -895,7 +925,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -920,7 +951,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -949,7 +981,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -976,7 +1009,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1005,7 +1039,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1039,7 +1074,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1068,7 +1104,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1097,7 +1134,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1126,7 +1164,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1155,7 +1194,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1184,7 +1224,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1212,12 +1253,13 @@
             "method": "PATCH",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1245,7 +1287,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1269,12 +1312,13 @@
             "method": "PUT",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1303,7 +1347,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1334,7 +1379,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1358,7 +1404,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1387,7 +1434,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1417,7 +1465,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1442,12 +1491,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1481,7 +1531,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1509,7 +1560,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1539,7 +1591,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1568,12 +1621,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1608,7 +1662,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1633,7 +1688,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1658,7 +1714,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1683,7 +1740,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1708,7 +1766,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1737,7 +1796,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1762,7 +1822,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1787,7 +1848,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1816,7 +1878,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1844,12 +1907,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1883,7 +1947,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1911,7 +1976,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1939,7 +2005,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1968,7 +2035,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2003,7 +2071,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2028,7 +2097,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2057,7 +2127,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2086,7 +2157,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2121,6 +2193,11 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2149,6 +2226,11 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2176,7 +2258,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2204,7 +2287,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2233,7 +2317,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2262,7 +2347,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2290,7 +2376,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2311,7 +2398,13 @@
           "name": "Get Readiness Status",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/merchants/status",
               "host": [
@@ -2333,7 +2426,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2358,7 +2452,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2383,7 +2478,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2416,7 +2512,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2448,7 +2545,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2476,7 +2574,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2500,7 +2599,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2529,7 +2629,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2559,7 +2660,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2598,7 +2700,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2626,7 +2729,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2655,7 +2759,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2690,7 +2795,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2718,7 +2824,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2746,7 +2853,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2775,7 +2883,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2800,7 +2909,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2825,7 +2935,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2857,7 +2968,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2891,7 +3003,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2919,7 +3032,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2943,7 +3057,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2972,7 +3087,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2998,7 +3114,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3029,7 +3146,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3053,7 +3171,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3077,7 +3196,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3102,7 +3222,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3131,7 +3252,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3159,7 +3281,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3183,7 +3306,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3207,7 +3331,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3236,7 +3361,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3261,7 +3387,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3286,7 +3413,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3319,7 +3447,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3344,7 +3473,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3377,7 +3507,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3401,12 +3532,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3435,12 +3567,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3470,12 +3603,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3503,12 +3637,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3543,7 +3678,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3567,7 +3703,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3601,7 +3738,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3630,7 +3768,8 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3804,7 +3943,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3828,7 +3968,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3852,7 +3993,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3877,7 +4019,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3903,7 +4046,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3927,7 +4071,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3956,12 +4101,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3990,7 +4136,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4015,7 +4162,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4040,7 +4188,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4065,7 +4214,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4089,12 +4239,13 @@
             "method": "PUT",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4123,7 +4274,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4154,6 +4306,11 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4181,7 +4338,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4205,7 +4363,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4229,12 +4388,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4284,12 +4444,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4317,7 +4478,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4342,12 +4504,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4376,12 +4539,13 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -4410,7 +4574,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {

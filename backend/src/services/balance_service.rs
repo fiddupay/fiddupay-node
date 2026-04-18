@@ -585,9 +585,9 @@ impl BalanceService {
         // 4. Get Existing Transactions in DB
         let existing_hashes: std::collections::HashSet<String> = sqlx::query_scalar::<_, String>(
             r#"
-            SELECT transaction_hash FROM payment_transactions WHERE (to_address = $1 OR transaction_hash IS NOT NULL)
+            SELECT transaction_hash FROM payment_transactions WHERE to_address = $1 AND transaction_hash IS NOT NULL
             UNION
-            SELECT transaction_hash FROM customer_transactions WHERE (destination_address = $1 OR transaction_hash IS NOT NULL)
+            SELECT transaction_hash FROM customer_transactions WHERE destination_address = $1 AND transaction_hash IS NOT NULL
             "#
         )
         .bind(address)
