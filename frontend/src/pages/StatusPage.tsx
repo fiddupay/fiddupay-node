@@ -98,6 +98,7 @@ const StatusPage: React.FC = () => {
       case 'operational': return <MdCheckCircle className={styles.iconOperational} />
       case 'degraded': return <MdWarning className={styles.iconDegraded} />
       case 'outage': return <MdError className={styles.iconOutage} />
+      case 'disabled': return <MdInfo className={styles.iconDisabled} />
       default: return <MdInfo />
     }
   }
@@ -107,6 +108,7 @@ const StatusPage: React.FC = () => {
       case 'operational': return 'Operational'
       case 'degraded': return 'Performance Issues'
       case 'outage': return 'Service Interruption'
+      case 'disabled': return 'Not Enabled'
       default: return 'Checking...'
     }
   }

@@ -89,6 +89,14 @@ pub async fn get_system_status(
         });
     }
 
+    // Sort: operational first, then degraded, then outage
+    services.sort_by_key(|s| match s.status.as_str() {
+        "operational" => 0,
+        "degraded" => 1,
+        "outage" => 2,
+        _ => 3,
+    });
+
     // 2. Fetch Aggregate Uptime Stats
     let uptime_stats = fetch_aggregate_uptime(&state.db_pool).await;
 

@@ -76,7 +76,12 @@ async fn handle_ws_socket(socket: WebSocket, merchant_id: i64, state: AppState) 
                      if sender.send(Message::Text(payload.clone())).await.is_err() {
                          break; // Client disconnected
                      }
-                     tracing::info!("Relayed notification to merchant dashboard {}: {}", merchant_id, payload);
+                     // Only log event type — never expose financial data in logs
+                     let event_type = serde_json::from_str::<serde_json::Value>(&payload)
+                         .ok()
+                         .and_then(|v| v.get("event").and_then(|e| e.as_str().map(String::from)))
+                         .unwrap_or_else(|| "unknown".to_string());
+                     tracing::debug!("Relayed [{}] notification to merchant {}", event_type, merchant_id);
                  }
              }
 

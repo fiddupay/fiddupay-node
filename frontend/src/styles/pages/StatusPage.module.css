@@ -232,6 +232,7 @@
 .iconOperational { color: #10b981; }
 .iconDegraded { color: #f59e0b; }
 .iconOutage { color: #dc2626; }
+.iconDisabled { color: #6b7280; }
 
 .serviceStatusLabel[data-status="operational"] { color: #10b981; }
 
