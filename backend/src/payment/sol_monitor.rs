@@ -159,18 +159,16 @@ impl SolanaMonitor {
             rpc_urls.push(config.solana_devnet_rpc_url.clone());
             historical_rpc_urls.push(config.solana_devnet_rpc_url.clone());
         } else {
-            // SVS - Priority 1
+            // SVS - Priority 1 (Primary for Mainnet)
             for key in &config.svs_api_keys {
+                let svs_live_url =
+                    format!("https://basic.rpc.solanavibestation.com/?api_key={}", key);
                 // Live endpoint
-                rpc_urls.push(format!(
-                    "https://basic.rpc.solanavibestation.com/?api_key={}",
-                    key
-                ));
-                // Historical endpoint for backfill catch-up
-                historical_rpc_urls.push(format!(
-                    "https://basic.rpc.solanavibestation.com/historical?api_key={}",
-                    key
-                ));
+                rpc_urls.push(svs_live_url.clone());
+                // Set historical endpoint to the live endpoint as well.
+                // SVS automatically falls back to historical for getTransaction
+                // if it's not present on the fast live node cache.
+                historical_rpc_urls.push(svs_live_url);
             }
 
             // Helius - Priority 2 (Backup)
@@ -345,10 +343,13 @@ impl SolanaMonitor {
                 .await
             {
                 Ok(tx) => {
-                    // Only include if it's a successful transaction targeting THIS exact address (drops outgoing transfers)
+                    // Include if it's a successful transaction involving THIS exact address (incoming or outgoing)
+                    let is_incoming = tx.to_address == address;
+                    let is_outgoing = tx.from_address == address;
+
                     if tx.success
                         && (tx.amount > Decimal::ZERO || self.expected_mint.is_none())
-                        && tx.to_address == address
+                        && (is_incoming || is_outgoing)
                     {
                         blockchain_txs.push(tx);
                     }

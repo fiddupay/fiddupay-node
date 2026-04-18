@@ -997,6 +997,10 @@ impl PaymentVerifier {
         } else {
             (actual_crypto, crypto_str.to_string())
         };
+        if actual_amount <= rust_decimal::Decimal::ZERO {
+            tracing::warn!("[VERIFY-CUSTOMER-DEPOSIT] IGNORING 0-amount or negative deposit {} for customer {}", transaction_hash, customer_id);
+            return Ok(false);
+        }
 
         // Fetch merchant's dynamic fee percentage
         let fee_percentage =
@@ -1073,6 +1077,15 @@ impl PaymentVerifier {
             customer_id, net_amount, final_crypto_str, fee_amount, final_crypto_str
         );
 
+        // Fetch customer external_id for notifications and webhooks
+        let customer_external_id = sqlx::query_scalar::<_, String>(
+            "SELECT external_id FROM merchant_customers WHERE id = $1",
+        )
+        .bind(customer_id)
+        .fetch_optional(&self.db_pool)
+        .await?
+        .unwrap_or_else(|| "unknown".to_string());
+
         // PERSISTENT NOTIFICATION: Static Deposit Received
         let _ = self
             .notification_service
@@ -1081,7 +1094,7 @@ impl PaymentVerifier {
                 "📩 Static Deposit Received",
                 &format!(
                     "Customer {} deposited {} {}. (USD: ${})",
-                    customer_id,
+                    customer_external_id,
                     crate::utils::format::format_crypto_amount(actual_amount),
                     final_crypto_str,
                     amount_usd
@@ -1101,6 +1114,7 @@ impl PaymentVerifier {
                 "fee_amount": fee_amount.to_string(),
                 "crypto_type": final_crypto_str,
                 "transaction_hash": transaction_hash,
+                "customer": customer_external_id,
             });
             let channel = format!("merchant_notifications:{}", merchant_id);
             let _: redis::RedisResult<()> = redis::cmd("PUBLISH")
@@ -1109,15 +1123,6 @@ impl PaymentVerifier {
                 .query_async(&mut publish_conn)
                 .await;
         }
-
-        // Fetch customer external_id for webhook identification
-        let customer_external_id = sqlx::query_scalar::<_, String>(
-            "SELECT external_id FROM merchant_customers WHERE id = $1",
-        )
-        .bind(customer_id)
-        .fetch_optional(&self.db_pool)
-        .await?
-        .unwrap_or_else(|| "unknown".to_string());
 
         // 5. Trigger Webhook
         let webhook_payload = crate::models::webhook::WebhookPayload {

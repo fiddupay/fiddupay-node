@@ -18,6 +18,7 @@ pub struct RectifySolanaRequest {
     pub dry_run: Option<bool>,
     pub signature_limit: Option<usize>,
     pub sandbox_mode: Option<bool>, // Allows super_admin to explicitly target Devnet or Mainnet overriding DB Defaults
+    pub rectify_type: Option<String>, // "DEPOSIT", "WITHDRAWAL", or "BOTH"
 }
 
 /// Rectify Solana balance by scanning on-chain history
@@ -55,6 +56,11 @@ pub async fn rectify_solana_balance(
     // 4. Call Service Logic
     let dry_run = req.dry_run.unwrap_or(true);
     let signature_limit = req.signature_limit.unwrap_or(50);
+    let rectify_type = req
+        .rectify_type
+        .clone()
+        .unwrap_or_else(|| "DEPOSIT".to_string())
+        .to_uppercase();
 
     match state
         .balance_service
@@ -64,6 +70,7 @@ pub async fn rectify_solana_balance(
             dry_run,
             signature_limit,
             req.sandbox_mode,
+            &rectify_type,
         )
         .await
     {

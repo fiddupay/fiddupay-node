@@ -542,13 +542,15 @@ impl BalanceService {
         dry_run: bool,
         signature_limit: usize,
         override_sandbox_mode: Option<bool>,
+        rectify_type: &str,
     ) -> Result<serde_json::Value, ServiceError> {
         tracing::info!(
-            "[RECTIFY-SOLANA] Rectifying address {} ({}, dry_run={}, override={:?})",
+            "[RECTIFY-SOLANA] Rectifying address {} ({}, dry_run={}, override={:?}, type={})",
             address,
             crypto_type.to_string(),
             dry_run,
-            override_sandbox_mode
+            override_sandbox_mode,
+            rectify_type
         );
 
         // 1. Identify Merchant & Sandbox Mode
@@ -602,18 +604,15 @@ impl BalanceService {
         .into_iter()
         .collect();
 
-        // 5. Identify Gaps & Sum Inbound
-        let mut missing_txs = Vec::new();
-        let mut total_missing_amount = Decimal::ZERO;
+        // 5. Identify Gaps & Sum Inbound/Outbound
+        let mut missing_deposits = Vec::new();
+        let mut missing_withdrawals = Vec::new();
+        let mut total_missing_deposit_amount = Decimal::ZERO;
+        let mut total_missing_withdrawal_amount = Decimal::ZERO;
 
         for tx in onchain_txs {
-            // Verify it was successful and specifically targeting THIS monitored address.
-            // Outgoing transfers will have a different to_address.
-            if !tx.success
-                || tx.amount <= Decimal::ZERO
-                || tx.to_address != address
-                || existing_hashes.contains(&tx.hash)
-            {
+            // Drop failed, zero-amount, or already known transactions
+            if !tx.success || tx.amount <= Decimal::ZERO || existing_hashes.contains(&tx.hash) {
                 continue;
             }
 
@@ -627,71 +626,84 @@ impl BalanceService {
                 continue;
             }
 
-            total_missing_amount += tx.amount;
-            missing_txs.push(tx);
+            let is_incoming = tx.to_address == address;
+            let is_outgoing = tx.from_address == address;
+
+            if is_incoming && (rectify_type == "DEPOSIT" || rectify_type == "BOTH") {
+                total_missing_deposit_amount += tx.amount;
+                missing_deposits.push(tx.clone());
+            }
+
+            if is_outgoing && (rectify_type == "WITHDRAWAL" || rectify_type == "BOTH") {
+                total_missing_withdrawal_amount += tx.amount;
+                missing_withdrawals.push(tx);
+            }
         }
 
-        // 6. Fetch Fee Logic
+        // 6. Fetch Fee Logic (Only applies to Deposits)
         let fee_percentage =
             sqlx::query_scalar::<_, Decimal>("SELECT fee_percentage FROM merchants WHERE id = $1")
                 .bind(merchant_id)
                 .fetch_one(&self.db_pool)
                 .await?;
 
-        let missing_fee =
-            (total_missing_amount * (fee_percentage / Decimal::from(100))).round_dp(8);
-        let missing_net = total_missing_amount - missing_fee;
+        let missing_deposit_fee =
+            (total_missing_deposit_amount * (fee_percentage / Decimal::from(100))).round_dp(8);
+        let missing_deposit_net = total_missing_deposit_amount - missing_deposit_fee;
 
-        if !dry_run && !missing_txs.is_empty() {
+        if !dry_run && (!missing_deposits.is_empty() || !missing_withdrawals.is_empty()) {
             let mut db_tx = self.db_pool.begin().await?;
 
-            // Update Balances
-            if owner_type == "customer" {
-                let cid = customer_id.unwrap();
-                sqlx::query(
-                    r#"
-                    INSERT INTO merchant_customer_balances (customer_id, merchant_id, crypto_type, available_balance, total_balance, last_updated_at, sandbox_mode)
-                    VALUES ($1, $2, $3, $4, $4, NOW(), $5)
-                    ON CONFLICT (customer_id, crypto_type, sandbox_mode)
-                    DO UPDATE SET 
-                        available_balance = merchant_customer_balances.available_balance + $4,
-                        total_balance = merchant_customer_balances.total_balance + $4,
-                        last_updated_at = NOW()
-                    "#
-                )
-                .bind(cid)
-                .bind(merchant_id)
-                .bind(crypto_type.to_string())
-                .bind(missing_net)
-                .bind(active_sandbox_mode)
-                .execute(&mut *db_tx)
-                .await?;
-            } else {
-                sqlx::query(
-                    r#"
-                    INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
-                    VALUES ($1, $2, $3, 0, NOW(), $4)
-                    ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
-                    DO UPDATE SET
-                        available_balance = merchant_balances.available_balance + $3,
-                        last_updated = NOW()
-                    "#
-                )
-                .bind(merchant_id)
-                .bind(crypto_type.to_string())
-                .bind(missing_net)
-                .bind(active_sandbox_mode)
-                .execute(&mut *db_tx)
-                .await?;
+            // Update Balances for Deposits
+            if !missing_deposits.is_empty() {
+                if owner_type == "customer" {
+                    let cid = customer_id.unwrap();
+                    sqlx::query(
+                        r#"
+                        INSERT INTO merchant_customer_balances (customer_id, merchant_id, crypto_type, available_balance, total_balance, last_updated_at, sandbox_mode)
+                        VALUES ($1, $2, $3, $4, $4, NOW(), $5)
+                        ON CONFLICT (customer_id, crypto_type, sandbox_mode)
+                        DO UPDATE SET 
+                            available_balance = merchant_customer_balances.available_balance + $4,
+                            total_balance = merchant_customer_balances.total_balance + $4,
+                            last_updated_at = NOW()
+                        "#
+                    )
+                    .bind(cid)
+                    .bind(merchant_id)
+                    .bind(crypto_type.to_string())
+                    .bind(missing_deposit_net)
+                    .bind(active_sandbox_mode)
+                    .execute(&mut *db_tx)
+                    .await?;
+                } else {
+                    sqlx::query(
+                        r#"
+                        INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
+                        VALUES ($1, $2, $3, 0, NOW(), $4)
+                        ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
+                        DO UPDATE SET
+                            available_balance = merchant_balances.available_balance + $3,
+                            last_updated = NOW()
+                        "#
+                    )
+                    .bind(merchant_id)
+                    .bind(crypto_type.to_string())
+                    .bind(missing_deposit_net)
+                    .bind(active_sandbox_mode)
+                    .execute(&mut *db_tx)
+                    .await?;
+                }
             }
 
-            // Record Transactions to prevent double-counting
+            // Record Deposit Transactions to prevent double-counting
             let crypto_price = self
                 .price_service
                 .get_price(crypto_type)
                 .await
                 .unwrap_or(1.0);
-            for tx in &missing_txs {
+
+            for tx in &missing_deposits {
                 let amount_usd = (tx.amount
                     * Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE))
                 .round_dp(2);
@@ -713,7 +725,7 @@ impl BalanceService {
                     .bind(amount_usd)
                     .bind(fee_usd)
                     .bind(&tx.hash)
-                    .bind(format!("Manual Rectification: {}", tx.hash))
+                    .bind(format!("Manual Rectification Inbound: {}", tx.hash))
                     .bind(active_sandbox_mode)
                     .execute(&mut *db_tx)
                     .await?;
@@ -738,9 +750,97 @@ impl BalanceService {
                     .bind(format!("Merchant Direct Rectification: {}", tx.hash))
                     .bind(active_sandbox_mode)
                     .bind(fee_percentage)
-                    .bind(missing_fee / Decimal::from(missing_txs.len() as i64)) // Distribute fee simply
+                    .bind(missing_deposit_fee / Decimal::from(missing_deposits.len() as i64)) // Distribute fee simply
                     .execute(&mut *db_tx)
                     .await?;
+                }
+            }
+
+            // Update Balances for Withdrawals
+            if !missing_withdrawals.is_empty() {
+                if owner_type == "customer" {
+                    let cid = customer_id.unwrap();
+                    sqlx::query(
+                        r#"
+                        UPDATE merchant_customer_balances 
+                        SET available_balance = available_balance - $1,
+                            total_balance = total_balance - $1,
+                            last_updated_at = NOW()
+                        WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
+                        "#,
+                    )
+                    .bind(total_missing_withdrawal_amount)
+                    .bind(cid)
+                    .bind(crypto_type.to_string())
+                    .bind(active_sandbox_mode)
+                    .execute(&mut *db_tx)
+                    .await?;
+                } else {
+                    sqlx::query(
+                        r#"
+                        UPDATE merchant_balances 
+                        SET available_balance = available_balance - $1, 
+                            last_updated = NOW()
+                        WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
+                        "#,
+                    )
+                    .bind(total_missing_withdrawal_amount)
+                    .bind(merchant_id)
+                    .bind(crypto_type.to_string())
+                    .bind(active_sandbox_mode)
+                    .execute(&mut *db_tx)
+                    .await?;
+                }
+
+                // Record Withdrawals to prevent double-counting
+                for tx in &missing_withdrawals {
+                    let amount_usd = (tx.amount
+                        * Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE))
+                    .round_dp(2);
+
+                    let withdrawal_id = format!("wrect_{}", &tx.hash[..8]);
+                    sqlx::query(
+                        r#"
+                        INSERT INTO withdrawals (
+                            withdrawal_id, merchant_id, crypto_type, amount, amount_usd, destination_address,
+                            status, fee, net_amount, created_at, updated_at, sandbox_mode, transaction_hash
+                        )
+                        VALUES ($1, $2, $3, $4, $5, $6, 'COMPLETED', 0, $4, NOW(), NOW(), $7, $8)
+                        "#
+                    )
+                    .bind(&withdrawal_id)           // $1
+                    .bind(merchant_id)              // $2
+                    .bind(crypto_type.to_string())  // $3
+                    .bind(tx.amount)                // $4
+                    .bind(amount_usd)               // $5
+                    .bind(&tx.to_address)           // $6
+                    .bind(active_sandbox_mode)      // $7
+                    .bind(&tx.hash)                 // $8
+                    .execute(&mut *db_tx)
+                    .await?;
+
+                    if owner_type == "customer" {
+                        sqlx::query(
+                            r#"
+                            INSERT INTO customer_transactions (
+                                customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status,
+                                reference_id, transaction_hash, description, sandbox_mode
+                            )
+                            VALUES ($1, $2, 'WITHDRAWAL_RECTIFICATION', $3, $4, $5, 0, 'COMPLETED', $6, $7, $8, $9)
+                            "#
+                        )
+                        .bind(customer_id.unwrap())
+                        .bind(merchant_id)
+                        .bind(crypto_type.to_string())
+                        .bind(tx.amount)
+                        .bind(amount_usd)
+                        .bind(&withdrawal_id)
+                        .bind(&tx.hash)
+                        .bind(format!("Manual Rectification Outbound: {}", tx.hash))
+                        .bind(active_sandbox_mode)
+                        .execute(&mut *db_tx)
+                        .await?;
+                    }
                 }
             }
 
@@ -756,11 +856,20 @@ impl BalanceService {
             "dry_run": dry_run,
             "merchant_id": merchant_id,
             "owner_type": owner_type,
-            "total_missing": total_missing_amount,
-            "net_credit": missing_net,
-            "fee_deducted": missing_fee,
-            "transaction_count": missing_txs.len(),
-            "hashes": missing_txs.iter().map(|t| t.hash.clone()).collect::<Vec<_>>()
+            "rectify_type": rectify_type,
+            "deposits": {
+                "total_missing": total_missing_deposit_amount,
+                "net_credit": missing_deposit_net,
+                "fee_deducted": missing_deposit_fee,
+                "transaction_count": missing_deposits.len(),
+                "hashes": missing_deposits.iter().map(|t| t.hash.clone()).collect::<Vec<_>>()
+            },
+            "withdrawals": {
+                "total_missing": total_missing_withdrawal_amount,
+                "net_debit": total_missing_withdrawal_amount,
+                "transaction_count": missing_withdrawals.len(),
+                "hashes": missing_withdrawals.iter().map(|t| t.hash.clone()).collect::<Vec<_>>()
+            }
         }))
     }
 
