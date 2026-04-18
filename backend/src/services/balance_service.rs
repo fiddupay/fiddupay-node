@@ -541,12 +541,14 @@ impl BalanceService {
         crypto_type: CryptoType,
         dry_run: bool,
         signature_limit: usize,
+        override_sandbox_mode: Option<bool>,
     ) -> Result<serde_json::Value, ServiceError> {
         tracing::info!(
-            "[RECTIFY-SOLANA] Rectifying address {} ({}, dry_run={})",
+            "[RECTIFY-SOLANA] Rectifying address {} ({}, dry_run={}, override={:?})",
             address,
             crypto_type.to_string(),
-            dry_run
+            dry_run,
+            override_sandbox_mode
         );
 
         // 1. Identify Merchant & Sandbox Mode
@@ -568,13 +570,15 @@ impl BalanceService {
             ServiceError::ValidationError("Address not found in system wallets".to_string())
         })?;
         let merchant_id: i64 = row.get("merchant_id");
-        let sandbox_mode: bool = row.get("sandbox_mode");
+        let db_sandbox_mode: bool = row.get("sandbox_mode");
         let owner_type: String = row.get("owner_type");
         let customer_id: Option<i64> = row.get("customer_id");
 
+        let active_sandbox_mode = override_sandbox_mode.unwrap_or(db_sandbox_mode);
+
         // 2. Setup Monitor
         let expected_mint = crypto_type.token_address().map(|a| a.to_string());
-        let monitor = SolanaMonitor::new(&self.config, sandbox_mode, expected_mint);
+        let monitor = SolanaMonitor::new(&self.config, active_sandbox_mode, expected_mint);
 
         // 3. Fetch On-chain Transactions
         let onchain_txs = monitor
@@ -654,7 +658,7 @@ impl BalanceService {
                 .bind(merchant_id)
                 .bind(crypto_type.to_string())
                 .bind(missing_net)
-                .bind(sandbox_mode)
+                .bind(active_sandbox_mode)
                 .execute(&mut *db_tx)
                 .await?;
             } else {
@@ -671,7 +675,7 @@ impl BalanceService {
                 .bind(merchant_id)
                 .bind(crypto_type.to_string())
                 .bind(missing_net)
-                .bind(sandbox_mode)
+                .bind(active_sandbox_mode)
                 .execute(&mut *db_tx)
                 .await?;
             }
@@ -705,7 +709,7 @@ impl BalanceService {
                     .bind(fee_usd)
                     .bind(&tx.hash)
                     .bind(format!("Manual Rectification: {}", tx.hash))
-                    .bind(sandbox_mode)
+                    .bind(active_sandbox_mode)
                     .execute(&mut *db_tx)
                     .await?;
                 } else {
@@ -727,7 +731,7 @@ impl BalanceService {
                     .bind(address)
                     .bind(&tx.hash)
                     .bind(format!("Merchant Direct Rectification: {}", tx.hash))
-                    .bind(sandbox_mode)
+                    .bind(active_sandbox_mode)
                     .bind(fee_percentage)
                     .bind(missing_fee / Decimal::from(missing_txs.len() as i64)) // Distribute fee simply
                     .execute(&mut *db_tx)
@@ -739,7 +743,7 @@ impl BalanceService {
 
             // Broadcast update
             let _ = self
-                .broadcast_balance_update(merchant_id, sandbox_mode)
+                .broadcast_balance_update(merchant_id, active_sandbox_mode)
                 .await;
         }
 

@@ -17,6 +17,7 @@ pub struct RectifySolanaRequest {
     pub crypto_type: String, // SOL or USDT_SPL
     pub dry_run: Option<bool>,
     pub signature_limit: Option<usize>,
+    pub sandbox_mode: Option<bool>, // Allows super_admin to explicitly target Devnet or Mainnet overriding DB Defaults
 }
 
 /// Rectify Solana balance by scanning on-chain history
@@ -57,7 +58,13 @@ pub async fn rectify_solana_balance(
 
     match state
         .balance_service
-        .rectify_solana_onchain(&req.address, crypto_type, dry_run, signature_limit)
+        .rectify_solana_onchain(
+            &req.address,
+            crypto_type,
+            dry_run,
+            signature_limit,
+            req.sandbox_mode,
+        )
         .await
     {
         Ok(report) => (
