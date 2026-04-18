@@ -149,21 +149,43 @@ impl WithdrawalProcessor {
         if let Some(c_row) = customer_tx {
             // Sweep from Customer Wallet
             let customer_id: i64 = c_row.get("customer_id");
-            let c_wallet = sqlx::query(
+            let c_wallet = match sqlx::query(
                 r#"
-                SELECT address, encrypted_private_key 
-                FROM merchant_customer_wallets 
-                WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND address != ''
+                SELECT w.address, w.encrypted_private_key 
+                FROM merchant_customer_wallets w
+                JOIN merchant_customers mc ON mc.id = w.customer_id
+                WHERE w.customer_id = $1 AND w.crypto_type = $2 AND w.sandbox_mode = $3 AND w.address != '' AND mc.is_active = true
                 "#,
             )
             .bind(customer_id)
             .bind(&wd_crypto_type)
             .bind(wd_sandbox_mode)
             .fetch_optional(&self.db_pool)
-            .await?
-            .ok_or_else(|| {
-                ServiceError::NotFound("Customer wallet not found for sweep".to_string())
-            })?;
+            .await? {
+                Some(w) => w,
+                None => {
+                    // Safety: Bitcoin addresses are different between Mainnet and Testnet, so we don't allow cross-env fallback
+                    if wd_crypto_type == "BTC" || wd_crypto_type == "BITCOIN" {
+                         return Err(ServiceError::NotFound(format!("Active Bitcoin wallet not found for sweep in environment {}", wd_sandbox_mode)));
+                    }
+
+                    tracing::info!("Active customer wallet not found in environment {}, checking alternate...", wd_sandbox_mode);
+                    sqlx::query(
+                        r#"
+                        SELECT w.address, w.encrypted_private_key 
+                        FROM merchant_customer_wallets w
+                        JOIN merchant_customers mc ON mc.id = w.customer_id
+                        WHERE w.customer_id = $1 AND w.crypto_type = $2 AND w.sandbox_mode = $3 AND w.address != '' AND mc.is_active = true
+                        "#,
+                    )
+                    .bind(customer_id)
+                    .bind(&wd_crypto_type)
+                    .bind(!wd_sandbox_mode)
+                    .fetch_optional(&self.db_pool)
+                    .await?
+                    .ok_or_else(|| ServiceError::NotFound("Active customer wallet not found for sweep in either environment".to_string()))?
+                }
+            };
 
             encrypted_key_opt = c_wallet.get("encrypted_private_key");
             source_address = c_wallet.get("address");
@@ -237,21 +259,41 @@ impl WithdrawalProcessor {
             }
         } else {
             // Standard Merchant Withdrawal
-            let m_wallet = sqlx::query(
+            let m_wallet = match sqlx::query(
                 r#"
                 SELECT address, encrypted_private_key 
                 FROM merchant_wallets 
-                WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND address != ''
+                WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND address != '' AND is_active = true
                 "#,
             )
             .bind(wd_merchant_id)
             .bind(&wd_crypto_type)
             .bind(wd_sandbox_mode)
             .fetch_optional(&self.db_pool)
-            .await?
-            .ok_or_else(|| {
-                ServiceError::NotFound("Merchant wallet not found or not configured".to_string())
-            })?;
+            .await? {
+                Some(w) => w,
+                None => {
+                    // Safety: Bitcoin addresses are different between Mainnet and Testnet, so we don't allow cross-env fallback
+                    if wd_crypto_type == "BTC" || wd_crypto_type == "BITCOIN" {
+                        return Err(ServiceError::NotFound(format!("Active Bitcoin wallet not found for withdrawal in environment {}", wd_sandbox_mode)));
+                    }
+
+                    tracing::info!("Active merchant wallet not found in environment {}, checking alternate...", wd_sandbox_mode);
+                    sqlx::query(
+                        r#"
+                        SELECT address, encrypted_private_key 
+                        FROM merchant_wallets 
+                        WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND address != '' AND is_active = true
+                        "#,
+                    )
+                    .bind(wd_merchant_id)
+                    .bind(&wd_crypto_type)
+                    .bind(!wd_sandbox_mode)
+                    .fetch_optional(&self.db_pool)
+                    .await?
+                    .ok_or_else(|| ServiceError::NotFound("Active merchant wallet not found or not configured in either environment".to_string()))?
+                }
+            };
 
             encrypted_key_opt = m_wallet.get("encrypted_private_key");
             source_address = m_wallet.get("address");

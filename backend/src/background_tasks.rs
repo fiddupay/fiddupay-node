@@ -1066,12 +1066,16 @@ impl BackgroundTasks {
                         Ok(rows) => {
                             use sqlx::Row;
                             if rows.is_empty() {
-                                // Check if this is a static customer address
+                                // Find active customer wallet across any environment for identification
                                 let customer_wallet_res = sqlx::query(
-                                    "SELECT customer_id, merchant_id, crypto_type FROM merchant_customer_wallets WHERE address = $1 AND sandbox_mode = $2"
+                                    r#"
+                                    SELECT w.customer_id, w.merchant_id, w.crypto_type 
+                                    FROM merchant_customer_wallets w
+                                    JOIN merchant_customers mc ON mc.id = w.customer_id
+                                    WHERE w.address = $1 AND mc.is_active = true
+                                    "#
                                 )
                                 .bind(&addr_clone)
-                                .bind(sandbox_mode)
                                 .fetch_optional(&db)
                                 .await;
 
@@ -1096,11 +1100,11 @@ impl BackgroundTasks {
                                     }
                                     Ok(None) => {
                                         // Check if this is a static merchant address
+                                        // Check if this is a static merchant address across any environment (Must be active)
                                         let merchant_wallet_res = sqlx::query(
-                                            "SELECT merchant_id, crypto_type FROM merchant_wallets WHERE address = $1 AND sandbox_mode = $2 AND is_active = true"
+                                            "SELECT merchant_id, crypto_type FROM merchant_wallets WHERE address = $1 AND is_active = true"
                                         )
                                         .bind(&addr_clone)
-                                        .bind(sandbox_mode)
                                         .fetch_optional(&db)
                                         .await;
 

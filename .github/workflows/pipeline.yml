@@ -109,6 +109,8 @@ jobs:
     if: |
       github.event_name == 'push' && 
       github.ref == 'refs/heads/main' && 
+      (needs.backend-ci.result == 'success' || needs.backend-ci.result == 'skipped') &&
+      (needs.frontend-ci.result == 'success' || needs.frontend-ci.result == 'skipped') &&
       !contains(needs.*.result, 'failure') && 
       !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest

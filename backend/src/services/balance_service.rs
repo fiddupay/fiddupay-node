@@ -145,7 +145,11 @@ impl BalanceService {
         // We include both active and inactive wallets if include_zero is true for better visibility
         let configured_types: Vec<String> = if include_zero {
             sqlx::query_scalar(
-                "SELECT DISTINCT crypto_type FROM merchant_wallets WHERE merchant_id = $1 AND sandbox_mode = $2"
+                r#"
+                SELECT DISTINCT crypto_type FROM merchant_wallets 
+                WHERE merchant_id = $1 AND is_active = true 
+                AND (sandbox_mode = $2 OR (crypto_type != 'BTC' AND crypto_type != 'BITCOIN'))
+                "#
             )
             .bind(merchant_id)
             .bind(sandbox_mode)
@@ -321,7 +325,6 @@ impl BalanceService {
                     r#"
                     UPDATE merchant_balances 
                     SET reserved_balance = reserved_balance + $1,
-                        
                         last_updated = $2
                     WHERE merchant_id = $3 AND crypto_type = $4 AND sandbox_mode = $5
                     "#,
