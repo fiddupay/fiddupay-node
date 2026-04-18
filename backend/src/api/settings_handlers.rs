@@ -150,8 +150,10 @@ pub async fn get_merchant_readiness(
     let merchant_id = context.merchant_id;
     let wallet_service =
         crate::services::wallet_config_service::WalletConfigService::new(state.db_pool.clone());
-    let currency_service =
-        crate::services::currency_service::CurrencyService::new(state.db_pool.clone());
+    let currency_service = crate::services::currency_service::CurrencyService::new(
+        state.db_pool.clone(),
+        std::sync::Arc::new(state.config.clone()),
+    );
 
     // 1. Fetch data
     let merchant_res = sqlx::query(

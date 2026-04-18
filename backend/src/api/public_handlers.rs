@@ -250,15 +250,52 @@ async fn save_contact_message(
 
 pub async fn get_pricing_info(State(state): State<AppState>) -> impl IntoResponse {
     let limit_str = state.config.daily_volume_limit_non_kyc_usd.to_string();
+
+    // Get dynamic list of supported currencies from service
+    let supported = state.currency_service.get_supported_currencies().await;
+
+    // Group networks by coin group (e.g., USDT -> [ERC-20, SPL, ...])
+    let mut groups: std::collections::BTreeMap<String, Vec<String>> =
+        std::collections::BTreeMap::new();
+
+    for (crypto_type, group, _, _) in supported {
+        let net_label = match crypto_type {
+            "USDT_ETH" | "ETH" => "ERC-20",
+            "USDT_BEP20" | "BUSD_BEP20" | "BNB" => "BEP-20",
+            "USDT_POLYGON" | "MATIC" => "Polygon",
+            "USDT_ARBITRUM" | "ARB" => "Arbitrum",
+            "USDT_SPL" | "SOL" | "WSOL" => "SPL",
+            _ => "",
+        };
+
+        let networks = groups.entry(group.to_string()).or_default();
+        if !net_label.is_empty() && !networks.contains(&net_label.to_string()) {
+            networks.push(net_label.to_string());
+        }
+    }
+
+    let mut display_currencies = vec![];
+    for (coin, networks) in groups {
+        if networks.is_empty()
+            || (networks.len() == 1
+                && (coin == "SOL"
+                    || coin == "ETH"
+                    || coin == "BTC"
+                    || coin == "BNB"
+                    || coin == "MATIC"
+                    || coin == "ARB"))
+        {
+            display_currencies.push(coin);
+        } else {
+            display_currencies.push(format!("{} ({})", coin, networks.join(", ")));
+        }
+    }
+
     let pricing_data = json!({
         "transaction_fee_percentage": state.config.default_fee_percentage,
         "daily_volume_limit_non_kyc_usd": limit_str,
-        "supported_networks": 5,
-        "supported_cryptocurrencies": [
-            "SOL", "USDT (SPL)", "ETH", "USDT (ERC-20)",
-            "BNB", "USDT (BEP-20)", "MATIC", "USDT (Polygon)",
-            "ARB", "USDT (Arbitrum)"
-        ],
+        "supported_networks": display_currencies.len(), // Approximation
+        "supported_cryptocurrencies": display_currencies,
         "features": {
             "instant_settlements": true,
             "real_time_notifications": true,

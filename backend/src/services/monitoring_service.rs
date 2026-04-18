@@ -98,47 +98,62 @@ impl MonitoringService {
         // 4. RPC Probes
         let mut services = vec![];
 
-        // Probe Ethereum RPC
-        if self.config.ethereum_enabled {
-            services.push(
-                self.probe_rpc("Ethereum Node", &self.config.ethereum_rpc_url)
-                    .await,
-            );
-        }
+        // Define all supported nodes and their status
+        let probe_configs = [
+            (
+                "Ethereum Node",
+                self.config.ethereum_enabled,
+                self.config.ethereum_rpc_url.clone(),
+                false,
+            ),
+            (
+                "Solana Node",
+                self.config.solana_enabled,
+                self.config.solana_rpc_url.clone(),
+                false,
+            ),
+            (
+                "Bitcoin Node",
+                self.config.bitcoin_enabled,
+                self.config.bitcoin_rpc_url.clone(),
+                true,
+            ),
+            (
+                "BNB Node",
+                self.config.bsc_enabled,
+                self.config.bsc_rpc_url.clone(),
+                false,
+            ),
+            (
+                "Polygon Node",
+                self.config.polygon_enabled,
+                self.config.polygon_rpc_url.clone(),
+                false,
+            ),
+            (
+                "Arbitrum Node",
+                self.config.arbitrum_enabled,
+                self.config.arbitrum_rpc_url.clone(),
+                false,
+            ),
+        ];
 
-        // Probe Solana RPC
-        if self.config.solana_enabled {
-            services.push(
-                self.probe_rpc("Solana Node", &self.config.solana_rpc_url)
-                    .await,
-            );
-        }
-
-        // Probe Bitcoin API (Blockstream or similar)
-        if self.config.bitcoin_enabled {
-            let btc_health_url = format!("{}/blocks/tip/height", self.config.bitcoin_rpc_url.trim_end_matches('/'));
-            services.push(
-                self.probe_rpc("Bitcoin Node", &btc_health_url)
-                    .await,
-            );
-        }
-
-        // Probe BNB/Polygon/Arbitrum for completeness if needed (though dashboard mostly shows these 3)
-        // Add probes for others if they are enabled
-        if self.config.bsc_enabled {
-            services.push(self.probe_rpc("BNB Node", &self.config.bsc_rpc_url).await);
-        }
-        if self.config.polygon_enabled {
-            services.push(
-                self.probe_rpc("Polygon Node", &self.config.polygon_rpc_url)
-                    .await,
-            );
-        }
-        if self.config.arbitrum_enabled {
-            services.push(
-                self.probe_rpc("Arbitrum Node", &self.config.arbitrum_rpc_url)
-                    .await,
-            );
+        for (name, enabled, url, is_btc) in probe_configs {
+            if enabled {
+                let probe_url = if is_btc {
+                    format!("{}/blocks/tip/height", url.trim_end_matches('/'))
+                } else {
+                    url
+                };
+                services.push(self.probe_rpc(name, &probe_url).await);
+            } else {
+                services.push(ServiceHealth {
+                    name: name.to_string(),
+                    status: "outage".to_string(), // Shows "Service Interruption" in UI
+                    latency_ms: 0,
+                    last_check: Utc::now().to_rfc3339(),
+                });
+            }
         }
 
         // Core Dashboard Service (Self check)
@@ -154,9 +169,33 @@ impl MonitoringService {
         });
 
         // Determine overall status
-        let overall_status = if !db_connected || services.iter().any(|s| s.status == "outage") {
+        // IMPORTANT: Only count "outage" for services that were actually ENABLED but failing
+        let mut platform_failure = !db_connected;
+        let mut platform_degraded = false;
+
+        // Check enabled services for actual issues
+        let enabled_services = services.iter().filter(|s| match s.name.as_str() {
+            "Ethereum Node" => self.config.ethereum_enabled,
+            "Solana Node" => self.config.solana_enabled,
+            "Bitcoin Node" => self.config.bitcoin_enabled,
+            "BNB Node" => self.config.bsc_enabled,
+            "Polygon Node" => self.config.polygon_enabled,
+            "Arbitrum Node" => self.config.arbitrum_enabled,
+            "Core API Gateway" => true,
+            _ => false,
+        });
+
+        for s in enabled_services {
+            if s.status == "outage" {
+                platform_failure = true;
+            } else if s.status == "degraded" {
+                platform_degraded = true;
+            }
+        }
+
+        let overall_status = if platform_failure {
             "outage".to_string()
-        } else if services.iter().any(|s| s.status == "degraded") {
+        } else if platform_degraded {
             "degraded".to_string()
         } else {
             "operational".to_string()

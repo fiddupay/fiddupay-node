@@ -122,6 +122,28 @@ impl PaymentService {
         merchant_id: i64,
         request: CreatePaymentRequest,
     ) -> Result<PaymentResponse, PaymentServiceError> {
+        // Validation: Block creation for disabled networks if crypto_type is pre-selected
+        if let Some(ct) = request.crypto_type {
+            let is_enabled = match ct.network() {
+                "SOLANA" => self.config.solana_enabled,
+                "BITCOIN" => self.config.bitcoin_enabled,
+                "ETHEREUM" => self.config.ethereum_enabled,
+                "BINANCE" => self.config.bsc_enabled,
+                "POLYGON" => self.config.polygon_enabled,
+                "ARBITRUM" => self.config.arbitrum_enabled,
+                _ => true,
+            };
+
+            if !is_enabled {
+                return Err(PaymentServiceError::ServiceError(
+                    ServiceError::ValidationError(format!(
+                        "The {} network is currently disabled.",
+                        ct.network()
+                    )),
+                ));
+            }
+        }
+
         Ok(self.processor.create_payment(merchant_id, request).await?)
     }
 

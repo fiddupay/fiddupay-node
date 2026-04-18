@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
+use crate::config::Config;
+use std::sync::Arc;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MerchantCurrency {
     pub crypto_type: String,
@@ -10,17 +13,18 @@ pub struct MerchantCurrency {
 
 pub struct CurrencyService {
     pool: PgPool,
+    config: Arc<Config>,
 }
 
 impl CurrencyService {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(pool: PgPool, config: Arc<Config>) -> Self {
+        Self { pool, config }
     }
 
     pub async fn get_supported_currencies(
         &self,
     ) -> Vec<(&'static str, &'static str, &'static str, &'static str)> {
-        vec![
+        let mut supported = vec![
             // (crypto_type, currency_group, network_name, icon_url)
             ("USDT_ETH", "USDT", "ETHEREUM", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
             ("USDT_BEP20", "USDT", "BINANCE", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png"),
@@ -35,7 +39,20 @@ impl CurrencyService {
             ("BNB", "BNB", "BINANCE", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/bnb.png"),
             ("BUSD_BEP20", "BUSD", "BINANCE", "/binance-usd-busd-logo.png"),
             ("BTC", "BTC", "BITCOIN", "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/btc.png"),
-        ]
+        ];
+
+        // Filter based on config flags
+        supported.retain(|&(_, _, network, _)| match network {
+            "SOLANA" => self.config.solana_enabled,
+            "BITCOIN" => self.config.bitcoin_enabled,
+            "ETHEREUM" => self.config.ethereum_enabled,
+            "BINANCE" => self.config.bsc_enabled,
+            "POLYGON" => self.config.polygon_enabled,
+            "ARBITRUM" => self.config.arbitrum_enabled,
+            _ => true,
+        });
+
+        supported
     }
 
     pub fn get_currency_children(&self, currency_group: &str) -> Vec<&'static str> {

@@ -701,6 +701,28 @@ pub async fn finalize_payment_selection(
             .into_response();
     }
 
+    // Check if network is enabled
+    let is_network_enabled = match req.crypto_type.network() {
+        "SOLANA" => state.config.solana_enabled,
+        "BITCOIN" => state.config.bitcoin_enabled,
+        "ETHEREUM" => state.config.ethereum_enabled,
+        "BINANCE" => state.config.bsc_enabled,
+        "POLYGON" => state.config.polygon_enabled,
+        "ARBITRUM" => state.config.arbitrum_enabled,
+        _ => true,
+    };
+
+    if !is_network_enabled {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "error": format!("Payment on {} network is currently unavailable.", req.crypto_type.network()),
+                "code": "NETWORK_DISABLED"
+            })),
+        )
+            .into_response();
+    }
+
     // 3. Resolve crypto type and calculate amounts
     let crypto_type = req.crypto_type;
     let merchant_id = payment_record.merchant_id;

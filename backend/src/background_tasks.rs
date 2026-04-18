@@ -83,6 +83,41 @@ impl BackgroundTasks {
     /// - Payment expiration checking
     /// - Webhook retry processing
     pub fn start(self: Arc<Self>) {
+        // Consolidated Monitor Status Summary
+        info!(
+            "[MONITOR CONFIG] SOL: {}, BTC: {}, ETH: {}, BNB: {}, MATIC: {}, ARB: {}",
+            if self.config.solana_enabled {
+                "ENABLED"
+            } else {
+                "DISABLED"
+            },
+            if self.config.bitcoin_enabled {
+                "ENABLED"
+            } else {
+                "DISABLED"
+            },
+            if self.config.ethereum_enabled {
+                "ENABLED"
+            } else {
+                "DISABLED"
+            },
+            if self.config.bsc_enabled {
+                "ENABLED"
+            } else {
+                "DISABLED"
+            },
+            if self.config.polygon_enabled {
+                "ENABLED"
+            } else {
+                "DISABLED"
+            },
+            if self.config.arbitrum_enabled {
+                "ENABLED"
+            } else {
+                "DISABLED"
+            }
+        );
+
         let tasks_expiration = self.clone();
         tokio::spawn(async move {
             tasks_expiration.run_expiration_checker().await;
@@ -122,15 +157,12 @@ impl BackgroundTasks {
             tokio::spawn(async move {
                 tasks_btc_prod.run_btc_monitor(false).await;
             });
-        } else {
-            info!("Bitcoin monitor (Mainnet) is disabled via BITCOIN_ENABLED.");
         }
 
         let _tasks_btc_sandbox = self.clone();
         tokio::spawn(async move {
             // Disabled BTC Testnet monitor to reduce API usage as requested
             // _tasks_btc_sandbox.run_btc_monitor(true).await;
-            tracing::info!("BTC Testnet monitor is disabled.");
         });
 
         // --- EVM Production Monitors ---
@@ -151,11 +183,6 @@ impl BackgroundTasks {
                     tokio::spawn(async move {
                         tasks.run_evm_monitor(net, false).await;
                     });
-                } else {
-                    info!(
-                        "EVM monitor (Mainnet-{}) is disabled via feature flag.",
-                        net
-                    );
                 }
                 // Stagger monitor starts to prevent RPC request spikes
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
