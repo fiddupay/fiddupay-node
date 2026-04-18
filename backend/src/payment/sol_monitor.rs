@@ -346,7 +346,10 @@ impl SolanaMonitor {
             {
                 Ok(tx) => {
                     // Only include if it's a successful transaction targeting THIS exact address (drops outgoing transfers)
-                    if tx.success && (tx.amount > Decimal::ZERO || self.expected_mint.is_none()) && tx.to_address == address {
+                    if tx.success
+                        && (tx.amount > Decimal::ZERO || self.expected_mint.is_none())
+                        && tx.to_address == address
+                    {
                         blockchain_txs.push(tx);
                     }
                 }

@@ -592,6 +592,8 @@ impl BalanceService {
             SELECT transaction_hash FROM payment_transactions WHERE to_address = $1 AND transaction_hash IS NOT NULL
             UNION
             SELECT transaction_hash FROM customer_transactions WHERE destination_address = $1 AND transaction_hash IS NOT NULL
+            UNION
+            SELECT transaction_hash FROM withdrawals WHERE destination_address = $1 AND transaction_hash IS NOT NULL
             "#
         )
         .bind(address)
@@ -607,7 +609,11 @@ impl BalanceService {
         for tx in onchain_txs {
             // Verify it was successful and specifically targeting THIS monitored address.
             // Outgoing transfers will have a different to_address.
-            if !tx.success || tx.amount <= Decimal::ZERO || tx.to_address != address || existing_hashes.contains(&tx.hash) {
+            if !tx.success
+                || tx.amount <= Decimal::ZERO
+                || tx.to_address != address
+                || existing_hashes.contains(&tx.hash)
+            {
                 continue;
             }
 
