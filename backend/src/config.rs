@@ -125,6 +125,7 @@ pub struct Config {
 
     // Daily Volume Limits
     pub daily_volume_limit_non_kyc_usd: rust_decimal::Decimal,
+    pub daily_volume_limit_verified_usd: rust_decimal::Decimal,
 
     // Merchant Settings
     pub merchant_registration_enabled: bool,
@@ -453,7 +454,10 @@ impl Config {
 
             // Daily Volume Limits
             daily_volume_limit_non_kyc_usd: env::var("DAILY_VOLUME_LIMIT_NON_KYC_USD")
-                .unwrap_or_else(|_| "100000.00".to_string())
+                .unwrap_or_else(|_| "10000.00".to_string())
+                .parse()?,
+            daily_volume_limit_verified_usd: env::var("DAILY_VOLUME_LIMIT_VERIFIED_USD")
+                .unwrap_or_else(|_| "50000.00".to_string())
                 .parse()?,
 
             // Merchant Settings
@@ -673,6 +677,11 @@ impl Config {
                         self.daily_volume_limit_non_kyc_usd = val;
                     }
                 }
+                "DAILY_VOLUME_LIMIT_VERIFIED_USD" => {
+                    if let Ok(val) = Decimal::from_str(&setting.value) {
+                        self.daily_volume_limit_verified_usd = val;
+                    }
+                }
                 "WITHDRAWAL_AUTO_APPROVAL_LIMIT_USD" => {
                     if let Ok(val) = Decimal::from_str(&setting.value) {
                         self.withdrawal_auto_approval_limit_usd = val;
@@ -821,7 +830,8 @@ impl Default for Config {
             payment_cleanup_interval_hours: 24,
             payment_page_base_url: "https://pay.fiddupay.com".to_string(),
             default_fee_percentage: rust_decimal::Decimal::new(75, 4), // 0.0075 = 0.75%
-            daily_volume_limit_non_kyc_usd: rust_decimal::Decimal::new(10000000, 2), // 100,000.00
+            daily_volume_limit_non_kyc_usd: rust_decimal::Decimal::new(1000000, 2), // 10,000.00
+            daily_volume_limit_verified_usd: rust_decimal::Decimal::new(5000000, 2), // 50,000.00
             merchant_registration_enabled: true,
             merchant_email_verification_required: true,
             merchant_kyc_required: false,

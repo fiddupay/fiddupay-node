@@ -200,18 +200,25 @@ impl PaymentProcessor {
         };
 
         // 5. ENFORCE DAILY VOLUME LIMIT for non-KYC merchants
-        if !kyc_verified {
-            let remaining = self
-                .merchant_service
-                .get_daily_volume_remaining(merchant_id, kyc_verified, daily_limit_usd)
-                .await?;
+        // 5. ENFORCE DAILY VOLUME LIMIT
+        let remaining = self
+            .merchant_service
+            .get_daily_volume_remaining(merchant_id, kyc_verified, daily_limit_usd)
+            .await?;
 
-            if amount_usd > remaining {
-                return Err(ServiceError::Forbidden(format!(
-                    "Daily volume limit exceeded. Remaining: ${}, Requested: ${}. Please complete KYC to increase your limit.",
-                    remaining, amount_usd
-                )));
-            }
+        if amount_usd > remaining {
+            let status_msg = if kyc_verified {
+                "Daily volume limit reached. Contact support to increase your enterprise capacity."
+                    .to_string()
+            } else {
+                "Daily volume limit exceeded. Please complete KYC to increase your limit."
+                    .to_string()
+            };
+
+            return Err(ServiceError::Forbidden(format!(
+                "{} Remaining: ${}, Requested: ${}.",
+                status_msg, remaining, amount_usd
+            )));
         }
 
         // Calculate expiration time

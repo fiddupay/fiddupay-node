@@ -101,14 +101,20 @@ impl MerchantService {
         kyc_verified: bool,
         daily_limit_usd: Option<Decimal>,
     ) -> Result<Decimal, ServiceError> {
-        let limit = daily_limit_usd.unwrap_or(self.config.daily_volume_limit_non_kyc_usd);
+        let default_limit = if kyc_verified {
+            self.config.daily_volume_limit_verified_usd
+        } else {
+            self.config.daily_volume_limit_non_kyc_usd
+        };
+
+        let limit = daily_limit_usd.unwrap_or(default_limit);
         self.volume_tracking
             .get_remaining_daily_volume(merchant_id, limit, kyc_verified)
             .await?
-            .ok_or(ServiceError::ValidationError(
-                "KYC verified merchants have no daily volume limit".to_string(),
+            .ok_or(ServiceError::InternalError(
+                "Failed to calculate remaining volume".to_string(),
             ))
-            .or(Ok(Decimal::ZERO)) // Handle the None case gracefully
+            .or(Ok(Decimal::ZERO))
     }
 
     /// Generate API key with proper prefix (single source of truth)

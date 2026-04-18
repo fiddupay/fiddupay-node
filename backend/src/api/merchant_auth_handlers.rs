@@ -502,6 +502,12 @@ async fn finalize_login(
             .await;
     });
 
+    let limit_to_show = m.daily_limit_usd.unwrap_or(if m.kyc_verified {
+        state.config.daily_volume_limit_verified_usd
+    } else {
+        state.config.daily_volume_limit_non_kyc_usd
+    });
+
     (
         StatusCode::OK,
         Json(AuthResponse {
@@ -513,7 +519,7 @@ async fn finalize_login(
                 api_key: display_key,
                 created_at: m.created_at.to_rfc3339(),
                 two_factor_enabled: false,
-                daily_limit_usd: m.daily_limit_usd.map(|d| d.to_string()),
+                daily_limit_usd: Some(limit_to_show.to_string()),
                 daily_volume_remaining: remaining_volume.to_string(),
                 kyc_verified: m.kyc_verified,
                 sandbox_mode: m.sandbox_mode,

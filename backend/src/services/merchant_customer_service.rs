@@ -1021,20 +1021,32 @@ impl MerchantCustomerService {
         let kyc_verified: bool = merchant_row.get("kyc_verified");
         let daily_limit_usd: Option<Decimal> = merchant_row.get("daily_limit_usd");
 
-        if !kyc_verified {
-            let limit = daily_limit_usd.unwrap_or(config.daily_volume_limit_non_kyc_usd);
-            let remaining = self
-                .volume_tracking
-                .get_remaining_daily_volume(merchant_id, limit, kyc_verified)
-                .await?
-                .unwrap_or(Decimal::ZERO);
+        let default_limit = if kyc_verified {
+            config.daily_volume_limit_verified_usd
+        } else {
+            config.daily_volume_limit_non_kyc_usd
+        };
 
-            if total_sweep_usd > remaining {
-                return Err(ServiceError::Forbidden(format!(
-                    "Daily volume limit exceeded. This sweep would cost ${}, but you only have ${} remaining today. Please complete KYC to remove this limit.",
-                    total_sweep_usd, remaining
-                )));
-            }
+        let limit = daily_limit_usd.unwrap_or(default_limit);
+        let remaining = self
+            .volume_tracking
+            .get_remaining_daily_volume(merchant_id, limit, kyc_verified)
+            .await?
+            .unwrap_or(Decimal::ZERO);
+
+        if total_sweep_usd > remaining {
+            let status_msg = if kyc_verified {
+                "Daily volume limit reached. Contact support to increase your enterprise limit."
+                    .to_string()
+            } else {
+                "Daily volume limit exceeded. Please complete KYC to increase your limit."
+                    .to_string()
+            };
+
+            return Err(ServiceError::Forbidden(format!(
+                "{} Requested sweep: ${}, Remaining: ${}.",
+                status_msg, total_sweep_usd, remaining
+            )));
         }
 
         let mut swept_results = Vec::new();

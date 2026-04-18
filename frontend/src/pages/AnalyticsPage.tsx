@@ -11,6 +11,7 @@ import {
 import { merchantAPI } from '@/services/apiService'
 import { useToast } from '@/contexts/ToastContext'
 import styles from '@/styles/pages/AnalyticsPage.module.css'
+import { useAuthStore } from '@/stores/authStore'
 
 interface TimeSeriesPoint {
     date: string;
@@ -41,10 +42,11 @@ const AnalyticsPage: React.FC = () => {
         to_date: new Date().toISOString().split('T')[0]
     })
     const { showToast } = useToast()
+    const { user } = useAuthStore()
 
     useEffect(() => {
         loadAnalytics()
-    }, [dateRange])
+    }, [dateRange, user?.sandbox_mode])
 
     const loadAnalytics = async () => {
         try {

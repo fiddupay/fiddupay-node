@@ -50,7 +50,7 @@ impl VolumeTrackingService {
         daily_limit_usd: Decimal,
         is_kyc_verified: bool,
     ) -> Result<bool, ServiceError> {
-        // KYC verified merchants have no daily volume limit
+        // KYC verified merchants have no daily volume limit for now
         if is_kyc_verified {
             return Ok(true);
         }
@@ -69,7 +69,7 @@ impl VolumeTrackingService {
         daily_limit_usd: Decimal,
         is_kyc_verified: bool,
     ) -> Result<Option<Decimal>, ServiceError> {
-        // KYC verified merchants have no limit
+        // KYC verified merchants have no limit for now
         if is_kyc_verified {
             return Ok(None);
         }

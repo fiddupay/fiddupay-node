@@ -59,13 +59,13 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     loadDashboardData()
-  }, [dateRange])
+  }, [dateRange, user?.sandbox_mode])
 
   useEffect(() => {
     if (user?.daily_volume_remaining) {
       const remaining = parseFloat(user.daily_volume_remaining)
-      const limit = user.daily_limit_usd ? parseFloat(user.daily_limit_usd) : (user.kyc_verified ? 0 : 0)
-      const used = limit > 0 ? limit - remaining : 0
+      const limit = user.daily_limit_usd ? parseFloat(user.daily_limit_usd) : 0
+      const used = limit > 0 ? Math.max(0, limit - remaining) : 0
       setDailyVolumeUsed(used)
     }
   }, [user])
