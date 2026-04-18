@@ -671,8 +671,9 @@ impl BackgroundTasks {
         }
     }
 
-    async fn fetch_btc_addresses(pool: &sqlx::PgPool, sandbox_mode: bool) -> Vec<String> {
-        let addresses_res = sqlx::query(
+    /// Tier 1: Addresses with active/pending payments — polled every cycle
+    async fn fetch_btc_active_addresses(pool: &sqlx::PgPool, sandbox_mode: bool) -> Vec<String> {
+        let result = sqlx::query(
             r#"
             SELECT DISTINCT to_address 
             FROM payment_transactions 
@@ -680,7 +681,30 @@ impl BackgroundTasks {
               AND to_address IS NOT NULL
               AND sandbox_mode = $1
               AND crypto_type = 'BTC'
-            UNION
+            "#,
+        )
+        .bind(sandbox_mode)
+        .fetch_all(pool)
+        .await;
+
+        match result {
+            Ok(rows) => {
+                use sqlx::Row;
+                rows.into_iter()
+                    .filter_map(|r| r.get::<Option<String>, _>("to_address"))
+                    .collect()
+            }
+            Err(e) => {
+                error!("Failed to fetch active BTC payment addresses: {}", e);
+                Vec::new()
+            }
+        }
+    }
+
+    /// Tier 2: Static merchant & customer wallets — polled every Nth cycle
+    async fn fetch_btc_static_addresses(pool: &sqlx::PgPool, sandbox_mode: bool) -> Vec<String> {
+        let result = sqlx::query(
+            r#"
             SELECT DISTINCT address as to_address
             FROM merchant_customer_wallets
             WHERE sandbox_mode = $1
@@ -696,7 +720,7 @@ impl BackgroundTasks {
         .fetch_all(pool)
         .await;
 
-        match addresses_res {
+        match result {
             Ok(rows) => {
                 use sqlx::Row;
                 rows.into_iter()
@@ -704,7 +728,7 @@ impl BackgroundTasks {
                     .collect()
             }
             Err(e) => {
-                error!("Failed to fetch pending BTC addresses: {}", e);
+                error!("Failed to fetch static BTC wallet addresses: {}", e);
                 Vec::new()
             }
         }
@@ -1193,34 +1217,61 @@ impl BackgroundTasks {
         }
     }
 
-    /// Run Bitcoin real-time monitor (Polling based for now)
+    /// Run Bitcoin real-time monitor (Tiered polling)
     async fn run_btc_monitor(&self, sandbox_mode: bool) {
         let cluster_name = if sandbox_mode { "Testnet" } else { "Mainnet" };
-        info!("Starting Bitcoin {} monitor...", cluster_name);
+        info!(
+            "Starting Bitcoin {} monitor (tiered polling)...",
+            cluster_name
+        );
 
         // Blockstream free tier: 700 req/hour = ~1 req every 5.14s.
-        // Mempool.space is more lenient but we apply the same pacing to protect both.
-        // With 6s between addresses we can safely check up to ~600 addresses/hour
-        // (well within limits) while keeping latency acceptable for BTC (~10-min blocks).
+        // With 6s between addresses we stay safely within limits.
         const POLL_INTERVAL_SECS: u64 = 180; // full-batch every 3 minutes
         const INTER_ADDRESS_DELAY_MS: u64 = 6_000; // 6 seconds between addresses
+        const STATIC_POLL_EVERY_N_CYCLES: u64 = 5; // Static wallets polled every 5th cycle (~15 min)
 
         let mut poll_interval = interval(Duration::from_secs(POLL_INTERVAL_SECS));
+        let mut cycle_count: u64 = 0;
 
         loop {
             poll_interval.tick().await;
+            cycle_count += 1;
 
-            let addresses = Self::fetch_btc_addresses(&self.db_pool, sandbox_mode).await;
+            // Tier 1: Always fetch active payment addresses
+            let mut addresses = Self::fetch_btc_active_addresses(&self.db_pool, sandbox_mode).await;
+            let active_count = addresses.len();
+
+            // Tier 2: Include static wallets every Nth cycle
+            let is_full_cycle = cycle_count.is_multiple_of(STATIC_POLL_EVERY_N_CYCLES);
+            if is_full_cycle {
+                let static_addrs =
+                    Self::fetch_btc_static_addresses(&self.db_pool, sandbox_mode).await;
+                let static_count = static_addrs.len();
+                // Merge, dedup (active payment addresses may overlap with static wallets)
+                for addr in static_addrs {
+                    if !addresses.contains(&addr) {
+                        addresses.push(addr);
+                    }
+                }
+                tracing::debug!(
+                    "[BTC] Full cycle #{}: {} active + {} static = {} total addresses",
+                    cycle_count,
+                    active_count,
+                    static_count,
+                    addresses.len()
+                );
+            } else {
+                tracing::debug!(
+                    "[BTC] Fast cycle #{}: {} active payment addresses only",
+                    cycle_count,
+                    active_count
+                );
+            }
+
             if addresses.is_empty() {
                 continue;
             }
-
-            info!(
-                "Monitoring {} active Bitcoin {} addresses (delay: {}ms/address)",
-                addresses.len(),
-                cluster_name,
-                INTER_ADDRESS_DELAY_MS
-            );
 
             let verifier = PaymentVerifier::new(
                 self.db_pool.clone(),
@@ -1237,9 +1288,6 @@ impl BackgroundTasks {
                 sandbox_mode,
             );
 
-            // Track whether the primary provider (Blockstream) has been 429'd this batch.
-            // If so, we temporarily swap to backup-only for the rest of the batch so we
-            // don't waste 15s per address (primary timeout + retry).
             let mut primary_rate_limited = false;
             let batch_start = tokio::time::Instant::now();
 
@@ -1247,10 +1295,8 @@ impl BackgroundTasks {
                 // Respect inter-address delay to stay within rate limits
                 tokio::time::sleep(Duration::from_millis(INTER_ADDRESS_DELAY_MS)).await;
 
-                // If primary was rate-limited earlier in this batch, log once and continue
-                // using the backup implicitly (failover in bitcoin_api handles it)
                 if primary_rate_limited {
-                    info!(
+                    tracing::debug!(
                         "[BTC] Primary rate-limited this batch — using backup for: {}",
                         &address[..12]
                     );
@@ -1259,6 +1305,7 @@ impl BackgroundTasks {
                 match monitor.get_transactions_to_address(address, 5, None).await {
                     Ok(transactions) => {
                         for tx in transactions {
+                            // Check for pending invoice payments
                             let pending_res = sqlx::query(
                                 "SELECT id, merchant_id FROM payment_transactions WHERE to_address = $1 AND status IN ('PENDING', 'CONFIRMING')"
                             )
@@ -1269,19 +1316,83 @@ impl BackgroundTasks {
                             match pending_res {
                                 Ok(rows) => {
                                     use sqlx::Row;
-                                    for row in rows {
-                                        let p_id: i64 = row.get("id");
-                                        let m_id: i64 = row.get("merchant_id");
-                                        if let Err(e) = verifier
-                                            .verify_payment_by_hash(p_id, &tx.hash, m_id)
-                                            .await
-                                        {
-                                            tracing::trace!(
-                                                "BTC verify payment {} hash {}: {}",
-                                                p_id,
-                                                tx.hash,
-                                                e
-                                            );
+                                    // If there are pending payments, verify them
+                                    if !rows.is_empty() {
+                                        for row in rows {
+                                            let p_id: i64 = row.get("id");
+                                            let m_id: i64 = row.get("merchant_id");
+                                            if let Err(e) = verifier
+                                                .verify_payment_by_hash(p_id, &tx.hash, m_id)
+                                                .await
+                                            {
+                                                tracing::trace!(
+                                                    "BTC verify payment {} hash {}: {}",
+                                                    p_id,
+                                                    tx.hash,
+                                                    e
+                                                );
+                                            }
+                                        }
+                                    } else if is_full_cycle {
+                                        // No pending payments — this is a static wallet
+                                        // Check if it's a merchant static deposit
+                                        let merchant_wallet = sqlx::query(
+                                            "SELECT merchant_id FROM merchant_wallets WHERE address = $1 AND crypto_type = 'BTC' AND sandbox_mode = $2 AND is_active = true"
+                                        )
+                                        .bind(address)
+                                        .bind(sandbox_mode)
+                                        .fetch_optional(&self.db_pool)
+                                        .await;
+
+                                        if let Ok(Some(row)) = merchant_wallet {
+                                            use sqlx::Row;
+                                            let m_id: i64 = row.get("merchant_id");
+                                            if let Err(e) = verifier
+                                                .verify_merchant_deposit(
+                                                    m_id,
+                                                    &tx.hash,
+                                                    "BTC",
+                                                    sandbox_mode,
+                                                )
+                                                .await
+                                            {
+                                                tracing::trace!(
+                                                    "BTC static merchant deposit {}: {}",
+                                                    tx.hash,
+                                                    e
+                                                );
+                                            }
+                                        } else {
+                                            // Check if it's a customer static deposit
+                                            let customer_wallet = sqlx::query(
+                                                "SELECT customer_id, merchant_id FROM merchant_customer_wallets WHERE address = $1 AND crypto_type = 'BTC' AND sandbox_mode = $2"
+                                            )
+                                            .bind(address)
+                                            .bind(sandbox_mode)
+                                            .fetch_optional(&self.db_pool)
+                                            .await;
+
+                                            if let Ok(Some(row)) = customer_wallet {
+                                                use sqlx::Row;
+                                                let c_id: i64 = row.get("customer_id");
+                                                let m_id: i64 = row.get("merchant_id");
+                                                if let Err(e) = verifier
+                                                    .verify_customer_deposit(
+                                                        c_id,
+                                                        &tx.hash,
+                                                        m_id,
+                                                        "BTC",
+                                                        sandbox_mode,
+                                                    )
+                                                    .await
+                                                {
+                                                    tracing::trace!(
+                                                        "BTC static customer deposit {}: {}",
+                                                        tx.hash,
+                                                        e
+                                                    );
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1302,8 +1413,6 @@ impl BackgroundTasks {
                                 );
                                 primary_rate_limited = true;
                             }
-                            // The failover utility already retried with backup — if it also
-                            // failed, log and continue. Don't break the loop.
                             warn!(
                                 "[BTC] Both providers failed for address {}: {}",
                                 &address[..12],
@@ -1325,15 +1434,15 @@ impl BackgroundTasks {
                 }
             }
 
-            // If the batch finished quickly (few addresses), sleep the remainder of the
-            // poll interval so we don't accidentally double-poll within the same window.
+            // If the batch finished quickly, sleep the remainder to avoid double-polling
             let elapsed = batch_start.elapsed();
             let min_batch_duration = Duration::from_secs(POLL_INTERVAL_SECS / 2);
             if elapsed < min_batch_duration {
                 let remaining = min_batch_duration - elapsed;
-                info!(
+                tracing::debug!(
                     "[BTC] Batch done in {:?}. Sleeping {:?} before next poll.",
-                    elapsed, remaining
+                    elapsed,
+                    remaining
                 );
                 tokio::time::sleep(remaining).await;
             }
