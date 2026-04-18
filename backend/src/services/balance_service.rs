@@ -1,7 +1,9 @@
 // Balance Service - Tracks merchant balances across all networks
 
+use crate::config::Config;
 use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
+use crate::payment::sol_monitor::SolanaMonitor;
 use crate::services::price_service::PriceService;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
@@ -33,6 +35,7 @@ pub struct BalanceService {
     db_pool: PgPool,
     price_service: Arc<PriceService>,
     redis_client: redis::Client,
+    config: Arc<Config>,
 }
 
 impl BalanceService {
@@ -40,11 +43,13 @@ impl BalanceService {
         db_pool: PgPool,
         price_service: Arc<PriceService>,
         redis_client: redis::Client,
+        config: Arc<Config>,
     ) -> Self {
         Self {
             db_pool,
             price_service,
             redis_client,
+            config,
         }
     }
 
@@ -528,6 +533,226 @@ impl BalanceService {
             .await;
 
         Ok(())
+    }
+
+    pub async fn rectify_solana_onchain(
+        &self,
+        address: &str,
+        crypto_type: CryptoType,
+        dry_run: bool,
+        signature_limit: usize,
+    ) -> Result<serde_json::Value, ServiceError> {
+        tracing::info!(
+            "[RECTIFY-SOLANA] Rectifying address {} ({}, dry_run={})",
+            address,
+            crypto_type.to_string(),
+            dry_run
+        );
+
+        // 1. Identify Merchant & Sandbox Mode
+        let wallet_info = sqlx::query(
+            r#"
+            SELECT merchant_id, sandbox_mode, 'customer' as owner_type, customer_id 
+            FROM merchant_customer_wallets WHERE address = $1 AND crypto_type = $2
+            UNION ALL
+            SELECT merchant_id, sandbox_mode, 'merchant' as owner_type, NULL as customer_id 
+            FROM merchant_wallets WHERE address = $1 AND crypto_type = $2
+            "#,
+        )
+        .bind(address)
+        .bind(crypto_type.to_string())
+        .fetch_optional(&self.db_pool)
+        .await?;
+
+        let row = wallet_info.ok_or_else(|| {
+            ServiceError::ValidationError("Address not found in system wallets".to_string())
+        })?;
+        let merchant_id: i64 = row.get("merchant_id");
+        let sandbox_mode: bool = row.get("sandbox_mode");
+        let owner_type: String = row.get("owner_type");
+        let customer_id: Option<i64> = row.get("customer_id");
+
+        // 2. Setup Monitor
+        let expected_mint = crypto_type.token_address().map(|a| a.to_string());
+        let monitor = SolanaMonitor::new(&self.config, sandbox_mode, expected_mint);
+
+        // 3. Fetch On-chain Transactions
+        let onchain_txs = monitor
+            .get_transactions_to_address(address, signature_limit, None)
+            .await
+            .map_err(|e| ServiceError::Internal(format!("Solana scan failed: {}", e)))?;
+
+        // 4. Get Existing Transactions in DB
+        let existing_hashes: std::collections::HashSet<String> = sqlx::query_scalar::<_, String>(
+            r#"
+            SELECT transaction_hash FROM payment_transactions WHERE (to_address = $1 OR transaction_hash IS NOT NULL)
+            UNION
+            SELECT transaction_hash FROM customer_transactions WHERE (destination_address = $1 OR transaction_hash IS NOT NULL)
+            "#
+        )
+        .bind(address)
+        .fetch_all(&self.db_pool)
+        .await?
+        .into_iter()
+        .collect();
+
+        // 5. Identify Gaps & Sum Inbound
+        let mut missing_txs = Vec::new();
+        let mut total_missing_amount = Decimal::ZERO;
+
+        for tx in onchain_txs {
+            // Verify it was successful and to THIS address
+            // SolanaMonitor already filters for to_address in get_transactions_to_address logically,
+            // but we double-check the amounts returned are positive.
+            if !tx.success || tx.amount <= Decimal::ZERO || existing_hashes.contains(&tx.hash) {
+                continue;
+            }
+
+            // Verify the token mint matches if we are rectifying a specific token
+            if let Some(expected) = crypto_type.token_address() {
+                if tx.token_mint.as_deref() != Some(expected) {
+                    continue;
+                }
+            } else if tx.token_mint.is_some() {
+                // We are rectifying SOL, but this is a token transfer
+                continue;
+            }
+
+            total_missing_amount += tx.amount;
+            missing_txs.push(tx);
+        }
+
+        // 6. Fetch Fee Logic
+        let fee_percentage =
+            sqlx::query_scalar::<_, Decimal>("SELECT fee_percentage FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&self.db_pool)
+                .await?;
+
+        let missing_fee =
+            (total_missing_amount * (fee_percentage / Decimal::from(100))).round_dp(8);
+        let missing_net = total_missing_amount - missing_fee;
+
+        if !dry_run && !missing_txs.is_empty() {
+            let mut db_tx = self.db_pool.begin().await?;
+
+            // Update Balances
+            if owner_type == "customer" {
+                let cid = customer_id.unwrap();
+                sqlx::query(
+                    r#"
+                    INSERT INTO merchant_customer_balances (customer_id, merchant_id, crypto_type, available_balance, total_balance, last_updated_at, sandbox_mode)
+                    VALUES ($1, $2, $3, $4, $4, NOW(), $5)
+                    ON CONFLICT (customer_id, crypto_type, sandbox_mode)
+                    DO UPDATE SET 
+                        available_balance = merchant_customer_balances.available_balance + $4,
+                        total_balance = merchant_customer_balances.total_balance + $4,
+                        last_updated_at = NOW()
+                    "#
+                )
+                .bind(cid)
+                .bind(merchant_id)
+                .bind(crypto_type.to_string())
+                .bind(missing_net)
+                .bind(sandbox_mode)
+                .execute(&mut *db_tx)
+                .await?;
+            } else {
+                sqlx::query(
+                    r#"
+                    INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
+                    VALUES ($1, $2, $3, 0, NOW(), $4)
+                    ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
+                    DO UPDATE SET
+                        available_balance = merchant_balances.available_balance + $3,
+                        last_updated = NOW()
+                    "#
+                )
+                .bind(merchant_id)
+                .bind(crypto_type.to_string())
+                .bind(missing_net)
+                .bind(sandbox_mode)
+                .execute(&mut *db_tx)
+                .await?;
+            }
+
+            // Record Transactions to prevent double-counting
+            let crypto_price = self
+                .price_service
+                .get_price(crypto_type)
+                .await
+                .unwrap_or(1.0);
+            for tx in &missing_txs {
+                let amount_usd = (tx.amount
+                    * Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE))
+                .round_dp(2);
+                let fee_usd = (amount_usd * (fee_percentage / Decimal::from(100))).round_dp(2);
+
+                if owner_type == "customer" {
+                    sqlx::query(
+                        r#"
+                        INSERT INTO customer_transactions (
+                            customer_id, merchant_id, type, crypto_type, amount, amount_usd, fee, status, 
+                            transaction_hash, description, created_at, sandbox_mode
+                        ) VALUES ($1, $2, 'DEPOSIT_RECTIFICATION', $3, $4, $5, $6, 'CONFIRMED', $7, $8, NOW(), $9)
+                        "#
+                    )
+                    .bind(customer_id.unwrap())
+                    .bind(merchant_id)
+                    .bind(crypto_type.to_string())
+                    .bind(tx.amount)
+                    .bind(amount_usd)
+                    .bind(fee_usd)
+                    .bind(&tx.hash)
+                    .bind(format!("Manual Rectification: {}", tx.hash))
+                    .bind(sandbox_mode)
+                    .execute(&mut *db_tx)
+                    .await?;
+                } else {
+                    // For main merchant, we use payment_transactions with a system flag
+                    let public_id = format!("rect_{}", &tx.hash[..8]);
+                    sqlx::query(
+                        r#"
+                        INSERT INTO payment_transactions (
+                            payment_id, merchant_id, amount, amount_usd, crypto_type, status, to_address, 
+                            transaction_hash, description, created_at, sandbox_mode, fee_percentage, fee_amount
+                        ) VALUES ($1, $2, $3, $4, $5, 'CONFIRMED', $6, $7, $8, NOW(), $9, $10, $11)
+                        "#
+                    )
+                    .bind(public_id)
+                    .bind(merchant_id)
+                    .bind(tx.amount)
+                    .bind(amount_usd)
+                    .bind(crypto_type.to_string())
+                    .bind(address)
+                    .bind(&tx.hash)
+                    .bind(format!("Merchant Direct Rectification: {}", tx.hash))
+                    .bind(sandbox_mode)
+                    .bind(fee_percentage)
+                    .bind(missing_fee / Decimal::from(missing_txs.len() as i64)) // Distribute fee simply
+                    .execute(&mut *db_tx)
+                    .await?;
+                }
+            }
+
+            db_tx.commit().await?;
+
+            // Broadcast update
+            let _ = self
+                .broadcast_balance_update(merchant_id, sandbox_mode)
+                .await;
+        }
+
+        Ok(serde_json::json!({
+            "dry_run": dry_run,
+            "merchant_id": merchant_id,
+            "owner_type": owner_type,
+            "total_missing": total_missing_amount,
+            "net_credit": missing_net,
+            "fee_deducted": missing_fee,
+            "transaction_count": missing_txs.len(),
+            "hashes": missing_txs.iter().map(|t| t.hash.clone()).collect::<Vec<_>>()
+        }))
     }
 
     pub async fn broadcast_balance_update(

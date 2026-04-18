@@ -67,6 +67,7 @@ impl AppState {
             db_pool.clone(),
             price_service.clone(),
             redis_client.clone(),
+            Arc::new(config.clone()),
         ));
 
         let audit_service = Arc::new(AuditService::new(db_pool.clone()));

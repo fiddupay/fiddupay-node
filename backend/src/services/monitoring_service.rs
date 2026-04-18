@@ -141,15 +141,20 @@ impl MonitoringService {
         for (name, enabled, url, is_btc) in probe_configs {
             if enabled {
                 let probe_url = if is_btc {
-                    format!("{}/blocks/tip/height", url.trim_end_matches('/'))
+                    // Try to detect if it's a standard RPC or Esplora-style API
+                    if url.contains("blockstream.info") || url.contains("mempool.space") {
+                        format!("{}/blocks/tip/height", url.trim_end_matches('/'))
+                    } else {
+                        url.to_string()
+                    }
                 } else {
-                    url
+                    url.to_string()
                 };
                 services.push(self.probe_rpc(name, &probe_url).await);
             } else {
                 services.push(ServiceHealth {
                     name: name.to_string(),
-                    status: "outage".to_string(), // Shows "Service Interruption" in UI
+                    status: "disabled".to_string(),
                     latency_ms: 0,
                     last_check: Utc::now().to_rfc3339(),
                 });

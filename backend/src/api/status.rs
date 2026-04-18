@@ -59,14 +59,21 @@ pub async fn get_system_status(
 ) -> Result<Json<SystemStatus>, StatusCode> {
     let health = state.monitoring_service.get_health().await;
 
-    // 1. Map current services
+    // 1. Map current services (skip disabled ones — they're intentionally off, not broken)
     let mut services = vec![];
     for service in health.services {
+        if service.status == "disabled" {
+            continue;
+        }
+
         let description = match service.name.as_str() {
             "Core API Gateway" => "Authentication and routing infrastructure",
             "Ethereum Node" => "Mainnet Ethereum RPC connectivity",
             "Solana Node" => "Mainnet Solana RPC connectivity",
             "Bitcoin Node" => "Bitcoin network API availability",
+            "BNB Node" => "Binance Smart Chain RPC connectivity",
+            "Polygon Node" => "Polygon PoS RPC connectivity",
+            "Arbitrum Node" => "Arbitrum L2 RPC connectivity",
             _ => "System infrastructure component",
         };
 

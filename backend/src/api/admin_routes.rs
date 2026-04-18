@@ -132,6 +132,11 @@ pub fn create_admin_router(state: AppState) -> Router<AppState> {
             "/api/v1/admin/wallets/transfer",
             post(admin::transfer_funds),
         )
+        // Manual Balance Rectification
+        .route(
+            "/api/v1/admin/rectify/solana",
+            post(admin::rectify_solana_balance),
+        )
         // Admin User Management
         .route("/api/v1/admin/users", get(admin::get_admin_users))
         .route("/api/v1/admin/users", post(admin::create_admin_user))
