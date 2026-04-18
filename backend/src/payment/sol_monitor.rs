@@ -482,47 +482,22 @@ impl SolanaMonitor {
                         best_amount, best_mint, owner
                     );
                     (owner, best_amount, best_mint)
-                } else if self.expected_mint.is_none() {
-                    // Fall back to SOL diff only if we aren't looking for a specific token
+                } else {
+                    // No matching token transfer found, fall back to native SOL
                     let (addr, amt) = Self::parse_sol_balance_diff(
                         meta,
                         &tx_result.transaction.message.account_keys,
                     );
                     (addr, amt, None)
-                } else {
-                    // We expected a token but didn't find a matching increase
-                    (
-                        tx_result
-                            .transaction
-                            .message
-                            .account_keys
-                            .get(1)
-                            .cloned()
-                            .unwrap_or_default(),
-                        Decimal::ZERO,
-                        None,
-                    )
                 }
-            } else if self.expected_mint.is_none() {
+            } else {
                 // --- Native SOL Transfer ---
                 let (addr, amt) =
                     Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.account_keys);
                 (addr, amt, None)
-            } else {
-                // Not an SPL transfer and we were expecting one
-                (
-                    tx_result
-                        .transaction
-                        .message
-                        .account_keys
-                        .get(1)
-                        .cloned()
-                        .unwrap_or_default(),
-                    Decimal::ZERO,
-                    None,
-                )
             }
         } else {
+            // No metadata available, can't parse balances
             (
                 tx_result
                     .transaction
