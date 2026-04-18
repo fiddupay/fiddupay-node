@@ -1073,7 +1073,7 @@ impl BackgroundTasks {
                                     FROM merchant_customer_wallets w
                                     JOIN merchant_customers mc ON mc.id = w.customer_id
                                     WHERE w.address = $1 AND mc.is_active = true
-                                    "#
+                                    "#,
                                 )
                                 .bind(&addr_clone)
                                 .fetch_optional(&db)

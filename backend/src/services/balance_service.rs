@@ -149,7 +149,7 @@ impl BalanceService {
                 SELECT DISTINCT crypto_type FROM merchant_wallets 
                 WHERE merchant_id = $1 AND is_active = true 
                 AND (sandbox_mode = $2 OR (crypto_type != 'BTC' AND crypto_type != 'BITCOIN'))
-                "#
+                "#,
             )
             .bind(merchant_id)
             .bind(sandbox_mode)
