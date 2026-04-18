@@ -116,8 +116,9 @@ impl MonitoringService {
 
         // Probe Bitcoin API (Blockstream or similar)
         if self.config.bitcoin_enabled {
+            let btc_health_url = format!("{}/blocks/tip/height", self.config.bitcoin_rpc_url.trim_end_matches('/'));
             services.push(
-                self.probe_rpc("Bitcoin Node", &self.config.bitcoin_rpc_url)
+                self.probe_rpc("Bitcoin Node", &btc_health_url)
                     .await,
             );
         }
