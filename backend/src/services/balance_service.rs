@@ -736,8 +736,9 @@ impl BalanceService {
                         r#"
                         INSERT INTO payment_transactions (
                             payment_id, merchant_id, amount, amount_usd, crypto_type, status, to_address, 
-                            transaction_hash, description, created_at, sandbox_mode, fee_percentage, fee_amount, fee_amount_usd
-                        ) VALUES ($1, $2, $3, $4, $5, 'CONFIRMED', $6, $7, $8, NOW(), $9, $10, $11, $12)
+                            transaction_hash, description, created_at, sandbox_mode, fee_percentage, fee_amount, fee_amount_usd,
+                            network, expires_at, required_confirmations, confirmations
+                        ) VALUES ($1, $2, $3, $4, $5, 'CONFIRMED', $6, $7, $8, NOW(), $9, $10, $11, $12, $5, NOW() + INTERVAL '1 hour', 1, 1)
                         "#
                     )
                     .bind(public_id)
