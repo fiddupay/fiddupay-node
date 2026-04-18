@@ -123,7 +123,7 @@ jobs:
           command_timeout: 45m
           envs: BACKEND_CHANGED,FRONTEND_CHANGED
           script: |
-            set -ex
+            set -e
             export PATH="$HOME/.cargo/bin:$PATH"
             export CARGO_TARGET_DIR="/home/vibes/apps/shared/target"
             
