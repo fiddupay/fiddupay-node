@@ -3,8 +3,14 @@ name: FidduPay Unified Pipeline
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - 'fiddupay-node-sdk/**'
+      - 'docs/**'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - 'fiddupay-node-sdk/**'
+      - 'docs/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,6 +40,8 @@ jobs:
             shared:
               - 'README.md'
               - '.github/workflows/pipeline.yml'
+            sdk:
+              - 'fiddupay-node-sdk/**'
 
   backend-ci:
     name: Backend CI
@@ -101,8 +109,8 @@ jobs:
     if: |
       github.event_name == 'push' && 
       github.ref == 'refs/heads/main' && 
-      (needs.backend-ci.result == 'success' || needs.backend-ci.result == 'skipped') &&
-      (needs.frontend-ci.result == 'success' || needs.frontend-ci.result == 'skipped')
+      !contains(needs.*.result, 'failure') && 
+      !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH
@@ -152,7 +160,9 @@ jobs:
               npm install
               npm run build
             else
-              echo "[BUILD] Skipping Frontend Build (No frontend changes)"
+              echo "[BUILD] Reusing Existing Frontend Build..."
+              mkdir -p $DEPLOY_DIR/frontend
+              cp -r $CURRENT_LINK/frontend/dist $DEPLOY_DIR/frontend/dist
             fi
             
             # 3. Backend Build
@@ -163,9 +173,9 @@ jobs:
               mkdir -p target/release
               cp $CARGO_TARGET_DIR/release/fiddupay target/release/fiddupay
             else
-              echo "[BUILD] Skipping Backend Build (No backend changes)"
+              echo "[BUILD] Reusing Existing Backend Binary..."
               mkdir -p $DEPLOY_DIR/backend/target/release
-              cp $CARGO_TARGET_DIR/release/fiddupay $DEPLOY_DIR/backend/target/release/fiddupay
+              cp $CURRENT_LINK/backend/target/release/fiddupay $DEPLOY_DIR/backend/target/release/fiddupay
             fi
             
             # --- ATOMIC SWAP ---
