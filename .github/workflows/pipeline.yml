@@ -107,6 +107,7 @@ jobs:
     needs: [changes, backend-ci, frontend-ci]
     # Deploy if on main and CI was either successful or skipped
     if: |
+      always() &&
       github.event_name == 'push' && 
       github.ref == 'refs/heads/main' && 
       (needs.backend-ci.result == 'success' || needs.backend-ci.result == 'skipped') &&
