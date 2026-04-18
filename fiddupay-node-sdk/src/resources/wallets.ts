@@ -1,5 +1,5 @@
 import { HttpClient } from '../client';
-import { RequestOptions } from '../types';
+import { RequestOptions, WalletBalancesResponse } from '../types';
 
 export class Wallets {
   constructor(private client: HttpClient) { }
@@ -15,9 +15,9 @@ export class Wallets {
    * Get actual wallet balances and volume statistics
    * @param params Optional parameters like exclude_stats to speed up the query
    */
-  async getBalances(params?: { exclude_stats?: boolean }, options?: RequestOptions): Promise<{ wallets: any[] }> {
+  async getBalances(params?: { exclude_stats?: boolean }, options?: RequestOptions): Promise<WalletBalancesResponse> {
     const query = params?.exclude_stats ? '?exclude_stats=true' : '';
-    return this.client.request('GET', `/api/v1/merchants/wallets/balances${query}`, undefined, options);
+    return this.client.get<WalletBalancesResponse>(`/api/v1/merchants/wallets/balances${query}`, options);
   }
 
   /**

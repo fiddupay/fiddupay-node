@@ -1,4 +1,4 @@
-# FidduPay Node.js SDK Guide v2.6.14
+# FidduPay Node.js SDK Guide v2.6.16
 
 **Official Node.js SDK for FidduPay Cryptocurrency Payment Gateway**
 
@@ -16,7 +16,7 @@ The FidduPay Node.js SDK provides a simple, secure way to integrate cryptocurren
 Check your remaining daily volume:
 
 ```javascript
-const profile = await fiddupay.merchants.getProfile();
+const profile = await fiddupay.merchants.retrieve();
 console.log("KYC Status:", profile.kyc_verified);
 console.log("Daily Volume Remaining:", profile.daily_volume_remaining);
 ```
@@ -195,22 +195,19 @@ app.post(
 // Get merchant profile
 const merchant = await fiddupay.merchants.retrieve();
 
-// Update webhook URL
-await fiddupay.merchants.updateWebhook({
-  url: "https://example.com/webhooks/fiddupay",
+// Update settings (webhook, settlement mode, etc.)
+await fiddupay.merchants.updateSettings({
+  webhook_url: "https://example.com/webhooks/fiddupay",
+  settlement_mode: "managed"
 });
-
-// Get account balance
-const balance = await fiddupay.merchants.getBalance();
 
 // Configure wallet addresses
-await fiddupay.merchants.setWallet({
+await fiddupay.wallets.setup({
   crypto_type: "SOL",
+  mode: "address",
   address: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+  is_active: true
 });
-
-// Update settlement mode
-await fiddupay.merchants.updateSettlementMode("managed");
 
 // NEW: Unified Settings Update
 await fiddupay.merchants.updateSettings({
@@ -243,10 +240,10 @@ await fiddupay.wallets.setup({
 });
 
 // Get configurations
-const configs = await fiddupay.wallets.getConfigurations();
+const configs = await fiddupay.wallets.list();
 
 // NEW: Check Gas Balances (v2.4.6)
-const gasStatus = await fiddupay.security.checkGasBalances();
+const gasStatus = await fiddupay.security.gasCheck();
 console.log("Gas statuses:", gasStatus.wallets);
 ```
 
@@ -301,9 +298,7 @@ const customer = await fiddupay.customers.register({
 });
 
 // Provision wallets
-await client.customers.createWallets("user_123", {
-  networks: ["evm"],
-});
+await fiddupay.customers.provisionCustomerWallets("user_123", ["SOL", "ETH"]);
 
 // Customer Pay Merchant
 await client.customers.payMerchant("user_123", {
@@ -313,7 +308,7 @@ await client.customers.payMerchant("user_123", {
 });
 
 // Update permissions
-await client.customers.updatePermissions("user_123", {
+await fiddupay.customers.updatePermissions("user_123", {
   can_withdraw: true,
   withdrawal_limit: "1000",
 });
@@ -714,7 +709,7 @@ examples/
 
 ---
 
-**Document Version**: 2.6.14
-**Last Updated**: April 15, 2026
+**Document Version**: 2.6.16
+**Last Updated**: April 18, 2026
 **Next Review**: July 1, 2026  
 **Owner**: TechyTro Software - FidduPay SDK Team

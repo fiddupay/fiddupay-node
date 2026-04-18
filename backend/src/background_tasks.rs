@@ -3,8 +3,10 @@
 
 use chrono::Utc;
 use sqlx::PgPool;
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::RwLock;
 use tokio::time::interval;
 use tracing::{error, info, warn};
 
@@ -96,15 +98,24 @@ impl BackgroundTasks {
             tasks_webhook.run_webhook_retry().await;
         });
 
-        let tasks_solana_prod = self.clone();
-        tokio::spawn(async move {
-            tasks_solana_prod.run_solana_monitor(false).await;
-        });
+        let enable_sandbox = std::env::var("ENABLE_SANDBOX_MONITORS")
+            .unwrap_or_else(|_| "true".to_string())
+            .parse::<bool>()
+            .unwrap_or(true);
 
-        let tasks_solana_sandbox = self.clone();
-        tokio::spawn(async move {
-            tasks_solana_sandbox.run_solana_monitor(true).await;
-        });
+        if self.config.solana_enabled {
+            let tasks_solana_prod = self.clone();
+            tokio::spawn(async move {
+                tasks_solana_prod.run_solana_monitor(false).await;
+            });
+        }
+
+        if self.config.solana_enabled && enable_sandbox {
+            let tasks_solana_sandbox = self.clone();
+            tokio::spawn(async move {
+                tasks_solana_sandbox.run_solana_monitor(true).await;
+            });
+        }
 
         if self.config.bitcoin_enabled {
             let tasks_btc_prod = self.clone();
@@ -127,29 +138,50 @@ impl BackgroundTasks {
         let tasks_prod = self.clone();
         tokio::spawn(async move {
             for net in networks {
-                let tasks = tasks_prod.clone();
-                tokio::spawn(async move {
-                    tasks.run_evm_monitor(net, false).await;
-                });
+                let is_enabled = match net {
+                    "ETH" => tasks_prod.config.ethereum_enabled,
+                    "BNB" => tasks_prod.config.bsc_enabled,
+                    "MATIC" => tasks_prod.config.polygon_enabled,
+                    "ARB" => tasks_prod.config.arbitrum_enabled,
+                    _ => true,
+                };
+
+                if is_enabled {
+                    let tasks = tasks_prod.clone();
+                    tokio::spawn(async move {
+                        tasks.run_evm_monitor(net, false).await;
+                    });
+                } else {
+                    info!(
+                        "EVM monitor (Mainnet-{}) is disabled via feature flag.",
+                        net
+                    );
+                }
                 // Stagger monitor starts to prevent RPC request spikes
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
             }
         });
 
         // --- EVM Sandbox Monitors ---
-        let enable_sandbox = std::env::var("ENABLE_SANDBOX_MONITORS")
-            .unwrap_or_else(|_| "true".to_string())
-            .parse::<bool>()
-            .unwrap_or(true);
 
         if enable_sandbox {
             let tasks_sandbox = self.clone();
             tokio::spawn(async move {
                 for net in networks {
-                    let tasks = tasks_sandbox.clone();
-                    tokio::spawn(async move {
-                        tasks.run_evm_monitor(net, true).await;
-                    });
+                    let is_enabled = match net {
+                        "ETH" => tasks_sandbox.config.ethereum_enabled,
+                        "BNB" => tasks_sandbox.config.bsc_enabled,
+                        "MATIC" => tasks_sandbox.config.polygon_enabled,
+                        "ARB" => tasks_sandbox.config.arbitrum_enabled,
+                        _ => true,
+                    };
+
+                    if is_enabled {
+                        let tasks = tasks_sandbox.clone();
+                        tokio::spawn(async move {
+                            tasks.run_evm_monitor(net, true).await;
+                        });
+                    }
                     // Stagger sandbox starts as well
                     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
                 }
@@ -756,14 +788,16 @@ impl BackgroundTasks {
             // 1. Initial address fetch
             let addresses = Self::fetch_evm_addresses(&self.db_pool, network, sandbox_mode).await;
 
-            // 2. Setup dynamic address channel
+            // Initial monitored address set
+            let monitored_addresses = Arc::new(RwLock::new(
+                addresses.iter().cloned().collect::<HashSet<String>>(),
+            ));
+
+            // Setup dynamic address channel
             let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<String>();
             let db_clone = self.db_pool.clone();
             let network_clone = network;
-            let mut known = addresses
-                .iter()
-                .cloned()
-                .collect::<std::collections::HashSet<String>>();
+            let monitored_addresses_sync = monitored_addresses.clone();
 
             // Background task to discovery newly added wallets or payments
             tokio::spawn(async move {
@@ -775,9 +809,11 @@ impl BackgroundTasks {
                         sandbox_mode,
                     )
                     .await;
+
+                    let mut lock = monitored_addresses_sync.write().await;
                     for a in current {
-                        if !known.contains(&a) {
-                            known.insert(a.clone());
+                        if !lock.contains(&a) {
+                            lock.insert(a.clone());
                             let _ = tx.send(a);
                         }
                     }
@@ -814,12 +850,25 @@ impl BackgroundTasks {
             let net_name = network;
 
             // 4. Verification Callback
+            let monitored_addresses_callback = monitored_addresses.clone();
             let callback = Arc::new(move |hash: String, address: String| {
                 let db = db_clone.clone();
                 let v = verifier_clone.clone();
                 let addr_lwr = address.to_lowercase();
+                let monitored = monitored_addresses_callback.clone();
 
                 tokio::spawn(async move {
+                    // Optimized: Only hit DB if the address is in our monitored set
+                    {
+                        let lock = monitored.read().await;
+                        // For EVM, to_address in DB is usually stored lowercase or compared lowercase
+                        // Most internal addresses are added to the list in their original format,
+                        // but the monitor callback provides the address from the blockchain.
+                        if !lock.contains(&address) && !lock.contains(&addr_lwr) {
+                            return;
+                        }
+                    }
+
                     // Try to find if this belongs to a specific pending payment
                     let pending_res = sqlx::query(
                         "SELECT id, merchant_id FROM payment_transactions WHERE LOWER(to_address) = $1 AND status IN ('PENDING', 'CONFIRMING')"
@@ -936,22 +985,26 @@ impl BackgroundTasks {
                 continue;
             }
 
+            // Initial monitored address set (in-memory lock to avoid DB pressure)
+            let monitored_addresses = Arc::new(RwLock::new(
+                addresses.iter().cloned().collect::<HashSet<String>>(),
+            ));
+
             let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<String>();
             let db_clone = self.db_pool.clone();
             let sandbox_clone = sandbox_mode;
-            let mut known = addresses
-                .iter()
-                .cloned()
-                .collect::<std::collections::HashSet<String>>();
+            let monitored_addresses_sync = monitored_addresses.clone();
 
             tokio::spawn(async move {
                 loop {
                     tokio::time::sleep(Duration::from_secs(10)).await;
                     let current =
                         BackgroundTasks::fetch_solana_addresses(&db_clone, sandbox_clone).await;
+
+                    let mut lock = monitored_addresses_sync.write().await;
                     for a in current {
-                        if !known.contains(&a) {
-                            known.insert(a.clone());
+                        if !lock.contains(&a) {
+                            lock.insert(a.clone());
                             let _ = tx.send(a);
                         }
                     }
@@ -983,12 +1036,24 @@ impl BackgroundTasks {
             let db_clone = self.db_pool.clone();
             let verifier_clone = verifier.clone();
 
+            let monitored_addresses_callback = monitored_addresses.clone();
+
             // Callback for new signatures
             let callback = Arc::new(move |signature: String, address: String| {
                 let db = db_clone.clone();
                 let v = verifier_clone.clone();
                 let addr_clone = address.clone();
+                let monitored = monitored_addresses_callback.clone();
+
                 tokio::spawn(async move {
+                    // Optimized: Only hit DB if the address is in our monitored set
+                    {
+                        let lock = monitored.read().await;
+                        if !lock.contains(&addr_clone) {
+                            return;
+                        }
+                    }
+
                     // Optimized: Only check payments for the specific address that received the transaction
                     let pending_res = sqlx::query(
                         "SELECT id, merchant_id FROM payment_transactions WHERE to_address = $1 AND status IN ('PENDING', 'CONFIRMING')"

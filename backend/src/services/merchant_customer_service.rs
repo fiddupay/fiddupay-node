@@ -289,10 +289,24 @@ impl MerchantCustomerService {
                         continue;
                     }
 
-                    let keypair = KeyGenerator::generate_evm_wallet()?;
-                    let encrypted_key = encryption.encrypt(&keypair.private_key).map_err(|e| {
-                        ServiceError::InternalError(format!("Encryption failed: {}", e))
-                    })?;
+                    // Check if an EVM wallet already exists for this customer in the OTHER environment
+                    let existing: Option<(String, String)> = sqlx::query_as::<_, (String, String)>(
+                        "SELECT address, encrypted_private_key FROM merchant_customer_wallets WHERE customer_id = $1 AND network = 'ETHEREUM' AND sandbox_mode = $2 LIMIT 1"
+                    )
+                    .bind(customer.id)
+                    .bind(!sandbox_mode)
+                    .fetch_optional(&self.db_pool)
+                    .await?;
+
+                    let (address, encrypted_key) = if let Some((addr, key)) = existing {
+                        (addr, key)
+                    } else {
+                        let keypair = KeyGenerator::generate_evm_wallet()?;
+                        let enc_key = encryption.encrypt(&keypair.private_key).map_err(|e| {
+                            ServiceError::InternalError(format!("Encryption failed: {}", e))
+                        })?;
+                        (keypair.address, enc_key)
+                    };
 
                     let evm_cryptos = vec![
                         CryptoType::Eth,
@@ -312,7 +326,7 @@ impl MerchantCustomerService {
                                 customer_id: customer.id,
                                 merchant_id,
                                 crypto_type: crypto,
-                                address: keypair.address.clone(),
+                                address: address.clone(),
                                 encrypted_key: encrypted_key.clone(),
                                 sandbox_mode,
                                 bypass_lock,
@@ -327,10 +341,24 @@ impl MerchantCustomerService {
                         continue;
                     }
 
-                    let keypair = KeyGenerator::generate_solana_wallet()?;
-                    let encrypted_key = encryption.encrypt(&keypair.private_key).map_err(|e| {
-                        ServiceError::InternalError(format!("Encryption failed: {}", e))
-                    })?;
+                    // Check if a Solana wallet already exists for this customer in the OTHER environment
+                    let existing: Option<(String, String)> = sqlx::query_as::<_, (String, String)>(
+                        "SELECT address, encrypted_private_key FROM merchant_customer_wallets WHERE customer_id = $1 AND network = 'SOLANA' AND sandbox_mode = $2 LIMIT 1"
+                    )
+                    .bind(customer.id)
+                    .bind(!sandbox_mode)
+                    .fetch_optional(&self.db_pool)
+                    .await?;
+
+                    let (address, encrypted_key) = if let Some((addr, key)) = existing {
+                        (addr, key)
+                    } else {
+                        let keypair = KeyGenerator::generate_solana_wallet()?;
+                        let enc_key = encryption.encrypt(&keypair.private_key).map_err(|e| {
+                            ServiceError::InternalError(format!("Encryption failed: {}", e))
+                        })?;
+                        (keypair.address, enc_key)
+                    };
 
                     let sol_cryptos = vec![CryptoType::Sol, CryptoType::UsdtSpl];
 
@@ -340,7 +368,7 @@ impl MerchantCustomerService {
                                 customer_id: customer.id,
                                 merchant_id,
                                 crypto_type: crypto,
-                                address: keypair.address.clone(),
+                                address: address.clone(),
                                 encrypted_key: encrypted_key.clone(),
                                 sandbox_mode,
                                 bypass_lock,

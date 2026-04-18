@@ -1,5 +1,5 @@
 import { HttpClient } from '../client';
-import { Analytics, RequestOptions } from '../types';
+import { Analytics, RequestOptions, UnifiedTransactionsResponse } from '../types';
 
 export class AnalyticsResource {
   constructor(private client: HttpClient) { }
@@ -50,6 +50,9 @@ export class AnalyticsResource {
 
   /**
    * Get chronological feed combining payments, refunds, and withdrawals.
+   * Alias for listUnifiedTransactions()
+   * @deprecated Use listUnifiedTransactions() instead
+   * @returns A promise resolving to a list of {@link UnifiedTransaction} wrapped in a response object.
    */
   async getUnifiedTransactions(params?: {
     limit?: number;
@@ -57,7 +60,21 @@ export class AnalyticsResource {
     from_date?: string;
     to_date?: string;
     txn_type?: 'payment' | 'refund' | 'withdrawal';
-  }, options?: RequestOptions): Promise<any> {
+  }, options?: RequestOptions): Promise<UnifiedTransactionsResponse> {
+    return this.listUnifiedTransactions(params, options);
+  }
+
+  /**
+   * List combined analytical transactions (payments, refunds, withdrawals, customer txns)
+   * @returns A promise resolving to a list of {@link UnifiedTransaction} wrapped in a response object.
+   */
+  async listUnifiedTransactions(params?: {
+    limit?: number;
+    offset?: number;
+    from_date?: string;
+    to_date?: string;
+    txn_type?: 'payment' | 'refund' | 'withdrawal';
+  }, options?: RequestOptions): Promise<UnifiedTransactionsResponse> {
     const queryParams = new URLSearchParams();
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());

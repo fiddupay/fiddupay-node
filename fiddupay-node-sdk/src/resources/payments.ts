@@ -55,7 +55,7 @@ export class Payments {
    */
   async verify(paymentId: string, data: {
     transaction_hash: string
-  }, options?: RequestOptions): Promise<any> {
+  }, options?: RequestOptions): Promise<{ confirmed: boolean }> {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
@@ -66,7 +66,7 @@ export class Payments {
    * Trigger a background verification for a dynamic payment.
    * This is a lightweight alternative to manually providing a transaction hash.
    */
-  async triggerVerification(paymentId: string, options?: RequestOptions): Promise<{ message: string; status: string }> {
+  async triggerVerification(paymentId: string, options?: RequestOptions): Promise<{ status: string }> {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }

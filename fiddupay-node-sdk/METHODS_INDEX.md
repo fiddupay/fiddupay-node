@@ -41,6 +41,7 @@
 - `fiddupay.customers.getTransactions()`
 - `fiddupay.customers.deactivate()`
 - `fiddupay.customers.bulkProvision()` — provision wallets for multiple customers at once
+- `fiddupay.customers.getSummary()` — retrieve aggregate platform customer statistics
 
 ## Invoices (`fiddupay.invoices`)
 - `fiddupay.invoices.create()`
@@ -88,10 +89,11 @@
 - `fiddupay.security.acknowledgeAlert()`
 - `fiddupay.security.getBalanceAlerts()`
 - `fiddupay.security.resolveBalanceAlert()`
-- `fiddupay.security.checkGasBalances()`
-- `fiddupay.security.getSettings()`
 - `fiddupay.security.toggleWalletLock()`
 - `fiddupay.security.toggleCustomerWalletLock()`
+- `fiddupay.security.setTransactionPin()`
+- `fiddupay.security.verifyTransactionPin()`
+- `fiddupay.security.gasCheck()`
 
 ## Transactions (`fiddupay.transactions`)
 - `fiddupay.transactions.list()`
@@ -114,6 +116,11 @@
 - `fiddupay.withdrawals.validateGas()`
 - `fiddupay.withdrawals.getGasEstimates()`
 - `fiddupay.withdrawals.checkCapability()`
+
+## Notifications (`fiddupay.notifications`)
+- `fiddupay.notifications.list()`
+- `fiddupay.notifications.markRead()`
+- `fiddupay.notifications.delete()`
 
 ## Webhooks (`Webhooks`)
 - `Webhooks.constructEvent()` (Static Utility)

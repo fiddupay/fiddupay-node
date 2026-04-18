@@ -643,12 +643,12 @@ impl EvmMonitor {
                     let status = response.status();
                     if status == 429 {
                         warn!(
-                            "Rate limit (429) hit on {}, applying backoff delay...",
+                            "Rate limit (429) hit on {}, applying backoff delay (2s)...",
                             redact_url(url)
                         );
                         last_error = Some("Rate limit hit".to_string());
-                        // Apply backoff delay before trying the next RPC or retrying
-                        tokio::time::sleep(std::time::Duration::from_millis(800)).await;
+                        // Apply substantial backoff delay to allow provider throttle to clear
+                        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
                         continue;
                     }
                     if status == 401 || status == 403 {

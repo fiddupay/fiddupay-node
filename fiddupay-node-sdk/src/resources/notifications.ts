@@ -1,5 +1,5 @@
 import { HttpClient } from '../client';
-import { NotificationListResponse } from '../types';
+import { NotificationActionResult, NotificationListResponse } from '../types';
 
 export class Notifications {
   constructor(private client: HttpClient) {}
@@ -21,21 +21,21 @@ export class Notifications {
    * Mark notifications as read
    * @param notificationId optional specific ID to mark as read
    */
-  async markRead(notificationId?: string): Promise<{ success: boolean; message: string }> {
+  async markRead(notificationId?: string): Promise<NotificationActionResult> {
     const url = notificationId 
       ? `/api/v1/merchants/notifications/${notificationId}/mark-read`
       : '/api/v1/merchants/notifications/mark-read';
-    return this.client.post(url, {});
+    return this.client.post<NotificationActionResult>(url, {});
   }
 
   /**
    * Delete notifications
    * @param notificationId optional specific ID to delete
    */
-  async delete(notificationId?: string): Promise<{ success: boolean; message: string }> {
+  async delete(notificationId?: string): Promise<NotificationActionResult> {
     const url = notificationId
       ? `/api/v1/merchants/notifications/${notificationId}`
       : '/api/v1/merchants/notifications';
-    return this.client.delete(url);
+    return this.client.delete<NotificationActionResult>(url);
   }
 }

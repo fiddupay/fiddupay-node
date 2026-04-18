@@ -304,17 +304,158 @@
 }
 
 .link:hover {
-  color: var(--fiddu-primary-hover);
+  color: #1d4ed8;
   text-decoration: underline;
 }
 
+/* --- New Stepper Styles --- */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
+  position: relative;
+  padding: 0 1rem;
+}
+
+.stepper::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 3rem;
+  right: 3rem;
+  height: 2px;
+  background: #e2e8f0;
+  z-index: 1;
+  transform: translateY(-50%);
+}
+
+.stepWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 2;
+  background: #f8fafc;
+  padding: 0 0.5rem;
+}
+
+.stepCircle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  transition: all 0.3s ease;
+}
+
+.stepCircle.active {
+  border-color: #1e40af;
+  background: #1e40af;
+  color: white;
+  box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1);
+}
+
+.stepCircle.completed {
+  border-color: #059669;
+  background: #059669;
+  color: white;
+}
+
+.stepLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.stepLabel.active {
+  color: #1e40af;
+}
+
+/* --- Password Strength Indicator --- */
+.strengthContainer {
+  margin-top: 0.5rem;
+}
+
+.strengthBar {
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+  gap: 4px;
+}
+
+.strengthSegment {
+  flex: 1;
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.strengthLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.strengthText.weak { color: #ef4444; }
+.strengthText.fair { color: #f59e0b; }
+.strengthText.good { color: #3b82f6; }
+.strengthText.strong { color: #059669; }
+
+/* --- Password Match Indicator --- */
+.matchIndicator {
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+  transition: all 0.2s;
+}
+
+.matchIndicator.error { color: #ef4444; }
+.matchIndicator.success { color: #059669; }
+
+/* --- Coming Soon Badge --- */
+.roleCard.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  position: relative;
+  border-style: dashed;
+}
+
+.roleCard.disabled:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: #e2e8f0;
+}
+
+.comingSoonBadge {
+  position: absolute;
+  top: 1rem;
+  right: -0.5rem;
+  background: #6366f1;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 800;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: rotate(15deg);
+}
+
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideUp {
@@ -329,15 +470,9 @@
 }
 
 @keyframes shake {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  25% {
-    transform: translateX(-5px);
-  }
-  75% {
-    transform: translateX(5px);
-  }
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }
 
 @media (max-width: 640px) {

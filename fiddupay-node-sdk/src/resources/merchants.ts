@@ -1,17 +1,29 @@
 import { HttpClient } from '../client';
-import { Balance, LoginRequest, LoginResponse, Merchant, MerchantProfile, MerchantSettingsUpdateResponse, RequestOptions, UnifiedSettingsRequest } from '../types';
+import {
+  AuditLog,
+  Balance,
+  BalanceHistory,
+  LoginRequest,
+  LoginResponse,
+  Merchant,
+  MerchantProfile,
+  MerchantReadiness,
+  MerchantRegistrationRequest,
+  MerchantSettingsUpdateResponse,
+  RequestOptions,
+  SystemStatus,
+  UnifiedSettingsRequest,
+} from '../types';
 
 export class Merchants {
-  constructor(private client: HttpClient) { }
+  constructor(private client: HttpClient) {}
 
   /**
    * Register new merchant
    */
-  async register(data: {
-    email: string;
-    business_name: string;
-    password: string;
-  }): Promise<{ user: MerchantProfile; dashboard_token: string }> {
+  async register(
+    data: MerchantRegistrationRequest
+  ): Promise<LoginResponse> {
     return this.client.request('POST', '/api/v1/merchants/register', data);
   }
 
@@ -33,12 +45,7 @@ export class Merchants {
   /**
    * Get merchant readiness status (Checks KYC, wallet setup, etc.)
    */
-  async getReadiness(options?: RequestOptions): Promise<{ 
-    is_ready: boolean; 
-    missing_steps: string[]; 
-    settlement_mode: string;
-    sandbox_mode: boolean;
-  }> {
+  async getReadiness(options?: RequestOptions): Promise<MerchantReadiness> {
     return this.client.get('/api/v1/merchants/status', options);
   }
 
@@ -128,7 +135,7 @@ export class Merchants {
     action_type?: string;
     from?: string;
     to?: string;
-  }, options?: RequestOptions): Promise<any[]> {
+  }, options?: RequestOptions): Promise<AuditLog[]> {
     const queryParams = new URLSearchParams();
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.action_type) queryParams.append('action_type', params.action_type);
@@ -145,7 +152,7 @@ export class Merchants {
    */
   async getBalanceHistory(params?: {
     limit?: number;
-  }, options?: RequestOptions): Promise<{ points: any[] }> {
+  }, options?: RequestOptions): Promise<BalanceHistory> {
     const queryParams = new URLSearchParams();
     if (params?.limit) queryParams.append('limit', params.limit.toString());
 
@@ -176,7 +183,7 @@ export class Merchants {
   /**
    * Get system status (public endpoint)
    */
-  async getSystemStatus(): Promise<any> {
-    return this.client.request('GET', '/api/v1/status');
+  async getSystemStatus(): Promise<SystemStatus> {
+    return this.client.request<SystemStatus>('GET', '/api/v1/status');
   }
 }

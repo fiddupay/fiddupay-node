@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.16] - 2026-04-18
+
+### Added
+- **New Security Methods**: Added `Security.setTransactionPin(pin)` and `Security.verifyTransactionPin(pin)` for managing the 4-digit merchant transaction PIN.
+- **Improved Customer Management**: Added `Customers.bulkProvision(params)` for batch wallet generation and `Customers.deactivate(id)` for customer exclusion.
+- **Enhanced Type Safety**: Fully synchronized all SDK resources with backend v2.6.0+ structures.
+- **New Response Types**: Introduced `WalletBalancesResponse`, `UnifiedTransactionsResponse`, and `NotificationActionResult` to provide strictly-typed response envelopes.
+
+### Changed
+- **Consolidated Types**: Migrated all local resource type definitions to the centralized `src/types/index.ts` to ensure consistency and eliminate ambiguity.
+- **Transaction Parameter Alignment**: Updated `listUnifiedTransactions` (aliased as `getUnifiedTransactions`) with backend-consistent parameter names (`from_date`, `to_date`, `txn_type`).
+- **Standardized Return Types**: All list operations now return typed response envelopes instead of raw arrays, matching the latest API JSON responses.
+- **Documentation Overhaul**: Synchronized all JSDocs and the `NODE_SDK.md` guide with actual SDK method signatures (`getProfile` -> `retrieve`, etc.).
+
+### Fixed
+- **Wallet Balances Structure**: Fixed an inconsistency where wallet balances were typed as a raw array instead of an object containing a `wallets` key.
+- **Import Integrity**: Cleaned up unused imports and resolved TypeScript compilation warnings across all resources.
+- **SDK Parity**: Ensured all method names in documentation match the implemented SDK reality.
+
 ## [2.6.15] - 2026-04-18
 
 ### Added

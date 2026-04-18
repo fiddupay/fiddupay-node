@@ -48,6 +48,7 @@ export const API_DATA: DocSection[] = [
                     id: 123,
                     business_name: "My Crypto Store",
                     email: "merchant@example.com",
+                    role: "merchant",
                     created_at: "2026-01-26T06:00:00Z",
                     sandbox_mode: true,
                     settlement_mode: "managed",
@@ -120,7 +121,7 @@ export const API_DATA: DocSection[] = [
                 description: 'Assess merchant readiness, network coverage, and active security alerts to ensure the account is fully operational.',
                 request: {
                     curl: 'curl https://api.fiddupay.com/api/v1/merchants/status \\\n  -H "Authorization: Bearer sk_live_..."',
-                    node: 'const status = await fiddupay.merchants.getStatus();'
+                    node: 'const readiness = await fiddupay.merchants.getReadiness();'
                 },
                 response: JSON.stringify({
                     is_ready: true,
@@ -131,6 +132,7 @@ export const API_DATA: DocSection[] = [
                         active_alerts: 0,
                         critical_alerts: 0
                     },
+                    verification_status: "verified",
                     issues: []
                 }, null, 2)
             },
@@ -242,9 +244,9 @@ export const API_DATA: DocSection[] = [
                 parameters: [
                     { name: 'limit', type: 'integer', required: false, description: 'Number of records to return' },
                     { name: 'offset', type: 'integer', required: false, description: 'Pagination offset' },
-                    { name: 'start_date', type: 'string', required: false, description: 'ISO-8601 start date' },
-                    { name: 'end_date', type: 'string', required: false, description: 'ISO-8601 end date' },
-                    { name: 'transaction_type', type: 'string', required: false, description: 'payment, refund, or withdrawal' }
+                    { name: 'from_date', type: 'string', required: false, description: 'ISO-8601 start date' },
+                    { name: 'to_date', type: 'string', required: false, description: 'ISO-8601 end date' },
+                    { name: 'txn_type', type: 'string', required: false, description: 'payment, refund, or withdrawal' }
                 ],
                 request: {
                     curl: 'curl https://api.fiddupay.com/api/v1/merchants/transactions \\\n  -H "Authorization: Bearer sk_live_..."',
@@ -546,6 +548,39 @@ export const API_DATA: DocSection[] = [
                     address: "7x...",
                     crypto_type: "SOL"
                 }, null, 2)
+            },
+            {
+                id: 'bulk-provision-wallets',
+                method: 'POST',
+                path: '/api/v1/merchants/customers/bulk-provision',
+                title: 'Bulk Provision Wallets',
+                description: 'Generate deposit addresses for multiple customers at once or for your entire customer base.',
+                body: [
+                    { name: 'customer_ids', type: 'string[]', required: false, description: 'Specific IDs to process' },
+                    { name: 'all_customers', type: 'boolean', required: false, description: 'Process ALL registered customers' }
+                ],
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/bulk-provision \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"all_customers": true}\'',
+                    node: 'await fiddupay.customers.bulkProvision({ all_customers: true });'
+                },
+                response: JSON.stringify({
+                    count: 15,
+                    message: "15 customers successfully provisioned"
+                }, null, 2)
+            },
+            {
+                id: 'deactivate-customer',
+                method: 'POST',
+                path: '/api/v1/merchants/customers/:id/deactivate',
+                title: 'Deactivate Customer',
+                description: 'Permanently deactivate a customer, preventing any future activity while preserving history.',
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_1234/deactivate \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'await fiddupay.customers.deactivate("user_1234");'
+                },
+                response: JSON.stringify({
+                    message: "Customer deactivated successfully"
+                }, null, 2)
             }
         ]
     },
@@ -663,10 +698,12 @@ export const API_DATA: DocSection[] = [
                     curl: 'curl https://api.fiddupay.com/api/v1/merchants/wallets/balances \\\n  -H "Authorization: Bearer sk_live_..."',
                     node: 'const balances = await fiddupay.wallets.getBalances();'
                 },
-                response: JSON.stringify([
-                    { crypto_type: "SOL", balance: "5.234", balance_usd: "523.40" },
-                    { crypto_type: "USDT_ETH", balance: "100.0", balance_usd: "100.00" }
-                ], null, 2)
+                response: JSON.stringify({
+                    wallets: [
+                        { crypto_type: "SOL", available_balance: "5.234", available_usd: "523.40", total_balance: "5.234", total_usd: "523.40" },
+                        { crypto_type: "USDT_ETH", available_balance: "100.0", available_usd: "100.00", total_balance: "100.0", total_usd: "100.00" }
+                    ]
+                }, null, 2)
             }
         ]
     },
@@ -815,6 +852,40 @@ export const API_DATA: DocSection[] = [
                     locked: true,
                     message: "Customer wallet security lock enabled"
                 }, null, 2)
+            },
+            {
+                id: 'set-transaction-pin',
+                method: 'POST',
+                path: '/api/v1/merchants/security/transaction-pin',
+                title: 'Set Transaction PIN',
+                description: 'Set or update your 4-digit transaction PIN required for sensitive operations like withdrawals.',
+                body: [
+                    { name: 'pin', type: 'string', required: true, description: '4-digit numeric PIN' }
+                ],
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/security/transaction-pin \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"pin": "1234"}\'',
+                    node: 'await fiddupay.security.setTransactionPin("1234");'
+                },
+                response: JSON.stringify({
+                    message: "Transaction PIN updated successfully"
+                }, null, 2)
+            },
+            {
+                id: 'verify-transaction-pin',
+                method: 'POST',
+                path: '/api/v1/merchants/security/transaction-pin/verify',
+                title: 'Verify Transaction PIN',
+                description: 'Validate a transaction PIN for verification purposes.',
+                body: [
+                    { name: 'pin', type: 'string', required: true, description: '4-digit numeric PIN' }
+                ],
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/security/transaction-pin/verify \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"pin": "1234"}\'',
+                    node: 'const { valid } = await fiddupay.security.verifyTransactionPin("1234");'
+                },
+                response: JSON.stringify({
+                    valid: true
+                }, null, 2)
             }
         ]
     },
@@ -856,7 +927,7 @@ export const API_DATA: DocSection[] = [
                 description: 'Retrieve high-level metrics including total volume, transaction count, and fee summaries.',
                 request: {
                     curl: 'curl https://api.fiddupay.com/api/v1/merchants/analytics \\\n  -H "Authorization: Bearer sk_live_..."',
-                    node: 'const stats = await fiddupay.payments.getAnalytics();'
+                    node: 'const stats = await fiddupay.analytics.retrieve();'
                 },
                 response: JSON.stringify({
                     total_volume: "125000.50",
@@ -981,10 +1052,10 @@ export const API_DATA: DocSection[] = [
                 method: 'GET',
                 path: '/api/v1/merchants/audit-logs',
                 title: 'Retrieve Audit Logs',
-                description: 'Get a detailed chronological log of all administrative actions and system events for your account.\n\n### Supported Event Types:\n\n**Settings & Auth:**\n- `merchant_registration`: Merchant account creation\n- `login`: Successful logins\n- `api_key_generation` / `rotation`: API key modifications\n- `environment_switch`: Sandbox/Live switches\n- `merchant_settings_update`: Settings modifications\n- `wallet_lock_toggle` / `customer_wallet_lock_toggle`: Locking/unlocking wallets\n- `invoice_creation`: Generating payment invoices\n- `test_webhook_trigger`: Triggering test delivery\n\n**Customer Operations:**\n- `customer_registration`: Customer sub-account setup\n- `wallet_provisioning`: Pre-generating customer keys\n- `customer_status_updated`: Banning or flagging customers\n- `customer_permissions_updated`: Adjusting feature flags\n- `merchant_payment`: Direct payment to merchant balance\n- `wallet_sweep`: Emptying designed customer wallets\n- `customer_withdrawal`: Customer withdrawal request\n- `customer_deactivation`: Customer exclusion\n\n**Payments & Transactions:**\n- `payment_creation`: Inbound multi-chain payment trigger\n- `payment_cancellation`: Aborting payment setup\n- `payment_verification`: Manual hash verification\n- `payment_simulation`: Testing sandbox flows\n- `payment_selection_finalized`: Asset path set on payment',
+                description: 'Get a detailed chronological log of all administrative actions and system events for your account.\n\n### Supported Event Types:\n\n**Settings & Auth:**\n- `merchant_registration`: Merchant account creation\n- `login`: Successful logins\n- `api_key_generation` / `rotation`: API key modifications\n- `environment_switch`: Sandbox/Live switches\n- `merchant_settings_update`: Settings modifications\n- `wallet_lock_toggle` / `customer_wallet_lock_toggle`: Locking/unlocking wallets\n- `invoice_creation`: Generating payment invoices\n- `test_webhook_trigger`: Triggering test delivery\n- `transaction_pin_set`: PIN configuration\n\n**Customer Operations:**\n- `customer_registration`: Customer sub-account setup\n- `wallet_provisioning`: Pre-generating customer keys\n- `bulk_wallet_provisioning`: Batch provisioning trigger\n- `customer_status_updated`: Banning or flagging customers\n- `customer_permissions_updated`: Adjusting feature flags\n- `merchant_payment`: Direct payment to merchant balance\n- `wallet_sweep`: Emptying designed customer wallets\n- `customer_withdrawal`: Customer withdrawal request\n- `customer_deactivation`: Customer exclusion\n\n**Payments & Transactions:**\n- `payment_creation`: Inbound multi-chain payment trigger\n- `payment_cancellation`: Aborting payment setup\n- `payment_verification`: Manual hash verification\n- `payment_simulation`: Testing sandbox flows\n- `payment_selection_finalized`: Asset path set on payment\n- `address_only_payment_creation`: Native-mode payment trigger\n- `address_only_fee_setting_update`: Fee toggle changed',
                 request: {
                     curl: 'curl https://api.fiddupay.com/api/v1/merchants/audit-logs \\\n  -H "Authorization: Bearer sk_live_..."',
-                    node: 'const { data } = await fiddupay.auditLogs.list();'
+                    node: 'const logs = await fiddupay.merchants.getAuditLogs();'
                 },
                 response: JSON.stringify([
                     { timestamp: "2026-02-04T12:00:00Z", action: "API_KEY_ROTATED", actor: "merchant_user_1" }
@@ -998,7 +1069,7 @@ export const API_DATA: DocSection[] = [
                 description: 'Retrieve historical balance records for reconciliation and accounting purposes.',
                 request: {
                     curl: 'curl https://api.fiddupay.com/api/v1/merchants/balance/history \\\n  -H "Authorization: Bearer sk_live_..."',
-                    node: 'const { data } = await fiddupay.balances.getHistory();'
+                    node: 'const history = await fiddupay.merchants.getBalanceHistory();'
                 },
                 response: JSON.stringify([
                     { date: "2026-02-03", crypto_type: "USDT_ETH", balance: "1500.00" }

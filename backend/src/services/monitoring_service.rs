@@ -99,22 +99,46 @@ impl MonitoringService {
         let mut services = vec![];
 
         // Probe Ethereum RPC
-        services.push(
-            self.probe_rpc("Ethereum Node", &self.config.ethereum_rpc_url)
-                .await,
-        );
+        if self.config.ethereum_enabled {
+            services.push(
+                self.probe_rpc("Ethereum Node", &self.config.ethereum_rpc_url)
+                    .await,
+            );
+        }
 
         // Probe Solana RPC
-        services.push(
-            self.probe_rpc("Solana Node", &self.config.solana_rpc_url)
-                .await,
-        );
+        if self.config.solana_enabled {
+            services.push(
+                self.probe_rpc("Solana Node", &self.config.solana_rpc_url)
+                    .await,
+            );
+        }
 
         // Probe Bitcoin API (Blockstream or similar)
-        services.push(
-            self.probe_rpc("Bitcoin Node", &self.config.bitcoin_rpc_url)
-                .await,
-        );
+        if self.config.bitcoin_enabled {
+            services.push(
+                self.probe_rpc("Bitcoin Node", &self.config.bitcoin_rpc_url)
+                    .await,
+            );
+        }
+
+        // Probe BNB/Polygon/Arbitrum for completeness if needed (though dashboard mostly shows these 3)
+        // Add probes for others if they are enabled
+        if self.config.bsc_enabled {
+            services.push(self.probe_rpc("BNB Node", &self.config.bsc_rpc_url).await);
+        }
+        if self.config.polygon_enabled {
+            services.push(
+                self.probe_rpc("Polygon Node", &self.config.polygon_rpc_url)
+                    .await,
+            );
+        }
+        if self.config.arbitrum_enabled {
+            services.push(
+                self.probe_rpc("Arbitrum Node", &self.config.arbitrum_rpc_url)
+                    .await,
+            );
+        }
 
         // Core Dashboard Service (Self check)
         services.push(ServiceHealth {

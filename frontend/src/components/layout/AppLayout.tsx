@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/authStore'
 import Sidebar from './Sidebar'
 import Header from './Header'
 import { LiveDropToast } from './LiveDropToast'
-import LoadingSpinner from '../ui/LoadingSpinner'
+import { DashboardSkeleton } from './PageSkeletons'
 import styles from '@/styles/components/layout/AppLayout.module.css'
 
 const AppLayout: React.FC = () => {
@@ -15,11 +15,7 @@ const AppLayout: React.FC = () => {
   const closeMobileMenu = () => setIsMobileMenuOpen(false)
 
   if (loading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <LoadingSpinner />
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   if (!isAuthenticated) {

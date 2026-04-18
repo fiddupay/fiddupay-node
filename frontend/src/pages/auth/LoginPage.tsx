@@ -6,7 +6,7 @@ import { useLoading } from '@/contexts/LoadingContext'
 import styles from '@/styles/pages/auth/LoginPage.module.css'
 
 const LoginPage: React.FC = () => {
-  const { login, error, isAuthenticated } = useAuthStore()
+  const { login, isAuthenticated } = useAuthStore()
   const { showToast } = useToast()
   const { setLoading } = useLoading()
   const [showPassword, setShowPassword] = useState(false)
@@ -76,11 +76,7 @@ const LoginPage: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className={styles.form}>
-            {error && (
-              <div className={styles.errorAlert}>
-                {error}
-              </div>
-            )}
+            {/* Error alerts are now handled exclusively by toasts for a cleaner UI */}
 
             <div className={styles.inputGroup}>
               <label htmlFor="email">Email Address</label>

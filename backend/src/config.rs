@@ -150,6 +150,11 @@ pub struct Config {
     pub analytics_enabled: bool,
     pub maintenance_mode: bool,
     pub bitcoin_enabled: bool,
+    pub ethereum_enabled: bool,
+    pub bsc_enabled: bool,
+    pub polygon_enabled: bool,
+    pub arbitrum_enabled: bool,
+    pub solana_enabled: bool,
 
     // Environment
     pub environment: String,
@@ -216,7 +221,7 @@ impl Config {
             // Database
             database_url: env::var("DATABASE_URL")?,
             database_max_connections: env::var("DATABASE_MAX_CONNECTIONS")
-                .unwrap_or_else(|_| "20".to_string())
+                .unwrap_or_else(|_| "30".to_string())
                 .parse()?,
             database_timeout_seconds: env::var("DATABASE_TIMEOUT_SECONDS")
                 .unwrap_or_else(|_| "30".to_string())
@@ -501,6 +506,21 @@ impl Config {
                 .unwrap_or_else(|_| "false".to_string())
                 .parse()?,
             bitcoin_enabled: env::var("BITCOIN_ENABLED")
+                .unwrap_or_else(|_| "true".to_string())
+                .parse()?,
+            ethereum_enabled: env::var("ETH_ENABLED")
+                .unwrap_or_else(|_| "true".to_string())
+                .parse()?,
+            bsc_enabled: env::var("BNB_ENABLED")
+                .unwrap_or_else(|_| "true".to_string())
+                .parse()?,
+            polygon_enabled: env::var("MATIC_ENABLED")
+                .unwrap_or_else(|_| "true".to_string())
+                .parse()?,
+            arbitrum_enabled: env::var("ARB_ENABLED")
+                .unwrap_or_else(|_| "true".to_string())
+                .parse()?,
+            solana_enabled: env::var("SOLANA_ENABLED")
                 .unwrap_or_else(|_| "true".to_string())
                 .parse()?,
 
@@ -819,6 +839,11 @@ impl Default for Config {
             analytics_enabled: true,
             maintenance_mode: false,
             bitcoin_enabled: true,
+            ethereum_enabled: true,
+            bsc_enabled: true,
+            polygon_enabled: true,
+            arbitrum_enabled: true,
+            solana_enabled: true,
             environment: "test".to_string(),
             debug_mode: true,
             frontend_url: "http://localhost:3000".to_string(),

@@ -24,7 +24,15 @@ import SecurityPage from '@/pages/SecurityPage'
 import PublicSecurityPage from '@/pages/PublicSecurityPage'
 import CompliancePage from '@/pages/CompliancePage'
 import CookiesPage from '@/pages/CookiesPage'
-import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { 
+  DashboardSkeleton, 
+  TableSkeleton, 
+  WalletGridSkeleton, 
+  BalanceSkeleton, 
+  WithdrawalFormSkeleton,
+  SettingsSkeleton,
+  SecurityHubSkeleton
+} from '@/components/layout/PageSkeletons'
 import '@/styles/globals.css'
 
 // Helper for lazy loading with automatic retry on chunk load failure (e.g., during redeployment)
@@ -58,22 +66,7 @@ const App: React.FC = () => {
   }, [loadUser])
 
   if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div className="animate-spin" style={{
-          width: '2rem',
-          height: '2rem',
-          border: '2px solid #e5e7eb',
-          borderTop: '2px solid #1e40af',
-          borderRadius: '50%'
-        }} />
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   return (
@@ -110,7 +103,7 @@ const App: React.FC = () => {
               <Route
                 path="dashboard"
                 element={
-                  <React.Suspense fallback={<LoadingSpinner />}>
+                  <React.Suspense fallback={<DashboardSkeleton />}>
                     <DashboardPage />
                   </React.Suspense>
                 }
@@ -118,7 +111,7 @@ const App: React.FC = () => {
               <Route
                 path="payments"
                 element={
-                  <React.Suspense fallback={<LoadingSpinner />}>
+                  <React.Suspense fallback={<TableSkeleton rows={8} />}>
                     <PaymentsPage />
                   </React.Suspense>
                 }
@@ -126,7 +119,7 @@ const App: React.FC = () => {
               <Route
                 path="wallets"
                 element={
-                  <React.Suspense fallback={<LoadingSpinner />}>
+                  <React.Suspense fallback={<WalletGridSkeleton />}>
                     <WalletsPage />
                   </React.Suspense>
                 }
@@ -134,7 +127,7 @@ const App: React.FC = () => {
               <Route
                 path="balance"
                 element={
-                  <React.Suspense fallback={<LoadingSpinner />}>
+                  <React.Suspense fallback={<BalanceSkeleton />}>
                     <BalancePage />
                   </React.Suspense>
                 }
@@ -142,7 +135,7 @@ const App: React.FC = () => {
               <Route
                 path="withdrawals"
                 element={
-                  <React.Suspense fallback={<LoadingSpinner />}>
+                  <React.Suspense fallback={<WithdrawalFormSkeleton />}>
                     <WithdrawalsPage />
                   </React.Suspense>
                 }
@@ -151,7 +144,7 @@ const App: React.FC = () => {
               <Route
                 path="customers"
                 element={
-                  <React.Suspense fallback={<LoadingSpinner />}>
+                  <React.Suspense fallback={<TableSkeleton rows={8} />}>
                     <MerchantCustomersPage />
                   </React.Suspense>
                 }
@@ -159,7 +152,7 @@ const App: React.FC = () => {
               <Route
                 path="reports"
                 element={
-                  <React.Suspense fallback={<LoadingSpinner />}>
+                  <React.Suspense fallback={<TableSkeleton rows={8} />}>
                     <ReportsPage />
                   </React.Suspense>
                 }
@@ -167,7 +160,7 @@ const App: React.FC = () => {
               <Route
                 path="settings"
                 element={
-                  <React.Suspense fallback={<LoadingSpinner />}>
+                  <React.Suspense fallback={<SettingsSkeleton />}>
                     <SettingsPage />
                   </React.Suspense>
                 }
@@ -175,7 +168,7 @@ const App: React.FC = () => {
               <Route
                 path="security"
                 element={
-                  <React.Suspense fallback={<LoadingSpinner />}>
+                  <React.Suspense fallback={<SecurityHubSkeleton />}>
                     <SecurityPage />
                   </React.Suspense>
                 }

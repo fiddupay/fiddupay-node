@@ -1,7 +1,7 @@
-# FidduPay API Reference v2.6.11
+# FidduPay API Reference v2.6.16
 
 ## Base URL
-- **Sandbox**: `http://localhost:8080`
+- **Sandbox**: `https://api-sandbox.fiddupay.com`
 - **Production**: `https://api.fiddupay.com`
 
 ## Authentication
@@ -11,8 +11,8 @@ Authorization: Bearer sk_your_api_key_here
 ```
 
 ### API Key Formats
-- **Sandbox**: `sk_` prefix (e.g., `sk_1234567890abcdef...`)
-- **Production**: `live_` prefix (e.g., `live_1234567890abcdef...`)
+- **Sandbox**: `sk_sandbox_` prefix (e.g., `sk_sandbox_abc123...`)
+- **Production**: `sk_live_` prefix (e.g., `sk_live_abc123...`)
 
 ## Daily Volume Limits
 - **Non-KYC Merchants**: $1,000 USD daily volume limit (combined deposits + withdrawals)
@@ -629,19 +629,6 @@ Content-Type: application/json
 }
 ```
 
-### Withdraw from Customer Wallet
-```http
-POST /api/v1/merchants/customers/{external_id}/withdraw
-Authorization: Bearer {api_key}
-Content-Type: application/json
-
-{
-  "crypto_type": "SOL",
-  "amount": "1.0",
-  "destination_address": "external_wallet_address"
-}
-```
-
 ### Sweep Customer Wallet to Merchant
 ```http
 POST /api/v1/merchants/customers/{external_id}/sweep
@@ -649,8 +636,22 @@ Authorization: Bearer {api_key}
 Content-Type: application/json
 
 {
-  "crypto_type": "SOL",
-  "amount": "1.0" // Optional: Omit to sweep full balance
+  "sweep_mode": "ALL", // ALL, STABLE_ONLY, NATIVE_ONLY, SPECIFIC
+  "crypto_types": ["USDT_ETH"], // Optional: for SPECIFIC mode
+  "amount": "1.0", // Optional: Omit to sweep full balance
+  "pin": "1234" // Merchant's 4-digit Transaction PIN
+}
+```
+
+### Bulk Provision Customer Wallets
+```http
+POST /api/v1/merchants/customers/bulk-provision
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "customer_ids": ["user_123", "user_456"], // Optional
+  "all_customers": true // Optional
 }
 ```
 
@@ -671,10 +672,7 @@ Authorization: Bearer {api_key}
 Response:
 ```json
 {
-  "total_usd": "1250.50",
-  "available_usd": "1100.00",
-  "reserved_usd": "150.50",
-  "balances": [
+  "wallets": [
     {
       "crypto_type": "SOL",
       "total_balance": "10.0234",

@@ -1,24 +1,14 @@
 import { HttpClient } from '../client';
-import { RequestOptions } from '../types';
-
-export interface UnifiedTransaction {
-    type: 'payment' | 'refund' | 'withdrawal';
-    id: string;
-    crypto_amount: string;
-    usd_amount: string;
-    crypto_type: string;
-    status: string;
-    transaction_hash?: string;
-    created_at: string;
-}
+import { RequestOptions, UnifiedTransaction, UnifiedTransactionsResponse } from '../types';
 
 export class Transactions {
     constructor(private client: HttpClient) { }
 
     /**
      * List unified transactions (payments, refunds, withdrawals)
+     * @returns A promise resolving to a list of {@link UnifiedTransaction} wrapped in a response object.
      */
-    async list(params?: { limit?: number; [key: string]: any }, options?: RequestOptions): Promise<{ transactions: UnifiedTransaction[] }> {
+    async list(params?: { limit?: number; [key: string]: any }, options?: RequestOptions): Promise<UnifiedTransactionsResponse> {
         const queryParams = new URLSearchParams();
 
         if (params) {
@@ -31,6 +21,6 @@ export class Transactions {
         
         const query = queryParams.toString();
         const path = query ? `/api/v1/merchants/transactions?${query}` : '/api/v1/merchants/transactions';
-        return this.client.request('GET', path);
+        return this.client.request<UnifiedTransactionsResponse>('GET', path);
     }
 }

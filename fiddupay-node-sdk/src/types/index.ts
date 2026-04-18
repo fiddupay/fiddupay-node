@@ -23,6 +23,68 @@ export interface FidduPayConfig {
   baseURL?: string;
 }
 
+export interface MerchantRegistrationRequest {
+  email: string;
+  business_name: string;
+  password: string;
+  // Step 1 KYC
+  first_name: string;
+  last_name: string;
+  gender: string;
+  phone_number: string;
+  country: string;
+  applicant_role: string;
+  terms_accepted: boolean;
+  // Step 2 Business
+  business_country: string;
+  business_license_number?: string;
+  business_certificate_url?: string;
+}
+
+export interface SystemStatus {
+  overall_status: 'operational' | 'degraded' | 'outage' | 'initializing';
+  services: ServiceStatus[];
+  uptime_stats: UptimeStats;
+  last_updated: string;
+  system_metrics?: SystemMetrics;
+  past_incidents: SystemIncident[];
+}
+
+export interface ServiceStatus {
+  name: string;
+  description: string;
+  status: 'operational' | 'degraded' | 'outage';
+  response_time?: number;
+  last_check: string;
+  history: UptimePoint[];
+}
+
+export interface UptimePoint {
+  date: string;
+  status: 'operational' | 'degraded' | 'outage';
+}
+
+export interface UptimeStats {
+  seven_days: number;
+  fourteen_days: number;
+  thirty_days: number;
+}
+
+export interface SystemMetrics {
+  cpu_usage: number;
+  memory_usage_percent: number;
+}
+
+export interface SystemIncident {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  severity: string;
+  created_at: string;
+  resolved_at?: string;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -35,13 +97,16 @@ export interface LoginResponse {
   dashboard_token: string;
 }
 
+export type MerchantRole = 'MERCHANT' | 'ADMIN' | 'MODERATOR' | 'SUPER_ADMIN' | 'USER';
+
 export interface MerchantProfile {
   id: number;
   business_name: string;
   email: string;
+  role?: MerchantRole;
   created_at: string;
   kyc_verified: boolean;
-  daily_limit_usd: string;
+  daily_limit_usd: string | null;
   daily_volume_remaining: string;
   tier_level?: string;
   two_factor_enabled: boolean;
@@ -58,6 +123,7 @@ export interface MerchantProfile {
   low_balance_threshold_usd: string;
   low_balance_alerts_enabled: boolean;
   webhook_signing_secret?: string;
+  last_login_at?: string;
 }
 
 export interface CreatePaymentRequest {
@@ -264,6 +330,7 @@ export interface Merchant {
   email: string;
   business_name: string;
   status: 'pending_verification' | 'verified' | 'suspended';
+  role?: MerchantRole;
   balance: {
     available_usd: string;
     pending_usd: string;
@@ -272,6 +339,13 @@ export interface Merchant {
   low_balance_threshold_usd?: string;
   created_at: string;
   verified_at?: string;
+}
+
+export interface MerchantReadiness {
+  is_ready: boolean;
+  missing_steps: string[];
+  settlement_mode: string;
+  sandbox_mode: boolean;
 }
 
 export interface WebhookEvent {
@@ -527,6 +601,11 @@ export interface BalanceSummary {
 
 export type Balance = BalanceSummary; // The main balance endpoint now returns a summary
 
+export interface NotificationActionResult {
+  status: string;
+  affected: number;
+}
+
 export interface BalanceTrendPoint {
   date: string;
   total_usd: string;
@@ -537,9 +616,23 @@ export interface BalanceHistory {
   points: BalanceTrendPoint[];
 }
 
+export interface UnifiedTransaction {
+  type: 'payment' | 'refund' | 'withdrawal' | 'deposit' | 'sweep' | string;
+  id: string;
+  crypto_amount: string;
+  usd_amount: string;
+  crypto_type: string;
+  status: string;
+  transaction_hash?: string;
+  created_at: string;
+}
+
+export interface UnifiedTransactionsResponse {
+  transactions: UnifiedTransaction[];
+}
+
 export interface ListBalanceHistoryParams {
   limit?: number;
-  [key: string]: any;
 }
 
 export interface AuditLog {
@@ -559,7 +652,6 @@ export interface ListAuditLogsParams {
   to?: string;
   action_type?: string;
   limit?: number;
-  [key: string]: any;
 }
 
 // Sandbox Types
@@ -673,8 +765,7 @@ export interface BulkProvisionRequest {
 }
 
 export interface BulkProvisionResponse {
-  success_count: number;
-  failed_count: number;
+  count: number;
   message: string;
 }
 
@@ -710,6 +801,10 @@ export interface CustomerWallet {
 export interface CustomerWalletsResponse {
   external_id: string;
   wallets: CustomerWallet[];
+}
+
+export interface WalletBalancesResponse {
+  wallets: BalanceEntry[];
 }
 
 export interface CustomerTransaction {
@@ -805,40 +900,9 @@ export interface PricingResponse {
   };
 }
 
-export interface UptimePoint {
-  date: string;
-  status: string; // 'operational' | 'degraded' | 'outage'
-}
 
-export interface ServiceStatus {
-  name: string;
-  description: string;
-  status: string;
-  response_time?: number;
-  last_check: string;
-  history: UptimePoint[];
-}
 
-export interface UptimeStats {
-  seven_days: number;
-  fourteen_days: number;
-  thirty_days: number;
-}
 
-export interface SystemMetrics {
-  cpu_usage: number;
-  memory_usage_percent: number;
-}
-
-export interface SystemIncident {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  severity: string;
-  created_at: string;
-  resolved_at?: string;
-}
 
 /**
  * Notification Types
@@ -861,14 +925,7 @@ export interface NotificationListResponse {
   unread_count: number;
 }
 
-export interface SystemStatus {
-  overall_status: string;
-  services: ServiceStatus[];
-  uptime_stats: UptimeStats;
-  last_updated: string;
-  system_metrics?: SystemMetrics;
-  past_incidents: SystemIncident[];
-}
+
 
 /**
  * Customer Internal Payment Request

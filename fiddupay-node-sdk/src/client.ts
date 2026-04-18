@@ -1,9 +1,9 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import {
-    FidduPayAPIError,
-    FidduPayAuthenticationError,
-    FidduPayConnectionError,
-    FidduPayRateLimitError
+  FidduPayAPIError,
+  FidduPayAuthenticationError,
+  FidduPayConnectionError,
+  FidduPayRateLimitError
 } from './errors';
 import { FidduPayConfig, RequestOptions } from './types';
 
@@ -23,7 +23,7 @@ export class HttpClient {
       timeout: config.timeout || 30000,
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': '@fiddupay/node-sdk/2.6.14'
+        'User-Agent': '@fiddupay/node-sdk/2.6.15'
       },
       // Security configurations
       maxRedirects: 0, // Prevent redirect attacks
