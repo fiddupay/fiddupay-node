@@ -21,6 +21,7 @@ pub struct PaymentVerifier {
     redis_client: redis::Client,
     notification_service:
         std::sync::Arc<crate::services::notification_service::NotificationService>,
+    balance_service: std::sync::Arc<crate::services::balance_service::BalanceService>,
 }
 
 impl PaymentVerifier {
@@ -33,6 +34,7 @@ impl PaymentVerifier {
         notification_service: std::sync::Arc<
             crate::services::notification_service::NotificationService,
         >,
+        balance_service: std::sync::Arc<crate::services::balance_service::BalanceService>,
     ) -> Self {
         Self {
             db_pool,
@@ -41,6 +43,7 @@ impl PaymentVerifier {
             config,
             redis_client,
             notification_service,
+            balance_service,
         }
     }
 
@@ -614,6 +617,12 @@ impl PaymentVerifier {
 
         // Commit transaction BEFORE triggering side-effects like webhooks
         tx.commit().await?;
+
+        // 5. Trigger real-time balance update broadcast
+        let _ = self
+            .balance_service
+            .broadcast_balance_update(merchant_id, sandbox_mode)
+            .await;
 
         // Log fee recording for audit trail (Requirement 6.3)
         info!(
@@ -1319,6 +1328,12 @@ impl PaymentVerifier {
         .await?;
 
         tx.commit().await?;
+
+        // Trigger real-time balance update broadcast
+        let _ = self
+            .balance_service
+            .broadcast_balance_update(merchant_id, sandbox_mode)
+            .await;
 
         info!(
             "💰 Static deposit confirmed for merchant {}: {} {}",

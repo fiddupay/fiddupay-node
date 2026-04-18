@@ -2,6 +2,7 @@ import React from 'react';
 import styles from "./styles/CustomerDirectoryTable.module.css";
 import { Customer } from "./types";
 import { getStatusStyle, getInitials } from "./utils";
+import { TableSkeleton } from '@/components/layout/PageSkeletons';
 
 interface TableProps {
   loading: boolean;
@@ -60,9 +61,7 @@ const CustomerDirectoryTable: React.FC<TableProps> = ({
       </div>
 
       {loading ? (
-        <div className={styles.loadingOverlay}>
-          <i className="fas fa-circle-notch fa-spin fa-3x"></i>
-        </div>
+        <TableSkeleton rows={8} columns={6} />
       ) : filteredCustomers.length === 0 ? (
         <div className={styles.noData}>
           <i className="fas fa-users-slash"></i>

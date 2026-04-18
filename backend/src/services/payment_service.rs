@@ -71,6 +71,7 @@ pub struct PaymentServiceConfig {
     pub redis_client: redis::Client,
     pub volume_tracking: Arc<crate::services::volume_tracking_service::VolumeTrackingService>,
     pub notification_service: Arc<NotificationService>,
+    pub balance_service: Arc<crate::services::balance_service::BalanceService>,
 }
 
 impl PaymentService {
@@ -96,6 +97,7 @@ impl PaymentService {
                 deps.config.clone(),
                 deps.redis_client,
                 deps.notification_service.clone(),
+                deps.balance_service,
             ),
             db_pool: deps.db_pool,
             config: deps.config,

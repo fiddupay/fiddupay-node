@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { MdCheckCircle, MdClose } from 'react-icons/md';
 import { useNotificationStore } from '@/stores/notificationStore';
 
+import { useBalanceStore } from '@/stores/balanceStore';
+
 interface ToastMessage {
   id: string;
   amount: string;
@@ -12,6 +14,7 @@ interface ToastMessage {
 export const LiveDropToast: React.FC = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const { addNotification } = useNotificationStore();
+  const { updateBalance } = useBalanceStore();
 
   useEffect(() => {
     const token = localStorage.getItem('fiddupay_dashboard_token') || sessionStorage.getItem('fiddupay_dashboard_token');
@@ -19,18 +22,44 @@ export const LiveDropToast: React.FC = () => {
 
     let socket: WebSocket | null = null;
     let reconnectTimeout: ReturnType<typeof setTimeout>;
+    let reconnectAttempt = 0;
+    const MAX_RECONNECT_DELAY_MS = 60_000; // Cap at 60 seconds
+    const BASE_DELAY_MS = 1_000; // Start at 1 second
+
+    const getReconnectDelay = (): number => {
+      // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 32s, 60s (capped)
+      const exponentialDelay = Math.min(
+        BASE_DELAY_MS * Math.pow(2, reconnectAttempt),
+        MAX_RECONNECT_DELAY_MS
+      );
+      // Add random jitter (0–1000ms) to prevent thundering herd
+      const jitter = Math.random() * 1000;
+      return exponentialDelay + jitter;
+    };
 
     const connect = () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'https://api.fiddupay.com';
       const wsUrl = apiUrl.replace(/^http/, 'ws') + `/api/v1/merchants/ws`;
 
-      console.log('Connecting to notification stream...');
+      console.log(`[WS] Connecting (attempt ${reconnectAttempt + 1})...`);
       const ws = new WebSocket(wsUrl, token);
       socket = ws;
+
+      ws.onopen = () => {
+        console.log('[WS] Connected successfully');
+        reconnectAttempt = 0; // Reset backoff on successful connection
+      };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+
+          // Handle Balance Updates (Silent global state sync)
+          if (data.event === 'merchant.balance_updated') {
+            updateBalance(data.data);
+            return;
+          }
+
           if (data.event === 'merchant.deposit' || data.event === 'customer.deposit') {
             const newToast: ToastMessage = {
               id: Math.random().toString(),
@@ -59,13 +88,14 @@ export const LiveDropToast: React.FC = () => {
       };
 
       ws.onclose = () => {
-        console.warn('Notification stream closed. Retrying in 5s...');
-        reconnectTimeout = setTimeout(connect, 5000);
+        const delay = getReconnectDelay();
+        console.warn(`[WS] Disconnected. Reconnecting in ${(delay / 1000).toFixed(1)}s (attempt ${reconnectAttempt + 1})...`);
+        reconnectAttempt++;
+        reconnectTimeout = setTimeout(connect, delay);
       };
 
       ws.onerror = (err: any) => {
-        // Log a descriptive string instead of the raw Event object to avoid confusion
-        console.error('Notification stream error identifying connection issue:', err.message || 'Connection failed');
+        console.error('[WS] Connection error:', err.message || 'Connection failed');
         ws.close();
       };
     };

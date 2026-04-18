@@ -23,7 +23,6 @@ pub struct MerchantCustomer {
     pub withdrawal_limit: Option<Decimal>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub sandbox_mode: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]

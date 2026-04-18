@@ -13,6 +13,7 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI, securityAPI, addressOnlyAPI } from '@/services/apiService'
 import { useToast } from '@/contexts/ToastContext'
+import { SettingsSkeleton } from '@/components/layout/PageSkeletons'
 import styles from '@/styles/pages/SettingsPage.module.css'
 
 // Modular Tabs
@@ -130,6 +131,7 @@ const SettingsPage: React.FC = () => {
     }
 
     const fetchSettings = async () => {
+        setLoading(true)
         try {
             // We don't need to call getProfile here because loadUser() in authStore does it
             // But we do need specific settings that might not be on the user object yet or require separate calls?
@@ -154,12 +156,13 @@ const SettingsPage: React.FC = () => {
             try {
                 const aoFeeRes = await addressOnlyAPI.getFeeSetting()
                 setAddressOnlyCustomerPaysFee(aoFeeRes.data.customer_pays_fee)
-            } catch (err) {
-                console.warn('Address-Only settings not available', err)
+            } finally {
+                setLoading(false)
             }
-
         } catch (error) {
             console.error('Failed to fetch settings', error)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -374,6 +377,10 @@ const SettingsPage: React.FC = () => {
         } finally {
             setLoading(false)
         }
+    }
+
+    if (loading && !user) {
+        return <SettingsSkeleton />
     }
 
     return (

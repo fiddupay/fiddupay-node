@@ -46,6 +46,7 @@ pub struct BackgroundTasks {
     redis_client: redis::Client,
     notification_service: Arc<crate::services::notification_service::NotificationService>,
     blockchain_sender: Arc<BlockchainTransactionSender>,
+    balance_service: Arc<crate::services::balance_service::BalanceService>,
 }
 
 impl BackgroundTasks {
@@ -56,6 +57,7 @@ impl BackgroundTasks {
         redis_client: redis::Client,
         notification_service: Arc<crate::services::notification_service::NotificationService>,
         blockchain_sender: Arc<BlockchainTransactionSender>,
+        balance_service: Arc<crate::services::balance_service::BalanceService>,
     ) -> Self {
         let webhook_service = Arc::new(WebhookService::new(
             db_pool.clone(),
@@ -69,6 +71,7 @@ impl BackgroundTasks {
             redis_client,
             notification_service,
             blockchain_sender,
+            balance_service,
         }
     }
 
@@ -103,10 +106,14 @@ impl BackgroundTasks {
             tasks_solana_sandbox.run_solana_monitor(true).await;
         });
 
-        let tasks_btc_prod = self.clone();
-        tokio::spawn(async move {
-            tasks_btc_prod.run_btc_monitor(false).await;
-        });
+        if self.config.bitcoin_enabled {
+            let tasks_btc_prod = self.clone();
+            tokio::spawn(async move {
+                tasks_btc_prod.run_btc_monitor(false).await;
+            });
+        } else {
+            info!("Bitcoin monitor (Mainnet) is disabled via BITCOIN_ENABLED.");
+        }
 
         let _tasks_btc_sandbox = self.clone();
         tokio::spawn(async move {
@@ -178,6 +185,30 @@ impl BackgroundTasks {
         let balance_tasks = self.clone();
         tokio::spawn(async move {
             balance_tasks.run_balance_monitor().await;
+        });
+
+        let idempotency_pool = self.db_pool.clone();
+        tokio::spawn(async move {
+            let mut cleanup_interval = interval(Duration::from_secs(3600)); // Every hour
+            loop {
+                cleanup_interval.tick().await;
+                match sqlx::query("DELETE FROM idempotency_keys WHERE expires_at < NOW()")
+                    .execute(&idempotency_pool)
+                    .await
+                {
+                    Ok(result) => {
+                        if result.rows_affected() > 0 {
+                            info!(
+                                "🧹 Pruned {} expired idempotency keys",
+                                result.rows_affected()
+                            );
+                        }
+                    }
+                    Err(e) => {
+                        warn!("Failed to prune idempotency keys: {}", e);
+                    }
+                }
+            }
         });
 
         info!("Background tasks started");
@@ -775,6 +806,7 @@ impl BackgroundTasks {
                 self.config.clone(),
                 self.redis_client.clone(),
                 self.notification_service.clone(),
+                self.balance_service.clone(),
             ));
 
             let db_clone = self.db_pool.clone();
@@ -945,6 +977,7 @@ impl BackgroundTasks {
                 self.config.clone(),
                 self.redis_client.clone(),
                 self.notification_service.clone(),
+                self.balance_service.clone(),
             ));
 
             let db_clone = self.db_pool.clone();
@@ -1100,6 +1133,7 @@ impl BackgroundTasks {
                 self.config.clone(),
                 self.redis_client.clone(),
                 self.notification_service.clone(),
+                self.balance_service.clone(),
             );
 
             let monitor = crate::payment::blockchain_monitor::btc_monitor::BtcMonitor::from_config(

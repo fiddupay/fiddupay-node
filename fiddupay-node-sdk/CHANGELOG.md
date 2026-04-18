@@ -2,25 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.6.15] - 2026-04-17
+## [2.6.15] - 2026-04-18
 
 ### Added
 
 - **Balance Summary Support**: Added `BalanceSummary` and `BalanceEntry` types to support the new database-optimized balance reporting structure.
 - **Webhook Secret Visibility**: Restored `webhook_signing_secret` to `MerchantProfile` and `UnifiedSettingsRequest` interfaces to support frontend display requirements.
 - **Rotation Capture**: Introduced `MerchantSettingsUpdateResponse` to allow developers to capture the `new_webhook_secret` directly from the result of a rotation request.
+- **Webhook Signature Utilities**: Exported `WebhookSignatureComponents` interface and added `Webhooks.parseSignatureHeader()` for manual signature inspection and debugging.
+- **Idempotency Support**: Backend now supports the `Idempotency-Key` request header on all mutating endpoints. Duplicate requests within the TTL window return the cached original response. Pass `idempotencyKey` in `RequestOptions` to enable.
 
 ### Changed
 
 - **Performance Optimization**: Updated `merchants.getBalance()` and `wallet.getBalances()` to return the new summary-based structure, replacing N+1 queries with batch database lookups.
 - **`Merchants.updateSettings`**: Updated return type from a generic object to `MerchantSettingsUpdateResponse` to support immediate secret capture.
 - **Field Synchronization**: Renamed wallet balance fields (e.g., `available_usd`, `total_usd`) to match backend JSON keys while maintaining legacy aliases for compatibility.
+- **Global Customer Profiles**: Customers are now shared across Live and Sandbox environments. A single `external_id` maps to one customer profile regardless of API key mode. Removed `sandbox_mode` from `MerchantCustomer` type. Wallets, balances, and transactions remain environment-scoped.
+- **Webhook Verification Hardened**: `Webhooks.verifySignature()` now throws descriptive `FidduPayError` instances instead of returning `boolean`. `Webhooks.constructEvent()` behavior is unchanged (still throws on failure). Added support for multiple `v1=` signatures for seamless key rotation.
+- **`Webhooks.generateSignature()`**: Now accepts an optional `timestamp` parameter for deterministic test fixtures.
 
 ### Fixed
 
-- **Webhook Rotation Persistence**: Resolved an issue where secret rotation failed for new merchants without prior webhook configurations by implementating an upsert mechanism.
+- **Webhook Rotation Persistence**: Resolved an issue where secret rotation failed for new merchants without prior webhook configurations by implementing an upsert mechanism.
 - **Secret Display Gap**: Fixed a gap where newly rotated secrets were not returned in the API response, causing display delays in the dashboard.
-
 
 ## [2.6.14] - 2026-04-17
 
@@ -51,12 +55,17 @@ All notable changes to this project will be documented in this file.
 
 The following backend changes improve platform reliability and security. No SDK code changes are required, but developers should be aware:
 
+#### Bitcoin Maintenance Mode
+
+- **`BITCOIN_ENABLED` toggle**: Operators can now pause all Bitcoin operations (monitoring, broadcasting, wallet provisioning) by setting `BITCOIN_ENABLED=false`. Existing balances and history remain visible. New BTC payments will not be detected and outgoing BTC transfers are blocked with a descriptive maintenance error.
+
 #### Security Hardening
 
 - **Webhook signing secret removed from API responses**: `GET /settings` no longer returns `webhook_signing_secret` to prevent signature forgery if API responses are intercepted.
 - **Sensitive data stripped from logs**: Wallet addresses, transaction amounts, and bearer tokens are no longer written to any log level.
 - **Debug logging sanitized**: Payment verifier logs no longer contain recipient address mismatches or blockchain timestamps.
 - **Webhook response bodies no longer logged**: Prevents sensitive data exposure in failure scenarios.
+- **Idempotency keys**: All mutating API requests now support idempotency via the `Idempotency-Key` header to prevent double-processing under network retries or concurrent requests.
 
 #### Infrastructure Hardening
 

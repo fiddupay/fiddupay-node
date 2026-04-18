@@ -32,13 +32,19 @@ pub struct BalanceSummary {
 pub struct BalanceService {
     db_pool: PgPool,
     price_service: Arc<PriceService>,
+    redis_client: redis::Client,
 }
 
 impl BalanceService {
-    pub fn new(db_pool: PgPool, price_service: Arc<PriceService>) -> Self {
+    pub fn new(
+        db_pool: PgPool,
+        price_service: Arc<PriceService>,
+        redis_client: redis::Client,
+    ) -> Self {
         Self {
             db_pool,
             price_service,
+            redis_client,
         }
     }
 
@@ -396,6 +402,21 @@ impl BalanceService {
             .fetch_one(&self.db_pool)
             .await?;
 
+            // Calculate total refunds
+            let refund_data = sqlx::query(
+                r#"
+                SELECT COALESCE(SUM(amount), 0) as total_refunded
+                FROM refunds 
+                WHERE merchant_id = $1 AND status = 'COMPLETED' AND sandbox_mode = $2
+                AND payment_id IN (SELECT id FROM payment_transactions WHERE crypto_type = $3)
+                "#,
+            )
+            .bind(merchant_id)
+            .bind(sandbox_mode)
+            .bind(crypto_type.to_string())
+            .fetch_one(&self.db_pool)
+            .await?;
+
             // Calculate withdrawals
             let withdrawal_data = sqlx::query(
                 r#"
@@ -425,8 +446,13 @@ impl BalanceService {
                 .ok()
                 .flatten()
                 .unwrap_or(Decimal::ZERO);
+            let refunded: Decimal = refund_data
+                .try_get::<Option<Decimal>, _>("total_refunded")
+                .ok()
+                .flatten()
+                .unwrap_or(Decimal::ZERO);
 
-            let available_balance = confirmed_balance - withdrawn;
+            let available_balance = confirmed_balance - withdrawn - refunded;
             let _total_balance = available_balance + reserved_balance;
 
             // Update balance record
@@ -449,6 +475,34 @@ impl BalanceService {
             .bind(sandbox_mode)
             .execute(&self.db_pool)
             .await?;
+        }
+
+        // 4. Push real-time update to dashboard
+        let _ = self
+            .broadcast_balance_update(merchant_id, sandbox_mode)
+            .await;
+
+        Ok(())
+    }
+
+    pub async fn broadcast_balance_update(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+    ) -> Result<(), ServiceError> {
+        let summary = self.get_all_balances(merchant_id, sandbox_mode).await?;
+
+        if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
+            let notification = serde_json::json!({
+                "event": "merchant.balance_updated",
+                "data": summary
+            });
+            let channel = format!("merchant_notifications:{}", merchant_id);
+            let _: redis::RedisResult<()> = redis::cmd("PUBLISH")
+                .arg(&channel)
+                .arg(notification.to_string())
+                .query_async(&mut publish_conn)
+                .await;
         }
 
         Ok(())

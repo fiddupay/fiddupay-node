@@ -11,12 +11,15 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::info;
 
+use crate::services::balance_service::BalanceService;
+
 pub struct BalanceMonitor {
     db_pool: PgPool,
     blockchain_sender: Arc<BlockchainTransactionSender>,
     price_service: Arc<PriceService>,
     notification_service: Arc<NotificationService>,
     webhook_service: Arc<WebhookNotificationService>,
+    balance_service: Arc<BalanceService>,
 }
 
 pub struct BalanceCheckParams<'a> {
@@ -37,6 +40,7 @@ impl BalanceMonitor {
         price_service: Arc<PriceService>,
         notification_service: Arc<NotificationService>,
         webhook_service: Arc<WebhookNotificationService>,
+        balance_service: Arc<BalanceService>,
     ) -> Self {
         Self {
             db_pool,
@@ -44,6 +48,7 @@ impl BalanceMonitor {
             price_service,
             notification_service,
             webhook_service,
+            balance_service,
         }
     }
 
@@ -54,6 +59,13 @@ impl BalanceMonitor {
         merchant_id: i64,
         is_live: bool,
     ) -> Result<(), ServiceError> {
+        // 1. Force a ledger recalculation from transactions & withdrawals & refunds
+        // This ensures the dashboard always shows fresh data upon login/view.
+        let _ = self
+            .balance_service
+            .refresh_balances_from_blockchain(merchant_id, !is_live)
+            .await;
+
         let merchant = sqlx::query(
             "SELECT id, business_name, low_balance_threshold_usd FROM merchants WHERE id = $1 AND is_active = true"
         )

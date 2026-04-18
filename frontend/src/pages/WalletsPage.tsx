@@ -6,6 +6,8 @@ import { useToast } from '@/contexts/ToastContext'
 import { useAuthStore } from '@/stores/authStore'
 import { Link } from 'react-router-dom'
 
+import { WalletGridSkeleton } from '@/components/layout/PageSkeletons'
+
 const WalletsPage: React.FC = () => {
   const [wallets, setWallets] = useState<Wallet[]>([])
   const [loading, setLoading] = useState(true)
@@ -263,13 +265,7 @@ const WalletsPage: React.FC = () => {
   }
 
   if (loading && wallets.length === 0) {
-    return (
-      <div className={styles.walletsPage}>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </div>
-    )
+    return <WalletGridSkeleton />;
   }
 
   return (

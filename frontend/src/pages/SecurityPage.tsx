@@ -6,13 +6,13 @@ import {
     MdCheckCircle, 
     MdWarning, 
     MdError, 
-    MdInfo,
-    MdRefresh
+    MdInfo
 } from 'react-icons/md'
 import { securityAPI, merchantAPI } from '@/services/apiService'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/contexts/ToastContext'
 import { SecurityEvent, SecurityAlert } from '@/types'
+import { SecurityHubSkeleton, TableSkeleton } from '@/components/layout/PageSkeletons'
 import styles from '@/styles/pages/SecurityPage.module.css'
 
 const formatDate = (dateString: string) => {
@@ -149,7 +149,7 @@ const SecurityPage: React.FC = () => {
                 {activeTab === 'alerts' && (
                     <div className={styles.alertsList}>
                         {loading ? (
-                             <div className={styles.emptyState}><MdRefresh className="animate-spin text-2xl" /> Loading alerts...</div>
+                             <SecurityHubSkeleton />
                         ) : alerts.length > 0 ? (
                             alerts.map(alert => (
                                 <div key={alert.id} className={styles.alertCard}>
@@ -198,16 +198,24 @@ const SecurityPage: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {events.map(event => (
-                                    <tr key={event.id}>
-                                        <td>
-                                            <span className="font-semibold">{event.action_type.replace(/_/g, ' ')}</span>
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={4}>
+                                            <TableSkeleton rows={10} columns={4} />
                                         </td>
-                                        <td>{event.description}</td>
-                                        <td><code className="bg-gray-100 px-1 rounded text-xs">{event.ip_address}</code></td>
-                                        <td>{formatDate(event.created_at)}</td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    events.map(event => (
+                                        <tr key={event.id}>
+                                            <td>
+                                                <span className="font-semibold">{event.action_type.replace(/_/g, ' ')}</span>
+                                            </td>
+                                            <td>{event.description}</td>
+                                            <td><code className="bg-gray-100 px-1 rounded text-xs">{event.ip_address}</code></td>
+                                            <td>{formatDate(event.created_at)}</td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                         {!loading && events.length === 0 && (

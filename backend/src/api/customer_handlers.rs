@@ -8,6 +8,7 @@ use crate::models::merchant_customer::{
     UpdateCustomerStatusRequest,
 };
 use crate::services::merchant_customer_service::MerchantCustomerService;
+use std::sync::Arc;
 const _V1_PLACEHOLDER: &str = "v1";
 use crate::error::ServiceError;
 use axum::{
@@ -36,6 +37,8 @@ pub async fn register_customer(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
 
     match service
@@ -83,6 +86,8 @@ pub async fn provision_customer_wallets(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
 
     match service
@@ -152,6 +157,8 @@ pub async fn bulk_provision_customer_wallets(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
 
     match service
@@ -198,6 +205,8 @@ pub async fn get_customer_balances(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
 
     match service
@@ -281,6 +290,8 @@ pub async fn get_customer_wallets(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
 
     match service
@@ -309,6 +320,8 @@ pub async fn get_deposit_address(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
 
     match service
@@ -350,6 +363,8 @@ pub async fn get_customer_transactions(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
     let limit = params.limit.unwrap_or(50);
     let offset = params.offset.unwrap_or(0);
@@ -432,6 +447,8 @@ pub async fn pay_merchant(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
 
     tracing::debug!(
@@ -513,6 +530,8 @@ pub async fn update_customer_status(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
 
     match service
@@ -521,7 +540,6 @@ pub async fn update_customer_status(
             &external_id,
             &req.status,
             req.reason.as_deref(),
-            context.sandbox_mode,
         )
         .await
     {
@@ -567,6 +585,8 @@ pub async fn update_customer_permissions(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
 
     let withdrawal_limit = req
@@ -580,7 +600,6 @@ pub async fn update_customer_permissions(
             &external_id,
             req.can_withdraw,
             withdrawal_limit,
-            context.sandbox_mode,
         )
         .await
     {
@@ -642,6 +661,8 @@ pub async fn sweep_customer_wallet(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
 
     match service
@@ -717,12 +738,14 @@ pub async fn list_customers(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
     let limit = params.limit.unwrap_or(50);
     let offset = params.offset.unwrap_or(0);
 
     match service
-        .list_customers(context.merchant_id, limit, offset, context.sandbox_mode)
+        .list_customers(context.merchant_id, limit, offset)
         .await
     {
         Ok((customers, total)) => (
@@ -749,6 +772,8 @@ pub async fn get_customers_summary(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
 
     match service
@@ -770,10 +795,12 @@ pub async fn deactivate_customer(
         state.price_service.clone(),
         state.volume_tracking_service.clone(),
         state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
     );
 
     match service
-        .deactivate_customer(context.merchant_id, &external_id, context.sandbox_mode)
+        .deactivate_customer(context.merchant_id, &external_id)
         .await
     {
         Ok(_) => {

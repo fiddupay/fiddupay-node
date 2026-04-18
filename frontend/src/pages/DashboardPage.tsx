@@ -11,10 +11,10 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI, paymentAPI, securityAPI, walletAPI } from '@/services/apiService'
-import { Balance, SecurityAlert } from '../types'
+import { SecurityAlert } from '../types'
 import { MdWarning, MdArrowForward, MdRadar } from 'react-icons/md'
 import styles from '@/styles/pages/DashboardPage.module.css'
-import { DashboardSkeleton } from '@/components/layout/PageSkeletons'
+import { ActivityListSkeleton, DashboardSkeleton } from '@/components/layout/PageSkeletons'
 
 interface AnalyticsData {
   total_volume_usd: string
@@ -32,11 +32,13 @@ interface AnalyticsData {
   payment_trends: { date: string; volume_usd: string; count: number }[]
 }
 
+import { useBalanceStore } from '@/stores/balanceStore'
+
 const DashboardPage: React.FC = () => {
   const { user } = useAuthStore()
+  const { balance, fetchBalance } = useBalanceStore()
   const navigate = useNavigate()
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
-  const [balance, setBalance] = useState<Balance | null>(null)
   const [alerts, setAlerts] = useState<SecurityAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [showGasModal, setShowGasModal] = useState(false)
@@ -71,16 +73,18 @@ const DashboardPage: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      const [analyticsData, balanceData, alertsData] = await Promise.all([
+      const [analyticsData, alertsData] = await Promise.all([
         merchantAPI.getAnalytics({
           from_date: new Date(dateRange.from_date).toISOString(),
           to_date: new Date(dateRange.to_date + 'T23:59:59Z').toISOString()
         }),
-        merchantAPI.getBalance(),
         securityAPI.getAlerts()
       ])
+
+      // Load balance through store
+      await fetchBalance()
+
       setAnalytics(analyticsData.data)
-      setBalance(balanceData.data)
       setAlerts(alertsData.data?.alerts || [])
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
@@ -494,11 +498,7 @@ const RecentActivityList: React.FC = () => {
   }
 
   if (loading) {
-    return (
-      <div className={styles.loadingState} style={{ padding: '2rem' }}>
-        <i className="fas fa-spinner fa-spin"></i>
-      </div>
-    )
+    return <ActivityListSkeleton />
   }
 
   if (activities.length === 0) {

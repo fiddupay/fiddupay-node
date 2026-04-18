@@ -63,7 +63,11 @@ impl AppState {
         price_service.start_background_polling();
 
         let invoice_service = Arc::new(InvoiceService::new(db_pool.clone()));
-        let balance_service = Arc::new(BalanceService::new(db_pool.clone(), price_service.clone()));
+        let balance_service = Arc::new(BalanceService::new(
+            db_pool.clone(),
+            price_service.clone(),
+            redis_client.clone(),
+        ));
 
         let audit_service = Arc::new(AuditService::new(db_pool.clone()));
         let volume_tracking_service = Arc::new(VolumeTrackingService::new(db_pool.clone()));
@@ -82,6 +86,8 @@ impl AppState {
                 price_service.clone(),
                 volume_tracking_service.clone(),
                 notification_service.clone(),
+                balance_service.clone(),
+                Arc::new(config.clone()),
             ),
         );
 
@@ -100,6 +106,7 @@ impl AppState {
             price_service.clone(),
             notification_service.clone(),
             webhook_notif,
+            balance_service.clone(),
         ));
 
         Self {
@@ -116,6 +123,7 @@ impl AppState {
                     redis_client: redis_client.clone(),
                     volume_tracking: volume_tracking_service.clone(),
                     notification_service: notification_service.clone(),
+                    balance_service: balance_service.clone(),
                 },
             )),
             refund_service: Arc::new(RefundService::new(db_pool.clone(), webhook_service.clone())),

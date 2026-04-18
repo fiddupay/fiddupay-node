@@ -161,6 +161,11 @@ impl BlockchainTransactionSender {
             self.send_solana_transaction(private_key, to_address, amount, sandbox_mode)
                 .await
         } else if is_bitcoin {
+            if !self.config.bitcoin_enabled {
+                return Err(ServiceError::ValidationError(
+                    "Bitcoin service is currently in maintenance".to_string(),
+                ));
+            }
             self.send_bitcoin_transaction(private_key, to_address, amount, sandbox_mode)
                 .await
         } else if is_spl {

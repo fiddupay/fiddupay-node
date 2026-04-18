@@ -651,7 +651,6 @@ export interface MerchantCustomer {
   withdrawal_limit?: string;
   created_at: string;
   updated_at: string;
-  sandbox_mode?: boolean;
 }
 
 export interface CreateCustomerRequest {

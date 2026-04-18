@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { customerAPI, publicAPI } from "@/services/apiService";
 import styles from "@/styles/pages/MerchantCustomersPage.module.css";
 import { useToast } from "@/contexts/ToastContext";
+import { useAuthStore } from "@/stores/authStore";
 import { extractErrorMessage } from "@/utils/errorUtils";
 
 // Modular Components
@@ -16,6 +17,7 @@ import StatusUpdateModal from "@/components/customers/StatusUpdateModal";
 import { Customer, Wallet, CustomerTx } from "@/components/customers/types";
 
 const MerchantCustomersPage: React.FC = () => {
+  const { user } = useAuthStore();
   const { showToast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +69,7 @@ const MerchantCustomersPage: React.FC = () => {
     fetchCustomers();
     fetchSupportedCurrencies();
     fetchCustomerSummary();
-  }, []);
+  }, [user?.sandbox_mode]);
 
   const fetchCustomerSummary = async () => {
     try {

@@ -5,6 +5,8 @@ import { useAuthStore } from '@/stores/authStore'
 import { Payment, PaymentFilters } from '@/types'
 import styles from '@/styles/pages/PaymentsPage.module.css'
 
+import { StatCardSkeletons, TableSkeleton } from '@/components/layout/PageSkeletons'
+
 const PaymentsPage: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([])
   const [supportedCryptos, setSupportedCryptos] = useState<any[]>([])
@@ -364,35 +366,37 @@ const PaymentsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className={styles.stats}>
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>
-            <i className="fas fa-dollar-sign"></i>
+      {loading ? <StatCardSkeletons /> : (
+        <div className={styles.stats}>
+          <div className={styles.statCard}>
+            <div className={styles.statIcon}>
+              <i className="fas fa-dollar-sign"></i>
+            </div>
+            <div className={styles.statContent}>
+              <h3>Total Volume</h3>
+              <div className={styles.statValue}>{stats.totalVolume}</div>
+            </div>
           </div>
-          <div className={styles.statContent}>
-            <h3>Total Volume</h3>
-            <div className={styles.statValue}>{stats.totalVolume}</div>
+          <div className={styles.statCard}>
+            <div className={styles.statIcon}>
+              <i className="fas fa-receipt"></i>
+            </div>
+            <div className={styles.statContent}>
+              <h3>Total Payments</h3>
+              <div className={styles.statValue}>{stats.totalPayments.toLocaleString()}</div>
+            </div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statIcon}>
+              <i className="fas fa-chart-line"></i>
+            </div>
+            <div className={styles.statContent}>
+              <h3>Success Rate</h3>
+              <div className={styles.statValue}>{stats.successRate}</div>
+            </div>
           </div>
         </div>
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>
-            <i className="fas fa-receipt"></i>
-          </div>
-          <div className={styles.statContent}>
-            <h3>Total Payments</h3>
-            <div className={styles.statValue}>{stats.totalPayments.toLocaleString()}</div>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>
-            <i className="fas fa-chart-line"></i>
-          </div>
-          <div className={styles.statContent}>
-            <h3>Success Rate</h3>
-            <div className={styles.statValue}>{stats.successRate}</div>
-          </div>
-        </div>
-      </div>
+      )}
 
       <div className={styles.tableContainer}>
         <div className={styles.tableHeader}>
@@ -424,11 +428,7 @@ const PaymentsPage: React.FC = () => {
             <div className={styles.tableCell}><strong>Actions</strong></div>
           </div>
 
-          {loading ? (
-            <div className={styles.loadingState}>
-              <i className="fas fa-spinner fa-spin"></i>
-            </div>
-          ) : payments.length === 0 ? (
+          {loading ? <TableSkeleton rows={8} /> : payments.length === 0 ? (
             <div className={styles.emptyState}>
               <i className="fas fa-receipt"></i>
               <h3>No payments yet</h3>

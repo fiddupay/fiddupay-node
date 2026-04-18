@@ -1,27 +1,22 @@
 import { useToast } from '@/contexts/ToastContext'
-import { publicAPI, walletAPI, withdrawalAPI } from '@/services/apiService'
+import { publicAPI, withdrawalAPI } from '@/services/apiService'
+import { WithdrawalFormSkeleton } from '@/components/layout/PageSkeletons'
 import { useAuthStore } from '@/stores/authStore'
 import styles from '@/styles/pages/WithdrawalsPage.module.css'
 import { Withdrawal } from '@/types'
 import { extractErrorMessage } from '@/utils/errorUtils'
 import React, { useEffect, useState } from 'react'
 
-interface WalletBalance {
-    crypto_type: string
-    network: string
-    address: string
-    is_active: boolean
-    available_balance: string
-    total_balance: string
-    transaction_count: number
-}
+
+import { useBalanceStore } from '@/stores/balanceStore'
 
 const WithdrawalsPage: React.FC = () => {
     const { showToast } = useToast()
     const { user } = useAuthStore()
+    const { balance, fetchBalance } = useBalanceStore()
     const settlementMode = user?.settlement_mode || 'managed'
 
-    const [walletBalances, setWalletBalances] = useState<WalletBalance[]>([])
+    const walletBalances = balance?.balances || []
     const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([])
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
@@ -98,20 +93,15 @@ const WithdrawalsPage: React.FC = () => {
             setBalanceError(null)
 
             // Fetch balances and history in parallel for better performance
-            const [balRes, histRes] = await Promise.all([
-                walletAPI.getBalances({ exclude_stats: true }).catch(err => {
-                    const errMsg = extractErrorMessage(err, 'Unknown error')
-                    setBalanceError(`Failed to load wallets: ${errMsg}`)
-                    return { data: { wallets: [] } }
-                }),
+            const [histRes] = await Promise.all([
                 withdrawalAPI.getHistory().catch(() => ({ data: [] }))
             ])
 
-            const balances = Array.isArray(balRes.data?.wallets) ? balRes.data.wallets : []
-            setWalletBalances(balances)
+            // Load balance through store
+            await fetchBalance()
 
-            if (balances.length > 0 && !selectedCrypto) {
-                setSelectedCrypto(balances[0].crypto_type)
+            if (walletBalances.length > 0 && !selectedCrypto) {
+                setSelectedCrypto(walletBalances[0].crypto_type)
             }
 
             setWithdrawals(Array.isArray(histRes.data) ? histRes.data : [])
@@ -190,13 +180,7 @@ const WithdrawalsPage: React.FC = () => {
     }
 
     if (loading) {
-        return (
-            <div className={styles.page}>
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                </div>
-            </div>
-        )
+        return <WithdrawalFormSkeleton />
     }
 
     return (
@@ -256,11 +240,15 @@ const WithdrawalsPage: React.FC = () => {
                                     className={styles.select}
                                 >
                                     {walletBalances.length === 0 && <option value="">No wallets available</option>}
-                                    {walletBalances.map(w => (
-                                        <option key={w.crypto_type} value={w.crypto_type}>
-                                            {w.crypto_type} — Balance: {parseFloat(w.available_balance || '0').toFixed(6)} ({w.network})
-                                        </option>
-                                    ))}
+                                    {walletBalances.map(w => {
+                                        const currencyInfo = supportedCurrencies.find(c => c.crypto_type === w.crypto_type)
+                                        const networkName = currencyInfo?.network || w.crypto_type.split('_')[1] || 'Mainnet'
+                                        return (
+                                            <option key={w.crypto_type} value={w.crypto_type}>
+                                                {w.crypto_type} — Balance: {parseFloat(w.available_balance || '0').toFixed(6)} ({networkName})
+                                            </option>
+                                        )
+                                    })}
                                 </select>
                             </div>
 
@@ -273,7 +261,7 @@ const WithdrawalsPage: React.FC = () => {
                                     </div>
                                     <div className={styles.walletInfoRow}>
                                         <span>Network</span>
-                                        <strong>{selectedWallet.network}</strong>
+                                        <strong>{supportedCurrencies.find(c => c.crypto_type === selectedCrypto)?.network || selectedCrypto.split('_')[1] || 'Mainnet'}</strong>
                                     </div>
                                 </div>
                             )}

@@ -31,6 +31,7 @@ interface AnalyticsData {
     }>;
     payment_trends: TimeSeriesPoint[];
 }
+import { AnalyticsSkeleton } from '@/components/layout/PageSkeletons'
 
 const AnalyticsPage: React.FC = () => {
     const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
@@ -106,10 +107,7 @@ const AnalyticsPage: React.FC = () => {
             </div>
 
             {loading && !analytics ? (
-                <div className={styles.loadingState}>
-                    <i className="fas fa-spinner fa-spin"></i>
-                    <p>Calculating your insights...</p>
-                </div>
+                <AnalyticsSkeleton />
             ) : (
                 <div className={styles.content}>
                     <div className={styles.statsGrid}>

@@ -111,7 +111,7 @@ export class FidduPayClient {
 // Export everything
 export * from './types';
 export * from './errors';
-export { Webhooks } from './resources/webhooks';
+export { Webhooks, WebhookSignatureComponents } from './resources/webhooks';
 export { Public } from './resources/public';
 
 // Backward compatibility alias

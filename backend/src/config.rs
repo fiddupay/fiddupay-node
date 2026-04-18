@@ -149,6 +149,7 @@ pub struct Config {
     pub multi_user_enabled: bool,
     pub analytics_enabled: bool,
     pub maintenance_mode: bool,
+    pub bitcoin_enabled: bool,
 
     // Environment
     pub environment: String,
@@ -499,6 +500,9 @@ impl Config {
             maintenance_mode: env::var("MAINTENANCE_MODE")
                 .unwrap_or_else(|_| "false".to_string())
                 .parse()?,
+            bitcoin_enabled: env::var("BITCOIN_ENABLED")
+                .unwrap_or_else(|_| "true".to_string())
+                .parse()?,
 
             // Environment
             // Environment
@@ -610,8 +614,8 @@ impl Config {
             return Err("JWT_SECRET is required".to_string());
         }
 
-        if self.bitcoin_rpc_url.is_empty() {
-            return Err("BITCOIN_RPC_URL is required".to_string());
+        if self.bitcoin_enabled && self.bitcoin_rpc_url.is_empty() {
+            return Err("BITCOIN_RPC_URL is required when Bitcoin service is enabled".to_string());
         }
 
         Ok(())
@@ -663,6 +667,7 @@ impl Config {
                 "WITHDRAWAL_ENABLED" => self.withdrawal_enabled = setting.value == "true",
                 "INVOICE_ENABLED" => self.invoice_enabled = setting.value == "true",
                 "TWO_FACTOR_ENABLED" => self.two_factor_enabled = setting.value == "true",
+                "BITCOIN_ENABLED" => self.bitcoin_enabled = setting.value == "true",
 
                 // Security Policies
                 "MAX_LOGIN_ATTEMPTS" => {
@@ -813,6 +818,7 @@ impl Default for Config {
             multi_user_enabled: false,
             analytics_enabled: true,
             maintenance_mode: false,
+            bitcoin_enabled: true,
             environment: "test".to_string(),
             debug_mode: true,
             frontend_url: "http://localhost:3000".to_string(),

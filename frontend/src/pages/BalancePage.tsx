@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { merchantAPI } from '@/services/apiService'
-import { Balance, BalanceHistory } from '@/types'
+import { BalanceHistory } from '@/types'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuthStore } from '@/stores/authStore'
 import styles from '@/styles/pages/BalancePage.module.css'
@@ -52,8 +52,10 @@ const getNetworkLabel = (cryptoType: string, isSandbox: boolean): string => {
     return isSandbox ? 'Testnet' : 'Mainnet'
 };
 
+import { useBalanceStore } from '@/stores/balanceStore'
+
 const BalancePage: React.FC = () => {
-    const [balance, setBalance] = useState<Balance | null>(null)
+    const { balance, fetchBalance } = useBalanceStore()
     const [history, setHistory] = useState<BalanceHistory | null>(null)
     const [loading, setLoading] = useState(true)
     const [selectedAsset, setSelectedAsset] = useState<string | null>(null) // null means 'Total'
@@ -67,8 +69,9 @@ const BalancePage: React.FC = () => {
     const loadData = async () => {
         try {
             setLoading(true)
-            const balRes = await merchantAPI.getBalance()
-            if (balRes.data) setBalance(balRes.data)
+            
+            // Load balance through store
+            await fetchBalance()
 
             // Balance history is non-critical — don't let it block the page
             try {
