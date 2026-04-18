@@ -149,6 +149,13 @@ impl SolanaMonitor {
         let mut historical_rpc_urls = Vec::new();
 
         if is_sandbox {
+            // Helius - Priority 1 for Devnet (Requested by user for better RPC reliability/limits)
+            if let Some(ref key) = config.helius_api_key {
+                let helius_devnet_url = format!("https://devnet.helius-rpc.com/?api-key={}", key);
+                rpc_urls.push(helius_devnet_url.clone());
+                historical_rpc_urls.push(helius_devnet_url);
+            }
+            // Fallback default
             rpc_urls.push(config.solana_devnet_rpc_url.clone());
             historical_rpc_urls.push(config.solana_devnet_rpc_url.clone());
         } else {
@@ -338,8 +345,8 @@ impl SolanaMonitor {
                 .await
             {
                 Ok(tx) => {
-                    // Only include if it's a successful transaction and has some value
-                    if tx.success && (tx.amount > Decimal::ZERO || self.expected_mint.is_none()) {
+                    // Only include if it's a successful transaction targeting THIS exact address (drops outgoing transfers)
+                    if tx.success && (tx.amount > Decimal::ZERO || self.expected_mint.is_none()) && tx.to_address == address {
                         blockchain_txs.push(tx);
                     }
                 }

@@ -605,10 +605,9 @@ impl BalanceService {
         let mut total_missing_amount = Decimal::ZERO;
 
         for tx in onchain_txs {
-            // Verify it was successful and to THIS address
-            // SolanaMonitor already filters for to_address in get_transactions_to_address logically,
-            // but we double-check the amounts returned are positive.
-            if !tx.success || tx.amount <= Decimal::ZERO || existing_hashes.contains(&tx.hash) {
+            // Verify it was successful and specifically targeting THIS monitored address.
+            // Outgoing transfers will have a different to_address.
+            if !tx.success || tx.amount <= Decimal::ZERO || tx.to_address != address || existing_hashes.contains(&tx.hash) {
                 continue;
             }
 
