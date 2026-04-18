@@ -29,15 +29,17 @@ describe('Webhooks', () => {
 
     it('should reject invalid signature', () => {
       const invalidSignature = 't=1234567890,v1=invalid';
-      const isValid = Webhooks.verifySignature(payload, invalidSignature, secret);
-      expect(isValid).toBe(false);
+      expect(() => {
+        Webhooks.verifySignature(payload, invalidSignature, secret);
+      }).toThrow(FidduPayError);
     });
 
     it('should reject expired signature', () => {
       const oldTimestamp = Math.floor(Date.now() / 1000) - 400; // 400 seconds ago
       const signature = `t=${oldTimestamp},v1=somehash`;
-      const isValid = Webhooks.verifySignature(payload, signature, secret, 300);
-      expect(isValid).toBe(false);
+      expect(() => {
+        Webhooks.verifySignature(payload, signature, secret, 300);
+      }).toThrow(FidduPayError);
     });
   });
 

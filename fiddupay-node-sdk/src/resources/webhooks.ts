@@ -95,7 +95,7 @@ export class Webhooks {
     signature: string,
     secret: string,
     tolerance: number = 300
-  ): void {
+  ): boolean {
     if (!signature) {
       throw new FidduPayError(
         'No signature header provided. Ensure you are passing the raw "signature" header.',
@@ -147,6 +147,8 @@ export class Webhooks {
         'webhook_signature_verification_failed'
       );
     }
+
+    return true;
   }
 
   /**
