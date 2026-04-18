@@ -323,6 +323,8 @@ impl PaymentProcessor {
         }
 
         // Generate persistent notification for the merchant
+        let formatted_amount =
+            crate::utils::format::format_crypto_amount(crypto_amount.unwrap_or(Decimal::ZERO));
         let _ = self
             .notification_service
             .create_notification(
@@ -330,7 +332,7 @@ impl PaymentProcessor {
                 "🔗 Payment Link Created",
                 &format!(
                     "A new payment of {} {} has been generated (ID: {}).",
-                    crypto_amount.unwrap_or(Decimal::ZERO),
+                    formatted_amount,
                     request
                         .crypto_type
                         .map(|ct| ct.to_string())

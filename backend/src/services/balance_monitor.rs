@@ -187,7 +187,11 @@ impl BalanceMonitor {
             let title = format!("Low Balance Alert: {}", params.crypto_type);
             let message = format!(
                 "Your {} wallet ({}) balance is low: {} {} (~${:.2} USD). Please top up to pay for fees.",
-                params.network, params.address, balance_decimal, params.crypto_type, balance_usd
+                params.network,
+                params.address,
+                crate::utils::format::format_crypto_amount(balance_decimal),
+                params.crypto_type,
+                balance_usd
             );
 
             let _ = self

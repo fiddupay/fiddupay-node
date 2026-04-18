@@ -510,19 +510,19 @@ impl Config {
                 .unwrap_or_else(|_| "false".to_string())
                 .parse()?,
             bitcoin_enabled: env::var("BITCOIN_ENABLED")
-                .unwrap_or_else(|_| "true".to_string())
+                .unwrap_or_else(|_| "false".to_string())
                 .parse()?,
             ethereum_enabled: env::var("ETH_ENABLED")
-                .unwrap_or_else(|_| "true".to_string())
+                .unwrap_or_else(|_| "false".to_string())
                 .parse()?,
             bsc_enabled: env::var("BNB_ENABLED")
-                .unwrap_or_else(|_| "true".to_string())
+                .unwrap_or_else(|_| "false".to_string())
                 .parse()?,
             polygon_enabled: env::var("MATIC_ENABLED")
-                .unwrap_or_else(|_| "true".to_string())
+                .unwrap_or_else(|_| "false".to_string())
                 .parse()?,
             arbitrum_enabled: env::var("ARB_ENABLED")
-                .unwrap_or_else(|_| "true".to_string())
+                .unwrap_or_else(|_| "false".to_string())
                 .parse()?,
             solana_enabled: env::var("SOLANA_ENABLED")
                 .unwrap_or_else(|_| "true".to_string())
@@ -696,7 +696,6 @@ impl Config {
                 "WITHDRAWAL_ENABLED" => self.withdrawal_enabled = setting.value == "true",
                 "INVOICE_ENABLED" => self.invoice_enabled = setting.value == "true",
                 "TWO_FACTOR_ENABLED" => self.two_factor_enabled = setting.value == "true",
-                "BITCOIN_ENABLED" => self.bitcoin_enabled = setting.value == "true",
 
                 // Security Policies
                 "MAX_LOGIN_ATTEMPTS" => {

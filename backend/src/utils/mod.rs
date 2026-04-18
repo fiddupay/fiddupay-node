@@ -2,6 +2,7 @@ pub mod api_keys;
 pub mod bitcoin_api;
 pub mod circuit_breaker;
 pub mod encryption;
+pub mod format;
 pub mod keygen;
 pub mod network_config;
 pub mod qr;

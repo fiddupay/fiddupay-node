@@ -168,7 +168,10 @@ impl AddressOnlyService {
                 "Payment Received (Address-Only)",
                 &format!(
                     "Received {} {} (Tx: {}) (Payment ID: {})",
-                    received_amount, payment.crypto_type, tx_hash, payment_id
+                    crate::utils::format::format_crypto_amount(received_amount),
+                    payment.crypto_type,
+                    tx_hash,
+                    payment_id
                 ),
                 "success",
                 "payment.received",
@@ -218,7 +221,10 @@ impl AddressOnlyService {
                     "Partial Payment Received (Address-Only)",
                     &format!(
                         "Received partial payment of {} {} (Tx: {}) (Payment ID: {})",
-                        received_amount, updated_payment.crypto_type, tx_hash, payment_id
+                        crate::utils::format::format_crypto_amount(received_amount),
+                        updated_payment.crypto_type,
+                        tx_hash,
+                        payment_id
                     ),
                     "info",
                     "payment.partial",

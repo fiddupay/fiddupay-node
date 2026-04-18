@@ -829,7 +829,10 @@ impl PaymentVerifier {
                 },
                 &format!(
                     "Received {} {} for payment {}. (USD: ${})",
-                    amount, crypto_type_str, public_id, amount_usd
+                    crate::utils::format::format_crypto_amount(amount),
+                    crypto_type_str,
+                    public_id,
+                    amount_usd
                 ),
                 "success",
                 "payment.received",
@@ -1078,7 +1081,10 @@ impl PaymentVerifier {
                 "📩 Static Deposit Received",
                 &format!(
                     "Customer {} deposited {} {}. (USD: ${})",
-                    customer_id, actual_amount, final_crypto_str, amount_usd
+                    customer_id,
+                    crate::utils::format::format_crypto_amount(actual_amount),
+                    final_crypto_str,
+                    amount_usd
                 ),
                 "success",
                 "customer.deposit",

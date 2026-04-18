@@ -1462,7 +1462,9 @@ impl MerchantCustomerService {
                 "🏧 Withdrawal Requested",
                 &format!(
                     "A withdrawal of {} {} has been requested for customer {}.",
-                    amount, normalized_crypto, external_id
+                    crate::utils::format::format_crypto_amount(amount),
+                    normalized_crypto,
+                    external_id
                 ),
                 "info",
                 "customer.withdrawal.pending",

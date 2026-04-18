@@ -371,7 +371,9 @@ impl WithdrawalProcessor {
                         "Withdrawal Failed",
                         &format!(
                             "Your withdrawal of {} {} failed: {}",
-                            wd_amount, wd_crypto_type, error_msg
+                            crate::utils::format::format_crypto_amount(wd_amount),
+                            wd_crypto_type,
+                            error_msg
                         ),
                         "error",
                         "withdrawal.failed",
@@ -480,7 +482,8 @@ impl WithdrawalProcessor {
                 "Withdrawal Completed",
                 &format!(
                     "Your withdrawal of {} {} has been confirmed.",
-                    amount, crypto_type
+                    crate::utils::format::format_crypto_amount(amount),
+                    crypto_type
                 ),
                 "success",
                 "withdrawal.confirmed",

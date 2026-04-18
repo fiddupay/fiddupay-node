@@ -164,7 +164,9 @@ impl BalanceMonitoringService {
                 &format!("Low Balance Alert: {}", alert.crypto_type),
                 &format!(
                     "Your {} balance is {} (Threshold: {})",
-                    alert.crypto_type, alert.current_balance, alert.threshold
+                    alert.crypto_type,
+                    crate::utils::format::format_crypto_amount(alert.current_balance),
+                    crate::utils::format::format_crypto_amount(alert.threshold)
                 ),
                 "warning",
                 "balance.low",
