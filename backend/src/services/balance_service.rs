@@ -736,8 +736,8 @@ impl BalanceService {
                         r#"
                         INSERT INTO payment_transactions (
                             payment_id, merchant_id, amount, amount_usd, crypto_type, status, to_address, 
-                            transaction_hash, description, created_at, sandbox_mode, fee_percentage, fee_amount
-                        ) VALUES ($1, $2, $3, $4, $5, 'CONFIRMED', $6, $7, $8, NOW(), $9, $10, $11)
+                            transaction_hash, description, created_at, sandbox_mode, fee_percentage, fee_amount, fee_amount_usd
+                        ) VALUES ($1, $2, $3, $4, $5, 'CONFIRMED', $6, $7, $8, NOW(), $9, $10, $11, $12)
                         "#
                     )
                     .bind(public_id)
@@ -751,6 +751,7 @@ impl BalanceService {
                     .bind(active_sandbox_mode)
                     .bind(fee_percentage)
                     .bind(missing_deposit_fee / Decimal::from(missing_deposits.len() as i64)) // Distribute fee simply
+                    .bind(fee_usd)
                     .execute(&mut *db_tx)
                     .await?;
                 }
