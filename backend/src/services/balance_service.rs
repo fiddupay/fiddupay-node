@@ -588,17 +588,19 @@ impl BalanceService {
             .await
             .map_err(|e| ServiceError::Internal(format!("Solana scan failed: {}", e)))?;
 
-        // 4. Get Existing Transactions in DB
         let existing_hashes: std::collections::HashSet<String> = sqlx::query_scalar::<_, String>(
             r#"
             SELECT transaction_hash FROM payment_transactions WHERE to_address = $1 AND transaction_hash IS NOT NULL
             UNION
             SELECT transaction_hash FROM customer_transactions WHERE destination_address = $1 AND transaction_hash IS NOT NULL
             UNION
-            SELECT transaction_hash FROM withdrawals WHERE destination_address = $1 AND transaction_hash IS NOT NULL
+            SELECT transaction_hash FROM customer_transactions WHERE reference_id LIKE 'wrect_%' AND transaction_hash IS NOT NULL
+            UNION
+            SELECT transaction_hash FROM withdrawals WHERE merchant_id = $2 AND transaction_hash IS NOT NULL
             "#
         )
         .bind(address)
+        .bind(merchant_id)
         .fetch_all(&self.db_pool)
         .await?
         .into_iter()
@@ -800,7 +802,11 @@ impl BalanceService {
                         * Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE))
                     .round_dp(2);
 
-                    let withdrawal_id = format!("wrect_{}", &tx.hash[..8]);
+                    let withdrawal_id = format!(
+                        "wrect_{}_{}",
+                        &tx.hash[..8],
+                        chrono::Utc::now().timestamp_millis()
+                    );
                     sqlx::query(
                         r#"
                         INSERT INTO withdrawals (

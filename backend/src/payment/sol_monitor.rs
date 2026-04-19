@@ -280,11 +280,13 @@ impl SolanaMonitor {
         let current_slot = self.get_current_slot().await.unwrap_or(0);
 
         let mut addresses_to_check = vec![address.to_string()];
+        let mut ata_address: Option<String> = None;
         if let Some(ref mint) = self.expected_mint {
             if let Some(ata) = Self::get_ata_address(address, mint) {
                 if ata != address {
                     info!(" Monitoring ATA: {} for mint: {}", ata, mint);
-                    addresses_to_check.push(ata);
+                    addresses_to_check.push(ata.clone());
+                    ata_address = Some(ata);
                 }
             }
         }
@@ -343,9 +345,11 @@ impl SolanaMonitor {
                 .await
             {
                 Ok(tx) => {
-                    // Include if it's a successful transaction involving THIS exact address (incoming or outgoing)
-                    let is_incoming = tx.to_address == address;
-                    let is_outgoing = tx.from_address == address;
+                    // Include if it's a successful transaction involving THIS exact address or ATA
+                    let is_incoming =
+                        tx.to_address == address || ata_address.as_ref() == Some(&tx.to_address);
+                    let is_outgoing = tx.from_address == address
+                        || ata_address.as_ref() == Some(&tx.from_address);
 
                     if tx.success
                         && (tx.amount > Decimal::ZERO || self.expected_mint.is_none())
@@ -430,11 +434,12 @@ impl SolanaMonitor {
         //      → Use the token account OWNER as to_address, and the token amount
         //   2. Otherwise → Native SOL transfer
         //      → Use lamport balance diffs (preBalances/postBalances)
-        let (to_address, amount, token_mint) = if let Some(ref meta) = tx_result.meta {
+        let (from_opt, to_address, amount, token_mint) = if let Some(ref meta) = tx_result.meta {
             // --- SPL Token Transfer Detection ---
             if !meta.post_token_balances.is_empty() {
                 // Find the token account that received tokens by comparing pre vs post
                 let mut best_recipient_owner: Option<String> = None;
+                let mut best_sender_owner: Option<String> = None;
                 let mut best_mint: Option<String> = None;
                 let mut best_amount = Decimal::ZERO;
 
@@ -480,36 +485,57 @@ impl SolanaMonitor {
 
                         if token_amount > best_amount {
                             best_amount = token_amount;
-                            // Use the OWNER of the token account — this is the merchant wallet
-                            best_recipient_owner = post_tb.owner.clone();
+                            best_recipient_owner = post_tb.owner.clone().or_else(|| {
+                                tx_result
+                                    .transaction
+                                    .message
+                                    .account_keys
+                                    .get(post_tb.account_index as usize)
+                                    .cloned()
+                            });
                             best_mint = post_tb.mint.clone();
+                        }
+                    } else if pre_raw > post_raw {
+                        let decrease = pre_raw - post_raw;
+                        let decrease_amount =
+                            Decimal::from(decrease) / Decimal::from(10u64.pow(decimals));
+                        if decrease_amount > Decimal::ZERO {
+                            best_sender_owner = post_tb.owner.clone().or_else(|| {
+                                tx_result
+                                    .transaction
+                                    .message
+                                    .account_keys
+                                    .get(post_tb.account_index as usize)
+                                    .cloned()
+                            });
                         }
                     }
                 }
 
                 if let Some(owner) = best_recipient_owner {
                     info!(
-                        "[SOL-MONITOR] SPL token transfer detected: {} (mint: {:?}) to owner {}",
-                        best_amount, best_mint, owner
+                        "[SOL-MONITOR] SPL token transfer detected: {} (mint: {:?}) from {:?} to owner {}",
+                        best_amount, best_mint, best_sender_owner, owner
                     );
-                    (owner, best_amount, best_mint)
+                    (best_sender_owner, owner, best_amount, best_mint)
                 } else {
                     // No matching token transfer found, fall back to native SOL
                     let (addr, amt) = Self::parse_sol_balance_diff(
                         meta,
                         &tx_result.transaction.message.account_keys,
                     );
-                    (addr, amt, None)
+                    (None, addr, amt, None)
                 }
             } else {
                 // --- Native SOL Transfer ---
                 let (addr, amt) =
                     Self::parse_sol_balance_diff(meta, &tx_result.transaction.message.account_keys);
-                (addr, amt, None)
+                (None, addr, amt, None)
             }
         } else {
             // No metadata available, can't parse balances
             (
+                None,
                 tx_result
                     .transaction
                     .message
@@ -522,14 +548,16 @@ impl SolanaMonitor {
             )
         };
 
-        // Get sender address (the account that paid for the transaction or the first account)
-        let from_address = tx_result
-            .transaction
-            .message
-            .account_keys
-            .first()
-            .cloned()
-            .unwrap_or_default();
+        // Get sender address (the account that lost tokens, or the fee payer)
+        let from_address = from_opt.unwrap_or_else(|| {
+            tx_result
+                .transaction
+                .message
+                .account_keys
+                .first()
+                .cloned()
+                .unwrap_or_default()
+        });
 
         // Check if transaction succeeded
         let success = tx_result

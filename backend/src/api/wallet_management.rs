@@ -20,20 +20,16 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::{PgPool, Row};
 
-// Helper: get both sandbox_mode and settlement_mode
-async fn get_merchant_modes(pool: &PgPool, merchant_id: i64) -> (bool, String) {
-    let row = sqlx::query("SELECT sandbox_mode, settlement_mode FROM merchants WHERE id = $1")
+// Helper: get only settlement_mode (sandbox_mode should come from context headers)
+async fn get_merchant_settlement_mode(pool: &PgPool, merchant_id: i64) -> String {
+    let row = sqlx::query("SELECT settlement_mode FROM merchants WHERE id = $1")
         .bind(merchant_id)
         .fetch_optional(pool)
         .await;
 
     match row {
-        Ok(Some(r)) => {
-            let sandbox: bool = r.get("sandbox_mode");
-            let settlement: String = r.get("settlement_mode");
-            (sandbox, settlement)
-        }
-        _ => (false, "managed".to_string()),
+        Ok(Some(r)) => r.get("settlement_mode"),
+        _ => "managed".to_string(),
     }
 }
 
@@ -47,8 +43,8 @@ pub async fn get_wallets(
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
 
-    let (sandbox_mode, settlement_mode) =
-        get_merchant_modes(&state.db_pool, context.merchant_id).await;
+    let sandbox_mode = context.sandbox_mode;
+    let settlement_mode = get_merchant_settlement_mode(&state.db_pool, context.merchant_id).await;
 
     let result = if settlement_mode == "forwarding" {
         wallet_service
@@ -80,8 +76,8 @@ pub async fn delete_wallet(
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
 
-    let (sandbox_mode, settlement_mode) =
-        get_merchant_modes(&state.db_pool, context.merchant_id).await;
+    let sandbox_mode = context.sandbox_mode;
+    let settlement_mode = get_merchant_settlement_mode(&state.db_pool, context.merchant_id).await;
 
     let result = if settlement_mode == "forwarding" {
         wallet_service
@@ -317,8 +313,9 @@ pub async fn setup_wallet(
     match req.mode.as_str() {
         "address" => {
             if let Some(address) = req.address {
-                let (sandbox_mode, settlement_mode) =
-                    get_merchant_modes(&state.db_pool, context.merchant_id).await;
+                let sandbox_mode = context.sandbox_mode;
+                let settlement_mode =
+                    get_merchant_settlement_mode(&state.db_pool, context.merchant_id).await;
 
                 if settlement_mode == "forwarding" {
                     let crypto_type = match CryptoType::from_string(&req.crypto_type) {
@@ -434,8 +431,9 @@ pub async fn setup_wallet(
             }
         }
         "generate" => {
-            let (sandbox_mode, settlement_mode) =
-                get_merchant_modes(&state.db_pool, context.merchant_id).await;
+            let sandbox_mode = context.sandbox_mode;
+            let settlement_mode =
+                get_merchant_settlement_mode(&state.db_pool, context.merchant_id).await;
 
             let generate_request = GenerateWalletRequest {
                 crypto_type: req.crypto_type.clone(),
@@ -517,8 +515,8 @@ pub async fn get_wallet_balances(
     Extension(context): Extension<MerchantContext>,
     Query(params): Query<WalletBalancesQuery>,
 ) -> impl IntoResponse {
-    let (sandbox_mode, settlement_mode) =
-        get_merchant_modes(&state.db_pool, context.merchant_id).await;
+    let sandbox_mode = context.sandbox_mode;
+    let settlement_mode = get_merchant_settlement_mode(&state.db_pool, context.merchant_id).await;
     let exclude_stats = params.exclude_stats.unwrap_or(false);
 
     tracing::info!(
