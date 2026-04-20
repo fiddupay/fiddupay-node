@@ -591,36 +591,67 @@ impl BalanceService {
             .map_err(|e| ServiceError::Internal(format!("Blockchain scan failed: {}", e)))?;
 
         // 4. Fetch Existing Hashes and their statuses/amounts for RECONCILIATION
+        // NARROWED SCOPE: Filter by crypto_type and sandbox_mode to prevent cross-mode collision
+        let crypto_type_str = crypto_type.to_string();
         let existing_data_rows = sqlx::query(
             r#"
-            SELECT transaction_hash, amount, status FROM payment_transactions WHERE (to_address = $1 OR transaction_hash IS NOT NULL) AND merchant_id = $2
+            SELECT transaction_hash, amount, status, 'payment' as source FROM payment_transactions 
+            WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND transaction_hash IS NOT NULL
             UNION ALL
-            SELECT transaction_hash, amount, status FROM customer_transactions WHERE (destination_address = $1 OR transaction_hash IS NOT NULL) AND merchant_id = $2
+            SELECT transaction_hash, amount, status, 'customer_tx' as source FROM customer_transactions 
+            WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND transaction_hash IS NOT NULL
             UNION ALL
-            SELECT transaction_hash, amount, status FROM withdrawals WHERE merchant_id = $2 AND transaction_hash IS NOT NULL
+            SELECT transaction_hash, amount, status, 'withdrawal' as source FROM withdrawals 
+            WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND transaction_hash IS NOT NULL
             "#
         )
-        .bind(address)
         .bind(merchant_id)
+        .bind(&crypto_type_str)
+        .bind(active_sandbox_mode)
         .fetch_all(&self.db_pool)
         .await?;
 
         let mut existing_txs: std::collections::HashMap<String, (Decimal, String)> =
             std::collections::HashMap::new();
+        let mut db_confirmed_deposits = Decimal::ZERO;
+        let mut db_confirmed_withdrawals = Decimal::ZERO;
+
         for r in existing_data_rows {
             if let Some(hash) = r.get::<Option<String>, _>("transaction_hash") {
                 let amount = r.get::<Decimal, _>("amount");
                 let status = r.get::<String, _>("status");
-                existing_txs.insert(hash, (amount, status));
+                let source: String = r.get("source");
+
+                existing_txs.insert(hash, (amount, status.clone()));
+
+                if status == "CONFIRMED" || status == "COMPLETED" {
+                    if source == "payment" || source == "customer_tx" {
+                        db_confirmed_deposits += amount;
+                    } else if source == "withdrawal" {
+                        db_confirmed_withdrawals += amount;
+                    }
+                }
             }
         }
+
+        // 4.1 Fetch Merchant Sub-wallets for Sweep Identification
+        let sub_wallets: std::collections::HashSet<String> = sqlx::query_scalar(
+            "SELECT LOWER(address) FROM merchant_customer_wallets WHERE merchant_id = $1 AND crypto_type = $2"
+        )
+        .bind(merchant_id)
+        .bind(&crypto_type_str)
+        .fetch_all(&self.db_pool)
+        .await?
+        .into_iter()
+        .collect();
 
         // 5. Identify Gaps & Discrepancies
         let mut missing_deposits = Vec::new();
         let mut missing_withdrawals = Vec::new();
         let mut mismatched_txs = Vec::new();
-        let mut total_missing_deposit_amount = Decimal::ZERO;
-        let mut total_missing_withdrawal_amount = Decimal::ZERO;
+        let mut total_onchain_deposits = Decimal::ZERO;
+        let mut total_onchain_withdrawals = Decimal::ZERO;
+        let mut skipped_sweeps = 0;
 
         for tx in onchain_txs {
             // Drop failed or zero-amount
@@ -637,6 +668,15 @@ impl BalanceService {
                 }
             } else if tx.token_mint.is_some() {
                 continue; // Expected native, got token
+            }
+
+            let is_incoming = tx.to_address.to_lowercase() == address.to_lowercase();
+            let is_outgoing = tx.from_address.to_lowercase() == address.to_lowercase();
+
+            if is_incoming {
+                total_onchain_deposits += tx.amount;
+            } else if is_outgoing {
+                total_onchain_withdrawals += tx.amount;
             }
 
             if let Some((db_amount, db_status)) = existing_txs.get(&tx.hash) {
@@ -656,16 +696,22 @@ impl BalanceService {
                 continue;
             }
 
-            let is_incoming = tx.to_address.to_lowercase() == address.to_lowercase();
-            let is_outgoing = tx.from_address.to_lowercase() == address.to_lowercase();
+            // --- GAP DETECTION ---
+
+            // Check if this is an internal sweep (should not have fees)
+            let is_internal_sweep = sub_wallets.contains(&tx.from_address.to_lowercase());
 
             if is_incoming && (rectify_type == "DEPOSIT" || rectify_type == "BOTH") {
-                total_missing_deposit_amount += tx.amount;
-                missing_deposits.push(tx.clone());
+                let mut tx_with_meta = tx.clone();
+                if is_internal_sweep {
+                    // Tag it as internal sweep so we don't take fees later
+                    tx_with_meta.hash = format!("SWEEP:{}", tx_with_meta.hash);
+                    skipped_sweeps += 1;
+                }
+                missing_deposits.push(tx_with_meta);
             }
 
             if is_outgoing && (rectify_type == "WITHDRAWAL" || rectify_type == "BOTH") {
-                total_missing_withdrawal_amount += tx.amount;
                 missing_withdrawals.push(tx);
             }
         }
@@ -691,10 +737,20 @@ impl BalanceService {
 
             // Process Missing Deposits
             for tx in &missing_deposits {
-                let fee_amount = (tx.amount * (fee_percentage / Decimal::from(100))).round_dp(8);
+                let is_sweep = tx.hash.starts_with("SWEEP:");
+                let clean_hash = if is_sweep { &tx.hash[6..] } else { &tx.hash };
+
+                // Apply logic: INTERNAL SWEEPS HAVE 0 FEES
+                let effective_fee_pct = if is_sweep {
+                    Decimal::ZERO
+                } else {
+                    fee_percentage
+                };
+
+                let fee_amount = (tx.amount * (effective_fee_pct / Decimal::from(100))).round_dp(8);
                 let net_amount = tx.amount - fee_amount;
                 let amount_usd = (tx.amount * price_dec).round_dp(2);
-                let fee_usd = (amount_usd * (fee_percentage / Decimal::from(100))).round_dp(2);
+                let fee_usd = (amount_usd * (effective_fee_pct / Decimal::from(100))).round_dp(2);
 
                 if owner_type == "customer" {
                     let cid = customer_id.unwrap();
@@ -708,7 +764,7 @@ impl BalanceService {
                             total_balance = merchant_customer_balances.total_balance + $4,
                             last_updated_at = NOW()
                         "#
-                    ).bind(cid).bind(merchant_id).bind(crypto_type.to_string()).bind(net_amount).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
+                    ).bind(cid).bind(merchant_id).bind(&crypto_type_str).bind(net_amount).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
 
                     sqlx::query(
                         r#"
@@ -717,8 +773,8 @@ impl BalanceService {
                             transaction_hash, description, created_at, sandbox_mode
                         ) VALUES ($1, $2, 'DEPOSIT_RECTIFICATION', $3, $4, $5, $6, 'CONFIRMED', $7, $8, NOW(), $9)
                         "#
-                    ).bind(cid).bind(merchant_id).bind(crypto_type.to_string()).bind(tx.amount).bind(amount_usd).bind(fee_usd).bind(&tx.hash)
-                    .bind(format!("Smart Rectification Inbound: {}", tx.hash)).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
+                    ).bind(cid).bind(merchant_id).bind(&crypto_type_str).bind(tx.amount).bind(amount_usd).bind(fee_usd).bind(clean_hash)
+                    .bind(format!("Smart Rectification Inbound: {}", clean_hash)).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
                 } else {
                     sqlx::query(
                         r#"
@@ -727,9 +783,9 @@ impl BalanceService {
                         ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
                         DO UPDATE SET available_balance = merchant_balances.available_balance + $3, last_updated = NOW()
                         "#
-                    ).bind(merchant_id).bind(crypto_type.to_string()).bind(net_amount).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
+                    ).bind(merchant_id).bind(&crypto_type_str).bind(net_amount).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
 
-                    let public_id = format!("rect_{}", &tx.hash[..8]);
+                    let public_id = format!("rect_{}", &clean_hash[..8]);
                     sqlx::query(
                         r#"
                         INSERT INTO payment_transactions (
@@ -738,11 +794,16 @@ impl BalanceService {
                             network, expires_at, required_confirmations, confirmations
                         ) VALUES ($1, $2, $3, $4, $5, 'CONFIRMED', $6, $7, $8, NOW(), $9, $10, $11, $12, $13, NOW() + INTERVAL '1 hour', 1, 1)
                         "#
-                    ).bind(public_id).bind(merchant_id).bind(tx.amount).bind(amount_usd).bind(crypto_type.to_string()).bind(address).bind(&tx.hash)
-                    .bind(format!("Global Smart Rectification: {}", tx.hash)).bind(active_sandbox_mode).bind(fee_percentage).bind(fee_amount).bind(fee_usd)
+                    ).bind(public_id).bind(merchant_id).bind(tx.amount).bind(amount_usd).bind(&crypto_type_str).bind(address).bind(clean_hash)
+                    .bind(if is_sweep { format!("Internal Sweep (No Fee): {}", clean_hash) } else { format!("Smart Rectification: {}", clean_hash) })
+                    .bind(active_sandbox_mode).bind(effective_fee_pct).bind(fee_amount).bind(fee_usd)
                     .bind(crypto_type.network()).execute(&mut *db_tx).await?;
                 }
-                actions_taken.push(format!("Imported Deposit: {}", tx.hash));
+                actions_taken.push(if is_sweep {
+                    format!("Synced Sweep (Fee Free): {}", clean_hash)
+                } else {
+                    format!("Imported Deposit: {}", clean_hash)
+                });
             }
 
             // Process Missing Withdrawals (Simply debit balance and record)
@@ -756,10 +817,10 @@ impl BalanceService {
 
                 if owner_type == "customer" {
                     sqlx::query("UPDATE merchant_customer_balances SET available_balance = available_balance - $1, total_balance = total_balance - $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
-                        .bind(tx.amount).bind(customer_id.unwrap()).bind(crypto_type.to_string()).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
+                        .bind(tx.amount).bind(customer_id.unwrap()).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
                 } else {
                     sqlx::query("UPDATE merchant_balances SET available_balance = available_balance - $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
-                        .bind(tx.amount).bind(merchant_id).bind(crypto_type.to_string()).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
+                        .bind(tx.amount).bind(merchant_id).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
                 }
 
                 // Record the withdrawal in history
@@ -774,7 +835,7 @@ impl BalanceService {
                 )
                 .bind(&withdrawal_id)
                 .bind(merchant_id)
-                .bind(crypto_type.to_string())
+                .bind(&crypto_type_str)
                 .bind(tx.amount)
                 .bind(amount_usd)
                 .bind(&tx.to_address)
@@ -789,18 +850,92 @@ impl BalanceService {
             db_tx.commit().await?;
         }
 
+        // 8. FINAL RECONCILIATION & SYNC
+        // We recalculate the expected balance one more time after potential imports
+        let updated_recorded_data = sqlx::query(
+            r#"
+            SELECT 
+                COALESCE(SUM(CASE WHEN source IN ('payment', 'customer_tx') THEN amount - fee_amount ELSE 0 END), 0) as total_deposits,
+                COALESCE(SUM(CASE WHEN source = 'withdrawal' THEN amount ELSE 0 END), 0) as total_withdrawals
+            FROM (
+                SELECT amount, fee_amount, 'payment' as source FROM payment_transactions WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND status = 'CONFIRMED'
+                UNION ALL
+                SELECT amount, fee as fee_amount, 'customer_tx' as source FROM customer_transactions WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND status = 'CONFIRMED'
+                UNION ALL
+                SELECT amount, 0 as fee_amount, 'withdrawal' as source FROM withdrawals WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND status = 'COMPLETED'
+            ) as combined_history
+            "#
+        )
+        .bind(merchant_id)
+        .bind(&crypto_type_str)
+        .bind(active_sandbox_mode)
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        let audited_deposits: Decimal = updated_recorded_data.get("total_deposits");
+        let audited_withdrawals: Decimal = updated_recorded_data.get("total_withdrawals");
+        let audited_expected_balance = audited_deposits - audited_withdrawals;
+
+        // If not dry run, FORCE SYNC the balance table to this audited amount
+        if !dry_run {
+            tracing::info!(
+                "[RECTIFY-SMART] Force syncing balance for merchant {} ({}): recorded_sum={} onchain_sum={}",
+                merchant_id,
+                crypto_type_str,
+                audited_expected_balance,
+                total_onchain_deposits - total_onchain_withdrawals
+            );
+
+            sqlx::query(
+                r#"
+                INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, total_balance, reserved_balance, last_updated, sandbox_mode)
+                VALUES ($1, $2, $3, $3, 0, NOW(), $4)
+                ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
+                DO UPDATE SET 
+                    available_balance = $3,
+                    total_balance = $3 + merchant_balances.reserved_balance,
+                    last_updated = NOW()
+                "#
+            )
+            .bind(merchant_id)
+            .bind(&crypto_type_str)
+            .bind(audited_expected_balance)
+            .bind(active_sandbox_mode)
+            .execute(&self.db_pool)
+            .await?;
+        }
+
+        let current_balance_after = self
+            .get_balance(merchant_id, crypto_type, active_sandbox_mode)
+            .await?
+            .available_balance;
+
         Ok(json!({
             "success": true,
             "dry_run": dry_run,
             "merchant_id": merchant_id,
             "blockchain": monitor.blockchain_name(),
-            "missing_deposits": missing_deposits.len(),
-            "missing_withdrawals": missing_withdrawals.len(),
-            "discrepancies_found": mismatched_txs.len(),
+            "mode": if active_sandbox_mode { "SANDBOX" } else { "LIVE" },
+            "audit": {
+                "onchain_deposits": total_onchain_deposits,
+                "onchain_withdrawals": total_onchain_withdrawals,
+                "recorded_db_deposits_net": audited_deposits,
+                "recorded_db_withdrawals": audited_withdrawals,
+                "internal_sweeps_detected": skipped_sweeps
+            },
+            "reconciliation": {
+                "current_table_balance": current_balance_after,
+                "expected_from_recorded_txs": audited_expected_balance,
+                "balance_gap": audited_expected_balance - current_balance_after,
+                "status": if (audited_expected_balance - current_balance_after).abs() < Decimal::new(1, 8) { "HEALTHY" } else { "OUT_OF_SYNC" }
+            },
+            "gap_analysis": {
+                "missing_deposits": missing_deposits.len(),
+                "missing_withdrawals": missing_withdrawals.len(),
+                "discrepancies_found": mismatched_txs.len(),
+            },
             "mismatched_details": mismatched_txs,
             "actions_taken": actions_taken,
-            "total_deposit_gap": total_missing_deposit_amount,
-            "total_withdrawal_gap": total_missing_withdrawal_amount
         }))
     }
 
