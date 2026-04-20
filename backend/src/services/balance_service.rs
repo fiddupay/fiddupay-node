@@ -888,12 +888,11 @@ impl BalanceService {
 
             sqlx::query(
                 r#"
-                INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, total_balance, reserved_balance, last_updated, sandbox_mode)
-                VALUES ($1, $2, $3, $3, 0, NOW(), $4)
+                INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
+                VALUES ($1, $2, $3, 0, NOW(), $4)
                 ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
                 DO UPDATE SET 
                     available_balance = $3,
-                    total_balance = $3 + merchant_balances.reserved_balance,
                     last_updated = NOW()
                 "#
             )
