@@ -126,23 +126,15 @@ const ApiSettingsTab: React.FC<ApiSettingsTabProps> = ({
                 
                 <div className={styles.ipList} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     {ipWhitelist.map((ip) => (
-                        <div key={ip} className={styles.ipTag} style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            background: '#f1f5f9',
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            fontSize: '13px'
-                        }}>
+                        <div key={ip} className={styles.ipTag}>
                             <code>{ip}</code>
                             <MdDelete 
-                                style={{ cursor: 'pointer', color: '#ef4444' }} 
+                                style={{ cursor: 'pointer', color: '#f87171', fontSize: '16px' }} 
                                 onClick={() => handleRemoveIp(ip)}
                             />
                         </div>
                     ))}
-                    {ipWhitelist.length === 0 && <span style={{ color: '#94a3b8', fontSize: '13px' }}>No IP restrictions set.</span>}
+                    {ipWhitelist.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No IP restrictions set.</span>}
                 </div>
             </div>
         </section>

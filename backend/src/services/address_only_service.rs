@@ -622,12 +622,17 @@ impl AddressOnlyService {
 
     /// Get merchant fee payment setting
     pub async fn get_merchant_fee_setting(&self, merchant_id: i64) -> Result<bool, ServiceError> {
-        let merchant = sqlx::query("SELECT customer_pays_fee FROM merchants WHERE id = $1")
+        let merchant = sqlx::query("SELECT COALESCE(customer_pays_fee, true) as customer_pays_fee FROM merchants WHERE id = $1")
             .bind(merchant_id)
-            .fetch_one(&self.db_pool)
+            .fetch_optional(&self.db_pool)
             .await?;
 
-        use sqlx::Row;
-        Ok(merchant.get("customer_pays_fee"))
+        match merchant {
+            Some(row) => {
+                use sqlx::Row;
+                Ok(row.get("customer_pays_fee"))
+            }
+            None => Err(ServiceError::MerchantNotFound),
+        }
     }
 }

@@ -100,10 +100,10 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
                 </div>
             )}
 
-            <div className={styles.safeguardBox} style={{ marginTop: '32px' }}>
+            <div className={styles.safeguardBox}>
                 <div className={styles.safeguardInfo}>
                     <div className={styles.safeguardIcon}>
-                        {user?.wallets_locked ? <MdLock color="#34d399" /> : <MdWarning color="#fbbf24" />}
+                        {user?.wallets_locked ? <MdLock color="var(--primary)" /> : <MdWarning color="#f59e0b" />}
                     </div>
                     <div className={styles.safeguardText}>
                         <h3>Primary Wallet Protection</h3>
@@ -127,7 +127,7 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
             <div className={styles.safeguardBox} style={{ marginTop: '20px' }}>
                 <div className={styles.safeguardInfo}>
                     <div className={styles.safeguardIcon}>
-                        {user?.customer_wallets_locked ? <MdLock color="#34d399" /> : <MdWarning color="#fbbf24" />}
+                        {user?.customer_wallets_locked ? <MdLock color="var(--primary)" /> : <MdWarning color="#f59e0b" />}
                     </div>
                     <div className={styles.safeguardText}>
                         <h3>Customer Wallet Protection</h3>

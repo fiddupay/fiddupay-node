@@ -343,13 +343,15 @@ input:checked+.slider:before {
 }
 
 .badgeSandbox {
-    background: #e9ecef;
-    color: #6c757d;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
 }
 
 .badgeLive {
-    background: #e7f5ff;
-    color: #1971c2;
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+    border: 1px solid var(--primary);
 }
 
 .keyInputGroup {
@@ -419,9 +421,10 @@ input:checked+.slider:before {
 }
 
 .activeFormat {
-    background: var(--fiddu-brand-primary);
+    background: var(--primary);
     color: white;
-    border-color: var(--fiddu-brand-primary);
+    border-color: var(--primary);
+    box-shadow: 0 0 12px var(--primary-glow);
 }
 
 .activeFormat:hover {
@@ -464,9 +467,9 @@ input:checked+.slider:before {
     border: 1px solid var(--border);
     border-radius: 12px;
     font-size: 14px;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--surface);
     color: var(--text-main);
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .urlInput:focus {
@@ -844,10 +847,26 @@ input:checked+.slider:before {
     background: #e03131;
 }
 
-.confirmRotateBtn:disabled,
-.cancelBtn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.ipTag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface-hover);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+}
+
+.ipTag:hover {
+    border-color: var(--primary);
+}
+
+.ipTag code {
+    color: var(--primary);
+    font-family: 'JetBrains Mono', monospace;
 }
 
 @media (max-width: 480px) {
@@ -860,13 +879,19 @@ input:checked+.slider:before {
 .safeguardBox {
     margin-top: 32px;
     padding: 24px;
-    background: #fffdf5;
-    border: 1px solid #fef3c7;
-    border-radius: 12px;
+    background: var(--surface-hover);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 24px;
+    transition: transform 0.2s;
+}
+
+.safeguardBox:hover {
+    transform: translateY(-2px);
 }
 
 .safeguardInfo {
@@ -890,15 +915,16 @@ input:checked+.slider:before {
 
 .safeguardInfo h3 {
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
     margin-bottom: 4px;
-    color: #92400e;
+    color: var(--text-main);
 }
 
 .safeguardInfo p {
     font-size: 14px;
-    color: #b45309;
+    color: var(--text-muted);
     margin: 0;
+    line-height: 1.5;
 }
 
 .lockBtn {

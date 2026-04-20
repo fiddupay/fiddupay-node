@@ -156,8 +156,8 @@ const SettingsPage: React.FC = () => {
             try {
                 const aoFeeRes = await addressOnlyAPI.getFeeSetting()
                 setAddressOnlyCustomerPaysFee(aoFeeRes.data.customer_pays_fee)
-            } finally {
-                setLoading(false)
+            } catch (err) {
+                console.warn('Address-only settings not available:', err)
             }
         } catch (error) {
             console.error('Failed to fetch settings', error)

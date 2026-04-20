@@ -3,8 +3,8 @@
 
 use crate::config::Config;
 use crate::services::{
-    account_lockout_service::AccountLockoutService, admin_service::AdminService,
-    analytics_service::AnalyticsService, audit_service::AuditService,
+    account_lockout_service::AccountLockoutService, address_only_service::AddressOnlyService,
+    admin_service::AdminService, analytics_service::AnalyticsService, audit_service::AuditService,
     balance_monitor::BalanceMonitor, balance_service::BalanceService,
     blockchain_transaction_sender::BlockchainTransactionSender, currency_service::CurrencyService,
     invoice_service::InvoiceService, ip_whitelist_service::IpWhitelistService,
@@ -49,6 +49,9 @@ pub struct AppState {
     pub account_lockout_service: Arc<AccountLockoutService>,
     pub security_monitoring_service: Arc<SecurityMonitoringService>,
     pub blockchain_sender: Arc<BlockchainTransactionSender>,
+    pub address_only_manager:
+        Arc<tokio::sync::Mutex<crate::services::address_only_manager::AddressOnlyManager>>,
+    pub address_only_service: Arc<AddressOnlyService>,
     pub redis_client: RedisClient,
 }
 
@@ -110,6 +113,20 @@ impl AppState {
             balance_service.clone(),
         ));
 
+        // Address-Only initialization
+        let address_only_manager = tokio::runtime::Handle::current().block_on(async {
+            let mut manager = crate::services::address_only_manager::AddressOnlyManager::new(
+                db_pool.clone(),
+                config.clone(),
+                notification_service.clone(),
+            )
+            .await
+            .expect("Failed to initialize AddressOnlyManager");
+            let _ = manager.start_monitoring().await;
+            Arc::new(tokio::sync::Mutex::new(manager))
+        });
+
+        let address_only_service = address_only_manager.blocking_lock().address_service.clone();
         Self {
             merchant_service,
             payment_service: Arc::new(PaymentService::new(
@@ -162,6 +179,8 @@ impl AppState {
             account_lockout_service: Arc::new(AccountLockoutService::new(db_pool.clone(), 5, 15)),
             security_monitoring_service: Arc::new(SecurityMonitoringService::new(db_pool.clone())),
             blockchain_sender: blockchain_sender.clone(),
+            address_only_service,
+            address_only_manager,
             redis_client,
         }
     }

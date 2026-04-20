@@ -326,6 +326,9 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
             "/api/v1/merchants/address-only/health",
             get(address_only::get_address_only_health),
         )
+        // Apply address-only mode extensions
+        .layer(axum::Extension(state.address_only_manager.clone()))
+        .layer(axum::Extension((*state.address_only_service).clone()))
         // Apply merchant API key authentication
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),

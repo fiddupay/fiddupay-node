@@ -37,10 +37,10 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
             <h2>Security & Transaction PIN</h2>
             <p>Manage your transaction authorization settings.</p>
 
-            <div className={styles.safeguardBox} style={{ borderLeft: '4px solid var(--primary)' }}>
+            <div className={styles.safeguardBox}>
                 <div className={styles.safeguardInfo}>
                     <div className={styles.safeguardIcon}>
-                        {user?.has_transaction_pin ? <MdCheckCircle color="#10b981" /> : <MdError color="#ef4444" />}
+                        {user?.has_transaction_pin ? <MdCheckCircle color="var(--primary)" /> : <MdError color="#ef4444" />}
                     </div>
                     <div className={styles.safeguardText}>
                         <h3>4-Digit Transaction PIN</h3>
@@ -104,10 +104,10 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                 <p>Configure automated system alerts for operational balance safety.</p>
 
                 <div className={styles.formCard} style={{ marginTop: '24px', maxWidth: '500px' }}>
-                    <div className={styles.formGroup} style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--surface-hover)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <div className={styles.formGroup} style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', border: '1px solid var(--border)' }}>
                         <div>
-                            <h4 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-main)' }}>Enable Alerts</h4>
-                            <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Receive notifications when balance is low.</p>
+                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>Enable Alerts</h4>
+                            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Receive notifications when balance is low.</p>
                         </div>
                         <label className={styles.switch}>
                             <input 
@@ -124,14 +124,14 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                     </div>
 
                     <div className={styles.formGroup}>
-                        <label>Low Balance Threshold (USD)</label>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <label style={{ color: 'var(--text-main)', marginBottom: '8px', display: 'block', fontSize: '14px', fontWeight: 600 }}>Low Balance Threshold (USD)</label>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch' }}>
                             <div style={{ position: 'relative', flex: 1 }}>
-                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontWeight: 600 }}>$</span>
+                                <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '14px', zIndex: 2 }}>$</span>
                                 <input 
                                     type="number"
-                                    className={styles.inputStyle}
-                                    style={{ paddingLeft: '28px', width: '100%' }}
+                                    className={styles.urlInput}
+                                    style={{ paddingLeft: '32px', width: '100%', height: '48px' }}
                                     value={lowBalanceThreshold}
                                     onChange={e => setLowBalanceThreshold(e.target.value)}
                                     placeholder="0.00"
@@ -139,7 +139,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                             </div>
                             <button 
                                 className={styles.saveBtn} 
-                                style={{ background: '#10b981', whiteSpace: 'nowrap' }}
+                                style={{ background: 'var(--primary)', whiteSpace: 'nowrap', height: '48px', padding: '0 24px', borderRadius: '12px' }}
                                 onClick={() => handleUpdateSettings({ low_balance_threshold_usd: lowBalanceThreshold })}
                             >
                                 Update Threshold
