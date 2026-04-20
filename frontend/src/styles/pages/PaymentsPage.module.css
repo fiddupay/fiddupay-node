@@ -770,7 +770,7 @@
 .invoicingSection {
   margin: 24px -24px;
   padding: 24px;
-  background: var(--surface);
+  background: var(--surface-hover);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
 }
@@ -828,7 +828,7 @@
   width: 18px;
   left: 4px;
   bottom: 4px;
-  background-color: white;
+  background-color: var(--white);
   transition: .4s;
   border-radius: 50%;
 }
@@ -854,8 +854,8 @@
 }
 
 .itemsSection {
-  background: var(--white);
-  border: 1px solid var(--fiddu-border);
+  background: var(--bg-main);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0;
   /* Remove padding to allow header to be full width if needed, or controlled by children */
@@ -867,8 +867,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: #f1f5f9;
-  border-bottom: 1px solid var(--fiddu-border);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
 }
 
 .itemsHeader label {
@@ -904,7 +904,7 @@
   grid-template-columns: 3.5fr 1fr 1.5fr 0.5fr;
   gap: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--fiddu-border);
+  border-bottom: 1px solid var(--border);
   margin-bottom: 12px;
 }
 
@@ -925,11 +925,13 @@
 }
 
 .itemRow input {
-  padding: 8px 12px;
+  padding: 10px 12px;
   font-size: 13px;
-  border: 1px solid var(--fiddu-border);
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
   width: 100%;
+  background: var(--surface);
+  color: var(--text-main);
 }
 
 .itemRow input:focus {
@@ -962,6 +964,7 @@
 .removeBtn:hover {
   background: #fee2e2;
   color: #dc2626;
+  border-color: #fca5a5;
 }
 
 .invoiceFooter {
@@ -982,8 +985,8 @@
 }
 
 .linkCard {
-  background: #f8fafc;
-  border: 1px solid var(--fiddu-border);
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
   text-align: left;
@@ -1004,7 +1007,9 @@
 
 .linkInput {
   flex: 1;
-  background: var(--white) !important;
+  background: var(--bg-main) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-main);
   font-family: monospace;
   font-size: 13px;
 }
@@ -1069,15 +1074,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid var(--fiddu-border);
-  background: #fcfcfc;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
 }
 
 .paginationInfo {
   font-size: 14px;
-  color: var(--fiddu-text-secondary);
+  color: var(--text-muted);
 }
 
 .paginationInfo strong {
@@ -1092,9 +1097,9 @@
 }
 
 .pageBtn {
-  background: var(--white);
-  border: 1px solid var(--fiddu-border);
-  color: var(--fiddu-text-secondary);
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  color: var(--text-main);
   padding: 8px 16px;
   border-radius: 8px;
   font-size: 14px;
@@ -1131,7 +1136,7 @@
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--fiddu-text-secondary);
+  color: var(--text-muted);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;

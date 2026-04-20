@@ -18,10 +18,10 @@
 
 .selectTrigger {
   width: 100%;
-  background: #0d1117;
+  background: var(--bg-main);
   border: 1px solid var(--border);
   border-radius: 1rem;
-  padding: 1rem 1.25rem;
+  padding: 0.875rem 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -38,7 +38,7 @@
 .selectTrigger.active {
   border-color: var(--primary);
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
-  background: #0f141d;
+  background: var(--surface);
 }
 
 .value {
@@ -67,14 +67,26 @@
   top: calc(100% + 0.5rem);
   left: 0;
   right: 0;
-  background: #111827;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 1rem;
-  overflow: hidden;
+  overflow-y: auto;
+  max-height: 280px;
   z-index: 100;
   box-shadow: 0 15px 30px rgba(0,0,0,0.5);
   animation: slideDown 0.2s ease-out;
   backdrop-filter: blur(12px);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
 }
 
 .option {
@@ -89,7 +101,7 @@
 }
 
 .option:hover {
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--surface-hover);
   color: white;
 }
 

@@ -1,6 +1,10 @@
 import React from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { MdFlashOn, MdScience } from 'react-icons/md'
 import { useAuthStore } from '@/stores/authStore'
+import { merchantAPI } from '@/services/apiService'
+import { setSuppressAuthRedirect } from '@/utils/api'
+import { useToast } from '@/contexts/ToastContext'
 import styles from '@/styles/components/layout/Sidebar.module.css'
 
 const navigation = [
@@ -22,7 +26,29 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation()
-  const { user, logout } = useAuthStore()
+  const { user, loadUser, logout } = useAuthStore()
+  const { showToast } = useToast()
+  const [switching, setSwitching] = React.useState(false)
+
+  const handleSwitchEnvironment = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (switching) return
+
+    setSuppressAuthRedirect(true)
+    setSwitching(true)
+    try {
+      const toLive = user?.sandbox_mode || false
+      await merchantAPI.switchEnvironment(toLive)
+      await loadUser(true)
+      showToast(`Switched to ${toLive ? 'Live' : 'Sandbox'} mode`, 'success')
+      if (onClose) onClose()
+    } catch (error: any) {
+      showToast('Failed to switch environment', 'error')
+    } finally {
+      setSuppressAuthRedirect(false)
+      setSwitching(false)
+    }
+  }
 
   return (
     <div className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
@@ -49,7 +75,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             })}
           </ul>
 
-          <div className={styles.userSection}>
+            <div className={styles.envToggleWrapper} onClick={handleSwitchEnvironment}>
+              <div className={styles.envInfo}>
+                <div className={`${styles.envBadge} ${user?.sandbox_mode ? styles.sandbox : styles.live}`}>
+                  <div className={styles.pulse} />
+                  {user?.sandbox_mode ? <MdScience /> : <MdFlashOn />}
+                  <span>{user?.sandbox_mode ? 'Sandbox' : 'Live'}</span>
+                </div>
+                <span className={styles.envActionLabel}>
+                  {switching ? 'Switching...' : `Switch to ${user?.sandbox_mode ? 'Live' : 'Sandbox'}`}
+                </span>
+              </div>
+              <div className={styles.toggleSwitch}>
+                <label className={styles.switch}>
+                  <input
+                    type="checkbox"
+                    checked={user?.sandbox_mode}
+                    readOnly
+                  />
+                  <span className={styles.slider}></span>
+                </label>
+              </div>
+            </div>
+
             <div className={styles.userInfo}>
               <div className={styles.userAvatar}>
                 {user?.business_name?.charAt(0).toUpperCase()}
@@ -64,7 +112,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <i className={`fas fa-sign-out-alt ${styles.navIcon}`}></i>
               Sign out
             </button>
-          </div>
         </nav>
       </div>
     </div>

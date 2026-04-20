@@ -119,7 +119,19 @@ const WithdrawalsPage: React.FC = () => {
             // Fetch configured wallets
             const walletsRes = await walletAPI.getAll()
             const activeWallets = Array.isArray(walletsRes.data.wallets) 
-                ? walletsRes.data.wallets.filter((w: any) => w.is_active) 
+                ? walletsRes.data.wallets.filter((w: any) => {
+                    if (!w.is_active) return false
+                    
+                    const upType = w.crypto_type.toUpperCase()
+                    const isBTC = upType.startsWith('BTC') || upType.includes('BITCOIN')
+                    
+                    // SOL/EVM share addresses across environments
+                    if (!isBTC) return true
+                    
+                    // BTC has different addresses for mainnet and testnet
+                    const isWalletSandbox = w.is_sandbox || upType.includes('TESTNET') || upType.includes('DEVNET')
+                    return user?.sandbox_mode ? isWalletSandbox : !isWalletSandbox
+                  }) 
                 : []
             setConfiguredWallets(activeWallets)
 
@@ -138,11 +150,26 @@ const WithdrawalsPage: React.FC = () => {
     }
 
     const combinedWallets = configuredWallets.map(cw => {
-        const balanceEntry = walletBalances.find(wb => wb.crypto_type === cw.crypto_type)
+        const upType = cw.crypto_type.toUpperCase()
+        const isBTC = upType.startsWith('BTC') || upType.includes('BITCOIN')
+        
+        // Find balance by crypto_type
+        let balanceEntry = walletBalances.find(wb => wb.crypto_type === cw.crypto_type)
+        
+        // If in sandbox and using a shared SOL/EVM wallet configured as "Mainnet", 
+        // we need to look for its sandbox balance equivalent.
+        if (user?.sandbox_mode && !isBTC && !balanceEntry) {
+            balanceEntry = walletBalances.find(wb => {
+                const wbType = wb.crypto_type.toUpperCase()
+                // Match SOL -> SOL_DEVNET, ETH -> ETH_TESTNET, etc.
+                return wbType.startsWith(upType) && (wbType.includes('DEVNET') || wbType.includes('TESTNET') || wbType.includes('SEPOLIA'))
+            })
+        }
+
         return {
             crypto_type: cw.crypto_type,
             available_balance: balanceEntry?.available_balance || '0',
-            network: cw.network || cw.crypto_type.split('_')[1] || 'Mainnet'
+            network: cw.network || cw.crypto_type.split('_')[1] || (user?.sandbox_mode ? 'Testnet' : 'Mainnet')
         }
     })
 
@@ -320,7 +347,7 @@ const WithdrawalsPage: React.FC = () => {
                                     </div>
                                     <div className={styles.walletInfoRow}>
                                         <span>Network</span>
-                                        <strong>{supportedCurrencies.find(c => c.crypto_type === selectedCrypto)?.network || selectedCrypto.split('_')[1] || 'Mainnet'}</strong>
+                                        <strong>{supportedCurrencies.find(c => c.crypto_type === selectedCrypto)?.network || (user?.sandbox_mode ? 'Testnet' : 'Mainnet')}</strong>
                                     </div>
                                 </div>
                             )}
