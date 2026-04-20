@@ -336,3 +336,71 @@
     border-radius: 12px;
     border: 1.5px solid var(--border);
 }
+
+.financialForm {
+    background: rgba(17, 24, 39, 0.4);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    border-radius: 24px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.financialForm:focus-within {
+    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.05);
+}
+
+.infoBox {
+    padding: 1.25rem;
+    background: rgba(37, 99, 235, 0.05);
+    border: 1px solid rgba(37, 99, 235, 0.1);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.infoBox i {
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+.maxBtn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 6px 12px;
+    background: var(--surface-hover);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.maxBtn:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.valueBadge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.3rem 0.6rem;
+    border-radius: 8px;
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.usdSmall {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}

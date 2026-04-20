@@ -43,209 +43,219 @@ const ActionsTab: React.FC<ActionsTabProps> = ({
   customerBalances
 }) => {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
       {/* Sweep Sub-Wallet Balances */}
-      <div className={styles.drawerSection}>
-        <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-          <i className="fas fa-broom" style={{ color: "#2563eb" }}></i>
+      <div className={styles.drawerSection} style={{ padding: 0, border: 'none', background: 'transparent', boxShadow: 'none' }}>
+        <h3 style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.25rem", padding: '0 1rem' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(37, 99, 235, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="fas fa-broom" style={{ color: "#3b82f6", fontSize: '0.9rem' }}></i>
+          </div>
           Sweep Sub-Wallet Balances
         </h3>
-        <p style={{ fontSize: "0.85rem", color: "#64748b", marginBottom: "1.5rem" }}>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", padding: '0 1rem', lineHeight: 1.5 }}>
           Sweep funds internally to your merchant Master Wallet. Gas fees are seamlessly deducted directly from your ledger balance.
         </p>
 
-        <form onSubmit={onSweep} style={{ background: "#fff", border: "1px solid #e2e8f0", padding: "1.5rem", borderRadius: "12px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+        <form onSubmit={onSweep} className={styles.financialForm}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
             <div className={styles.formGroup} style={{ marginBottom: 0 }}>
               <label>Sweep Mode</label>
-              <select
-                className={styles.inputStyle}
-                value={sweepMode}
-                onChange={(e) => setSweepMode(e.target.value as any)}
-              >
-                <option value="ALL">Sweep All Assets</option>
-                <option value="NATIVE_ONLY">Native Coins Only</option>
-                <option value="STABLE_ONLY">Stablecoins Only</option>
-                <option value="SPECIFIC">Specific Asset</option>
-              </select>
-            </div>
-            
-            {sweepMode === "SPECIFIC" && (
-              <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                <label>Target Asset</label>
+              <div className={styles.inputGroup} style={{ position: 'relative' }}>
+                <i className="fas fa-layer-group" style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.9rem' }}></i>
                 <select
                   className={styles.inputStyle}
-                  value={sweepCryptoType}
-                  onChange={(e) => setSweepCryptoType(e.target.value)}
+                  value={sweepMode}
+                  onChange={(e) => setSweepMode(e.target.value as any)}
+                  style={{ paddingLeft: '3rem' }}
                 >
-                  {supportedCurrencies.map((c, idx) => (
-                    <option key={idx} value={c.crypto_type}>{c.crypto_type}</option>
-                  ))}
+                  <option value="ALL">Sweep All Assets</option>
+                  <option value="NATIVE_ONLY">Native Coins Only</option>
+                  <option value="STABLE_ONLY">Stablecoins Only</option>
+                  <option value="SPECIFIC">Specific Asset</option>
                 </select>
               </div>
-            )}
-
+            </div>
+            
             <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                <label style={{ margin: 0 }}>{sweepMode === "SPECIFIC" ? "Amount (Optional)" : "Sweep Details"}</label>
-                {customerBalances && (
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
-                    {(() => {
-                      let filtered = customerBalances;
-                      let label = "Total to Sweep";
-                      if (sweepMode === "NATIVE_ONLY") {
-                        filtered = customerBalances.filter((b: any) => {
-                          const ct = b.crypto_type.toUpperCase();
-                          return ["BTC", "ETH", "SOL", "BNB", "MATIC"].includes(ct) || ct === "ETHEREUM" || ct === "SOLANA";
-                        });
-                        label = "Total Native Coins";
-                      } else if (sweepMode === "STABLE_ONLY") {
-                        filtered = customerBalances.filter((b: any) => {
-                          const ct = b.crypto_type.toUpperCase();
-                          return ct.includes("USDT") || ct.includes("BUSD") || ct.includes("USDC");
-                        });
-                        label = "Total Stablecoins";
-                      } else if (sweepMode === "SPECIFIC") {
-                        const bal = customerBalances.find((b: any) => b.crypto_type === sweepCryptoType);
-                        if (!bal) return null;
-                        return (
-                          <>
-                            <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
-                              Available to Sweep: {parseFloat(bal.locked_balance).toFixed(6)}
-                            </span>
-                            <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
-                              ≈ ${parseFloat(bal.locked_balance_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
-                            </span>
-                          </>
-                        );
-                      }
-                      
-                      const totalUsd = filtered.reduce((sum: number, b: any) => sum + parseFloat(b.locked_balance_usd || "0"), 0);
-                      return (
-                        <>
-                          <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
-                            {label}: ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
-                          </span>
-                          <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
-                            {filtered.filter((b: any) => parseFloat(b.locked_balance) > 0).length} assets with balance
-                          </span>
-                        </>
-                      );
-                    })()}
-                  </div>
-                )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ margin: 0 }}>{sweepMode === "SPECIFIC" ? "Target Asset" : "Sweep Summary"}</label>
               </div>
               
               {sweepMode === "SPECIFIC" ? (
-                <div style={{ position: 'relative' }}>
-                  <input
+                <div className={styles.inputGroup} style={{ position: 'relative' }}>
+                  <i className="fas fa-coins" style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.9rem' }}></i>
+                  <select
+                    className={styles.inputStyle}
+                    value={sweepCryptoType}
+                    onChange={(e) => setSweepCryptoType(e.target.value)}
+                    style={{ paddingLeft: '3rem' }}
+                  >
+                    {supportedCurrencies.map((c, idx) => (
+                      <option key={idx} value={c.crypto_type}>{c.crypto_type}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div style={{ height: '52px', display: 'flex', alignItems: 'center' }}>
+                   {customerBalances && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      {(() => {
+                        let filtered = customerBalances;
+                        if (sweepMode === "NATIVE_ONLY") {
+                          filtered = customerBalances.filter((b: any) => {
+                            const ct = b.crypto_type.toUpperCase();
+                            return ["BTC", "ETH", "SOL", "BNB", "MATIC"].includes(ct) || ct === "ETHEREUM" || ct === "SOLANA";
+                          });
+                        } else if (sweepMode === "STABLE_ONLY") {
+                          filtered = customerBalances.filter((b: any) => {
+                            const ct = b.crypto_type.toUpperCase();
+                            return ct.includes("USDT") || ct.includes("BUSD") || ct.includes("USDC");
+                          });
+                        }
+                        
+                        const totalUsd = filtered.reduce((sum: number, b: any) => sum + parseFloat(b.locked_balance_usd || "0"), 0);
+                        return (
+                          <>
+                            <span className={styles.valueBadge}>
+                              ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                            </span>
+                            <span className={styles.usdSmall}>
+                              across {filtered.filter((b: any) => parseFloat(b.locked_balance) > 0).length} assets
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.formGroup} style={{ marginBottom: sweepMode === "SPECIFIC" ? '2rem' : '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ margin: 0 }}>{sweepMode === "SPECIFIC" ? "Amount to Sweep" : "Instructions"}</label>
+                {sweepMode === "SPECIFIC" && customerBalances && (
+                   <span className={styles.usdSmall} style={{ color: 'var(--primary)' }}>
+                      Available: {parseFloat(customerBalances.find((b: any) => b.crypto_type === sweepCryptoType)?.locked_balance || "0").toFixed(6)}
+                   </span>
+                )}
+              </div>
+
+              {sweepMode === "SPECIFIC" ? (
+                <div className={styles.inputGroup} style={{ position: 'relative' }}>
+                   <i className="fas fa-hand-holding-usd" style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.9rem' }}></i>
+                   <input
                     className={styles.inputStyle}
                     type="number"
                     step="any"
                     placeholder="Leave blank for MAX"
                     value={sweepAmount}
                     onChange={(e) => setSweepAmount(e.target.value)}
-                    style={{ paddingRight: '3.5rem' }}
+                    style={{ paddingLeft: '3rem', paddingRight: '4rem' }}
                   />
-                  {(() => {
-                    if (!sweepAmount || sweepMode !== "SPECIFIC") return null;
-                    const bal = customerBalances?.find((b: any) => b.crypto_type === sweepCryptoType);
-                    if (!bal || parseFloat(bal.locked_balance) === 0) return null;
-                    const rate = parseFloat(bal.locked_balance_usd) / parseFloat(bal.locked_balance);
-                    const usdVal = parseFloat(sweepAmount) * rate;
-                    return (
-                      <div style={{ position: 'absolute', bottom: '-18px', right: '4px', fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
-                        ≈ ${usdVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
-                      </div>
-                    );
-                  })()}
                   <button
                     type="button"
+                    className={styles.maxBtn}
                     onClick={() => {
                       const bal = customerBalances?.find((b: any) => b.crypto_type === sweepCryptoType);
                       if (bal) setSweepAmount(bal.locked_balance);
                     }}
-                    style={{
-                      position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
-                      padding: '4px 8px', background: '#f1f5f9', border: '1px solid #e2e8f0',
-                      borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, color: '#475569', cursor: 'pointer'
-                    }}
                   >MAX</button>
+                  {sweepAmount && (
+                    <div style={{ position: 'absolute', right: '0', bottom: '-22px' }}>
+                       {(() => {
+                          const bal = customerBalances?.find((b: any) => b.crypto_type === sweepCryptoType);
+                          if (!bal) return null;
+                          const rate = parseFloat(bal.locked_balance_usd) / parseFloat(bal.locked_balance);
+                          const usdVal = parseFloat(sweepAmount) * (rate || 0);
+                          return <span className={styles.usdSmall}>≈ ${usdVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</span>
+                       })()}
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div style={{ padding: '1rem', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
-                  <i className="fas fa-info-circle" style={{ marginRight: '0.5rem' }}></i>
-                  Bulk sweep will process all assets in this category.
+                <div className={styles.infoBox}>
+                  <i className="fas fa-info-circle"></i>
+                  Bulk sweep will process all confirmed sub-wallet balances in the selected category.
                 </div>
               )}
-            </div>
           </div>
           
           <div className={styles.formGroup}>
             <label>Merchant Transaction PIN</label>
-            <input
-              className={styles.inputStyle}
-              type="password"
-              maxLength={4}
-              pattern="\d*"
-              style={{ letterSpacing: "0.5rem", textAlign: "center" }}
-              placeholder="••••"
-              value={sweepPin}
-              onChange={(e) => setSweepPin(e.target.value.replace(/\D/g, ""))}
-              required
-            />
+            <div className={styles.inputGroup} style={{ position: 'relative' }}>
+              <i className="fas fa-lock" style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.9rem' }}></i>
+              <input
+                className={styles.inputStyle}
+                type="password"
+                maxLength={4}
+                pattern="\d*"
+                style={{ letterSpacing: "0.8rem", textAlign: "center", paddingLeft: '1.5rem', paddingRight: '1.5rem' }}
+                placeholder="••••"
+                value={sweepPin}
+                onChange={(e) => setSweepPin(e.target.value.replace(/\D/g, ""))}
+                required
+              />
+            </div>
           </div>
           
-          <button type="submit" className={styles.addBtn} style={{ width: "100%", background: "#2563eb" }} disabled={sweeping}>
-            {sweeping ? <i className="fas fa-spinner fa-spin"></i> : "Execute Sweep"}
+          <button type="submit" className={styles.addBtn} style={{ width: "100%", height: '56px' }} disabled={sweeping}>
+            {sweeping ? <i className="fas fa-spinner fa-spin"></i> : (
+              <>
+                <i className="fas fa-rocket"></i>
+                Execute Sweep
+              </>
+            )}
           </button>
           
-          <p style={{ color: "#64748b", fontSize: "0.75rem", marginTop: "0.75rem", textAlign: "center" }}>
-            <i className="fas fa-info-circle" style={{ marginRight: '0.25rem' }}></i>
-            Required gas limits will be discounted by any native dust already present in the sub-wallet.
+          <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: "1rem", textAlign: "center", opacity: 0.8 }}>
+            Required gas limits will be discounted by any native dust in the sub-wallet.
           </p>
         </form>
       </div>
 
       {/* Pay Merchant */}
-      <div className={styles.drawerSection}>
-        <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-          <i className="fas fa-university" style={{ color: "#10b981" }}></i>
+      <div className={styles.drawerSection} style={{ padding: 0, border: 'none', background: 'transparent', boxShadow: 'none' }}>
+        <h3 style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.25rem", padding: '0 1rem' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className="fas fa-university" style={{ color: "#10b981", fontSize: '0.9rem' }}></i>
+          </div>
           Move to Merchant Balance (Pay Merchant)
         </h3>
-        <p style={{ fontSize: "0.85rem", color: "#64748b", marginBottom: "1.5rem" }}>
-          Transfer funds from the customer's wallet to your main merchant account immediately.
+        <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", padding: '0 1rem', lineHeight: 1.5 }}>
+          Instantly transfer funds from the customer's wallet to your merchant ledger.
         </p>
 
-        <form onSubmit={onPayMerchant} style={{ background: "#fff", border: "1px solid #e2e8f0", padding: "1.5rem", borderRadius: "12px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+        <form onSubmit={onPayMerchant} className={styles.financialForm} style={{ borderColor: 'rgba(16, 185, 129, 0.2)' }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
             <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-              <label>Asset</label>
-              <select
-                className={styles.inputStyle}
-                value={payMerchantCryptoType}
-                onChange={(e) => setPayMerchantCryptoType(e.target.value)}
-              >
-                {supportedCurrencies.map((c, idx) => (
-                  <option key={idx} value={c.crypto_type}>{c.crypto_type}</option>
-                ))}
-              </select>
+              <label>Select Asset</label>
+              <div className={styles.inputGroup} style={{ position: 'relative' }}>
+                <i className="fas fa-coins" style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.9rem' }}></i>
+                <select
+                  className={styles.inputStyle}
+                  value={payMerchantCryptoType}
+                  onChange={(e) => setPayMerchantCryptoType(e.target.value)}
+                  style={{ paddingLeft: '3rem' }}
+                >
+                  {supportedCurrencies.map((c, idx) => (
+                    <option key={idx} value={c.crypto_type}>{c.crypto_type}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <label style={{ margin: 0 }}>Amount</label>
                 {customerBalances?.find((b: any) => b.crypto_type === payMerchantCryptoType) && (
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
-                      Customer Balance: {parseFloat(customerBalances.find((b: any) => b.crypto_type === payMerchantCryptoType).available_balance).toFixed(6)}
-                    </span>
-                    <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
-                      ≈ ${parseFloat(customerBalances.find((b: any) => b.crypto_type === payMerchantCryptoType).available_balance_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
-                    </span>
-                  </div>
+                   <span className={styles.usdSmall} style={{ color: '#10b981' }}>
+                      Bal: {parseFloat(customerBalances.find((b: any) => b.crypto_type === payMerchantCryptoType).available_balance).toFixed(6)}
+                   </span>
                 )}
               </div>
-              <div style={{ position: 'relative' }}>
+              <div className={styles.inputGroup} style={{ position: 'relative' }}>
+                <i className="fas fa-money-bill-wave" style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.9rem' }}></i>
                 <input
                   className={styles.inputStyle}
                   type="number"
@@ -254,37 +264,37 @@ const ActionsTab: React.FC<ActionsTabProps> = ({
                   value={payMerchantAmount}
                   onChange={(e) => setPayMerchantAmount(e.target.value)}
                   required
-                  style={{ paddingRight: '3.5rem' }}
+                  style={{ paddingLeft: '3rem', paddingRight: '4rem' }}
                 />
-                {(() => {
-                  if (!payMerchantAmount) return null;
-                  const bal = customerBalances?.find((b: any) => b.crypto_type === payMerchantCryptoType);
-                  if (!bal || parseFloat(bal.available_balance) === 0) return null;
-                  const rate = parseFloat(bal.available_balance_usd) / parseFloat(bal.available_balance);
-                  const usdVal = parseFloat(payMerchantAmount) * rate;
-                  return (
-                    <div style={{ position: 'absolute', bottom: '-18px', right: '4px', fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>
-                      ≈ ${usdVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
-                    </div>
-                  );
-                })()}
                 <button
                   type="button"
+                  className={styles.maxBtn}
                   onClick={() => {
                     const bal = customerBalances?.find((b: any) => b.crypto_type === payMerchantCryptoType);
                     if (bal) setPayMerchantAmount(bal.available_balance);
                   }}
-                  style={{
-                    position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
-                    padding: '4px 8px', background: '#f1f5f9', border: '1px solid #e2e8f0',
-                    borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, color: '#475569', cursor: 'pointer'
-                  }}
                 >MAX</button>
+                {payMerchantAmount && (
+                  <div style={{ position: 'absolute', right: '0', bottom: '-22px' }}>
+                     {(() => {
+                        const bal = customerBalances?.find((b: any) => b.crypto_type === payMerchantCryptoType);
+                        if (!bal) return null;
+                        const rate = parseFloat(bal.available_balance_usd) / parseFloat(bal.available_balance);
+                        const usdVal = parseFloat(payMerchantAmount) * (rate || 0);
+                        return <span className={styles.usdSmall}>≈ ${usdVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</span>
+                     })()}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-          <button type="submit" className={styles.addBtn} style={{ width: "100%", background: "#10b981" }} disabled={payingMerchant}>
-            {payingMerchant ? <i className="fas fa-spinner fa-spin"></i> : "Transfer to Merchant Balance"}
+          <button type="submit" className={styles.addBtn} style={{ width: "100%", background: "#10b981", height: '56px', boxShadow: '0 10px 20px rgba(16, 185, 129, 0.2)' }} disabled={payingMerchant}>
+            {payingMerchant ? <i className="fas fa-spinner fa-spin"></i> : (
+              <>
+                <i className="fas fa-share-square"></i>
+                Transfer to Merchant Balance
+              </>
+            )}
           </button>
         </form>
       </div>

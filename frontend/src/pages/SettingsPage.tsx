@@ -212,6 +212,8 @@ const SettingsPage: React.FC = () => {
             showToast(`Fees will now be paid by ${newValue ? 'customers' : 'you'}`, 'success')
         } catch (error: any) {
             showToast('Failed to update fee preferences', 'error')
+        } finally {
+            setLoading(false)
         }
     }
 
