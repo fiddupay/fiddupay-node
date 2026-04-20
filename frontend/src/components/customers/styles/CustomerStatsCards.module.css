@@ -6,11 +6,11 @@
 }
 
 .statCard {
-    background: white;
+    background: var(--surface);
     padding: 1.75rem;
     border-radius: 16px;
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     gap: 1.5rem;
@@ -19,8 +19,8 @@
 
 .statCard:hover {
     transform: translateY(-4px);
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    border-color: #2563eb;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+    border-color: var(--primary);
 }
 
 .statIcon {
@@ -33,14 +33,14 @@
     font-size: 1.5rem;
 }
 
-.statIcon.primary { background: #eff6ff; color: #2563eb; }
-.statIcon.success { background: #ecfdf5; color: #10b981; }
-.statIcon.warning { background: #fffbeb; color: #f59e0b; }
+.statIcon.primary { background: rgba(99, 102, 241, 0.1); color: var(--primary); }
+.statIcon.success { background: rgba(45, 212, 191, 0.1); color: var(--secondary); }
+.statIcon.warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
 
 .statInfo h3 {
     font-size: 0.875rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin: 0 0 0.5rem 0;
@@ -49,6 +49,6 @@
 .statValue {
     font-size: 1.75rem;
     font-weight: 800;
-    color: #1e293b;
+    color: var(--text-main);
     margin: 0;
 }

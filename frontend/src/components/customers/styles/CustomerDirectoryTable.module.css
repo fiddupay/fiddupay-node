@@ -1,15 +1,15 @@
 .contentCard {
-    background: white;
+    background: var(--surface);
     border-radius: 16px;
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border);
     overflow: hidden;
     position: relative;
 }
 
 .tableHeader {
     padding: 1.5rem;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -33,21 +33,21 @@
 }
 
 .table th {
-    background: #f8fafc;
+    background: var(--bg-main);
     padding: 1.25rem 1.5rem;
     font-size: 0.8rem;
     font-weight: 700;
-    color: #64748b;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border);
 }
 
 .table td {
     padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border);
     font-size: 0.95rem;
-    color: #1e293b;
+    color: var(--text-main);
 }
 
 .customerRow {
@@ -56,7 +56,7 @@
 }
 
 .customerRow:hover {
-    background: #f1f5f9;
+    background: var(--surface-hover);
 }
 
 .customerInfo {
@@ -85,26 +85,26 @@
 
 .customerName {
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text-main);
 }
 
 .customerEmail {
     font-size: 0.85rem;
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 .externalId {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.85rem;
     font-weight: 600;
-    color: #2563eb;
-    background: #eff6ff;
+    color: var(--primary);
+    background: rgba(99, 102, 241, 0.1);
     padding: 0.25rem 0.6rem;
     border-radius: 6px;
 }
 
 .actionBtn {
-    background: #3b82f6;
+    background: var(--primary);
     color: white;
     border: none;
     padding: 0.5rem 1rem;
@@ -119,17 +119,17 @@
     align-items: center;
     justify-content: center;
     padding: 5rem;
-    color: #2563eb;
+    color: var(--primary);
 }
 
 .noData {
     text-align: center;
     padding: 4rem 2rem;
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 .noData i {
     font-size: 4rem;
-    color: #cbd5e1;
+    color: var(--border);
     margin-bottom: 1.5rem;
 }

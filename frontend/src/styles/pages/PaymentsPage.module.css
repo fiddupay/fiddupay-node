@@ -174,8 +174,8 @@
   border-radius: 6px;
   font-size: 14px;
   color: var(--fiddu-text-secondary);
-  background: var(--white);
-  cursor: pointer;
+  background: var(--surface);
+  color: var(--text-main);
   outline: none;
 }
 
@@ -372,7 +372,7 @@
 }
 
 .amountBreakdown {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--fiddu-border);
   border-radius: 8px;
   padding: 16px;
@@ -407,7 +407,7 @@
   color: var(--fiddu-text-secondary);
   font-size: 14px;
   line-height: 1.5;
-  background: #f8fafc;
+  background: var(--surface-hover);
   padding: 12px;
   border-radius: 6px;
   border-left: 3px solid var(--fiddu-border);
@@ -692,7 +692,7 @@
   font-size: 14px;
   color: var(--text-main);
   transition: all 0.2s;
-  background: var(--surface);
+  background: var(--surface-hover);
 }
 
 .inputGroup textarea {
@@ -732,9 +732,9 @@
 }
 
 .cancelBtn {
-  background: var(--white);
-  color: var(--fiddu-text-secondary);
-  border: 1px solid var(--fiddu-border);
+  background: var(--surface-hover);
+  color: var(--text-main);
+  border: 1px solid var(--border);
   padding: 10px 20px;
   border-radius: 8px;
   font-weight: 600;
@@ -747,8 +747,8 @@
 }
 
 .submitBtn {
-  background: var(--fiddu-brand-primary);
-  color: var(--white);
+  background: var(--primary);
+  color: white;
   border: none;
   padding: 10px 24px;
   border-radius: 8px;
@@ -770,9 +770,9 @@
 .invoicingSection {
   margin: 24px -24px;
   padding: 24px;
-  background: #f8fafc;
-  border-top: 1px solid var(--fiddu-border);
-  border-bottom: 1px solid var(--fiddu-border);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .toggleGroup {

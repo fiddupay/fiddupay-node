@@ -1,8 +1,9 @@
 import { useToast } from '@/contexts/ToastContext'
-import { publicAPI, withdrawalAPI } from '@/services/apiService'
+import { publicAPI, withdrawalAPI, walletAPI } from '@/services/apiService'
 import { WithdrawalFormSkeleton } from '@/components/layout/PageSkeletons'
 import { useAuthStore } from '@/stores/authStore'
 import styles from '@/styles/pages/WithdrawalsPage.module.css'
+import CustomSelect from '@/components/ui/CustomSelect'
 import { Withdrawal } from '@/types'
 import { extractErrorMessage } from '@/utils/errorUtils'
 import React, { useEffect, useState } from 'react'
@@ -30,6 +31,7 @@ const WithdrawalsPage: React.FC = () => {
     const [balanceError, setBalanceError] = useState<string | null>(null)
     const [transactionPin, setTransactionPin] = useState('')
     const [supportedCurrencies, setSupportedCurrencies] = useState<any[]>([])
+    const [configuredWallets, setConfiguredWallets] = useState<any[]>([])
 
     useEffect(() => {
         fetchData()
@@ -100,8 +102,17 @@ const WithdrawalsPage: React.FC = () => {
             // Load balance through store
             await fetchBalance()
 
-            if (walletBalances.length > 0 && !selectedCrypto) {
-                setSelectedCrypto(walletBalances[0].crypto_type)
+            // Fetch configured wallets
+            const walletsRes = await walletAPI.getAll()
+            const activeWallets = Array.isArray(walletsRes.data.wallets) 
+                ? walletsRes.data.wallets.filter((w: any) => w.is_active) 
+                : []
+            setConfiguredWallets(activeWallets)
+
+            if (activeWallets.length > 0 && !selectedCrypto) {
+                // Prioritize wallets with balance, then just the first active one
+                const withBalance = walletBalances.find(wb => parseFloat(wb.available_balance || '0') > 0)
+                setSelectedCrypto(withBalance?.crypto_type || activeWallets[0].crypto_type)
             }
 
             setWithdrawals(Array.isArray(histRes.data) ? histRes.data : [])
@@ -112,7 +123,16 @@ const WithdrawalsPage: React.FC = () => {
         }
     }
 
-    const selectedWallet = walletBalances.find(w => w.crypto_type === selectedCrypto)
+    const combinedWallets = configuredWallets.map(cw => {
+        const balanceEntry = walletBalances.find(wb => wb.crypto_type === cw.crypto_type)
+        return {
+            crypto_type: cw.crypto_type,
+            available_balance: balanceEntry?.available_balance || '0',
+            network: cw.network || cw.crypto_type.split('_')[1] || 'Mainnet'
+        }
+    })
+
+    const selectedWallet = combinedWallets.find(w => w.crypto_type === selectedCrypto)
     const maxAmount = selectedWallet ? parseFloat(selectedWallet.available_balance || '0') : 0
 
     const handleMaxAmount = () => {
@@ -233,23 +253,20 @@ const WithdrawalsPage: React.FC = () => {
                         <form onSubmit={handleSubmit}>
                             {/* Wallet Selector */}
                             <div className={styles.formGroup}>
-                                <label>Select Wallet</label>
-                                <select
-                                    value={selectedCrypto}
-                                    onChange={e => setSelectedCrypto(e.target.value)}
-                                    className={styles.select}
-                                >
-                                    {walletBalances.length === 0 && <option value="">No wallets available</option>}
-                                    {walletBalances.map(w => {
+                                <CustomSelect
+                                    label="Select Wallet"
+                                    options={combinedWallets.map(w => {
                                         const currencyInfo = supportedCurrencies.find(c => c.crypto_type === w.crypto_type)
-                                        const networkName = currencyInfo?.network || w.crypto_type.split('_')[1] || 'Mainnet'
-                                        return (
-                                            <option key={w.crypto_type} value={w.crypto_type}>
-                                                {w.crypto_type} — Balance: {parseFloat(w.available_balance || '0').toFixed(6)} ({networkName})
-                                            </option>
-                                        )
+                                        const networkDisplay = currencyInfo?.network || w.network
+                                        return {
+                                            value: w.crypto_type,
+                                            label: `${w.crypto_type.split('_')[0]} — Balance: ${parseFloat(w.available_balance).toFixed(6)} (${networkDisplay})`
+                                        }
                                     })}
-                                </select>
+                                    value={selectedCrypto}
+                                    onChange={(v) => setSelectedCrypto(v)}
+                                    placeholder={combinedWallets.length === 0 ? "No wallets configured" : "Select a wallet"}
+                                />
                             </div>
 
                             {/* Selected wallet info */}
@@ -311,7 +328,7 @@ const WithdrawalsPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" className={styles.submitBtn} disabled={submitting || walletBalances.length === 0}>
+                            <button type="submit" className={styles.submitBtn} disabled={submitting || combinedWallets.length === 0}>
                                 <i className="fas fa-paper-plane"></i>
                                 {submitting ? 'Submitting...' : 'Submit Withdrawal'}
                             </button>

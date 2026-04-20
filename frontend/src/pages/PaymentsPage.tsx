@@ -4,6 +4,7 @@ import { merchantAPI, paymentAPI, publicAPI } from '@/services/apiService'
 import { useAuthStore } from '@/stores/authStore'
 import { Payment, PaymentFilters } from '@/types'
 import styles from '@/styles/pages/PaymentsPage.module.css'
+import CustomSelect from '@/components/ui/CustomSelect'
 
 import { StatCardSkeletons, TableSkeleton } from '@/components/layout/PageSkeletons'
 
@@ -763,28 +764,26 @@ const PaymentsPage: React.FC = () => {
                     placeholder="1.0"
                     required={!newPayment.is_invoice}
                     readOnly={newPayment.is_invoice}
-                    style={newPayment.is_invoice ? { backgroundColor: '#f8fafc', cursor: 'not-allowed' } : {}}
+                    style={newPayment.is_invoice ? { backgroundColor: 'var(--surface-hover)', cursor: 'not-allowed' } : {}}
                   />
                   {!newPayment.crypto_type.startsWith('USDT') && (
-                    <small style={{ marginTop: '4px', color: '#64748b', display: 'block', fontSize: '0.875rem' }}>
+                    <small style={{ marginTop: '4px', color: 'var(--text-muted)', display: 'block', fontSize: '0.875rem' }}>
                       ≈ ${newPayment.amount_usd || '0.00'} USD
                     </small>
                   )}
                 </div>
 
                 <div className={styles.inputGroup}>
-                  <label htmlFor="crypto_type">Cryptocurrency</label>
-                  <select
-                    id="crypto_type"
+                  <CustomSelect
+                    label="Select Currency"
+                    options={supportedCryptos.map(c => ({
+                      value: c.crypto_type,
+                      label: `${c.crypto_type.split('_')[0]} (${c.market_name || c.network})`
+                    }))}
                     value={newPayment.crypto_type}
-                    onChange={(e) => setNewPayment(prev => ({ ...prev, crypto_type: e.target.value }))}
-                  >
-                    {supportedCryptos.map((crypto: any) => (
-                      <option key={crypto.crypto_type} value={crypto.crypto_type}>
-                        {crypto.crypto_type.split('_')[0]} ({crypto.network})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setNewPayment({ ...newPayment, crypto_type: val })}
+                    required
+                  />
                 </div>
 
                 {paymentType === 'address-only' && (
@@ -968,7 +967,7 @@ const PaymentsPage: React.FC = () => {
           <div className={styles.modal}>
             <div className={styles.modalContent}>
               <div className={styles.modalHeader}>
-                <h2><i className="fas fa-check-circle" style={{ color: 'var(--fiddu-success)' }}></i> Payment Created</h2>
+                <h2><i className="fas fa-check-circle" style={{ color: 'var(--secondary)' }}></i> Payment Created</h2>
                 <button
                   className={styles.closeBtn}
                   onClick={() => setShowSuccessModal(false)}

@@ -295,7 +295,7 @@ const WalletsPage: React.FC = () => {
             {settlementMode === 'forwarding' && "Funds are auto-forwards to your destination addresses."}
           </p>
         </div>
-        <Link to="/settings" className={styles.changeModeLink}>
+        <Link to="/app/settings" className={styles.changeModeLink}>
           Change in Settings <i className="fas fa-external-link-alt"></i>
         </Link>
       </div>

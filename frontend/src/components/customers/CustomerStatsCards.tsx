@@ -55,7 +55,7 @@ const CustomerStatsCards: React.FC<StatsProps> = ({ stats }) => {
       </div>
       <div className={styles.statCard}>
         <div className={`${styles.statIcon} ${styles.primary}`}>
-          <i className="fas fa-sparkles"></i>
+          <i className="fas fa-arrow-trend-up"></i>
         </div>
         <div className={styles.statInfo}>
           <h3>New This Week</h3>
