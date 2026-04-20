@@ -23,6 +23,7 @@
 
 .tabs {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 32px;
     background: rgba(255, 255, 255, 0.02);
@@ -30,6 +31,7 @@
     border-radius: 14px;
     border: 1px solid var(--border);
     width: fit-content;
+    max-width: 100%;
 }
 
 .tabBtn {
@@ -127,6 +129,7 @@
     align-items: center;
     border-bottom: 1px solid var(--border);
     transition: background 0.2s;
+    gap: 16px;
 }
 
 .alertCard:hover {
@@ -265,4 +268,53 @@
     font-size: 48px;
     margin-bottom: 16px;
     opacity: 0.3;
+}
+
+@media (max-width: 768px) {
+    .securityPage {
+        padding: 16px;
+    }
+
+    .header h1 {
+        font-size: 24px;
+    }
+
+    .tabs {
+        width: 100%;
+        gap: 4px;
+    }
+
+    .tabBtn {
+        padding: 8px 12px;
+        font-size: 13px;
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+
+    .alertCard {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .alertInfo {
+        width: 100%;
+    }
+
+    .actionBtn {
+        width: 100%;
+        margin-top: 12px;
+    }
+
+    .settingsSection {
+        padding: 20px;
+    }
+
+    .inputWrapper {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .saveBtn {
+        width: 100%;
+    }
 }

@@ -47,7 +47,7 @@ const WebhooksTab: React.FC<WebhooksTabProps> = ({
                 <div className={styles.webhookMain}>
                     <div className={styles.webhookConfig}>
                         <div className={styles.inputGroup}>
-                            <label style={{ fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px', display: 'block' }}>
+                            <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '8px', display: 'block' }}>
                                 Webhook Payload Format
                             </label>
                             <div className={styles.formatSelector}>
@@ -141,13 +141,13 @@ const WebhooksTab: React.FC<WebhooksTabProps> = ({
                                         <div className={styles.docIcon}>2</div>
                                         <div className={styles.docContent}>
                                             <h4>Compare Signature</h4>
-                                            <p>Compare the result with the <code style={{ color: '#eb5757', background: '#fff5f5', padding: '2px 4px', borderRadius: '4px' }}>x-fiddu-signature</code> header.</p>
+                                            <p>Compare the result with the <code style={{ color: 'var(--primary)', background: 'var(--surface-hover)', padding: '2px 4px', borderRadius: '4px', border: '1px solid var(--border)' }}>x-fiddu-signature</code> header.</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <span className={styles.payloadLabel} style={{ marginTop: '24px' }}>Example Standard Payload:</span>
-                                <pre className={styles.payloadPre}>
+                                <span className={styles.payloadLabel} style={{ marginTop: '24px', color: 'var(--text-muted)' }}>Example Standard Payload:</span>
+                                <pre className={styles.payloadPre} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                                     {`{
   "event": "payment.confirmed",
   "data": {
@@ -161,12 +161,12 @@ const WebhooksTab: React.FC<WebhooksTabProps> = ({
                             </>
                         ) : (
                             <>
-                                <p style={{ fontSize: '13px', color: '#888', marginBottom: '16px' }}>
+                                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
                                     {webhookFormat === 'discord' ? 'Discord' : 'Slack'} webhooks do not support HMAC signatures.
                                     FidduPay will send a simplified message format compatible with {webhookFormat === 'discord' ? 'Discord' : 'Slack'}.
                                 </p>
-                                <span className={styles.payloadLabel}>Example {webhookFormat === 'discord' ? 'Discord' : 'Slack'} Payload:</span>
-                                <pre className={styles.payloadPre}>
+                                <span className={styles.payloadLabel} style={{ color: 'var(--text-muted)' }}>Example {webhookFormat === 'discord' ? 'Discord' : 'Slack'} Payload:</span>
+                                <pre className={styles.payloadPre} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                                     {webhookFormat === 'discord' ? `{
   "content": "✅ **Payment Confirmed**\\nID: \`pay_5f9a2c3b4\`\\nAmount: \`150.00 SOL\`"
 }` : `{

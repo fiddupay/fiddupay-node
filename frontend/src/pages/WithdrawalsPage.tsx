@@ -22,6 +22,8 @@ const WithdrawalsPage: React.FC = () => {
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
     const [refreshingId, setRefreshingId] = useState<string | null>(null)
+    const [dateFrom, setDateFrom] = useState('')
+    const [dateTo, setDateTo] = useState('')
 
     // Form state
     const [selectedCrypto, setSelectedCrypto] = useState('')
@@ -43,6 +45,18 @@ const WithdrawalsPage: React.FC = () => {
         }, 15000)
         return () => clearInterval(interval)
     }, [user?.sandbox_mode])
+
+    const filteredWithdrawals = withdrawals.filter(w => {
+        if (!dateFrom && !dateTo) return true
+        const wDate = new Date(w.created_at).getTime()
+        if (dateFrom && wDate < new Date(dateFrom).getTime()) return false
+        if (dateTo) {
+            const toDate = new Date(dateTo)
+            toDate.setHours(23, 59, 59, 999)
+            if (wDate > toDate.getTime()) return false
+        }
+        return true
+    })
 
     const fetchPrices = async () => {
         try {
@@ -207,6 +221,34 @@ const WithdrawalsPage: React.FC = () => {
         <div className={styles.page}>
             <div className={styles.header}>
                 <h1>Withdrawals</h1>
+                <div className={styles.historyHeader}>
+                    <h2>Withdrawal History</h2>
+                    <div className={styles.historyFilters}>
+                        <div className={styles.dateFilterGroup}>
+                            <label>From</label>
+                            <input 
+                                type="date" 
+                                value={dateFrom} 
+                                onChange={e => setDateFrom(e.target.value)}
+                                className={styles.dateInput}
+                            />
+                        </div>
+                        <div className={styles.dateFilterGroup}>
+                            <label>To</label>
+                            <input 
+                                type="date" 
+                                value={dateTo} 
+                                onChange={e => setDateTo(e.target.value)}
+                                className={styles.dateInput}
+                            />
+                        </div>
+                        {(dateFrom || dateTo) && (
+                            <button className={styles.resetBtn} onClick={() => { setDateFrom(''); setDateTo(''); }}>
+                                Reset
+                            </button>
+                        )}
+                    </div>
+                </div>
                 <p>Withdraw funds from your managed wallets to any external address</p>
             </div>
 
@@ -353,14 +395,14 @@ const WithdrawalsPage: React.FC = () => {
                             </button>
                         </div>
 
-                        {withdrawals.length === 0 ? (
+                        {filteredWithdrawals.length === 0 ? (
                             <div className={styles.emptyHistory}>
                                 <i className="fas fa-inbox"></i>
-                                <p>No withdrawals yet</p>
+                                <p>{withdrawals.length === 0 ? "No withdrawals yet" : "No withdrawals match your date filter."}</p>
                             </div>
                         ) : (
                             <div className={styles.historyList}>
-                                {withdrawals.map((w) => (
+                                {filteredWithdrawals.map((w) => (
                                     <div key={w.withdrawal_id} className={styles.historyItem}>
                                         <div className={styles.historyItemHeader}>
                                             <div>

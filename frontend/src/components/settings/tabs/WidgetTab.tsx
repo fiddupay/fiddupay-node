@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useAuthStore } from '@/stores/authStore'
+import CustomSelect from '@/components/ui/CustomSelect'
 
 interface WidgetTabProps {
     styles: any;
@@ -47,21 +48,20 @@ const WidgetTab: React.FC<WidgetTabProps> = ({ styles }) => {
                 </p>
             </div>
 
-            <div className={styles.formGroup} style={{ marginTop: '20px' }}>
-                <label className={styles.label}>Widget Theme</label>
-                <select
-                    className={styles.input}
+            <div className={styles.formGroup} style={{ marginTop: '20px', maxWidth: '300px' }}>
+                <CustomSelect
+                    label="Widget Theme"
+                    options={[
+                        { value: 'dark', label: 'Dark Mode' },
+                        { value: 'light', label: 'Light Mode' }
+                    ]}
                     value={theme}
-                    onChange={(e) => setTheme(e.target.value)}
-                    style={{ width: '200px' }}
-                >
-                    <option value="dark">Dark Mode</option>
-                    <option value="light">Light Mode</option>
-                </select>
+                    onChange={(val) => setTheme(val)}
+                />
             </div>
 
-            <div style={{ marginTop: '20px', background: '#0f172a', padding: '16px', borderRadius: '8px', color: '#e2e8f0', fontSize: '13px', overflowX: 'auto', fontFamily: 'monospace' }}>
-                <pre style={{ margin: 0 }}><code>{snippet}</code></pre>
+            <div style={{ marginTop: '20px', background: 'var(--bg-main)', padding: '16px', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-main)', fontSize: '13px', overflowX: 'auto', fontFamily: 'monospace' }}>
+                <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}><code>{snippet}</code></pre>
             </div>
 
             <button
@@ -72,12 +72,12 @@ const WidgetTab: React.FC<WidgetTabProps> = ({ styles }) => {
                 Copy Code Snippet
             </button>
 
-            <div style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <h4 style={{ fontWeight: 600, fontSize: '14px', marginBottom: '8px', color: '#1e293b' }}>Integration Steps:</h4>
-                <ol style={{ fontSize: '13px', color: '#475569', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px', margin: 0 }}>
-                    <li><strong style={{ color: '#0f172a' }}>Embed the Script:</strong> Place the FidduPay script onto your webpage so the widget loads seamlessly.</li>
-                    <li><strong style={{ color: '#0f172a' }}>Launch Widget:</strong> Use <code>FidduPay.open({'{'} amount: 50, publicKey: '${pubKeyDisplay}' {'}'})</code> on any button click.</li>
-                    <li><strong style={{ color: '#0f172a' }}>Secure Webhooks:</strong> Set up Webhooks in the Developer Dashboard so your pure-HTML site knows when items are securely paid for!</li>
+            <div style={{ marginTop: '24px', padding: '16px', background: 'var(--surface-hover)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                <h4 style={{ fontWeight: 600, fontSize: '14px', marginBottom: '12px', color: 'var(--text-main)' }}>Integration Steps:</h4>
+                <ol style={{ fontSize: '13px', color: 'var(--text-muted)', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px', margin: 0 }}>
+                    <li><strong style={{ color: 'var(--text-main)' }}>Embed the Script:</strong> Place the FidduPay script onto your webpage so the widget loads seamlessly.</li>
+                    <li><strong style={{ color: 'var(--text-main)' }}>Launch Widget:</strong> Use <code>FidduPay.open({'{'} amount: 50, publicKey: '${pubKeyDisplay}' {'}'})</code> on any button click.</li>
+                    <li><strong style={{ color: 'var(--text-main)' }}>Secure Webhooks:</strong> Set up Webhooks in the Developer Dashboard so your pure-HTML site knows when items are securely paid for!</li>
                 </ol>
             </div>
         </div>

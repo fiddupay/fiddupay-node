@@ -37,7 +37,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
             <h2>Security & Transaction PIN</h2>
             <p>Manage your transaction authorization settings.</p>
 
-            <div className={styles.safeguardBox} style={{ borderLeft: '4px solid #2563eb' }}>
+            <div className={styles.safeguardBox} style={{ borderLeft: '4px solid var(--primary)' }}>
                 <div className={styles.safeguardInfo}>
                     <div className={styles.safeguardIcon}>
                         {user?.has_transaction_pin ? <MdCheckCircle color="#10b981" /> : <MdError color="#ef4444" />}
@@ -69,7 +69,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                             onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
                             required
                         />
-                        <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Must be exactly 4 numeric digits.</p>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Must be exactly 4 numeric digits.</p>
                     </div>
                     <div className={styles.formGroup} style={{ marginTop: '16px' }}>
                         <label>Confirm PIN</label>
@@ -88,7 +88,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                     <button 
                         type="submit" 
                         className={styles.saveBtn} 
-                        style={{ width: '100%', marginTop: '12px', background: '#2563eb' }}
+                        style={{ width: '100%', marginTop: '12px', background: 'var(--primary)' }}
                         disabled={settingPin || pin.length !== 4 || pin !== confirmPin}
                     >
                         {settingPin ? <i className="fas fa-spinner fa-spin"></i> : (user?.has_transaction_pin ? 'Update Merchant PIN' : 'Set Merchant PIN')}
@@ -99,15 +99,15 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                 </form>
             </div>
 
-            <div style={{ marginTop: '48px', borderTop: '1px solid #e2e8f0', paddingTop: '32px' }}>
+            <div style={{ marginTop: '48px', borderTop: '1px solid var(--border)', paddingTop: '32px' }}>
                 <h2>Risk Monitoring</h2>
                 <p>Configure automated system alerts for operational balance safety.</p>
 
                 <div className={styles.formCard} style={{ marginTop: '24px', maxWidth: '500px' }}>
-                    <div className={styles.formGroup} style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#f8fafc', borderRadius: '8px' }}>
+                    <div className={styles.formGroup} style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--surface-hover)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                         <div>
-                            <h4 style={{ margin: 0, fontSize: '0.9rem' }}>Enable Alerts</h4>
-                            <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#64748b' }}>Receive notifications when balance is low.</p>
+                            <h4 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-main)' }}>Enable Alerts</h4>
+                            <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Receive notifications when balance is low.</p>
                         </div>
                         <label className={styles.switch}>
                             <input 
@@ -127,7 +127,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                         <label>Low Balance Threshold (USD)</label>
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                             <div style={{ position: 'relative', flex: 1 }}>
-                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontWeight: 600 }}>$</span>
+                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontWeight: 600 }}>$</span>
                                 <input 
                                     type="number"
                                     className={styles.inputStyle}
@@ -145,7 +145,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                                 Update Threshold
                             </button>
                         </div>
-                        <p style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '12px', lineHeight: '1.5' }}>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '12px', lineHeight: '1.5' }}>
                             The system will trigger <strong>balance.low</strong> webhooks and in-app alerts when your total 
                             account balance (across all supported currencies) falls below this amount.
                         </p>

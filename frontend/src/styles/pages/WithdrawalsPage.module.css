@@ -388,6 +388,47 @@
     overflow: hidden;
 }
 
+@media (max-width: 768px) {
+    .page {
+        padding: 16px;
+    }
+
+    .header h1 {
+        font-size: 1.75rem;
+    }
+
+    .historyHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .historyFilters {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .dateFilterGroup {
+        flex: 1;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .dateInput {
+        width: 100%;
+    }
+
+    .withdrawalForm {
+        padding: 20px;
+    }
+
+    .modal {
+        width: 95%;
+        padding: 24px;
+    }
+}
+
 @keyframes slideIn {
     from {
         opacity: 0;
@@ -406,6 +447,69 @@
     align-items: center;
     padding: 1.25rem 1.5rem;
     border-bottom: 1px solid #f3f4f6;
+}
+
+.historyHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.historyHeader h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.historyFilters {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.dateFilterGroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dateFilterGroup label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.dateInput {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    color-scheme: dark;
+}
+
+.resetBtn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.resetBtn:hover {
+    background: var(--surface-hover);
+    color: var(--text-main);
 }
 
 .modalHeader h2 {
