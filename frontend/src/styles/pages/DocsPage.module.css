@@ -189,7 +189,6 @@
   height: calc(100vh - 80px);
   scroll-behavior: smooth;
   display: flex;
-  /* Support for Column 3 inside */
 }
 
 .mainContent {
@@ -267,6 +266,11 @@
   font-size: 0.95rem;
   color: #93c5fd;
   line-height: 1.6;
+}
+
+.bottomGap {
+  height: 200px; /* Large space as requested */
+  width: 100%;
 }
 
 @keyframes blob {

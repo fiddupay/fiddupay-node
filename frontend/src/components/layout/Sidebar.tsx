@@ -28,7 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     <div className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
       <div className={styles.sidebarContent}>
         <div className={styles.logo}>
-          <h1>FidduPay</h1>
+          <img src="/logo/logo-brandmark.svg" alt="FidduPay" style={{ height: '32px' }} />
         </div>
 
         <nav className={styles.nav}>

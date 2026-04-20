@@ -29,8 +29,82 @@
 .lead {
     font-size: 1.1rem;
     line-height: 1.7;
-    color: var(--text-muted);
+    color: var(--text-muted, #94a3b8);
     margin-bottom: 2rem;
+}
+
+.lead code {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    color: #e2e8f0;
+}
+
+.lead strong {
+    color: #fff;
+    font-weight: 700;
+}
+
+/* Markdown Specifics */
+.docList {
+    margin: 1.5rem 0;
+    padding-left: 1.5rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.docList li {
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+
+.docList li:last-child {
+    margin-bottom: 0;
+}
+
+.orderedList {
+    list-style-type: decimal;
+}
+
+.unorderedList {
+    list-style-type: disc;
+}
+
+.alert {
+    margin: 2rem 0;
+    padding: 20px 24px;
+    border-radius: 12px;
+    background: rgba(99, 102, 241, 0.05);
+    border-left: 4px solid var(--primary);
+    position: relative;
+    overflow: hidden;
+}
+
+.alertContent {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #93c5fd;
+}
+
+.alertImportant {
+    background: rgba(245, 158, 11, 0.05);
+    border-left-color: #f59e0b;
+}
+
+.alertImportant .alertContent {
+    color: #fcd34d;
+}
+
+.alertTitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
 }
 
 /* Method Badge */
@@ -98,17 +172,86 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Mobile Code Snippet Toggle */
-.mobileCodeSnippet {
-    display: none;
-    margin: 32px 0;
+/* Sub-sections (Audit Logs, Events) */
+.subSectionsContainer {
+    margin: 48px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
 }
 
-@media (max-width: 1024px) {
-    .mobileCodeSnippet {
-        display: block;
-        max-width: 100%;
-        overflow: hidden;
-        /* Prevent localized blowout */
+.subSection {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.subSectionTitle {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.subSectionTitle::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.1), transparent);
+}
+
+.subSectionGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+}
+
+.subSectionCard {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.subSectionCard:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(99, 102, 241, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.cardHeader {
+    margin-bottom: 10px;
+}
+
+.cardKey {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: #818cf8;
+    background: rgba(99, 102, 241, 0.1);
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.cardContent {
+    font-size: 0.95rem;
+    color: #94a3b8;
+    line-height: 1.6;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+    .subSectionGrid {
+        grid-template-columns: 1fr;
     }
 }

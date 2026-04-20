@@ -9,14 +9,15 @@
 }
 
 .header h1 {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--fiddu-text-primary);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text-main);
     margin-bottom: 8px;
+    letter-spacing: -0.02em;
 }
 
 .header p {
-    color: var(--fiddu-text-secondary);
+    color: var(--text-muted);
 }
 
 .content {
@@ -39,7 +40,7 @@
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
-    color: var(--fiddu-text-secondary);
+    color: var(--text-muted);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -51,33 +52,34 @@
 }
 
 .tabBtn:hover {
-    color: var(--fiddu-brand-primary);
-    background-color: var(--fiddu-bg-secondary);
+    color: var(--text-main);
+    background-color: rgba(255, 255, 255, 0.05);
     border-radius: 8px 8px 0 0;
 }
 
 .activeTab {
-    color: var(--fiddu-brand-primary);
-    border-bottom: 2px solid var(--fiddu-brand-primary);
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
 }
 
 .section {
-    background: var(--fiddu-bg-primary);
-    border: 1px solid var(--fiddu-border);
-    border-radius: 12px;
-    padding: 24px;
+    background: var(--surface);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
 }
 
 .section h2 {
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 800;
     margin-bottom: 8px;
-    color: var(--fiddu-text-primary);
+    color: var(--text-main);
 }
 
 .section p {
     font-size: 14px;
-    color: var(--fiddu-text-secondary);
+    color: var(--text-muted);
     margin-bottom: 24px;
 }
 
@@ -88,33 +90,34 @@
 }
 
 .modeCard {
-    padding: 20px;
-    border: 2px solid var(--fiddu-border);
-    border-radius: 12px;
+    padding: 24px;
+    border: 2px solid var(--border);
+    border-radius: 16px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
     display: flex;
     flex-direction: column;
-    background: var(--fiddu-bg-primary);
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .formCard {
-    background: var(--fiddu-bg-primary);
-    border: 1px solid var(--fiddu-border);
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    background: var(--surface);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
 }
 
 .modeCard:hover {
-    border-color: var(--fiddu-brand-primary);
-    background-color: var(--fiddu-bg-secondary);
+    border-color: var(--primary);
+    background-color: rgba(99, 102, 241, 0.05);
 }
 
 .activeCard {
-    border-color: var(--fiddu-brand-primary);
-    background-color: #f0f7ff;
+    border-color: var(--primary);
+    background-color: rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 20px var(--primary-glow);
 }
 
 .checkIcon {
@@ -126,22 +129,22 @@
 }
 
 .modeCard i {
-    font-size: 24px;
-    color: var(--fiddu-brand-primary);
-    margin-bottom: 16px;
+    font-size: 28px;
+    color: var(--primary);
+    margin-bottom: 20px;
 }
 
 .modeCard h3 {
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 17px;
+    font-weight: 700;
     margin-bottom: 8px;
-    color: var(--fiddu-text-primary);
+    color: var(--text-main);
 }
 
 .modeCard span {
     font-size: 13px;
-    color: var(--fiddu-text-secondary);
-    line-height: 1.4;
+    color: var(--text-muted);
+    line-height: 1.5;
 }
 
 .footer {
@@ -170,9 +173,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px;
-    background: var(--fiddu-bg-secondary);
-    border-radius: 8px;
+    padding: 24px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: 16px;
 }
 
 .toggleLabel {
@@ -181,15 +185,15 @@
 }
 
 .toggleLabel h4 {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
     margin-bottom: 4px;
-    color: var(--fiddu-text-primary);
+    color: var(--text-main);
 }
 
 .toggleLabel span {
     font-size: 13px;
-    color: var(--fiddu-text-secondary);
+    color: var(--text-muted);
 }
 
 /* Toggle Switch Styles */
@@ -251,10 +255,10 @@ input:checked+.slider:before {
 }
 
 .keyCard {
-    background: white;
-    border: 1px solid var(--fiddu-border);
-    border-radius: 10px;
-    padding: 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
 }
 
 .keyHeader {
@@ -295,13 +299,13 @@ input:checked+.slider:before {
 
 .keyDisplay {
     flex: 1;
-    background: #f8f9fa;
-    border: 1px solid var(--fiddu-border);
-    border-radius: 6px;
-    padding: 10px 12px;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
-    color: var(--fiddu-text-primary);
+    color: var(--text-main);
     position: relative;
     overflow: hidden;
     white-space: nowrap;
@@ -397,25 +401,26 @@ input:checked+.slider:before {
 .urlInput {
     flex: 1;
     padding: 12px 16px;
-    border: 1px solid var(--fiddu-border);
-    border-radius: 8px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
     font-size: 14px;
-    background: var(--fiddu-bg-secondary);
-    color: var(--fiddu-text-primary);
-    transition: border-color 0.2s;
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--text-main);
+    transition: all 0.2s;
 }
 
 .urlInput:focus {
     outline: none;
-    border-color: var(--fiddu-brand-primary);
-    background: white;
+    border-color: var(--primary);
+    background: rgba(0, 0, 0, 0.4);
 }
 
 .docSection {
-    background: var(--fiddu-bg-secondary);
-    border-radius: 12px;
+    background: var(--surface);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
     padding: 24px;
-    border: 1px solid var(--fiddu-border);
+    border: 1px solid var(--border);
 }
 
 .docSection h3 {
@@ -440,18 +445,18 @@ input:checked+.slider:before {
 }
 
 .docIcon {
-    width: 28px;
-    height: 28px;
-    background: white;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.05);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    border: 1px solid var(--fiddu-border);
-    color: var(--fiddu-brand-primary);
-    font-weight: 700;
-    font-size: 12px;
+    border: 1px solid var(--border);
+    color: var(--primary);
+    font-weight: 800;
+    font-size: 14px;
 }
 
 .docContent h4 {
@@ -655,12 +660,13 @@ input:checked+.slider:before {
 }
 
 .modal {
-    background: var(--fiddu-bg-primary);
-    border: 1px solid var(--fiddu-border);
-    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
     width: 90%;
-    max-width: 450px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    max-width: 500px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modalHeader {

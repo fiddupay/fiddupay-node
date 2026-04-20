@@ -285,10 +285,14 @@
 
 .inputWrapper button {
   position: absolute;
-  right: 1.25rem;
+  right: 2.8rem;
   top: 50%;
   transform: translateY(-50%);
   color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 10;
 }
 
 .strengthMeter {

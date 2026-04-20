@@ -63,8 +63,8 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     if (user?.daily_volume_remaining) {
-      const remaining = parseFloat(user.daily_volume_remaining)
-      const limit = user.daily_limit_usd ? parseFloat(user.daily_limit_usd) : 0
+      const remaining = parseFloat(user.daily_volume_remaining) || 0
+      const limit = user.daily_limit_usd ? (parseFloat(user.daily_limit_usd) || 0) : 0
       const used = limit > 0 ? Math.max(0, limit - remaining) : 0
       setDailyVolumeUsed(used)
     }
@@ -113,7 +113,7 @@ const DashboardPage: React.FC = () => {
 
   const chartData = analytics?.payment_trends?.map(point => ({
     ...point,
-    volume: parseFloat(point.volume_usd),
+    volume: parseFloat(point.volume_usd) || 0,
     displayDate: new Date(point.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
   })) || []
 
@@ -145,7 +145,7 @@ const DashboardPage: React.FC = () => {
           <button className={styles.refreshBtn} onClick={loadDashboardData} disabled={loading} title="Refresh Dashboard">
             <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
           </button>
-          <button className={styles.refreshBtn} onClick={loadGasData} disabled={loadingGas} title="Network Gas Radar" style={{ color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.1)' }}>
+          <button className={styles.refreshBtn} onClick={loadGasData} disabled={loadingGas} title="Network Gas Radar" style={{ color: 'var(--primary)', background: 'rgba(99, 102, 241, 0.1)' }}>
             {loadingGas ? <i className="fas fa-spinner fa-spin"></i> : <MdRadar size={20} />}
           </button>
           <a href="/docs" className={styles.docsLink} target="_blank" rel="noopener noreferrer">
@@ -160,15 +160,15 @@ const DashboardPage: React.FC = () => {
       ) : (
         <>
           {!user?.has_transaction_pin && (
-            <div className={`${styles.securityBanner} ${styles.pinBanner}`} style={{ borderLeftColor: '#f59e0b', marginBottom: '16px' }}>
-              <div className={styles.bannerIcon} style={{ background: '#fef3c7' }}>
-                <MdWarning color="#f59e0b" size={24} />
+            <div className={`${styles.securityBanner} ${styles.pinBanner}`} style={{ borderLeft: '4px solid var(--secondary)', marginBottom: '16px' }}>
+              <div className={styles.bannerIcon} style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
+                <MdWarning color="var(--secondary)" size={24} />
               </div>
               <div className={styles.bannerContent}>
-                <h3 style={{ color: '#92400e' }}>Security setup required: Transaction PIN</h3>
+                <h3 style={{ color: 'var(--text-main)' }}>Security setup required: Transaction PIN</h3>
                 <p>A Transaction PIN is mandatory for all withdrawals and fund movements. Set your PIN now to enable financial actions.</p>
               </div>
-              <button className={styles.bannerBtn} style={{ background: '#f59e0b' }} onClick={() => navigate('/app/settings?tab=security')}>
+              <button className={styles.bannerBtn} style={{ background: 'var(--secondary)', boxShadow: '0 0 15px var(--secondary-glow)' }} onClick={() => navigate('/app/settings?tab=security')}>
                 Setup PIN <MdArrowForward />
               </button>
             </div>
@@ -194,7 +194,7 @@ const DashboardPage: React.FC = () => {
             <div className={styles.statCard}>
               <div className={styles.statHeader}>
                 <span className={styles.statLabel}>Total Payments</span>
-                <i className="fas fa-receipt" style={{ color: '#3b82f6' }}></i>
+                <i className="fas fa-receipt" style={{ color: 'var(--primary)' }}></i>
               </div>
               <div className={styles.statValue}>{totalPayments.toLocaleString()}</div>
               <div className={styles.statFooter}>{analytics?.successful_payments || 0} successful / {analytics?.failed_payments || 0} failed</div>
@@ -205,7 +205,7 @@ const DashboardPage: React.FC = () => {
                 <span className={styles.statLabel}>Total Volume</span>
                 <i className="fas fa-chart-line" style={{ color: '#10b981' }}></i>
               </div>
-              <div className={styles.statValue}>${parseFloat(analytics?.total_volume_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div className={styles.statValue}>${(parseFloat(analytics?.total_volume_usd || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
               <div className={styles.statFooter}>Total revenue processed</div>
             </div>
 
@@ -221,10 +221,10 @@ const DashboardPage: React.FC = () => {
             <div className={styles.statCard}>
               <div className={styles.statHeader}>
                 <span className={styles.statLabel}>Balance</span>
-                <i className="fas fa-wallet" style={{ color: '#8b5cf6' }}></i>
+                <i className="fas fa-wallet" style={{ color: 'var(--secondary)' }}></i>
               </div>
-              <div className={styles.statValue}>${parseFloat(balance?.total_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div className={styles.statFooter}>Available: ${parseFloat(balance?.available_usd || '0').toLocaleString()}</div>
+              <div className={styles.statValue}>${(parseFloat(balance?.total_usd || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div className={styles.statFooter}>Available: ${(parseFloat(balance?.available_usd || '0') || 0).toLocaleString()}</div>
             </div>
           </div>
 
@@ -240,38 +240,42 @@ const DashboardPage: React.FC = () => {
                   <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                        <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255, 255, 255, 0.05)" />
                     <XAxis
                       dataKey="displayDate"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: '#94a3b8', fontSize: 12 }}
+                      tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
                       dy={10}
                     />
                     <YAxis
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: '#94a3b8', fontSize: 12 }}
+                      tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
                       tickFormatter={(value: number | string) => `$${value}`}
                     />
                     <Tooltip
                       contentStyle={{
-                        borderRadius: '12px',
-                        border: 'none',
-                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                        padding: '12px'
+                        background: '#1a1f2e',
+                        borderRadius: '16px',
+                        border: '1px solid var(--border)',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                        padding: '16px',
+                        backdropFilter: 'blur(10px)'
                       }}
-                      formatter={(value: any) => [`$${parseFloat(String(value ?? 0)).toLocaleString()}`, 'Volume']}
+                      itemStyle={{ color: 'var(--text-main)', fontWeight: 700 }}
+                      labelStyle={{ color: 'var(--text-muted)', marginBottom: '8px' }}
+                      formatter={(value: any) => [`$${(parseFloat(String(value ?? 0)) || 0).toLocaleString()}`, 'Volume']}
                     />
                     <Area
                       type="monotone"
                       dataKey="volume"
-                      stroke="#3b82f6"
-                      strokeWidth={3}
+                      stroke="var(--primary)"
+                      strokeWidth={4}
                       fillOpacity={1}
                       fill="url(#colorVolume)"
                       animationDuration={1500}
@@ -297,7 +301,7 @@ const DashboardPage: React.FC = () => {
               <div className={styles.networkList}>
                 {analytics?.by_blockchain && Object.keys(analytics.by_blockchain).length > 0 ? (
                   Object.entries(analytics.by_blockchain)
-                    .sort((a, b) => parseFloat(b[1].volume_usd) - parseFloat(a[1].volume_usd))
+                    .sort((a, b) => (parseFloat(b[1].volume_usd) || 0) - (parseFloat(a[1].volume_usd) || 0))
                     .map(([network, stats]) => (
                       <div key={network} className={styles.networkItem}>
                         <div className={styles.networkInfo}>
@@ -306,13 +310,13 @@ const DashboardPage: React.FC = () => {
                         </div>
                         <div className={styles.networkValue}>
                           <span className={styles.networkUsd}>
-                            ${parseFloat(stats.volume_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ${(parseFloat(stats.volume_usd) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                           <div className={styles.networkBar}>
                             <div
                               className={styles.networkBarFill}
                               style={{
-                                width: `${(parseFloat(stats.volume_usd) / (parseFloat(analytics.total_volume_usd) || 1) * 100)}%`
+                                width: `${(Math.min(100, (parseFloat(stats.volume_usd) || 0) / (parseFloat(analytics.total_volume_usd) || 1) * 100))}%`
                               }}
                             ></div>
                           </div>
@@ -337,11 +341,11 @@ const DashboardPage: React.FC = () => {
                 <div className={styles.balanceList}>
                   <div className={styles.balanceRow}>
                     <span className={styles.balanceLabel}>Available</span>
-                    <span className={styles.balanceAmount}>${parseFloat(balance.available_usd).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className={styles.balanceAmount}>${(parseFloat(balance.available_usd) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className={styles.balanceRow}>
                     <span className={styles.balanceLabel}>Processing</span>
-                    <span className={styles.balanceAmount}>${parseFloat(balance.reserved_usd).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className={styles.balanceAmount}>${(parseFloat(balance.reserved_usd) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
               ) : (
@@ -379,11 +383,11 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <div className={styles.perfItem}>
                   <span className={styles.perfLabel}>Avg. Transaction</span>
-                  <span className={styles.perfValue}>${parseFloat(analytics?.average_transaction_value || analytics?.average_payment_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className={styles.perfValue}>${(parseFloat(analytics?.average_transaction_value || analytics?.average_payment_usd || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className={styles.perfItem}>
                   <span className={styles.perfLabel}>Total Fees</span>
-                  <span className={styles.perfValue}>${parseFloat(analytics?.total_fees_paid || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className={styles.perfValue}>${(parseFloat(analytics?.total_fees_paid || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
             </div>
@@ -414,7 +418,7 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <div className={styles.volumeProgressLabels}>
                   <span>${dailyVolumeUsed.toFixed(2)} used</span>
-                  <span>${user.daily_limit_usd ? parseFloat(user.daily_limit_usd).toLocaleString() : 'N/A'} limit</span>
+                  <span>${user.daily_limit_usd ? (parseFloat(user.daily_limit_usd) || 0).toLocaleString() : 'N/A'} limit</span>
                 </div>
               </div>
             </div>
@@ -428,7 +432,7 @@ const DashboardPage: React.FC = () => {
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
             <div className={styles.modalHeader}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MdRadar size={24} color="#8b5cf6" />
+                <MdRadar size={24} color="var(--primary)" />
                 <h2 style={{ margin: 0 }}>Live Network Gas Radar</h2>
               </div>
               <button className={styles.closeButton} onClick={() => setShowGasModal(false)}>
@@ -436,29 +440,29 @@ const DashboardPage: React.FC = () => {
               </button>
             </div>
             
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
-                Real-time transaction fee estimates for all supported blockchains. Native currencies will have these fees automatically deducted during sweeps.
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
+                Real-time transaction fee estimates for all supported blockchains. Fees are automatically handled during merchant sweeps.
               </p>
               
               {gasEstimates?.networks && Object.entries(gasEstimates.networks).map(([net, data]: [string, any]) => (
-                <div key={net} style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', textTransform: 'uppercase', fontWeight: 600, color: '#334155' }}>
+                <div key={net} style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-main)', fontSize: '10px' }}>
                       {data.native_currency}
                     </div>
                     <div>
-                      <h4 style={{ margin: 0, textTransform: 'capitalize', color: '#0f172a' }}>{net} Network</h4>
-                      <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Fast: {parseFloat(data.fast_fee).toLocaleString()} {data.native_currency}</span>
+                      <h4 style={{ margin: 0, textTransform: 'capitalize', color: 'var(--text-main)', fontSize: '15px' }}>{net} Network</h4>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Fast: {(parseFloat(data.fast_fee) || 0).toLocaleString()} {data.native_currency}</span>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '1.1rem' }}>
-                      {parseFloat(data.standard_fee).toLocaleString()} {data.native_currency}
+                    <div style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1.2rem', textShadow: '0 0 10px var(--primary-glow)' }}>
+                      {(parseFloat(data.standard_fee) || 0).toLocaleString()} {data.native_currency}
                     </div>
-                    <span style={{ fontSize: '0.8rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
-                      <span style={{ display: 'inline-block', width: '6px', height: '6px', background: '#10b981', borderRadius: '50%' }}></span>
-                      Live standard fee
+                    <span style={{ fontSize: '0.8rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', fontWeight: 600 }}>
+                      <span style={{ display: 'inline-block', width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }}></span>
+                      Live standard
                     </span>
                   </div>
                 </div>
@@ -512,9 +516,9 @@ const RecentActivityList: React.FC = () => {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'payment': return 'fa-arrow-down text-green-500'
-      case 'refund': return 'fa-undo text-orange-500'
-      case 'withdrawal': return 'fa-arrow-up text-blue-500'
+      case 'payment': return 'fa-arrow-down'
+      case 'refund': return 'fa-undo'
+      case 'withdrawal': return 'fa-arrow-up'
       default: return 'fa-exchange-alt'
     }
   }
@@ -525,7 +529,7 @@ const RecentActivityList: React.FC = () => {
         <div key={`${activity.type}-${activity.id}`} className={styles.activityItem}>
           <div className={styles.activityInfo}>
             <div className={styles.activityLeft}>
-              <i className={`fas ${getTypeIcon(activity.type)}`} style={{ width: '16px', textAlign: 'center' }}></i>
+              <i className={`fas ${getTypeIcon(activity.type)}`} style={{ width: '16px', textAlign: 'center', color: activity.type === 'payment' ? '#10b981' : (activity.type === 'withdrawal' ? 'var(--primary)' : 'var(--secondary)') }}></i>
               <span className={styles.activityId}>
                 {activity.type === 'payment' ? 'Deposit' :
                   activity.type.charAt(0).toUpperCase() + activity.type.slice(1)} ({activity.id.substring(0, 8)}...)
@@ -536,11 +540,11 @@ const RecentActivityList: React.FC = () => {
                 const sign = (activity.type === 'withdrawal' || activity.type === 'refund') ? '-' : ''
                 const parts = activity.crypto_type?.split('_') || ['', '']
                 const coin = parts[0]
-                const cryptoAmt = parseFloat(activity.crypto_amount || activity.usd_amount).toFixed(6)
+                const cryptoAmt = (parseFloat(activity.crypto_amount || activity.usd_amount) || 0).toFixed(6)
 
                 return (
                   <>
-                    <span className={styles.activityAmount}>{sign}${parseFloat(activity.usd_amount).toFixed(2)}</span>
+                    <span className={styles.activityAmount}>{sign}${(parseFloat(activity.usd_amount) || 0).toFixed(2)}</span>
                     <span className={styles.activityCrypto}>{sign}{cryptoAmt} {coin}</span>
                   </>
                 )

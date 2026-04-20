@@ -4,6 +4,7 @@
   overflow: hidden;
   background-color: var(--bg-main);
   display: flex;
+  padding-top: 80px; /* Compansate for fixed header */
 }
 
 /* Ambient Ambient Glow */
@@ -176,7 +177,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 4rem 2rem;
 }
 
 .loginCard {
@@ -284,13 +285,18 @@
 
 .passwordToggle {
   position: absolute;
-  right: 1.25rem;
+  right: 2.5rem;
   top: 50%;
   transform: translateY(-50%);
   color: #6b7280;
-  background: none; border: none;
+  background: none;
+  border: none;
   cursor: pointer;
   padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
 }
 
 .passwordToggle:hover { color: white; }

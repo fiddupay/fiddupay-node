@@ -11,23 +11,23 @@
 .titleArea h1 {
     font-size: 32px;
     font-weight: 800;
-    color: var(--black);
+    color: var(--text-main);
     margin-bottom: 8px;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.02em;
 }
 
 .titleArea p {
     font-size: 16px;
-    color: var(--gray);
+    color: var(--text-muted);
 }
 
 .filtersCard {
-    background: var(--white);
+    background: var(--surface);
+    backdrop-filter: blur(10px);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 24px;
     margin-bottom: 32px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .filterGrid {
@@ -44,24 +44,28 @@
 
 .filterGroup label {
     font-size: 14px;
-    font-weight: 600;
-    color: var(--black);
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .filterGroup input,
 .filterGroup select {
     padding: 12px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 14px;
-    background-color: var(--light-gray);
-    transition: border-color 0.2s;
+    background-color: rgba(0, 0, 0, 0.2);
+    color: var(--text-main);
+    transition: all 0.2s;
 }
 
 .filterGroup input:focus,
 .filterGroup select:focus {
     outline: none;
-    border-color: var(--brand-blue);
+    border-color: var(--primary);
+    background-color: rgba(0, 0, 0, 0.4);
 }
 
 .actionsGrid {
@@ -72,28 +76,30 @@
 }
 
 .exportCard {
-    background: var(--white);
+    background: var(--surface);
+    backdrop-filter: blur(10px);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 32px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .exportCard:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: translateY(-8px);
+    border-color: var(--primary);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 .exportIcon {
     width: 64px;
     height: 64px;
-    border-radius: 12px;
-    background: rgba(26, 115, 232, 0.1);
-    color: var(--brand-blue);
+    border-radius: 16px;
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -103,13 +109,14 @@
 
 .exportInfo h3 {
     font-size: 20px;
-    font-weight: 700;
+    font-weight: 800;
+    color: var(--text-main);
     margin-bottom: 12px;
 }
 
 .exportInfo p {
     font-size: 15px;
-    color: var(--gray);
+    color: var(--text-muted);
     margin-bottom: 24px;
     line-height: 1.5;
 }
@@ -117,17 +124,19 @@
 .exportBtn {
     width: 100%;
     padding: 14px;
-    background: var(--brand-blue);
+    background: var(--primary);
     color: white;
     border: none;
-    border-radius: 10px;
-    font-weight: 600;
+    border-radius: 12px;
+    font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px var(--primary-glow);
 }
 
 .exportBtn:hover:not(:disabled) {
-    background: #1557b0;
+    background: var(--primary-hover);
+    transform: scale(1.02);
 }
 
 .exportBtn:disabled {
@@ -144,15 +153,17 @@
 }
 
 .recentReports {
-    background: rgba(26, 115, 232, 0.03);
-    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: 20px;
     padding: 32px;
 }
 
 .recentReports h2 {
     font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 16px;
+    font-weight: 800;
+    color: var(--text-main);
+    margin-bottom: 20px;
 }
 
 .recentReports ul {
@@ -164,13 +175,13 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     font-size: 15px;
-    color: var(--gray-dark);
+    color: var(--text-muted);
 }
 
 .recentReports i {
-    color: var(--brand-blue);
+    color: var(--primary);
     font-size: 16px;
 }
 

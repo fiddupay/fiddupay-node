@@ -9,15 +9,16 @@
 }
 
 .header h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #111827;
-    margin-bottom: 0.5rem;
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text-main);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
 }
 
 .header p {
-    color: #6b7280;
-    font-size: 1rem;
+    color: var(--text-muted);
+    font-size: 16px;
 }
 
 /* Layout */
@@ -36,21 +37,24 @@
 
 /* Form Card */
 .formCard {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 1rem;
+    background: var(--surface);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
     overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 .formCardHeader {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid #f3f4f6;
-    font-size: 1rem;
+    gap: 12px;
+    padding: 24px 32px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--border);
+    font-size: 16px;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--text-main);
 }
 
 .formCardHeader i {
@@ -68,30 +72,32 @@
 
 .formGroup label {
     display: block;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 0.5rem;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .select,
 .input {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    font-size: 0.95rem;
-    color: #1f2937;
-    background: white;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    padding: 14px 18px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 15px;
+    color: var(--text-main);
+    background: rgba(0, 0, 0, 0.2);
+    transition: all 0.2s;
     box-sizing: border-box;
 }
 
 .select:focus,
 .input:focus {
     outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: var(--primary);
+    background: rgba(0, 0, 0, 0.4);
 }
 
 /* Wallet info box */
@@ -141,11 +147,11 @@
 
 /* Fee display */
 .feeDisplay {
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
 }
 
 .feeRow {
@@ -195,9 +201,10 @@
 
 /* History Card */
 .historyCard {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 1rem;
+    background: var(--surface);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
     overflow: hidden;
 }
 
@@ -230,7 +237,7 @@
 }
 
 .historyItem:hover {
-    background: #fafbfc;
+    background: var(--surface-hover);
 }
 
 .historyItem:last-child {
@@ -361,25 +368,23 @@
 /* Modal */
 .modalOverlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(8px);
 }
 
 .modalContent {
-    background: white;
-    border-radius: 1rem;
-    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    width: 95%;
     max-width: 440px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
-    animation: slideIn 0.2s ease-out;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     overflow: hidden;
 }
 
@@ -465,10 +470,10 @@
 
 .modalActions {
     display: flex;
-    gap: 0.75rem;
-    padding: 1rem 1.5rem;
-    background: #f9fafb;
-    border-top: 1px solid #e5e7eb;
+    gap: 12px;
+    padding: 24px;
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid var(--border);
 }
 
 .cancelBtn {

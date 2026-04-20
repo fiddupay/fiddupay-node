@@ -5,6 +5,14 @@ export interface Parameter {
     description: string;
 }
 
+export interface SubSection {
+    title: string;
+    items: {
+        key: string;
+        description: string;
+    }[];
+}
+
 export interface Endpoint {
     id: string;
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -13,6 +21,7 @@ export interface Endpoint {
     description: string;
     parameters?: Parameter[];
     body?: Parameter[];
+    subSections?: SubSection[];
     request?: {
         curl: string;
         node: string;
@@ -1052,7 +1061,48 @@ export const API_DATA: DocSection[] = [
                 method: 'GET',
                 path: '/api/v1/merchants/audit-logs',
                 title: 'Retrieve Audit Logs',
-                description: 'Get a detailed chronological log of all administrative actions and system events for your account.\n\n### Supported Event Types:\n\n**Settings & Auth:**\n- `merchant_registration`: Merchant account creation\n- `login`: Successful logins\n- `api_key_generation` / `rotation`: API key modifications\n- `environment_switch`: Sandbox/Live switches\n- `merchant_settings_update`: Settings modifications\n- `wallet_lock_toggle` / `customer_wallet_lock_toggle`: Locking/unlocking wallets\n- `invoice_creation`: Generating payment invoices\n- `test_webhook_trigger`: Triggering test delivery\n- `transaction_pin_set`: PIN configuration\n\n**Customer Operations:**\n- `customer_registration`: Customer sub-account setup\n- `wallet_provisioning`: Pre-generating customer keys\n- `bulk_wallet_provisioning`: Batch provisioning trigger\n- `customer_status_updated`: Banning or flagging customers\n- `customer_permissions_updated`: Adjusting feature flags\n- `merchant_payment`: Direct payment to merchant balance\n- `wallet_sweep`: Emptying designed customer wallets\n- `customer_withdrawal`: Customer withdrawal request\n- `customer_deactivation`: Customer exclusion\n\n**Payments & Transactions:**\n- `payment_creation`: Inbound multi-chain payment trigger\n- `payment_cancellation`: Aborting payment setup\n- `payment_verification`: Manual hash verification\n- `payment_simulation`: Testing sandbox flows\n- `payment_selection_finalized`: Asset path set on payment\n- `address_only_payment_creation`: Native-mode payment trigger\n- `address_only_fee_setting_update`: Fee toggle changed',
+                description: 'Get a detailed chronological log of all administrative actions and system events for your account.',
+                subSections: [
+                    {
+                        title: 'Settings & Authentication',
+                        items: [
+                            { key: 'merchant_registration', description: 'Merchant account creation' },
+                            { key: 'login', description: 'Successful logins' },
+                            { key: 'api_key_generation', description: 'API key modifications' },
+                            { key: 'api_key_rotation', description: 'API key rotation' },
+                            { key: 'environment_switch', description: 'Sandbox/Live switches' },
+                            { key: 'merchant_settings_update', description: 'Settings modifications' },
+                            { key: 'wallet_lock_toggle', description: 'Master wallet security status change' },
+                            { key: 'test_webhook_trigger', description: 'Triggering test delivery' },
+                            { key: 'transaction_pin_set', description: 'PIN configuration' }
+                        ]
+                    },
+                    {
+                        title: 'Customer Operations',
+                        items: [
+                            { key: 'customer_registration', description: 'Customer sub-account setup' },
+                            { key: 'wallet_provisioning', description: 'Pre-generating customer keys' },
+                            { key: 'bulk_wallet_provisioning', description: 'Batch provisioning trigger' },
+                            { key: 'customer_status_updated', description: 'Banning or flagging customers' },
+                            { key: 'customer_permissions_updated', description: 'Adjusting feature flags' },
+                            { key: 'wallet_sweep', description: 'Emptying specific customer wallets' },
+                            { key: 'customer_withdrawal', description: 'Customer withdrawal request' },
+                            { key: 'customer_deactivation', description: 'Customer exclusion' }
+                        ]
+                    },
+                    {
+                        title: 'Payments & Transactions',
+                        items: [
+                            { key: 'payment_creation', description: 'Inbound multi-chain payment trigger' },
+                            { key: 'payment_cancellation', description: 'Aborting payment setup' },
+                            { key: 'payment_verification', description: 'Manual hash verification' },
+                            { key: 'payment_simulation', description: 'Testing sandbox flows' },
+                            { key: 'payment_selection_finalized', description: 'Asset path set on payment' },
+                            { key: 'address_only_payment_creation', description: 'Native-mode payment trigger' },
+                            { key: 'address_only_fee_setting_update', description: 'Fee toggle changed' }
+                        ]
+                    }
+                ],
                 request: {
                     curl: 'curl https://api.fiddupay.com/api/v1/merchants/audit-logs \\\n  -H "Authorization: Bearer sk_live_..."',
                     node: 'const logs = await fiddupay.merchants.getAuditLogs();'
@@ -1234,8 +1284,32 @@ export const API_DATA: DocSection[] = [
                 id: 'webhook-event-format',
                 method: 'POST',
                 path: 'POST https://your-server.com/webhook',
-                title: 'Event Envelope Format',
-                description: 'All webhook deliveries share the same envelope structure regardless of event type. The `type` field determines which event occurred. The `data` object contains event-specific payload fields.\n\n### Supported Event Types\n- `payment.confirmed` — A payment was confirmed on-chain\n- `payment.expired` — A payment window closed without a confirmed deposit\n- `refund.completed` — A refund was successfully processed\n- `merchant.deposit` — Funds were credited to your merchant balance\n- `customer.deposit` — A customer sub-account received a deposit\n- `address_only_payment_status` — An address-only payment status changed\n- `webhook.test` — Triggered by the "Test Webhook" button in settings',
+                title: 'Event Envelope & Types',
+                description: 'All webhook deliveries share the same envelope structure regardless of event type. The `type` field determines which event occurred. The `data` object contains event-specific payload fields.',
+                subSections: [
+                    {
+                        title: 'Payment Events',
+                        items: [
+                            { key: 'payment.confirmed', description: 'A payment was confirmed on-chain' },
+                            { key: 'payment.expired', description: 'A payment window closed without a confirmed deposit' },
+                            { key: 'refund.completed', description: 'A refund was successfully processed' }
+                        ]
+                    },
+                    {
+                        title: 'Merchant & Balance Events',
+                        items: [
+                            { key: 'merchant.deposit', description: 'Funds were credited to your merchant balance' },
+                            { key: 'customer.deposit', description: 'A customer sub-account received a deposit' },
+                            { key: 'address_only_payment_status', description: 'An address-only payment status changed' }
+                        ]
+                    },
+                    {
+                        title: 'System Events',
+                        items: [
+                            { key: 'webhook.test', description: 'Triggered by the "Test Webhook" button in settings' }
+                        ]
+                    }
+                ],
                 request: {
                     curl: `# FidduPay delivers to your server:
 POST https://your-server.com/webhook
@@ -1300,7 +1374,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
                 method: 'GET',
                 path: 'Header: X-Signature',
                 title: 'Signature Verification',
-                description: 'The `X-Signature` header contains `t=<unix_timestamp>,v1=<hmac_hex>`. To verify:\n1. Extract `t` and `v1` from the header\n2. Construct the signed string: `t.<raw_request_body>`\n3. Compute `HMAC-SHA256(signed_string, WEBHOOK_SECRET)`\n4. Compare with `v1` using a constant-time comparison\n\nReject any requests where the timestamp is older than 5 minutes.',
+                description: 'The `X-Signature` header contains `t=<unix_timestamp>,v1=<hmac_hex>`. To verify a webhook delivery:\n\n1. **Extract** `t` and `v1` from the header.\n2. **Construct** the signed string by concatenating the timestamp and the raw request body: `t.<raw_request_body>`.\n3. **Compute** the HMAC-SHA256 of the signed string using your secret key.\n4. **Compare** the result with `v1` using a constant-time comparison to prevent timing attacks.\n\n> [!IMPORTANT]\n> Reject any requests where the timestamp is older than 5 minutes to prevent replay attacks.',
                 request: {
                     curl: `# Verify manually:
 t=1743004800

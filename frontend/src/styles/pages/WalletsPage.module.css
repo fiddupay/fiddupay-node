@@ -12,14 +12,15 @@
 }
 
 .header h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #111827;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-main);
   margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
 }
 
 .header p {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 1.1rem;
 }
 
@@ -55,19 +56,22 @@
 }
 
 .walletCard {
-  background: white;
-  border: 1px solid #eef2f6;
-  border-radius: 12px;
-  padding: 24px;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  background: var(--surface);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
 .walletCard:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-  border-color: #e2e8f0;
+  transform: translateY(-5px);
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5);
 }
 
 .walletHeader {
@@ -98,9 +102,9 @@
 }
 
 .coinDetails h3 {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-main);
   margin: 0 0 4px 0;
 }
 
@@ -164,11 +168,11 @@ input:checked+.slider:before {
 }
 
 .addressContainer {
-  background: #f8fafc;
-  border: 1px solid #f1f5f9;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
 }
 
 .addressLabel {
@@ -187,7 +191,7 @@ input:checked+.slider:before {
 .addressText {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.85rem;
-  color: #475569;
+  color: var(--text-main);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -317,33 +321,37 @@ input:checked+.slider:before {
   position: absolute;
   top: 100%;
   right: 0;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   z-index: 10;
-  min-width: 140px;
+  min-width: 160px;
   overflow: hidden;
-  margin-top: 4px;
+  margin-top: 8px;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .actionItem {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  gap: 10px;
+  padding: 12px 16px;
   border: none;
   background: none;
   font-size: 0.85rem;
-  font-weight: 500;
-  color: #475569;
+  font-weight: 600;
+  color: var(--text-muted);
   cursor: pointer;
   text-align: left;
+  transition: all 0.2s;
 }
 
 .actionItem:hover {
-  background: #f8fafc;
+  background: var(--surface-hover);
+  color: var(--text-main);
 }
 
 .actionItem.danger {
@@ -423,15 +431,15 @@ input:checked+.slider:before {
 }
 
 .keyValue {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.85rem;
-  color: #334155;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  color: var(--text-main);
   word-break: break-all;
-  line-height: 1.5;
-  background: white;
-  padding: 0.75rem;
-  border: 1px solid #f1f5f9;
-  border-radius: 0.5rem;
+  line-height: 1.6;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
   display: block;
 }
 
@@ -515,26 +523,24 @@ input:checked+.slider:before {
 /* Modal */
 .modalOverlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
 }
 
 .modalContent {
-  background: white;
-  padding: 2rem;
-  border-radius: 1rem;
-  width: 100%;
+  background: var(--surface);
+  padding: 2.5rem;
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  width: 90%;
   max-width: 500px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  animation: slideIn 0.2s ease-out;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes slideIn {

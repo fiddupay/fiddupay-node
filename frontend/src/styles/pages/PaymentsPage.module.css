@@ -1,9 +1,8 @@
-/* PaymentsPage - Premium Design */
 .paymentsPage {
-  background-color: var(--fiddu-bg-primary);
+  background-color: var(--bg-main);
   min-height: 100vh;
   padding: 32px;
-  animation: fadeIn 0.5s ease-out;
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes fadeIn {
@@ -26,13 +25,14 @@
 }
 
 .header h1 {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--fiddu-text-primary);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-main);
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 8px;
+  letter-spacing: -0.02em;
 }
 
 .header h1 i {
@@ -41,7 +41,7 @@
 }
 
 .header p {
-  color: var(--fiddu-text-secondary);
+  color: var(--text-muted);
   font-size: 16px;
 }
 
@@ -103,15 +103,15 @@
 }
 
 .statCard {
-  background: var(--white);
-  border-radius: 12px;
+  background: var(--surface);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
   padding: 24px;
   display: flex;
   align-items: center;
   gap: 20px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--fiddu-border);
-  transition: transform 0.2s ease;
+  border: 1px solid var(--border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .statCard:hover {
@@ -146,11 +146,12 @@
 
 /* Table Container */
 .tableContainer {
-  background: var(--white);
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--fiddu-border);
+  background: var(--surface);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  border: 1px solid var(--border);
   overflow-x: auto;
+  box-shadow: 0 15px 35px -12px rgba(0, 0, 0, 0.3);
 }
 
 .tableHeader {
@@ -209,7 +210,7 @@
 }
 
 .tableRow:hover {
-  background-color: var(--fiddu-bg-primary);
+  background-color: var(--surface-hover);
 }
 
 .linkCell {
@@ -596,12 +597,9 @@
 /* Modals */
 .modal {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(17, 24, 39, 0.7);
-  backdrop-filter: blur(4px);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -610,13 +608,13 @@
 }
 
 .modalContent {
-  background: var(--white);
-  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
   width: 100%;
   max-width: 640px;
-  /* Widened for Invoicing */
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  animation: slideUp 0.3s ease-out;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
   max-height: 90vh;
   display: flex;
@@ -636,12 +634,12 @@
 }
 
 .modalHeader {
-  padding: 24px;
-  border-bottom: 1px solid var(--fiddu-border);
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--fiddu-bg-primary);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .modalHeader h2 {
@@ -689,12 +687,12 @@
 .inputGroup textarea {
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid var(--fiddu-border);
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
   font-size: 14px;
-  color: var(--fiddu-text-primary);
-  transition: border-color 0.2s, box-shadow 0.2s;
-  background: var(--white);
+  color: var(--text-main);
+  transition: all 0.2s;
+  background: var(--surface);
 }
 
 .inputGroup textarea {

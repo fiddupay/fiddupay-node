@@ -1,8 +1,10 @@
 import React from 'react';
 import styles from '@/styles/components/docs/ApiSection.module.css';
 import CodeSnippet from './CodeSnippet';
-import { DocSection } from '../../pages/docs/ApiData';
+import { DocSection, Endpoint, SubSection } from '../../pages/docs/ApiData';
 import ParameterTable from './ParameterTable';
+import MarkdownText from './MarkdownText';
+import DocSubSection from './DocSubSection';
 
 interface ApiSectionProps {
     section: DocSection;
@@ -17,9 +19,13 @@ const ApiSection: React.FC<ApiSectionProps> = ({ section, sectionRefs }) => {
             className={styles.section}
         >
             <h1>{section.title}</h1>
-            {section.description && <p className={styles.lead}>{section.description}</p>}
+            {section.description && (
+                <div className={styles.lead}>
+                    <MarkdownText text={section.description} />
+                </div>
+            )}
 
-            {section.endpoints.map((endpoint) => (
+            {section.endpoints.map((endpoint: Endpoint) => (
                 <div
                     key={endpoint.id}
                     id={endpoint.id}
@@ -27,7 +33,9 @@ const ApiSection: React.FC<ApiSectionProps> = ({ section, sectionRefs }) => {
                     style={{ marginTop: '64px' }}
                 >
                     <h2>{endpoint.title}</h2>
-                    <p className={styles.lead}>{endpoint.description}</p>
+                    <div className={styles.lead}>
+                        <MarkdownText text={endpoint.description} />
+                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
                         <span className={`${styles.methodBadge} ${styles[endpoint.method.toLowerCase()]}`}>
                             {endpoint.method}
@@ -51,6 +59,14 @@ const ApiSection: React.FC<ApiSectionProps> = ({ section, sectionRefs }) => {
 
                     <ParameterTable title="Query Parameters" parameters={endpoint.parameters || []} />
                     <ParameterTable title="Request Body" parameters={endpoint.body || []} />
+
+                    {endpoint.subSections && endpoint.subSections.length > 0 && (
+                        <div className={styles.subSectionsContainer}>
+                            {endpoint.subSections.map((sub: SubSection, i: number) => (
+                                <DocSubSection key={i} subSection={sub} />
+                            ))}
+                        </div>
+                    )}
                 </div>
             ))}
         </div>

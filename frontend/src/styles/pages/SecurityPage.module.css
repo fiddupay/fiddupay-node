@@ -1,6 +1,6 @@
 .securityPage {
-    padding: 24px;
-    background-color: var(--fiddu-bg-secondary);
+    padding: 32px;
+    background-color: var(--bg-main);
     min-height: calc(100vh - 64px);
 }
 
@@ -9,58 +9,62 @@
 }
 
 .header h1 {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--fiddu-text-primary);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text-main);
     margin-bottom: 8px;
+    letter-spacing: -0.02em;
 }
 
 .header p {
-    color: var(--fiddu-text-secondary);
-    font-size: 14px;
+    color: var(--text-muted);
+    font-size: 15px;
 }
 
 .tabs {
     display: flex;
     gap: 8px;
-    margin-bottom: 24px;
-    background: white;
+    margin-bottom: 32px;
+    background: rgba(255, 255, 255, 0.02);
     padding: 6px;
-    border-radius: 10px;
-    border: 1px solid var(--fiddu-border);
+    border-radius: 14px;
+    border: 1px solid var(--border);
     width: fit-content;
 }
 
 .tabBtn {
-    padding: 10px 20px;
+    padding: 10px 24px;
     border: none;
     background: none;
-    border-radius: 6px;
-    color: var(--fiddu-text-secondary);
-    font-weight: 600;
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-weight: 700;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
 .tabBtn:hover {
-    background-color: var(--fiddu-bg-secondary);
-    color: var(--fiddu-brand-primary);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
 }
 
 .activeTab {
-    background-color: var(--fiddu-brand-primary);
+    background-color: var(--primary);
     color: white !important;
+    box-shadow: 0 4px 12px var(--primary-glow);
 }
 
 .content {
-    background: white;
-    border: 1px solid var(--fiddu-border);
-    border-radius: 12px;
+    background: var(--surface);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
     overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
 }
 
 /* Common Table Styles */
@@ -75,21 +79,21 @@
 }
 
 .table th {
-    padding: 16px;
-    background: #f8fafc;
-    border-bottom: 1px solid var(--fiddu-border);
+    padding: 18px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--border);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
-    color: #64748b;
-    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
 }
 
 .table td {
-    padding: 16px;
-    border-bottom: 1px solid var(--fiddu-border);
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
     font-size: 14px;
-    color: var(--fiddu-text-primary);
+    color: var(--text-main);
     vertical-align: middle;
 }
 
@@ -98,7 +102,7 @@
 }
 
 .table tr:hover {
-    background-color: #fcfdfe;
+    background-color: var(--surface-hover);
 }
 
 /* Badge Styles */
@@ -117,11 +121,16 @@
 
 /* Alert Card Styles */
 .alertCard {
-    padding: 20px;
+    padding: 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--fiddu-border);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+}
+
+.alertCard:hover {
+    background: var(--surface-hover);
 }
 
 .alertInfo {
@@ -148,8 +157,8 @@
 
 .alertText p {
     margin: 0 0 8px 0;
-    font-size: 13px;
-    color: var(--fiddu-text-secondary);
+    font-size: 14px;
+    color: var(--text-muted);
 }
 
 .alertTime {
@@ -197,17 +206,20 @@
 
 .input {
     width: 100%;
-    padding: 10px 12px 10px 32px;
-    border: 1px solid var(--fiddu-border);
-    border-radius: 8px;
+    padding: 12px 14px 12px 34px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
     font-size: 14px;
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--text-main);
     transition: all 0.2s;
 }
 
 .input:focus {
     outline: none;
-    border-color: var(--fiddu-brand-primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: var(--primary);
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 1px var(--primary);
 }
 
 .saveBtn {

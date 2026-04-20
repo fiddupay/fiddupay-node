@@ -1,9 +1,8 @@
 .page {
     padding: 32px;
     animation: pageReveal 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-    background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.05), transparent 400px),
-                radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.05), transparent 400px);
-    background-color: var(--fiddu-bg-primary);
+    background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.1), transparent 600px);
+    background-color: var(--bg-main);
     min-height: 100vh;
 }
 
@@ -23,7 +22,7 @@
     font-size: 32px;
     font-weight: 800;
     letter-spacing: -0.025em;
-    color: var(--fiddu-text-primary);
+    color: var(--text-main);
     display: flex;
     align-items: center;
     gap: 16px;
@@ -33,11 +32,12 @@
 .titleArea h1 i {
     background: linear-gradient(135deg, var(--fiddu-brand-primary), #3b82f6);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 .titleArea p {
-    color: var(--fiddu-text-secondary);
+    color: var(--text-muted);
     font-size: 16px;
     margin: 0;
 }
@@ -47,14 +47,13 @@
     align-items: center;
     gap: 10px;
     padding: 12px 24px;
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(8px);
-    border: 1px solid rgba(226, 232, 240, 0.8);
+    border: 1px solid var(--border);
     border-radius: 14px;
-    font-weight: 600;
-    color: var(--fiddu-text-secondary);
+    font-weight: 700;
+    color: var(--text-main);
     cursor: pointer;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -102,15 +101,15 @@
 }
 
 .glassStatCard {
-    background: rgba(255, 255, 255, 0.7);
+    background: var(--surface);
     backdrop-filter: blur(12px);
     padding: 28px;
     border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     gap: 24px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.03), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -134,17 +133,17 @@
 
 .statLabel {
     font-size: 14px;
-    font-weight: 600;
-    color: var(--fiddu-text-muted);
+    font-weight: 700;
+    color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
     margin: 0 0 4px 0;
 }
 
 .statValue {
     font-size: 32px;
     font-weight: 800;
-    color: var(--fiddu-text-primary);
+    color: var(--text-main);
     letter-spacing: -0.02em;
     margin: 0;
 }
@@ -158,19 +157,20 @@
 }
 
 .premiumCard {
-    background: white;
+    background: var(--surface);
+    backdrop-filter: blur(10px);
     border-radius: 32px;
     padding: 32px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-    border: 1px solid rgba(226, 232, 240, 0.5);
+    border: 1px solid var(--border);
     position: relative;
     overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
 
 .cardHeader h3 {
     font-size: 20px;
-    font-weight: 700;
-    color: var(--fiddu-text-primary);
+    font-weight: 800;
+    color: var(--text-main);
     margin: 0;
     display: flex;
     align-items: center;
@@ -232,7 +232,7 @@
 .pieCenterValue {
     font-size: 36px;
     font-weight: 800;
-    color: var(--fiddu-text-primary);
+    color: var(--text-main);
     line-height: 1;
 }
 
@@ -270,9 +270,9 @@
 }
 
 .assetGlassCard {
-    background: rgba(255, 255, 255, 0.8);
+    background: var(--surface);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(226, 232, 240, 0.8);
+    border: 1px solid var(--border);
     border-radius: 28px;
     padding: 24px;
     cursor: pointer;
@@ -289,15 +289,14 @@
 
 .assetGlassCard:hover {
     transform: scale(1.05) translateY(-5px);
-    background: white;
-    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.1);
-    border-color: var(--fiddu-brand-primary);
+    border-color: var(--primary);
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
 }
 
 .assetGlassCard.active {
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(37, 99, 235, 0.02));
-    border-color: var(--fiddu-brand-primary);
-    box-shadow: 0 0 0 1px var(--fiddu-brand-primary);
+    background: rgba(99, 102, 241, 0.05);
+    border-color: var(--primary);
+    box-shadow: 0 0 20px var(--primary-glow);
 }
 
 .assetHeader {
@@ -344,13 +343,13 @@
     font-size: 18px;
     font-weight: 800;
     margin: 0 0 16px 0;
-    color: var(--fiddu-text-primary);
+    color: var(--text-main);
 }
 
 .cryptoAmount {
     font-size: 22px;
     font-weight: 800;
-    color: var(--fiddu-text-primary);
+    color: var(--text-main);
     margin-bottom: 4px;
     letter-spacing: -0.02em;
 }
@@ -363,14 +362,14 @@
 
 .usdEquivalent {
     font-size: 16px;
-    font-weight: 600;
-    color: var(--fiddu-brand-primary);
+    font-weight: 700;
+    color: var(--primary);
 }
 
 .assetFooter {
     margin-top: 20px;
     padding-top: 16px;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid var(--border);
 }
 
 .availableLabel {
@@ -399,11 +398,11 @@
 
 .modernEmptyState {
     grid-column: 1 / -1;
-    background: white;
+    background: var(--surface);
     padding: 80px 40px;
     border-radius: 40px;
     text-align: center;
-    border: 2px dashed #e2e8f0;
+    border: 2px dashed var(--border);
 }
 
 .emptyIllustration {

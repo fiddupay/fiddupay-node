@@ -192,7 +192,6 @@ const DocsPage: React.FC = () => {
           />
         </aside>
 
-        {/* Column 2 & 3 Wrap */}
         <div className={`${styles.contentArea} ${mobileStyles.contentArea}`}>
           <main className={`${styles.mainContent} ${mobileStyles.mainContent}`}>
             {API_DATA.map((section) => (
@@ -208,13 +207,15 @@ const DocsPage: React.FC = () => {
                 Looking for older documentation? Check our <a href="https://github.com/fiddupay/fiddupay-node/releases" target="_blank" rel="noopener noreferrer">release notes</a> for version changes and migration guides.
               </p>
             </div>
+
+            {/* Gap at the bottom as requested */}
+            <div className={styles.bottomGap} />
           </main>
 
           {/* Column 3: Code Samples */}
           {(() => {
             let item = API_DATA.flatMap(s => [s, ...s.endpoints]).find(e => e.id === activeSection);
-
-            // Fallback: If item is a Section (no request) but has endpoints, show the first endpoint's code
+            // ... (rest of the code snippet logic remains the same)
             let hasCode = false;
             let displayItem: Endpoint | undefined;
 
@@ -223,7 +224,6 @@ const DocsPage: React.FC = () => {
                 hasCode = true;
                 displayItem = item as Endpoint;
               } else if ((item as any).endpoints && (item as any).endpoints.length > 0) {
-                // It's a section with children
                 const firstChild = (item as any).endpoints[0];
                 if (firstChild.request) {
                   hasCode = true;

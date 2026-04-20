@@ -1,13 +1,17 @@
 .header {
-  background-color: var(--fiddu-bg-primary);
-  border-bottom: 1px solid var(--fiddu-border);
-  padding: 16px 0;
+  background-color: rgba(10, 15, 28, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+  position: sticky;
+  top: 0;
+  z-index: 40;
 }
 
 .container {
   max-width: 80rem;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -23,56 +27,59 @@
   padding: 8px;
   border: none;
   background: none;
-  color: var(--fiddu-text-secondary);
+  color: var(--text-main);
   font-size: 1.5rem;
   cursor: pointer;
   border-radius: 6px;
 }
 
 .menuButton:hover {
-  background-color: var(--fiddu-bg-secondary);
+  background-color: var(--surface-hover);
 }
 
 .right {
   display: flex;
   align-items: center;
-  gap: 24px;
-  position: relative;
+  gap: 20px;
 }
 
 .notificationButton {
-  padding: 8px;
-  border: none;
-  background: none;
-  color: var(--fiddu-text-secondary);
-  font-size: 1.5rem;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 1.2rem;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 12px;
   position: relative;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .notificationButton:hover {
-  background-color: var(--fiddu-bg-secondary);
-  color: var(--fiddu-brand-primary);
+  background-color: var(--surface-hover);
+  color: var(--primary);
+  border-color: var(--primary-glow);
 }
 
 .badge {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: -4px;
+  right: -4px;
   background-color: #ef4444;
   color: white;
   font-size: 10px;
-  font-weight: 700;
-  min-width: 16px;
-  height: 16px;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
   border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--fiddu-bg-primary);
-  padding: 0 4px;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
 }
 
 .notificationPanel {
@@ -80,11 +87,11 @@
   top: calc(100% + 12px);
   right: 0;
   width: 380px;
-  background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--fiddu-border);
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  background-color: var(--surface);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   z-index: 999;
   display: flex;
   flex-direction: column;
@@ -99,20 +106,20 @@
 
 .panelHeader {
   padding: 16px 20px;
-  border-bottom: 1px solid var(--fiddu-border);
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fafafa;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .iconActionBtn {
   background: none;
   border: none;
-  color: var(--fiddu-text-secondary);
+  color: var(--text-muted);
   cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
+  padding: 8px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -120,13 +127,15 @@
 }
 
 .iconActionBtn:hover:not(:disabled) {
-  background: var(--fiddu-bg-secondary);
-  color: var(--fiddu-brand-primary);
+  background: var(--surface-hover);
+  color: var(--primary);
 }
 
-.iconActionBtn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
+.panelHeader h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0;
 }
 
 .panelBody {
@@ -140,21 +149,21 @@
 }
 
 .notificationItem {
-  padding: 16px 20px;
+  padding: 20px;
   display: flex;
-  gap: 12px;
-  border-bottom: 1px solid var(--fiddu-border);
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
   position: relative;
 }
 
 .notificationItem:hover {
-  background: #f8fafc;
+  background: var(--surface-hover);
 }
 
 .notificationItem.unread {
-  background: #f0f7ff;
+  background: rgba(99, 102, 241, 0.05);
 }
 
 .notificationItem.unread::before {
@@ -164,41 +173,55 @@
   top: 0;
   bottom: 0;
   width: 3px;
-  background: var(--fiddu-brand-primary);
+  background: var(--primary);
+  box-shadow: 0 0 10px var(--primary-glow);
 }
 
 .statusIcon {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 20px;
   flex-shrink: 0;
 }
 
-.statusIcon.success { background: #dcfce7; color: #166534; }
-.statusIcon.error { background: #fee2e2; color: #991b1b; }
-.statusIcon.info { background: #e0f2fe; color: #0369a1; }
-.statusIcon.warning { background: #fef3c7; color: #92400e; }
+.statusIcon.success { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+.statusIcon.error { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.statusIcon.info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.statusIcon.warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+
+.itemContent h4 {
+  font-size: 14px;
+  margin: 0 0 4px 0;
+  color: var(--text-main);
+}
+
+.itemContent p {
+  font-size: 12px;
+  margin: 0 0 8px 0;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
 
 .timestamp {
-  font-size: 10px;
-  color: #94a3b8;
+  font-size: 11px;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
 .itemDeleteBtn {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 15px;
+  right: 15px;
   opacity: 0;
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--text-muted);
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
 }
 
 .notificationItem:hover .itemDeleteBtn {
@@ -206,109 +229,86 @@
 }
 
 .emptyState {
-  padding: 48px 24px;
+  padding: 60px 24px;
   text-align: center;
-  color: var(--fiddu-text-secondary);
+  color: var(--text-muted);
 }
 
 .emptyIcon {
-  width: 64px;
-  height: 64px;
-  background: #f1f5f9;
-  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  background: var(--surface-hover);
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 16px;
-  color: #94a3b8;
+  margin: 0 auto 20px;
+  color: var(--text-muted);
+  font-size: 24px;
 }
 
 .emptyState p {
   margin: 0 0 4px;
   font-weight: 600;
-  color: var(--fiddu-text-primary);
-}
-
-.emptyState span {
-  font-size: 12px;
+  color: var(--text-main);
 }
 
 .panelFooter {
-  padding: 12px;
-  border-top: 1px solid var(--fiddu-border);
-  text-align: center;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .viewAllBtn {
   width: 100%;
-  padding: 8px;
-  background: none;
-  border: 1px solid var(--fiddu-border);
-  border-radius: 8px;
+  padding: 10px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 10px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--fiddu-text-secondary);
+  color: var(--text-main);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .viewAllBtn:hover {
-  background: var(--fiddu-bg-secondary);
-  border-color: #cbd5e1;
-  color: var(--fiddu-text-primary);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
-@media (max-width: 1024px) {
-  .menuButton {
-    display: block;
-  }
-
-  .userName {
-    display: none;
-  }
-
-  .notificationPanel {
-    position: fixed;
-    top: 70px;
-    right: 16px;
-    left: 16px;
-    width: auto;
-  }
-}
-
-/* --- Environment Control & User Info (Restored) --- */
-
+/* Environment Control */
 .envControl {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding-right: 16px;
-  border-right: 1px solid var(--fiddu-border);
+  padding-right: 20px;
+  border-right: 1px solid var(--border);
 }
 
 .envBadge {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px;
+  padding: 8px 16px;
   border-radius: 99px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   position: relative;
 }
 
 .sandbox {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fee2e2;
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .live {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #dcfce7;
+  background: rgba(34, 197, 94, 0.1);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
 .pulse {
@@ -318,45 +318,19 @@
   position: relative;
 }
 
-.sandbox .pulse {
-  background: #ef4444;
-}
+.sandbox .pulse { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+.live .pulse { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
 
 .sandbox .pulse::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0; width: 100%; height: 100%;
   border-radius: 50%;
   background: #ef4444;
   animation: pulse-red 2s infinite;
 }
 
-.live .pulse {
-  background: #22c55e;
-}
-
-.live .pulse::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: #22c55e;
-  animation: pulse-green 2s infinite;
-}
-
 @keyframes pulse-red {
-  0% { transform: scale(1); opacity: 0.8; }
-  70% { transform: scale(2.5); opacity: 0; }
-  100% { transform: scale(1); opacity: 0; }
-}
-
-@keyframes pulse-green {
   0% { transform: scale(1); opacity: 0.8; }
   70% { transform: scale(2.5); opacity: 0; }
   100% { transform: scale(1); opacity: 0; }
@@ -368,47 +342,40 @@
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 8px;
-  transition: background 0.2s;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.2s;
 }
 
 .toggleContainer:hover {
-  background: var(--fiddu-bg-secondary);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .toggleLabel {
   font-size: 11px;
   font-weight: 700;
-  color: var(--fiddu-text-secondary);
-  transition: color 0.2s;
+  color: var(--text-muted);
 }
 
 .toggleLabel.active {
-  color: var(--fiddu-brand-primary);
+  color: var(--primary);
 }
 
 .switch {
   position: relative;
   display: inline-block;
-  width: 36px;
-  height: 20px;
+  width: 34px;
+  height: 18px;
 }
 
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
+.switch input { opacity: 0; width: 0; height: 0; }
 
 .slider {
   position: absolute;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #e2e8f0;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #374151;
   transition: .4s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 20px;
 }
@@ -416,18 +383,17 @@
 .slider:before {
   position: absolute;
   content: "";
-  height: 14px;
-  width: 14px;
+  height: 12px;
+  width: 12px;
   left: 3px;
   bottom: 3px;
   background-color: white;
   transition: .4s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .switch input:checked + .slider {
-  background-color: var(--fiddu-brand-primary);
+  background-color: var(--primary);
 }
 
 .switch input:checked + .slider:before {
@@ -439,36 +405,42 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-left: 12px;
-  border-left: 1px solid var(--fiddu-border);
+  padding-left: 20px;
 }
 
 .userAvatar {
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  background: var(--fiddu-brand-primary);
+  background: linear-gradient(135deg, var(--primary), #818cf8);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
   font-size: 14px;
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 4px 12px var(--primary-glow);
 }
 
 .userName {
   font-weight: 600;
-  color: var(--fiddu-text-primary);
+  color: var(--text-main);
   font-size: 14px;
 }
 
+@media (max-width: 1024px) {
+  .menuButton { display: block; }
+  .userName { display: none; }
+  .notificationPanel {
+    position: fixed;
+    top: 70px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+  }
+}
+
 @media (max-width: 768px) {
-  .envControl {
-    display: none;
-  }
-  
-  .userInfo {
-    border-left: none;
-  }
+  .envControl { display: none; }
+  .userInfo { padding-left: 0; }
 }

@@ -16,12 +16,12 @@
 }
 
 .page {
-    padding: 2.5rem;
+    padding: 32px;
     max-width: 1600px;
     margin: 0 auto;
     min-height: 100vh;
-    background: var(--fiddu-bg-page);
-    animation: fadeIn 0.4s ease-out;
+    background: var(--bg-main);
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes fadeIn {
@@ -38,15 +38,15 @@
 }
 
 .headerInfo h1 {
-    font-size: 2.25rem;
+    font-size: 32px;
     font-weight: 800;
-    color: var(--fiddu-text-primary);
-    margin-bottom: 0.5rem;
+    color: var(--text-main);
+    margin-bottom: 8px;
     letter-spacing: -0.02em;
 }
 
 .headerInfo p {
-    color: var(--fiddu-text-secondary);
+    color: var(--text-muted);
     font-size: 1.1rem;
     font-weight: 500;
 }
@@ -57,7 +57,7 @@
 }
 
 .addBtn {
-    background: var(--fiddu-primary);
+    background: var(--primary);
     color: white;
     border: none;
     padding: 1rem 1.75rem;
@@ -68,11 +68,12 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    box-shadow: var(--fiddu-shadow);
-    transition: all 0.3s;
+    box-shadow: 0 4px 12px var(--primary-glow);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .addBtn:hover {
-    background: var(--fiddu-primary-hover);
-    transform: scale(1.02);
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px var(--primary-glow);
 }
