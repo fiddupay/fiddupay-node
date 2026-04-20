@@ -21,7 +21,7 @@ impl VolumeTrackingService {
     ) -> Result<Decimal, ServiceError> {
         let start_of_day = date.and_hms_opt(0, 0, 0).unwrap().and_utc();
 
-        // 1. Sum up all confirmed payments (Inflow)
+        // 1. Sum up all confirmed payments (Inflow - Custodial/Managed)
         let payments_volume: Option<Decimal> = sqlx::query_scalar(
             "SELECT SUM(amount_usd) FROM payment_transactions WHERE merchant_id = $1 AND created_at >= $2 AND status = 'CONFIRMED'"
         )
@@ -30,7 +30,17 @@ impl VolumeTrackingService {
         .fetch_one(&self.db_pool)
         .await?;
 
-        // 2. Sum up all non-rejected withdrawals (Outflow - includes Sweeps)
+        // 2. Sum up all native forwarding payments (Inflow - Address-Only/Forwarding)
+        // Note: address_only_status is a postgres enum type, matching snake_case naming
+        let address_only_volume: Option<Decimal> = sqlx::query_scalar(
+            "SELECT SUM(requested_amount) FROM address_only_payments WHERE merchant_id = $1 AND created_at >= $2 AND status IN ('payment_received', 'partial_payment_received', 'forwarding_in_progress', 'completed')"
+        )
+        .bind(merchant_id)
+        .bind(start_of_day)
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        // 3. Sum up all non-rejected withdrawals (Outflow - includes Sweeps)
         let withdrawals_volume: Option<Decimal> = sqlx::query_scalar(
             "SELECT SUM(amount_usd) FROM withdrawals WHERE merchant_id = $1 AND created_at >= $2 AND status != 'REJECTED' AND status != 'CANCELLED'"
         )
@@ -39,7 +49,9 @@ impl VolumeTrackingService {
         .fetch_one(&self.db_pool)
         .await?;
 
-        Ok(payments_volume.unwrap_or(Decimal::ZERO) + withdrawals_volume.unwrap_or(Decimal::ZERO))
+        Ok(payments_volume.unwrap_or(Decimal::ZERO)
+            + address_only_volume.unwrap_or(Decimal::ZERO)
+            + withdrawals_volume.unwrap_or(Decimal::ZERO))
     }
 
     /// Check if a merchant can process a transaction without exceeding daily volume limit
@@ -48,13 +60,9 @@ impl VolumeTrackingService {
         merchant_id: i64,
         transaction_amount_usd: Decimal,
         daily_limit_usd: Decimal,
-        is_kyc_verified: bool,
     ) -> Result<bool, ServiceError> {
-        // KYC verified merchants have no daily volume limit for now
-        if is_kyc_verified {
-            return Ok(true);
-        }
-
+        // We always enforce the provided daily_limit_usd now.
+        // If a merchant has "unlimited" volume, the caller should pass a extremely high limit or skip this check.
         let today = Utc::now().date_naive();
         let current_volume = self.get_daily_volume(merchant_id, today).await?;
         let new_total = current_volume + transaction_amount_usd;
@@ -67,13 +75,7 @@ impl VolumeTrackingService {
         &self,
         merchant_id: i64,
         daily_limit_usd: Decimal,
-        is_kyc_verified: bool,
     ) -> Result<Option<Decimal>, ServiceError> {
-        // KYC verified merchants have no limit for now
-        if is_kyc_verified {
-            return Ok(None);
-        }
-
         let today = Utc::now().date_naive();
         let current_volume = self.get_daily_volume(merchant_id, today).await?;
         let remaining = daily_limit_usd - current_volume;

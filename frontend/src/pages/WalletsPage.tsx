@@ -5,6 +5,7 @@ import styles from '@/styles/pages/WalletsPage.module.css'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuthStore } from '@/stores/authStore'
 import { Link } from 'react-router-dom'
+import SEO from '@/components/ui/SEO'
 
 import { WalletGridSkeleton } from '@/components/layout/PageSkeletons'
 
@@ -270,6 +271,10 @@ const WalletsPage: React.FC = () => {
 
   return (
     <div className={styles.walletsPage}>
+      <SEO 
+        title="Wallet Management" 
+        description="Configure your network-specific deposit addresses and manage your managed or forwarding wallets."
+      />
       <header className={styles.header}>
         <div>
           <h1>Wallet Management</h1>

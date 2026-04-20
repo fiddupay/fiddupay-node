@@ -4,6 +4,7 @@ import { WithdrawalFormSkeleton } from '@/components/layout/PageSkeletons'
 import { useAuthStore } from '@/stores/authStore'
 import styles from '@/styles/pages/WithdrawalsPage.module.css'
 import CustomSelect from '@/components/ui/CustomSelect'
+import SEO from '@/components/ui/SEO'
 import { Withdrawal } from '@/types'
 import { extractErrorMessage } from '@/utils/errorUtils'
 import React, { useEffect, useState } from 'react'
@@ -108,16 +109,14 @@ const WithdrawalsPage: React.FC = () => {
             setLoading(true)
             setBalanceError(null)
 
-            // Fetch balances and history in parallel for better performance
-            const [histRes] = await Promise.all([
-                withdrawalAPI.getHistory().catch(() => ({ data: [] }))
+            // Parallelize all initial data fetching
+            const [histRes, walletsRes, _] = await Promise.all([
+                withdrawalAPI.getHistory().catch(() => ({ data: [] })),
+                walletAPI.getAll().catch(() => ({ data: { wallets: [] } })),
+                fetchBalance().catch(() => null),
+                fetchPrices().catch(() => null)
             ])
 
-            // Load balance through store
-            await fetchBalance()
-
-            // Fetch configured wallets
-            const walletsRes = await walletAPI.getAll()
             const activeWallets = Array.isArray(walletsRes.data.wallets) 
                 ? walletsRes.data.wallets.filter((w: any) => {
                     if (!w.is_active) return false
@@ -246,6 +245,10 @@ const WithdrawalsPage: React.FC = () => {
 
     return (
         <div className={styles.page}>
+            <SEO 
+                title="Withdraw Funds" 
+                description="Securely withdraw your cryptocurrency earnings to your external wallets or manage withdrawal history."
+            />
             <div className={styles.header}>
                 <h1>Withdrawals</h1>
                 <div className={styles.historyHeader}>

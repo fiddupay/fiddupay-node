@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { publicAPI } from '@/services/apiService'
 import styles from '@/styles/pages/PricingPage.module.css'
+import SEO from '@/components/ui/SEO'
 
 interface PricingData {
   transaction_fee_percentage: number
@@ -44,6 +45,10 @@ const PricingPage: React.FC = () => {
 
   return (
     <div className={styles.pricingPage}>
+      <SEO 
+        title="Pricing | FidduPay" 
+        description="Transparent and simple pay-per-use pricing. No hidden fees, no setup costs, and no monthly subscriptions for accepting crypto payments."
+      />
       {/* Background Ambient Glow */}
       <div className={styles.ambientGlowContainer}>
         <div className={`${styles.blob} ${styles.blobPrimary}`}></div>

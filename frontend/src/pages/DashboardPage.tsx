@@ -15,6 +15,97 @@ import { SecurityAlert } from '../types'
 import { MdWarning, MdArrowForward, MdRadar } from 'react-icons/md'
 import styles from '@/styles/pages/DashboardPage.module.css'
 import { ActivityListSkeleton, DashboardSkeleton } from '@/components/layout/PageSkeletons'
+import SEO from '@/components/ui/SEO'
+
+// Recent Activity Component
+const RecentActivityList: React.FC = () => {
+  const { user } = useAuthStore()
+  const [activities, setActivities] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadRecentActivity()
+  }, [user?.sandbox_mode])
+
+  const loadRecentActivity = async () => {
+    try {
+      const response = await paymentAPI.getUnifiedTransactions({ limit: 5 })
+      if (response.data && Array.isArray(response.data.transactions)) {
+        setActivities(response.data.transactions)
+      } else {
+        setActivities([])
+      }
+    } catch (error) {
+      console.error('Failed to load activity:', error)
+      setActivities([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return <ActivityListSkeleton />
+  }
+
+  if (activities.length === 0) {
+    return (
+      <div className={styles.emptyState}>
+        <i className="fas fa-inbox"></i>
+        <p>No recent activity</p>
+      </div>
+    )
+  }
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'payment': return 'fa-arrow-down'
+      case 'refund': return 'fa-undo'
+      case 'withdrawal': return 'fa-arrow-up'
+      default: return 'fa-exchange-alt'
+    }
+  }
+
+  return (
+    <div className={styles.activityList}>
+      {activities.map((activity: any) => (
+        <div key={`${activity.type}-${activity.id}`} className={styles.activityItem}>
+          <div className={styles.activityInfo}>
+            <div className={styles.activityLeft}>
+              <i className={`fas ${getTypeIcon(activity.type)}`} style={{ width: '16px', textAlign: 'center', color: activity.type === 'payment' ? '#10b981' : (activity.type === 'withdrawal' ? 'var(--primary)' : 'var(--secondary)') }}></i>
+              <span className={styles.activityId}>
+                {activity.type === 'payment' ? 'Deposit' :
+                  activity.type.charAt(0).toUpperCase() + activity.type.slice(1)} ({activity.id.substring(0, 8)}...)
+              </span>
+            </div>
+            <div className={styles.activityRight}>
+              {(() => {
+                const sign = (activity.type === 'withdrawal' || activity.type === 'refund') ? '-' : ''
+                const parts = activity.crypto_type?.split('_') || ['', '']
+                const coin = parts[0]
+                const cryptoAmt = (parseFloat(activity.crypto_amount || activity.usd_amount) || 0).toFixed(6)
+
+                return (
+                  <>
+                    <span className={styles.activityAmount}>{sign}${(parseFloat(activity.usd_amount) || 0).toFixed(2)}</span>
+                    <span className={styles.activityCrypto}>{sign}{cryptoAmt} {coin}</span>
+                  </>
+                )
+              })()}
+            </div>
+          </div>
+          <div className={styles.activityMeta}>
+            <span className={`${styles.activityStatus} ${styles[activity.status.toLowerCase()]}`}>
+              {activity.status}
+            </span>
+            <span className={styles.activityDate}>
+              {new Date(activity.created_at).toLocaleDateString()}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 interface AnalyticsData {
   total_volume_usd: string
@@ -119,6 +210,10 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className={styles.page}>
+      <SEO 
+        title="Merchant Dashboard" 
+        description="View your crypto payment analytics, recent activity, and wallet balances in real-time."
+      />
       {/* Header */}
       <div className={styles.header}>
         <div>
@@ -220,11 +315,17 @@ const DashboardPage: React.FC = () => {
 
             <div className={styles.statCard}>
               <div className={styles.statHeader}>
-                <span className={styles.statLabel}>Balance</span>
+                <span className={styles.statLabel}>Available Balance</span>
                 <i className="fas fa-wallet" style={{ color: 'var(--secondary)' }}></i>
               </div>
-              <div className={styles.statValue}>${(parseFloat(balance?.total_usd || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div className={styles.statFooter}>Available: ${(parseFloat(balance?.available_usd || '0') || 0).toLocaleString()}</div>
+              <div className={`${styles.statValue} ${(parseFloat(balance?.total_usd || '0') < 0) ? styles.negativeValue : ''}`}>
+                ${(parseFloat(balance?.total_usd || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div className={styles.statFooter}>
+                Settled: <span className={(parseFloat(balance?.available_usd || '0') < 0) ? styles.negativeValue : ''}>
+                  ${(parseFloat(balance?.available_usd || '0') || 0).toLocaleString()}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -341,11 +442,15 @@ const DashboardPage: React.FC = () => {
                 <div className={styles.balanceList}>
                   <div className={styles.balanceRow}>
                     <span className={styles.balanceLabel}>Available</span>
-                    <span className={styles.balanceAmount}>${(parseFloat(balance.available_usd) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className={`${styles.balanceAmount} ${(parseFloat(balance.available_usd) < 0) ? styles.negativeValue : ''}`}>
+                      ${(parseFloat(balance.available_usd) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
                   </div>
                   <div className={styles.balanceRow}>
                     <span className={styles.balanceLabel}>Processing</span>
-                    <span className={styles.balanceAmount}>${(parseFloat(balance.reserved_usd) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className={`${styles.balanceAmount} ${(parseFloat(balance.reserved_usd) < 0) ? styles.negativeValue : ''}`}>
+                      ${(parseFloat(balance.reserved_usd) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
                   </div>
                 </div>
               ) : (
@@ -475,94 +580,5 @@ const DashboardPage: React.FC = () => {
   )
 }
 
-// Recent Activity Component
-const RecentActivityList: React.FC = () => {
-  const { user } = useAuthStore()
-  const [activities, setActivities] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    loadRecentActivity()
-  }, [user?.sandbox_mode])
-
-  const loadRecentActivity = async () => {
-    try {
-      const response = await paymentAPI.getUnifiedTransactions({ limit: 5 })
-      if (response.data && Array.isArray(response.data.transactions)) {
-        setActivities(response.data.transactions)
-      } else {
-        setActivities([])
-      }
-    } catch (error) {
-      console.error('Failed to load activity:', error)
-      setActivities([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
-    return <ActivityListSkeleton />
-  }
-
-  if (activities.length === 0) {
-    return (
-      <div className={styles.emptyState}>
-        <i className="fas fa-inbox"></i>
-        <p>No recent activity</p>
-      </div>
-    )
-  }
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'payment': return 'fa-arrow-down'
-      case 'refund': return 'fa-undo'
-      case 'withdrawal': return 'fa-arrow-up'
-      default: return 'fa-exchange-alt'
-    }
-  }
-
-  return (
-    <div className={styles.activityList}>
-      {activities.map((activity: any) => (
-        <div key={`${activity.type}-${activity.id}`} className={styles.activityItem}>
-          <div className={styles.activityInfo}>
-            <div className={styles.activityLeft}>
-              <i className={`fas ${getTypeIcon(activity.type)}`} style={{ width: '16px', textAlign: 'center', color: activity.type === 'payment' ? '#10b981' : (activity.type === 'withdrawal' ? 'var(--primary)' : 'var(--secondary)') }}></i>
-              <span className={styles.activityId}>
-                {activity.type === 'payment' ? 'Deposit' :
-                  activity.type.charAt(0).toUpperCase() + activity.type.slice(1)} ({activity.id.substring(0, 8)}...)
-              </span>
-            </div>
-            <div className={styles.activityRight}>
-              {(() => {
-                const sign = (activity.type === 'withdrawal' || activity.type === 'refund') ? '-' : ''
-                const parts = activity.crypto_type?.split('_') || ['', '']
-                const coin = parts[0]
-                const cryptoAmt = (parseFloat(activity.crypto_amount || activity.usd_amount) || 0).toFixed(6)
-
-                return (
-                  <>
-                    <span className={styles.activityAmount}>{sign}${(parseFloat(activity.usd_amount) || 0).toFixed(2)}</span>
-                    <span className={styles.activityCrypto}>{sign}{cryptoAmt} {coin}</span>
-                  </>
-                )
-              })()}
-            </div>
-          </div>
-          <div className={styles.activityMeta}>
-            <span className={`${styles.activityStatus} ${styles[activity.status.toLowerCase()]}`}>
-              {activity.status}
-            </span>
-            <span className={styles.activityDate}>
-              {new Date(activity.created_at).toLocaleDateString()}
-            </span>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 export default DashboardPage

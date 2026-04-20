@@ -17,7 +17,7 @@ export const DashboardSkeleton: React.FC = () => {
 
             <div className={dashboardStyles.statsGrid}>
                 {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className={dashboardStyles.statCard} style={{ background: 'rgba(255,255,255,0.5)', border: 'none' }}>
+                    <div key={i} className={dashboardStyles.statCard} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
                         <Skeleton variant="circle" width={48} height={48} />
                         <div style={{ flex: 1 }}>
                             <Skeleton height={14} width="40%" />
@@ -75,7 +75,7 @@ export const BalanceSkeleton: React.FC = () => {
                         </div>
                         <Skeleton height={20} width="40%" style={{ marginTop: '20px' }} />
                         <Skeleton height={30} width="80%" style={{ marginTop: '10px' }} />
-                        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+                        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
                             <Skeleton height={14} width="60%" />
                         </div>
                     </div>
@@ -89,7 +89,7 @@ export const TableSkeleton: React.FC<{ rows?: number; columns?: number }> = ({ r
     return (
         <div className={paymentsStyles.table}>
             {[...Array(rows)].map((_, i) => (
-                <div key={i} className={paymentsStyles.tableRow} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <div key={i} className={paymentsStyles.tableRow} style={{ borderBottom: '1px solid var(--border)' }}>
                     <div className={paymentsStyles.tableCell}><Skeleton height={20} width="80%" /></div>
                     <div className={paymentsStyles.tableCell}><Skeleton height={20} width="60%" /></div>
                     <div className={paymentsStyles.tableCell}><Skeleton height={20} width="40%" /></div>
@@ -156,7 +156,7 @@ export const WithdrawalFormSkeleton: React.FC = () => {
             </div>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '2rem', marginTop: '2rem' }}>
-                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #f1f5f9' }}>
+                <div style={{ background: 'var(--surface)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border)' }}>
                     <Skeleton height={24} width="40%" style={{ marginBottom: '24px' }} />
                     {[1, 2, 3, 4].map(i => (
                         <div key={i} style={{ marginBottom: '20px' }}>
@@ -167,10 +167,10 @@ export const WithdrawalFormSkeleton: React.FC = () => {
                     <Skeleton height={48} width="100%" borderRadius={8} style={{ marginTop: '32px' }} />
                 </div>
                 
-                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #f1f5f9' }}>
+                <div style={{ background: 'var(--surface)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border)' }}>
                     <Skeleton height={24} width="40%" style={{ marginBottom: '24px' }} />
                     {[1, 2, 3, 4, 5].map(i => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #f1f5f9' }}>
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid var(--border)' }}>
                             <div style={{ flex: 1 }}>
                                 <Skeleton height={16} width="40%" />
                                 <Skeleton height={12} width="60%" style={{ marginTop: '8px' }} />
@@ -211,14 +211,14 @@ export const AnalyticsSkeleton: React.FC = () => {
                 ))}
             </div>
 
-            <div style={{ background: 'white', padding: '32px', borderRadius: '16px', border: '1px solid #f1f5f9', marginBottom: '32px' }}>
+            <div style={{ background: 'var(--surface)', padding: '32px', borderRadius: '16px', border: '1px solid var(--border)', marginBottom: '32px' }}>
                 <Skeleton height={24} width="20%" style={{ marginBottom: '8px' }} />
                 <Skeleton height={14} width="15%" style={{ marginBottom: '24px' }} />
                 <Skeleton height={350} width="100%" borderRadius={8} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px' }}>
-                <div style={{ background: 'white', padding: '32px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                <div style={{ background: 'var(--surface)', padding: '32px', borderRadius: '16px', border: '1px solid var(--border)' }}>
                     <Skeleton height={24} width="30%" style={{ marginBottom: '24px' }} />
                     {[1, 2, 3, 4].map(i => (
                         <div key={i} style={{ marginBottom: '24px' }}>
@@ -230,10 +230,10 @@ export const AnalyticsSkeleton: React.FC = () => {
                         </div>
                     ))}
                 </div>
-                <div style={{ background: 'white', padding: '32px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                <div style={{ background: 'var(--surface)', padding: '32px', borderRadius: '16px', border: '1px solid var(--border)' }}>
                     <Skeleton height={24} width="60%" style={{ marginBottom: '24px' }} />
                     {[1, 2, 3].map(i => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#f8fafc', borderRadius: '8px', marginBottom: '16px' }}>
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', marginBottom: '16px' }}>
                             <Skeleton height={14} width="50%" />
                             <Skeleton height={14} width="30%" />
                         </div>
@@ -252,19 +252,19 @@ export const SettingsSkeleton: React.FC = () => {
                 <Skeleton height={18} width="350px" borderRadius={4} style={{ marginTop: '12px' }} />
             </div>
 
-            <div style={{ display: 'flex', gap: '24px', borderBottom: '1px solid #f1f5f9', marginBottom: '32px', paddingBottom: '2px' }}>
+            <div style={{ display: 'flex', gap: '24px', borderBottom: '1px solid var(--border)', marginBottom: '32px', paddingBottom: '2px' }}>
                 {[1, 2, 3, 4, 5, 6].map(i => (
                     <Skeleton key={i} height={32} width={120} borderRadius={6} />
                 ))}
             </div>
 
-            <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #f1f5f9', padding: '32px' }}>
+            <div style={{ background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', padding: '32px' }}>
                 <Skeleton height={24} width="30%" style={{ marginBottom: '12px' }} />
                 <Skeleton height={14} width="60%" style={{ marginBottom: '32px' }} />
                 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                     {[1, 2].map(i => (
-                        <div key={i} style={{ padding: '24px', border: '2px solid #f1f5f9', borderRadius: '12px' }}>
+                        <div key={i} style={{ padding: '24px', border: '2px solid var(--border)', borderRadius: '12px' }}>
                             <Skeleton variant="circle" width={48} height={48} />
                             <Skeleton height={20} width="60%" style={{ marginTop: '16px' }} />
                             <Skeleton height={14} width="90%" style={{ marginTop: '12px' }} />
@@ -280,7 +280,7 @@ export const ActivityListSkeleton: React.FC = () => {
     return (
         <div style={{ padding: '16px' }}>
             {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: i < 5 ? '1px solid #f1f5f9' : 'none' }}>
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: i < 5 ? '1px solid var(--border)' : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                         <Skeleton variant="circle" width={32} height={32} />
                         <div style={{ flex: 1 }}>
@@ -306,15 +306,15 @@ export const SecurityHubSkeleton: React.FC = () => {
                 <Skeleton height={16} width="400px" borderRadius={4} style={{ marginTop: '12px' }} />
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'white', padding: '6px', borderRadius: '10px', width: 'fit-content', border: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'var(--surface)', padding: '6px', borderRadius: '10px', width: 'fit-content', border: '1px solid var(--border)' }}>
                 {[1, 2, 3].map(i => (
                     <Skeleton key={i} height={36} width={140} borderRadius={6} />
                 ))}
             </div>
 
-            <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #f1f5f9', overflow: 'hidden' }}>
+            <div style={{ background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
                 {[1, 2, 3, 4, 5].map(i => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px', borderBottom: '1px solid #f1f5f9' }}>
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px', borderBottom: '1px solid var(--border)' }}>
                         <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flex: 1 }}>
                             <Skeleton variant="circle" width={40} height={40} />
                             <div style={{ flex: 1 }}>

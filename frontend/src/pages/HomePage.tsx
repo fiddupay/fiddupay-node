@@ -1,6 +1,7 @@
 import styles from '@/styles/pages/HomePage.module.css';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import SEO from '@/components/ui/SEO'
 
 const HomePage: React.FC = () => {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
@@ -15,6 +16,10 @@ const HomePage: React.FC = () => {
 
   return (
     <div className={styles.homePage}>
+      <SEO 
+        title="FidduPay - Cryptocurrency Payment Gateway" 
+        description="The ultimate merchant gateway to accept Bitcoin, Ethereum, Solana, and USDT with zero chargebacks and instant settlement. Scale your business globally with FidduPay."
+      />
       {/* Background Ambient Glow */}
       <div className={styles.ambientGlowContainer}>
         <div className={`${styles.blob} ${styles.blobPrimary}`}></div>

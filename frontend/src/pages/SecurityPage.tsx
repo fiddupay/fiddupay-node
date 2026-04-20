@@ -14,6 +14,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { SecurityEvent, SecurityAlert } from '@/types'
 import { SecurityHubSkeleton, TableSkeleton } from '@/components/layout/PageSkeletons'
 import styles from '@/styles/pages/SecurityPage.module.css'
+import SEO from '@/components/ui/SEO'
 
 const formatDate = (dateString: string) => {
     try {
@@ -45,7 +46,7 @@ const SecurityPage: React.FC = () => {
 
     useEffect(() => {
         fetchData()
-    }, [activeTab])
+    }, [])
 
     useEffect(() => {
         if (user) {
@@ -57,13 +58,14 @@ const SecurityPage: React.FC = () => {
     const fetchData = async () => {
         try {
             setLoading(true)
-            if (activeTab === 'alerts') {
-                const res = await securityAPI.getAlerts()
-                setAlerts(res.data?.alerts || [])
-            } else if (activeTab === 'events') {
-                const res = await securityAPI.getEvents({ limit: 50 })
-                setEvents(res.data?.events || [])
-            }
+            // Fetch everything in parallel for better responsiveness
+            const [alertsRes, eventsRes] = await Promise.all([
+                securityAPI.getAlerts().catch(() => ({ data: { alerts: [] } })),
+                securityAPI.getEvents({ limit: 50 }).catch(() => ({ data: { events: [] } }))
+            ])
+
+            setAlerts(alertsRes.data?.alerts || [])
+            setEvents(eventsRes.data?.events || [])
         } catch (error) {
             console.error('Failed to fetch security data', error)
             showToast('Failed to load security data', 'error')
@@ -119,6 +121,10 @@ const SecurityPage: React.FC = () => {
 
     return (
         <div className={styles.securityPage}>
+            <SEO 
+                title="Security Hub" 
+                description="Monitor real-time security events, manage risk configurations, and view system alerts."
+            />
             <header className={styles.header}>
                 <h1>Security Hub</h1>
                 <p>Monitor real-time security events and manage system alerts.</p>

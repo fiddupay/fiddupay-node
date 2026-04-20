@@ -343,15 +343,17 @@ input:checked+.slider:before {
 }
 
 .badgeSandbox {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text-muted);
-    border: 1px solid var(--border);
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    text-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
 }
 
 .badgeLive {
-    background: rgba(99, 102, 241, 0.1);
-    color: var(--primary);
-    border: 1px solid var(--primary);
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
 }
 
 .keyInputGroup {
@@ -372,6 +374,7 @@ input:checked+.slider:before {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    min-width: 0; /* Critical for flex items to shrink below content size */
 }
 
 /* Webhook Specific Styles */
@@ -634,6 +637,10 @@ input:checked+.slider:before {
     border: 1px solid var(--fiddu-border);
     display: flex;
     align-items: center;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .viewBtn {
@@ -671,25 +678,27 @@ input:checked+.slider:before {
 }
 
 .copyBtn {
-    background: white;
-    border: 1px solid var(--fiddu-border);
-    color: var(--fiddu-text-primary);
+    background: var(--surface-hover);
+    border: 1px solid var(--border);
+    color: var(--text-main);
 }
 
 .copyBtn:hover {
-    background: #f8f9fa;
-    border-color: #adb5bd;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--primary);
+    color: var(--primary);
 }
 
 .rotateBtn {
-    background: white;
-    border: 1px solid #ffc9c9;
-    color: #fa5252;
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
 }
 
 .rotateBtn:hover {
-    background: #fff5f5;
-    border-color: #fa5252;
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
 }
 
 .keyFooter {
@@ -995,6 +1004,37 @@ input:checked+.slider:before {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
+  }
+
+  .keyHeader,
+  .secretHeader,
+  .redirectHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .keyFooter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .keyFooter > div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .keyFooter button,
+  .redirectHeader button,
+  .secretHeader button,
+  .saveBtn {
+    width: 100%;
+  }
+
+  .formatSelector {
+    flex-wrap: wrap;
   }
 
   .keyInputGroup {

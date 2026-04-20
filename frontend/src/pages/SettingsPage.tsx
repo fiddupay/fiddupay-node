@@ -15,6 +15,7 @@ import { merchantAPI, securityAPI, addressOnlyAPI } from '@/services/apiService'
 import { useToast } from '@/contexts/ToastContext'
 import { SettingsSkeleton } from '@/components/layout/PageSkeletons'
 import styles from '@/styles/pages/SettingsPage.module.css'
+import SEO from '@/components/ui/SEO'
 
 // Modular Tabs
 import SettlementTab from '@/components/settings/tabs/SettlementTab'
@@ -385,6 +386,10 @@ const SettingsPage: React.FC = () => {
 
     return (
         <div className={styles.page}>
+            <SEO 
+                title="Merchant Settings" 
+                description="Configure your settlement modes, fee preferences, API keys, and notification webhooks."
+            />
             <div className={styles.header}>
                 <h1>Settings</h1>
                 <p>Global account configuration and payout preferences</p>

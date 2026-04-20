@@ -109,12 +109,11 @@ impl MerchantService {
 
         let limit = daily_limit_usd.unwrap_or(default_limit);
         self.volume_tracking
-            .get_remaining_daily_volume(merchant_id, limit, kyc_verified)
+            .get_remaining_daily_volume(merchant_id, limit)
             .await?
-            .ok_or(ServiceError::InternalError(
-                "Failed to calculate remaining volume".to_string(),
-            ))
-            .or(Ok(Decimal::ZERO))
+            .ok_or_else(|| {
+                ServiceError::InternalError("Failed to calculate remaining volume".to_string())
+            })
     }
 
     /// Generate API key with proper prefix (single source of truth)

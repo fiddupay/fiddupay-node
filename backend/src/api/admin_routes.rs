@@ -134,8 +134,8 @@ pub fn create_admin_router(state: AppState) -> Router<AppState> {
         )
         // Manual Balance Rectification
         .route(
-            "/api/v1/admin/rectify/solana",
-            post(admin::rectify_solana_balance),
+            "/api/v1/admin/rectify/onchain",
+            post(admin::rectify_onchain_balance),
         )
         // Admin User Management
         .route("/api/v1/admin/users", get(admin::get_admin_users))

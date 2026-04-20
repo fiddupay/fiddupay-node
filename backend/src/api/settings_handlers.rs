@@ -121,7 +121,7 @@ pub async fn get_merchant_profile(
         "settlement_mode": m_settlement_mode,
         "kyc_verified": m_kyc_verified,
         "daily_limit_usd": m_daily_limit_usd
-            .or(if !m_kyc_verified { Some(state.config.daily_volume_limit_non_kyc_usd) } else { None })
+            .or(Some(if m_kyc_verified { state.config.daily_volume_limit_verified_usd } else { state.config.daily_volume_limit_non_kyc_usd }))
             .map(|d: Decimal| d.to_string()),
         "created_at": m_created_at.to_rfc3339(),
         "two_factor_enabled": false,

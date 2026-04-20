@@ -2,12 +2,13 @@
 
 use crate::config::Config;
 use crate::error::ServiceError;
+use crate::payment::blockchain_monitor::get_blockchain_monitor;
 use crate::payment::models::CryptoType;
-use crate::payment::sol_monitor::SolanaMonitor;
 use crate::services::price_service::PriceService;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::{PgPool, Row};
 use std::sync::Arc;
 
@@ -259,8 +260,9 @@ impl BalanceService {
             total_available_usd += available_usd;
             total_reserved_usd += reserved_usd;
 
-            // Decision: include if balance > 0 OR if explicitly requested (include_zero)
-            if include_zero || total_balance > Decimal::ZERO || available_balance > Decimal::ZERO {
+            // Decision: include if balance is non-zero OR if explicitly requested (include_zero)
+            if include_zero || total_balance != Decimal::ZERO || available_balance != Decimal::ZERO
+            {
                 balances.push(Balance {
                     crypto_type,
                     total_balance,
@@ -440,8 +442,8 @@ impl BalanceService {
             let balance_data = sqlx::query(
                 r#"
                 SELECT 
-                    COALESCE(SUM(CASE WHEN status = 'CONFIRMED' THEN amount ELSE 0 END), 0) as confirmed_total,
-                    COALESCE(SUM(CASE WHEN status = 'PENDING' THEN amount ELSE 0 END), 0) as pending_total
+                    COALESCE(SUM(CASE WHEN status = 'CONFIRMED' THEN amount - fee_amount ELSE 0 END), 0) as confirmed_total,
+                    COALESCE(SUM(CASE WHEN status = 'PENDING' THEN amount - fee_amount ELSE 0 END), 0) as pending_total
                 FROM payment_transactions 
                 WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3
                 "#
@@ -535,7 +537,7 @@ impl BalanceService {
         Ok(())
     }
 
-    pub async fn rectify_solana_onchain(
+    pub async fn rectify_onchain(
         &self,
         address: &str,
         crypto_type: CryptoType,
@@ -545,7 +547,7 @@ impl BalanceService {
         rectify_type: &str,
     ) -> Result<serde_json::Value, ServiceError> {
         tracing::info!(
-            "[RECTIFY-SOLANA] Rectifying address {} ({}, dry_run={}, override={:?}, type={})",
+            "[RECTIFY-SMART] Rectifying address {} ({}, dry_run={}, override={:?}, type={})",
             address,
             crypto_type.to_string(),
             dry_run,
@@ -579,57 +581,83 @@ impl BalanceService {
         let active_sandbox_mode = override_sandbox_mode.unwrap_or(db_sandbox_mode);
 
         // 2. Setup Monitor
-        let expected_mint = crypto_type.token_address().map(|a| a.to_string());
-        let monitor = SolanaMonitor::new(&self.config, active_sandbox_mode, expected_mint);
+        let monitor =
+            get_blockchain_monitor(&crypto_type, (*self.config).clone(), active_sandbox_mode);
 
         // 3. Fetch On-chain Transactions
         let onchain_txs = monitor
             .get_transactions_to_address(address, signature_limit, None)
             .await
-            .map_err(|e| ServiceError::Internal(format!("Solana scan failed: {}", e)))?;
+            .map_err(|e| ServiceError::Internal(format!("Blockchain scan failed: {}", e)))?;
 
-        let existing_hashes: std::collections::HashSet<String> = sqlx::query_scalar::<_, String>(
+        // 4. Fetch Existing Hashes and their statuses/amounts for RECONCILIATION
+        let existing_data_rows = sqlx::query(
             r#"
-            SELECT transaction_hash FROM payment_transactions WHERE to_address = $1 AND transaction_hash IS NOT NULL
-            UNION
-            SELECT transaction_hash FROM customer_transactions WHERE destination_address = $1 AND transaction_hash IS NOT NULL
-            UNION
-            SELECT transaction_hash FROM customer_transactions WHERE reference_id LIKE 'wrect_%' AND transaction_hash IS NOT NULL
-            UNION
-            SELECT transaction_hash FROM withdrawals WHERE merchant_id = $2 AND transaction_hash IS NOT NULL
+            SELECT transaction_hash, amount, status FROM payment_transactions WHERE (to_address = $1 OR transaction_hash IS NOT NULL) AND merchant_id = $2
+            UNION ALL
+            SELECT transaction_hash, amount, status FROM customer_transactions WHERE (destination_address = $1 OR transaction_hash IS NOT NULL) AND merchant_id = $2
+            UNION ALL
+            SELECT transaction_hash, amount, status FROM withdrawals WHERE merchant_id = $2 AND transaction_hash IS NOT NULL
             "#
         )
         .bind(address)
         .bind(merchant_id)
         .fetch_all(&self.db_pool)
-        .await?
-        .into_iter()
-        .collect();
+        .await?;
 
-        // 5. Identify Gaps & Sum Inbound/Outbound
+        let mut existing_txs: std::collections::HashMap<String, (Decimal, String)> =
+            std::collections::HashMap::new();
+        for r in existing_data_rows {
+            if let Some(hash) = r.get::<Option<String>, _>("transaction_hash") {
+                let amount = r.get::<Decimal, _>("amount");
+                let status = r.get::<String, _>("status");
+                existing_txs.insert(hash, (amount, status));
+            }
+        }
+
+        // 5. Identify Gaps & Discrepancies
         let mut missing_deposits = Vec::new();
         let mut missing_withdrawals = Vec::new();
+        let mut mismatched_txs = Vec::new();
         let mut total_missing_deposit_amount = Decimal::ZERO;
         let mut total_missing_withdrawal_amount = Decimal::ZERO;
 
         for tx in onchain_txs {
-            // Drop failed, zero-amount, or already known transactions
-            if !tx.success || tx.amount <= Decimal::ZERO || existing_hashes.contains(&tx.hash) {
+            // Drop failed or zero-amount
+            if !tx.success || tx.amount <= Decimal::ZERO {
                 continue;
             }
 
-            // Verify the token mint matches if we are rectifying a specific token
-            if let Some(expected) = crypto_type.token_address() {
-                if tx.token_mint.as_deref() != Some(expected) {
+            // Verify crypto-specific traits (tokens etc)
+            if let Some(expected_token) = crypto_type.token_address() {
+                if tx.token_mint.as_deref().unwrap_or("").to_lowercase()
+                    != expected_token.to_lowercase()
+                {
                     continue;
                 }
             } else if tx.token_mint.is_some() {
-                // We are rectifying SOL, but this is a token transfer
+                continue; // Expected native, got token
+            }
+
+            if let Some((db_amount, db_status)) = existing_txs.get(&tx.hash) {
+                // IT EXISTS - Check for discrepancy
+                if (tx.amount - *db_amount).abs() > Decimal::new(1, 8)
+                    || db_status == "PENDING"
+                    || db_status == "FAILED"
+                {
+                    mismatched_txs.push(json!({
+                        "hash": tx.hash,
+                        "onchain_amount": tx.amount,
+                        "db_amount": db_amount,
+                        "db_status": db_status,
+                        "action": "CORRECTION_NEEDED"
+                    }));
+                }
                 continue;
             }
 
-            let is_incoming = tx.to_address == address;
-            let is_outgoing = tx.from_address == address;
+            let is_incoming = tx.to_address.to_lowercase() == address.to_lowercase();
+            let is_outgoing = tx.from_address.to_lowercase() == address.to_lowercase();
 
             if is_incoming && (rectify_type == "DEPOSIT" || rectify_type == "BOTH") {
                 total_missing_deposit_amount += tx.amount;
@@ -642,22 +670,32 @@ impl BalanceService {
             }
         }
 
-        // 6. Fetch Fee Logic (Only applies to Deposits)
+        // 6. Fetch Fee Logic & Price
         let fee_percentage =
             sqlx::query_scalar::<_, Decimal>("SELECT fee_percentage FROM merchants WHERE id = $1")
                 .bind(merchant_id)
                 .fetch_one(&self.db_pool)
                 .await?;
 
-        let missing_deposit_fee =
-            (total_missing_deposit_amount * (fee_percentage / Decimal::from(100))).round_dp(8);
-        let missing_deposit_net = total_missing_deposit_amount - missing_deposit_fee;
+        let crypto_price = self
+            .price_service
+            .get_price(crypto_type)
+            .await
+            .unwrap_or(1.0);
+        let price_dec = Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE);
 
+        // 7. Execute Fixes (If not dry run)
+        let mut actions_taken = Vec::new();
         if !dry_run && (!missing_deposits.is_empty() || !missing_withdrawals.is_empty()) {
             let mut db_tx = self.db_pool.begin().await?;
 
-            // Update Balances for Deposits
-            if !missing_deposits.is_empty() {
+            // Process Missing Deposits
+            for tx in &missing_deposits {
+                let fee_amount = (tx.amount * (fee_percentage / Decimal::from(100))).round_dp(8);
+                let net_amount = tx.amount - fee_amount;
+                let amount_usd = (tx.amount * price_dec).round_dp(2);
+                let fee_usd = (amount_usd * (fee_percentage / Decimal::from(100))).round_dp(2);
+
                 if owner_type == "customer" {
                     let cid = customer_id.unwrap();
                     sqlx::query(
@@ -670,48 +708,8 @@ impl BalanceService {
                             total_balance = merchant_customer_balances.total_balance + $4,
                             last_updated_at = NOW()
                         "#
-                    )
-                    .bind(cid)
-                    .bind(merchant_id)
-                    .bind(crypto_type.to_string())
-                    .bind(missing_deposit_net)
-                    .bind(active_sandbox_mode)
-                    .execute(&mut *db_tx)
-                    .await?;
-                } else {
-                    sqlx::query(
-                        r#"
-                        INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
-                        VALUES ($1, $2, $3, 0, NOW(), $4)
-                        ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
-                        DO UPDATE SET
-                            available_balance = merchant_balances.available_balance + $3,
-                            last_updated = NOW()
-                        "#
-                    )
-                    .bind(merchant_id)
-                    .bind(crypto_type.to_string())
-                    .bind(missing_deposit_net)
-                    .bind(active_sandbox_mode)
-                    .execute(&mut *db_tx)
-                    .await?;
-                }
-            }
+                    ).bind(cid).bind(merchant_id).bind(crypto_type.to_string()).bind(net_amount).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
 
-            // Record Deposit Transactions to prevent double-counting
-            let crypto_price = self
-                .price_service
-                .get_price(crypto_type)
-                .await
-                .unwrap_or(1.0);
-
-            for tx in &missing_deposits {
-                let amount_usd = (tx.amount
-                    * Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE))
-                .round_dp(2);
-                let fee_usd = (amount_usd * (fee_percentage / Decimal::from(100))).round_dp(2);
-
-                if owner_type == "customer" {
                     sqlx::query(
                         r#"
                         INSERT INTO customer_transactions (
@@ -719,20 +717,18 @@ impl BalanceService {
                             transaction_hash, description, created_at, sandbox_mode
                         ) VALUES ($1, $2, 'DEPOSIT_RECTIFICATION', $3, $4, $5, $6, 'CONFIRMED', $7, $8, NOW(), $9)
                         "#
-                    )
-                    .bind(customer_id.unwrap())
-                    .bind(merchant_id)
-                    .bind(crypto_type.to_string())
-                    .bind(tx.amount)
-                    .bind(amount_usd)
-                    .bind(fee_usd)
-                    .bind(&tx.hash)
-                    .bind(format!("Manual Rectification Inbound: {}", tx.hash))
-                    .bind(active_sandbox_mode)
-                    .execute(&mut *db_tx)
-                    .await?;
+                    ).bind(cid).bind(merchant_id).bind(crypto_type.to_string()).bind(tx.amount).bind(amount_usd).bind(fee_usd).bind(&tx.hash)
+                    .bind(format!("Smart Rectification Inbound: {}", tx.hash)).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
                 } else {
-                    // For main merchant, we use payment_transactions with a system flag
+                    sqlx::query(
+                        r#"
+                        INSERT INTO merchant_balances (merchant_id, crypto_type, available_balance, reserved_balance, last_updated, sandbox_mode)
+                        VALUES ($1, $2, $3, 0, NOW(), $4)
+                        ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
+                        DO UPDATE SET available_balance = merchant_balances.available_balance + $3, last_updated = NOW()
+                        "#
+                    ).bind(merchant_id).bind(crypto_type.to_string()).bind(net_amount).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
+
                     let public_id = format!("rect_{}", &tx.hash[..8]);
                     sqlx::query(
                         r#"
@@ -740,144 +736,71 @@ impl BalanceService {
                             payment_id, merchant_id, amount, amount_usd, crypto_type, status, to_address, 
                             transaction_hash, description, created_at, sandbox_mode, fee_percentage, fee_amount, fee_amount_usd,
                             network, expires_at, required_confirmations, confirmations
-                        ) VALUES ($1, $2, $3, $4, $5, 'CONFIRMED', $6, $7, $8, NOW(), $9, $10, $11, $12, $5, NOW() + INTERVAL '1 hour', 1, 1)
+                        ) VALUES ($1, $2, $3, $4, $5, 'CONFIRMED', $6, $7, $8, NOW(), $9, $10, $11, $12, $13, NOW() + INTERVAL '1 hour', 1, 1)
                         "#
-                    )
-                    .bind(public_id)
-                    .bind(merchant_id)
-                    .bind(tx.amount)
-                    .bind(amount_usd)
-                    .bind(crypto_type.to_string())
-                    .bind(address)
-                    .bind(&tx.hash)
-                    .bind(format!("Merchant Direct Rectification: {}", tx.hash))
-                    .bind(active_sandbox_mode)
-                    .bind(fee_percentage)
-                    .bind(missing_deposit_fee / Decimal::from(missing_deposits.len() as i64)) // Distribute fee simply
-                    .bind(fee_usd)
-                    .execute(&mut *db_tx)
-                    .await?;
+                    ).bind(public_id).bind(merchant_id).bind(tx.amount).bind(amount_usd).bind(crypto_type.to_string()).bind(address).bind(&tx.hash)
+                    .bind(format!("Global Smart Rectification: {}", tx.hash)).bind(active_sandbox_mode).bind(fee_percentage).bind(fee_amount).bind(fee_usd)
+                    .bind(crypto_type.network()).execute(&mut *db_tx).await?;
                 }
+                actions_taken.push(format!("Imported Deposit: {}", tx.hash));
             }
 
-            // Update Balances for Withdrawals
-            if !missing_withdrawals.is_empty() {
+            // Process Missing Withdrawals (Simply debit balance and record)
+            for tx in &missing_withdrawals {
+                let amount_usd = (tx.amount * price_dec).round_dp(2);
+                let withdrawal_id = format!(
+                    "wrect_{}_{}",
+                    &tx.hash[..8],
+                    chrono::Utc::now().timestamp_millis()
+                );
+
                 if owner_type == "customer" {
-                    let cid = customer_id.unwrap();
-                    sqlx::query(
-                        r#"
-                        UPDATE merchant_customer_balances 
-                        SET available_balance = available_balance - $1,
-                            total_balance = total_balance - $1,
-                            last_updated_at = NOW()
-                        WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
-                        "#,
-                    )
-                    .bind(total_missing_withdrawal_amount)
-                    .bind(cid)
-                    .bind(crypto_type.to_string())
-                    .bind(active_sandbox_mode)
-                    .execute(&mut *db_tx)
-                    .await?;
+                    sqlx::query("UPDATE merchant_customer_balances SET available_balance = available_balance - $1, total_balance = total_balance - $1, last_updated_at = NOW() WHERE customer_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
+                        .bind(tx.amount).bind(customer_id.unwrap()).bind(crypto_type.to_string()).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
                 } else {
-                    sqlx::query(
-                        r#"
-                        UPDATE merchant_balances 
-                        SET available_balance = available_balance - $1, 
-                            last_updated = NOW()
-                        WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4
-                        "#,
-                    )
-                    .bind(total_missing_withdrawal_amount)
-                    .bind(merchant_id)
-                    .bind(crypto_type.to_string())
-                    .bind(active_sandbox_mode)
-                    .execute(&mut *db_tx)
-                    .await?;
+                    sqlx::query("UPDATE merchant_balances SET available_balance = available_balance - $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
+                        .bind(tx.amount).bind(merchant_id).bind(crypto_type.to_string()).bind(active_sandbox_mode).execute(&mut *db_tx).await?;
                 }
 
-                // Record Withdrawals to prevent double-counting
-                for tx in &missing_withdrawals {
-                    let amount_usd = (tx.amount
-                        * Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE))
-                    .round_dp(2);
-
-                    let withdrawal_id = format!(
-                        "wrect_{}_{}",
-                        &tx.hash[..8],
-                        chrono::Utc::now().timestamp_millis()
-                    );
-                    sqlx::query(
-                        r#"
-                        INSERT INTO withdrawals (
-                            withdrawal_id, merchant_id, crypto_type, amount, amount_usd, destination_address,
-                            status, fee, net_amount, created_at, updated_at, sandbox_mode, transaction_hash
-                        )
-                        VALUES ($1, $2, $3, $4, $5, $6, 'COMPLETED', 0, $4, NOW(), NOW(), $7, $8)
-                        "#
+                // Record the withdrawal in history
+                sqlx::query(
+                    r#"
+                    INSERT INTO withdrawals (
+                        withdrawal_id, merchant_id, crypto_type, amount, amount_usd, destination_address,
+                        status, fee, net_amount, created_at, updated_at, sandbox_mode, transaction_hash
                     )
-                    .bind(&withdrawal_id)           // $1
-                    .bind(merchant_id)              // $2
-                    .bind(crypto_type.to_string())  // $3
-                    .bind(tx.amount)                // $4
-                    .bind(amount_usd)               // $5
-                    .bind(&tx.to_address)           // $6
-                    .bind(active_sandbox_mode)      // $7
-                    .bind(&tx.hash)                 // $8
-                    .execute(&mut *db_tx)
-                    .await?;
+                    VALUES ($1, $2, $3, $4, $5, $6, 'COMPLETED', 0, $4, NOW(), NOW(), $7, $8)
+                    "#
+                )
+                .bind(&withdrawal_id)
+                .bind(merchant_id)
+                .bind(crypto_type.to_string())
+                .bind(tx.amount)
+                .bind(amount_usd)
+                .bind(&tx.to_address)
+                .bind(active_sandbox_mode)
+                .bind(&tx.hash)
+                .execute(&mut *db_tx)
+                .await?;
 
-                    if owner_type == "customer" {
-                        sqlx::query(
-                            r#"
-                            INSERT INTO customer_transactions (
-                                customer_id, merchant_id, "type", crypto_type, amount, amount_usd, fee, status,
-                                reference_id, transaction_hash, description, sandbox_mode
-                            )
-                            VALUES ($1, $2, 'WITHDRAWAL_RECTIFICATION', $3, $4, $5, 0, 'COMPLETED', $6, $7, $8, $9)
-                            "#
-                        )
-                        .bind(customer_id.unwrap())
-                        .bind(merchant_id)
-                        .bind(crypto_type.to_string())
-                        .bind(tx.amount)
-                        .bind(amount_usd)
-                        .bind(&withdrawal_id)
-                        .bind(&tx.hash)
-                        .bind(format!("Manual Rectification Outbound: {}", tx.hash))
-                        .bind(active_sandbox_mode)
-                        .execute(&mut *db_tx)
-                        .await?;
-                    }
-                }
+                actions_taken.push(format!("Synced Outbound Transfer: {}", tx.hash));
             }
 
             db_tx.commit().await?;
-
-            // Broadcast update
-            let _ = self
-                .broadcast_balance_update(merchant_id, active_sandbox_mode)
-                .await;
         }
 
-        Ok(serde_json::json!({
+        Ok(json!({
+            "success": true,
             "dry_run": dry_run,
             "merchant_id": merchant_id,
-            "owner_type": owner_type,
-            "rectify_type": rectify_type,
-            "deposits": {
-                "total_missing": total_missing_deposit_amount,
-                "net_credit": missing_deposit_net,
-                "fee_deducted": missing_deposit_fee,
-                "transaction_count": missing_deposits.len(),
-                "hashes": missing_deposits.iter().map(|t| t.hash.clone()).collect::<Vec<_>>()
-            },
-            "withdrawals": {
-                "total_missing": total_missing_withdrawal_amount,
-                "net_debit": total_missing_withdrawal_amount,
-                "transaction_count": missing_withdrawals.len(),
-                "hashes": missing_withdrawals.iter().map(|t| t.hash.clone()).collect::<Vec<_>>()
-            }
+            "blockchain": monitor.blockchain_name(),
+            "missing_deposits": missing_deposits.len(),
+            "missing_withdrawals": missing_withdrawals.len(),
+            "discrepancies_found": mismatched_txs.len(),
+            "mismatched_details": mismatched_txs,
+            "actions_taken": actions_taken,
+            "total_deposit_gap": total_missing_deposit_amount,
+            "total_withdrawal_gap": total_missing_withdrawal_amount
         }))
     }
 

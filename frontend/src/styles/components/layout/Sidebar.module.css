@@ -146,6 +146,23 @@
   text-overflow: ellipsis;
 }
 
+.logoutButton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-top: auto;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #f87171;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .logoutButton:hover {
   background-color: rgba(239, 68, 68, 0.1);
   color: #ef4444;
@@ -155,11 +172,12 @@
 /* Environment Toggle in Sidebar */
 .envToggleWrapper {
   margin-top: 1.5rem;
+  margin-bottom: 2.5rem;
   padding: 16px;
   background: rgba(255, 255, 255, 0.03);
   border-radius: 16px;
   border: 1px solid var(--border);
-  display: flex;
+  display: none; /* Hidden on desktop by default */
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
@@ -281,5 +299,9 @@
 
   .sidebarOpen {
     transform: translateX(0);
+  }
+
+  .envToggleWrapper {
+    display: flex;
   }
 }

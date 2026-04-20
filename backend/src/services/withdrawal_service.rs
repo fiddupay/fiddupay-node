@@ -85,7 +85,7 @@ impl WithdrawalService {
         let limit = daily_limit_usd.unwrap_or(default_limit);
         let remaining = self
             .volume_tracking
-            .get_remaining_daily_volume(merchant_id, limit, kyc_verified)
+            .get_remaining_daily_volume(merchant_id, limit)
             .await?
             .unwrap_or(Decimal::ZERO);
 

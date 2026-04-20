@@ -96,7 +96,16 @@ pub fn create_router(state: AppState) -> Router {
             Method::DELETE,
             Method::OPTIONS,
         ])
-        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
+        .allow_headers([
+            AUTHORIZATION,
+            ACCEPT,
+            CONTENT_TYPE,
+            axum::http::header::ORIGIN,
+            axum::http::header::HeaderName::from_static("x-requested-with"),
+            axum::http::header::HeaderName::from_static("x-csrf-token"),
+            axum::http::header::ACCESS_CONTROL_REQUEST_METHOD,
+            axum::http::header::ACCESS_CONTROL_REQUEST_HEADERS,
+        ])
         .allow_credentials(true);
 
     api_public_routes

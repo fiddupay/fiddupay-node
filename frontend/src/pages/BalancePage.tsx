@@ -5,6 +5,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { useAuthStore } from '@/stores/authStore'
 import styles from '@/styles/pages/BalancePage.module.css'
 import { BalanceSkeleton } from '@/components/layout/PageSkeletons'
+import SEO from '@/components/ui/SEO'
 
 // Safe parseFloat that never returns NaN
 const safeFloat = (val: any): number => {
@@ -112,6 +113,10 @@ const BalancePage: React.FC = () => {
 
     return (
         <div className={styles.page}>
+            <SEO 
+                title="Portfolio Balance" 
+                description="Monitor your cryptocurrency portfolio value, asset allocation, and historical growth."
+            />
             <div className={styles.header}>
                 <div>
                     <h1><i className="fas fa-wallet"></i> Balance Overview</h1>
@@ -137,14 +142,18 @@ const BalancePage: React.FC = () => {
                             <div className={styles.statIcon}><i className="fas fa-vault"></i></div>
                             <div className={styles.statInfo}>
                                 <p className={styles.statLabel}>Total Portfolio Value</p>
-                                <p className={styles.statValue}>${safeFloat(balance?.total_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                <p className={`${styles.statValue} ${safeFloat(balance?.total_usd) < 0 ? styles.negativeValue : ''}`}>
+                                    ${safeFloat(balance?.total_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </p>
                             </div>
                         </div>
                         <div className={styles.glassStatCard}>
                             <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white' }}><i className="fas fa-unlock"></i></div>
                             <div className={styles.statInfo}>
                                 <p className={styles.statLabel}>Liquid Assets</p>
-                                <p className={styles.statValue}>${safeFloat(balance?.available_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                <p className={`${styles.statValue} ${safeFloat(balance?.available_usd) < 0 ? styles.negativeValue : ''}`}>
+                                    ${safeFloat(balance?.available_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </p>
                             </div>
                         </div>
                         <div className={styles.glassStatCard}>
@@ -316,17 +325,18 @@ const BalancePage: React.FC = () => {
                                                 <div className={styles.cryptoAmount}>
                                                     {safeFloat(asset.total_balance).toFixed(6)} <span>{asset.crypto_type.split('_')[0]}</span>
                                                 </div>
-                                                <div className={styles.usdEquivalent}>
+                                                <div className={`${styles.usdEquivalent} ${safeFloat(asset.total_usd) < 0 ? styles.negativeValue : ''}`}>
                                                     ${safeFloat(asset.total_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className={styles.assetFooter}>
                                             <div className={styles.availableLabel}>
-                                                <span className={styles.pulseDot}></span> Available: ${safeFloat(asset.available_usd).toLocaleString()}
+                                                <span className={styles.pulseDot} style={{ background: safeFloat(asset.available_usd) < 0 ? '#f87171' : '#10b981' }}></span> 
+                                                Available: <span className={safeFloat(asset.available_usd) < 0 ? styles.negativeValue : ''}>
+                                                    ${safeFloat(asset.available_usd).toLocaleString()}
+                                                </span>
                                             </div>
-                                        </div>
                                     </div>
                                 ))
                             ) : (

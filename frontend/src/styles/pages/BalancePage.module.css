@@ -440,3 +440,7 @@
     .statValue { font-size: 26px; }
     .assetsGrid { grid-template-columns: 1fr; }
 }
+.negativeValue {
+    color: #f87171 !important;
+    text-shadow: 0 0 10px rgba(248, 113, 113, 0.4);
+}

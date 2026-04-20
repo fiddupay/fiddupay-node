@@ -12,20 +12,20 @@ use serde::Deserialize;
 use serde_json::json;
 
 #[derive(Deserialize)]
-pub struct RectifySolanaRequest {
+pub struct RectifyOnchainRequest {
     pub address: String,
-    pub crypto_type: String, // SOL or USDT_SPL
+    pub crypto_type: String,
     pub dry_run: Option<bool>,
     pub signature_limit: Option<usize>,
-    pub sandbox_mode: Option<bool>, // Allows super_admin to explicitly target Devnet or Mainnet overriding DB Defaults
+    pub sandbox_mode: Option<bool>,
     pub rectify_type: Option<String>, // "DEPOSIT", "WITHDRAWAL", or "BOTH"
 }
 
-/// Rectify Solana balance by scanning on-chain history
-pub async fn rectify_solana_balance(
+/// Rectify blockchain balance by scanning on-chain history
+pub async fn rectify_onchain_balance(
     State(state): State<AppState>,
     Extension(context): Extension<AdminContext>,
-    Json(req): Json<RectifySolanaRequest>,
+    Json(req): Json<RectifyOnchainRequest>,
 ) -> impl IntoResponse {
     // 1. Verify admin access
     if let Err(response) = verify_admin_access(&state, &context).await {
@@ -44,16 +44,7 @@ pub async fn rectify_solana_balance(
         }
     };
 
-    // 3. Ensure it's a Solana-based crypto
-    if crypto_type != CryptoType::Sol && crypto_type != CryptoType::UsdtSpl {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({ "success": false, "error": "Only SOL and USDT_SPL are supported for this rectification" })),
-        )
-            .into_response();
-    }
-
-    // 4. Call Service Logic
+    // 3. Call Service Logic
     let dry_run = req.dry_run.unwrap_or(true);
     let signature_limit = req.signature_limit.unwrap_or(50);
     let rectify_type = req
@@ -64,7 +55,7 @@ pub async fn rectify_solana_balance(
 
     match state
         .balance_service
-        .rectify_solana_onchain(
+        .rectify_onchain(
             &req.address,
             crypto_type,
             dry_run,
@@ -80,7 +71,7 @@ pub async fn rectify_solana_balance(
         )
             .into_response(),
         Err(e) => {
-            tracing::error!("[ADMIN-RECTIFY] Solana clarification failed: {:?}", e);
+            tracing::error!("[ADMIN-RECTIFY] Blockchain rectification failed: {:?}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "success": false, "error": e.to_string() })),

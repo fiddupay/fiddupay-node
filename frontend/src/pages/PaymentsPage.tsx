@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { Payment, PaymentFilters } from '@/types'
 import styles from '@/styles/pages/PaymentsPage.module.css'
 import CustomSelect from '@/components/ui/CustomSelect'
+import SEO from '@/components/ui/SEO'
 
 import { StatCardSkeletons, TableSkeleton } from '@/components/layout/PageSkeletons'
 
@@ -351,6 +352,10 @@ const PaymentsPage: React.FC = () => {
 
   return (
     <div className={styles.paymentsPage}>
+      <SEO 
+        title="Manage Payments" 
+        description="Track and manage all your cryptocurrency transactions, standard payments, and invoices in one place."
+      />
       <div className={styles.header}>
         <div>
           <h1><i className="fas fa-credit-card"></i> Payments</h1>

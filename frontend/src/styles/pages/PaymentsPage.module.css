@@ -816,7 +816,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #cbd5e1;
+  background-color: var(--border);
   transition: .4s;
   border-radius: 34px;
 }
@@ -828,17 +828,20 @@
   width: 18px;
   left: 4px;
   bottom: 4px;
-  background-color: var(--white);
+  background-color: var(--text-main);
   transition: .4s;
   border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .switch input:checked+.slider {
-  background-color: var(--fiddu-brand-primary);
+  background-color: var(--primary);
+  box-shadow: 0 0 15px var(--primary-glow);
 }
 
 .switch input:checked+.slider:before {
   transform: translateX(24px);
+  background-color: var(--white);
 }
 
 .invoiceFields {

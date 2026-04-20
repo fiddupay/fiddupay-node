@@ -5,6 +5,7 @@ import { useLoading } from '@/contexts/LoadingContext'
 import { authAPI } from '@/services/apiService'
 import CustomSelect from '@/components/ui/CustomSelect'
 import styles from '@/styles/pages/auth/RegisterPage.module.css'
+import SEO from '@/components/ui/SEO'
 
 interface StrengthResult {
   score: number;
@@ -178,6 +179,10 @@ const RegisterPage: React.FC = () => {
 
   return (
     <div className={styles.registerPage}>
+      <SEO 
+        title="Register | Start Accepting Crypto" 
+        description="Join FidduPay today to start accepting Bitcoin, Solana, and Stablecoin payments for your business. Fast merchant onboarding and enterprise-grade security."
+      />
       <div className={styles.ambientGlowContainer}>
         <div className={`${styles.blob} ${styles.blobPrimary}`}></div>
         <div className={`${styles.blob} ${styles.blobSecondary}`}></div>

@@ -1,9 +1,14 @@
 import React from 'react'
 import styles from '@/styles/pages/FeaturesPage.module.css'
+import SEO from '@/components/ui/SEO'
 
 const FeaturesPage: React.FC = () => {
   return (
     <div className={styles.featuresPage}>
+      <SEO 
+        title="Key Features | FidduPay" 
+        description="Explore the powerful features of FidduPay including instant processing, multi-network support, enterprise security, and developer-friendly APIs."
+      />
       {/* Background Ambient Glow */}
       <div className={styles.ambientGlowContainer}>
         <div className={`${styles.blob} ${styles.blobPrimary}`}></div>

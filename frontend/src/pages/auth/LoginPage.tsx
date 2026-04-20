@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/authStore'
 import styles from '@/styles/pages/auth/LoginPage.module.css'
 import React, { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import SEO from '@/components/ui/SEO'
 
 const LoginPage: React.FC = () => {
   const { login, isAuthenticated } = useAuthStore()
@@ -66,6 +67,10 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className={styles.loginPage}>
+      <SEO 
+        title="Login | Merchant Portal" 
+        description="Sign in to your FidduPay merchant dashboard to manage your crypto payments, view analytics, and configure your wallets."
+      />
       {/* Background Ambient Glow */}
       <div className={styles.ambientGlowContainer}>
         <div className={`${styles.blob} ${styles.blobPrimary}`}></div>

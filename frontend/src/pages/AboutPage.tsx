@@ -1,10 +1,15 @@
 import styles from '@/styles/pages/AboutPage.module.css'
 import React from 'react'
 import { Link } from 'react-router-dom'
+import SEO from '@/components/ui/SEO'
 
 const AboutPage: React.FC = () => {
   return (
     <div className={styles.aboutPage}>
+      <SEO 
+        title="About Us | FidduPay" 
+        description="Learn about FidduPay's mission to bridge the gap between traditional business and the decentralized economy through high-performance crypto payment infrastructure."
+      />
       {/* Background Ambient Glow */}
       <div className={styles.ambientGlowContainer}>
         <div className={`${styles.blob} ${styles.blobPrimary}`}></div>
