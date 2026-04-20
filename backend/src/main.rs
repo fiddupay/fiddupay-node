@@ -82,7 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!(" Redis client initialized");
 
     // Initialize application state
-    let app_state = AppState::new(db_pool.clone(), config.clone(), redis_client);
+    let app_state = AppState::new(db_pool.clone(), config.clone(), redis_client).await;
     tracing::info!(" Application state initialized");
 
     // Start background tasks

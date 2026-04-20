@@ -56,7 +56,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(db_pool: PgPool, config: Config, redis_client: RedisClient) -> Self {
+    pub async fn new(db_pool: PgPool, config: Config, redis_client: RedisClient) -> Self {
         let webhook_service = Arc::new(WebhookService::new(
             db_pool.clone(),
             config.webhook_signing_key.clone(),
@@ -113,20 +113,18 @@ impl AppState {
             balance_service.clone(),
         ));
 
-        // Address-Only initialization
-        let address_only_manager = tokio::runtime::Handle::current().block_on(async {
-            let mut manager = crate::services::address_only_manager::AddressOnlyManager::new(
-                db_pool.clone(),
-                config.clone(),
-                notification_service.clone(),
-            )
-            .await
-            .expect("Failed to initialize AddressOnlyManager");
-            let _ = manager.start_monitoring().await;
-            Arc::new(tokio::sync::Mutex::new(manager))
-        });
+        // Address-Only initialization (Now properly async)
+        let mut manager = crate::services::address_only_manager::AddressOnlyManager::new(
+            db_pool.clone(),
+            config.clone(),
+            notification_service.clone(),
+        )
+        .await
+        .expect("Failed to initialize AddressOnlyManager");
+        let _ = manager.start_monitoring().await;
+        let address_only_manager = Arc::new(tokio::sync::Mutex::new(manager));
 
-        let address_only_service = address_only_manager.blocking_lock().address_service.clone();
+        let address_only_service = address_only_manager.lock().await.address_service.clone();
         Self {
             merchant_service,
             payment_service: Arc::new(PaymentService::new(
