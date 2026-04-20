@@ -245,6 +245,7 @@ pub async fn process_withdrawal(
         state.config.clone(),
         state.notification_service.clone(),
         state.blockchain_sender.clone(),
+        state.balance_service.clone(),
     );
 
     match processor.process_withdrawal(&withdrawal_id).await {
@@ -519,9 +520,28 @@ pub async fn get_wallet_balances(
     let settlement_mode = get_merchant_settlement_mode(&state.db_pool, context.merchant_id).await;
     let exclude_stats = params.exclude_stats.unwrap_or(false);
 
+    // 1. Check Redis Cache First
+    let cache_key = format!(
+        "merchant_balances:{}:{}:{}",
+        context.merchant_id, sandbox_mode, exclude_stats
+    );
+    if let Ok(mut conn) = state.redis_client.get_multiplexed_async_connection().await {
+        let cached: redis::RedisResult<String> = redis::cmd("GET")
+            .arg(&cache_key)
+            .query_async(&mut conn)
+            .await;
+        if let Ok(json_str) = cached {
+            if let Ok(val) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                return (StatusCode::OK, Json(val)).into_response();
+            }
+        }
+    }
+
     tracing::info!(
-        "get_wallet_balances: merchant_id={}, sandbox_mode={}, settlement_mode={}, exclude_stats={}",
-        context.merchant_id, sandbox_mode, settlement_mode, exclude_stats
+        "get_wallet_balances (CACHE MISS): merchant_id={}, sandbox_mode={}, settlement_mode={}",
+        context.merchant_id,
+        sandbox_mode,
+        settlement_mode
     );
 
     let is_forwarding = settlement_mode == "forwarding";
@@ -672,13 +692,23 @@ pub async fn get_wallet_balances(
                 })
                 .collect();
 
-            (
-                StatusCode::OK,
-                Json(json!({
-                    "wallets": response_wallets
-                })),
-            )
-                .into_response()
+            let final_response = json!({
+                "wallets": response_wallets
+            });
+
+            // 4. Save to Cache for next time (5 minute TTL)
+            if let Ok(mut conn) = state.redis_client.get_multiplexed_async_connection().await {
+                if let Ok(json_str) = serde_json::to_string(&final_response) {
+                    let _: redis::RedisResult<()> = redis::cmd("SETEX")
+                        .arg(&cache_key)
+                        .arg(300) // 5 minutes
+                        .arg(json_str)
+                        .query_async(&mut conn)
+                        .await;
+                }
+            }
+
+            (StatusCode::OK, Json(final_response)).into_response()
         }
         Err(e) => {
             tracing::error!("Failed to get wallet balances: {:?}", e);

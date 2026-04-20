@@ -1457,6 +1457,7 @@ impl BackgroundTasks {
             self.config.clone(),
             self.notification_service.clone(),
             self.blockchain_sender.clone(),
+            self.balance_service.clone(),
         );
 
         loop {

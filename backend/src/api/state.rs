@@ -118,6 +118,7 @@ impl AppState {
             db_pool.clone(),
             config.clone(),
             notification_service.clone(),
+            balance_service.clone(),
         )
         .await
         .expect("Failed to initialize AddressOnlyManager");

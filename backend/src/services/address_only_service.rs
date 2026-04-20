@@ -47,6 +47,7 @@ pub struct AddressOnlyService {
     gas_service: GasFeeService,
     config: crate::config::Config,
     notification_service: Arc<NotificationService>,
+    balance_service: Arc<crate::services::balance_service::BalanceService>,
 }
 
 impl AddressOnlyService {
@@ -55,12 +56,14 @@ impl AddressOnlyService {
         gas_service: GasFeeService,
         config: crate::config::Config,
         notification_service: Arc<NotificationService>,
+        balance_service: Arc<crate::services::balance_service::BalanceService>,
     ) -> Self {
         Self {
             db_pool,
             gas_service,
             config,
             notification_service,
+            balance_service,
         }
     }
 
@@ -181,6 +184,12 @@ impl AddressOnlyService {
 
         // Initiate auto-forwarding
         self.initiate_auto_forwarding(&payment, tx_hash).await?;
+
+        // 4. Trigger real-time UI update and invalidate dashboard cache
+        let _ = self
+            .balance_service
+            .broadcast_balance_update(payment.merchant_id, false)
+            .await;
 
         Ok(())
     }

@@ -649,8 +649,27 @@ impl BalanceService {
         let mut missing_deposits = Vec::new();
         let mut missing_withdrawals = Vec::new();
         let mut mismatched_txs = Vec::new();
+        let mut found_onchain_hashes: std::collections::HashSet<String> =
+            std::collections::HashSet::new();
         let mut total_onchain_deposits = Decimal::ZERO;
         let mut total_onchain_withdrawals = Decimal::ZERO;
+        let mut earliest_onchain_ts = chrono::Utc::now();
+        let mut has_onchain_txs = false;
+
+        for tx in &onchain_txs {
+            has_onchain_txs = true;
+            found_onchain_hashes.insert(tx.hash.to_lowercase());
+            let tx_ts = tx.timestamp.unwrap_or(chrono::Utc::now());
+            if tx_ts < earliest_onchain_ts {
+                earliest_onchain_ts = tx_ts;
+            }
+
+            if tx.from_address.to_lowercase() == address.to_lowercase() {
+                total_onchain_withdrawals += tx.amount;
+            } else if tx.to_address.to_lowercase() == address.to_lowercase() {
+                total_onchain_deposits += tx.amount;
+            }
+        }
         let mut skipped_sweeps = 0;
 
         for tx in onchain_txs {
@@ -904,10 +923,96 @@ impl BalanceService {
             .await?;
         }
 
+        // 9. REVERSE AUDIT (GHOST DETECTION)
+        // Find transactions in DB that are NOT on-chain
+        let db_transactions = sqlx::query(
+            r#"
+            SELECT 'payment' as type, payment_id as id, transaction_hash as hash, amount, created_at, status FROM payment_transactions WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND status = 'CONFIRMED'
+            UNION ALL
+            SELECT 'withdrawal' as type, withdrawal_id as id, transaction_hash as hash, amount, created_at, status FROM withdrawals WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND status = 'COMPLETED'
+            "#
+        )
+        .bind(merchant_id)
+        .bind(&crypto_type_str)
+        .bind(active_sandbox_mode)
+        .fetch_all(&self.db_pool)
+        .await?;
+
+        let mut potential_ghosts = Vec::new();
+        for row in db_transactions {
+            let hash_opt: Option<String> = row.get("hash");
+            let tx_id: String = row.get("id");
+            let tx_type: String = row.get("type");
+            let amount: Decimal = row.get("amount");
+            let created_at: chrono::DateTime<chrono::Utc> = row.get("created_at");
+
+            if let Some(hash) = hash_opt {
+                if !found_onchain_hashes.contains(&hash.to_lowercase()) {
+                    // Check if it's potentially just old
+                    let is_out_of_range = has_onchain_txs && created_at < earliest_onchain_ts;
+
+                    potential_ghosts.push(json!({
+                        "id": tx_id,
+                        "type": tx_type,
+                        "hash": hash,
+                        "amount": amount,
+                        "created_at": created_at,
+                        "is_potential_ghost": !is_out_of_range,
+                        "reason": if is_out_of_range { "Older than scan range" } else { "Not found on blockchain" }
+                    }));
+
+                    // --- GHOST REMEDIATION (If not dry run) ---
+                    if !dry_run && !is_out_of_range {
+                        tracing::warn!(
+                            "[RECTIFY-GHOST] Voiding ghost {} ({}): {} {}",
+                            tx_type,
+                            tx_id,
+                            amount,
+                            crypto_type_str
+                        );
+
+                        let mut ghost_tx = self.db_pool.begin().await?;
+
+                        if tx_type == "payment" {
+                            // Ghost payment: DB says we got money, but we didn't. Debit balance.
+                            sqlx::query("UPDATE merchant_balances SET available_balance = available_balance - $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
+                                .bind(amount).bind(merchant_id).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *ghost_tx).await?;
+
+                            sqlx::query("UPDATE payment_transactions SET status = 'VOIDED_GHOST', description = COALESCE(description, '') || ' [VOIDED: GHOST DETECTED]' WHERE payment_id = $1")
+                                .bind(&tx_id).execute(&mut *ghost_tx).await?;
+
+                            actions_taken.push(format!("Voided Ghost Payment: {}", tx_id));
+                        } else if tx_type == "withdrawal" {
+                            // Ghost withdrawal: DB says we sent money, but we didn't. Credit balance back.
+                            sqlx::query("UPDATE merchant_balances SET available_balance = available_balance + $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
+                                .bind(amount).bind(merchant_id).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *ghost_tx).await?;
+
+                            sqlx::query("UPDATE withdrawals SET status = 'VOIDED_GHOST' WHERE withdrawal_id = $1")
+                                .bind(&tx_id).execute(&mut *ghost_tx).await?;
+
+                            actions_taken.push(format!(
+                                "Voided Ghost Withdrawal (Balance Restored): {}",
+                                tx_id
+                            ));
+                        }
+
+                        ghost_tx.commit().await?;
+                    }
+                }
+            }
+        }
+
         let current_balance_after = self
             .get_balance(merchant_id, crypto_type, active_sandbox_mode)
             .await?
             .available_balance;
+
+        // 10. Trigger final broadcast if any action was taken
+        if !dry_run && !actions_taken.is_empty() {
+            let _ = self
+                .broadcast_balance_update(merchant_id, active_sandbox_mode)
+                .await;
+        }
 
         Ok(json!({
             "success": true,
@@ -928,6 +1033,11 @@ impl BalanceService {
                 "balance_gap": audited_expected_balance - current_balance_after,
                 "status": if (audited_expected_balance - current_balance_after).abs() < Decimal::new(1, 8) { "HEALTHY" } else { "OUT_OF_SYNC" }
             },
+            "excess_data_audit": {
+                "ghost_count": potential_ghosts.len(),
+                "ghost_transactions": potential_ghosts,
+                "scan_range_warning": if has_onchain_txs { format!("Scan only reached back to {}", earliest_onchain_ts) } else { "No on-chain transactions found".to_string() }
+            },
             "gap_analysis": {
                 "missing_deposits": missing_deposits.len(),
                 "missing_withdrawals": missing_withdrawals.len(),
@@ -947,7 +1057,8 @@ impl BalanceService {
             .get_all_balances(merchant_id, sandbox_mode, true)
             .await?;
 
-        if let Ok(mut publish_conn) = self.redis_client.get_multiplexed_async_connection().await {
+        if let Ok(mut conn) = self.redis_client.get_multiplexed_async_connection().await {
+            // 1. Broadcast to Pub/Sub (Real-time updates)
             let notification = serde_json::json!({
                 "event": "merchant.balance_updated",
                 "data": summary
@@ -956,8 +1067,25 @@ impl BalanceService {
             let _: redis::RedisResult<()> = redis::cmd("PUBLISH")
                 .arg(&channel)
                 .arg(notification.to_string())
-                .query_async(&mut publish_conn)
+                .query_async(&mut conn)
                 .await;
+
+            // 2. Invalidate API Caches (Dashboard performance)
+            // Clear both include_stats=true and include_stats=false variants
+            let cache_key_stats =
+                format!("merchant_balances:{}:{}:true", merchant_id, sandbox_mode);
+            let cache_key_no_stats =
+                format!("merchant_balances:{}:{}:false", merchant_id, sandbox_mode);
+            let _: redis::RedisResult<()> = redis::cmd("DEL")
+                .arg(&cache_key_stats)
+                .arg(&cache_key_no_stats)
+                .query_async(&mut conn)
+                .await;
+
+            tracing::debug!(
+                "[CACHE] Invalidated balance cache for merchant {}",
+                merchant_id
+            );
         }
 
         Ok(())

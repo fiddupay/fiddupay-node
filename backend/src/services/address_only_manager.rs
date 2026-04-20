@@ -26,6 +26,7 @@ impl AddressOnlyManager {
         db_pool: PgPool,
         config: Config,
         notification_service: Arc<NotificationService>,
+        balance_service: Arc<crate::services::balance_service::BalanceService>,
     ) -> Result<Self, ServiceError> {
         // Initialize services
         let gas_service = GasFeeService::new(config.clone());
@@ -34,6 +35,7 @@ impl AddressOnlyManager {
             gas_service,
             config.clone(),
             notification_service,
+            balance_service,
         ));
         let webhook_service = Arc::new(WebhookNotificationService::new(db_pool.clone()));
         let monitor_service = Arc::new(PaymentMonitorService::new(

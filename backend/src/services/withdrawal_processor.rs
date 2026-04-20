@@ -13,6 +13,7 @@ pub struct WithdrawalProcessor {
     config: crate::config::Config,
     notification_service: Arc<NotificationService>,
     sender: Arc<BlockchainTransactionSender>,
+    balance_service: Arc<crate::services::balance_service::BalanceService>,
 }
 
 impl WithdrawalProcessor {
@@ -21,12 +22,14 @@ impl WithdrawalProcessor {
         config: crate::config::Config,
         notification_service: Arc<NotificationService>,
         sender: Arc<BlockchainTransactionSender>,
+        balance_service: Arc<crate::services::balance_service::BalanceService>,
     ) -> Self {
         Self {
             db_pool,
             config,
             notification_service,
             sender,
+            balance_service,
         }
     }
 
@@ -505,6 +508,12 @@ impl WithdrawalProcessor {
         .await?;
 
         tracing::info!("Withdrawal {} fully finalized in DB", withdrawal_id);
+
+        // 3. Trigger real-time UI update and invalidate dashboard cache
+        let _ = self
+            .balance_service
+            .broadcast_balance_update(merchant_id, sandbox_mode)
+            .await;
 
         Ok(())
     }

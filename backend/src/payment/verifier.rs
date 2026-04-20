@@ -858,6 +858,12 @@ impl PaymentVerifier {
                 .await;
         }
 
+        // 3. Trigger real-time UI update and invalidate dashboard cache
+        let _ = self
+            .balance_service
+            .broadcast_balance_update(merchant_id, sandbox_mode)
+            .await;
+
         Ok(is_complete)
     }
 
