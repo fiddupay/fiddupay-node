@@ -663,18 +663,16 @@ impl BalanceService {
             if tx_ts < earliest_onchain_ts {
                 earliest_onchain_ts = tx_ts;
             }
-
-            if tx.from_address.to_lowercase() == address.to_lowercase() {
-                total_onchain_withdrawals += tx.amount;
-            } else if tx.to_address.to_lowercase() == address.to_lowercase() {
-                total_onchain_deposits += tx.amount;
-            }
         }
         let mut skipped_sweeps = 0;
 
         for tx in onchain_txs {
-            // Drop failed or zero-amount
-            if !tx.success || tx.amount <= Decimal::ZERO {
+            // Validate transaction before counting toward audit or gap analysis
+            if !tx.success {
+                tracing::debug!("[RECTIFY] Skipping failed on-chain tx: {}", tx.hash);
+                continue;
+            }
+            if tx.amount <= Decimal::ZERO {
                 continue;
             }
 
@@ -683,15 +681,25 @@ impl BalanceService {
                 if tx.token_mint.as_deref().unwrap_or("").to_lowercase()
                     != expected_token.to_lowercase()
                 {
+                    tracing::debug!(
+                        "[RECTIFY] Skipping unrelated token mint: {} (Expected: {})",
+                        tx.hash,
+                        expected_token
+                    );
                     continue;
                 }
             } else if tx.token_mint.is_some() {
+                tracing::debug!(
+                    "[RECTIFY] Skipping token tx on native-only audit: {}",
+                    tx.hash
+                );
                 continue; // Expected native, got token
             }
 
             let is_incoming = tx.to_address.to_lowercase() == address.to_lowercase();
             let is_outgoing = tx.from_address.to_lowercase() == address.to_lowercase();
 
+            // ONLY add to audit totals once validated
             if is_incoming {
                 total_onchain_deposits += tx.amount;
             } else if is_outgoing {
