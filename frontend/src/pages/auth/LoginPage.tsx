@@ -1,9 +1,9 @@
+import { useLoading } from '@/contexts/LoadingContext'
+import { useToast } from '@/contexts/ToastContext'
+import { useAuthStore } from '@/stores/authStore'
+import styles from '@/styles/pages/auth/LoginPage.module.css'
 import React, { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { useAuthStore } from '@/stores/authStore'
-import { useToast } from '@/contexts/ToastContext'
-import { useLoading } from '@/contexts/LoadingContext'
-import styles from '@/styles/pages/auth/LoginPage.module.css'
 
 const LoginPage: React.FC = () => {
   const { login, isAuthenticated } = useAuthStore()
@@ -24,7 +24,6 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validation
     if (!formData.email.trim()) {
       showToast('Email is required', 'error')
       return
@@ -67,97 +66,167 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className={styles.loginPage}>
-      <div className={styles.container}>
-        <div className={styles.loginCard}>
-          <div className={styles.header}>
-            <Link to="/" className={styles.logo}>FidduPay</Link>
-            <h1 className={styles.title}>Welcome Back</h1>
-            <p className={styles.subtitle}>Sign in to your merchant account</p>
-          </div>
+      {/* Background Ambient Glow */}
+      <div className={styles.ambientGlowContainer}>
+        <div className={`${styles.blob} ${styles.blobPrimary}`}></div>
+        <div className={`${styles.blob} ${styles.blobSecondary}`}></div>
+      </div>
 
-          <form onSubmit={handleSubmit} className={styles.form}>
-            {/* Error alerts are now handled exclusively by toasts for a cleaner UI */}
+      <div className={styles.splitScreen}>
+        {/* Left Aspect: Illustration & Branding */}
+        <div className={`${styles.visualSide} animate-fade-in`}>
+          <div className={styles.heroContent}>
+            <h1 className={styles.heroTitle}>The Gateway to <span className={styles.gradientText}>Financial Freedom</span></h1>
+            <p className={styles.heroSubtitle}>
+              Experience secure, lighting-fast crypto payments with enterprise-grade protection and 24/7 monitoring.
+            </p>
+            
+            <div className={styles.visualGrid}>
+              <div className={styles.visualCard}>
+                <div className={styles.cardIcon}>
+                  <i className="fas fa-shield-halved"></i>
+                </div>
+                <h3>Military-Grade Security</h3>
+                <p>AES-256 encryption and multi-signature cold storage for your assets.</p>
+              </div>
 
-            <div className={styles.inputGroup}>
-              <label htmlFor="email">Email Address</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="Enter your email"
-                required
-              />
-            </div>
+              <div className={styles.visualCard}>
+                <div className={styles.cardIcon}>
+                  <i className="fas fa-bolt"></i>
+                </div>
+                <h3>Settled in Seconds</h3>
+                <p>Real-time transaction confirmation across 5+ blockchain networks.</p>
+              </div>
 
-            <div className={styles.inputGroup}>
-              <label htmlFor="password">Password</label>
-              <div className={styles.passwordWrapper}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Enter your password"
-                  required
-                />
-                <button
-                  type="button"
-                  className={styles.passwordToggle}
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                </button>
+              <div className={styles.visualCard}>
+                <div className={styles.cardIcon}>
+                  <i className="fas fa-chart-line"></i>
+                </div>
+                <h3>Smart Analytics</h3>
+                <p>Comprehensive dashboard for tracking revenue and payment history.</p>
+              </div>
+
+              <div className={styles.visualCard}>
+                <div className={styles.cardIcon}>
+                  <i className="fas fa-globe"></i>
+                </div>
+                <h3>Global Reach</h3>
+                <p>Accept payments from anyone, anywhere, with zero currency boundaries.</p>
               </div>
             </div>
-            <div className={styles.formOptions}>
-              <label className={styles.rememberMe}>
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                Remember me
-              </label>
-              <Link to="/forgot-password" className={styles.forgotPassword}>
-                Forgot password?
-              </Link>
+
+            <div className={styles.visualFooter}>
+              <div className={styles.footerStat}>
+                <strong>99.9%</strong>
+                <span>Uptime</span>
+              </div>
+              <div className={styles.footerStat}>
+                <strong>0.1%</strong>
+                <span>Fraud Rate</span>
+              </div>
+              <div className={styles.footerStat}>
+                <strong>24/7</strong>
+                <span>Support</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Aspect: Login Form */}
+        <div className={`${styles.formSide} animate-slide-in-right`}>
+          <div className={styles.loginCard}>
+            <div className={styles.cardHeader}>
+              <div className={styles.cardLogo}>
+                <img src="/logo/logo-brandmark.svg" alt="FidduPay" style={{ height: '36px', marginBottom: '1.5rem' }} />
+              </div>
+              <h2 className={styles.title}>Welcome Back</h2>
+              <p className={styles.subtitle}>Sign in to manage your merchant portal</p>
             </div>
 
-            <div className={styles.inputGroup}>
-              <label htmlFor="two_factor_code">2FA Code (Optional)</label>
-              <input
-                type="text"
-                id="two_factor_code"
-                name="two_factor_code"
-                value={formData.two_factor_code}
-                onChange={handleChange}
-                placeholder="Enter 6-digit code"
-              />
+            <form onSubmit={handleSubmit} className={styles.form}>
+              <div className={styles.inputGroup}>
+                <label htmlFor="email">Email Address</label>
+                <div className={styles.inputWrapper}>
+                  <i className="fas fa-envelope"></i>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="name@business.com"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className={styles.inputGroup}>
+                <div className={styles.labelRow}>
+                  <label htmlFor="password">Password</label>
+                  <Link to="/forgot-password" className={styles.forgotLink}>Forgot?</Link>
+                </div>
+                <div className={styles.inputWrapper}>
+                  <i className="fas fa-lock"></i>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Enter password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className={styles.passwordToggle}
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.formOptions}>
+                <label className={styles.checkboxContainer}>
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                  />
+                  <span className={styles.checkmark}></span>
+                  Remember this device
+                </label>
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label htmlFor="two_factor_code">2FA Code <span className={styles.optional}>(Optional)</span></label>
+                <div className={styles.inputWrapper}>
+                  <i className="fas fa-key"></i>
+                  <input
+                    type="text"
+                    id="two_factor_code"
+                    name="two_factor_code"
+                    value={formData.two_factor_code}
+                    onChange={handleChange}
+                    placeholder="6-digit code"
+                  />
+                </div>
+              </div>
+
+              <button type="submit" className={styles.submitButton}>
+                <span>Sign In to Account</span>
+                <i className="fas fa-arrow-right"></i>
+              </button>
+            </form>
+
+            <div className={styles.cardFooter}>
+              <p>
+                Don't have an account?{' '}
+                <Link to="/register" className={styles.signupLink}>
+                  Start for Free
+                </Link>
+              </p>
             </div>
-
-            <button
-              type="submit"
-              className={styles.submitButton}
-            >
-              Sign In
-            </button>
-          </form>
-
-          <div className={styles.footer}>
-            <p>
-              Don't have an account?{' '}
-              <Link to="/register" className={styles.link}>
-                Create Account
-              </Link>
-            </p>
-            <p>
-              <Link to="/forgot-password" className={styles.link}>
-                Forgot your password?
-              </Link>
-            </p>
           </div>
         </div>
       </div>

@@ -4,81 +4,106 @@ import styles from '@/styles/pages/PublicSecurityPage.module.css'
 
 const PublicSecurityPage: React.FC = () => {
     return (
-        <div className={styles.container}>
-            {/* Hero Section */}
-            <section className={styles.heroSection}>
-                <div className={styles.heroContent}>
-                    <div className={styles.badge}>Security & Trust</div>
-                    <h1 className={styles.title}>Secure, Transparent, Future-Ready</h1>
-                    <p className={styles.subtitle}>
-                        FidduPay is entering its Beta launch with a security-first architecture. 
-                        We combine multi-layered encryption with a robust multi-chain foundation 
-                        to safeguard every transaction from day one.
-                    </p>
-                    <div className={styles.heroActions}>
-                        <button className={styles.primaryBtn}>View Security Features</button>
-                        <button className={styles.secondaryBtn}>Developer Docs</button>
-                    </div>
-                </div>
-                <div className={styles.heroImageWrapper}>
-                    <img 
-                        src="/security_trust_marketing_page_hero_1774967148421.png" 
-                        alt="Security Infrastructure Visualization" 
-                        className={styles.heroImage}
-                    />
-                </div>
-            </section>
+        <div className={styles.publicSecurityPage}>
+            {/* Ambient Glow */}
+            <div className={styles.ambientGlowContainer}>
+                <div className={`${styles.blob} ${styles.blobPrimary}`}></div>
+                <div className={`${styles.blob} ${styles.blobSecondary}`}></div>
+            </div>
 
-            {/* Core Pillars */}
-            <section className={styles.pillarsSection}>
-                <h2 className={styles.sectionTitle}>Built for Scale & Security</h2>
-                <div className={styles.pillarsGrid}>
-                    <div className={styles.pillarCard}>
-                        <MdShield className={styles.pillarIcon} />
-                        <h3>Encrypted by Default</h3>
-                        <p>Merchant data and sensitive information are protected by AES-256 encryption at rest and TLS 1.3 in transit.</p>
+            <div className={styles.container}>
+                {/* Hero Section */}
+                <section className={`${styles.heroSection} animate-fade-in-up`}>
+                    <div className={styles.heroContent}>
+                        <div className={styles.badge}>
+                            <MdShield />
+                            <span>Enterprise Core</span>
+                        </div>
+                        <h1 className={styles.title}>Secure, Transparent, <span className={styles.gradientText}>Future-Ready</span></h1>
+                        <p className={styles.subtitle}>
+                            FidduPay architecture is built on a security-first foundation. We combine multi-layered encryption with a robust multi-chain infrastructure to safeguard every transaction from day one.
+                        </p>
+                        <div className={styles.heroActions}>
+                            <button className={styles.primaryBtn}>Review Security Specs</button>
+                            <button className={styles.secondaryBtn}>Infrastructure Status</button>
+                        </div>
                     </div>
-                    <div className={styles.pillarCard}>
-                        <MdFingerprint className={styles.pillarIcon} />
-                        <h3>Identity Protection</h3>
-                        <p>Our dashboard supports secure authentication methods to prevent unauthorized account access.</p>
+                    <div className={styles.heroVisual}>
+                        <div className={styles.glassCard}>
+                            <div className={styles.radarContainer}>
+                                <div className={styles.radarLine}></div>
+                                <MdShield className={styles.radarIcon} />
+                            </div>
+                            <div className={styles.glassText}>
+                                <strong>L3 Threat Detection</strong>
+                                <span>Scanning blockchain nodes...</span>
+                            </div>
+                        </div>
+                        <div className={styles.heroGlow}></div>
                     </div>
-                    <div className={styles.pillarCard}>
-                        <MdHistory className={styles.pillarIcon} />
-                        <h3>Real-time Monitoring</h3>
-                        <p>Our system tracks all on-chain activity to detect and alert you to suspicious events instantly.</p>
-                    </div>
-                </div>
-            </section>
+                </section>
 
-            {/* Compliance Section */}
-            <section className={styles.complianceSection}>
-                <div className={styles.complianceContent}>
-                    <h2>Transparency & Standards</h2>
-                    <p>
-                        While in Beta, we are committed to building toward the world's most 
-                        rigorous security standards. Our infrastructure is designed to 
-                        facilitate future audits and institutional-grade compliance.
-                    </p>
-                    <div className={styles.certGrid}>
-                        <div className={styles.certItem}><MdVerified /> Multi-Chain Architecture</div>
-                        <div className={styles.certItem}><MdVerified /> Hardware Security Options</div>
-                        <div className={styles.certItem}><MdVerified /> GDPR-First Privacy</div>
-                        <div className={styles.certItem}><MdVerified /> Scalable to ISO/SOC Standards</div>
+                {/* Core Pillars */}
+                <section className={styles.pillarsSection}>
+                    <div className={styles.sectionHeader}>
+                        <h2>Institutional Trust Pillars</h2>
+                        <p>Our security stack is designed for scale, transparency, and uncompromising protection.</p>
                     </div>
-                </div>
-            </section>
+                    <div className={styles.pillarsGrid}>
+                        <div className={`${styles.pillarCard} animate-fade-in-up`} style={{ animationDelay: '0.1s' }}>
+                            <div className={styles.pillarIconBox}><MdShield /></div>
+                            <h3>AES-256 Encryption</h3>
+                            <p>All merchant data and sensitive transaction payloads are protected by military-grade encryption at rest and TLS 1.3 in transit.</p>
+                        </div>
+                        <div className={`${styles.pillarCard} animate-fade-in-up`} style={{ animationDelay: '0.2s' }}>
+                            <div className={styles.pillarIconBox}><MdFingerprint /></div>
+                            <h3>Identity Protection</h3>
+                            <p>Granular access controls, mandatory 2FA, and session-based biometric options prevent unauthorized entry into your dashboard.</p>
+                        </div>
+                        <div className={`${styles.pillarCard} animate-fade-in-up`} style={{ animationDelay: '0.3s' }}>
+                            <div className={styles.pillarIconBox}><MdHistory /></div>
+                            <h3>Real-time Monitoring</h3>
+                            <p>Our proprietary L3 monitors track all on-chain activity to detect and bridge deviations before they impact your balance.</p>
+                        </div>
+                    </div>
+                </section>
 
-            {/* Trust CTA */}
-            <section className={styles.ctaSection}>
-                <div className={styles.ctaCard}>
-                    <h2>Be part of our Beta launch.</h2>
-                    <p>Join the next generation of merchants building secure crypto payment workflows.</p>
-                    <div className={styles.ctaActions}>
-                        <button className={styles.ctaPrimary}>Get Beta Access</button>
+                {/* Compliance Section */}
+                <section className={styles.complianceSection}>
+                    <div className={styles.complianceCard}>
+                        <div className={styles.complianceText}>
+                            <h2>Transparency & Standards</h2>
+                            <p>
+                                While in Beta, we are committed to building toward the world's most 
+                                rigorous security standards. Our infrastructure is designed to 
+                                facilitate future SOC 2 Type II audits and institutional-grade compliance.
+                            </p>
+                            <div className={styles.certGrid}>
+                                <div className={styles.certItem}><MdVerified /> Multi-Chain Architecture</div>
+                                <div className={styles.certItem}><MdVerified /> Hardware Security Options</div>
+                                <div className={styles.certItem}><MdVerified /> GDPR-First Privacy</div>
+                                <div className={styles.certItem}><MdVerified /> Scalable to ISO/SOC Standards</div>
+                            </div>
+                        </div>
+                        <div className={styles.complianceVisual}>
+                            <i className="fas fa-file-shield"></i>
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
+
+                {/* Trust CTA */}
+                <section className={styles.ctaSection}>
+                    <div className={styles.ctaCard}>
+                        <div className={styles.ctaGlow}></div>
+                        <h2>Join the Secure Beta</h2>
+                        <p>Be part of the next generation of merchants building secure crypto payment workflows with FidduPay.</p>
+                        <div className={styles.ctaActions}>
+                            <button className={styles.ctaPrimary}>Get Early Access</button>
+                            <button className={styles.ctaSecondary}>Contact Security Team</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div>
     )
 }

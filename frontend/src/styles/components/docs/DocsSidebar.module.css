@@ -1,14 +1,10 @@
-/* Sidebar Navigation (Column 1) */
 .sidebar {
-    width: 260px;
-    background: #f8fafc;
-    border-right: 1px solid #e2e8f0;
-    height: calc(100vh - 80px);
-    position: sticky;
-    top: 0;
+    width: 280px;
+    background: transparent;
+    height: 100%;
     overflow-y: auto;
     flex-shrink: 0;
-    padding: 24px 0;
+    padding: 32px 0;
 }
 
 .sidebarSection {
@@ -17,34 +13,34 @@
 
 .sidebarTitle {
     padding: 0 24px;
-    font-size: 11px;
+    font-size: 0.75rem;
     font-weight: 700;
-    color: #64748b;
+    color: #6366f1;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 12px;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
 }
 
 .sidebarLink {
     display: block;
-    padding: 8px 24px;
-    font-size: 14px;
-    color: #475569;
+    padding: 10px 24px;
+    font-size: 0.9rem;
+    color: #94a3b8;
     text-decoration: none;
     transition: all 0.2s;
-    border-right: 3px solid transparent;
+    border-left: 3px solid transparent;
 }
 
 .sidebarLink:hover {
-    background: #f1f5f9;
-    color: #0f172a;
+    background: rgba(255, 255, 255, 0.03);
+    color: white;
 }
 
 .sidebarLink.active {
-    background: #f1f5f9;
-    color: #3b82f6;
-    font-weight: 500;
-    border-right-color: #3b82f6;
+    background: rgba(99, 102, 241, 0.1);
+    color: #818cf8;
+    font-weight: 600;
+    border-left-color: #6366f1;
 }
 
 .subLink {

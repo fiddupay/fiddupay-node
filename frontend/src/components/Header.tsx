@@ -11,8 +11,8 @@ const Header: React.FC = () => {
   return (
     <header className={styles.header}>
       <div className={styles.container}>
-        <Link to="/" className={styles.logo}>
-          FidduPay
+        <Link to="/" className={styles.headerLogo}>
+          <img src="/logo/logo-brandmark.svg" alt="FidduPay" style={{ height: '36px' }} />
         </Link>
 
         <nav className={`${styles.nav} ${isMenuOpen ? styles.navOpen : ''}`}>
@@ -56,7 +56,7 @@ const Header: React.FC = () => {
             className={styles.loginBtn}
             onClick={() => setIsMenuOpen(false)}
           >
-            Login
+            Sign In
           </Link>
         </nav>
 

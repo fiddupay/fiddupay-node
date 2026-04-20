@@ -113,10 +113,17 @@ const DocsPage: React.FC = () => {
 
   return (
     <div className={`${styles.docsPage} ${mobileStyles.docsPage}`}>
+      {/* Background Ambient Glow */}
+      <div className={styles.ambientGlowContainer}>
+        <div className={`${styles.blob} ${styles.blobPrimary}`}></div>
+        <div className={`${styles.blob} ${styles.blobSecondary}`}></div>
+      </div>
 
       {/* Desktop Header (Hidden on Mobile) */}
       <header className={styles.desktopHeader}>
-        <Link to="/" className={styles.headerLogo}>FidduPay</Link>
+        <Link to="/" className={styles.headerLogo}>
+          <img src="/logo/logo-brandmark.svg" alt="FidduPay" style={{ height: '32px' }} />
+        </Link>
 
         <div className={styles.searchContainer}>
           <i className={`fas fa-search ${styles.searchIcon}`}></i>
@@ -137,7 +144,9 @@ const DocsPage: React.FC = () => {
       {/* Mobile Header (Visible only on mobile via CSS) */}
       <div className={mobileStyles.mobileHeader}>
         <div className={mobileStyles.logoSection}>
-          <Link to="/" className={mobileStyles.logoText}>FidduPay</Link>
+          <Link to="/" className={mobileStyles.logoSection}>
+            <img src="/logo/logo-brandmark.svg" alt="FidduPay" style={{ height: '28px' }} />
+          </Link>
         </div>
         <div className={mobileStyles.headerActions}>
           <button className={mobileStyles.searchBtn} onClick={() => showToast('Search functionality coming soon!', 'info')}>

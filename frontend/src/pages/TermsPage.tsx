@@ -3,124 +3,119 @@ import styles from '@/styles/pages/TermsPage.module.css'
 
 const TermsPage: React.FC = () => {
   return (
-    <div className={styles.termsPage}>
+    <div className={styles.legalPage}>
+      {/* Ambient Glow */}
+      <div className={styles.ambientGlowContainer}>
+        <div className={`${styles.blob} ${styles.blobPrimary}`}></div>
+        <div className={`${styles.blob} ${styles.blobSecondary}`}></div>
+      </div>
+
       <div className={styles.container}>
-        <div className={styles.header}>
+        <header className={`${styles.header} animate-fade-in-up`}>
+          <div className={styles.badge}>Gateway Usage</div>
           <h1 className={styles.title}>Terms of Service</h1>
           <p className={styles.subtitle}>Last updated: January 24, 2026</p>
-        </div>
+        </header>
 
-        <div className={styles.content}>
-          <section className={styles.section}>
-            <h2>1. Acceptance of Terms</h2>
-            <p>
-              By accessing and using FidduPay's cryptocurrency payment gateway services, you accept and agree to be bound by the terms and provision of this agreement.
-            </p>
-          </section>
+        <div className={styles.contentGrid}>
+          <aside className={styles.sidebar}>
+            <nav className={styles.stickyNav}>
+              <h3>Sections</h3>
+              <ul>
+                <li><a href="#acceptance">Acceptance</a></li>
+                <li><a href="#services">Service Description</a></li>
+                <li><a href="#accounts">Accounts</a></li>
+                <li><a href="#fees">Fees & Payments</a></li>
+                <li><a href="#prohibited">Prohibited Activities</a></li>
+                <li><a href="#security">Security</a></li>
+                <li><a href="#liability">Liability</a></li>
+              </ul>
+            </nav>
+          </aside>
 
-          <section className={styles.section}>
-            <h2>2. Service Description</h2>
-            <p>
-              FidduPay provides cryptocurrency payment processing services, including but not limited to:
-            </p>
-            <ul>
-              <li>Payment request generation and processing</li>
-              <li>Cryptocurrency transaction monitoring</li>
-              <li>Automatic payment forwarding to merchant wallets</li>
-              <li>Real-time payment notifications via webhooks</li>
-              <li>Transaction analytics and reporting</li>
-            </ul>
-          </section>
+          <main className={styles.mainContent}>
+            <section id="acceptance" className={styles.section}>
+              <h2>1. Acceptance of Terms</h2>
+              <p>
+                By accessing and using FidduPay's high-performance cryptocurrency payment gateway services, you accept and agree to be bound by the terms and provisions of this agreement.
+              </p>
+            </section>
 
-          <section className={styles.section}>
-            <h2>3. Account Registration</h2>
-            <p>
-              To use our services, you must create an account and provide accurate, complete information. You are responsible for:
-            </p>
-            <ul>
-              <li>Maintaining the confidentiality of your account credentials</li>
-              <li>All activities that occur under your account</li>
-              <li>Notifying us immediately of any unauthorized use</li>
-              <li>Ensuring your account information remains current and accurate</li>
-            </ul>
-          </section>
+            <section id="services" className={styles.section}>
+              <h2>2. Service Description</h2>
+              <p>
+                FidduPay provides advanced cryptocurrency payment processing services, including:
+              </p>
+              <ul>
+                <li>Automated payment request generation and L3 blockchain monitoring.</li>
+                <li>Cryptocurrency transaction synchronization across 6+ networks.</li>
+                <li>Institutional-grade payment forwarding to self-custody or merchant wallets.</li>
+                <li>Real-time JSON webhooks and SSE event notifications.</li>
+                <li>Transaction analytics, reporting, and financial reconciliation tools.</li>
+              </ul>
+            </section>
 
-          <section className={styles.section}>
-            <h2>4. Fees and Payment</h2>
-            <p>
-              FidduPay charges a transaction fee of 0.75% per successful payment. Additional terms:
-            </p>
-            <ul>
-              <li>Fees are automatically deducted from processed payments</li>
-              <li>No setup fees or monthly subscription charges</li>
-              <li>Enterprise customers may negotiate custom fee structures</li>
-              <li>Fee changes will be communicated 30 days in advance</li>
-            </ul>
-          </section>
+            <section id="accounts" className={styles.section}>
+              <h2>3. Account Registration</h2>
+              <p>
+                To use our services, you must create an account and provide accurate, complete information. You are responsible for:
+              </p>
+              <ul>
+                <li>Maintaining the strict confidentiality of your account credentials and 2FA secrets.</li>
+                <li>All activities that occur under your merchant identity.</li>
+                <li>Notifying us immediately of any detected unauthorized use or breach.</li>
+                <li>Ensuring your business registration data remains valid and current.</li>
+              </ul>
+            </section>
 
-          <section className={styles.section}>
-            <h2>5. Prohibited Activities</h2>
-            <p>
-              You agree not to use FidduPay services for:
-            </p>
-            <ul>
-              <li>Illegal activities or transactions</li>
-              <li>Money laundering or terrorist financing</li>
-              <li>Fraud, scams, or deceptive practices</li>
-              <li>Adult content or gambling services</li>
-              <li>Violation of any applicable laws or regulations</li>
-            </ul>
-          </section>
+            <section id="fees" className={styles.section}>
+              <h2>4. Fees and Payment</h2>
+              <p>
+                FidduPay charges a standard transaction fee of 0.75% per successful settlement. 
+              </p>
+              <ul>
+                <li>Fees are automatically deducted during the blockchain settlement process.</li>
+                <li>Zero setup fees or monthly recurring subscription charges for standard merchants.</li>
+                <li>Enterprise customers may apply for custom high-volume fee structures.</li>
+                <li>Fee modifications will be communicated with a 30-day implementation notice.</li>
+              </ul>
+            </section>
 
-          <section className={styles.section}>
-            <h2>6. Security and Compliance</h2>
-            <p>
-              FidduPay implements industry-standard security measures and complies with applicable regulations. However, you acknowledge that:
-            </p>
-            <ul>
-              <li>Cryptocurrency transactions are irreversible</li>
-              <li>You are responsible for securing your wallet addresses</li>
-              <li>We may suspend accounts for suspicious activity</li>
-              <li>Compliance with local laws is your responsibility</li>
-            </ul>
-          </section>
+            <section id="prohibited" className={styles.section}>
+              <h2>5. Prohibited Activities</h2>
+              <p>
+                You agree not to use FidduPay services for:
+              </p>
+              <ul>
+                <li>Illegal activities, money laundering, or terrorist financing.</li>
+                <li>Fraudulent schemes, deceptive marketing, or scam operations.</li>
+                <li>Adult content, unlicensed gambling, or darknet market transactions.</li>
+                <li>Any activity that violates local or international financial regulations.</li>
+              </ul>
+            </section>
 
-          <section className={styles.section}>
-            <h2>7. Limitation of Liability</h2>
-            <p>
-              FidduPay's liability is limited to the fees paid for our services. We are not liable for:
-            </p>
-            <ul>
-              <li>Cryptocurrency price fluctuations</li>
-              <li>Network congestion or blockchain delays</li>
-              <li>Third-party service interruptions</li>
-              <li>Loss of funds due to user error</li>
-            </ul>
-          </section>
+            <section id="security" className={styles.section}>
+              <h2>6. Security and Compliance</h2>
+              <p>
+                FidduPay implements industry-standard encryption and L3 monitoring. However:
+              </p>
+              <ul>
+                <li>Blockchain transactions are final and irreversible once confirmed on-chain.</li>
+                <li>Merchant is solely responsible for maintaining secure wallet seeds and private keys.</li>
+                <li>We reserve the right to suspend any account flagged for suspicious or high-risk activity.</li>
+              </ul>
+            </section>
 
-          <section className={styles.section}>
-            <h2>8. Termination</h2>
-            <p>
-              Either party may terminate this agreement at any time. Upon termination:
-            </p>
-            <ul>
-              <li>Your access to services will be suspended</li>
-              <li>Pending transactions will be completed</li>
-              <li>Account data may be retained for legal compliance</li>
-              <li>Outstanding fees remain payable</li>
-            </ul>
-          </section>
-
-          <section className={styles.section}>
-            <h2>9. Contact Information</h2>
-            <p>
-              For questions about these terms, please contact us at:
-            </p>
-            <div className={styles.contactInfo}>
-              <p>Email: legal@fiddupay.com</p>
-              <p>Address: FidduPay Legal Department</p>
-            </div>
-          </section>
+            <section id="liability" className={styles.section}>
+              <h2>7. Limitation of Liability</h2>
+              <p>
+                FidduPay's liability is strictly limited to the cumulative fees paid for our services in the 12 months preceding any claim. We are not liable for blockchain congestion, fork events, or exchange rate volatility.
+              </p>
+              <div className={styles.contactLegal}>
+                  <p>For questions about these terms, please contact: <strong>legal@fiddupay.com</strong></p>
+              </div>
+            </section>
+          </main>
         </div>
       </div>
     </div>

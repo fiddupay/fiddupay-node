@@ -9,22 +9,24 @@ const Footer: React.FC = () => {
         <div className={styles.content}>
           <div className={styles.brand}>
             <div className={styles.logo}>
-              <i className="fas fa-coins"></i>
-              <span>FidduPay</span>
+              <img src="/logo/logo-brandmark.svg" alt="FidduPay" style={{ height: '40px' }} />
             </div>
             <p className={styles.description}>
               Enterprise-grade cryptocurrency payment gateway trusted by businesses worldwide.
               Accept payments across 5 blockchain networks with bank-level security.
             </p>
             <div className={styles.social}>
-              <a href="#" className={styles.socialLink}>
+              <a href="https://x.com/fiddupay" className={styles.socialLink} target="_blank" rel="noopener noreferrer">
                 <i className="fab fa-twitter"></i>
               </a>
-              <a href="#" className={styles.socialLink}>
+              <a href="https://www.linkedin.com/company/fiddupay/" className={styles.socialLink} target="_blank" rel="noopener noreferrer">
                 <i className="fab fa-linkedin"></i>
               </a>
               <a href="https://github.com/fiddupay/fiddupay-node" className={styles.socialLink} target="_blank" rel="noopener noreferrer">
                 <i className="fab fa-github"></i>
+              </a>
+              <a href="https://www.npmjs.com/package/@fiddupay/node-sdk" className={styles.socialLink} target="_blank" rel="noopener noreferrer">
+                <i className="fab fa-npm"></i>
               </a>
               <a href="#" className={styles.socialLink}>
                 <i className="fab fa-discord"></i>

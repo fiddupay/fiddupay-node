@@ -26,85 +26,79 @@ const ForgotPasswordPage: React.FC = () => {
 
       setIsSubmitted(true)
       showToast('Password reset instructions sent to your email', 'success')
-    } catch (error) {
+    } catch (error: any) {
       showToast('Failed to send reset instructions. Please try again.', 'error')
     } finally {
       setLoading(false)
     }
   }
 
-  if (isSubmitted) {
-    return (
-      <div className={styles.forgotPasswordPage}>
-        <div className={styles.container}>
-          <div className={styles.card}>
-            <div className={styles.header}>
-              <Link to="/" className={styles.logo}>FidduPay</Link>
-              <h1>Check Your Email</h1>
-              <p>We've sent password reset instructions to <strong>{email}</strong></p>
-            </div>
-
-            <div className={styles.successMessage}>
-              <i className="fas fa-envelope-open"></i>
-              <h2>Email Sent!</h2>
-              <p>
-                If an account with that email exists, you'll receive password reset
-                instructions within a few minutes.
-              </p>
-              <p>
-                Didn't receive the email? Check your spam folder or{' '}
-                <button
-                  onClick={() => setIsSubmitted(false)}
-                  className={styles.linkButton}
-                >
-                  try again
-                </button>
-              </p>
-            </div>
-
-            <div className={styles.footer}>
-              <Link to="/login" className={styles.backLink}>
-                <i className="fas fa-arrow-left"></i>
-                Back to Login
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className={styles.forgotPasswordPage}>
+      {/* Background Ambient Glow */}
+      <div className={styles.ambientGlowContainer}>
+        <div className={`${styles.blob} ${styles.blobPrimary}`}></div>
+        <div className={`${styles.blob} ${styles.blobSecondary}`}></div>
+      </div>
+
       <div className={styles.container}>
-        <div className={styles.card}>
+        <div className={`${styles.card} animate-fade-in-up`}>
           <div className={styles.header}>
-            <Link to="/" className={styles.logo}>FidduPay</Link>
-            <h1>Reset Your Password</h1>
-            <p>Enter your email address and we'll send you instructions to reset your password.</p>
+            <Link to="/" className={styles.logo}>
+              <img src="/logo/logo-brandmark.svg" alt="FidduPay" style={{ height: '36px' }} />
+            </Link>
+            
+            {isSubmitted ? (
+               <h1>Check Your Inbox</h1>
+            ) : (
+               <h1>Reset Password</h1>
+            )}
+            
+            <p>
+              {isSubmitted 
+                ? `We've sent recovery instructions to ${email}`
+                : "Enter your secure email to receive a password reset link."}
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className={styles.form}>
-            <div className={styles.inputGroup}>
-              <label htmlFor="email">Email Address</label>
-              <div className={styles.inputWrapper}>
-                <i className="fas fa-envelope"></i>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  required
-                />
-              </div>
+          {isSubmitted ? (
+            <div className={styles.successMessage}>
+              <i className="fas fa-envelope-circle-check"></i>
+              <h2>Instructions Sent!</h2>
+              <p>
+                Please check your inbox (and spam folder) for the reset link. 
+                The link will expire in 60 minutes for security purposes.
+              </p>
+              <button
+                onClick={() => setIsSubmitted(false)}
+                className={styles.linkButton}
+              >
+                Send to a different email
+              </button>
             </div>
+          ) : (
+            <form onSubmit={handleSubmit} className={styles.form}>
+              <div className={styles.inputGroup}>
+                <label htmlFor="email">Work Email</label>
+                <div className={styles.inputWrapper}>
+                  <i className="fas fa-envelope"></i>
+                  <input
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@company.com"
+                    required
+                  />
+                </div>
+              </div>
 
-            <button type="submit" className={styles.submitBtn}>
-              <i className="fas fa-paper-plane"></i>
-              Send Reset Instructions
-            </button>
-          </form>
+              <button type="submit" className={styles.submitBtn}>
+                <span>Send Instructions</span>
+                <i className="fas fa-paper-plane"></i>
+              </button>
+            </form>
+          )}
 
           <div className={styles.footer}>
             <Link to="/login" className={styles.backLink}>
@@ -113,7 +107,7 @@ const ForgotPasswordPage: React.FC = () => {
             </Link>
             <span className={styles.divider}>•</span>
             <Link to="/register" className={styles.registerLink}>
-              Create Account
+              Join Beta
             </Link>
           </div>
         </div>

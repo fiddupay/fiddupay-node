@@ -15,6 +15,8 @@ const PricingPage: React.FC = () => {
     daily_volume_limit_non_kyc_usd: '...',
     supported_networks: 5
   })
+  
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
   useEffect(() => {
     loadPricingData()
@@ -33,15 +35,24 @@ const PricingPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load pricing data:', error)
-      // Defaults will be handled by the initial state '...' showing it's loading/unknown 
-      // or we could use another fallback from a global config if available
     }
   }
+
+  const toggleFaq = (index: number) => {
+    setActiveFaq(activeFaq === index ? null : index);
+  };
+
   return (
     <div className={styles.pricingPage}>
+      {/* Background Ambient Glow */}
+      <div className={styles.ambientGlowContainer}>
+        <div className={`${styles.blob} ${styles.blobPrimary}`}></div>
+        <div className={`${styles.blob} ${styles.blobSecondary}`}></div>
+      </div>
+
       <div className={styles.container}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>Simple, Transparent Pricing</h1>
+        <div className={`${styles.header} animate-fade-in-up`}>
+          <h1 className={styles.title}>Simple, Transparent <span className={styles.gradientText}>Pricing</span></h1>
           <p className={styles.subtitle}>
             Start accepting crypto payments today with our straightforward pricing.
             No hidden fees, no setup costs, no monthly subscriptions.
@@ -49,7 +60,7 @@ const PricingPage: React.FC = () => {
         </div>
 
         <div className={styles.plans}>
-          <div className={styles.plan}>
+          <div className={`${styles.plan} ${styles.planPopular} animate-slide-in-right`} style={{ animationDelay: '0.1s' }}>
             <div className={styles.planBadge}>Most Popular</div>
             <div className={styles.planHeader}>
               <h3 className={styles.planName}>Pay-Per-Use</h3>
@@ -77,16 +88,16 @@ const PricingPage: React.FC = () => {
             </div>
 
             <Link to="/register" className={`${styles.planBtn} ${styles.primaryBtn}`}>
-              <i className="fas fa-arrow-right"></i>
               Start Accepting Payments
+              <i className="fas fa-arrow-right"></i>
             </Link>
           </div>
 
-          <div className={styles.plan}>
+          <div className={`${styles.plan} animate-slide-in-right`} style={{ animationDelay: '0.3s' }}>
             <div className={styles.planHeader}>
               <h3 className={styles.planName}>Enterprise</h3>
               <div className={styles.planPrice}>
-                <span className={styles.price}>Custom</span>
+                <span className={styles.priceCustom}>Custom</span>
                 <span className={styles.period}>volume-based pricing</span>
               </div>
               <p className={styles.planDescription}>
@@ -97,45 +108,43 @@ const PricingPage: React.FC = () => {
             <div className={styles.planFeatures}>
               <h4>Everything in Pay-Per-Use, plus:</h4>
               <ul className={styles.features}>
-                <li><i className="fas fa-check"></i> Volume discounts available</li>
-                <li><i className="fas fa-check"></i> Dedicated account manager</li>
-                <li><i className="fas fa-check"></i> Priority support (24/7)</li>
-                <li><i className="fas fa-check"></i> Custom integrations</li>
-                <li><i className="fas fa-check"></i> Advanced analytics</li>
-                <li><i className="fas fa-check"></i> White-label options</li>
-                <li><i className="fas fa-check"></i> SLA guarantees</li>
-                <li><i className="fas fa-check"></i> Custom reporting</li>
-                <li><i className="fas fa-check"></i> Multi-user accounts</li>
-                <li><i className="fas fa-check"></i> Phone support</li>
+                <li><i className="fas fa-check lineSecondary"></i> Volume discounts available</li>
+                <li><i className="fas fa-check lineSecondary"></i> Dedicated account manager</li>
+                <li><i className="fas fa-check lineSecondary"></i> Priority support (24/7)</li>
+                <li><i className="fas fa-check lineSecondary"></i> Custom integrations</li>
+                <li><i className="fas fa-check lineSecondary"></i> Advanced analytics</li>
+                <li><i className="fas fa-check lineSecondary"></i> White-label options</li>
+                <li><i className="fas fa-check lineSecondary"></i> SLA guarantees</li>
+                <li><i className="fas fa-check lineSecondary"></i> Multi-user accounts</li>
               </ul>
             </div>
 
             <a href="mailto:sales@fiddupay.com" className={`${styles.planBtn} ${styles.secondaryBtn}`}>
-              <i className="fas fa-envelope"></i>
               Contact Sales
+              <i className="fas fa-envelope"></i>
             </a>
           </div>
         </div>
 
-        <div className={styles.faq}>
-          <h2>Frequently Asked Questions</h2>
-          <div className={styles.faqGrid}>
-            <div className={styles.faqItem}>
-              <h3><i className="fas fa-question-circle"></i> Are there any hidden fees?</h3>
-              <p>No hidden fees whatsoever. You only pay the {pricingData.transaction_fee_percentage}% transaction fee on successful payments. No setup fees, monthly fees, or cancellation fees.</p>
-            </div>
-            <div className={styles.faqItem}>
-              <h3><i className="fas fa-question-circle"></i> When do I get charged?</h3>
-              <p>You're only charged when you successfully receive a payment. Failed or expired payments are never charged.</p>
-            </div>
-            <div className={styles.faqItem}>
-              <h3><i className="fas fa-question-circle"></i> What cryptocurrencies do you support?</h3>
-              <p>We support SOL, ETH, BNB, MATIC, ARB, and USDT across Ethereum, BSC, Polygon, Arbitrum, and Solana networks.</p>
-            </div>
-            <div className={styles.faqItem}>
-              <h3><i className="fas fa-question-circle"></i> Can I change plans later?</h3>
-              <p>Yes! You can upgrade to Enterprise at any time. Contact our sales team to discuss volume discounts and custom pricing.</p>
-            </div>
+        <div className={styles.faqSection}>
+          <h2 className={styles.faqTitle}>Frequently Asked Questions</h2>
+          <div className={styles.faqList}>
+             {[
+              { q: "Are there any hidden fees?", a: `No hidden fees whatsoever. You only pay the ${pricingData.transaction_fee_percentage}% transaction fee on successful payments. No setup fees, monthly fees, or cancellation fees.` },
+              { q: "When do I get charged?", a: "You're only charged when you successfully receive a payment. Failed or expired payments are never charged." },
+              { q: "What cryptocurrencies do you support?", a: "We support SOL, ETH, BNB, MATIC, ARB, and USDT across Ethereum, BSC, Polygon, Arbitrum, and Solana networks." },
+              { q: "Can I change plans later?", a: "Yes! You can upgrade to Enterprise at any time. Contact our sales team to discuss volume discounts and custom pricing." },
+            ].map((faq, index) => (
+              <div key={index} className={styles.faqItem}>
+                <button className={styles.faqQuestion} onClick={() => toggleFaq(index)}>
+                  <span>{faq.q}</span>
+                  <i className={`fas fa-chevron-down ${styles.faqChevron} ${activeFaq === index ? styles.faqChevronActive : ''}`}></i>
+                </button>
+                <div className={`${styles.faqAnswer} ${activeFaq === index ? styles.faqAnswerActive : ''}`}>
+                  <p>{faq.a}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

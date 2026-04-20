@@ -35,8 +35,9 @@
         justify-content: space-between;
         height: 64px;
         padding: 0 16px;
-        background: #ffffff;
-        border-bottom: 1px solid #e2e8f0;
+        background: rgba(10, 15, 28, 0.8);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
         position: sticky;
         top: 0;
         z-index: 100;
@@ -49,9 +50,9 @@
     }
 
     .logoText {
-        font-size: 20px;
+        font-size: 1.25rem;
         font-weight: 800;
-        color: #0f172a;
+        color: white;
         letter-spacing: -0.02em;
         text-decoration: none;
         margin-left: 8px;
@@ -81,16 +82,17 @@
     .menuBtn {
         height: 36px;
         padding: 0 12px;
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
-        color: #64748b;
-        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+        border-radius: 8px;
         font-size: 13px;
         font-weight: 600;
         display: flex;
         align-items: center;
         gap: 8px;
         cursor: pointer;
+        transition: all 0.2s;
     }
 
     .searchBtn:hover,
@@ -105,18 +107,17 @@
         position: fixed;
         top: 0;
         right: -100%;
-        /* Hidden by default */
         width: 85%;
         max-width: 320px;
         height: 100vh;
-        background: #ffffff;
+        background: rgba(10, 15, 28, 0.95);
+        backdrop-filter: blur(16px);
         z-index: 200;
-        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+        transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
         border-right: none;
         overflow-y: auto;
         padding-top: 0;
-        /* Reset */
     }
 
     .sidebar.open {
@@ -134,10 +135,10 @@
 
     .closeBtn {
         padding: 8px 16px;
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 4px;
-        color: #64748b;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: #94a3b8;
         font-size: 13px;
         font-weight: 600;
         display: flex;

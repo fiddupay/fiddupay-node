@@ -1,309 +1,182 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import styles from '@/styles/pages/HomePage.module.css'
+import styles from '@/styles/pages/HomePage.module.css';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const HomePage: React.FC = () => {
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
+
+  const toggleFaq = (index: number) => {
+    if (activeFaq === index) {
+      setActiveFaq(null);
+    } else {
+      setActiveFaq(index);
+    }
+  };
+
   return (
     <div className={styles.homePage}>
-      {/* Hero Section */}
-      <section className={styles.hero}>
-        <div className={styles.container}>
-          <div className={styles.heroContent}>
-            <div className={`${styles.heroText} animate-slide-in-left`}>
-              <h1 className={styles.heroTitle}>
-                Accept Crypto Payments
-                <span className={styles.highlight}> Across 6 Networks</span>
-              </h1>
-              <p className={styles.heroDescription}>
-                Modern payment gateway supporting BTC, SOL, ETH, BNB, MATIC, ARB, and USDT across
-                Bitcoin, Ethereum, BSC, Polygon, Arbitrum, and Solana networks with automatic forwarding.
-              </p>
-              <div className={styles.heroActions}>
-                <Link to="/login" className={`${styles.primaryBtn} hover-lift`}>
-                  Get Started
-                </Link>
-                <Link to="/pricing" className={`${styles.secondaryBtn} hover-lift`}>
-                  View Pricing
-                </Link>
-              </div>
+      {/* Background Ambient Glow */}
+      <div className={styles.ambientGlowContainer}>
+        <div className={`${styles.blob} ${styles.blobPrimary}`}></div>
+        <div className={`${styles.blob} ${styles.blobSecondary}`}></div>
+        <div className={`${styles.blob} ${styles.blobIndigo}`}></div>
+      </div>
+
+      <div className={styles.container}>
+        
+        {/* Hero Section */}
+        <section className={styles.heroSection}>
+          <div className={`${styles.heroTextContent} animate-fade-in-up`}>
+            <div className={styles.badge}>
+              <span className={styles.badgePing}></span>
+              <span className={styles.badgeDot}></span>
+              V1.0 Now Live: Lightning Fast Payments
             </div>
-            <div className={`${styles.heroVisual} animate-slide-in-right`}>
-              <div className={`${styles.card} hover-lift`}>
-                <div className={styles.cardHeader}>
-                  <div className={styles.dot}></div>
-                  <div className={styles.dot}></div>
-                  <div className={styles.dot}></div>
-                </div>
-                <div className={styles.cardContent}>
-                  <div className={styles.payment}>
-                    <div className={styles.paymentIcon}>₿</div>
-                    <div className={styles.paymentDetails}>
-                      <div className={styles.paymentAmount}>$1,250.00</div>
-                      <div className={styles.paymentStatus}>Confirmed</div>
-                    </div>
-                  </div>
-                </div>
+            
+            <h1 className={styles.heroTitle}>
+              Accept Crypto <br />
+              <span className={styles.heroTitleGradient}>Without Limits.</span>
+            </h1>
+            
+            <p className={styles.heroSubtitle}>
+              Empower your business with FidduPay. Accept BTC, ETH, SOL, and Stablecoins seamlessly across 6 global blockchain networks with instant settlement and absolute zero chargebacks.
+            </p>
+            
+            <div className={styles.heroActions}>
+              <Link to="/login" className={styles.btnPrimary}>
+                Get Started Free
+              </Link>
+              <Link to="/docs" className={styles.btnSecondary}>
+                Read Documentation
+              </Link>
+            </div>
+            
+            <div className={styles.heroChecks}>
+              <div><i className="fas fa-check"></i> No setup fees</div>
+              <div><i className="fas fa-check"></i> API Integrations</div>
+            </div>
+          </div>
+          
+          <div className={`${styles.heroVisual} animate-slide-in-right`}>
+            <div className={styles.heroImageWrapper}>
+              <img 
+                src="/hero3.png" 
+                alt="FidduPay Dashboard floating with crypto coins" 
+                className={styles.heroImage}
+                onError={(e) => {
+                  e.currentTarget.src = "https://images.unsplash.com/photo-1639762681485-074b7f4ec651?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
+                }}
+              />
+            </div>
+            
+            <div className={styles.floatingCard}>
+              <div className={styles.floatingCardIcon}>
+                <img src="/logo/logo-symbol.svg" alt="FidduPay" style={{ width: '24px', height: '24px' }} />
+              </div>
+              <div className={styles.floatingCardText}>
+                <span className={styles.floatingCardLabel}>Payment Received</span>
+                <span className={styles.floatingCardAmount}>+1.25 ETH</span>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Supported Cryptocurrencies Section */}
-      <section className={styles.cryptoSection}>
-        <div className={styles.container}>
-          <h2 className={styles.sectionTitle}>Supported Cryptocurrencies</h2>
-          <p className={styles.sectionSubtitle}>Accept payments in multiple cryptocurrencies across 6 major blockchain networks</p>
-
-          <div className={styles.cryptoShowcase}>
-            <div className={styles.cryptoItem}>
-              <div className={styles.cryptoIcon}>
-                <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/btc.png" alt="Bitcoin" className={styles.cryptoImg} />
-              </div>
-              <h3>Bitcoin</h3>
-              <p>Store of Value</p>
-            </div>
-            <div className={styles.cryptoItem}>
-              <div className={styles.cryptoIcon}>
-                <img src="/solana-sol-logo.png" alt="Solana" className={styles.cryptoImg} />
-              </div>
-              <h3>Solana</h3>
-              <p>Fast & Low Cost</p>
-            </div>
-            <div className={styles.cryptoItem}>
-              <div className={styles.cryptoIcon}>
-                <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/eth.png" alt="Ethereum" className={styles.cryptoImg} />
-              </div>
-              <h3>Ethereum</h3>
-              <p>Smart Contracts</p>
-            </div>
-            <div className={styles.cryptoItem}>
-              <div className={styles.cryptoIcon}>
-                <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/bnb.png" alt="BNB" className={styles.cryptoImg} />
-              </div>
-              <h3>BSC</h3>
-              <p>Binance Chain</p>
-            </div>
-            <div className={styles.cryptoItem}>
-              <div className={styles.cryptoIcon}>
-                <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/matic.png" alt="MATIC" className={styles.cryptoImg} />
-              </div>
-              <h3>Polygon</h3>
-              <p>Layer 2 Scaling</p>
-            </div>
-            <div className={styles.cryptoItem}>
-              <div className={styles.cryptoIcon}>
-                <img src="/binance-usd-busd-logo.png" alt="BUSD" className={styles.cryptoImg} />
-              </div>
-              <h3>BUSD</h3>
-              <p>Stablecoin</p>
-            </div>
-            <div className={styles.cryptoItem}>
-              <div className={styles.cryptoIcon}>
-                <img src="/arbitrum-arb-logo.png" alt="ARB" className={styles.cryptoImg} />
-              </div>
-              <h3>Arbitrum</h3>
-              <p>L2 Solution</p>
-            </div>
-            <div className={styles.cryptoItem}>
-              <div className={styles.cryptoIcon}>
-                <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png" alt="USDT" className={styles.cryptoImg} />
-              </div>
-              <h3>Tether</h3>
-              <p>Multi-Chain</p>
-            </div>
+        {/* Supported Networks */}
+        <section className={styles.networksSection}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Supported Networks</h2>
+            <p className={styles.sectionSubtitle}>Process payments natively across leading Layer 1 and Layer 2 chains.</p>
           </div>
-        </div>
-      </section>
+          
+          <div className={styles.networksGrid}>
+            {[
+              { name: 'Bitcoin', symbol: 'BTC', img: 'https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/btc.png' },
+              { name: 'Ethereum', symbol: 'ETH', img: 'https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/eth.png' },
+              { name: 'Solana', symbol: 'SOL', img: 'https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/sol.png' },
+              { name: 'Binance', symbol: 'BNB', img: 'https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/bnb.png' },
+              { name: 'Polygon', symbol: 'MATIC', img: 'https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/matic.png' },
+              { name: 'Tether', symbol: 'USDT', img: 'https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdt.png' },
+              { name: 'Arbitrum', symbol: 'ARB', img: '/arbitrum-arb-logo.png' },
+              { name: 'USD Coin', symbol: 'USDC', img: 'https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/usdc.png' }
+            ].map((coin, index) => (
+              <div key={index} className={styles.networkCard}>
+                <img src={coin.img} alt={coin.name} className={styles.networkIcon} />
+                <h3 className={styles.networkName}>{coin.name}</h3>
+                <p className={styles.networkSymbol}>{coin.symbol}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
-      {/* Features Section */}
-      <section className={styles.features}>
-        <div className={styles.container}>
-          <div className={styles.featuresHeader}>
-            <h2 className={styles.sectionTitle}>Why Choose FidduPay?</h2>
-            <p className={styles.sectionSubtitle}>Everything you need to accept cryptocurrency payments with confidence</p>
+        {/* Features */}
+        <section className={styles.featuresSection}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Built for the Modern Web</h2>
+            <p className={styles.sectionSubtitle}>Everything you need to scale your revenue globally without the traditional banking barriers.</p>
           </div>
 
           <div className={styles.featuresGrid}>
             <div className={styles.featureCard}>
-              <div className={styles.featureIconWrapper}>
-                <div className={styles.featureIconBg}>
-                  <i className="fas fa-bolt"></i>
-                </div>
-              </div>
-              <div className={styles.featureContent}>
-                <h3>Instant Processing</h3>
-                <p>Real-time payment confirmation and automatic forwarding to your wallets within seconds</p>
-                <ul className={styles.featureList}>
-                  <li>Real-time confirmations</li>
-                  <li>Automatic forwarding</li>
-                  <li>Zero delays</li>
-                </ul>
-              </div>
+               <div className={styles.featureWatermark}><i className="fas fa-bolt"></i></div>
+               <div className={`${styles.featureIcon} ${styles.iconPrimary}`}><i className="fas fa-bolt"></i></div>
+               <h3 className={styles.featureTitle}>Instant Settlements</h3>
+               <p className={styles.featureDesc}>Transactions are verified dynamically and funds are swept instantly to your secure cold or hot wallets.</p>
             </div>
 
             <div className={styles.featureCard}>
-              <div className={styles.featureIconWrapper}>
-                <div className={styles.featureIconBg}>
-                  <i className="fas fa-shield-alt"></i>
-                </div>
-              </div>
-              <div className={styles.featureContent}>
-                <h3>Enterprise Security</h3>
-                <p>Advanced encryption, rate limiting, and threat detection protect your transactions</p>
-                <ul className={styles.featureList}>
-                  <li>Advanced encryption</li>
-                  <li>Rate limiting</li>
-                  <li>Threat detection</li>
-                </ul>
-              </div>
+               <div className={styles.featureWatermark}><i className="fas fa-shield-halved"></i></div>
+               <div className={`${styles.featureIcon} ${styles.iconSecondary}`}><i className="fas fa-shield-halved"></i></div>
+               <h3 className={styles.featureTitle}>Bank-Grade Security</h3>
+               <p className={styles.featureDesc}>Built with robust cryptography. Enjoy absolute control of your keys and robust DDoS protection on our API endpoints.</p>
             </div>
 
             <div className={styles.featureCard}>
-              <div className={styles.featureIconWrapper}>
-                <div className={styles.featureIconBg}>
-                  <i className="fas fa-network-wired"></i>
-                </div>
-              </div>
-              <div className={styles.featureContent}>
-                <h3>Multi-Network Support</h3>
-                <p>Accept payments across 6 major blockchain networks with unified management</p>
-                <ul className={styles.featureList}>
-                  <li>6 blockchain networks</li>
-                  <li>12 cryptocurrencies</li>
-                  <li>Unified dashboard</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className={styles.featureCard}>
-              <div className={styles.featureIconWrapper}>
-                <div className={styles.featureIconBg}>
-                  <i className="fas fa-chart-line"></i>
-                </div>
-              </div>
-              <div className={styles.featureContent}>
-                <h3>Real-Time Analytics</h3>
-                <p>Monitor payments, track performance, and manage your crypto business with detailed insights</p>
-                <ul className={styles.featureList}>
-                  <li>Payment tracking</li>
-                  <li>Performance metrics</li>
-                  <li>Business insights</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className={styles.featureCard}>
-              <div className={styles.featureIconWrapper}>
-                <div className={styles.featureIconBg}>
-                  <i className="fas fa-code"></i>
-                </div>
-              </div>
-              <div className={styles.featureContent}>
-                <h3>Developer Friendly</h3>
-                <p>Simple API integration with comprehensive documentation and SDKs for popular languages</p>
-                <ul className={styles.featureList}>
-                  <li>RESTful API</li>
-                  <li>Multiple SDKs</li>
-                  <li>Complete docs</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className={styles.featureCard}>
-              <div className={styles.featureIconWrapper}>
-                <div className={styles.featureIconBg}>
-                  <i className="fas fa-headset"></i>
-                </div>
-              </div>
-              <div className={styles.featureContent}>
-                <h3>24/7 Support</h3>
-                <p>Get help when you need it with our dedicated support team and comprehensive resources</p>
-                <ul className={styles.featureList}>
-                  <li>24/7 availability</li>
-                  <li>Expert support</li>
-                  <li>Quick response</li>
-                </ul>
-              </div>
+               <div className={styles.featureWatermark}><i className="fas fa-code"></i></div>
+               <div className={`${styles.featureIcon} ${styles.iconPrimary}`}><i className="fas fa-code"></i></div>
+               <h3 className={styles.featureTitle}>Developer API & SDKs</h3>
+               <p className={styles.featureDesc}>Integrate natively using our NodeJS, Python, or Go SDKs. Complete documentation with ready-to-deploy webhooks.</p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* FAQ Section */}
-      <section className={styles.faq}>
-        <div className={styles.container}>
-          <div className={styles.faqContent}>
-            <div className={styles.faqLeft}>
-              <div className={styles.faqIllustration}>
-                <div className={styles.faqIconWrapper}>
-                  <div className={styles.faqIconBg}>
-                    <i className="fas fa-question-circle"></i>
-                  </div>
-                  <div className={styles.faqDecorations}>
-                    <div className={styles.faqCoin}>₿</div>
-                    <div className={styles.faqStar}></div>
-                    <div className={styles.faqStar}></div>
-                  </div>
+        {/* FAQ Section */}
+        <section className={styles.faqSection}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Frequently Asked Questions</h2>
+          </div>
+          <div className={styles.faqList}>
+            {[
+              { q: "How fast are payments processed?", a: "Crypto payments are confirmed as fast as the native blockchain allows." },
+              { q: "Do you charge setup or monthly fees?", a: "No! FidduPay operates on a transparent transaction fee model." },
+              { q: "Can I receive payments directly to my cold wallet?", a: "Absolutely. Our auto-forwarding engine sweeps your received funds directly." },
+              { q: "Are there chargebacks?", a: "Never. Cryptocurrency transactions are immutable." },
+            ].map((faq, index) => (
+              <div key={index} className={styles.faqItem}>
+                <button className={styles.faqQuestion} onClick={() => toggleFaq(index)}>
+                  <span>{faq.q}</span>
+                  <i className={`fas fa-chevron-down ${styles.faqChevron} ${activeFaq === index ? styles.faqChevronActive : ''}`}></i>
+                </button>
+                <div className={`${styles.faqAnswer} ${activeFaq === index ? styles.faqAnswerActive : ''}`}>
+                  <p>{faq.a}</p>
                 </div>
               </div>
-              <h2>Frequently Asked Questions</h2>
-              <p>Find answers to common questions about crypto payments and our platform.</p>
-            </div>
-            <div className={styles.faqRight}>
-              <div className={styles.faqItem}>
-                <div className={styles.faqQuestion}>
-                  <h3>How do I start accepting crypto payments?</h3>
-                  <span className={styles.faqToggle}>+</span>
-                </div>
-                <div className={styles.faqAnswer}>
-                  <p>Simply sign up, complete verification, and integrate our API or use our hosted checkout. You'll be accepting payments in minutes.</p>
-                </div>
-              </div>
-              <div className={styles.faqItem}>
-                <div className={styles.faqQuestion}>
-                  <h3>What cryptocurrencies do you support?</h3>
-                  <span className={styles.faqToggle}>+</span>
-                </div>
-                <div className={styles.faqAnswer}>
-                  <p>We support BTC, SOL, ETH, BNB, MATIC, ARB, and USDT across Bitcoin, Ethereum, BSC, Polygon, Arbitrum, and Solana networks.</p>
-                </div>
-              </div>
-              <div className={styles.faqItem}>
-                <div className={styles.faqQuestion}>
-                  <h3>How fast are payments processed?</h3>
-                  <span className={styles.faqToggle}>+</span>
-                </div>
-                <div className={styles.faqAnswer}>
-                  <p>Payments are confirmed in real-time and automatically forwarded to your wallets within seconds of blockchain confirmation.</p>
-                </div>
-              </div>
-              <div className={styles.faqItem}>
-                <div className={styles.faqQuestion}>
-                  <h3>Is my money and data safe?</h3>
-                  <span className={styles.faqToggle}>+</span>
-                </div>
-                <div className={styles.faqAnswer}>
-                  <p>Yes, we use enterprise-grade security with advanced encryption, rate limiting, and real-time threat detection.</p>
-                </div>
-              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className={styles.ctaSection}>
+          <div className={styles.ctaCard}>
+            <h2 className={styles.ctaTitle}>Ready to modernize your checkout?</h2>
+            <p className={styles.ctaSubtitle}>Join thousands of forward-thinking merchants accepting global payments.</p>
+            <div className={styles.ctaActions}>
+              <Link to="/register" className={styles.btnWhite}>Create Free Account</Link>
+              <Link to="/contact" className={styles.btnOutline}>Contact Sales</Link>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section className={styles.cta}>
-        <div className={styles.container}>
-          <div className={styles.ctaContent}>
-            <h2>Ready to Start Accepting Crypto?</h2>
-            <p>Join thousands of businesses using FidduPay for secure cryptocurrency payments</p>
-            <Link to="/login" className={styles.ctaBtn}>
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   )
 }

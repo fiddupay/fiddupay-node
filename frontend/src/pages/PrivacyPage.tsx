@@ -2,157 +2,105 @@ import React from 'react'
 import styles from '@/styles/pages/PrivacyPage.module.css'
 
 const PrivacyPage: React.FC = () => {
-  return (
-    <div className={styles.privacyPage}>
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>Privacy Policy</h1>
-          <p className={styles.subtitle}>Last updated: January 24, 2026</p>
+    return (
+        <div className={styles.legalPage}>
+            {/* Ambient Glow */}
+            <div className={styles.ambientGlowContainer}>
+                <div className={`${styles.blob} ${styles.blobPrimary}`}></div>
+                <div className={`${styles.blob} ${styles.blobSecondary}`}></div>
+            </div>
+
+            <div className={styles.container}>
+                <header className={`${styles.header} animate-fade-in-up`}>
+                    <div className={styles.badge}>Security & Trust</div>
+                    <h1 className={styles.title}>Privacy Policy</h1>
+                    <p className={styles.subtitle}>Last updated: January 24, 2026</p>
+                </header>
+
+                <div className={styles.contentGrid}>
+                    <aside className={styles.sidebar}>
+                        <nav className={styles.stickyNav}>
+                            <h3>Sections</h3>
+                            <ul>
+                                <li><a href="#introduction">Introduction</a></li>
+                                <li><a href="#data-collection">Data Collection</a></li>
+                                <li><a href="#usage">Usage of Data</a></li>
+                                <li><a href="#protection">Protection Measures</a></li>
+                                <li><a href="#third-parties">Third Parties</a></li>
+                                <li><a href="#rights">Your Rights</a></li>
+                            </ul>
+                        </nav>
+                    </aside>
+
+                    <main className={styles.mainContent}>
+                        <section id="introduction" className={styles.section}>
+                            <h2>1. Introduction</h2>
+                            <p>
+                                At FidduPay, we respect your privacy and are committed to protecting your personal data. This privacy policy will inform you about how we look after your personal data when you visit our website or use our services.
+                            </p>
+                        </section>
+
+                        <section id="data-collection" className={styles.section}>
+                            <h2>2. Data Collection</h2>
+                            <p>
+                                We collect various types of information to provide and improve our service to you:
+                            </p>
+                            <ul>
+                                <li><strong>Identity Data:</strong> First name, last name, username or similar identifier.</li>
+                                <li><strong>Contact Data:</strong> Billing address, email address and telephone numbers.</li>
+                                <li><strong>Financial Data:</strong> Wallet addresses, bank account and payment card details.</li>
+                                <li><strong>Technical Data:</strong> IP address, login data, browser type and version, time zone setting and location.</li>
+                            </ul>
+                        </section>
+
+                        <section id="usage" className={styles.section}>
+                            <h2>3. Usage of Data</h2>
+                            <p>
+                                We use your personal data only when the law allows us to. Most commonly, we will use your personal data in the following circumstances:
+                            </p>
+                            <ul>
+                                <li>Where we need to perform the contract we are about to enter into or have entered into with you.</li>
+                                <li>Where it is necessary for our legitimate interests and your interests and fundamental rights do not override those interests.</li>
+                                <li>Where we need to comply with a legal or regulatory obligation.</li>
+                            </ul>
+                        </section>
+
+                        <section id="protection" className={styles.section}>
+                            <h2>4. Protection Measures</h2>
+                            <p>
+                                We have put in place appropriate security measures to prevent your personal data from being accidentally lost, used or accessed in an unauthorized way, altered or disclosed. 
+                            </p>
+                            <p>
+                                All your data is encrypted using AES-256 and transmitted via TLS 1.3. We limit access to your personal data to those employees, agents, contractors and other third parties who have a business need to know.
+                            </p>
+                        </section>
+
+                        <section id="third-parties" className={styles.section}>
+                            <h2>5. Third Parties</h2>
+                            <p>
+                                We may share your personal data with internal and external third parties such as:
+                            </p>
+                            <ul>
+                                <li>Service providers who provide infrastructure and IT support.</li>
+                                <li>Professional advisers including lawyers, bankers, auditors and insurers.</li>
+                                <li>Regulators and other authorities who require reporting of processing activities.</li>
+                            </ul>
+                        </section>
+
+                        <section id="rights" className={styles.section}>
+                            <h2>6. Your Rights</h2>
+                            <p>
+                                Under certain circumstances, you have rights under data protection laws in relation to your personal data, including the right to request access, correction, erasure, restriction, and more.
+                            </p>
+                            <div className={styles.contactLegal}>
+                                <p>For any privacy-related inquiries, please contact: <strong>privacy@fiddupay.com</strong></p>
+                            </div>
+                        </section>
+                    </main>
+                </div>
+            </div>
         </div>
-
-        <div className={styles.content}>
-          <section className={styles.section}>
-            <h2>1. Information We Collect</h2>
-            <p>
-              FidduPay collects information necessary to provide our cryptocurrency payment services:
-            </p>
-            <div className={styles.subsection}>
-              <h3>Account Information</h3>
-              <ul>
-                <li>Name, email address, and contact details</li>
-                <li>Company information and business details</li>
-                <li>Cryptocurrency wallet addresses</li>
-                <li>API keys and authentication credentials</li>
-              </ul>
-            </div>
-            <div className={styles.subsection}>
-              <h3>Transaction Data</h3>
-              <ul>
-                <li>Payment amounts and cryptocurrency types</li>
-                <li>Transaction timestamps and status</li>
-                <li>Blockchain transaction hashes</li>
-                <li>Customer payment information (when provided)</li>
-              </ul>
-            </div>
-          </section>
-
-          <section className={styles.section}>
-            <h2>2. How We Use Your Information</h2>
-            <p>
-              We use collected information to:
-            </p>
-            <ul>
-              <li>Process cryptocurrency payments and transactions</li>
-              <li>Provide customer support and technical assistance</li>
-              <li>Monitor for fraud and ensure security</li>
-              <li>Comply with legal and regulatory requirements</li>
-              <li>Improve our services and develop new features</li>
-              <li>Send important service notifications and updates</li>
-            </ul>
-          </section>
-
-          <section className={styles.section}>
-            <h2>3. Information Sharing</h2>
-            <p>
-              FidduPay does not sell or rent your personal information. We may share information only in these circumstances:
-            </p>
-            <ul>
-              <li>With your explicit consent</li>
-              <li>To comply with legal obligations or court orders</li>
-              <li>To prevent fraud or protect our rights</li>
-              <li>With service providers who assist our operations</li>
-              <li>In connection with a business transfer or merger</li>
-            </ul>
-          </section>
-
-          <section className={styles.section}>
-            <h2>4. Data Security</h2>
-            <p>
-              We implement comprehensive security measures to protect your information:
-            </p>
-            <ul>
-              <li>End-to-end encryption for sensitive data</li>
-              <li>Secure data centers with physical access controls</li>
-              <li>Regular security audits and penetration testing</li>
-              <li>Employee access controls and training</li>
-              <li>Incident response and breach notification procedures</li>
-            </ul>
-          </section>
-
-          <section className={styles.section}>
-            <h2>5. Data Retention</h2>
-            <p>
-              We retain your information for as long as necessary to:
-            </p>
-            <ul>
-              <li>Provide our services to you</li>
-              <li>Comply with legal and regulatory requirements</li>
-              <li>Resolve disputes and enforce agreements</li>
-              <li>Maintain business records for tax purposes</li>
-            </ul>
-            <p>
-              Transaction data is typically retained for 7 years to comply with financial regulations.
-            </p>
-          </section>
-
-          <section className={styles.section}>
-            <h2>6. Your Rights</h2>
-            <p>
-              Depending on your location, you may have the following rights:
-            </p>
-            <ul>
-              <li>Access your personal information we hold</li>
-              <li>Correct inaccurate or incomplete information</li>
-              <li>Delete your personal information (subject to legal requirements)</li>
-              <li>Restrict or object to certain processing activities</li>
-              <li>Data portability for information you provided</li>
-              <li>Withdraw consent where processing is based on consent</li>
-            </ul>
-          </section>
-
-          <section className={styles.section}>
-            <h2>7. Cookies and Tracking</h2>
-            <p>
-              FidduPay uses cookies and similar technologies to:
-            </p>
-            <ul>
-              <li>Maintain your login session</li>
-              <li>Remember your preferences</li>
-              <li>Analyze website usage and performance</li>
-              <li>Provide personalized experiences</li>
-            </ul>
-            <p>
-              You can control cookie settings through your browser preferences.
-            </p>
-          </section>
-
-          <section className={styles.section}>
-            <h2>8. International Transfers</h2>
-            <p>
-              Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place, including:
-            </p>
-            <ul>
-              <li>Standard contractual clauses</li>
-              <li>Adequacy decisions by relevant authorities</li>
-              <li>Certification schemes and codes of conduct</li>
-            </ul>
-          </section>
-
-          <section className={styles.section}>
-            <h2>9. Contact Us</h2>
-            <p>
-              For privacy-related questions or to exercise your rights, contact us at:
-            </p>
-            <div className={styles.contactInfo}>
-              <p>Email: privacy@fiddupay.com</p>
-              <p>Subject: Privacy Inquiry</p>
-              <p>Response Time: Within 30 days</p>
-            </div>
-          </section>
-        </div>
-      </div>
-    </div>
-  )
+    )
 }
 
 export default PrivacyPage

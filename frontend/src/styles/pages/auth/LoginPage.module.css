@@ -1,49 +1,209 @@
 .loginPage {
-  min-height: calc(100vh - 200px);
-  background: linear-gradient(135deg, #1e40af 0%, #059669 100%);
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bg-main);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 1rem;
-  animation: fadeIn 0.6s ease-out;
 }
 
-.container {
+/* Ambient Ambient Glow */
+.ambientGlowContainer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  mix-blend-mode: screen;
+  animation: blob 8s infinite ease-in-out;
+}
+.blobPrimary {
+  top: -10%; left: -10%; width: 500px; height: 500px;
+  background: var(--primary-glow);
+}
+.blobSecondary {
+  bottom: -10%; right: -10%; width: 500px; height: 500px;
+  background: var(--secondary-glow);
+  animation-delay: 2s;
+}
+
+.splitScreen {
+  display: flex;
   width: 100%;
-  max-width: 400px;
+  z-index: 10;
 }
 
-.loginCard {
-  background: #f8fafc;
-  border-radius: 1rem;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
-  padding: 2rem;
-  animation: slideUp 0.6s ease-out;
+/* Visual Side (Left) */
+.visualSide {
+  display: none;
+  width: 50%;
+  position: relative;
+  background: rgba(17, 24, 39, 0.4);
+  border-right: 1px solid var(--border);
+  padding: 4rem;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
-.header {
-  text-align: center;
-  margin-bottom: 2rem;
+@media (min-width: 1024px) {
+  .visualSide { display: flex; }
+}
+
+.heroContent {
+  max-width: 550px;
+  width: 100%;
 }
 
 .logo {
   font-size: 2rem;
-  font-weight: 700;
-  color: #1e40af;
-  text-decoration: none;
-  display: block;
+  font-weight: 800;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 3rem;
+  letter-spacing: -0.02em;
+}
+
+.logo i {
+  color: var(--secondary);
+  filter: drop-shadow(0 0 8px var(--secondary-glow));
+}
+
+.heroTitle {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  color: white;
+}
+
+.gradientText {
+  background: linear-gradient(to right, #818cf8, var(--secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.heroSubtitle {
+  font-size: 1.125rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 3rem;
+}
+
+.visualGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 4rem;
+}
+
+.visualCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  transition: all 0.3s;
+}
+
+.visualCard:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-5px);
+}
+
+.cardIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--secondary);
+  font-size: 1.125rem;
   margin-bottom: 1rem;
 }
 
-.title {
-  font-size: 1.75rem;
+.visualCard h3 {
+  font-size: 1rem;
   font-weight: 700;
-  color: #000000;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.visualCard p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.visualFooter {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.footerStat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.footerStat strong {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: white;
+}
+
+.footerStat span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Form Side (Right) */
+.formSide {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 450px;
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  padding: 3rem 2.5rem;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+}
+
+.cardHeader {
+  margin-bottom: 2.5rem;
+  text-align: center;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: white;
   margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 1rem;
 }
 
@@ -56,193 +216,182 @@
 .inputGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.625rem;
+}
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .inputGroup label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #d1d5db;
+}
+
+.optional {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.forgotLink {
+  font-size: 0.8rem;
+  color: var(--primary);
   font-weight: 500;
-  color: #374151;
-  font-size: 0.875rem;
 }
 
-.inputGroup input {
-  padding: 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  transition: all 0.2s;
-}
+.forgotLink:hover { text-decoration: underline; }
 
-.passwordWrapper {
+.inputWrapper {
   position: relative;
 }
 
-.passwordWrapper input {
-  padding-right: 3rem;
+.inputWrapper i {
+  position: absolute;
+  left: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  font-size: 1rem;
+  transition: color 0.3s;
+}
+
+.inputWrapper input {
+  width: 100%;
+  background: #0d1117;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1rem 1.25rem 1rem 3.25rem;
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+.inputWrapper input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+  background: #0f141d;
+}
+
+.inputWrapper input:focus + i,
+.inputWrapper input:not(:placeholder-shown) + i {
+  color: var(--primary);
 }
 
 .passwordToggle {
   position: absolute;
-  right: 0.75rem;
+  right: 1.25rem;
   top: 50%;
   transform: translateY(-50%);
-  background: none;
-  border: none;
   color: #6b7280;
+  background: none; border: none;
   cursor: pointer;
   padding: 0.25rem;
-  transition: color 0.2s;
 }
 
-.passwordToggle:hover {
-  color: #374151;
-}
+.passwordToggle:hover { color: white; }
 
-.formOptions {
+.checkboxContainer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-top: -0.5rem;
-}
-
-.rememberMe {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #4b5563;
+  gap: 0.75rem;
   cursor: pointer;
+  font-size: 0.9rem;
+  color: #d1d5db;
   user-select: none;
 }
 
-.rememberMe input {
-  width: auto !important;
-  cursor: pointer;
+.checkboxContainer input {
+  display: none;
 }
 
-.forgotPassword {
-  color: #1e40af;
-  text-decoration: none;
-  font-size: 0.875rem;
-  transition: color 0.2s;
-}
-
-.forgotPassword:hover {
-  color: #1d4ed8;
-  text-decoration: underline;
-}
-
-.inputGroup input:focus {
-  outline: none;
-  border-color: #1e40af;
-  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
-  transform: translateY(-1px);
-}
-
-.errorAlert {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  animation: shake 0.5s ease-in-out;
-}
-
-.submitButton {
-  background: #1e40af;
-  color: white;
-  padding: 0.875rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
+.checkmark {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: #0d1117;
+  position: relative;
   transition: all 0.2s;
 }
 
-.submitButton:hover:not(:disabled) {
-  background: #1d4ed8;
+.checkboxContainer input:checked ~ .checkmark {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.checkmark::after {
+  content: '\f00c';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0);
   color: white;
+  font-size: 0.75rem;
+  transition: transform 0.2s;
+}
+
+.checkboxContainer input:checked ~ .checkmark::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.submitButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 1rem;
+  padding: 1.125rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 1rem;
+  box-shadow: 0 4px 15px var(--primary-glow);
+}
+
+.submitButton:hover {
+  background: var(--primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(30, 64, 175, 0.3);
+  box-shadow: 0 8px 25px var(--primary-glow);
 }
 
-.submitButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.footer {
+.cardFooter {
+  margin-top: 2.5rem;
   text-align: center;
-  margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border);
 }
 
-.footer p {
-  color: #6b7280;
-  font-size: 0.875rem;
-  margin-bottom: 0.5rem;
+.cardFooter p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
 }
 
-.link {
-  color: #1e40af;
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s;
+.signupLink {
+  color: var(--secondary);
+  font-weight: 700;
+  transition: all 0.2s;
 }
 
-.link:hover {
-  color: var(--fiddu-primary-hover);
-  text-decoration: underline;
+.signupLink:hover {
+  color: white;
+  text-shadow: 0 0 10px var(--secondary-glow);
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes shake {
-
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-
-  25% {
-    transform: translateX(-5px);
-  }
-
-  75% {
-    transform: translateX(5px);
-  }
-}
-
-@media (max-width: 480px) {
-  .loginCard {
-    padding: 1.5rem;
-  }
-
-  .title {
-    font-size: 1.5rem;
-  }
+.animate-fade-in {
+  animation: fadeIn 1s ease-out forwards;
 }
