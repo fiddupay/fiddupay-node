@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore } from '@/stores/authStore'
 
 // Flag to temporarily suppress the 401 interceptor during environment switches
 export let suppressAuthRedirect = false
@@ -40,14 +41,8 @@ api.interceptors.response.use(
       const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register';
 
       if (!isAuthPage && !suppressAuthRedirect) {
-        // Clear auth tokens from both storages
-
-        localStorage.removeItem('fiddupay_dashboard_token')
-        sessionStorage.removeItem('fiddupay_dashboard_token')
-
-        // Clear the Zustand auth state
-        localStorage.removeItem('fiddupay-auth')
-        sessionStorage.removeItem('fiddupay-auth')
+        // Use the auth store's logout to clear state cleanly across the app
+        useAuthStore.getState().logout();
 
         // Redirect to login
         window.location.href = '/login'

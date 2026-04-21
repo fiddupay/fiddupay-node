@@ -114,11 +114,16 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         // Hit backend logout to clear HttpOnly cookies
         authAPI.logout().catch((err: any) => console.error("Logout failed:", err));
 
+        // Clear fallbacks
+        sessionStorage.removeItem('fiddupay_dashboard_token')
+        localStorage.removeItem('fiddupay_dashboard_token')
+
         set({
           user: null,
           token: null,
           dashboard_token: null,
           isAuthenticated: false,
+          loading: false, // Ensure loading is cleared on logout
           error: null,
           rememberMe: false
         })
