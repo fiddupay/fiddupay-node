@@ -595,13 +595,13 @@ impl BalanceService {
         let crypto_type_str = crypto_type.to_string();
         let existing_data_rows = sqlx::query(
             r#"
-            SELECT transaction_hash, amount, status, 'payment' as source FROM payment_transactions 
+            SELECT transaction_hash, amount, status, 'payment' as source, COALESCE(fee_amount, 0) as fee, 'ONCHAIN' as sub_type FROM payment_transactions 
             WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND transaction_hash IS NOT NULL
             UNION ALL
-            SELECT transaction_hash, amount, status, 'customer_tx' as source FROM customer_transactions 
+            SELECT transaction_hash, amount, status, 'customer_tx' as source, 0 as fee, type as sub_type FROM customer_transactions 
             WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND transaction_hash IS NOT NULL
             UNION ALL
-            SELECT transaction_hash, amount, status, 'withdrawal' as source FROM withdrawals 
+            SELECT transaction_hash, amount, status, 'withdrawal' as source, 0 as fee, 'WITHDRAWAL' as sub_type FROM withdrawals 
             WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND transaction_hash IS NOT NULL
             "#
         )
@@ -611,9 +611,22 @@ impl BalanceService {
         .fetch_all(&self.db_pool)
         .await?;
 
+        // Also fetch total unique customers for the report
+        let total_unique_customers = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(DISTINCT customer_id) FROM merchant_customer_wallets WHERE merchant_id = $1"
+        )
+        .bind(merchant_id)
+        .fetch_one(&self.db_pool)
+        .await
+        .unwrap_or(0);
+
         let mut existing_txs: std::collections::HashMap<String, Vec<(Decimal, String, String)>> =
             std::collections::HashMap::new();
-        let mut db_confirmed_deposits = Decimal::ZERO;
+
+        let mut db_confirmed_onchain_deposits = Decimal::ZERO;
+        let mut db_ledger_only_deposits = Decimal::ZERO; // MERCHANT_PAYMENT from sub-accounts
+        let mut db_platform_fees_deducted = Decimal::ZERO;
+
         let mut db_confirmed_withdrawals = Decimal::ZERO;
         let mut db_pending_withdrawals_count = 0;
         let mut db_pending_withdrawals_sum = Decimal::ZERO;
@@ -624,6 +637,8 @@ impl BalanceService {
                 let amount = r.get::<Decimal, _>("amount");
                 let status = r.get::<String, _>("status");
                 let source: String = r.get("source");
+                let fee = r.get::<Decimal, _>("fee");
+                let sub_type: String = r.get("sub_type");
 
                 let entry = (amount, status.clone(), source.clone());
 
@@ -639,8 +654,15 @@ impl BalanceService {
                 existing_txs.entry(hash).or_default().push(entry);
 
                 if status == "CONFIRMED" || status == "COMPLETED" {
-                    if source == "payment" || source == "customer_tx" {
-                        db_confirmed_deposits += amount;
+                    if source == "payment" {
+                        db_confirmed_onchain_deposits += amount;
+                        db_platform_fees_deducted += fee;
+                    } else if source == "customer_tx" {
+                        if sub_type == "SWEEP" {
+                            db_confirmed_onchain_deposits += amount;
+                        } else if sub_type == "MERCHANT_PAYMENT" {
+                            db_ledger_only_deposits += amount;
+                        }
                     } else if source == "withdrawal" {
                         db_confirmed_withdrawals += amount;
                     }
@@ -684,9 +706,8 @@ impl BalanceService {
                 earliest_onchain_ts = tx_ts;
             }
         }
-        let mut skipped_sweeps = 0;
 
-        for tx in onchain_txs {
+        for tx in &onchain_txs {
             // Validate transaction before counting toward audit or gap analysis
             if !tx.success {
                 tracing::debug!("[RECTIFY] Skipping failed on-chain tx: {}", tx.hash);
@@ -760,9 +781,8 @@ impl BalanceService {
             if is_incoming && (rectify_type == "DEPOSIT" || rectify_type == "BOTH") {
                 let mut tx_with_meta = tx.clone();
                 if is_internal_sweep {
-                    // Tag it as internal sweep so we don't take fees later
+                    // Tag it as internal sweep so we don't take fees later - counted in heuristic
                     tx_with_meta.hash = format!("SWEEP:{}", tx_with_meta.hash);
-                    skipped_sweeps += 1;
                 }
                 missing_deposits.push(tx_with_meta);
             }
@@ -1034,7 +1054,12 @@ impl BalanceService {
                 }
 
                 // If we reach here, it's either NOT on-chain (Ghost) or it IS on-chain but already matched (Duplicate)
-                let is_out_of_range = has_onchain_txs && created_at < earliest_onchain_ts;
+                // If the total number of transactions found on-chain is less than the limit we requested,
+                // it means we have the FULL history. In that case, nothing is "out of range".
+                let is_exhaustive_scan = onchain_txs.len() < signature_limit;
+                let is_out_of_range =
+                    has_onchain_txs && created_at < earliest_onchain_ts && !is_exhaustive_scan;
+
                 let reason = if is_duplicate {
                     "Duplicate/Double-counted in DB".to_string()
                 } else if is_out_of_range {
@@ -1096,6 +1121,24 @@ impl BalanceService {
                             },
                             tx_id
                         ));
+                    } else if tx_type == "customer_tx" {
+                        // Ghost customer deposit: DB says a customer paid, but we didn't get it. Debit balance.
+                        sqlx::query("UPDATE merchant_balances SET available_balance = available_balance - $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
+                            .bind(amount).bind(merchant_id).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *ghost_tx).await?;
+
+                        sqlx::query("UPDATE customer_transactions SET status = 'VOIDED_GHOST' WHERE id = $1")
+                            .bind(tx_id.parse::<i64>().unwrap_or(0))
+                            .execute(&mut *ghost_tx).await?;
+
+                        actions_taken.push(format!(
+                            "Voided {}: {}",
+                            if is_duplicate {
+                                "Duplicate customer deposit"
+                            } else {
+                                "Ghost customer deposit"
+                            },
+                            tx_id
+                        ));
                     } else if tx_type == "withdrawal" {
                         // Ghost withdrawal: DB says we sent money, but we didn't. Credit balance back.
                         sqlx::query("UPDATE merchant_balances SET available_balance = available_balance + $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
@@ -1125,15 +1168,23 @@ impl BalanceService {
             .await?
             .available_balance;
 
-        // 10. Trigger final broadcast if any action was taken
+        // 10. Fetch ABSOLUTE REAL-TIME RPC balance for 3-way reconciliation
+        let actual_rpc_balance = monitor.get_balance(address).await.unwrap_or(Decimal::ZERO);
+
+        // 11. Trigger final broadcast if any action was taken
         if !dry_run && !actions_taken.is_empty() {
             let _ = self
                 .broadcast_balance_update(merchant_id, active_sandbox_mode)
                 .await;
         }
 
-        let onchain_raw_balance = total_onchain_deposits - total_onchain_withdrawals;
-        let db_ledger_balance = db_confirmed_deposits - db_confirmed_withdrawals;
+        // Expected On-chain Balance = (Confirmed Onchain Deposits - Fees) - (Completed Withdrawals)
+        let expected_onchain_sol =
+            (db_confirmed_onchain_deposits - db_platform_fees_deducted) - db_confirmed_withdrawals;
+
+        // Ledger total balance (for merchant's awareness)
+        let total_db_ledger_balance =
+            (db_confirmed_onchain_deposits + db_ledger_only_deposits) - db_confirmed_withdrawals;
 
         Ok(json!({
             "success": true,
@@ -1142,19 +1193,28 @@ impl BalanceService {
             "blockchain": monitor.blockchain_name(),
             "mode": if active_sandbox_mode { "SANDBOX" } else { "LIVE" },
             "wallet_reconciliation": {
-                "onchain_target_balance": onchain_raw_balance,
-                "recorded_ledger_balance": db_ledger_balance,
-                "current_dashboard_balance": current_balance_after,
-                "total_discrepancy": onchain_raw_balance - db_ledger_balance,
-                "status": if (onchain_raw_balance - db_ledger_balance).abs() < Decimal::new(1, 8) { "SYNCED" } else { "OUT_OF_SYNC" }
+                "actual_rpc_balance": actual_rpc_balance,
+                "expected_onchain_sol": expected_onchain_sol,
+                "total_db_ledger_balance": total_db_ledger_balance,
+                "current_dashboard_balance_cache": current_balance_after,
+                "onchain_out_of_sync": (actual_rpc_balance - expected_onchain_sol).abs() > Decimal::new(1, 4),
+                "ledger_out_of_sync": (total_db_ledger_balance - current_balance_after).abs() > Decimal::new(1, 4)
             },
-            "audit": {
-                "onchain_deposits": total_onchain_deposits,
-                "onchain_withdrawals": total_onchain_withdrawals,
-                "recorded_db_deposits_total": db_confirmed_deposits,
-                "recorded_db_withdrawals_total": db_confirmed_withdrawals,
+            "audit_summary": {
+                "onchain_deposits_raw": total_onchain_deposits,
+                "onchain_withdrawals_raw": total_onchain_withdrawals,
+                "db_confirmed_onchain_deposits": db_confirmed_onchain_deposits,
+                "db_confirmed_withdrawals": db_confirmed_withdrawals,
+                "db_ledger_only_deposits": db_ledger_only_deposits,
                 "duplicate_hashes_found": duplicates.len(),
-                "internal_sweeps_detected": skipped_sweeps
+            },
+            "customer_summary": {
+                "total_unique_customers": total_unique_customers,
+                "ledger_total_paid": db_ledger_only_deposits,
+                "onchain_total_swept": db_confirmed_onchain_deposits - (db_confirmed_onchain_deposits - total_onchain_deposits).abs(), // Heuristic for matched sweeps
+            },
+            "fee_accounting": {
+                "total_platform_fees_deducted": db_platform_fees_deducted,
             },
             "pending_audit": {
                 "total_pending_withdrawals_count": db_pending_withdrawals_count,

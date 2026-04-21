@@ -42,6 +42,12 @@ pub trait BlockchainMonitor: Send + Sync {
         new_addresses_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
         callback: std::sync::Arc<dyn Fn(String, String) + Send + Sync>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+
+    /// Get current balance of an address
+    async fn get_balance(
+        &self,
+        address: &str,
+    ) -> Result<Decimal, Box<dyn std::error::Error + Send + Sync>>;
 }
 
 /// EVM-based blockchain monitor (BSC, Arbitrum, Polygon)
@@ -1105,6 +1111,39 @@ impl BlockchainMonitor for EvmMonitor {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         self.listen_for_events(addresses, new_addresses_rx, callback)
             .await
+    }
+
+    async fn get_balance(
+        &self,
+        address: &str,
+    ) -> Result<Decimal, Box<dyn std::error::Error + Send + Sync>> {
+        if let Some(ref token) = self.token_address {
+            // ERC20 Token Balance
+            let payload = serde_json::json!([
+                {
+                    "to": token,
+                    "data": format!("0x70a08231{}", pad_evm_address_to_32_bytes(address).trim_start_matches("0x"))
+                },
+                "latest"
+            ]);
+            let data = self.rpc_request("eth_call", payload).await?;
+            let result_hex = data.get("result").and_then(|v| v.as_str()).unwrap_or("0x0");
+            let value_u128 =
+                u128::from_str_radix(result_hex.trim_start_matches("0x"), 16).unwrap_or(0);
+            Ok(Decimal::from(value_u128) / Decimal::from(10u64.pow(self.decimals)))
+        } else {
+            // Native Balance
+            let data = self
+                .rpc_request("eth_getBalance", serde_json::json!([address, "latest"]))
+                .await?;
+            let result_hex = data
+                .get("result")
+                .and_then(|v| v.as_str())
+                .ok_or("No result in eth_getBalance")?;
+            let value_u128 =
+                u128::from_str_radix(result_hex.trim_start_matches("0x"), 16).unwrap_or(0);
+            Ok(Decimal::from(value_u128) / Decimal::from(10u64.pow(self.decimals)))
+        }
     }
 }
 

@@ -939,4 +939,61 @@ impl BlockchainMonitor for SolanaMonitor {
         self.listen_for_events(addresses, new_addresses_rx, callback)
             .await
     }
+
+    async fn get_balance(
+        &self,
+        address: &str,
+    ) -> Result<Decimal, Box<dyn std::error::Error + Send + Sync>> {
+        if let Some(ref mint) = self.expected_mint {
+            // Fetch SPL Token Balance (USDC, WSOL, etc.) via ATA
+            let ata = Self::get_ata_address(address, mint)
+                .ok_or_else(|| format!("Could not derive ATA for {} and mint {}", address, mint))?;
+
+            let rpc_response: RpcResponse<serde_json::Value> = self
+                .rpc_request(
+                    "getTokenAccountBalance",
+                    serde_json::json!([ata, { "commitment": "confirmed" }]),
+                    false,
+                )
+                .await?;
+
+            if let Some(err) = rpc_response.error {
+                // If it's 404/not found, it likely just means the ATA hasn't been created (0 balance)
+                if err.code == -32602 || err.message.contains("not found") {
+                    return Ok(Decimal::ZERO);
+                }
+                return Err(
+                    format!("Solana RPC getTokenAccountBalance error: {}", err.message).into(),
+                );
+            }
+
+            let amount_str = rpc_response
+                .result
+                .and_then(|r| r["value"]["uiAmountString"].as_str().map(|s| s.to_string()))
+                .unwrap_or_else(|| "0".to_string());
+
+            return Ok(Decimal::from_str(&amount_str).unwrap_or(Decimal::ZERO));
+        }
+
+        // Fetch Native SOL Balance
+        let rpc_response: RpcResponse<serde_json::Value> = self
+            .rpc_request(
+                "getBalance",
+                serde_json::json!([address, { "commitment": "confirmed" }]),
+                false,
+            )
+            .await?;
+
+        if let Some(err) = rpc_response.error {
+            return Err(format!("Solana RPC getBalance error: {}", err.message).into());
+        }
+
+        let lamports = rpc_response
+            .result
+            .and_then(|r| r["value"].as_u64())
+            .unwrap_or(0);
+
+        // Convert lamports -> SOL
+        Ok(Decimal::from(lamports) / Decimal::from(1_000_000_000u64))
+    }
 }

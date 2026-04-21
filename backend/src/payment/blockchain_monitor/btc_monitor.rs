@@ -225,6 +225,30 @@ impl BlockchainMonitor for BtcMonitor {
         // For now, BtcMonitor only supports polling via get_transactions_to_address.
         Err("Bitcoin WebSocket monitoring is not yet implemented".into())
     }
+
+    async fn get_balance(
+        &self,
+        address: &str,
+    ) -> Result<Decimal, Box<dyn std::error::Error + Send + Sync>> {
+        let data = get_with_failover(&self.api_config, &format!("address/{}", address))
+            .await
+            .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?;
+
+        let chain_stats = data
+            .get("chain_stats")
+            .ok_or("No chain_stats in response")?;
+        let funded = chain_stats
+            .get("funded_txo_sum")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        let spent = chain_stats
+            .get("spent_txo_sum")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+
+        let balance_sats = funded.saturating_sub(spent);
+        Ok(Decimal::from(balance_sats) / Decimal::from(100_000_000u64))
+    }
 }
 
 impl BtcMonitor {
