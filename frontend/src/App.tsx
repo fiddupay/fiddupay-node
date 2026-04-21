@@ -33,7 +33,7 @@ import {
   SettingsSkeleton,
   SecurityHubSkeleton
 } from '@/components/layout/PageSkeletons'
-import '@/styles/globals.css'
+
 
 // Helper for lazy loading with automatic retry on chunk load failure (e.g., during redeployment)
 function lazyWithRetry(componentImport: () => Promise<any>) {
