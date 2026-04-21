@@ -58,24 +58,38 @@ pub async fn auth_middleware(
             .map(|s| s[6..].to_string())
     });
 
-    // Extract API key from header, fallback to protocol or query parameter
+    // Extract API key from header, fallback to protocol, query parameter, or HttpOnly cookie
     let api_key = match extract_api_key(&headers) {
         Some(key) => key,
         None => {
-            match protocol_token {
-                Some(token) => token.to_string(),
-                None => match query_token {
-                    Some(token) => token,
-                    None => {
-                        tracing::warn!("Missing or invalid Authorization header and no WebSocket token provided");
-                        return Err((
-                            StatusCode::UNAUTHORIZED,
-                            axum::Json(json!({
-                                "error": "Missing or invalid Authorization header",
-                                "message": "Expected format: Authorization: Bearer <api_key> or URL Sec-WebSocket-Protocol header"
-                            })),
-                        ).into_response());
-                    }
+            // Check for HttpOnly cookie fallback (Fortress Layer)
+            let cookie_token = headers
+                .get("cookie")
+                .and_then(|v| v.to_str().ok())
+                .and_then(|c_str| {
+                    c_str
+                        .split(';')
+                        .find(|s| s.trim().starts_with("dashboard_token="))
+                        .map(|s| s.trim()["dashboard_token=".len()..].to_string())
+                });
+
+            match cookie_token {
+                Some(token) => token,
+                None => match protocol_token {
+                    Some(token) => token.to_string(),
+                    None => match query_token {
+                        Some(token) => token,
+                        None => {
+                            tracing::warn!("Missing or invalid Authorization header/cookie and no WebSocket token provided");
+                            return Err((
+                                StatusCode::UNAUTHORIZED,
+                                axum::Json(json!({
+                                    "error": "Missing or invalid Authorization",
+                                    "message": "Please login or provide a valid API key (Bearer or Secure Cookie)"
+                                })),
+                            ).into_response());
+                        }
+                    },
                 },
             }
         }

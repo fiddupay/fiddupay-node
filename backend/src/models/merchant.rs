@@ -53,10 +53,13 @@ pub struct Merchant {
     pub id: i64,
     pub email: String,
     pub business_name: String,
+    #[serde(skip_serializing)]
     pub live_api_key_hash: Option<String>,
+    #[serde(skip_serializing)]
     pub test_api_key_hash: Option<String>,
     pub live_publishable_key: Option<String>,
     pub test_publishable_key: Option<String>,
+    #[serde(skip_serializing)]
     pub password_hash: Option<String>,
     pub fee_percentage: Decimal,
     pub customer_pays_fee: bool, // true = customer pays, false = merchant pays
@@ -82,11 +85,13 @@ pub struct Merchant {
     pub terms_accepted: bool,
     pub wallets_locked: bool,
     pub customer_wallets_locked: bool,
+    #[serde(skip_serializing)]
     pub transaction_pin_hash: Option<String>,
     pub pin_setup_at: Option<DateTime<Utc>>,
     pub low_balance_threshold_usd: Decimal,
     pub low_balance_alerts_enabled: bool,
     // Compliance & Intelligence Fields
+    #[serde(skip_serializing)]
     pub nin_bvn_hash: Option<String>,
     pub social_handles: serde_json::Value, // JSONB
     pub kyc_tier: i32,
@@ -104,6 +109,7 @@ pub struct MerchantWallet {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub wallet_mode: Option<String>,
+    #[serde(skip_serializing)]
     pub encrypted_private_key: Option<String>,
     pub sandbox_mode: bool,
 }

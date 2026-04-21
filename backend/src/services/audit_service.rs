@@ -45,13 +45,18 @@ impl AuditService {
         ip_address: Option<&str>,
         details: Option<JsonValue>,
     ) -> Result<(), ServiceError> {
+        let mut scrubbed_details = details;
+        if let Some(ref mut d) = scrubbed_details {
+            crate::utils::sanitizer::scrub_sensitive_data(d);
+        }
+
         sqlx::query(
             "INSERT INTO audit_logs (merchant_id, action_type, ip_address, details) VALUES ($1, $2, $3, $4)"
         )
         .bind(merchant_id)
         .bind(action_type)
         .bind(ip_address)
-        .bind(&details)
+        .bind(&scrubbed_details)
         .execute(&self.pool)
         .await?;
 

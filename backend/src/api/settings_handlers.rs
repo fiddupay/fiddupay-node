@@ -617,17 +617,29 @@ pub async fn get_merchant_settings(
     let m_sandbox_mode: bool = merchant.get("sandbox_mode");
     let m_redirect_url: Option<String> = merchant.get("redirect_url");
 
-    (StatusCode::OK, Json(json!({
-        "webhook_url": webhook_config.as_ref().map(|c| c.get::<String, _>("url")),
-        "webhook_format": webhook_config.as_ref().map(|c| c.get::<String, _>("payload_format")),
-        "webhook_signing_secret": webhook_config.as_ref().and_then(|c| c.try_get::<String, _>("signing_secret").ok()),
-        "settlement_mode": m_settlement_mode,
-        "customer_pays_fee": m_customer_pays_fee,
-        "sandbox_mode": m_sandbox_mode,
-        "redirect_url": m_redirect_url,
-        "low_balance_alerts_enabled": merchant.get::<bool, _>("low_balance_alerts_enabled"),
-        "ip_whitelist": ip_whitelist
-    }))).into_response()
+    (
+        StatusCode::OK,
+        Json(json!({
+            "webhook_url": webhook_config.as_ref().map(|c| c.get::<String, _>("url")),
+            "webhook_format": webhook_config.as_ref().map(|c| c.get::<String, _>("payload_format")),
+            "webhook_signing_secret": webhook_config.as_ref().and_then(|c| {
+                c.try_get::<String, _>("signing_secret").ok().map(|s| {
+                    if s.len() > 12 {
+                        format!("{}**********", &s[..12])
+                    } else {
+                        "**********".to_string()
+                    }
+                })
+            }),
+            "settlement_mode": m_settlement_mode,
+            "customer_pays_fee": m_customer_pays_fee,
+            "sandbox_mode": m_sandbox_mode,
+            "redirect_url": m_redirect_url,
+            "low_balance_alerts_enabled": merchant.get::<bool, _>("low_balance_alerts_enabled"),
+            "ip_whitelist": ip_whitelist
+        })),
+    )
+        .into_response()
 }
 
 pub async fn send_test_webhook(

@@ -535,7 +535,7 @@ impl PaymentVerifier {
         // Fetch payment to get fee information and sandbox_mode (Requirement 6.3)
         let payment_row = sqlx::query(
             r#"
-            SELECT payment_id as public_id, fee_amount, fee_amount_usd, fee_percentage, amount, amount_usd, crypto_type, sandbox_mode, transaction_hash
+            SELECT payment_id as public_id, fee_amount, fee_amount_usd, fee_percentage, amount, amount_usd, crypto_type, sandbox_mode, transaction_hash, status
             FROM payment_transactions
             WHERE id = $1
             FOR UPDATE
@@ -544,6 +544,12 @@ impl PaymentVerifier {
         .bind(payment_id)
         .fetch_one(&mut *tx)
         .await?;
+
+        // IDEMPOTENCY CHECK: If already confirmed, don't credit balance again
+        if payment_row.get::<String, _>("status") == "CONFIRMED" {
+            tx.rollback().await?;
+            return Ok(());
+        }
 
         use sqlx::Row;
         struct ConfirmPaymentData {
@@ -735,14 +741,15 @@ impl PaymentVerifier {
         .await?;
 
         // Update payment total_paid and remaining_balance
+        // Only update if not already CONFIRMED
         let payment_row = sqlx::query(
             r#"
             UPDATE payment_transactions
             SET total_paid = total_paid + $1,
                 remaining_balance = remaining_balance - $1,
                 expires_at = expires_at + INTERVAL '15 minutes'
-            WHERE id = $2
-            RETURNING amount, total_paid, remaining_balance, merchant_id, crypto_type, amount_usd, public_id, sandbox_mode
+            WHERE id = $2 AND status != 'CONFIRMED'
+            RETURNING amount, total_paid, remaining_balance, merchant_id, crypto_type, amount_usd, public_id, sandbox_mode, status
             "#
         )
         .bind(amount)
@@ -759,7 +766,10 @@ impl PaymentVerifier {
         let sandbox_mode: bool = payment_row.get("sandbox_mode");
 
         // Check if payment is now complete
-        let is_complete = if let (Some(amt), Some(paid)) = (payment_amount, total_paid) {
+        let current_status: String = payment_row.get("status");
+        let is_complete = if current_status == "CONFIRMED" {
+            false // Already handled by another concurrent partial payment
+        } else if let (Some(amt), Some(paid)) = (payment_amount, total_paid) {
             paid >= amt
         } else {
             false

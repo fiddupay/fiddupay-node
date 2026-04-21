@@ -40,6 +40,7 @@ pub struct DepositKeypair {
     pub id: i64,
     pub payment_id: String,
     pub address: String,
+    #[serde(skip_serializing)]
     pub encrypted_private_key: String,
     pub created_at: Option<DateTime<Utc>>,
 }

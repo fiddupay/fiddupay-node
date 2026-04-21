@@ -36,6 +36,10 @@ pub fn create_router(state: AppState) -> Router {
             post(merchant_auth_handlers::login_merchant),
         )
         .route(
+            "/api/v1/merchants/logout",
+            post(merchant_auth_handlers::logout_merchant),
+        )
+        .route(
             "/api/v1/p2p/register",
             post(crate::api::p2p_auth_handlers::register_p2p_user),
         )

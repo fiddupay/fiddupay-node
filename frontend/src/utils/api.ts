@@ -10,28 +10,17 @@ export function setSuppressAuthRedirect(value: boolean) {
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://api.fiddupay.com',
   timeout: 30000,
+  withCredentials: true, // Required for HttpOnly cookies (Fortress Layer)
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// Request interceptor to add auth token
+// Request interceptor: The browser will now automatically include HttpOnly cookies.
+// We only keep this interceptor for manual API key injection if needed in the future.
 api.interceptors.request.use(
-  (config) => {
-    // 1. Prioritize Dashboard Session Token (JWT)
-    // The dashboard application should authenticate with its own session token.
-    const dashboardToken = localStorage.getItem('fiddupay_dashboard_token') || sessionStorage.getItem('fiddupay_dashboard_token');
-
-    if (dashboardToken) {
-      config.headers.Authorization = `Bearer ${dashboardToken}`;
-      return config;
-    }
-
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (config) => config,
+  (error) => Promise.reject(error)
 );
 
 // Response interceptor for error handling

@@ -11,6 +11,9 @@ export const authAPI = {
 
   login: (data: LoginCredentials) =>
     api.post('/api/v1/merchants/login', data),
+
+  logout: () =>
+    api.post('/api/v1/merchants/logout'),
 }
 
 const cleanParams = (params: any) => {

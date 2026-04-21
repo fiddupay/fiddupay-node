@@ -67,10 +67,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           set({ loading: true, error: null })
           const response = await authAPI.login(credentials)
 
-          const storage = rememberMe ? localStorage : sessionStorage
-
-          // Store dashboard token
-          storage.setItem('fiddupay_dashboard_token', response.data.dashboard_token)
+          // Dashboard token is now handled via HttpOnly cookies (Fortress Layer)
+          // We no longer store it in localStorage/sessionStorage
 
           set({
             user: response.data.user,
@@ -94,8 +92,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           set({ loading: true, error: null })
           const response = await authAPI.register(data)
 
-          // Store dashboard token
-          localStorage.setItem('fiddupay_dashboard_token', response.data.dashboard_token)
+          // DASHBOARD_TOKEN handled via HttpOnly Cookies
 
           set({
             user: response.data.user,
@@ -115,10 +112,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
 
       logout: () => {
-
-        // Clear dashboard token
-        localStorage.removeItem('fiddupay_dashboard_token')
-        sessionStorage.removeItem('fiddupay_dashboard_token')
+        // Hit backend logout to clear HttpOnly cookies
+        authAPI.logout().catch((err: any) => console.error("Logout failed:", err));
 
         set({
           user: null,
@@ -135,18 +130,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
 
       loadUser: async (silent: boolean = false) => {
-        const dashboardToken = localStorage.getItem('fiddupay_dashboard_token') || sessionStorage.getItem('fiddupay_dashboard_token')
-
-        if (!dashboardToken) {
-          set({
-            user: null,
-            token: null,
-            dashboard_token: null,
-            isAuthenticated: false,
-            loading: false
-          })
-          return
-        }
+        // Since HttpOnly cookies cannot be read by JS, we assume auth exists if state.isAuthenticated is true.
+        // We'll verify this by attempting to fetch the profile.
 
         try {
           if (!silent) set({ loading: true })
@@ -155,8 +140,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
           set({
             user: profileUser,
-            token: dashboardToken,
-            dashboard_token: dashboardToken,
             isAuthenticated: true,
             loading: false,
           })
@@ -177,7 +160,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       storage: createJSONStorage(() => customStateStorage),
       partialize: (state) => ({
         user: state.user,
-        dashboard_token: state.dashboard_token, // Persist dashboard token
         isAuthenticated: state.isAuthenticated,
         rememberMe: state.rememberMe
       } as any),

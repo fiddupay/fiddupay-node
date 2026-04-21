@@ -7,4 +7,5 @@ pub mod keygen;
 pub mod network_config;
 pub mod qr;
 pub mod retry;
+pub mod sanitizer;
 pub mod validation;

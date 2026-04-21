@@ -193,7 +193,7 @@ pub async fn register_merchant(
                     kyc_tier: 0,
                     compliance_status: "PENDING".to_string(),
                 },
-                dashboard_token: token,
+                dashboard_token: token.clone(),
             };
 
             // Log registration and trace
@@ -212,9 +212,25 @@ pub async fn register_merchant(
                 req.email
             );
 
-            (StatusCode::CREATED, Json(auth_response)).into_response()
+            let cookie = format!(
+                "dashboard_token={}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400",
+                token
+            );
+
+            (
+                StatusCode::CREATED,
+                [
+                    (axum::http::header::SET_COOKIE, cookie),
+                    (
+                        axum::http::header::ACCESS_CONTROL_EXPOSE_HEADERS,
+                        "Set-Cookie".to_string(),
+                    ),
+                ],
+                Json(auth_response),
+            )
+                .into_response()
         }
-        Err(e) => e.into_response(),
+        Err(e) => ServiceError::Internal(e.to_string()).into_response(),
     }
 }
 
@@ -362,6 +378,16 @@ pub async fn login_merchant(
         }
         Err(e) => ServiceError::Database(e).into_response(),
     }
+}
+
+pub async fn logout_merchant() -> impl IntoResponse {
+    let cookie = "dashboard_token=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0";
+    (
+        StatusCode::OK,
+        [(axum::http::header::SET_COOKIE, cookie.to_string())],
+        Json(json!({"status": "success", "message": "Logged out successfully"})),
+    )
+        .into_response()
 }
 
 // DEBUG HANDLER (disabled in production routes but kept for reference)
@@ -538,8 +564,22 @@ async fn finalize_login(
         state.config.daily_volume_limit_non_kyc_usd
     });
 
+    // 6. Build response with HttpOnly cookie (Fortress Layer)
+    let cookie = format!(
+        "dashboard_token={}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age={}",
+        token,
+        if remember_me { 86400 * 30 } else { 86400 }
+    );
+
     (
         StatusCode::OK,
+        [
+            (axum::http::header::SET_COOKIE, cookie),
+            (
+                axum::http::header::ACCESS_CONTROL_EXPOSE_HEADERS,
+                "Set-Cookie".to_string(),
+            ),
+        ],
         Json(AuthResponse {
             user: MerchantProfile {
                 id: m.id,
@@ -556,12 +596,18 @@ async fn finalize_login(
                 settlement_mode: m.settlement_mode,
                 has_transaction_pin: m.transaction_pin_hash.is_some(),
                 pin_setup_at: m.pin_setup_at.map(|d| d.to_rfc3339()),
-                nin_bvn_hash: m.nin_bvn_hash,
+                nin_bvn_hash: m.nin_bvn_hash.map(|h| {
+                    if h.len() > 8 {
+                        format!("{}...", &h[..8])
+                    } else {
+                        "****".to_string()
+                    }
+                }),
                 social_handles: m.social_handles,
                 kyc_tier: m.kyc_tier,
                 compliance_status: m.compliance_status,
             },
-            dashboard_token: token,
+            dashboard_token: token, // Kept for legacy support but frontend should move to cookies
         }),
     )
         .into_response()
