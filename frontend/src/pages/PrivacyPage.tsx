@@ -36,7 +36,10 @@ const PrivacyPage: React.FC = () => {
                         <section id="introduction" className={styles.section}>
                             <h2>1. Introduction</h2>
                             <p>
-                                At FidduPay, we respect your privacy and are committed to protecting your personal data. This privacy policy will inform you about how we look after your personal data when you visit our website or use our services.
+                                At FidduPay, we respect your privacy and are committed to protecting your personal data. 
+                                This privacy policy is designed to align with the <b>Nigeria Data Protection Act (NDPA) 2023</b>. 
+                                As we operate in Public Beta, we are actively preparing for formal registration with the 
+                                <b>Nigeria Data Protection Commission (NDPC)</b> as a data controller and processor.
                             </p>
                         </section>
 

@@ -111,6 +111,15 @@ const TermsPage: React.FC = () => {
               <p>
                 FidduPay's liability is strictly limited to the cumulative fees paid for our services in the 12 months preceding any claim. We are not liable for blockchain congestion, fork events, or exchange rate volatility.
               </p>
+            </section>
+
+            <section id="governing-law" className={styles.section}>
+              <h2>8. Governing Law</h2>
+              <p>
+                These Terms shall be governed by and construed in accordance with the laws of the <b>Federal Republic of Nigeria</b>. 
+                Any disputes arising under these terms shall be subject to the exclusive jurisdiction of the 
+                courts of Nigeria.
+              </p>
               <div className={styles.contactLegal}>
                   <p>For questions about these terms, please contact: <strong>legal@fiddupay.com</strong></p>
               </div>

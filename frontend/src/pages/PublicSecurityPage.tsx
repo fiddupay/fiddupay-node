@@ -81,7 +81,7 @@ const PublicSecurityPage: React.FC = () => {
                             <div className={styles.certGrid}>
                                 <div className={styles.certItem}><MdVerified /> Multi-Chain Architecture</div>
                                 <div className={styles.certItem}><MdVerified /> Hardware Security Options</div>
-                                <div className={styles.certItem}><MdVerified /> GDPR-First Privacy</div>
+                                <div className={styles.certItem}><MdVerified /> NDPA / NDPC 2023 Compliance</div>
                                 <div className={styles.certItem}><MdVerified /> Scalable to ISO/SOC Standards</div>
                             </div>
                         </div>

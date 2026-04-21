@@ -1,7 +1,7 @@
+import SEO from '@/components/ui/SEO';
 import styles from '@/styles/pages/HomePage.module.css';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import SEO from '@/components/ui/SEO'
 
 const HomePage: React.FC = () => {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
@@ -35,7 +35,7 @@ const HomePage: React.FC = () => {
             <div className={styles.badge}>
               <span className={styles.badgePing}></span>
               <span className={styles.badgeDot}></span>
-              V1.0 Now Live: Lightning Fast Payments
+              Public Beta: Lightning Fast Payments
             </div>
             
             <h1 className={styles.heroTitle}>
@@ -131,7 +131,7 @@ const HomePage: React.FC = () => {
             <div className={styles.featureCard}>
                <div className={styles.featureWatermark}><i className="fas fa-shield-halved"></i></div>
                <div className={`${styles.featureIcon} ${styles.iconSecondary}`}><i className="fas fa-shield-halved"></i></div>
-               <h3 className={styles.featureTitle}>Bank-Grade Security</h3>
+               <h3 className={styles.featureTitle}>Institutional-Grade Security</h3>
                <p className={styles.featureDesc}>Built with robust cryptography. Enjoy absolute control of your keys and robust DDoS protection on our API endpoints.</p>
             </div>
 
@@ -139,7 +139,7 @@ const HomePage: React.FC = () => {
                <div className={styles.featureWatermark}><i className="fas fa-code"></i></div>
                <div className={`${styles.featureIcon} ${styles.iconPrimary}`}><i className="fas fa-code"></i></div>
                <h3 className={styles.featureTitle}>Developer API & SDKs</h3>
-               <p className={styles.featureDesc}>Integrate natively using our NodeJS, Python, or Go SDKs. Complete documentation with ready-to-deploy webhooks.</p>
+               <p className={styles.featureDesc}>Integrate natively using our NodeJS SDKs. Complete documentation with ready-to-deploy webhooks.</p>
             </div>
           </div>
         </section>
@@ -173,7 +173,7 @@ const HomePage: React.FC = () => {
         <section className={styles.ctaSection}>
           <div className={styles.ctaCard}>
             <h2 className={styles.ctaTitle}>Ready to modernize your checkout?</h2>
-            <p className={styles.ctaSubtitle}>Join thousands of forward-thinking merchants accepting global payments.</p>
+            <p className={styles.ctaSubtitle}>Join forward-thinking merchants building local and global payment workflows.</p>
             <div className={styles.ctaActions}>
               <Link to="/register" className={styles.btnWhite}>Create Free Account</Link>
               <Link to="/contact" className={styles.btnOutline}>Contact Sales</Link>
