@@ -10,6 +10,7 @@ use crate::utils::api_keys::ApiKeyGenerator;
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use chrono::Utc;
 use rust_decimal::Decimal;
+use sha2::{Digest, Sha256};
 use sqlx::{PgPool, Row};
 use std::sync::Arc;
 
@@ -153,12 +154,14 @@ impl MerchantService {
                 gender, phone_number, country, applicant_role, 
                 business_country, business_license_number, 
                 business_certificate_url, terms_accepted,
-                wallets_locked, customer_wallets_locked, low_balance_alerts_enabled
+                wallets_locked, customer_wallets_locked, low_balance_alerts_enabled,
+                nin_bvn_hash, social_handles, kyc_tier, compliance_status
             )
-            VALUES ($1, $2, 'PENDING', 'PENDING', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT', $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, TRUE, TRUE, TRUE)
+            VALUES ($1, $2, 'PENDING', 'PENDING', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT', $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, TRUE, TRUE, TRUE, $23, $24, $25, $26)
             RETURNING id, email, business_name, live_api_key_hash, test_api_key_hash, live_publishable_key, test_publishable_key, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role, redirect_url,
                       first_name, last_name, gender, phone_number, country, applicant_role, business_country, business_license_number, business_certificate_url, terms_accepted,
-                      wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled
+                      wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled,
+                      nin_bvn_hash, social_handles, kyc_tier, compliance_status
             "#
         )
         .bind(email)
@@ -180,9 +183,16 @@ impl MerchantService {
         .bind(&req.country)
         .bind(&req.applicant_role)
         .bind(&req.business_country)
-        .bind(&req.business_license_number)
         .bind(&req.business_certificate_url)
         .bind(req.terms_accepted)
+        // 2. Intelligence & Compliance Fields
+        .bind(req.nin_bvn.as_ref().map(|s| self.hash_id_number(s)))
+        .bind(serde_json::json!({
+            "twitter": req.twitter_handle,
+            "instagram": req.instagram_handle
+        }))
+        .bind(0i32) // kyc_tier starts at 0
+        .bind("PENDING") // compliance_status
 
         .fetch_one(&self.db_pool)
         .await;
@@ -1107,5 +1117,13 @@ impl MerchantService {
             .await;
 
         Ok(())
+    }
+
+    /// Helper to hash sensitive identification numbers (NIN, BVN) using SHA-256
+    fn hash_id_number(&self, id_number: &str) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(id_number.as_bytes());
+        let result = hasher.finalize();
+        hex::encode(result)
     }
 }

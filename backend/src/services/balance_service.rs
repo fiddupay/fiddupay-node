@@ -1104,7 +1104,7 @@ impl BalanceService {
 
                     if tx_type == "payment" {
                         // Ghost payment: DB says we got money, but we didn't. Debit balance.
-                        sqlx::query("UPDATE merchant_balances SET available_balance = available_balance - $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
+                        sqlx::query("UPDATE merchant_balances SET available_balance = available_balance - $1, total_balance = total_balance - $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
                             .bind(amount).bind(merchant_id).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *ghost_tx).await?;
 
                         sqlx::query("UPDATE payment_transactions SET status = 'VOIDED_GHOST', description = COALESCE(description, '') || $2 WHERE payment_id = $1")
@@ -1123,7 +1123,7 @@ impl BalanceService {
                         ));
                     } else if tx_type == "customer_tx" {
                         // Ghost customer deposit: DB says a customer paid, but we didn't get it. Debit balance.
-                        sqlx::query("UPDATE merchant_balances SET available_balance = available_balance - $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
+                        sqlx::query("UPDATE merchant_customer_balances SET available_balance = available_balance - $1, total_balance = total_balance - $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
                             .bind(amount).bind(merchant_id).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *ghost_tx).await?;
 
                         sqlx::query("UPDATE customer_transactions SET status = 'VOIDED_GHOST' WHERE id = $1")

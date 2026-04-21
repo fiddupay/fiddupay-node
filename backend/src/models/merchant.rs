@@ -86,6 +86,11 @@ pub struct Merchant {
     pub pin_setup_at: Option<DateTime<Utc>>,
     pub low_balance_threshold_usd: Decimal,
     pub low_balance_alerts_enabled: bool,
+    // Compliance & Intelligence Fields
+    pub nin_bvn_hash: Option<String>,
+    pub social_handles: serde_json::Value, // JSONB
+    pub kyc_tier: i32,
+    pub compliance_status: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -120,6 +125,10 @@ pub struct MerchantRegistrationRequest {
     pub business_country: String,
     pub business_license_number: Option<String>,
     pub business_certificate_url: Option<String>,
+    // Compliance Fields
+    pub nin_bvn: Option<String>,
+    pub twitter_handle: Option<String>,
+    pub instagram_handle: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

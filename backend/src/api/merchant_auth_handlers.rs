@@ -83,6 +83,11 @@ pub struct MerchantProfile {
     pub settlement_mode: String,
     pub has_transaction_pin: bool,
     pub pin_setup_at: Option<String>,
+    // Intelligence & Compliance
+    pub nin_bvn_hash: Option<String>,
+    pub social_handles: serde_json::Value,
+    pub kyc_tier: i32,
+    pub compliance_status: String,
 }
 
 // ============================================================================
@@ -125,6 +130,9 @@ pub async fn register_merchant(
         business_country: req.business_country.clone(),
         business_license_number: req.business_license_number.clone(),
         business_certificate_url: req.business_certificate_url.clone(),
+        nin_bvn: None,
+        twitter_handle: None,
+        instagram_handle: None,
     };
 
     // 4. Capture metadata for compliance (IP and User-Agent)
@@ -180,6 +188,10 @@ pub async fn register_merchant(
                     settlement_mode: "managed".to_string(),
                     has_transaction_pin: false,
                     pin_setup_at: None,
+                    nin_bvn_hash: None,
+                    social_handles: json!({}),
+                    kyc_tier: 0,
+                    compliance_status: "PENDING".to_string(),
                 },
                 dashboard_token: token,
             };
@@ -232,7 +244,7 @@ pub async fn login_merchant(
 
     // 3. Attempt Owner Login first
     let merchant_query = sqlx::query(
-        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at FROM merchants WHERE email = $1 AND is_active = true"
+        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at, nin_bvn_hash, social_handles, kyc_tier, compliance_status FROM merchants WHERE email = $1 AND is_active = true"
     )
     .bind(&req.email)
     .fetch_optional(&state.db_pool)
@@ -300,7 +312,7 @@ pub async fn login_merchant(
                 Ok(user) => {
                     // Fetch the parent merchant info for the context
                     let merchant_res = sqlx::query(
-                        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at FROM merchants WHERE id = $1"
+                        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at, nin_bvn_hash, social_handles, kyc_tier, compliance_status FROM merchants WHERE id = $1"
                     )
                     .bind(user.merchant_id)
                     .fetch_optional(&state.db_pool)
@@ -386,6 +398,10 @@ fn merchant_context_from_row(row: sqlx::postgres::PgRow) -> MerchantProfileData 
         daily_limit_usd: row.get("daily_limit_usd"),
         transaction_pin_hash: row.get("transaction_pin_hash"),
         pin_setup_at: row.get("pin_setup_at"),
+        nin_bvn_hash: row.get("nin_bvn_hash"),
+        social_handles: row.get("social_handles"),
+        kyc_tier: row.get("kyc_tier"),
+        compliance_status: row.get("compliance_status"),
     }
 }
 
@@ -402,6 +418,10 @@ struct MerchantProfileData {
     daily_limit_usd: Option<Decimal>,
     transaction_pin_hash: Option<String>,
     pin_setup_at: Option<chrono::DateTime<chrono::Utc>>,
+    nin_bvn_hash: Option<String>,
+    social_handles: serde_json::Value,
+    kyc_tier: i32,
+    compliance_status: String,
 }
 
 // Unified logic to generate token and response
@@ -536,6 +556,10 @@ async fn finalize_login(
                 settlement_mode: m.settlement_mode,
                 has_transaction_pin: m.transaction_pin_hash.is_some(),
                 pin_setup_at: m.pin_setup_at.map(|d| d.to_rfc3339()),
+                nin_bvn_hash: m.nin_bvn_hash,
+                social_handles: m.social_handles,
+                kyc_tier: m.kyc_tier,
+                compliance_status: m.compliance_status,
             },
             dashboard_token: token,
         }),

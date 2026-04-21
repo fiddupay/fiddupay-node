@@ -134,7 +134,7 @@ const RegisterPage: React.FC = () => {
           gender: formData.gender,
           phone_number: formData.phoneNumber,
           country: formData.country,
-          applicant_role: formData.applicantRole === 'other' ? (formData as any).customRole : formData.applicantRole,
+          applicant_role: formData.applicantRole === 'other' ? formData.customRole : formData.applicantRole,
           terms_accepted: formData.agreeToTerms,
           business_country: formData.businessCountry,
           business_license_number: formData.businessLicenseNumber || null,

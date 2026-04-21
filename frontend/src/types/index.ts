@@ -23,6 +23,14 @@ export interface User {
   low_balance_threshold_usd?: string
   has_transaction_pin: boolean
   pin_setup_at?: string
+  // Intelligence & Compliance
+  nin_bvn_hash?: string
+  social_handles?: {
+    twitter?: string
+    instagram?: string
+  }
+  kyc_tier: number
+  compliance_status: string
 }
 
 export interface SecurityEvent {

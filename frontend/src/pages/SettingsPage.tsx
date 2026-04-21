@@ -6,6 +6,7 @@ import {
     MdPayment,
     MdNotificationsActive,
     MdLock,
+    MdShield,
     MdClose,
     MdWarning,
     MdError
@@ -24,8 +25,9 @@ import ApiSettingsTab from '@/components/settings/tabs/ApiSettingsTab'
 import WebhooksTab from '@/components/settings/tabs/WebhooksTab'
 import SecurityTab from '@/components/settings/tabs/SecurityTab'
 import WidgetTab from '@/components/settings/tabs/WidgetTab'
+import VerificationTab from '@/components/settings/tabs/VerificationTab'
 
-type TabType = 'settlement' | 'fees' | 'api' | 'webhooks' | 'security' | 'widget'
+type TabType = 'settlement' | 'fees' | 'api' | 'webhooks' | 'security' | 'widget' | 'verification'
 
 const SettingsPage: React.FC = () => {
     const { user, loadUser } = useAuthStore()
@@ -434,6 +436,12 @@ const SettingsPage: React.FC = () => {
                 >
                     <MdLock /> Security
                 </button>
+                <button
+                    className={`${styles.tabBtn} ${activeTab === 'verification' ? styles.activeTab : ''}`}
+                    onClick={() => setActiveTab('verification')}
+                >
+                    <MdShield /> Verification
+                </button>
             </div>
 
             <div className={styles.content}>
@@ -516,6 +524,14 @@ const SettingsPage: React.FC = () => {
                         lowBalanceAlertsEnabled={lowBalanceAlertsEnabled}
                         setLowBalanceAlertsEnabled={setLowBalanceAlertsEnabled}
                         handleUpdateSettings={handleUpdateSettings}
+                        styles={styles}
+                    />
+                )}
+
+                {activeTab === 'verification' && (
+                    <VerificationTab 
+                        user={user}
+                        loading={loading}
                         styles={styles}
                     />
                 )}

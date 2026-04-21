@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI, paymentAPI, securityAPI, walletAPI } from '@/services/apiService'
 import { SecurityAlert } from '../types'
-import { MdWarning, MdArrowForward, MdRadar } from 'react-icons/md'
+import { MdWarning, MdArrowForward, MdRadar, MdShield } from 'react-icons/md'
 import styles from '@/styles/pages/DashboardPage.module.css'
 import { ActivityListSkeleton, DashboardSkeleton } from '@/components/layout/PageSkeletons'
 import SEO from '@/components/ui/SEO'
@@ -286,6 +286,40 @@ const DashboardPage: React.FC = () => {
 
           {/* Stats Row */}
           <div className={styles.statsGrid}>
+            <div className={styles.statCard}>
+              <div className={styles.statHeader}>
+                <span className={styles.statLabel}>Trust Intelligence</span>
+                <MdShield size={20} style={{ color: 'var(--primary)' }} />
+              </div>
+              <div className={styles.statValue}>
+                {(() => {
+                  let score = 10; // Base score for email verified
+                  if (user?.kyc_verified) score += 40;
+                  if (user?.nin_bvn_hash) score += 30;
+                  if (user?.social_handles?.twitter || user?.social_handles?.instagram) score += 20;
+                  return score;
+                })()}/100
+              </div>
+              <div className={styles.statFooter} style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                <span style={{ color: '#10b981' }}>{user?.compliance_status || 'Pending'}</span> • Level {user?.kyc_tier || 0} Signal
+              </div>
+              <div className={styles.trustProgress} style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', marginTop: '8px' }}>
+                <div style={{ 
+                    height: '100%', 
+                    borderRadius: '2px', 
+                    background: 'var(--primary)', 
+                    boxShadow: '0 0 10px var(--primary-glow)',
+                    width: `${(() => {
+                      let score = 10;
+                      if (user?.kyc_verified) score += 40;
+                      if (user?.nin_bvn_hash) score += 30;
+                      if (user?.social_handles?.twitter || user?.social_handles?.instagram) score += 20;
+                      return score;
+                    })()}%` 
+                }}></div>
+              </div>
+            </div>
+
             <div className={styles.statCard}>
               <div className={styles.statHeader}>
                 <span className={styles.statLabel}>Total Payments</span>
