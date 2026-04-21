@@ -611,10 +611,13 @@ impl BalanceService {
         .fetch_all(&self.db_pool)
         .await?;
 
-        let mut existing_txs: std::collections::HashMap<String, (Decimal, String)> =
+        let mut existing_txs: std::collections::HashMap<String, Vec<(Decimal, String, String)>> =
             std::collections::HashMap::new();
         let mut db_confirmed_deposits = Decimal::ZERO;
         let mut db_confirmed_withdrawals = Decimal::ZERO;
+        let mut db_pending_withdrawals_count = 0;
+        let mut db_pending_withdrawals_sum = Decimal::ZERO;
+        let mut duplicates = Vec::new();
 
         for r in existing_data_rows {
             if let Some(hash) = r.get::<Option<String>, _>("transaction_hash") {
@@ -622,7 +625,18 @@ impl BalanceService {
                 let status = r.get::<String, _>("status");
                 let source: String = r.get("source");
 
-                existing_txs.insert(hash, (amount, status.clone()));
+                let entry = (amount, status.clone(), source.clone());
+
+                if existing_txs.contains_key(&hash) {
+                    duplicates.push(json!({
+                        "hash": hash.clone(),
+                        "amount": amount,
+                        "status": status.clone(),
+                        "source": source.clone()
+                    }));
+                }
+
+                existing_txs.entry(hash).or_default().push(entry);
 
                 if status == "CONFIRMED" || status == "COMPLETED" {
                     if source == "payment" || source == "customer_tx" {
@@ -630,11 +644,17 @@ impl BalanceService {
                     } else if source == "withdrawal" {
                         db_confirmed_withdrawals += amount;
                     }
+                } else if source == "withdrawal"
+                    && (status == "PENDING" || status == "PROCESSING" || status == "INITIAL")
+                {
+                    db_pending_withdrawals_count += 1;
+                    db_pending_withdrawals_sum += amount;
                 }
             }
         }
 
         // 4.1 Fetch Merchant Sub-wallets for Sweep Identification
+        // ... (rest of the logic remains the same)
         let sub_wallets: std::collections::HashSet<String> = sqlx::query_scalar(
             "SELECT LOWER(address) FROM merchant_customer_wallets WHERE merchant_id = $1 AND crypto_type = $2"
         )
@@ -706,12 +726,21 @@ impl BalanceService {
                 total_onchain_withdrawals += tx.amount;
             }
 
-            if let Some((db_amount, db_status)) = existing_txs.get(&tx.hash) {
-                // IT EXISTS - Check for discrepancy
-                if (tx.amount - *db_amount).abs() > Decimal::new(1, 8)
-                    || db_status == "PENDING"
-                    || db_status == "FAILED"
-                {
+            if let Some(entries) = existing_txs.get(&tx.hash) {
+                // IT EXISTS - Check if any entry matches the confirmed amount
+                let mut found_match = false;
+                for (db_amount, db_status, _source) in entries {
+                    if (tx.amount - *db_amount).abs() <= Decimal::new(1, 8)
+                        && (db_status == "CONFIRMED" || db_status == "COMPLETED")
+                    {
+                        found_match = true;
+                        break;
+                    }
+                }
+
+                if !found_match {
+                    // Not found a perfect settled match - report first entry as discrepancy
+                    let (db_amount, db_status, _source) = &entries[0];
                     mismatched_txs.push(json!({
                         "hash": tx.hash,
                         "onchain_amount": tx.amount,
@@ -931,13 +960,13 @@ impl BalanceService {
             .await?;
         }
 
-        // 9. REVERSE AUDIT (GHOST DETECTION)
-        // Find transactions in DB that are NOT on-chain
+        // 9. REVERSE AUDIT (DEEP RECONCILIATION)
+        // Find every transaction in DB (including Pending and Failed) to verify against actual blockchain state
         let db_transactions = sqlx::query(
             r#"
-            SELECT 'payment' as type, payment_id as id, transaction_hash as hash, amount, created_at, status FROM payment_transactions WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND status = 'CONFIRMED'
+            SELECT 'payment' as type, payment_id as id, transaction_hash as hash, amount, created_at, status FROM payment_transactions WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND status IN ('CONFIRMED', 'PENDING')
             UNION ALL
-            SELECT 'withdrawal' as type, withdrawal_id as id, transaction_hash as hash, amount, created_at, status FROM withdrawals WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND status = 'COMPLETED'
+            SELECT 'withdrawal' as type, withdrawal_id as id, transaction_hash as hash, amount, created_at, status FROM withdrawals WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND status IN ('COMPLETED', 'PROCESSING', 'PENDING', 'FAILED')
             "#
         )
         .bind(merchant_id)
@@ -947,65 +976,144 @@ impl BalanceService {
         .await?;
 
         let mut potential_ghosts = Vec::new();
+        let mut matched_onchain_hashes = std::collections::HashSet::new();
+        let mut db_stuck_pending_count = 0;
+        let mut db_stuck_pending_sum = Decimal::ZERO;
+
         for row in db_transactions {
             let hash_opt: Option<String> = row.get("hash");
             let tx_id: String = row.get("id");
             let tx_type: String = row.get("type");
             let amount: Decimal = row.get("amount");
             let created_at: chrono::DateTime<chrono::Utc> = row.get("created_at");
+            let status: String = row.get("status");
 
             if let Some(hash) = hash_opt {
-                if !found_onchain_hashes.contains(&hash.to_lowercase()) {
-                    // Check if it's potentially just old
-                    let is_out_of_range = has_onchain_txs && created_at < earliest_onchain_ts;
+                let hash_lwr = hash.to_lowercase();
+                let is_onchain = found_onchain_hashes.contains(&hash_lwr);
+                let is_duplicate = matched_onchain_hashes.contains(&hash_lwr);
 
-                    potential_ghosts.push(json!({
-                        "id": tx_id,
-                        "type": tx_type,
-                        "hash": hash,
-                        "amount": amount,
-                        "created_at": created_at,
-                        "is_potential_ghost": !is_out_of_range,
-                        "reason": if is_out_of_range { "Older than scan range" } else { "Not found on blockchain" }
-                    }));
+                // Track matching to detect if the same on-chain event is credited multiple times in DB
+                if is_onchain && !is_duplicate {
+                    matched_onchain_hashes.insert(hash_lwr);
 
-                    // --- GHOST REMEDIATION (If not dry run) ---
-                    if !dry_run && !is_out_of_range {
-                        tracing::warn!(
-                            "[RECTIFY-GHOST] Voiding ghost {} ({}): {} {}",
-                            tx_type,
-                            tx_id,
-                            amount,
-                            crypto_type_str
-                        );
+                    // SPECIAL CASE: It's on-chain but marked as FAILED in DB (A "Zombie" transaction)
+                    if status == "FAILED" && tx_type == "withdrawal" {
+                        potential_ghosts.push(json!({
+                            "id": tx_id,
+                            "type": tx_type,
+                            "hash": hash.clone(),
+                            "amount": amount,
+                            "status": status,
+                            "created_at": created_at,
+                            "is_potential_ghost": true,
+                            "reason": "Zombie Withdrawal: Failed in DB but Success on-chain"
+                        }));
 
-                        let mut ghost_tx = self.db_pool.begin().await?;
+                        if !dry_run {
+                            tracing::warn!("[RECTIFY-ZOMBIE] Resurrecting failed-but-onchain withdrawal {}: {} SOL", tx_id, amount);
+                            let mut zombie_tx = self.db_pool.begin().await?;
 
-                        if tx_type == "payment" {
-                            // Ghost payment: DB says we got money, but we didn't. Debit balance.
+                            // Re-deduct from balance because 'FAILED' status likely returned it
                             sqlx::query("UPDATE merchant_balances SET available_balance = available_balance - $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
-                                .bind(amount).bind(merchant_id).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *ghost_tx).await?;
+                                .bind(amount).bind(merchant_id).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *zombie_tx).await?;
 
-                            sqlx::query("UPDATE payment_transactions SET status = 'VOIDED_GHOST', description = COALESCE(description, '') || ' [VOIDED: GHOST DETECTED]' WHERE payment_id = $1")
-                                .bind(&tx_id).execute(&mut *ghost_tx).await?;
+                            sqlx::query("UPDATE withdrawals SET status = 'COMPLETED' WHERE withdrawal_id = $1")
+                                .bind(&tx_id).execute(&mut *zombie_tx).await?;
 
-                            actions_taken.push(format!("Voided Ghost Payment: {}", tx_id));
-                        } else if tx_type == "withdrawal" {
-                            // Ghost withdrawal: DB says we sent money, but we didn't. Credit balance back.
-                            sqlx::query("UPDATE merchant_balances SET available_balance = available_balance + $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
-                                .bind(amount).bind(merchant_id).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *ghost_tx).await?;
-
-                            sqlx::query("UPDATE withdrawals SET status = 'VOIDED_GHOST' WHERE withdrawal_id = $1")
-                                .bind(&tx_id).execute(&mut *ghost_tx).await?;
-
+                            zombie_tx.commit().await?;
                             actions_taken.push(format!(
-                                "Voided Ghost Withdrawal (Balance Restored): {}",
+                                "Resurrected Failed-but-Onchain Withdrawal: {}",
                                 tx_id
                             ));
                         }
-
-                        ghost_tx.commit().await?;
                     }
+                    continue; // Correctly matched (or zombie handled)
+                }
+
+                // If we reach here, it's either NOT on-chain (Ghost) or it IS on-chain but already matched (Duplicate)
+                let is_out_of_range = has_onchain_txs && created_at < earliest_onchain_ts;
+                let reason = if is_duplicate {
+                    "Duplicate/Double-counted in DB".to_string()
+                } else if is_out_of_range {
+                    "Older than scan range".to_string()
+                } else {
+                    "Not found on blockchain".to_string()
+                };
+
+                // "Fish out" stuck pending withdrawals for the report
+                if (status == "PENDING" || status == "PROCESSING" || status == "INITIAL")
+                    && tx_type == "withdrawal"
+                    && !is_duplicate
+                {
+                    db_stuck_pending_count += 1;
+                    db_stuck_pending_sum += amount;
+                }
+
+                potential_ghosts.push(json!({
+                    "id": tx_id,
+                    "type": tx_type,
+                    "hash": hash,
+                    "amount": amount,
+                    "status": status,
+                    "created_at": created_at,
+                    "is_potential_ghost": !is_out_of_range || is_duplicate,
+                    "reason": reason
+                }));
+
+                // --- GHOST/DUPLICATE REMEDIATION (If not dry run) ---
+                // We void it if it's a confirmed duplicate OR it's a ghost within range
+                if !dry_run && (!is_out_of_range || is_duplicate) {
+                    tracing::warn!(
+                        "[RECTIFY-GHOST] Voiding {} {} ({}): {} {}",
+                        if is_duplicate { "duplicate" } else { "ghost" },
+                        tx_type,
+                        tx_id,
+                        amount,
+                        crypto_type_str
+                    );
+
+                    let mut ghost_tx = self.db_pool.begin().await?;
+
+                    if tx_type == "payment" {
+                        // Ghost payment: DB says we got money, but we didn't. Debit balance.
+                        sqlx::query("UPDATE merchant_balances SET available_balance = available_balance - $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
+                            .bind(amount).bind(merchant_id).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *ghost_tx).await?;
+
+                        sqlx::query("UPDATE payment_transactions SET status = 'VOIDED_GHOST', description = COALESCE(description, '') || $2 WHERE payment_id = $1")
+                            .bind(&tx_id)
+                            .bind(format!(" [VOIDED: {}]", reason))
+                            .execute(&mut *ghost_tx).await?;
+
+                        actions_taken.push(format!(
+                            "Voided {}: {}",
+                            if is_duplicate {
+                                "Duplicate payment"
+                            } else {
+                                "Ghost payment"
+                            },
+                            tx_id
+                        ));
+                    } else if tx_type == "withdrawal" {
+                        // Ghost withdrawal: DB says we sent money, but we didn't. Credit balance back.
+                        sqlx::query("UPDATE merchant_balances SET available_balance = available_balance + $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
+                            .bind(amount).bind(merchant_id).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *ghost_tx).await?;
+
+                        sqlx::query("UPDATE withdrawals SET status = 'VOIDED_GHOST' WHERE withdrawal_id = $1")
+                            .bind(&tx_id).execute(&mut *ghost_tx).await?;
+
+                        actions_taken.push(format!(
+                            "Voided {} (Balance Restored): {}",
+                            if is_duplicate {
+                                "Duplicate withdrawal"
+                            } else {
+                                "Ghost withdrawal"
+                            },
+                            tx_id
+                        ));
+                    }
+
+                    ghost_tx.commit().await?;
                 }
             }
         }
@@ -1022,34 +1130,46 @@ impl BalanceService {
                 .await;
         }
 
+        let onchain_raw_balance = total_onchain_deposits - total_onchain_withdrawals;
+        let db_ledger_balance = db_confirmed_deposits - db_confirmed_withdrawals;
+
         Ok(json!({
             "success": true,
             "dry_run": dry_run,
             "merchant_id": merchant_id,
             "blockchain": monitor.blockchain_name(),
             "mode": if active_sandbox_mode { "SANDBOX" } else { "LIVE" },
+            "wallet_reconciliation": {
+                "onchain_target_balance": onchain_raw_balance,
+                "recorded_ledger_balance": db_ledger_balance,
+                "current_dashboard_balance": current_balance_after,
+                "total_discrepancy": onchain_raw_balance - db_ledger_balance,
+                "status": if (onchain_raw_balance - db_ledger_balance).abs() < Decimal::new(1, 8) { "SYNCED" } else { "OUT_OF_SYNC" }
+            },
             "audit": {
                 "onchain_deposits": total_onchain_deposits,
                 "onchain_withdrawals": total_onchain_withdrawals,
-                "recorded_db_deposits_net": audited_deposits,
-                "recorded_db_withdrawals": audited_withdrawals,
+                "recorded_db_deposits_total": db_confirmed_deposits,
+                "recorded_db_withdrawals_total": db_confirmed_withdrawals,
+                "duplicate_hashes_found": duplicates.len(),
                 "internal_sweeps_detected": skipped_sweeps
             },
-            "reconciliation": {
-                "current_table_balance": current_balance_after,
-                "expected_from_recorded_txs": audited_expected_balance,
-                "balance_gap": audited_expected_balance - current_balance_after,
-                "status": if (audited_expected_balance - current_balance_after).abs() < Decimal::new(1, 8) { "HEALTHY" } else { "OUT_OF_SYNC" }
+            "pending_audit": {
+                "total_pending_withdrawals_count": db_pending_withdrawals_count,
+                "total_pending_withdrawals_amount": db_pending_withdrawals_sum,
+                "stuck_pending_ghosts_count": db_stuck_pending_count,
+                "stuck_pending_ghosts_amount": db_stuck_pending_sum
             },
+            "duplicates": duplicates,
             "excess_data_audit": {
                 "ghost_count": potential_ghosts.len(),
                 "ghost_transactions": potential_ghosts,
                 "scan_range_warning": if has_onchain_txs { format!("Scan only reached back to {}", earliest_onchain_ts) } else { "No on-chain transactions found".to_string() }
             },
             "gap_analysis": {
-                "missing_deposits": missing_deposits.len(),
-                "missing_withdrawals": missing_withdrawals.len(),
-                "discrepancies_found": mismatched_txs.len(),
+                "missing_deposits_on_db": missing_deposits.len(),
+                "missing_withdrawals_on_db": missing_withdrawals.len(),
+                "data_mismatches": mismatched_txs.len(),
             },
             "mismatched_details": mismatched_txs,
             "actions_taken": actions_taken,
