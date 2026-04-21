@@ -16,10 +16,19 @@ const api = axios.create({
   },
 })
 
-// Request interceptor: The browser will now automatically include HttpOnly cookies.
-// We only keep this interceptor for manual API key injection if needed in the future.
+// Request interceptor: The browser will automatically include HttpOnly cookies, 
+// but we also include the Authorization header as a fallback (Hybrid Auth).
 api.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    // Check sessionStorage for the fallback token
+    const dashboardToken = sessionStorage.getItem('fiddupay_dashboard_token');
+
+    if (dashboardToken) {
+      config.headers.Authorization = `Bearer ${dashboardToken}`;
+    }
+
+    return config;
+  },
   (error) => Promise.reject(error)
 );
 

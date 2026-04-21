@@ -213,7 +213,7 @@ pub async fn register_merchant(
             );
 
             let cookie = format!(
-                "dashboard_token={}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400",
+                "dashboard_token={}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400",
                 token
             );
 
@@ -565,8 +565,9 @@ async fn finalize_login(
     });
 
     // 6. Build response with HttpOnly cookie (Fortress Layer)
+    // Note: Secure flag removed for dev compatibility. SameSite=Lax for security.
     let cookie = format!(
-        "dashboard_token={}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age={}",
+        "dashboard_token={}; HttpOnly; SameSite=Lax; Path=/; Max-Age={}",
         token,
         if remember_me { 86400 * 30 } else { 86400 }
     );

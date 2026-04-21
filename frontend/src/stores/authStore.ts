@@ -67,13 +67,12 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           set({ loading: true, error: null })
           const response = await authAPI.login(credentials)
 
-          // Dashboard token is now handled via HttpOnly cookies (Fortress Layer)
-          // We no longer store it in localStorage/sessionStorage
+          // Dashboard token fallback for environments where HttpOnly cookies are blocked/rejected (Fortress Layer)
+          sessionStorage.setItem('fiddupay_dashboard_token', response.data.dashboard_token)
 
           set({
             user: response.data.user,
-            token: response.data.dashboard_token, // JWT is our primary session token
-            dashboard_token: response.data.dashboard_token,
+            token: response.data.dashboard_token, 
             isAuthenticated: true,
             loading: false,
             rememberMe: rememberMe
@@ -92,12 +91,12 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           set({ loading: true, error: null })
           const response = await authAPI.register(data)
 
-          // DASHBOARD_TOKEN handled via HttpOnly Cookies
+          // DASHBOARD_TOKEN handled via HttpOnly Cookies + Fallback Header
+          sessionStorage.setItem('fiddupay_dashboard_token', response.data.dashboard_token)
 
           set({
             user: response.data.user,
-            token: response.data.dashboard_token, // JWT is our primary session token
-            dashboard_token: response.data.dashboard_token,
+            token: response.data.dashboard_token, 
             isAuthenticated: true,
             loading: false,
             rememberMe: true // Default to true for registration
@@ -130,8 +129,11 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
 
       loadUser: async (silent: boolean = false) => {
-        // Since HttpOnly cookies cannot be read by JS, we assume auth exists if state.isAuthenticated is true.
-        // We'll verify this by attempting to fetch the profile.
+        // Fallback for browsers blocking HttpOnly cookies
+        const fallbackToken = sessionStorage.getItem('fiddupay_dashboard_token')
+        if (fallbackToken && !_get().token) {
+          set({ token: fallbackToken })
+        }
 
         try {
           if (!silent) set({ loading: true })
@@ -160,6 +162,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       storage: createJSONStorage(() => customStateStorage),
       partialize: (state) => ({
         user: state.user,
+        token: state.token, // Store for current session fallback
         isAuthenticated: state.isAuthenticated,
         rememberMe: state.rememberMe
       } as any),

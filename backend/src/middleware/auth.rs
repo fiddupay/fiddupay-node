@@ -80,7 +80,11 @@ pub async fn auth_middleware(
                     None => match query_token {
                         Some(token) => token,
                         None => {
-                            tracing::warn!("Missing or invalid Authorization header/cookie and no WebSocket token provided");
+                            let path = uri.path();
+                            tracing::debug!(
+                                path = %path,
+                                "Missing Authorization header/cookie and no WebSocket token provided"
+                            );
                             return Err((
                                 StatusCode::UNAUTHORIZED,
                                 axum::Json(json!({
