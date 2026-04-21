@@ -2,6 +2,7 @@
 // Business logic for merchant management
 
 use crate::error::ServiceError;
+use crate::models::compliance::PolicyType;
 use crate::models::merchant::{Merchant, MerchantRegistrationResponse};
 use crate::payment::models::CryptoType;
 use crate::services::volume_tracking_service::VolumeTrackingService;
@@ -124,6 +125,8 @@ impl MerchantService {
     pub async fn register_merchant(
         &self,
         req: &crate::models::merchant::MerchantRegistrationRequest,
+        ip_address: Option<String>,
+        user_agent: Option<String>,
     ) -> Result<MerchantRegistrationResponse, ServiceError> {
         let email = &req.email;
         let business_name = &req.business_name;
@@ -197,7 +200,6 @@ impl MerchantService {
         let pub_key = ApiKeyGenerator::generate_publishable_key(merchant.id, false);
 
         // 4. Update the merchant with the real key and publishable key
-        // Use sqlx::query function to avoid macro checking
         sqlx::query(
             "UPDATE merchants SET test_api_key_hash = $1, test_publishable_key = $2 WHERE id = $3",
         )
@@ -206,6 +208,28 @@ impl MerchantService {
         .bind(merchant.id)
         .execute(&self.db_pool)
         .await?;
+
+        // 5. Record initial policy consent (Privacy and Terms)
+        if req.terms_accepted {
+            let _ = self
+                .record_policy_agreement(
+                    merchant.id,
+                    PolicyType::TermsOfService,
+                    "2024.1".to_string(),
+                    ip_address.clone(),
+                    user_agent.clone(),
+                )
+                .await;
+            let _ = self
+                .record_policy_agreement(
+                    merchant.id,
+                    PolicyType::PrivacyPolicy,
+                    "2024.1".to_string(),
+                    ip_address,
+                    user_agent,
+                )
+                .await;
+        }
 
         Ok(MerchantRegistrationResponse {
             merchant_id: merchant.id,
@@ -1041,6 +1065,46 @@ impl MerchantService {
                 "Invalid transaction PIN".to_string(),
             ));
         }
+
+        Ok(())
+    }
+
+    /// Record a merchant's agreement to a specific policy version (NDPC Compliance)
+    pub async fn record_policy_agreement(
+        &self,
+        merchant_id: i64,
+        policy_type: PolicyType,
+        version: String,
+        ip_address: Option<String>,
+        user_agent: Option<String>,
+    ) -> Result<(), ServiceError> {
+        sqlx::query(
+            r#"
+            INSERT INTO policy_agreements (
+                merchant_id, policy_type, version, ip_address, user_agent, accepted_at
+            )
+            VALUES ($1, $2, $3, $4, $5, NOW())
+            "#,
+        )
+        .bind(merchant_id)
+        .bind(policy_type.as_str())
+        .bind(&version)
+        .bind(ip_address)
+        .bind(user_agent)
+        .execute(&self.db_pool)
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+
+        // Audit log the compliance event
+        let _ = self
+            .audit_service
+            .log_event(
+                merchant_id,
+                "policy_accepted",
+                Some(&format!("Accepted {} v{}", policy_type.as_str(), version)),
+                None,
+            )
+            .await;
 
         Ok(())
     }

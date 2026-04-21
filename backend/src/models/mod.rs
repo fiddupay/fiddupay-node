@@ -5,6 +5,7 @@ pub mod address_only;
 pub mod analytics;
 pub mod audit;
 pub mod balance;
+pub mod compliance;
 pub mod contact;
 pub mod fee_sweep;
 pub mod invoice;

@@ -966,7 +966,7 @@ impl BalanceService {
             r#"
             SELECT 'payment' as type, payment_id as id, transaction_hash as hash, amount, created_at, status FROM payment_transactions WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND status IN ('CONFIRMED', 'PENDING')
             UNION ALL
-            SELECT 'customer_tx' as type, payment_id as id, transaction_hash as hash, amount, created_at, status FROM customer_transactions WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND status IN ('CONFIRMED', 'PENDING')
+            SELECT 'customer_tx' as type, id::text as id, transaction_hash as hash, amount, created_at, status FROM customer_transactions WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND status IN ('CONFIRMED', 'PENDING')
             UNION ALL
             SELECT 'withdrawal' as type, withdrawal_id as id, transaction_hash as hash, amount, created_at, status FROM withdrawals WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND status IN ('COMPLETED', 'PROCESSING', 'PENDING', 'FAILED')
             "#

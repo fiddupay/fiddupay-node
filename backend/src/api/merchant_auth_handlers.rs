@@ -4,13 +4,14 @@
 use crate::api::state::AppState;
 use crate::error::ServiceError;
 use axum::{
-    extract::State,
-    http::StatusCode,
+    extract::{ConnectInfo, State},
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Json},
 };
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::net::SocketAddr;
 use validator::Validate;
 
 use crate::middleware::validation::{validate_business_email, validate_password_strength};
@@ -90,6 +91,8 @@ pub struct MerchantProfile {
 
 pub async fn register_merchant(
     State(state): State<AppState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
     Json(req): Json<RegisterMerchantRequest>,
 ) -> impl IntoResponse {
     // 1. Check if registration is enabled
@@ -124,9 +127,16 @@ pub async fn register_merchant(
         business_certificate_url: req.business_certificate_url.clone(),
     };
 
+    // 4. Capture metadata for compliance (IP and User-Agent)
+    let ip_address = Some(addr.ip().to_string());
+    let user_agent = headers
+        .get("user-agent")
+        .and_then(|h| h.to_str().ok())
+        .map(|s| s.to_string());
+
     match state
         .merchant_service
-        .register_merchant(&registration_req)
+        .register_merchant(&registration_req, ip_address, user_agent)
         .await
     {
         Ok(response) => {
