@@ -1,6 +1,6 @@
+import styles from '@/styles/components/Footer.module.css'
 import React from 'react'
 import { Link } from 'react-router-dom'
-import styles from '@/styles/components/Footer.module.css'
 
 const Footer: React.FC = () => {
   return (
@@ -13,7 +13,7 @@ const Footer: React.FC = () => {
             </div>
             <p className={styles.description}>
               Enterprise-grade cryptocurrency payment gateway trusted by businesses worldwide.
-              Accept payments across 5 blockchain networks with bank-level security.
+              Accept payments across 6 blockchain networks with bank-level security.
             </p>
             <div className={styles.social}>
               <a href="https://x.com/fiddupay" className={styles.socialLink} target="_blank" rel="noopener noreferrer">

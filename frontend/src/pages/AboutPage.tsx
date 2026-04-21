@@ -1,7 +1,7 @@
+import SEO from '@/components/ui/SEO'
 import styles from '@/styles/pages/AboutPage.module.css'
 import React from 'react'
 import { Link } from 'react-router-dom'
-import SEO from '@/components/ui/SEO'
 
 const AboutPage: React.FC = () => {
   return (
@@ -21,8 +21,8 @@ const AboutPage: React.FC = () => {
         <section className={`${styles.hero} animate-fade-in-up`}>
           <div className={styles.heroContent}>
             <div className={styles.badge}>
-              <i className="fas fa-globe"></i>
-              <span>Global Payment Network</span>
+              <i className="fas fa-flask"></i>
+              <span>Beta Development Phase</span>
             </div>
             <h1 className={styles.heroTitle}>Building the Future of <span className={styles.gradientText}>Digital Commerce</span></h1>
             <p className={styles.heroSubtitle}>
@@ -42,7 +42,7 @@ const AboutPage: React.FC = () => {
               <div className={styles.floatingIcon}><i className="fas fa-microchip"></i></div>
               <div className={styles.floatingText}>
                 <span>L3 Monitoring</span>
-                <strong>Active 24/7</strong>
+                <b>Active 24/7</b>
               </div>
             </div>
           </div>
@@ -75,7 +75,7 @@ const AboutPage: React.FC = () => {
                 Security isn’t just a line item in our feature list—it’s the architecture of everything we build. From AES-256 encryption at rest to multi-layer signature validation, we protect every byte of data and every cent of capital.
               </p>
               <p>
-                Our platform is SOC 2 compliant and undergoes continuous real-time auditing. We don't just process payments; we secure the future of your revenue.
+                Our platform is designed with security best practices and undergoing continuous development. We don't just process payments; we secure the future of your revenue.
               </p>
             </div>
           </section>
@@ -84,22 +84,22 @@ const AboutPage: React.FC = () => {
         {/* Stats Grid */}
         <div className={styles.statsGrid}>
           <div className={styles.statCard}>
-            <span className={styles.statLabel}>Security Score</span>
+            <span className={styles.statLabel}>Security Focus</span>
             <div className={styles.statValue}>100%</div>
-            <p className={styles.statDesc}>Institutional Grade</p>
+            <p className={styles.statDesc}>Best Practices</p>
           </div>
           <div className={styles.statCard}>
             <span className={styles.statLabel}>Networks</span>
             <div className={styles.statValue}>6+</div>
-            <p className={styles.statDesc}>Global Blockchains</p>
+            <p className={styles.statDesc}>Supported Protocols</p>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statLabel}>Platform Uptime</span>
-            <div className={styles.statValue}>99.9%</div>
-            <p className={styles.statDesc}>Reliability Guaranteed</p>
+            <span className={styles.statLabel}>Status</span>
+            <div className={styles.statValue}>BETA</div>
+            <p className={styles.statDesc}>Early Access Phase</p>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statLabel}>Integration Time</span>
+            <span className={styles.statLabel}>Integration</span>
             <div className={styles.statValue}>&lt;5m</div>
             <p className={styles.statDesc}>Developer Focused</p>
           </div>
@@ -109,7 +109,7 @@ const AboutPage: React.FC = () => {
         <section className={styles.teamSection}>
           <div className={styles.teamContainer}>
             <div className={styles.teamLogo}>
-              <img src="/logo/logo-brandmark.svg" alt="FidduPay" style={{ height: '56px' }} />
+              <img src="/logo/logo-circled.svg" alt="FidduPay" style={{ height: '100px' }} />
             </div>
             <div className={styles.teamText}>
               <h2>Built by TechyTro Software</h2>

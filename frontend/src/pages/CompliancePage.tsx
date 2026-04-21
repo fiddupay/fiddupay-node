@@ -43,23 +43,23 @@ const CompliancePage: React.FC = () => {
               <div className={styles.complianceGrid}>
                 <div className={styles.complianceCard}>
                   <div className={styles.cardIcon}><i className="fas fa-shield-alt"></i></div>
-                  <h3>SOC 2 Type II</h3>
-                  <p>Independently audited security controls and operational procedures ensuring data integrity.</p>
+                  <h3>Security Best Practices</h3>
+                  <p>Guided by industry-standard security controls and rigorous internal operational procedures.</p>
                 </div>
                 <div className={styles.complianceCard}>
                   <div className={styles.cardIcon}><i className="fas fa-lock"></i></div>
-                  <h3>PCI DSS Level 1</h3>
-                  <p>Adherence to the highest level of payment card industry data security standards for fiat-crypto bridges.</p>
+                  <h3>Encryption Standards</h3>
+                  <p>Adherence to high-level asymmetric encryption for all digital asset interactions and keys.</p>
                 </div>
                 <div className={styles.complianceCard}>
                   <div className={styles.cardIcon}><i className="fas fa-balance-scale"></i></div>
-                  <h3>AML/KYC</h3>
-                  <p>Comprehensive Anti-Money Laundering and Know Your Customer programs driven by automated L3 monitoring.</p>
+                  <h3>Tiered KYC Framework</h3>
+                  <p>Infrastructure ready for tiered identity verification to meet future regulatory requirements.</p>
                 </div>
                 <div className={styles.complianceCard}>
                   <div className={styles.cardIcon}><i className="fas fa-globe"></i></div>
-                  <h3>GDPR</h3>
-                  <p>Full compliance with European General Data Protection Regulation for global user privacy.</p>
+                  <h3>Privacy Focused</h3>
+                  <p>Built with data minimization and user privacy as core architectural principles.</p>
                 </div>
               </div>
             </section>
@@ -81,7 +81,7 @@ const CompliancePage: React.FC = () => {
                     We employ real-time L3 blockchain monitoring to detect suspicious on-chain activity. This automated layer ensures that our gateway remains a secure environment for legitimate business transactions while excluding high-risk or sanctioned entities.
                 </p>
                 <div className={styles.contactLegal}>
-                    <p>For regulatory inquiries, please reach out to: <strong>compliance@fiddupay.com</strong></p>
+                    <p>For development and partnership inquiries: <strong>support@fiddupay.com</strong></p>
                 </div>
             </section>
           </main>

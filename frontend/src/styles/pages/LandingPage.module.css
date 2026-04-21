@@ -97,6 +97,19 @@
   background-clip: text;
 }
 
+.betaBadge {
+  font-size: 1rem;
+  background: #f59e0b;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 2rem;
+  vertical-align: middle;
+  margin-left: 1rem;
+  font-weight: 600;
+  -webkit-text-fill-color: white; /* Override highlight parent if needed */
+  display: inline-block;
+}
+
 .heroSubtitle {
   font-size: 1.25rem;
   margin-bottom: 2rem;

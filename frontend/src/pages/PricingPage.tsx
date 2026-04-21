@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import SEO from '@/components/ui/SEO'
 import { publicAPI } from '@/services/apiService'
 import styles from '@/styles/pages/PricingPage.module.css'
-import SEO from '@/components/ui/SEO'
+import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 interface PricingData {
   transaction_fee_percentage: number
@@ -14,7 +14,7 @@ const PricingPage: React.FC = () => {
   const [pricingData, setPricingData] = useState<PricingData>({
     transaction_fee_percentage: 0.75,
     daily_volume_limit_non_kyc_usd: '...',
-    supported_networks: 5
+    supported_networks: 6
   })
   
   const [activeFaq, setActiveFaq] = useState<number | null>(null);

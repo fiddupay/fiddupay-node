@@ -1,7 +1,7 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import { MdSecurity, MdSpeed, MdAccountBalance, MdIntegrationInstructions } from 'react-icons/md'
 import styles from '@/styles/pages/LandingPage.module.css'
+import React from 'react'
+import { MdAccountBalance, MdIntegrationInstructions, MdSecurity, MdSpeed } from 'react-icons/md'
+import { Link } from 'react-router-dom'
 
 const LandingPage: React.FC = () => {
   const features = [
@@ -49,6 +49,7 @@ const LandingPage: React.FC = () => {
           <h1 className={styles.heroTitle}>
             Enterprise-Grade
             <span className={styles.highlight}> Crypto Infrastructure</span>
+            <span className={styles.betaBadge}>Beta</span>
           </h1>
           <p className={styles.heroSubtitle}>
             The global settlement layer for modern digital commerce. Securely accept and route
@@ -64,16 +65,16 @@ const LandingPage: React.FC = () => {
           </div>
           <div className={styles.heroStats}>
             <div className={styles.stat}>
-              <span className={styles.statNumber}>10/10</span>
-              <span className={styles.statLabel}>Security Audit Info</span>
+              <span className={styles.statNumber}>Audit</span>
+              <span className={styles.statLabel}>Security Focused</span>
             </div>
             <div className={styles.stat}>
-              <span className={styles.statNumber}>6</span>
+              <span className={styles.statNumber}>1/6</span>
               <span className={styles.statLabel}>Active Protocols</span>
             </div>
             <div className={styles.stat}>
-              <span className={styles.statNumber}>99.99%</span>
-              <span className={styles.statLabel}>System Uptime</span>
+              <span className={styles.statNumber}>Beta</span>
+              <span className={styles.statLabel}>Development Phase</span>
             </div>
           </div>
         </div>
@@ -207,32 +208,22 @@ const LandingPage: React.FC = () => {
           <div className={styles.testimonialsGrid}>
             <div className={styles.testimonialCard}>
               <p className={styles.testimonialText}>
-                "FidduPay's infrastructure has provided our e-commerce platform with the reliability
-                required for large-scale digital asset settlement. The security is unmatched."
+                "FidduPay's architecture provides the technical foundation we need for future-proof 
+                digital asset settlement. The development speed is impressive."
               </p>
               <div className={styles.testimonialAuthor}>
-                <strong>Sarah Chen</strong>
-                <span>CTO, GlobalTech Solutions</span>
+                <span><b>Tech Partner</b></span>
+                <span>Early Adopter</span>
               </div>
             </div>
             <div className={styles.testimonialCard}>
               <p className={styles.testimonialText}>
-                "Seamless integration and institutional-grade security protocols. We've settled over $2M
-                in digital assets through FidduPay with complete technical confidence."
+                "A promising infrastructure play. The focus on security and multi-protocol 
+                support is exactly what the ecosystem needs."
               </p>
               <div className={styles.testimonialAuthor}>
-                <strong>Marcus Rodriguez</strong>
-                <span>Managing Director, FinStream</span>
-              </div>
-            </div>
-            <div className={styles.testimonialCard}>
-              <p className={styles.testimonialText}>
-                "Advanced multi-protocol support and real-time reconciliation have streamlined our treasury
-                operations. FidduPay is the benchmark for crypto infrastructure."
-              </p>
-              <div className={styles.testimonialAuthor}>
-                <strong>Emily Watson</strong>
-                <span>Lead Architect, BlockScale</span>
+                <span><b>Beta User</b></span>
+                <span>Developer</span>
               </div>
             </div>
           </div>
