@@ -1037,7 +1037,7 @@ impl BalanceService {
                             let mut zombie_tx = self.db_pool.begin().await?;
 
                             // Re-deduct from balance because 'FAILED' status likely returned it
-                            sqlx::query("UPDATE merchant_balances SET available_balance = available_balance - $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
+                            sqlx::query("UPDATE merchant_balances SET available_balance = available_balance - $1, total_balance = total_balance - $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
                                 .bind(amount).bind(merchant_id).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *zombie_tx).await?;
 
                             sqlx::query("UPDATE withdrawals SET status = 'COMPLETED' WHERE withdrawal_id = $1")
@@ -1141,7 +1141,7 @@ impl BalanceService {
                         ));
                     } else if tx_type == "withdrawal" {
                         // Ghost withdrawal: DB says we sent money, but we didn't. Credit balance back.
-                        sqlx::query("UPDATE merchant_balances SET available_balance = available_balance + $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
+                        sqlx::query("UPDATE merchant_balances SET available_balance = available_balance + $1, total_balance = total_balance + $1, last_updated = NOW() WHERE merchant_id = $2 AND crypto_type = $3 AND sandbox_mode = $4")
                             .bind(amount).bind(merchant_id).bind(&crypto_type_str).bind(active_sandbox_mode).execute(&mut *ghost_tx).await?;
 
                         sqlx::query("UPDATE withdrawals SET status = 'VOIDED_GHOST' WHERE withdrawal_id = $1")
