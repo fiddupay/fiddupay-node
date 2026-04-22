@@ -1,3 +1,5 @@
+// API Module
+
 use crate::api::state::AppState;
 use crate::error::ServiceError;
 use crate::middleware::auth::MerchantContext;
