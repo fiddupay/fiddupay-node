@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { walletAPI } from '@/services/apiService'
+import { merchantAPI } from '@/services/apiService'
 import { Balance } from '@/types'
 
 interface BalanceState {
@@ -32,7 +32,7 @@ export const useBalanceStore = create<BalanceState & BalanceActions>((set, get) 
 
     set({ loading: true })
     try {
-      const res = await walletAPI.getBalances()
+      const res = await merchantAPI.getBalance()
       set({ 
         balance: res.data, 
         loading: false,

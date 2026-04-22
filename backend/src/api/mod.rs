@@ -19,6 +19,7 @@ pub mod p2p_auth_handlers;
 pub mod p2p_handlers;
 pub mod p2p_routes;
 pub mod p2p_ws;
+pub mod pay_handlers;
 pub mod payment_handlers;
 pub mod public_handlers;
 pub mod public_routes;

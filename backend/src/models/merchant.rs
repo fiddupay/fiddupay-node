@@ -96,6 +96,8 @@ pub struct Merchant {
     pub social_handles: serde_json::Value, // JSONB
     pub kyc_tier: i32,
     pub compliance_status: String,
+    pub username: Option<String>,
+    pub pay_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -129,7 +131,7 @@ pub struct MerchantRegistrationRequest {
     pub terms_accepted: bool,
     // Step 2 Business
     pub business_country: String,
-    pub business_license_number: Option<String>,
+    pub business_license_number: String,
     pub business_certificate_url: Option<String>,
     // Compliance Fields
     pub nin_bvn: Option<String>,

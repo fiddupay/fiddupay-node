@@ -11,11 +11,19 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI, paymentAPI, securityAPI, walletAPI } from '@/services/apiService'
+import { 
+  MdWarning, 
+  MdArrowForward, 
+  MdRadar,
+  MdBolt
+} from 'react-icons/md'
+import { UniversalPayForm } from '@/components/ui/UniversalPayForm'
 import { SecurityAlert } from '../types'
-import { MdWarning, MdArrowForward, MdRadar, MdShield } from 'react-icons/md'
 import styles from '@/styles/pages/DashboardPage.module.css'
 import { ActivityListSkeleton, DashboardSkeleton } from '@/components/layout/PageSkeletons'
 import SEO from '@/components/ui/SEO'
+import { TrustScoreWidget } from '@/components/ui/TrustScoreWidget'
+import { Badge } from '@/components/ui/badge'
 
 // Recent Activity Component
 const RecentActivityList: React.FC = () => {
@@ -133,6 +141,7 @@ const DashboardPage: React.FC = () => {
   const [alerts, setAlerts] = useState<SecurityAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [showGasModal, setShowGasModal] = useState(false)
+  const [showQuickPayModal, setShowQuickPayModal] = useState(false)
   const [gasEstimates, setGasEstimates] = useState<any>(null)
   const [loadingGas, setLoadingGas] = useState(false)
   const [dailyVolumeUsed, setDailyVolumeUsed] = useState(0)
@@ -218,7 +227,19 @@ const DashboardPage: React.FC = () => {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Dashboard</h1>
-          <p className={styles.subtitle}>Welcome back! Here's your business at a glance.</p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className={styles.subtitle}>Welcome back! Here's your business at a glance.</p>
+            {user?.username && (
+              <Badge className="bg-primary/20 text-primary border-primary/30 px-2 py-0.5 text-[10px] font-bold">
+                @{user.username}
+              </Badge>
+            )}
+            {user?.pay_id && (
+              <Badge className="bg-secondary/20 text-secondary border-secondary/30 px-2 py-0.5 text-[10px] font-bold">
+                {user.pay_id}
+              </Badge>
+            )}
+          </div>
         </div>
         <div className={styles.filters}>
           <div className={styles.dateInput}>
@@ -239,6 +260,9 @@ const DashboardPage: React.FC = () => {
           </div>
           <button className={styles.refreshBtn} onClick={loadDashboardData} disabled={loading} title="Refresh Dashboard">
             <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
+          </button>
+          <button className={styles.refreshBtn} onClick={() => setShowQuickPayModal(true)} title="Quick Interop Pay" style={{ color: 'var(--secondary)', background: 'rgba(245, 158, 11, 0.1)' }}>
+            <MdBolt size={20} />
           </button>
           <button className={styles.refreshBtn} onClick={loadGasData} disabled={loadingGas} title="Network Gas Radar" style={{ color: 'var(--primary)', background: 'rgba(99, 102, 241, 0.1)' }}>
             {loadingGas ? <i className="fas fa-spinner fa-spin"></i> : <MdRadar size={20} />}
@@ -285,80 +309,50 @@ const DashboardPage: React.FC = () => {
           )}
 
           {/* Stats Row */}
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <div className={styles.statHeader}>
-                <span className={styles.statLabel}>Trust Intelligence</span>
-                <MdShield size={20} style={{ color: 'var(--primary)' }} />
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            <TrustScoreWidget user={user} className="lg:col-span-1 h-full" />
+            
+            <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+              <div className={styles.statCard}>
+                <div className={styles.statHeader}>
+                  <span className={styles.statLabel}>Total Payments</span>
+                  <i className="fas fa-receipt" style={{ color: 'var(--primary)' }}></i>
+                </div>
+                <div className={styles.statValue}>{totalPayments.toLocaleString()}</div>
+                <div className={styles.statFooter}>{analytics?.successful_payments || 0} successful / {analytics?.failed_payments || 0} failed</div>
               </div>
-              <div className={styles.statValue}>
-                {(() => {
-                  let score = 10; // Base score for email verified
-                  if (user?.kyc_verified) score += 40;
-                  if (user?.nin_bvn_hash) score += 30;
-                  if (user?.social_handles?.twitter || user?.social_handles?.instagram) score += 20;
-                  return score;
-                })()}/100
-              </div>
-              <div className={styles.statFooter} style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                <span style={{ color: '#10b981' }}>{user?.compliance_status || 'Pending'}</span> • Level {user?.kyc_tier || 0} Signal
-              </div>
-              <div className={styles.trustProgress} style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', marginTop: '8px' }}>
-                <div style={{ 
-                    height: '100%', 
-                    borderRadius: '2px', 
-                    background: 'var(--primary)', 
-                    boxShadow: '0 0 10px var(--primary-glow)',
-                    width: `${(() => {
-                      let score = 10;
-                      if (user?.kyc_verified) score += 40;
-                      if (user?.nin_bvn_hash) score += 30;
-                      if (user?.social_handles?.twitter || user?.social_handles?.instagram) score += 20;
-                      return score;
-                    })()}%` 
-                }}></div>
-              </div>
-            </div>
 
-            <div className={styles.statCard}>
-              <div className={styles.statHeader}>
-                <span className={styles.statLabel}>Total Payments</span>
-                <i className="fas fa-receipt" style={{ color: 'var(--primary)' }}></i>
+              <div className={styles.statCard}>
+                <div className={styles.statHeader}>
+                  <span className={styles.statLabel}>Total Volume</span>
+                  <i className="fas fa-chart-line" style={{ color: '#10b981' }}></i>
+                </div>
+                <div className={styles.statValue}>${(parseFloat(analytics?.total_volume_usd || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                <div className={styles.statFooter}>Total revenue processed</div>
               </div>
-              <div className={styles.statValue}>{totalPayments.toLocaleString()}</div>
-              <div className={styles.statFooter}>{analytics?.successful_payments || 0} successful / {analytics?.failed_payments || 0} failed</div>
-            </div>
 
-            <div className={styles.statCard}>
-              <div className={styles.statHeader}>
-                <span className={styles.statLabel}>Total Volume</span>
-                <i className="fas fa-chart-line" style={{ color: '#10b981' }}></i>
+              <div className={styles.statCard}>
+                <div className={styles.statHeader}>
+                  <span className={styles.statLabel}>Success Rate</span>
+                  <i className="fas fa-check-circle" style={{ color: '#22c55e' }}></i>
+                </div>
+                <div className={styles.statValue}>{successRate}%</div>
+                <div className={styles.statFooter}>Payment completion rate</div>
               </div>
-              <div className={styles.statValue}>${(parseFloat(analytics?.total_volume_usd || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div className={styles.statFooter}>Total revenue processed</div>
-            </div>
 
-            <div className={styles.statCard}>
-              <div className={styles.statHeader}>
-                <span className={styles.statLabel}>Success Rate</span>
-                <i className="fas fa-check-circle" style={{ color: '#22c55e' }}></i>
-              </div>
-              <div className={styles.statValue}>{successRate}%</div>
-              <div className={styles.statFooter}>Payment completion rate</div>
-            </div>
-
-            <div className={styles.statCard}>
-              <div className={styles.statHeader}>
-                <span className={styles.statLabel}>Available Balance</span>
-                <i className="fas fa-wallet" style={{ color: 'var(--secondary)' }}></i>
-              </div>
-              <div className={`${styles.statValue} ${(parseFloat(balance?.total_usd || '0') < 0) ? styles.negativeValue : ''}`}>
-                ${(parseFloat(balance?.total_usd || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-              <div className={styles.statFooter}>
-                Settled: <span className={(parseFloat(balance?.available_usd || '0') < 0) ? styles.negativeValue : ''}>
-                  ${(parseFloat(balance?.available_usd || '0') || 0).toLocaleString()}
-                </span>
+              <div className={styles.statCard}>
+                <div className={styles.statHeader}>
+                  <span className={styles.statLabel}>Available Balance</span>
+                  <i className="fas fa-wallet" style={{ color: 'var(--secondary)' }}></i>
+                </div>
+                <div className={`${styles.statValue} ${(parseFloat(balance?.total_usd || '0') < 0) ? styles.negativeValue : ''}`}>
+                  ${(parseFloat(balance?.total_usd || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className={styles.statFooter}>
+                  Settled: <span className={(parseFloat(balance?.available_usd || '0') < 0) ? styles.negativeValue : ''}>
+                    ${(parseFloat(balance?.available_usd || '0') || 0).toLocaleString()}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -607,6 +601,21 @@ const DashboardPage: React.FC = () => {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+      {showQuickPayModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowQuickPayModal(false)}>
+          <div className={styles.modalContent} style={{ maxWidth: '600px', width: '95%', background: 'transparent', boxShadow: 'none' }} onClick={(e) => e.stopPropagation()}>
+             <div className="flex justify-end mb-2">
+                <button 
+                  onClick={() => setShowQuickPayModal(false)}
+                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+             </div>
+             <UniversalPayForm />
           </div>
         </div>
       )}

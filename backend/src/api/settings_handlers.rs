@@ -30,10 +30,10 @@ pub async fn get_merchant_profile(
     // 1. Fetch BASIC merchant info
     let merchant = match sqlx::query(
         r#"
-        SELECT id, business_name, email, sandbox_mode, settlement_mode, 
                kyc_verified, daily_limit_usd, created_at, redirect_url,
                test_api_key_hash, live_api_key_hash, wallets_locked, customer_wallets_locked,
-               transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled
+               transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled,
+               kyc_tier, social_handles, username, pay_id
         FROM merchants
         WHERE id = $1
         "#,
@@ -128,7 +128,15 @@ pub async fn get_merchant_profile(
         "has_transaction_pin": m_transaction_pin_hash.is_some(),
         "pin_setup_at": m_pin_setup_at.map(|d| d.to_rfc3339()),
         "low_balance_threshold_usd": m_low_balance_threshold_usd.to_string(),
-        "low_balance_alerts_enabled": m_low_balance_alerts_enabled
+        "low_balance_alerts_enabled": m_low_balance_alerts_enabled,
+        "kyc_tier": merchant.get::<i32, _>("kyc_tier"),
+        "social_handles": merchant.get::<serde_json::Value, _>("social_handles"),
+        "username": merchant.get::<Option<String>, _>("username"),
+        "pay_id": merchant.get::<Option<String>, _>("pay_id"),
+        "trust_score": crate::services::trust_score_service::TrustScoreService::calculate_score(
+            merchant.get::<i32, _>("kyc_tier"),
+            &merchant.get::<serde_json::Value, _>("social_handles")
+        )
     });
 
     // 4. Calculate daily volume remaining
@@ -1110,4 +1118,74 @@ pub async fn verify_transaction_pin(
         Json(json!({"status": "success", "message": "PIN verified"})),
     )
         .into_response()
+}
+// ============================================================================
+// Trust & Identity Handlers
+// ============================================================================
+
+#[derive(Deserialize)]
+pub struct ClaimUsernameRequest {
+    pub username: String,
+}
+
+pub async fn claim_username(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<ClaimUsernameRequest>,
+) -> impl IntoResponse {
+    match state
+        .merchant_service
+        .claim_username(context.merchant_id, &req.username)
+        .await
+    {
+        Ok(_) => (
+            StatusCode::OK,
+            Json(json!({ "status": "success", "message": "Username claimed" })),
+        )
+            .into_response(),
+        Err(e) => e.into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct UpdateKycDraftRequest {
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub gender: Option<String>,
+    pub phone_number: Option<String>,
+    pub country: Option<String>,
+    pub social_handles: Option<serde_json::Value>,
+    pub business_country: Option<String>,
+    pub business_license_number: Option<String>,
+    pub business_certificate_url: Option<String>,
+}
+
+pub async fn update_kyc_draft(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<UpdateKycDraftRequest>,
+) -> impl IntoResponse {
+    match state
+        .merchant_service
+        .save_kyc_data(
+            context.merchant_id,
+            req.first_name,
+            req.last_name,
+            req.gender,
+            req.phone_number,
+            req.country,
+            req.social_handles,
+            req.business_country,
+            req.business_license_number,
+            req.business_certificate_url,
+        )
+        .await
+    {
+        Ok(_) => (
+            StatusCode::OK,
+            Json(json!({ "status": "success", "message": "KYC draft updated" })),
+        )
+            .into_response(),
+        Err(e) => e.into_response(),
+    }
 }

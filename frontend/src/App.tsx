@@ -56,6 +56,7 @@ const WithdrawalsPage = lazyWithRetry(() => import('@/pages/WithdrawalsPage'))
 const ReportsPage = lazyWithRetry(() => import('@/pages/ReportsPage'))
 const SettingsPage = lazyWithRetry(() => import('@/pages/SettingsPage'))
 const MerchantCustomersPage = lazyWithRetry(() => import('@/pages/MerchantCustomersPage'))
+const PublicPayPage = lazyWithRetry(() => import('@/pages/PublicPayPage'))
 
 
 const App: React.FC = () => {
@@ -91,6 +92,8 @@ const App: React.FC = () => {
             <Route path="/security" element={<Layout><PublicSecurityPage /></Layout>} />
             <Route path="/compliance" element={<Layout><CompliancePage /></Layout>} />
             <Route path="/cookies" element={<Layout><CookiesPage /></Layout>} />
+            <Route path="/pay" element={<React.Suspense fallback={<DashboardSkeleton />}><PublicPayPage /></React.Suspense>} />
+            <Route path="/pay/:identifier" element={<React.Suspense fallback={<DashboardSkeleton />}><PublicPayPage /></React.Suspense>} />
 
             {/* Auth routes */}
             <Route path="/login" element={<Layout><LoginPage /></Layout>} />

@@ -10,8 +10,8 @@ use crate::services::{
     invoice_service::InvoiceService, ip_whitelist_service::IpWhitelistService,
     merchant_customer_service::MerchantCustomerService, merchant_service::MerchantService,
     monitoring_service::MonitoringService, notification_service::NotificationService,
-    p2p_service::P2pService, payment_service::PaymentService, price_service::PriceService,
-    refund_service::RefundService, report_service::ReportService,
+    p2p_service::P2pService, pay_service::PayService, payment_service::PaymentService,
+    price_service::PriceService, refund_service::RefundService, report_service::ReportService,
     security_monitoring_service::SecurityMonitoringService,
     volume_tracking_service::VolumeTrackingService, wallet_config_service::WalletConfigService,
     webhook_notification_service::WebhookNotificationService, webhook_service::WebhookService,
@@ -52,6 +52,7 @@ pub struct AppState {
     pub address_only_manager:
         Arc<tokio::sync::Mutex<crate::services::address_only_manager::AddressOnlyManager>>,
     pub address_only_service: Arc<AddressOnlyService>,
+    pub pay_service: Arc<PayService>,
     pub redis_client: RedisClient,
 }
 
@@ -180,6 +181,7 @@ impl AppState {
             blockchain_sender: blockchain_sender.clone(),
             address_only_service,
             address_only_manager,
+            pay_service: Arc::new(PayService::new(db_pool.clone())),
             redis_client,
         }
     }

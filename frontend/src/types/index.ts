@@ -28,7 +28,19 @@ export interface User {
   social_handles?: {
     twitter?: string
     instagram?: string
+    linkedin?: string
+    facebook?: string
+    website?: string
   }
+  trust_score?: {
+    score: number
+    tier: 'Bronze' | 'Silver' | 'Gold'
+    identity_verified: boolean
+    social_verified: boolean
+    business_verified: boolean
+  }
+  username?: string
+  pay_id?: string
   kyc_tier: number
   compliance_status: string
 }

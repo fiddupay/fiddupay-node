@@ -225,3 +225,13 @@ pub async fn create_p2p_support_ticket(
             .into_response(),
     }
 }
+
+pub async fn resolve_merchant_handler(
+    State(state): State<AppState>,
+    Path(identifier): Path<String>,
+) -> impl IntoResponse {
+    match state.pay_service.resolve_merchant(&identifier).await {
+        Ok(profile) => (StatusCode::OK, Json(profile)).into_response(),
+        Err(e) => e.into_response(),
+    }
+}

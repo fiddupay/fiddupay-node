@@ -662,7 +662,11 @@ pub async fn get_wallet_balances(
             }
 
             // 3. Process wallets using pre-fetched prices
-            let response_wallets: Vec<_> = wallets
+            let mut total_available_usd = Decimal::ZERO;
+            let mut total_reserved_usd = Decimal::ZERO;
+            let mut overall_total_usd = Decimal::ZERO;
+
+            let response_balances: Vec<_> = wallets
                 .into_iter()
                 .map(|w| {
                     let price = price_map.get(&w.crypto_type).copied().unwrap_or(0.0);
@@ -672,6 +676,10 @@ pub async fn get_wallet_balances(
                     let available_usd = (w.available_balance * price_dec).round_dp(2);
                     let reserved_usd = (w.reserved_balance * price_dec).round_dp(2);
                     let total_volume_usd = (w.total_volume_crypto * price_dec).round_dp(2);
+
+                    total_available_usd += available_usd;
+                    total_reserved_usd += reserved_usd;
+                    overall_total_usd += total_usd;
 
                     json!({
                         "crypto_type": w.crypto_type,
@@ -693,7 +701,10 @@ pub async fn get_wallet_balances(
                 .collect();
 
             let final_response = json!({
-                "wallets": response_wallets
+                "total_usd": overall_total_usd.to_string(),
+                "available_usd": total_available_usd.to_string(),
+                "reserved_usd": total_reserved_usd.to_string(),
+                "balances": response_balances
             });
 
             // 4. Save to Cache for next time (5 minute TTL)

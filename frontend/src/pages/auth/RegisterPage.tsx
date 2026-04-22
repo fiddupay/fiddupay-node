@@ -116,8 +116,8 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (role === 'merchant' && step === 3) {
-      if (!formData.businessName || !formData.businessCountry) {
-        showToast('Business name and country are mandatory', 'error')
+      if (!formData.businessName || !formData.businessCountry || !formData.businessLicenseNumber) {
+        showToast('Business details including Registration Number are mandatory', 'error')
         return
       }
     }
@@ -137,7 +137,7 @@ const RegisterPage: React.FC = () => {
           applicant_role: formData.applicantRole === 'other' ? formData.customRole : formData.applicantRole,
           terms_accepted: formData.agreeToTerms,
           business_country: formData.businessCountry,
-          business_license_number: formData.businessLicenseNumber || null,
+          business_license_number: formData.businessLicenseNumber,
           business_certificate_url: formData.businessCertificateUrl || null,
         })
       }
@@ -367,7 +367,7 @@ const RegisterPage: React.FC = () => {
                     <input type="text" name="businessCountry" value={formData.businessCountry} onChange={handleChange} placeholder="United Kingdom" />
                   </div>
                   <div className={styles.inputGroup}>
-                    <label>Reg Number (Optional)</label>
+                    <label>Registration Number (RC)</label>
                     <input type="text" name="businessLicenseNumber" value={formData.businessLicenseNumber} onChange={handleChange} placeholder="RC-123456" />
                   </div>
                 </div>

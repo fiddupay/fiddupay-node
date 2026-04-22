@@ -9,6 +9,7 @@ use crate::services::volume_tracking_service::VolumeTrackingService;
 use crate::utils::api_keys::ApiKeyGenerator;
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use chrono::Utc;
+use rand::{distributions::Alphanumeric, Rng};
 use rust_decimal::Decimal;
 use sha2::{Digest, Sha256};
 use sqlx::{PgPool, Row};
@@ -123,6 +124,23 @@ impl MerchantService {
         ApiKeyGenerator::generate_key(is_live)
     }
 
+    /// Generate a unique PayID in the format FID-XXXX-XXXX
+    pub fn generate_pay_id(&self) -> String {
+        let part1: String = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(4)
+            .map(char::from)
+            .collect::<String>()
+            .to_uppercase();
+        let part2: String = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(4)
+            .map(char::from)
+            .collect::<String>()
+            .to_uppercase();
+        format!("FID-{}-{}", part1, part2)
+    }
+
     pub async fn register_merchant(
         &self,
         req: &crate::models::merchant::MerchantRegistrationRequest,
@@ -152,16 +170,15 @@ impl MerchantService {
                 settlement_mode, kyc_verified, created_at, updated_at, 
                 daily_limit_usd, role, first_name, last_name, 
                 gender, phone_number, country, applicant_role, 
-                business_country, business_license_number, 
-                business_certificate_url, terms_accepted,
+                business_country, business_license_number, business_certificate_url, terms_accepted,
                 wallets_locked, customer_wallets_locked, low_balance_alerts_enabled,
-                nin_bvn_hash, social_handles, kyc_tier, compliance_status
+                nin_bvn_hash, social_handles, kyc_tier, compliance_status, pay_id
             )
-            VALUES ($1, $2, 'PENDING', 'PENDING', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT', $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, TRUE, TRUE, TRUE, $23, $24, $25, $26)
+            VALUES ($1, $2, 'PENDING', 'PENDING', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'MERCHANT', $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, TRUE, TRUE, TRUE, $23, $24, $25, $26, $27)
             RETURNING id, email, business_name, live_api_key_hash, test_api_key_hash, live_publishable_key, test_publishable_key, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role, redirect_url,
                       first_name, last_name, gender, phone_number, country, applicant_role, business_country, business_license_number, business_certificate_url, terms_accepted,
                       wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled,
-                      nin_bvn_hash, social_handles, kyc_tier, compliance_status
+                      nin_bvn_hash, social_handles, kyc_tier, compliance_status, username, pay_id
             "#
         )
         .bind(email)
@@ -183,17 +200,21 @@ impl MerchantService {
         .bind(&req.country)
         .bind(&req.applicant_role)
         .bind(&req.business_country)
+        .bind(&req.business_license_number)
         .bind(&req.business_certificate_url)
         .bind(req.terms_accepted)
         // 2. Intelligence & Compliance Fields
         .bind(req.nin_bvn.as_ref().map(|s| self.hash_id_number(s)))
         .bind(serde_json::json!({
             "twitter": req.twitter_handle,
-            "instagram": req.instagram_handle
+            "instagram": req.instagram_handle,
+            "linkedin": null,
+            "facebook": null,
+            "website": null
         }))
         .bind(0i32) // kyc_tier starts at 0
         .bind("PENDING") // compliance_status
-
+        .bind(self.generate_pay_id()) // Generate unique PayID on registration
         .fetch_one(&self.db_pool)
         .await;
 
@@ -1115,6 +1136,114 @@ impl MerchantService {
                 None,
             )
             .await;
+
+        Ok(())
+    }
+
+    /// Claim a unique username for a merchant
+    pub async fn claim_username(
+        &self,
+        merchant_id: i64,
+        username: &str,
+    ) -> Result<(), ServiceError> {
+        let username = username.trim().to_lowercase();
+
+        // Basic validation
+        if username.len() < 3 || username.len() > 30 {
+            return Err(ServiceError::ValidationError(
+                "Username must be between 3 and 30 characters".to_string(),
+            ));
+        }
+
+        if !username
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+        {
+            return Err(ServiceError::ValidationError(
+                "Username can only contain alphanumeric characters, underscores, and hyphens"
+                    .to_string(),
+            ));
+        }
+
+        // Check if username is already taken
+        let exists: bool =
+            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM merchants WHERE username = $1)")
+                .bind(&username)
+                .fetch_one(&self.db_pool)
+                .await?;
+
+        if exists {
+            return Err(ServiceError::ValidationError(
+                "Username already taken".to_string(),
+            ));
+        }
+
+        // Check if merchant already has a username
+        let current_username: Option<String> =
+            sqlx::query_scalar("SELECT username FROM merchants WHERE id = $1")
+                .bind(merchant_id)
+                .fetch_one(&self.db_pool)
+                .await?;
+
+        if current_username.is_some() {
+            return Err(ServiceError::ValidationError(
+                "Merchant already has a username. Usernames cannot be changed yet.".to_string(),
+            ));
+        }
+
+        sqlx::query("UPDATE merchants SET username = $1 WHERE id = $2")
+            .bind(username)
+            .bind(merchant_id)
+            .execute(&self.db_pool)
+            .await?;
+
+        Ok(())
+    }
+
+    /// Save partial KYC data (Draft mode)
+    #[allow(clippy::too_many_arguments)]
+    pub async fn save_kyc_data(
+        &self,
+        merchant_id: i64,
+        first_name: Option<String>,
+        last_name: Option<String>,
+        gender: Option<String>,
+        phone_number: Option<String>,
+        country: Option<String>,
+        social_handles: Option<serde_json::Value>,
+        business_country: Option<String>,
+        business_license_number: Option<String>,
+        business_certificate_url: Option<String>,
+    ) -> Result<(), ServiceError> {
+        sqlx::query(
+            r#"
+            UPDATE merchants 
+            SET first_name = COALESCE($1, first_name),
+                last_name = COALESCE($2, last_name),
+                gender = COALESCE($3, gender),
+                phone_number = COALESCE($4, phone_number),
+                country = COALESCE($5, country),
+                social_handles = COALESCE($6, social_handles),
+                business_country = COALESCE($7, business_country),
+                business_license_number = COALESCE($8, business_license_number),
+                business_certificate_url = COALESCE($9, business_certificate_url),
+                updated_at = $10
+            WHERE id = $11
+            "#,
+        )
+        .bind(first_name)
+        .bind(last_name)
+        .bind(gender)
+        .bind(phone_number)
+        .bind(country)
+        .bind(social_handles)
+        .bind(business_country)
+        .bind(business_license_number)
+        .bind(business_certificate_url)
+        .bind(Utc::now())
+        .bind(merchant_id)
+        .execute(&self.db_pool)
+        .await?;
 
         Ok(())
     }

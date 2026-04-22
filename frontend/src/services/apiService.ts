@@ -94,6 +94,14 @@ export const merchantAPI = {
     const query = `?${new URLSearchParams(cleanParams(params)).toString()}`;
     return api.get(`/api/v1/merchants/analytics/export${query}`, { responseType: 'blob' });
   },
+  claimUsername: (username: string) => api.post('/api/v1/merchants/claim-username', { username }),
+  updateKycDraft: (data: any) => api.post('/api/v1/merchants/kyc-draft', data),
+  executeTransfer: (data: {
+    recipient_identifier: String;
+    crypto_type: string;
+    amount: number;
+    pin: string;
+  }) => api.post('/api/v1/merchants/pay/execute', data),
 }
 
 export const paymentAPI = {
@@ -232,6 +240,7 @@ export const publicAPI = {
   },
   getStatus: () => api.get('/api/v1/status'),
   getPricing: () => api.get('/api/v1/pricing'),
+  resolveMerchant: (identifier: string) => api.get(`/api/v1/p2p/resolve/${identifier}`),
 }
 
 export default {

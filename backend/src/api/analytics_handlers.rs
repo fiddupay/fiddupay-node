@@ -431,12 +431,13 @@ pub async fn get_balance(
 
                     json!({
                         "crypto_type": b.crypto_type.to_string(),
-                        "available_balance": b.available_balance,
-                        "available_usd": cur_avail_usd,
-                        "reserved_balance": b.reserved_balance,
-                        "reserved_usd": cur_res_avail_usd,
-                        "total_balance": b.total_balance,
-                        "total_usd": cur_total_usd
+                        "available_balance": b.available_balance.to_string(),
+                        "available_usd": cur_avail_usd.to_string(),
+                        "reserved_balance": b.reserved_balance.to_string(),
+                        "reserved_usd": cur_res_avail_usd.to_string(),
+                        "total_balance": b.total_balance.to_string(),
+                        "total_usd": cur_total_usd.to_string(),
+                        "balance_usd": cur_total_usd.to_string() // Compatibility with legacy components
                     })
                 })
                 .collect();

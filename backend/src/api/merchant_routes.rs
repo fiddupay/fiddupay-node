@@ -4,7 +4,7 @@
 use crate::api::state::AppState;
 use crate::api::{
     address_only, merchant_handlers, merchant_ws, notification_handlers, security_monitoring,
-    wallet_management,
+    settings_handlers, wallet_management,
 };
 use crate::middleware::auth;
 use axum::{
@@ -49,6 +49,15 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route(
             "/api/v1/merchants/webhook/test",
             post(merchant_handlers::send_test_webhook),
+        )
+        // Trust and Identity
+        .route(
+            "/api/v1/merchants/claim-username",
+            post(settings_handlers::claim_username),
+        )
+        .route(
+            "/api/v1/merchants/kyc-draft",
+            post(settings_handlers::update_kyc_draft),
         )
         // Notifications history
         .route(
@@ -160,6 +169,11 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         .route(
             "/api/v1/merchants/withdrawals/:withdrawal_id/process",
             post(wallet_management::process_withdrawal),
+        )
+        // Pay & Interoperability
+        .route(
+            "/api/v1/merchants/pay/execute",
+            post(crate::api::pay_handlers::transfer_funds_interop),
         )
         // Wallet management (unified setup via POST /wallets with mode field)
         .route(

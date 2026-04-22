@@ -43,7 +43,7 @@ pub struct RegisterMerchantRequest {
 
     // Step 2 Business
     pub business_country: String,
-    pub business_license_number: Option<String>,
+    pub business_license_number: String,
     pub business_certificate_url: Option<String>,
 }
 
