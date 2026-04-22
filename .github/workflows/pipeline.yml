@@ -109,12 +109,16 @@ jobs:
     if: |
       always() &&
       github.event_name == 'push' && 
-      github.ref == 'refs/heads/main' && 
-      (needs.backend-ci.result == 'success' || needs.backend-ci.result == 'skipped') &&
-      (needs.frontend-ci.result == 'success' || needs.frontend-ci.result == 'skipped') &&
-      !contains(needs.*.result, 'failure') && 
-      !contains(needs.*.result, 'cancelled')
+      github.ref == 'refs/heads/main' &&
+      !contains(needs.*.result, 'cancelled') &&
+      (needs.backend-ci.result == 'success' || needs.frontend-ci.result == 'success')
     runs-on: ubuntu-latest
+    env:
+      BACKEND_CHANGED: ${{ needs.changes.outputs.backend }}
+      FRONTEND_CHANGED: ${{ needs.changes.outputs.frontend }}
+      BACKEND_SUCCESS: ${{ needs.backend-ci.result == 'success' }}
+      FRONTEND_SUCCESS: ${{ needs.frontend-ci.result == 'success' }}
+
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -124,7 +128,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
           command_timeout: 45m
-          envs: BACKEND_CHANGED,FRONTEND_CHANGED
+          envs: BACKEND_CHANGED,FRONTEND_CHANGED,BACKEND_SUCCESS,FRONTEND_SUCCESS
           script: |
             set -e
             export PATH="$HOME/.cargo/bin:$PATH"
@@ -146,18 +150,18 @@ jobs:
 
             # --- INTELLIGENT BUILD ---
 
-            # 1. Database Migrations (Only if backend changed)
-            if [ "${{ needs.changes.outputs.backend }}" == "true" ]; then
+            # 1. Database Migrations (Only if backend changed AND passed)
+            if [ "$BACKEND_CHANGED" == "true" ] && [ "$BACKEND_SUCCESS" == "true" ]; then
               echo "[DATABASE] Running Migrations..."
               cd $DEPLOY_DIR/backend
               export $(grep -v '^#' .env.production | xargs)
               sqlx migrate run
             else
-              echo "[DATABASE] Skipping Migrations (No backend changes)"
+              echo "[DATABASE] Skipping Migrations (Not changed or CI failed)"
             fi
 
-            # 2. Frontend Build
-            if [ "${{ needs.changes.outputs.frontend }}" == "true" ]; then
+            # 2. Frontend Build (Only if changed AND passed)
+            if [ "$FRONTEND_CHANGED" == "true" ] && [ "$FRONTEND_SUCCESS" == "true" ]; then
               echo "[BUILD] Compiling Frontend..."
               cd $DEPLOY_DIR/frontend
               npm install
@@ -168,8 +172,8 @@ jobs:
               cp -r $CURRENT_LINK/frontend/dist $DEPLOY_DIR/frontend/dist
             fi
 
-            # 3. Backend Build
-            if [ "${{ needs.changes.outputs.backend }}" == "true" ]; then
+            # 3. Backend Build (Only if changed AND passed)
+            if [ "$BACKEND_CHANGED" == "true" ] && [ "$BACKEND_SUCCESS" == "true" ]; then
               echo "[BUILD] Compiling Backend..."
               cd $DEPLOY_DIR/backend
               cargo build --release --bin fiddupay
