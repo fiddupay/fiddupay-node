@@ -1,43 +1,145 @@
-import React from 'react';
-import { MdVpnKey, MdRefresh, MdContentCopy, MdLanguage, MdSecurity, MdAdd, MdDelete } from 'react-icons/md';
+import React, { useState, useEffect } from 'react';
+import { MdVpnKey, MdRefresh, MdContentCopy, MdLanguage, MdSecurity, MdAdd, MdDelete, MdWarning, MdClose, MdError } from 'react-icons/md';
+import { merchantAPI } from '@/services/apiService';
+import { useToast } from '@/contexts/ToastContext';
+import { useAuthStore } from '@/stores/authStore';
 
 interface ApiSettingsTabProps {
     user: any;
-    apiKey: string;
-    showApiKey: boolean;
-    setShowApiKey: (show: boolean) => void;
-    handleRotateKey: () => Promise<void>;
-    copyToClipboard: (text: string, label: string) => void;
-    redirectUrl: string;
-    setRedirectUrl: (url: string) => void;
-    handleUpdateRedirect: () => Promise<void>;
-    ipWhitelist: string[];
-    newIp: string;
-    setNewIp: (ip: string) => void;
-    handleAddIp: () => Promise<void>;
-    handleRemoveIp: (ip: string) => Promise<void>;
-    loading: boolean;
     styles: any;
 }
 
 const ApiSettingsTab: React.FC<ApiSettingsTabProps> = ({
     user,
-    apiKey,
-    showApiKey,
-    setShowApiKey,
-    handleRotateKey,
-    copyToClipboard,
-    redirectUrl,
-    setRedirectUrl,
-    handleUpdateRedirect,
-    ipWhitelist,
-    newIp,
-    setNewIp,
-    handleAddIp,
-    handleRemoveIp,
-    loading,
     styles
 }) => {
+    const { showToast } = useToast();
+    const { loadUser } = useAuthStore();
+    const [loading, setLoading] = useState(false);
+    
+    const [apiKey, setApiKey] = useState('');
+    const [showApiKey, setShowApiKey] = useState(false);
+    const [showRotateModal, setShowRotateModal] = useState(false);
+    const [redirectUrl, setRedirectUrl] = useState('');
+    const [ipWhitelist, setIpWhitelist] = useState<string[]>([]);
+    const [newIp, setNewIp] = useState('');
+
+    useEffect(() => {
+        if (user) {
+            const incomingKey = user.api_key || '';
+            const isIncomingMasked = incomingKey.includes('********');
+            const isCurrentMasked = apiKey.includes('********') || !apiKey;
+
+            if ((!apiKey && incomingKey) || (isCurrentMasked && incomingKey) || (!isIncomingMasked && incomingKey !== apiKey)) {
+                setApiKey(incomingKey);
+            }
+
+            setRedirectUrl(user.redirect_url || '');
+            setIpWhitelist(user.ip_whitelist || []);
+        }
+    }, [user]);
+
+    const copyToClipboard = (text: string, label: string) => {
+        navigator.clipboard.writeText(text);
+        showToast(`${label} copied to clipboard`, 'success');
+    };
+
+    const handleUpdateRedirect = async () => {
+        try {
+            setLoading(true);
+            await merchantAPI.updateSettings({ redirect_url: redirectUrl });
+            await loadUser(true);
+            showToast('Redirect URL updated', 'success');
+        } catch (error: any) {
+            showToast('Failed to update redirect URL', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddIp = async () => {
+        if (!newIp) return;
+        if (ipWhitelist.includes(newIp)) {
+            showToast('IP already in whitelist', 'warning');
+            return;
+        }
+        const updated = [...ipWhitelist, newIp];
+        try {
+            setLoading(true);
+            await merchantAPI.updateSettings({ ip_whitelist: updated });
+            setIpWhitelist(updated);
+            setNewIp('');
+            await loadUser(true);
+            showToast('IP added to whitelist', 'success');
+        } catch (error: any) {
+            showToast('Failed to update IP whitelist', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRemoveIp = async (ip: string) => {
+        const updated = ipWhitelist.filter(i => i !== ip);
+        try {
+            setLoading(true);
+            await merchantAPI.updateSettings({ ip_whitelist: updated });
+            setIpWhitelist(updated);
+            await loadUser(true);
+            showToast('IP removed from whitelist', 'success');
+        } catch (error: any) {
+            showToast('Failed to update IP whitelist', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRotateKey = async () => {
+        if (!user) return;
+
+        if (!apiKey || apiKey === 'Not generated' || apiKey === 'No API key generated') {
+            try {
+                setLoading(true);
+                const isLive = !user.sandbox_mode;
+                if (isLive && user.kyc_tier === 0) {
+                    showToast('Tier 1 Verification required to generate Live API keys', 'warning');
+                    return;
+                }
+                const response = await merchantAPI.generateApiKey(isLive);
+                setApiKey(response.data.api_key);
+                await loadUser(true);
+                showToast(`New ${user.sandbox_mode ? 'Sandbox' : 'Live'} API key generated`, 'success');
+            } catch (error: any) {
+                showToast(error.response?.data?.message || 'Failed to generate API key', 'error');
+            } finally {
+                setLoading(false);
+            }
+            return;
+        }
+
+        setShowRotateModal(true);
+    };
+
+    const confirmRotation = async () => {
+        try {
+            setLoading(true);
+            const isLive = !user.sandbox_mode;
+            if (isLive && user.kyc_tier === 0) {
+                showToast('Tier 1 Verification required to rotate Live API keys', 'warning');
+                setShowRotateModal(false);
+                return;
+            }
+            const response = await merchantAPI.rotateApiKey(isLive);
+            setApiKey(response.data.api_key);
+            await loadUser(true);
+            setShowRotateModal(false);
+            showToast(`API key rotated successfully.`, 'success');
+        } catch (error: any) {
+            showToast(error.response?.data?.message || 'Failed to rotate API key', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <section className={styles.section}>
             <h2>API & Integration</h2>
@@ -137,6 +239,52 @@ const ApiSettingsTab: React.FC<ApiSettingsTabProps> = ({
                     {ipWhitelist.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No IP restrictions set.</span>}
                 </div>
             </div>
+
+            {/* API Key Rotation Confirmation Modal */}
+            {showRotateModal && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modal}>
+                        <div className={styles.modalHeader}>
+                            <h2><MdWarning /> Confirm Key Rotation</h2>
+                            <button
+                                className={styles.closeBtn}
+                                onClick={() => setShowRotateModal(false)}
+                                disabled={loading}
+                            >
+                                <MdClose />
+                            </button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <p>
+                                Are you sure you want to rotate your <strong>{user?.sandbox_mode ? 'Sandbox' : 'Live'}</strong> API key?
+                                This is a destructive action that cannot be undone.
+                            </p>
+                            <div className={styles.warningBox}>
+                                <MdError />
+                                <p>
+                                    Rotating your key will immediately invalidate the current one.
+                                </p>
+                            </div>
+                        </div>
+                        <div className={styles.modalActions}>
+                            <button
+                                className={styles.cancelBtn}
+                                onClick={() => setShowRotateModal(false)}
+                                disabled={loading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.confirmRotateBtn}
+                                onClick={confirmRotation}
+                                disabled={loading}
+                            >
+                                {loading ? 'Rotating...' : 'Confirm Rotation'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </section>
     );
 };

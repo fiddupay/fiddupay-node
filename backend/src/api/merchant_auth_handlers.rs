@@ -45,6 +45,12 @@ pub struct RegisterMerchantRequest {
     pub business_country: String,
     pub business_license_number: String,
     pub business_certificate_url: Option<String>,
+    pub website_url: String,
+
+    // Optional KYC/Socials
+    pub nin_bvn: Option<String>,
+    pub twitter_handle: Option<String>,
+    pub instagram_handle: Option<String>,
 }
 
 #[derive(Deserialize, Validate)]
@@ -130,9 +136,10 @@ pub async fn register_merchant(
         business_country: req.business_country.clone(),
         business_license_number: req.business_license_number.clone(),
         business_certificate_url: req.business_certificate_url.clone(),
-        nin_bvn: None,
-        twitter_handle: None,
-        instagram_handle: None,
+        website_url: req.website_url.clone(),
+        nin_bvn: req.nin_bvn.clone(),
+        twitter_handle: req.twitter_handle.clone(),
+        instagram_handle: req.instagram_handle.clone(),
     };
 
     // 4. Capture metadata for compliance (IP and User-Agent)

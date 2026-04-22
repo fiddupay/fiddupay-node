@@ -3,7 +3,7 @@
 
 use crate::api::state::AppState;
 use crate::error::ServiceError;
-use crate::middleware::auth::MerchantContext;
+use crate::middleware::auth::{require_kyc_tier, MerchantContext};
 use axum::{
     extract::{Extension, Query, State},
     http::StatusCode,
@@ -331,6 +331,12 @@ pub async fn generate_api_key(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<GenerateApiKeyRequest>,
 ) -> impl IntoResponse {
+    // 0. Requirement: Must be Tier 1 to generate LIVE keys
+    if req.is_live {
+        if let Err(e) = require_kyc_tier(&context, 1) {
+            return e.into_response();
+        }
+    }
     match state
         .merchant_service
         .generate_and_store_api_key_with_expiry(context.merchant_id, req.is_live, None)
@@ -393,6 +399,21 @@ pub async fn rotate_api_key(
             .rotate_api_key(context.merchant_id, &context.api_key)
             .await
     };
+
+    // 0. Requirement: Must be Tier 1 to rotate/access LIVE keys
+    if let Ok(ref key) = result {
+        if key.starts_with("sk_live_") && context.kyc_tier == 0 {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "error": "KYC upgrade required",
+                    "message": "Tier 1 verification is required to manage Live API keys.",
+                    "code": "KYC_INSUFFICIENT_TIER"
+                })),
+            )
+                .into_response();
+        }
+    }
 
     match result {
         Ok(new_api_key) => {
@@ -457,6 +478,12 @@ pub async fn update_merchant_settings(
         || req.sandbox_mode.is_some()
         || req.redirect_url.is_some()
     {
+        // 0. Requirement: Must be Tier 1 to switch to LIVE mode
+        if req.sandbox_mode == Some(false) {
+            if let Err(e) = require_kyc_tier(&context, 1) {
+                return e.into_response();
+            }
+        }
         if let Err(e) = state
             .merchant_service
             .update_settings(

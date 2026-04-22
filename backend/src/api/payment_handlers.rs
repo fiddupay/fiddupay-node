@@ -2,7 +2,7 @@
 // Payment CRUD, hosted payment page, QR code, sandbox, and refund endpoints
 
 use crate::api::state::AppState;
-use crate::middleware::auth::MerchantContext;
+use crate::middleware::auth::{require_kyc_tier, MerchantContext};
 use crate::payment::models::{CreatePaymentRequest, CryptoType, PaymentFilters};
 use axum::{
     extract::{Extension, Path, Query, State},
@@ -24,6 +24,12 @@ pub async fn create_payment(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<CreatePaymentRequest>,
 ) -> impl IntoResponse {
+    // 0. Requirement: Must be Tier 1 to accept LIVE payments
+    if !context.sandbox_mode {
+        if let Err(e) = require_kyc_tier(&context, 1) {
+            return e.into_response();
+        }
+    }
     // Rejection Forwarding mode from using Standard payments
     if context.settlement_mode == "forwarding" {
         return (

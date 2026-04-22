@@ -1,5 +1,17 @@
-import React, { useEffect } from 'react'
-import { MdNotifications, MdMenu, MdFlashOn, MdScience } from 'react-icons/md'
+import React, { useEffect, useState, useRef } from 'react'
+import { 
+  MdNotifications, 
+  MdMenu, 
+  MdFlashOn, 
+  MdScience, 
+  MdKeyboardArrowDown,
+  MdSettings,
+  MdSecurity,
+  MdVpnKey,
+  MdExitToApp,
+  MdPerson
+} from 'react-icons/md'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { merchantAPI } from '@/services/apiService'
 import { setSuppressAuthRedirect } from '@/utils/api'
@@ -13,39 +25,64 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
-  const { user, loadUser } = useAuthStore()
+  const { user, loadUser, logout } = useAuthStore()
   const { showToast } = useToast()
+  const navigate = useNavigate()
   const { unreadCount, togglePanel, fetchNotifications } = useNotificationStore()
+  
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetchNotifications()
   }, [fetchNotifications])
 
+  // Click outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false)
+      }
+    }
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMenuOpen])
+
   const handleSwitchEnvironment = async (e: React.MouseEvent) => {
     e.preventDefault()
-
-    // Suppress 401 interceptor BEFORE the API call to prevent
-    // concurrent requests from triggering logout during the switch.
     setSuppressAuthRedirect(true)
 
     try {
       const toLive = user?.sandbox_mode || false
+      if (toLive && user?.kyc_tier === 0) {
+        showToast('Tier 1 Verification required to switch to Live mode', 'warning')
+        return
+      }
+
       await merchantAPI.switchEnvironment(toLive)
-
-      // If the backend returned a specific key for this environment, it's for display only now.
-      // We don't need to store it as a session token since we use JWT.
-
-
-      // Reload user profile to pick up the new sandbox_mode
       await loadUser(true)
-
       showToast(`Switched to ${toLive ? 'Live' : 'Sandbox'} mode`, 'success')
     } catch (error: any) {
       showToast('Failed to switch environment', 'error')
     } finally {
-      // Re-enable the 401 interceptor
       setSuppressAuthRedirect(false)
     }
+  }
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+    showToast('Signed out successfully', 'info')
+  }
+
+  const handleMenuAction = (path: string) => {
+    navigate(path)
+    setIsMenuOpen(false)
   }
 
   return (
@@ -93,11 +130,47 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
           <NotificationPanel />
 
-          <div className={styles.userInfo}>
-            <div className={styles.userAvatar}>
-              {user?.business_name?.charAt(0).toUpperCase()}
-            </div>
-            <span className={styles.userName}>{user?.business_name}</span>
+          <div className={styles.userProfileContainer} ref={menuRef}>
+            <button 
+              className={`${styles.userTrigger} ${isMenuOpen ? styles.active : ''}`}
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              <div className={styles.userAvatar}>
+                {user?.business_name?.charAt(0).toUpperCase()}
+              </div>
+              <span className={styles.userName}>{user?.business_name}</span>
+              <MdKeyboardArrowDown className={styles.chevron} />
+            </button>
+
+            {isMenuOpen && (
+              <div className={styles.userDropdown}>
+                <div className={styles.dropdownHeader}>
+                  <div className={styles.headerBusinessName}>{user?.business_name}</div>
+                  <div className={styles.headerTier}>
+                    Account Status: <span>Tier {user?.kyc_tier}</span>
+                  </div>
+                </div>
+
+                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/dashboard/settings?tab=settlement')}>
+                  <MdPerson /> My Profile
+                </button>
+                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/dashboard/settings?tab=verification')}>
+                  <MdSecurity /> Verification
+                </button>
+                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/dashboard/settings?tab=api')}>
+                  <MdVpnKey /> API Settings
+                </button>
+                
+                <div className={styles.dropdownDivider} />
+                
+                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/dashboard/settings')}>
+                  <MdSettings /> Settings
+                </button>
+                <button className={`${styles.dropdownLink} ${styles.logoutBtn}`} onClick={handleLogout}>
+                  <MdExitToApp /> Sign Out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

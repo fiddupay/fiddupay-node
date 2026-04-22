@@ -3,7 +3,7 @@
 
 use crate::api::state::AppState;
 use crate::error::ServiceError;
-use crate::middleware::auth::{require_role, MerchantContext};
+use crate::middleware::auth::{require_kyc_tier, require_role, MerchantContext};
 use crate::models::merchant::UserRole;
 use axum::{
     extract::{Extension, Path, Query, State},
@@ -23,6 +23,12 @@ pub async fn create_withdrawal(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<crate::services::withdrawal_service::WithdrawalRequest>,
 ) -> impl IntoResponse {
+    // -1. KYC Check: Must be Tier 1 to withdraw LIVE funds
+    if !context.sandbox_mode {
+        if let Err(e) = require_kyc_tier(&context, 1) {
+            return e.into_response();
+        }
+    }
     // -1. Authorization Check (Strict: Only the Merchant Owner can create withdrawals)
     if let Err(e) = require_role(&context, UserRole::Merchant) {
         let auth_err: (StatusCode, axum::Json<serde_json::Value>) = e;

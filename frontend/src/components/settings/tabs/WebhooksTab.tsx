@@ -1,43 +1,109 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MdNotifications, MdSend, MdVpnKey, MdInfo, MdVisibility, MdVisibilityOff, MdRefresh } from 'react-icons/md';
+import { merchantAPI } from '@/services/apiService';
+import { useToast } from '@/contexts/ToastContext';
+import { useAuthStore } from '@/stores/authStore';
 
 interface WebhooksTabProps {
-    webhookUrls: {
-        standard: string;
-        discord: string;
-        slack: string;
-    };
-    setWebhookUrls: React.Dispatch<React.SetStateAction<{
-        standard: string;
-        discord: string;
-        slack: string;
-    }>>;
-    webhookFormat: 'standard' | 'discord' | 'slack' | string;
-    setWebhookFormat: (format: 'standard' | 'discord' | 'slack') => void;
-    handleUpdateWebhook: (url: string) => Promise<void>;
-    handleSendTestWebhook: () => Promise<void>;
-    signingSecret: string;
-    showSecret: boolean;
-    setShowSecret: (show: boolean) => void;
-    handleRotateSecret: () => Promise<void>;
-    loading: boolean;
+    user: any;
     styles: any;
 }
 
 const WebhooksTab: React.FC<WebhooksTabProps> = ({
-    webhookUrls,
-    setWebhookUrls,
-    webhookFormat,
-    setWebhookFormat,
-    handleUpdateWebhook,
-    handleSendTestWebhook,
-    signingSecret,
-    showSecret,
-    setShowSecret,
-    handleRotateSecret,
-    loading,
+    user,
     styles
 }) => {
+    const { showToast } = useToast();
+    const { loadUser } = useAuthStore();
+    const [loading, setLoading] = useState(false);
+    
+    const [webhookUrls, setWebhookUrls] = useState({
+        standard: '',
+        discord: '',
+        slack: ''
+    });
+    const [webhookFormat, setWebhookFormat] = useState('standard');
+    const [signingSecret, setSigningSecret] = useState('••••••••••••••••••••••••••••••••');
+    const [showSecret, setShowSecret] = useState(false);
+    const [showRotateSecretConfirm, setShowRotateSecretConfirm] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            const format = user.webhook_format || 'standard';
+            setWebhookUrls(prev => ({
+                ...prev,
+                [format]: user.webhook_url || ''
+            }));
+            setWebhookFormat(format);
+            fetchSigningSecret();
+        }
+    }, [user]);
+
+    const fetchSigningSecret = async () => {
+        try {
+            const settingsRes = await merchantAPI.getMerchantSettings();
+            setSigningSecret(settingsRes.data.webhook_signing_secret || '••••••••••••••••••••••••••••••••');
+        } catch (err) {
+            console.error('Failed to fetch webhook secret', err);
+        }
+    };
+
+    const handleUpdateWebhook = async (url: string) => {
+        try {
+            setLoading(true);
+            await merchantAPI.updateSettings({
+                webhook_url: url,
+                webhook_format: webhookFormat
+            });
+            await loadUser(true);
+            showToast('Webhook settings updated successfully', 'success');
+        } catch (error: any) {
+            showToast('Failed to update webhook settings', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSendTestWebhook = async () => {
+        try {
+            setLoading(true);
+            await merchantAPI.sendTestWebhook();
+            showToast('Test webhook queued for delivery', 'success');
+        } catch (error: any) {
+            showToast('Failed to send test webhook', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRotateSecret = async () => {
+        if (!showRotateSecretConfirm) {
+            setShowRotateSecretConfirm(true);
+            showToast('Click rotate again to confirm. This will invalidate your current secret.', 'info');
+            setTimeout(() => setShowRotateSecretConfirm(false), 5000);
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const response = await merchantAPI.updateSettings({ rotate_webhook_secret: true });
+            const newSecret = response.data.new_webhook_secret;
+            if (newSecret) {
+                setSigningSecret(newSecret);
+                setShowSecret(true);
+                showToast('Webhook signing secret rotated', 'success');
+            } else {
+                await fetchSigningSecret();
+                showToast('Webhook signing secret rotated', 'success');
+            }
+            setShowRotateSecretConfirm(false);
+        } catch (error: any) {
+            showToast('Failed to rotate signing secret', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <section className={styles.section}>
             <h2>Webhooks & Notifications</h2>

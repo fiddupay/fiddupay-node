@@ -161,6 +161,15 @@ impl MerchantService {
             .map_err(|_| ServiceError::InternalError("Failed to hash password".to_string()))?
             .to_string();
 
+        // 1.1 Calculate KYC Tier initialization
+        // Nigerians are Tier 1 (Silver) if they provide NIN/BVN at registration.
+        // Others start at Tier 0 (Pending) and must verify later.
+        let (kyc_tier, compliance_status) = if req.country == "Nigeria" && req.nin_bvn.is_some() {
+            (1i32, "QUALIFIED")
+        } else {
+            (0i32, "PENDING")
+        };
+
         // 2. Insert merchant with placeholder key hash (will be updated immediately)
         let merchant_res: Result<Merchant, sqlx::Error> = sqlx::query_as::<_, Merchant>(
             r#"
@@ -208,12 +217,12 @@ impl MerchantService {
         .bind(serde_json::json!({
             "twitter": req.twitter_handle,
             "instagram": req.instagram_handle,
-            "linkedin": null,
-            "facebook": null,
-            "website": null
+            "linkedin": Option::<String>::None,
+            "facebook": Option::<String>::None,
+            "website": req.website_url
         }))
-        .bind(0i32) // kyc_tier starts at 0
-        .bind("PENDING") // compliance_status
+        .bind(kyc_tier)
+        .bind(compliance_status)
         .bind(self.generate_pay_id()) // Generate unique PayID on registration
         .fetch_one(&self.db_pool)
         .await;
@@ -1227,6 +1236,20 @@ impl MerchantService {
                 business_country = COALESCE($7, business_country),
                 business_license_number = COALESCE($8, business_license_number),
                 business_certificate_url = COALESCE($9, business_certificate_url),
+                kyc_tier = CASE 
+                    WHEN kyc_tier < 2 
+                         AND (COALESCE($9, business_certificate_url) IS NOT NULL AND COALESCE($9, business_certificate_url) != '')
+                         AND (EXISTS (SELECT 1 FROM jsonb_each_text(COALESCE($6, social_handles)) WHERE value IS NOT NULL AND value != ''))
+                    THEN 2 
+                    ELSE kyc_tier 
+                END,
+                compliance_status = CASE 
+                    WHEN kyc_tier < 2 
+                         AND (COALESCE($9, business_certificate_url) IS NOT NULL AND COALESCE($9, business_certificate_url) != '')
+                         AND (EXISTS (SELECT 1 FROM jsonb_each_text(COALESCE($6, social_handles)) WHERE value IS NOT NULL AND value != ''))
+                    THEN 'VERIFIED' 
+                    ELSE compliance_status 
+                END,
                 updated_at = $10
             WHERE id = $11
             "#,

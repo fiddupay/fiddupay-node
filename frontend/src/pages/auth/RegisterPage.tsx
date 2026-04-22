@@ -38,6 +38,12 @@ const RegisterPage: React.FC = () => {
     businessCountry: '',
     businessLicenseNumber: '',
     businessCertificateUrl: '',
+    website: '',
+
+    // Compliance / Socials
+    nin_bvn: '',
+    twitter_handle: '',
+    instagram_handle: '',
   })
 
   const [showPassword, setShowPassword] = useState(false)
@@ -116,8 +122,8 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (role === 'merchant' && step === 3) {
-      if (!formData.businessName || !formData.businessCountry || !formData.businessLicenseNumber) {
-        showToast('Business details including Registration Number are mandatory', 'error')
+      if (!formData.businessName || !formData.businessCountry || !formData.businessLicenseNumber || !formData.website) {
+        showToast('Business details including Registration Number and Website are mandatory', 'error')
         return
       }
     }
@@ -139,6 +145,10 @@ const RegisterPage: React.FC = () => {
           business_country: formData.businessCountry,
           business_license_number: formData.businessLicenseNumber,
           business_certificate_url: formData.businessCertificateUrl || null,
+          website_url: formData.website,
+          nin_bvn: formData.country === 'Nigeria' ? (formData.nin_bvn || null) : null,
+          twitter_handle: formData.twitter_handle || null,
+          instagram_handle: formData.instagram_handle || null,
         })
       }
       showToast('Registration successful!', 'success')
@@ -298,9 +308,46 @@ const RegisterPage: React.FC = () => {
                   </div>
                 </div>
                 <div className={styles.inputGroup}>
-                  <label>Country</label>
-                  <input type="text" name="country" value={formData.country} onChange={handleChange} placeholder="e.g. Nigeria" />
+                   <CustomSelect
+                      label="Country of Residence"
+                      options={[
+                        { value: 'Nigeria', label: 'Nigeria' },
+                        { value: 'United States', label: 'United States' },
+                        { value: 'United Kingdom', label: 'United Kingdom' },
+                        { value: 'Canada', label: 'Canada' },
+                        { value: 'Germany', label: 'Germany' },
+                        { value: 'France', label: 'France' },
+                        { value: 'China', label: 'China' },
+                        { value: 'India', label: 'India' },
+                        { value: 'South Africa', label: 'South Africa' },
+                        { value: 'Ghana', label: 'Ghana' },
+                        { value: 'Kenya', label: 'Kenya' },
+                        { value: 'United Arab Emirates', label: 'United Arab Emirates' },
+                        { value: 'Australia', label: 'Australia' },
+                        { value: 'Other', label: 'Other' },
+                      ]}
+                      value={formData.country}
+                      onChange={(v) => setFormData(p => ({ ...p, country: v }))}
+                      placeholder="Select your country"
+                    />
                 </div>
+                {formData.country === 'Nigeria' && (
+                  <div className={styles.inputGroup} style={{ marginTop: '0.5rem' }}>
+                    <label>Identity Number (NIN or BVN)</label>
+                    <div className={styles.inputWrapper}>
+                      <i className="fas fa-id-card"></i>
+                      <input 
+                        type="password" 
+                        name="nin_bvn" 
+                        value={formData.nin_bvn} 
+                        onChange={handleChange} 
+                        placeholder="11-digit identification number" 
+                        maxLength={11}
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-1 italic">* Encrypted and hashed for your security.</p>
+                  </div>
+                )}
                 <div className={styles.inputGroup}>
                     <CustomSelect
                       label="Company Designation"
@@ -372,8 +419,28 @@ const RegisterPage: React.FC = () => {
                   </div>
                 </div>
                 <div className={styles.inputGroup}>
+                  <label>Business Website</label>
+                  <input type="url" name="website" value={formData.website} onChange={handleChange} placeholder="https://yourcompany.com" />
+                </div>
+                <div className={styles.inputGroup}>
                   <label>Certificate Link (Optional)</label>
                   <input type="text" name="businessCertificateUrl" value={formData.businessCertificateUrl} onChange={handleChange} placeholder="https://drive.google.com/..." />
+                </div>
+                <div className={styles.inputRow}>
+                   <div className={styles.inputGroup}>
+                    <label>Twitter (Optional)</label>
+                    <div className={styles.inputWrapper}>
+                      <i className="fab fa-twitter"></i>
+                      <input type="text" name="twitter_handle" value={formData.twitter_handle} onChange={handleChange} placeholder="@business" />
+                    </div>
+                  </div>
+                  <div className={styles.inputGroup}>
+                    <label>Instagram (Optional)</label>
+                    <div className={styles.inputWrapper}>
+                      <i className="fab fa-instagram"></i>
+                      <input type="text" name="instagram_handle" value={formData.instagram_handle} onChange={handleChange} placeholder="@business" />
+                    </div>
+                  </div>
                 </div>
                 <div className={styles.actions}>
                   <button onClick={handleBack} className={styles.backBtn}>Back</button>

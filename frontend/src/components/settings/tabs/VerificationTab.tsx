@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { MdSecurity, MdBusiness, MdShield, MdCheckCircle, MdArrowForward, MdRocketLaunch, MdPerson } from 'react-icons/md'
+import { MdSecurity, MdBusiness, MdShield, MdCheckCircle, MdArrowForward, MdRocketLaunch, MdPerson, MdWarning } from 'react-icons/md'
 import { FaTwitter, FaInstagram, FaLinkedin, FaGlobe } from 'react-icons/fa'
 import { merchantAPI } from '@/services/apiService'
 import { useToast } from '@/contexts/ToastContext'
@@ -66,6 +66,10 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
     };
 
     const handleSubmitTier2 = async () => {
+        if (!socialData.website) {
+            showToast('Official Website is mandatory for your business profile', 'warning');
+            return;
+        }
         setLoading(true);
         try {
             await merchantAPI.updateKycDraft({
@@ -88,6 +92,29 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
 
     return (
         <div className={styles.tabContent}>
+            {user?.kyc_tier === 0 && (
+                <div className={styles.warningBanner} style={{ 
+                    backgroundColor: '#fff7ed', 
+                    border: '1px solid #ffedd5', 
+                    borderRadius: '12px', 
+                    padding: '16px', 
+                    marginBottom: '24px',
+                    display: 'flex',
+                    alignItems: 'start',
+                    gap: '12px'
+                }}>
+                    <div style={{ color: '#f97316', fontSize: '24px', marginTop: '2px' }}>
+                        <MdWarning />
+                    </div>
+                    <div>
+                        <h4 style={{ color: '#9a3412', margin: '0 0 4px 0', fontSize: '15px' }}>Sandbox-First Mode Active</h4>
+                        <p style={{ color: '#c2410c', margin: 0, fontSize: '13px', lineHeight: '1.5' }}>
+                            Your account is currently restricted to the <strong>Sandbox Environment</strong>. 
+                            To accept real payments and enable Live mode, please complete your identity verification below.
+                        </p>
+                    </div>
+                </div>
+            )}
             <div className={styles.sectionHeader}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ 

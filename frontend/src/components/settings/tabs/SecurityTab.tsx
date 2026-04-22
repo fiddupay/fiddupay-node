@@ -1,37 +1,73 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MdCheckCircle, MdError } from 'react-icons/md';
+import { merchantAPI } from '@/services/apiService';
+import { useToast } from '@/contexts/ToastContext';
+import { useAuthStore } from '@/stores/authStore';
 
 interface SecurityTabProps {
     user: any;
-    pin: string;
-    setPin: (pin: string) => void;
-    confirmPin: string;
-    setConfirmPin: (pin: string) => void;
-    handleSetPin: (e: React.FormEvent) => Promise<void>;
-    settingPin: boolean;
-    lowBalanceThreshold: string;
-    setLowBalanceThreshold: (value: string) => void;
-    lowBalanceAlertsEnabled: boolean;
-    setLowBalanceAlertsEnabled: (value: boolean) => void;
-    handleUpdateSettings: (updates: any) => Promise<void>;
     styles: any;
 }
 
 const SecurityTab: React.FC<SecurityTabProps> = ({
     user,
-    pin,
-    setPin,
-    confirmPin,
-    setConfirmPin,
-    handleSetPin,
-    settingPin,
-    lowBalanceThreshold,
-    setLowBalanceThreshold,
-    lowBalanceAlertsEnabled,
-    setLowBalanceAlertsEnabled,
-    handleUpdateSettings,
     styles
 }) => {
+    const { showToast } = useToast();
+    const { loadUser } = useAuthStore();
+    const [loading, setLoading] = useState(false);
+    
+    const [pin, setPin] = useState('');
+    const [confirmPin, setConfirmPin] = useState('');
+    const [settingPin, setSettingPin] = useState(false);
+    const [lowBalanceThreshold, setLowBalanceThreshold] = useState(user?.low_balance_threshold_usd || '0');
+    const [lowBalanceAlertsEnabled, setLowBalanceAlertsEnabled] = useState(user?.low_balance_alerts_enabled !== false);
+
+    useEffect(() => {
+        if (user) {
+            setLowBalanceThreshold(user.low_balance_threshold_usd || '0');
+            setLowBalanceAlertsEnabled(user.low_balance_alerts_enabled !== false);
+        }
+    }, [user]);
+
+    const handleSetPin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+            showToast('PIN must be exactly 4 digits', 'warning');
+            return;
+        }
+        if (pin !== confirmPin) {
+            showToast('PINs do not match', 'error');
+            return;
+        }
+
+        try {
+            setSettingPin(true);
+            await merchantAPI.setTransactionPin(pin);
+            showToast('Transaction PIN set successfully', 'success');
+            setPin('');
+            setConfirmPin('');
+            await loadUser(true);
+        } catch (error: any) {
+            showToast(error.response?.data?.error || 'Failed to set PIN', 'error');
+        } finally {
+            setSettingPin(false);
+        }
+    };
+
+    const handleUpdateSettings = async (updates: any) => {
+        try {
+            setLoading(true);
+            await merchantAPI.updateSettings(updates);
+            await loadUser(true);
+            showToast('Security settings updated', 'success');
+        } catch (error: any) {
+            showToast('Failed to update security settings', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <section className={styles.section}>
             <h2>Security & Transaction PIN</h2>
@@ -91,7 +127,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                         style={{ width: '100%', marginTop: '12px', background: 'var(--primary)' }}
                         disabled={settingPin || pin.length !== 4 || pin !== confirmPin}
                     >
-                        {settingPin ? <i className="fas fa-spinner fa-spin"></i> : (user?.has_transaction_pin ? 'Update Merchant PIN' : 'Set Merchant PIN')}
+                        {settingPin ? 'Updating...' : (user?.has_transaction_pin ? 'Update Merchant PIN' : 'Set Merchant PIN')}
                     </button>
                     {pin !== confirmPin && confirmPin.length === 4 && (
                         <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '8px', textAlign: 'center' }}>PINs do not match.</p>
@@ -113,6 +149,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                             <input 
                                 type="checkbox" 
                                 checked={lowBalanceAlertsEnabled}
+                                disabled={loading}
                                 onChange={e => {
                                     const newValue = e.target.checked;
                                     setLowBalanceAlertsEnabled(newValue);
@@ -135,14 +172,16 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                                     value={lowBalanceThreshold}
                                     onChange={e => setLowBalanceThreshold(e.target.value)}
                                     placeholder="0.00"
+                                    disabled={loading}
                                 />
                             </div>
                             <button 
                                 className={styles.saveBtn} 
                                 style={{ background: 'var(--primary)', whiteSpace: 'nowrap', height: '48px', padding: '0 24px', borderRadius: '12px' }}
                                 onClick={() => handleUpdateSettings({ low_balance_threshold_usd: lowBalanceThreshold })}
+                                disabled={loading}
                             >
-                                Update Threshold
+                                {loading ? 'Updating...' : 'Update Threshold'}
                             </button>
                         </div>
                         <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '12px', lineHeight: '1.5' }}>

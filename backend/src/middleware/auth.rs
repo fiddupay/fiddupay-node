@@ -20,6 +20,7 @@ pub struct MerchantContext {
     pub api_key: String,
     pub sandbox_mode: bool,
     pub settlement_mode: String,
+    pub kyc_tier: i32,
 }
 
 /// Extract API key from Authorization header
@@ -114,6 +115,7 @@ pub async fn auth_middleware(
                     api_key: api_key.clone(),
                     sandbox_mode: !is_live_prefix,
                     settlement_mode: merchant.settlement_mode.clone(),
+                    kyc_tier: merchant.kyc_tier,
                 };
                 request.extensions_mut().insert(context);
                 Ok(next.run(request).await)
@@ -149,15 +151,19 @@ pub async fn auth_middleware(
 
                 // Read sandbox_mode from DB to ensure it's always current with the merchant's choice
                 // This ensures environment switching in the dashboard is instant.
-                let (sandbox_mode, settlement_mode) = match sqlx::query(
-                    "SELECT sandbox_mode, settlement_mode FROM merchants WHERE id = $1 AND is_active = true"
+                let (sandbox_mode, settlement_mode, kyc_tier) = match sqlx::query(
+                    "SELECT sandbox_mode, settlement_mode, kyc_tier FROM merchants WHERE id = $1 AND is_active = true"
                 )
                 .bind(merchant_id)
                 .fetch_optional(&state.db_pool)
                 .await {
                     Ok(Some(row)) => {
                         use sqlx::Row;
-                        (row.get::<bool, _>("sandbox_mode"), row.get::<String, _>("settlement_mode"))
+                        (
+                            row.get::<bool, _>("sandbox_mode"), 
+                            row.get::<String, _>("settlement_mode"),
+                            row.get::<i32, _>("kyc_tier")
+                        )
                     },
                     Ok(None) => {
                         return Err((
@@ -187,6 +193,7 @@ pub async fn auth_middleware(
                     api_key: "DASHBOARD_SESSION".to_string(),
                     sandbox_mode,
                     settlement_mode,
+                    kyc_tier,
                 };
 
                 request.extensions_mut().insert(context);
@@ -257,6 +264,27 @@ pub fn require_any_role(
             axum::Json(json!({
                 "error": "Insufficient permissions",
                 "message": "You do not have the required role to perform this action"
+            })),
+        ))
+    }
+}
+
+/// Helper to require a minimum KYC tier
+pub fn require_kyc_tier(
+    context: &MerchantContext,
+    min_tier: i32,
+) -> Result<(), (StatusCode, axum::Json<serde_json::Value>)> {
+    if context.kyc_tier >= min_tier || context.role == UserRole::SuperAdmin {
+        Ok(())
+    } else {
+        Err((
+            StatusCode::FORBIDDEN,
+            axum::Json(json!({
+                "error": "KYC upgrade required",
+                "message": format!("This action requires Tier {} verification. Please update your business profile in settings.", min_tier),
+                "code": "KYC_INSUFFICIENT_TIER",
+                "current_tier": context.kyc_tier,
+                "required_tier": min_tier
             })),
         ))
     }

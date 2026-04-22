@@ -2,7 +2,7 @@
 
 use crate::api::state::AppState;
 use crate::error::ServiceError;
-use crate::middleware::auth::MerchantContext;
+use crate::middleware::auth::{require_kyc_tier, MerchantContext};
 use axum::{
     extract::{Extension, State},
     http::StatusCode,
@@ -29,6 +29,12 @@ pub async fn transfer_funds_interop(
     Extension(context): Extension<MerchantContext>,
     Json(payload): Json<P2PTransferRequest>,
 ) -> impl IntoResponse {
+    // 0. Requirement: Must be Tier 1 for LIVE P2P Interop
+    if !context.sandbox_mode {
+        if let Err(e) = require_kyc_tier(&context, 1) {
+            return e.into_response();
+        }
+    }
     // 1. Validate payload
     if let Err(e) = payload.validate() {
         return ServiceError::ValidationError(e.to_string()).into_response();

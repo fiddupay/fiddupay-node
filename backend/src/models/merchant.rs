@@ -137,6 +137,7 @@ pub struct MerchantRegistrationRequest {
     pub nin_bvn: Option<String>,
     pub twitter_handle: Option<String>,
     pub instagram_handle: Option<String>,
+    pub website_url: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

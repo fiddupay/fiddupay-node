@@ -3,7 +3,7 @@
 
 use crate::api::state::AppState;
 use crate::error::ServiceError;
-use crate::middleware::auth::MerchantContext;
+use crate::middleware::auth::{require_kyc_tier, MerchantContext};
 use crate::payment::models::CryptoType;
 use crate::services::wallet_config_service::{
     ConfigureWalletRequest, GenerateWalletRequest, WalletConfigService,
@@ -240,6 +240,12 @@ pub async fn process_withdrawal(
     Path(withdrawal_id): Path<String>,
     Json(_req): Json<ProcessWithdrawalRequest>,
 ) -> impl IntoResponse {
+    // 0. KYC Check: Must be Tier 1 to process Live withdrawals
+    if !context.sandbox_mode {
+        if let Err(e) = require_kyc_tier(&context, 1) {
+            return e.into_response();
+        }
+    }
     let processor = WithdrawalProcessor::new(
         state.db_pool.clone(),
         state.config.clone(),
@@ -310,6 +316,13 @@ pub async fn setup_wallet(
     Json(req): Json<UnifiedWalletSetupRequest>,
 ) -> impl IntoResponse {
     let wallet_service = WalletConfigService::new(state.db_pool.clone());
+
+    // 1. Requirement: Must be Tier 1 (ID Verified) to setup Live wallets
+    if !context.sandbox_mode {
+        if let Err(e) = require_kyc_tier(&context, 1) {
+            return e.into_response();
+        }
+    }
 
     match req.mode.as_str() {
         "address" => {
