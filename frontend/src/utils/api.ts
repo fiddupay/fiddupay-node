@@ -1,5 +1,5 @@
-import axios from 'axios'
 import { useAuthStore } from '@/stores/authStore'
+import axios from 'axios'
 
 // Flag to temporarily suppress the 401 interceptor during environment switches
 export let suppressAuthRedirect = false
@@ -38,14 +38,19 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      const isAppPath = window.location.pathname.startsWith('/');
       const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register';
 
-      if (!isAuthPage && !suppressAuthRedirect) {
+      if (isAppPath && !isAuthPage && !suppressAuthRedirect) {
         // Use the auth store's logout to clear state cleanly across the app
         useAuthStore.getState().logout();
 
-        // Redirect to login
+        // Redirect to login only if accessing a protected route
         window.location.href = '/login'
+      } else if (!isAuthPage) {
+        // Silently clear state on public pages to avoid infinite redirect loops
+        // and allow viewing the landing page.
+        useAuthStore.getState().logout();
       }
     }
     return Promise.reject(error)
