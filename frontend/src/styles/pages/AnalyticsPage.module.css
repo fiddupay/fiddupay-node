@@ -62,13 +62,29 @@
     text-transform: uppercase;
 }
 
+.dateInputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.dateInputWrapper i {
+    position: absolute;
+    left: 10px;
+    color: var(--fiddu-brand-primary);
+    pointer-events: none;
+    font-size: 0.85rem;
+    z-index: 1;
+}
+
 .dateInput input {
-    padding: 8px 12px;
+    padding: 8px 12px 8px 30px;
     border: 1px solid var(--fiddu-border);
     border-radius: 6px;
     font-size: 14px;
     color: var(--fiddu-text-primary);
     background: white;
+    width: 100%;
 }
 
 .refreshBtn {

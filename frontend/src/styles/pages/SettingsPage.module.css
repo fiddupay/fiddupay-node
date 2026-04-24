@@ -128,6 +128,40 @@
         width: 95%;
         padding: 0;
     }
+
+    .keyInputGroup {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .keyDisplay {
+        font-size: 11px;
+        padding: 10px 12px;
+    }
+
+    .keyFooter {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .keyActions {
+        width: 100%;
+    }
+
+    .keyActions button {
+        flex: 1;
+    }
+
+    .thresholdGroup {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .viewBtn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 .section h2 {
@@ -358,7 +392,8 @@ input:checked+.slider:before {
 
 .keyInputGroup {
     display: flex;
-    gap: 8px;
+    gap: 12px;
+    align-items: center;
 }
 
 .keyDisplay {
@@ -374,7 +409,7 @@ input:checked+.slider:before {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    min-width: 0; /* Critical for flex items to shrink below content size */
+    min-width: 0;
 }
 
 /* Webhook Specific Styles */
@@ -708,6 +743,19 @@ input:checked+.slider:before {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
+}
+
+.keyActions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.thresholdGroup {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
 }
 
 .keyNote {

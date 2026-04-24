@@ -57,19 +57,25 @@ const ReportsPage: React.FC = () => {
                 <div className={styles.filterGrid}>
                     <div className={styles.filterGroup}>
                         <label>From Date</label>
-                        <input 
-                            type="date" 
-                            value={filters.from_date}
-                            onChange={(e) => setFilters({...filters, from_date: e.target.value})}
-                        />
+                        <div className={styles.dateInputWrapper}>
+                            <i className="fas fa-calendar-alt"></i>
+                            <input 
+                                type="date" 
+                                value={filters.from_date}
+                                onChange={(e) => setFilters({...filters, from_date: e.target.value})}
+                            />
+                        </div>
                     </div>
                     <div className={styles.filterGroup}>
                         <label>To Date</label>
-                        <input 
-                            type="date" 
-                            value={filters.to_date}
-                            onChange={(e) => setFilters({...filters, to_date: e.target.value})}
-                        />
+                        <div className={styles.dateInputWrapper}>
+                            <i className="fas fa-calendar-alt"></i>
+                            <input 
+                                type="date" 
+                                value={filters.to_date}
+                                onChange={(e) => setFilters({...filters, to_date: e.target.value})}
+                            />
+                        </div>
                     </div>
                     <div className={styles.filterGroup}>
                         <label>Network</label>

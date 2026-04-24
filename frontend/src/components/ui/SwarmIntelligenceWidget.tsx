@@ -17,10 +17,18 @@ interface Agent {
   id: string;
 }
 
-export const SwarmIntelligenceWidget: React.FC = () => {
+interface SwarmIntelligenceWidgetProps {
+  user: any;
+}
+
+export const SwarmIntelligenceWidget: React.FC<SwarmIntelligenceWidgetProps> = ({ user }) => {
+  const hasIdentity = user?.has_national_id || user?.kyc_tier >= 1;
+  const hasSocials = user?.social_handles?.twitter || user?.social_handles?.website;
+  const hasBusiness = !!user?.business_license_number;
+
   const [agents, setAgents] = useState<Agent[]>([
-    { id: 'identity', name: 'Identity Agent', status: 'verified', signal: 'NIN/BVN Hashed' },
-    { id: 'social', name: 'Social Agent', status: 'scanning', signal: 'Analyzing X/LinkedIn' },
+    { id: 'identity', name: 'Identity Agent', status: hasIdentity ? 'verified' : 'scanning', signal: hasIdentity ? 'NIN/BVN Hashed' : 'Awaiting Signal' },
+    { id: 'social', name: 'Social Agent', status: hasSocials ? 'verified' : 'scanning', signal: hasSocials ? 'Signals Synced' : 'Analyzing Footprint' },
     { id: 'velocity', name: 'Velocity Agent', status: 'verified', signal: 'Flow Stabilized' },
     { id: 'network', name: 'Network Agent', status: 'scanning', signal: 'Monitoring SOL/EVM' },
   ]);
@@ -28,26 +36,42 @@ export const SwarmIntelligenceWidget: React.FC = () => {
   const [activeLog, setActiveLog] = useState<string[]>([]);
 
   useEffect(() => {
+    // Sync agents with user data when user changes
+    setAgents([
+      { id: 'identity', name: 'Identity Agent', status: hasIdentity ? 'verified' : 'scanning', signal: hasIdentity ? 'NIN/BVN Hashed' : 'Awaiting Signal' },
+      { id: 'social', name: 'Social Agent', status: (hasSocials && hasBusiness) ? 'verified' : 'scanning', signal: (hasSocials && hasBusiness) ? 'Institutional Proof' : 'Analyzing X/LinkedIn' },
+      { id: 'velocity', name: 'Velocity Agent', status: 'verified', signal: 'Flow Stabilized' },
+      { id: 'network', name: 'Network Agent', status: 'scanning', signal: 'Monitoring SOL/EVM' },
+    ]);
+  }, [user, hasIdentity, hasSocials, hasBusiness]);
+
+  useEffect(() => {
     const logs = [
-      "Identity Agent: Validating gov_signal_X92...",
+      `Identity Agent: ${hasIdentity ? 'Signal verified for gov_ID' : 'Awaiting identity protocol...'}`,
       "Velocity Agent: Spike detected in SOL mainnet (resolved)",
-      "Social Agent: Reputation score updated for @merchant",
+      `Social Agent: ${hasSocials ? 'Reputation score updated' : 'Scanning digital footprint...'}`,
       "Network Agent: Indexing institutional EVM liquidity",
-      "Swarm: Consensus reached on Trust Tier 1",
-      "Signal: Merchant health at 85%",
+      `Swarm: Consensus reached on Trust Tier ${user?.kyc_tier || 0}`,
+      `Signal: Merchant health at ${user?.trust_score?.score || 65}%`,
     ];
     
     const interval = setInterval(() => {
       setActiveLog(prev => [logs[Math.floor(Math.random() * logs.length)], ...prev.slice(0, 4)]);
       
-      setAgents(prev => prev.map(a => ({
-        ...a,
-        status: Math.random() > 0.7 ? 'scanning' : 'verified'
-      })));
-    }, 3000);
+      // Only fluctuate velocity and network agents, keep identity and social stable if verified
+      setAgents(prev => prev.map(a => {
+        if ((a.id === 'identity' && hasIdentity) || (a.id === 'social' && hasSocials && hasBusiness)) {
+          return a;
+        }
+        return {
+          ...a,
+          status: Math.random() > 0.8 ? 'scanning' : 'verified'
+        };
+      }));
+    }, 4000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [user, hasIdentity, hasSocials, hasBusiness]);
 
   return (
     <div className={styles.container}>

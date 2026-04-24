@@ -2,11 +2,12 @@ import { useLoading } from '@/contexts/LoadingContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuthStore } from '@/stores/authStore'
 import styles from '@/styles/pages/auth/LoginPage.module.css'
-import React, { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import SEO from '@/components/ui/SEO'
 
 const LoginPage: React.FC = () => {
+  const navigate = useNavigate()
   const { login, isAuthenticated } = useAuthStore()
   const { showToast } = useToast()
   const { setLoading } = useLoading()
@@ -18,9 +19,12 @@ const LoginPage: React.FC = () => {
     two_factor_code: ''
   })
 
-  if (isAuthenticated) {
-    return <Navigate to="/app/dashboard" replace />
-  }
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/app/dashboard', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,6 +54,10 @@ const LoginPage: React.FC = () => {
         remember_me: rememberMe
       })
       showToast('Login successful!', 'success')
+      // Small delay to let the toast be visible
+      setTimeout(() => {
+        navigate('/app/dashboard')
+      }, 1000)
     } catch (error: any) {
       const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || error.response?.data?.error || error.message || 'Login failed. Please check your credentials.'
       showToast(errorMessage, 'error')

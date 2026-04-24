@@ -165,7 +165,7 @@ const ApiSettingsTab: React.FC<ApiSettingsTabProps> = ({
                         <div className={styles.keyNote}>
                             Keep your key secure. Never share it or use it in client-side code.
                         </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className={styles.keyActions}>
                             <button className={styles.copyBtn} onClick={() => copyToClipboard(apiKey, 'API Key')}>
                                 <MdContentCopy /> Copy
                             </button>

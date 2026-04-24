@@ -447,7 +447,7 @@ const PaymentsPage: React.FC = () => {
                   <div className={styles.paymentInfoCell}>
                     <code>{payment.payment_id.slice(0, 12)}...</code>
                     {payment.payment_link && (
-                      <>
+                      <div className={styles.linkActions}>
                         <a
                           href={payment.payment_link}
                           target="_blank"
@@ -467,7 +467,7 @@ const PaymentsPage: React.FC = () => {
                         >
                           <i className="fas fa-copy"></i>
                         </button>
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>

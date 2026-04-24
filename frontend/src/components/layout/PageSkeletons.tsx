@@ -155,7 +155,7 @@ export const WithdrawalFormSkeleton: React.FC = () => {
                 </div>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '2rem', marginTop: '2rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '2rem', marginTop: '2rem' }}>
                 <div style={{ background: 'var(--surface)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border)' }}>
                     <Skeleton height={24} width="40%" style={{ marginBottom: '24px' }} />
                     {[1, 2, 3, 4].map(i => (

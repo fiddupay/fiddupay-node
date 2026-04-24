@@ -83,7 +83,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                 <p style={{ color: 'var(--text-muted)' }}>Manage your institutional-grade security protocols and risk thresholds.</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '24px' }}>
                 {/* Column 1: PIN & Authentication */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     <div className={styles.formCard} style={{ height: '100%' }}>
@@ -121,7 +121,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                                     maxLength={4}
                                     pattern="\d*"
                                     placeholder="••••"
-                                    style={{ letterSpacing: '0.8rem', textAlign: 'center', fontSize: '1.8rem', width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white' }}
+                                    style={{ letterSpacing: '0.5rem', textAlign: 'center', fontSize: '1.5rem', width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white' }}
                                     value={pin}
                                     onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
                                     required
@@ -132,7 +132,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                                     maxLength={4}
                                     pattern="\d*"
                                     placeholder="Confirm PIN"
-                                    style={{ letterSpacing: '0.8rem', textAlign: 'center', fontSize: '1.2rem', width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white', marginTop: '12px' }}
+                                    style={{ letterSpacing: '0.5rem', textAlign: 'center', fontSize: '1.2rem', width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white', marginTop: '12px' }}
                                     value={confirmPin}
                                     onChange={e => setConfirmPin(e.target.value.replace(/\D/g, ''))}
                                     required
@@ -225,7 +225,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
 
                         <div className={styles.formGroup}>
                             <label style={{ color: 'var(--text-main)', marginBottom: '12px', display: 'block', fontSize: '13px', fontWeight: '700' }}>Critical Threshold (USD)</label>
-                            <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch' }}>
+                            <div className={styles.thresholdGroup}>
                                 <div style={{ position: 'relative', flex: 1 }}>
                                     <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontWeight: '800', fontSize: '14px', zIndex: 2 }}>$</span>
                                     <input 

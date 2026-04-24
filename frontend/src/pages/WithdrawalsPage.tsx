@@ -256,21 +256,27 @@ const WithdrawalsPage: React.FC = () => {
                     <div className={styles.historyFilters}>
                         <div className={styles.dateFilterGroup}>
                             <label>From</label>
-                            <input 
-                                type="date" 
-                                value={dateFrom} 
-                                onChange={e => setDateFrom(e.target.value)}
-                                className={styles.dateInput}
-                            />
+                            <div className={styles.dateInputContainer}>
+                                <i className="fas fa-calendar-alt"></i>
+                                <input 
+                                    type="date" 
+                                    value={dateFrom} 
+                                    onChange={e => setDateFrom(e.target.value)}
+                                    className={styles.dateInput}
+                                />
+                            </div>
                         </div>
                         <div className={styles.dateFilterGroup}>
                             <label>To</label>
-                            <input 
-                                type="date" 
-                                value={dateTo} 
-                                onChange={e => setDateTo(e.target.value)}
-                                className={styles.dateInput}
-                            />
+                            <div className={styles.dateInputContainer}>
+                                <i className="fas fa-calendar-alt"></i>
+                                <input 
+                                    type="date" 
+                                    value={dateTo} 
+                                    onChange={e => setDateTo(e.target.value)}
+                                    className={styles.dateInput}
+                                />
+                            </div>
                         </div>
                         {(dateFrom || dateTo) && (
                             <button className={styles.resetBtn} onClick={() => { setDateFrom(''); setDateTo(''); }}>

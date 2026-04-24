@@ -485,14 +485,31 @@
     text-transform: uppercase;
 }
 
+.dateInputContainer {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.dateInputContainer i {
+    position: absolute;
+    left: 12px;
+    color: var(--primary);
+    pointer-events: none;
+    font-size: 0.85rem;
+    z-index: 1;
+}
+
 .dateInput {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 8px 12px 8px 32px;
     font-size: 0.9rem;
     color: var(--text-main);
     color-scheme: dark;
+    width: 100%;
 }
 
 .resetBtn {

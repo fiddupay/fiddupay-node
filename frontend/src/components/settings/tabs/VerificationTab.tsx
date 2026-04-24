@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { 
     MdSecurity, 
     MdBusiness, 
@@ -28,6 +29,7 @@ interface VerificationTabProps {
 const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _parentLoading, styles }) => {
     const { showToast } = useToast()
     const { loadUser } = useAuthStore()
+    const navigate = useNavigate()
     const [loading, setLoading] = useState(false)
     const [step, setStep] = useState(user?.kyc_tier > 1 ? 3 : (user?.kyc_tier > 0 ? 2 : 1))
     
@@ -120,9 +122,9 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
             });
             showToast('Profile intelligence updated! You have reached Gold Trust status.', 'success');
             await loadUser(true);
-            // Optionally redirect after a short delay
+            // Navigate after a short delay to allow the user to see the success message
             setTimeout(() => {
-                window.location.href = '/dashboard';
+                navigate('/app/dashboard');
             }, 2000);
         } catch (error: any) {
             showToast(error.response?.data?.error || 'Failed to update socials', 'error');

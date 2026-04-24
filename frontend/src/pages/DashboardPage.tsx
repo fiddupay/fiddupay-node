@@ -504,7 +504,7 @@ const DashboardPage: React.FC = () => {
             </div>
 
             <div className="xl:col-span-1">
-              <SwarmIntelligenceWidget />
+              <SwarmIntelligenceWidget user={user} />
             </div>
           </div>
 
