@@ -41,7 +41,7 @@ export const TrustScoreWidget: React.FC<TrustScoreWidgetProps> = ({ user, classN
   ];
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', height: '100%' }}>
+    <div className={className} style={{ position: 'relative', overflow: 'hidden', height: '100%' }}>
       <div style={{ height: '4px', width: '100%', background: getTierGradient(tier) }} />
       
       <div style={{ padding: '20px' }}>
