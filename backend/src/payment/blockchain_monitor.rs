@@ -10,6 +10,9 @@ use super::models::{BlockchainTransaction, CryptoType};
 use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
 
+use governor::{DefaultDirectRateLimiter, Quota, RateLimiter};
+use std::num::NonZeroU32;
+use std::sync::Arc;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
 pub mod btc_monitor;
@@ -65,6 +68,7 @@ pub struct EvmMonitor {
     etherscan_api_key: Option<String>,
     internal_chain_identifier: &'static str,
     is_sandbox: bool,
+    rate_limiter: Arc<DefaultDirectRateLimiter>,
 }
 
 impl EvmMonitor {
@@ -74,25 +78,31 @@ impl EvmMonitor {
         config: &crate::config::Config,
     ) -> Vec<String> {
         let mut urls = Vec::new();
-        for key in &config.alchemy_api_keys {
+        // --- 1. PRIMARY PROVIDER: Chainstack (User's preferred high-limit provider) ---
+        if chain == "ETH" && !is_sandbox {
+            if let Some(ref url) = config.chainstack_eth_url {
+                urls.push(url.clone());
+            }
+        }
+        if chain == "BSC" && !is_sandbox {
+            if let Some(ref url) = config.chainstack_bsc_url {
+                urls.push(url.clone());
+            }
+        }
+
+        // --- 2. SECONDARY PROVIDERS: Ankr, Infura (Solid backups) ---
+        for key in &config.ankr_api_keys {
             if let Some(url) = match (chain, is_sandbox) {
-                ("ETH", false) => Some(format!("https://eth-mainnet.g.alchemy.com/v2/{}", key)),
-                ("ETH", true) => Some(format!("https://eth-sepolia.g.alchemy.com/v2/{}", key)),
-                ("BSC", false) => Some(format!("https://bnb-mainnet.g.alchemy.com/v2/{}", key)),
-                ("BSC", true) => Some(format!("https://bnb-testnet.g.alchemy.com/v2/{}", key)),
-                ("POLYGON", false) => {
-                    Some(format!("https://polygon-mainnet.g.alchemy.com/v2/{}", key))
-                }
-                ("POLYGON", true) => Some(format!("https://polygon-amoy.g.alchemy.com/v2/{}", key)),
-                ("ARBITRUM", false) => {
-                    Some(format!("https://arb-mainnet.g.alchemy.com/v2/{}", key))
-                }
-                ("ARBITRUM", true) => Some(format!("https://arb-sepolia.g.alchemy.com/v2/{}", key)),
+                ("ETH", false) => Some(format!("https://rpc.ankr.com/eth/{}", key)),
+                ("BSC", false) => Some(format!("https://rpc.ankr.com/bsc/{}", key)),
+                ("POLYGON", false) => Some(format!("https://rpc.ankr.com/polygon/{}", key)),
+                ("ARBITRUM", false) => Some(format!("https://rpc.ankr.com/arbitrum/{}", key)),
                 _ => None,
             } {
                 urls.push(url);
             }
         }
+
         for key in &config.infura_api_keys {
             if let Some(url) = match (chain, is_sandbox) {
                 ("ETH", false) => Some(format!("https://mainnet.infura.io/v3/{}", key)),
@@ -110,22 +120,22 @@ impl EvmMonitor {
                 urls.push(url);
             }
         }
-        if chain == "ETH" && !is_sandbox {
-            if let Some(ref url) = config.chainstack_eth_url {
-                urls.push(url.clone());
-            }
-        }
-        if chain == "BSC" && !is_sandbox {
-            if let Some(ref url) = config.chainstack_bsc_url {
-                urls.push(url.clone());
-            }
-        }
-        for key in &config.ankr_api_keys {
+
+        // --- 3. LAST RESORT: Alchemy (Prone to 429s, moved to bottom) ---
+        for key in &config.alchemy_api_keys {
             if let Some(url) = match (chain, is_sandbox) {
-                ("ETH", false) => Some(format!("https://rpc.ankr.com/eth/{}", key)),
-                ("BSC", false) => Some(format!("https://rpc.ankr.com/bsc/{}", key)),
-                ("POLYGON", false) => Some(format!("https://rpc.ankr.com/polygon/{}", key)),
-                ("ARBITRUM", false) => Some(format!("https://rpc.ankr.com/arbitrum/{}", key)),
+                ("ETH", false) => Some(format!("https://eth-mainnet.g.alchemy.com/v2/{}", key)),
+                ("ETH", true) => Some(format!("https://eth-sepolia.g.alchemy.com/v2/{}", key)),
+                ("BSC", false) => Some(format!("https://bnb-mainnet.g.alchemy.com/v2/{}", key)),
+                ("BSC", true) => Some(format!("https://bnb-testnet.g.alchemy.com/v2/{}", key)),
+                ("POLYGON", false) => {
+                    Some(format!("https://polygon-mainnet.g.alchemy.com/v2/{}", key))
+                }
+                ("POLYGON", true) => Some(format!("https://polygon-amoy.g.alchemy.com/v2/{}", key)),
+                ("ARBITRUM", false) => {
+                    Some(format!("https://arb-mainnet.g.alchemy.com/v2/{}", key))
+                }
+                ("ARBITRUM", true) => Some(format!("https://arb-sepolia.g.alchemy.com/v2/{}", key)),
                 _ => None,
             } {
                 urls.push(url);
@@ -197,8 +207,19 @@ impl EvmMonitor {
     ) -> Self {
         let rpc_urls = Self::build_rpc_urls("BSC", is_sandbox, config);
         let mut ws_urls = Vec::new();
+
+        // Prioritize Chainstack WSS if available
+        if !is_sandbox {
+            if let Some(ref url) = config.chainstack_bsc_url {
+                ws_urls.push(url.replace("https://", "wss://"));
+            }
+        }
+
         for rpc in &rpc_urls {
-            ws_urls.push(get_evm_ws_url(config, rpc));
+            let ws = get_evm_ws_url(config, rpc);
+            if !ws_urls.contains(&ws) {
+                ws_urls.push(ws);
+            }
         }
 
         Self {
@@ -218,6 +239,10 @@ impl EvmMonitor {
             etherscan_api_key: config.etherscan_api_key.clone(),
             internal_chain_identifier: "BSC",
             is_sandbox,
+            // 25 Requests per second limit as requested for Chainstack
+            rate_limiter: Arc::new(RateLimiter::direct(Quota::per_second(
+                NonZeroU32::new(25).unwrap(),
+            ))),
         }
     }
 
@@ -254,6 +279,9 @@ impl EvmMonitor {
             etherscan_api_key: config.etherscan_api_key.clone(),
             internal_chain_identifier: "ARBITRUM",
             is_sandbox,
+            rate_limiter: Arc::new(RateLimiter::direct(Quota::per_second(
+                NonZeroU32::new(25).unwrap(),
+            ))),
         }
     }
 
@@ -291,6 +319,9 @@ impl EvmMonitor {
             etherscan_api_key: config.etherscan_api_key.clone(),
             internal_chain_identifier: "POLYGON",
             is_sandbox,
+            rate_limiter: Arc::new(RateLimiter::direct(Quota::per_second(
+                NonZeroU32::new(25).unwrap(),
+            ))),
         }
     }
 
@@ -328,6 +359,9 @@ impl EvmMonitor {
             etherscan_api_key: config.etherscan_api_key.clone(),
             internal_chain_identifier: "ETH",
             is_sandbox,
+            rate_limiter: Arc::new(RateLimiter::direct(Quota::per_second(
+                NonZeroU32::new(25).unwrap(),
+            ))),
         }
     }
 
@@ -585,6 +619,7 @@ impl EvmMonitor {
             etherscan_api_key: self.etherscan_api_key.clone(),
             internal_chain_identifier: self.internal_chain_identifier,
             is_sandbox: self.is_sandbox,
+            rate_limiter: self.rate_limiter.clone(),
         }
     }
 }
@@ -658,6 +693,9 @@ impl EvmMonitor {
         });
 
         let mut last_error = None;
+
+        // Apply global rate limit before any RPC request
+        self.rate_limiter.until_ready().await;
 
         for url in &self.rpc_urls {
             match self.client.post(url).json(&payload).send().await {
