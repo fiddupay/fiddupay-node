@@ -375,14 +375,23 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
 
                                     <div className={styles.fieldGroup}>
                                         <label className={styles.fieldLabel}>Business License</label>
-                                        <div className={styles.inputContainer}>
+                                        <div className={`${styles.inputContainer} ${user?.business_license_update_count >= 2 ? styles.inputDisabled : ''}`}>
                                             <MdBusiness className={styles.inputIcon} />
                                             <input 
-                                                type="text" placeholder="CAC / RC Number" value={socialData.business_license}
+                                                type="text" 
+                                                placeholder="CAC / RC Number" 
+                                                value={socialData.business_license}
                                                 onChange={(e) => setSocialData({...socialData, business_license: e.target.value})}
                                                 className={styles.inputField}
+                                                disabled={user?.business_license_update_count >= 2}
                                             />
                                         </div>
+                                        {user?.business_license_update_count >= 2 && (
+                                            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', color: '#f87171', fontSize: '12px', fontWeight: 'bold', background: 'rgba(239, 68, 68, 0.1)', padding: '8px 12px', borderRadius: '8px' }}>
+                                                <MdWarning />
+                                                <span>Limit reached. Contact support to update.</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

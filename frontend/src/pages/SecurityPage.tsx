@@ -6,10 +6,10 @@ import {
     MdCheckCircle, 
     MdWarning, 
     MdError, 
-    MdInfo
+    MdInfo,
+    MdSecurity
 } from 'react-icons/md'
-import { securityAPI, merchantAPI } from '@/services/apiService'
-import { useAuthStore } from '@/stores/authStore'
+import { securityAPI } from '@/services/apiService'
 import { useToast } from '@/contexts/ToastContext'
 import { SecurityEvent, SecurityAlert } from '@/types'
 import { SecurityHubSkeleton, TableSkeleton } from '@/components/layout/PageSkeletons'
@@ -33,27 +33,15 @@ const formatDate = (dateString: string) => {
 type TabType = 'alerts' | 'events' | 'config'
 
 const SecurityPage: React.FC = () => {
-    const { user, loadUser } = useAuthStore()
     const { showToast } = useToast()
     const [activeTab, setActiveTab] = useState<TabType>('alerts')
     const [loading, setLoading] = useState(false)
     const [alerts, setAlerts] = useState<SecurityAlert[]>([])
     const [events, setEvents] = useState<SecurityEvent[]>([])
-    
-    // Risk Config State
-    const [lowBalanceEnabled, setLowBalanceEnabled] = useState(false)
-    const [thresholdUsd, setThresholdUsd] = useState('50.00')
 
     useEffect(() => {
         fetchData()
     }, [])
-
-    useEffect(() => {
-        if (user) {
-            setLowBalanceEnabled(user.low_balance_alerts_enabled || false)
-            setThresholdUsd(user.low_balance_threshold_usd || '50.00')
-        }
-    }, [user])
 
     const fetchData = async () => {
         try {
@@ -84,21 +72,6 @@ const SecurityPage: React.FC = () => {
         }
     }
 
-    const handleUpdateRiskConfig = async () => {
-        try {
-            setLoading(true)
-            await merchantAPI.updateSettings({
-                low_balance_alerts_enabled: lowBalanceEnabled,
-                low_balance_threshold_usd: thresholdUsd
-            })
-            await loadUser(true)
-            showToast('Risk configuration updated', 'success')
-        } catch (error) {
-            showToast('Failed to update configuration', 'error')
-        } finally {
-            setLoading(false)
-        }
-    }
 
     const getSeverityStyle = (severity: string) => {
         switch (severity.toLowerCase()) {
@@ -147,7 +120,7 @@ const SecurityPage: React.FC = () => {
                     className={`${styles.tabBtn} ${activeTab === 'config' ? styles.activeTab : ''}`}
                     onClick={() => setActiveTab('config')}
                 >
-                    <MdSettings /> Risk Configuration
+                    <MdSettings /> Security Overview
                 </button>
             </div>
 
@@ -232,55 +205,51 @@ const SecurityPage: React.FC = () => {
 
                 {activeTab === 'config' && (
                     <div className={styles.settingsSection}>
-                        <div className={styles.formGroup}>
-                            <label className="flex items-center justify-between pointer-cursor">
-                                <div>
-                                    <h4 className="m-0">Low Balance Notifications</h4>
-                                    <p className="text-xs text-slate-500 m-0 font-normal">Receive an alert when your available balance drops below a threshold.</p>
+                        <div className="p-6 bg-slate-900/50 border border-slate-800 rounded-xl">
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                <MdSecurity className="text-blue-400" /> Proactive System Security
+                            </h3>
+                            <p className="text-slate-400 text-sm mb-6">
+                                FidduPay employs automated risk mitigation protocols to protect your institutional account.
+                            </p>
+                            
+                            <div className="space-y-4">
+                                <div className="flex items-start gap-4 p-4 bg-slate-800/30 rounded-lg border border-slate-800">
+                                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+                                        <MdCheckCircle size={18} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold m-0">Brute-Force Protection</h4>
+                                        <p className="text-xs text-slate-500 m-0 mt-1">Automatic IP blacklisting after 5 failed login attempts within 10 minutes.</p>
+                                    </div>
                                 </div>
-                                <div className="ml-4">
-                                    <input 
-                                        type="checkbox" 
-                                        className="w-5 h-5 accent-blue-600"
-                                        checked={lowBalanceEnabled}
-                                        onChange={(e) => setLowBalanceEnabled(e.target.checked)}
-                                    />
-                                </div>
-                            </label>
-                        </div>
 
-                        <div className={styles.formGroup}>
-                            <label>Notification Threshold (USD)</label>
-                            <div className={styles.inputWrapper}>
-                                <div className={styles.inputWithPrefix}>
-                                    <span className={styles.prefix}>$</span>
-                                    <input 
-                                        type="number" 
-                                        className={styles.input}
-                                        value={thresholdUsd}
-                                        onChange={(e) => setThresholdUsd(e.target.value)}
-                                        placeholder="50.00"
-                                    />
+                                <div className="flex items-start gap-4 p-4 bg-slate-800/30 rounded-lg border border-slate-800">
+                                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+                                        <MdCheckCircle size={18} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold m-0">Session Integrity</h4>
+                                        <p className="text-xs text-slate-500 m-0 mt-1">Immediate revocation of all active sessions when API keys are rotated.</p>
+                                    </div>
                                 </div>
-                                <button 
-                                    className={styles.saveBtn}
-                                    onClick={handleUpdateRiskConfig}
-                                    disabled={loading}
-                                >
-                                    {loading ? 'Saving...' : 'Save Settings'}
-                                </button>
+
+                                <div className="flex items-start gap-4 p-4 bg-slate-800/30 rounded-lg border border-slate-800">
+                                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+                                        <MdCheckCircle size={18} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold m-0">Webhook Verification</h4>
+                                        <p className="text-xs text-slate-500 m-0 mt-1">Strict HMAC-SHA256 signature validation required for all inbound signals.</p>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="mt-8 p-4 bg-blue-50 border border-blue-100 rounded-lg">
-                            <h5 className="text-blue-800 font-semibold mb-2 flex items-center gap-2">
-                                <MdInfo /> Proactive Security
-                            </h5>
-                            <ul className="text-sm text-blue-700 space-y-2 mb-0">
-                                <li>Automatic IP blacklisting for repeated failed login attempts.</li>
-                                <li>Session revocation when security credentials (API keys) are rotated.</li>
-                                <li>Webhook signature verification for all inbound notifications.</li>
-                            </ul>
+                            <div className="mt-8 p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                                <p className="text-xs text-blue-400 m-0 flex items-center gap-2">
+                                    <MdInfo size={16} /> To configure threshold alerts or update security credentials, please visit the <strong>Account Settings</strong>.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 )}

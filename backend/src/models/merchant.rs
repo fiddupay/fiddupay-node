@@ -98,6 +98,7 @@ pub struct Merchant {
     pub compliance_status: String,
     pub username: Option<String>,
     pub pay_id: Option<String>,
+    pub business_license_update_count: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]

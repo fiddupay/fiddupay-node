@@ -187,7 +187,7 @@ impl MerchantService {
             RETURNING id, email, business_name, live_api_key_hash, test_api_key_hash, live_publishable_key, test_publishable_key, password_hash, fee_percentage, customer_pays_fee, is_active, sandbox_mode, settlement_mode, kyc_verified, created_at, updated_at, api_key_expires_at, daily_limit_usd, role, redirect_url,
                       first_name, last_name, gender, phone_number, country, applicant_role, business_country, business_license_number, business_certificate_url, terms_accepted,
                       wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled,
-                      nin_bvn_hash, social_handles, kyc_tier, compliance_status, username, pay_id
+                      nin_bvn_hash, social_handles, kyc_tier, compliance_status, username, pay_id, business_license_update_count
             "#
         )
         .bind(email)
@@ -345,7 +345,8 @@ impl MerchantService {
                    role, redirect_url, first_name, last_name, gender, phone_number, 
                    country, applicant_role, business_country, business_license_number, 
                    business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked, 
-                   transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled
+                   transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled,
+                   nin_bvn_hash, social_handles, kyc_tier, compliance_status, username, pay_id, business_license_update_count
             FROM merchants WHERE id = $1
 
             "#
@@ -420,7 +421,8 @@ impl MerchantService {
                    role, redirect_url, first_name, last_name, gender, phone_number, 
                    country, applicant_role, business_country, business_license_number, 
                    business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked,
-                   transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled
+                   transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled,
+                   nin_bvn_hash, social_handles, kyc_tier, compliance_status, username, pay_id, business_license_update_count
             FROM merchants WHERE id = $1
             "#
 
@@ -565,7 +567,7 @@ impl MerchantService {
                                    country, applicant_role, business_country, business_license_number, 
                                    business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked,
                                    transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled,
-                                   nin_bvn_hash, social_handles, kyc_tier, compliance_status, username, pay_id
+                                   nin_bvn_hash, social_handles, kyc_tier, compliance_status, username, pay_id, business_license_update_count
                             FROM merchants 
                             WHERE id = $1 AND is_active = true
                             "#
@@ -637,7 +639,8 @@ impl MerchantService {
                    role, redirect_url, first_name, last_name, gender, phone_number, 
                    country, applicant_role, business_country, business_license_number, 
                    business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked,
-                   transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled
+                   transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled,
+                   nin_bvn_hash, social_handles, kyc_tier, compliance_status, username, pay_id, business_license_update_count
             FROM merchants 
             WHERE live_publishable_key = $1 AND is_active = true
             "#
@@ -649,7 +652,8 @@ impl MerchantService {
                    role, redirect_url, first_name, last_name, gender, phone_number, 
                    country, applicant_role, business_country, business_license_number, 
                    business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked,
-                   transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled
+                   transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled,
+                   nin_bvn_hash, social_handles, kyc_tier, compliance_status, username, pay_id, business_license_update_count
             FROM merchants 
             WHERE test_publishable_key = $1 AND is_active = true
             "#
@@ -1231,6 +1235,30 @@ impl MerchantService {
         business_certificate_url: Option<String>,
         nin_bvn: Option<String>,
     ) -> Result<(), ServiceError> {
+        // 1. Fetch current data to check update limits
+        let current_data: (Option<String>, i32) = sqlx::query_as::<_, (Option<String>, i32)>(
+            "SELECT business_license_number, business_license_update_count FROM merchants WHERE id = $1"
+        )
+        .bind(merchant_id)
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
+
+        let (current_license, update_count) = current_data;
+
+        // 2. Check if business license is being updated
+        let mut final_update_count = update_count;
+        if let Some(ref new_license) = business_license_number {
+            if Some(new_license.clone()) != current_license {
+                if update_count >= 2 {
+                    return Err(ServiceError::ValidationError(
+                        "Maximum update limit reached for Business License. Please contact support to make further changes.".to_string()
+                    ));
+                }
+                final_update_count += 1;
+            }
+        }
+
         let nin_bvn_hash = nin_bvn.as_ref().map(|s| self.hash_id_number(s));
 
         sqlx::query(
@@ -1246,6 +1274,7 @@ impl MerchantService {
                 business_license_number = COALESCE($8, business_license_number),
                 business_certificate_url = COALESCE($9, business_certificate_url),
                 nin_bvn_hash = COALESCE($10, nin_bvn_hash),
+                business_license_update_count = $11,
                 kyc_tier = GREATEST(kyc_tier, CASE 
                     WHEN (COALESCE($10, nin_bvn_hash) IS NOT NULL AND COALESCE($10, nin_bvn_hash) != '') 
                          AND (COALESCE($9, business_certificate_url) IS NOT NULL AND COALESCE($9, business_certificate_url) != '')
@@ -1264,8 +1293,8 @@ impl MerchantService {
                     THEN 'QUALIFIED'
                     ELSE compliance_status 
                 END,
-                updated_at = $11
-            WHERE id = $12
+                updated_at = $12
+            WHERE id = $13
             "#,
         )
         .bind(first_name)
@@ -1278,6 +1307,7 @@ impl MerchantService {
         .bind(business_license_number)
         .bind(business_certificate_url)
         .bind(nin_bvn_hash)
+        .bind(final_update_count)
         .bind(Utc::now())
         .bind(merchant_id)
         .execute(&self.db_pool)

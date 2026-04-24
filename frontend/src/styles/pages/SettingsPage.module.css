@@ -137,6 +137,13 @@
     .keyDisplay {
         font-size: 11px;
         padding: 10px 12px;
+        overflow-x: auto;
+        white-space: nowrap;
+        scrollbar-width: none;
+    }
+
+    .keyDisplay::-webkit-scrollbar {
+        display: none;
     }
 
     .keyFooter {
@@ -261,6 +268,16 @@
 .saveBtn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.inputDisabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: rgba(0, 0, 0, 0.1) !important;
+}
+
+.inputDisabled input {
+    cursor: not-allowed !important;
 }
 
 .toggleGroup {
