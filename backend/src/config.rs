@@ -122,6 +122,7 @@ pub struct Config {
 
     // Fee Configuration
     pub default_fee_percentage: rust_decimal::Decimal,
+    pub withdrawal_fee_percentage: rust_decimal::Decimal,
 
     // Daily Volume Limits
     pub daily_volume_limit_non_kyc_usd: rust_decimal::Decimal,
@@ -185,6 +186,13 @@ pub struct Config {
     pub fee_wallet_arbitrum: String,
     // Additional Feature Flags
     pub managed_mode_only: bool,
+    pub enable_sandbox_monitors: bool,
+    pub solana_sandbox_enabled: bool,
+    pub bnb_sandbox_enabled: bool,
+    pub eth_sandbox_enabled: bool,
+    pub matic_sandbox_enabled: bool,
+    pub arb_sandbox_enabled: bool,
+    pub btc_sandbox_enabled: bool,
 }
 
 impl Config {
@@ -452,13 +460,16 @@ impl Config {
             default_fee_percentage: env::var("DEFAULT_FEE_PERCENTAGE")
                 .unwrap_or_else(|_| "0.75".to_string())
                 .parse()?,
+            withdrawal_fee_percentage: env::var("WITHDRAWAL_FEE_PERCENTAGE")
+                .unwrap_or_else(|_| "0.00".to_string())
+                .parse()?,
 
             // Daily Volume Limits
             daily_volume_limit_non_kyc_usd: env::var("DAILY_VOLUME_LIMIT_NON_KYC_USD")
                 .unwrap_or_else(|_| "10000.00".to_string())
                 .parse()?,
             daily_volume_limit_verified_usd: env::var("DAILY_VOLUME_LIMIT_VERIFIED_USD")
-                .unwrap_or_else(|_| "50000.00".to_string())
+                .unwrap_or_else(|_| "5000000.00".to_string())
                 .parse()?,
 
             // Merchant Settings
@@ -575,6 +586,47 @@ impl Config {
                 .unwrap_or_else(|_| "false".to_string())
                 .parse()
                 .unwrap_or(false),
+            enable_sandbox_monitors: {
+                let val =
+                    env::var("ENABLE_SANDBOX_MONITORS").unwrap_or_else(|_| "true".to_string());
+                val.parse().unwrap_or(true)
+            },
+            solana_sandbox_enabled: {
+                env::var("SOLANA_SANDBOX_ENABLED")
+                    .unwrap_or_else(|_| "false".to_string())
+                    .parse()
+                    .unwrap_or(false)
+            },
+            bnb_sandbox_enabled: {
+                env::var("BNB_SANDBOX_ENABLED")
+                    .unwrap_or_else(|_| "false".to_string())
+                    .parse()
+                    .unwrap_or(false)
+            },
+            eth_sandbox_enabled: {
+                env::var("ETH_SANDBOX_ENABLED")
+                    .unwrap_or_else(|_| "false".to_string())
+                    .parse()
+                    .unwrap_or(false)
+            },
+            matic_sandbox_enabled: {
+                env::var("MATIC_SANDBOX_ENABLED")
+                    .unwrap_or_else(|_| "false".to_string())
+                    .parse()
+                    .unwrap_or(false)
+            },
+            arb_sandbox_enabled: {
+                env::var("ARB_SANDBOX_ENABLED")
+                    .unwrap_or_else(|_| "false".to_string())
+                    .parse()
+                    .unwrap_or(false)
+            },
+            btc_sandbox_enabled: {
+                env::var("BTC_SANDBOX_ENABLED")
+                    .unwrap_or_else(|_| "false".to_string())
+                    .parse()
+                    .unwrap_or(false)
+            },
         })
     }
 
@@ -673,6 +725,11 @@ impl Config {
                     if let Ok(val) = Decimal::from_str(&setting.value) {
                         // Convert percentage to decimal (e.g. 0.75 -> 0.0075) if stored as percentage
                         self.default_fee_percentage = val;
+                    }
+                }
+                "WITHDRAWAL_FEE_PERCENTAGE" => {
+                    if let Ok(val) = Decimal::from_str(&setting.value) {
+                        self.withdrawal_fee_percentage = val;
                     }
                 }
 
@@ -835,6 +892,7 @@ impl Default for Config {
             payment_cleanup_interval_hours: 24,
             payment_page_base_url: "https://pay.fiddupay.com".to_string(),
             default_fee_percentage: rust_decimal::Decimal::new(75, 4), // 0.0075 = 0.75%
+            withdrawal_fee_percentage: rust_decimal::Decimal::ZERO,
             daily_volume_limit_non_kyc_usd: rust_decimal::Decimal::new(1000000, 2), // 10,000.00
             daily_volume_limit_verified_usd: rust_decimal::Decimal::new(5000000, 2), // 50,000.00
             merchant_registration_enabled: true,
@@ -894,6 +952,13 @@ impl Default for Config {
             arbitrum_sepolia_rpc_url_backup: "".to_string(),
             polygon_amoy_rpc_url_backup: "".to_string(),
             managed_mode_only: false,
+            enable_sandbox_monitors: false,
+            solana_sandbox_enabled: false,
+            bnb_sandbox_enabled: false,
+            eth_sandbox_enabled: false,
+            matic_sandbox_enabled: false,
+            arb_sandbox_enabled: false,
+            btc_sandbox_enabled: false,
         }
     }
 }

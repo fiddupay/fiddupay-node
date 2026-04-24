@@ -146,15 +146,17 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
             <p>Choose how you want to receive and manage your funds.</p>
 
             <div className={styles.modeGrid}>
-                <div
-                    className={`${styles.modeCard} ${selectedMode === 'forwarding' ? styles.activeCard : ''}`}
-                    onClick={() => handleUpdateSettlementMode('forwarding')}
-                >
-                    {selectedMode === 'forwarding' && <MdCheckCircle className={styles.checkIcon} />}
-                    <MdForward size={32} />
-                    <h3>Forwarding Bridge (WIP)</h3>
-                    <span>Auto-forwards funds to your external addresses. (Experimental)</span>
-                </div>
+                {!user?.managed_mode_only && (
+                    <div
+                        className={`${styles.modeCard} ${selectedMode === 'forwarding' ? styles.activeCard : ''}`}
+                        onClick={() => handleUpdateSettlementMode('forwarding')}
+                    >
+                        {selectedMode === 'forwarding' && <MdCheckCircle className={styles.checkIcon} />}
+                        <MdForward size={32} />
+                        <h3>Forwarding Bridge (WIP)</h3>
+                        <span>Auto-forwards funds to your external addresses. (Experimental)</span>
+                    </div>
+                )}
 
                 <div
                     className={`${styles.modeCard} ${selectedMode === 'managed' ? styles.activeCard : ''}`}

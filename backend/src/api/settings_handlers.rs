@@ -30,6 +30,7 @@ pub async fn get_merchant_profile(
     // 1. Fetch BASIC merchant info
     let merchant = match sqlx::query(
         r#"
+        SELECT id, business_name, email, sandbox_mode, settlement_mode,
                kyc_verified, daily_limit_usd, created_at, redirect_url,
                test_api_key_hash, live_api_key_hash, wallets_locked, customer_wallets_locked,
                transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled,
@@ -133,6 +134,9 @@ pub async fn get_merchant_profile(
         "social_handles": merchant.get::<serde_json::Value, _>("social_handles"),
         "username": merchant.get::<Option<String>, _>("username"),
         "pay_id": merchant.get::<Option<String>, _>("pay_id"),
+        "managed_mode_only": state.config.managed_mode_only,
+        "withdrawal_fee_percentage": state.config.withdrawal_fee_percentage,
+        "withdrawal_enabled": state.config.withdrawal_enabled,
         "trust_score": crate::services::trust_score_service::TrustScoreService::calculate_score(
             merchant.get::<i32, _>("kyc_tier"),
             &merchant.get::<serde_json::Value, _>("social_handles")

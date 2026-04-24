@@ -392,11 +392,22 @@ const WithdrawalsPage: React.FC = () => {
                             <div className={styles.feeDisplay}>
                                 <div className={styles.feeRow}>
                                     <span>Withdrawal Fee</span>
-                                    <span className={styles.freeLabel}><i className="fas fa-check-circle"></i> FREE</span>
+                                    {parseFloat(user?.withdrawal_fee_percentage || '0') === 0 ? (
+                                        <span className={styles.freeLabel}><i className="fas fa-check-circle"></i> FREE</span>
+                                    ) : (
+                                        <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                                            {(parseFloat(amount || '0') * (parseFloat(user?.withdrawal_fee_percentage || '0') / 100)).toFixed(6)} {selectedCrypto.split('_')[0]}
+                                            <small style={{ marginLeft: '4px', opacity: 0.8, fontWeight: 400 }}>
+                                                ({parseFloat(user?.withdrawal_fee_percentage || '0').toFixed(2)}%)
+                                            </small>
+                                        </span>
+                                    )}
                                 </div>
                                 <div className={styles.feeRow}>
                                     <span>You Receive</span>
-                                    <strong>{amount ? parseFloat(amount).toFixed(6) : '0.000000'} {selectedCrypto.split('_')[0]}</strong>
+                                    <strong>
+                                        {amount ? (parseFloat(amount) * (1 - (parseFloat(user?.withdrawal_fee_percentage || '0') / 100))).toFixed(6) : '0.000000'} {selectedCrypto.split('_')[0]}
+                                    </strong>
                                 </div>
                             </div>
 
@@ -467,8 +478,14 @@ const WithdrawalsPage: React.FC = () => {
                                                 <strong>{parseFloat(w.amount || '0').toFixed(6)}</strong>
                                             </div>
                                             <div className={styles.historyDetailRow}>
+                                                <span>Amount (USD)</span>
+                                                <strong>${parseFloat(w.amount_usd || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                                            </div>
+                                            <div className={styles.historyDetailRow}>
                                                 <span>Fee</span>
-                                                <span style={{ color: '#059669' }}>0 (Free)</span>
+                                                <span style={{ color: parseFloat(w.fee || '0') > 0 ? '#dc2626' : '#059669' }}>
+                                                    {parseFloat(w.fee || '0') > 0 ? parseFloat(w.fee || '0').toFixed(6) : 'Free'}
+                                                </span>
                                             </div>
                                             <div className={styles.historyDetailRow}>
                                                 <span>To</span>

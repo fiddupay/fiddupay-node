@@ -43,6 +43,9 @@ export interface User {
   pay_id?: string
   kyc_tier: number
   compliance_status: string
+  managed_mode_only?: boolean
+  withdrawal_fee_percentage?: string
+  withdrawal_enabled?: boolean
 }
 
 export interface SecurityEvent {
@@ -99,16 +102,21 @@ export interface Payment {
   amount_usd: string
   crypto_type?: string
   network: string
-  deposit_address: string
+  to_address?: string
+  deposit_address?: string // Keep for legacy if needed
   payment_link: string
   qr_code_data: string
   fee_amount: string
   fee_amount_usd: string
+  fee_percentage: string
   expires_at: string
   created_at: string
   confirmed_at?: string
   transaction_hash?: string
   description?: string
+  total_paid?: string
+  remaining_balance?: string
+  sandbox_mode: boolean
 }
 
 export interface AddressOnlyPayment {
@@ -174,8 +182,11 @@ export interface PaymentFilters {
 // Wallet Types
 export interface WalletConfig {
   crypto_type: string
+  network: string
   address: string
-  is_active?: boolean
+  is_active: boolean
+  sandbox_mode: boolean
+  wallet_mode: string
 }
 
 export interface Wallet {
@@ -247,14 +258,19 @@ export interface Withdrawal {
   withdrawal_id: string
   status: 'PENDING' | 'APPROVED' | 'PROCESSING' | 'COMPLETED' | 'REJECTED' | 'FAILED' | 'CANCELLED'
   amount: string
+  amount_usd: string
   crypto_type: string
   destination_address: string
-  fee_amount: string
+  fee: string
   net_amount: string
   transaction_hash?: string
   rejection_reason?: string
+  requires_approval: boolean
+  approved_by?: number
+  approved_at?: string
   created_at: string
   completed_at?: string
+  updated_at: string
 }
 
 export interface WithdrawalData {

@@ -143,7 +143,13 @@ export const refundAPI = {
 }
 
 export const withdrawalAPI = {
-  create: (data: { crypto_type: string; amount: string | number; to_address?: string; destination_address?: string; description?: string; pin: string }) => api.post('/api/v1/merchants/withdrawals', data),
+  create: (data: { 
+    crypto_type: string; 
+    amount: string | number; 
+    destination_address: string; 
+    description?: string; 
+    pin: string 
+  }) => api.post('/api/v1/merchants/withdrawals', data),
   get: (id: string) => api.get(`/api/v1/merchants/withdrawals/${id}`),
   cancel: (id: string) => api.post(`/api/v1/merchants/withdrawals/${id}/cancel`),
   process: (id: string, password: string) => api.post(`/api/v1/merchants/withdrawals/${id}/process`, { encryption_password: password }),
@@ -166,6 +172,7 @@ export const walletAPI = {
   },
   revoke: (cryptoType: string) => api.delete(`/api/v1/merchants/wallets/${cryptoType}`),
   getGasEstimates: () => api.get('/api/v1/merchants/wallets/gas-estimates'),
+  checkWithdrawalCapability: (cryptoType: string) => api.get(`/api/v1/merchants/wallets/withdrawal-capability/${cryptoType}`),
 }
 
 export const securityAPI = {

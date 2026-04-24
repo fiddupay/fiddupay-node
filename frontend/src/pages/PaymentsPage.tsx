@@ -665,16 +665,19 @@ const PaymentsPage: React.FC = () => {
                 </div>
               )}
 
-              {selectedPaymentForDetails.deposit_address && (
+              {(selectedPaymentForDetails.to_address || selectedPaymentForDetails.deposit_address) && (
                 <div className={styles.detailsSection}>
                   <h3>Deposit Address</h3>
                   <div className={styles.addressBox}>
-                    <code>{selectedPaymentForDetails.deposit_address}</code>
+                    <code>{selectedPaymentForDetails.to_address || selectedPaymentForDetails.deposit_address}</code>
                     <button
                       className={styles.copyButton}
                       onClick={() => {
-                        navigator.clipboard.writeText(selectedPaymentForDetails.deposit_address)
-                        showToast('Address copied!', 'success')
+                        const addr = selectedPaymentForDetails.to_address || selectedPaymentForDetails.deposit_address;
+                        if (addr) {
+                          navigator.clipboard.writeText(addr)
+                          showToast('Address copied!', 'success')
+                        }
                       }}
                     >
                       <i className="fas fa-copy"></i>

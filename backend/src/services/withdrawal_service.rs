@@ -145,6 +145,11 @@ impl WithdrawalService {
         .execute(&mut *tx)
         .await?;
 
+        // 2. Calculate Fee and Net Amount (Percentage based, e.g. 0.75 = 0.75%)
+        let fee_percentage = self.config.withdrawal_fee_percentage;
+        let fee = (request.amount * fee_percentage / Decimal::from(100)).round_dp(8);
+        let net_amount = request.amount - fee;
+
         // 3. Create the withdrawal record
         let withdrawal_res: Result<Withdrawal, sqlx::Error> = sqlx::query_as::<_, Withdrawal>(
             r#"
@@ -165,8 +170,8 @@ impl WithdrawalService {
         .bind(request.amount)
         .bind(amount_usd)
         .bind(&request.destination_address)
-        .bind(Decimal::ZERO) // fee
-        .bind(request.amount) // net_amount
+        .bind(fee) // fee
+        .bind(net_amount) // net_amount
         .bind(sandbox_mode)
         .fetch_one(&mut *tx)
         .await;

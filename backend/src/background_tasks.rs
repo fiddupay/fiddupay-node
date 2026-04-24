@@ -133,10 +133,7 @@ impl BackgroundTasks {
             tasks_webhook.run_webhook_retry().await;
         });
 
-        let enable_sandbox = std::env::var("ENABLE_SANDBOX_MONITORS")
-            .unwrap_or_else(|_| "true".to_string())
-            .parse::<bool>()
-            .unwrap_or(true);
+        let enable_sandbox = self.config.enable_sandbox_monitors;
 
         if self.config.solana_enabled {
             let tasks_solana_prod = self.clone();
@@ -145,7 +142,7 @@ impl BackgroundTasks {
             });
         }
 
-        if self.config.solana_enabled && enable_sandbox {
+        if self.config.solana_enabled && self.config.solana_sandbox_enabled {
             let tasks_solana_sandbox = self.clone();
             tokio::spawn(async move {
                 tasks_solana_sandbox.run_solana_monitor(true).await;
@@ -196,10 +193,22 @@ impl BackgroundTasks {
             tokio::spawn(async move {
                 for net in networks {
                     let is_enabled = match net {
-                        "ETH" => tasks_sandbox.config.ethereum_enabled,
-                        "BNB" => tasks_sandbox.config.bsc_enabled,
-                        "MATIC" => tasks_sandbox.config.polygon_enabled,
-                        "ARB" => tasks_sandbox.config.arbitrum_enabled,
+                        "ETH" => {
+                            tasks_sandbox.config.ethereum_enabled
+                                && tasks_sandbox.config.eth_sandbox_enabled
+                        }
+                        "BNB" => {
+                            tasks_sandbox.config.bsc_enabled
+                                && tasks_sandbox.config.bnb_sandbox_enabled
+                        }
+                        "MATIC" => {
+                            tasks_sandbox.config.polygon_enabled
+                                && tasks_sandbox.config.matic_sandbox_enabled
+                        }
+                        "ARB" => {
+                            tasks_sandbox.config.arbitrum_enabled
+                                && tasks_sandbox.config.arb_sandbox_enabled
+                        }
                         _ => true,
                     };
 
@@ -214,7 +223,7 @@ impl BackgroundTasks {
                 }
             });
         } else {
-            info!("EVM Sandbox monitors are disabled via ENABLE_SANDBOX_MONITORS");
+            info!("All EVM Sandbox monitors are globally disabled via ENABLE_SANDBOX_MONITORS");
         }
 
         // Initialize Gas Monitor and Auto-Sweeper for platform fees

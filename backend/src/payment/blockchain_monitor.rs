@@ -123,15 +123,9 @@ impl EvmMonitor {
         for key in &config.ankr_api_keys {
             if let Some(url) = match (chain, is_sandbox) {
                 ("ETH", false) => Some(format!("https://rpc.ankr.com/eth/{}", key)),
-                ("ETH", true) => Some(format!("https://rpc.ankr.com/eth_sepolia/{}", key)),
                 ("BSC", false) => Some(format!("https://rpc.ankr.com/bsc/{}", key)),
-                ("BSC", true) => Some(format!("https://rpc.ankr.com/bsc_testnet_chapel/{}", key)),
                 ("POLYGON", false) => Some(format!("https://rpc.ankr.com/polygon/{}", key)),
-                ("POLYGON", true) => Some(format!("https://rpc.ankr.com/polygon_amoy/{}", key)),
                 ("ARBITRUM", false) => Some(format!("https://rpc.ankr.com/arbitrum/{}", key)),
-                ("ARBITRUM", true) => {
-                    Some(format!("https://rpc.ankr.com/arbitrum_sepolia/{}", key))
-                }
                 _ => None,
             } {
                 urls.push(url);
@@ -618,12 +612,34 @@ fn redact_url(url: &str) -> String {
     if let Some(idx) = url.find('?') {
         format!("{}?***REDACTED***", &url[..idx])
     } else {
-        match url.find("alchemy.com/v2/") {
-            Some(idx) => format!("{}alchemy.com/v2/***REDACTED***", &url[..idx]),
-            None => match url.find("infura.io/v3/") {
-                Some(idx) => format!("{}infura.io/v3/***REDACTED***", &url[..idx]),
-                None => url.to_string(),
-            },
+        // Redact key in path for Alchemy, Infura, Chainstack, Ankr
+        if url.contains("alchemy.com/v2/") {
+            let parts: Vec<&str> = url.split("alchemy.com/v2/").collect();
+            format!("{}alchemy.com/v2/***REDACTED***", parts[0])
+        } else if url.contains("infura.io/v3/") {
+            let parts: Vec<&str> = url.split("infura.io/v3/").collect();
+            format!("{}infura.io/v3/***REDACTED***", parts[0])
+        } else if url.contains("chainstack.com/") {
+            // Chainstack usually has the key as the last part of the path
+            if let Some(last_slash) = url.rfind('/') {
+                format!("{}/[REDACTED]", &url[..last_slash])
+            } else {
+                url.to_string()
+            }
+        } else if url.contains("rpc.ankr.com/") {
+            // Ankr: https://rpc.ankr.com/eth/KEY or https://rpc.ankr.com/eth (public)
+            let parts: Vec<&str> = url.split('/').collect();
+            if parts.len() > 4 {
+                // Has a key
+                format!(
+                    "{}/{}/{}/{}/[REDACTED]",
+                    parts[0], parts[1], parts[2], parts[3]
+                )
+            } else {
+                url.to_string()
+            }
+        } else {
+            url.to_string()
         }
     }
 }
