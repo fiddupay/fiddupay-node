@@ -104,6 +104,14 @@ export interface LoginResponse {
 
 export type MerchantRole = 'MERCHANT' | 'ADMIN' | 'MODERATOR' | 'SUPER_ADMIN' | 'USER';
 
+export interface TrustScore {
+  score: number;
+  tier: string;
+  identity_verified: boolean;
+  social_verified: boolean;
+  business_verified: boolean;
+}
+
 export interface MerchantProfile {
   id: number;
   business_name: string;
@@ -133,12 +141,16 @@ export interface MerchantProfile {
   last_login_at?: string;
   username?: string;
   pay_id?: string;
-  nin_bvn_hash?: string;
+  has_national_id: boolean;
   social_handles?: Record<string, any>;
   managed_mode_only?: boolean;
   withdrawal_enabled?: boolean;
-  trust_score?: number;
+  trust_score?: TrustScore;
   withdrawal_fee_percentage?: number;
+  fee_percentage: string;
+  customer_pays_fee: boolean;
+  business_license_number?: string;
+  business_certificate_url?: string;
 }
 
 export interface CreatePaymentRequest {
