@@ -8,7 +8,7 @@ import {
   MdSearch,
   MdStream
 } from 'react-icons/md';
-import { Card, CardHeader, CardTitle, CardContent } from './card';
+import styles from '@/styles/components/SwarmIntelligenceWidget.module.css';
 
 interface Agent {
   name: string;
@@ -40,7 +40,6 @@ export const SwarmIntelligenceWidget: React.FC = () => {
     const interval = setInterval(() => {
       setActiveLog(prev => [logs[Math.floor(Math.random() * logs.length)], ...prev.slice(0, 4)]);
       
-      // Randomly change status to scanning
       setAgents(prev => prev.map(a => ({
         ...a,
         status: Math.random() > 0.7 ? 'scanning' : 'verified'
@@ -51,39 +50,37 @@ export const SwarmIntelligenceWidget: React.FC = () => {
   }, []);
 
   return (
-    <Card className="bg-[#0f172a]/80 border-primary/20 backdrop-blur-xl overflow-hidden">
-      <div className="absolute top-0 right-0 p-4 opacity-10">
-        <MdRadar className="w-24 h-24 animate-spin-slow" />
+    <div className={styles.container}>
+      <div className={styles.radarOverlay}>
+        <MdRadar className={styles.radarIcon} />
       </div>
       
-      <CardHeader className="border-b border-white/5 pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white flex items-center gap-2">
-            <MdSecurity className="text-primary" />
-            Fraud Signal Swarm
-          </CardTitle>
-          <div className="flex items-center gap-2 bg-green-500/10 px-3 py-1 rounded-full">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">Active Consenus</span>
-          </div>
+      <div className={styles.header}>
+        <div className={styles.title}>
+          <MdSecurity className={styles.titleIcon} />
+          Fraud Signal Swarm
         </div>
-      </CardHeader>
+        <div className={styles.statusBadge}>
+          <div className={styles.pulse} />
+          <span className={styles.statusText}>Active Consensus</span>
+        </div>
+      </div>
       
-      <CardContent className="pt-6">
-        <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className={styles.content}>
+        <div className={styles.agentGrid}>
           {agents.map((agent) => (
-            <div key={agent.id} className="bg-white/5 p-3 rounded-xl border border-white/10 group hover:border-primary/50 transition-all">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">{agent.name}</span>
+            <div key={agent.id} className={styles.agentCard}>
+              <div className={styles.agentHeader}>
+                <span className={styles.agentName}>{agent.name}</span>
                 {agent.status === 'scanning' ? (
-                  <MdSearch className="text-primary animate-bounce" />
+                  <MdSearch className={styles.scanningText} />
                 ) : (
-                  <MdCheckCircle className="text-green-500" />
+                  <MdCheckCircle style={{color: '#22c55e'}} />
                 )}
               </div>
-              <div className="text-xs font-mono text-gray-300 truncate">
+              <div className={styles.agentSignal}>
                 {agent.status === 'scanning' ? (
-                  <span className="animate-pulse">SCANNING...</span>
+                  <span className={styles.scanningText}>SCANNING...</span>
                 ) : (
                   agent.signal
                 )}
@@ -92,38 +89,38 @@ export const SwarmIntelligenceWidget: React.FC = () => {
           ))}
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
-            <MdStream className="text-primary" />
+        <div className={styles.feedContainer}>
+          <div className={styles.feedHeader}>
+            <MdStream className={styles.titleIcon} />
             Real-time Intelligence Feed
           </div>
-          <div className="bg-black/40 rounded-xl p-4 font-mono text-[10px] h-32 overflow-hidden relative">
+          <div className={styles.terminal}>
             <div className="space-y-2">
               {activeLog.map((log, i) => (
-                <div key={i} className={`flex gap-2 ${i === 0 ? 'text-primary' : 'text-gray-500'}`}>
-                  <span className="opacity-50">[{new Date().toLocaleTimeString()}]</span>
+                <div key={i} className={`${styles.logEntry} ${i === 0 ? styles.logActive : styles.logMuted}`}>
+                  <span className={styles.logTimestamp}>[{new Date().toLocaleTimeString()}]</span>
                   <span>{log}</span>
                 </div>
               ))}
-              {activeLog.length === 0 && <div className="text-gray-700 italic">Waiting for swarm signals...</div>}
+              {activeLog.length === 0 && <div style={{opacity: 0.3, fontStyle: 'italic', fontSize: '10px'}}>Waiting for swarm signals...</div>}
             </div>
-            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#0a0f1c] to-transparent" />
+            <div className={styles.terminalOverlay} />
           </div>
         </div>
 
-        <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center justify-between">
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+        <div className={styles.footer}>
+            <div className={styles.footerInfo}>
+                <div className={styles.footerIconBox}>
                     <MdAutoGraph />
                 </div>
                 <div>
-                    <div className="text-[10px] text-gray-500 font-bold uppercase">Consensus Risk Level</div>
-                    <div className="text-sm font-black text-white uppercase tracking-tight">Low Probability (Secure)</div>
+                    <div className={styles.footerLabel}>Consensus Risk Level</div>
+                    <div className={styles.footerValue}>Low Probability (Secure)</div>
                 </div>
             </div>
-            <MdShield className="text-primary w-6 h-6 opacity-50" />
+            <MdShield className={styles.shieldIcon} size={24} />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

@@ -1,0 +1,95 @@
+.pulseBar {
+  display: flex;
+  gap: 4px;
+  height: 4px;
+  margin-top: 8px;
+}
+
+.pulseDot {
+  flex: 1;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: all 0.3s;
+}
+
+.pulseDotActive {
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary-glow);
+}
+
+.pulseDotCurrent {
+  animation: pulseDot 1s infinite;
+}
+
+@keyframes pulseDot {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.checkItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.checkLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.checkLabelActive {
+  color: var(--text-main);
+}
+
+.points {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  opacity: 0.5;
+}
+
+.healthSection {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.score {
+  font-size: 48px;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.percent {
+  font-size: 20px;
+  opacity: 0.5;
+}
+
+.healthMeta {
+  padding-bottom: 4px;
+}
+
+.healthLabel {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.healthSub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+}

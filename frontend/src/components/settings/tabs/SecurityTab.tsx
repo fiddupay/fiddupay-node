@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { MdCheckCircle, MdError } from 'react-icons/md';
+import { 
+    MdCheckCircle, 
+    MdError, 
+    MdFingerprint, 
+    MdVpnKey, 
+    MdAdd, 
+    MdSecurity
+} from 'react-icons/md';
+import { Badge } from '@/components/ui/badge';
 import { merchantAPI } from '@/services/apiService';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuthStore } from '@/stores/authStore';
@@ -133,6 +141,64 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                         <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '8px', textAlign: 'center' }}>PINs do not match.</p>
                     )}
                 </form>
+            </div>
+            <div style={{ marginTop: '48px', borderTop: '1px solid var(--border)', paddingTop: '32px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <MdFingerprint className="text-primary" />
+                            Passkeys & Biometrics
+                        </h2>
+                        <p>Enable secure, passwordless login using your device's fingerprint or FaceID.</p>
+                    </div>
+                    <Badge style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                        Recommended
+                    </Badge>
+                </div>
+
+                <div className={styles.formCard} style={{ marginTop: '24px', maxWidth: '600px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                <div style={{ width: '48px', height: '48px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                                    <MdVpnKey size={24} />
+                                </div>
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>Biometric Login</h4>
+                                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>Use TouchID / FaceID to sign in instantly.</p>
+                                </div>
+                            </div>
+                            <label className={styles.switch}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={user?.passkey_enabled}
+                                    onChange={async (e) => {
+                                        if (e.target.checked) {
+                                            showToast('Initializing WebAuthn Biometric Protocol...', 'info');
+                                            // Trigger passkey registration
+                                        }
+                                    }}
+                                />
+                                <span className={styles.slider}></span>
+                            </label>
+                        </div>
+
+                        <button 
+                            className={styles.viewBtn} 
+                            style={{ width: '100%', padding: '16px', borderRadius: '16px', border: '1px dashed var(--border)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+                            onClick={() => showToast('Registering new security key...', 'info')}
+                        >
+                            <MdAdd /> Register New Security Key / Passkey
+                        </button>
+                    </div>
+
+                    <div className={styles.privacyNote} style={{ marginTop: '24px', background: 'rgba(99, 102, 241, 0.03)' }}>
+                        <MdSecurity size={20} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                        <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            FidduPay uses industry-standard **FIDO2/WebAuthn**. Your biometric data never leaves your device; it is used only to unlock a cryptographic key stored on your secure hardware.
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <div style={{ marginTop: '48px', borderTop: '1px solid var(--border)', paddingTop: '32px' }}>

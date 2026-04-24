@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from './card';
 import { Badge } from './badge';
 import { 
   MdShield, 
@@ -8,6 +7,7 @@ import {
   MdOutlineCircle 
 } from 'react-icons/md';
 import { User } from '@/types';
+import styles from '@/styles/components/TrustScoreWidget.module.css';
 
 interface TrustScoreWidgetProps {
   user: User | null;
@@ -19,19 +19,19 @@ export const TrustScoreWidget: React.FC<TrustScoreWidgetProps> = ({ user, classN
 
   const { score, tier, identity_verified, social_verified, business_verified } = user.trust_score;
 
-  const getTierColor = (t: string) => {
+  const getTierGradient = (t: string) => {
     switch (t) {
-      case 'Gold': return 'from-yellow-400 to-amber-600';
-      case 'Silver': return 'from-slate-300 to-slate-500';
-      default: return 'from-orange-400 to-orange-700';
+      case 'Gold': return 'linear-gradient(135deg, #fbbf24, #d97706)';
+      case 'Silver': return 'linear-gradient(135deg, #cbd5e1, #64748b)';
+      default: return 'linear-gradient(135deg, #fb923c, #c2410c)';
     }
   };
 
   const getScoreColor = (s: number) => {
-    if (s >= 80) return 'text-green-500';
-    if (s >= 60) return 'text-blue-500';
-    if (s >= 40) return 'text-yellow-500';
-    return 'text-red-500';
+    if (s >= 80) return '#22c55e';
+    if (s >= 60) return '#3b82f6';
+    if (s >= 40) return '#f59e0b';
+    return '#ef4444';
   };
 
   const checklistItems = [
@@ -41,72 +41,73 @@ export const TrustScoreWidget: React.FC<TrustScoreWidgetProps> = ({ user, classN
   ];
 
   return (
-    <Card className={`overflow-hidden border-none bg-white/5 backdrop-blur-xl shadow-2xl ${className}`}>
-      <div className={`h-1.5 w-full bg-gradient-to-r ${getTierColor(tier)}`} />
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
-            <MdShield className="w-4 h-4 text-primary" />
-            Trust Intelligence Layer
-          </CardTitle>
-          <Badge className={`bg-gradient-to-br ${getTierColor(tier)} text-white border-none px-3 py-1 font-bold shadow-lg text-[10px]`}>
+    <div style={{ position: 'relative', overflow: 'hidden', height: '100%' }}>
+      <div style={{ height: '4px', width: '100%', background: getTierGradient(tier) }} />
+      
+      <div style={{ padding: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <MdShield style={{ color: 'var(--primary)', width: '16px', height: '16px' }} />
+            Trust Intelligence
+          </div>
+          <Badge style={{ background: getTierGradient(tier), color: 'white', border: 'none', padding: '4px 10px', fontWeight: '800', fontSize: '10px' }}>
             {tier} TIER
           </Badge>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-end gap-4 mb-6">
-          <div className={`text-6xl font-black tracking-tighter ${getScoreColor(score)}`}>
-            {score}<span className="text-2xl opacity-50">%</span>
+
+        <div className={styles.healthSection}>
+          <div className={styles.score} style={{ color: getScoreColor(score) }}>
+            {score}<span className={styles.percent}>%</span>
           </div>
-          <div className="pb-2">
-            <div className="text-xs text-gray-500 uppercase font-bold">Network Reputation</div>
-            <div className="text-sm text-gray-300 font-medium">Agent Consensus Level</div>
+          <div className={styles.healthMeta}>
+            <div className={styles.healthLabel}>Network Reputation</div>
+            <div className={styles.healthSub}>Agent Consensus</div>
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className={styles.checklist}>
           {checklistItems.map((item, idx) => (
-            <div key={idx} className="flex items-center justify-between group">
-              <div className="flex items-center gap-3">
+            <div key={idx} className={styles.checkItem}>
+              <div className={`${styles.checkLabel} ${item.status ? styles.checkLabelActive : ''}`}>
                 {item.status ? (
-                  <MdCheckCircle className="w-5 h-5 text-green-500" />
+                  <MdCheckCircle style={{ color: '#22c55e', width: '20px', height: '20px' }} />
                 ) : (
-                  <MdOutlineCircle className="w-5 h-5 text-gray-600 group-hover:text-amber-500 transition-colors" />
+                  <MdOutlineCircle style={{ color: 'rgba(255,255,255,0.1)', width: '20px', height: '20px' }} />
                 )}
-                <span className={`text-sm ${item.status ? 'text-gray-200' : 'text-gray-500'}`}>
-                  {item.label}
-                </span>
+                <span>{item.label}</span>
               </div>
-              <span className={`text-xs font-mono ${item.status ? 'text-green-500/50' : 'text-gray-600'}`}>
+              <span className={styles.points} style={{ color: item.status ? '#22c55e' : 'inherit' }}>
                 +{item.points}
               </span>
             </div>
           ))}
         </div>
 
-        <div className="mt-8 pt-6 border-t border-white/5">
-            <div className="flex items-center justify-between text-[10px] uppercase font-black tracking-widest text-gray-500 mb-4">
+        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
                 <span>Swarm Pulse</span>
-                <span className="text-primary">LIVE SIGNAL</span>
+                <span style={{ color: 'var(--primary)' }}>LIVE SIGNAL</span>
             </div>
-            <div className="flex gap-1 h-1">
+            <div className={styles.pulseBar}>
                 {[...Array(12)].map((_, i) => (
-                    <div key={i} className={`flex-1 rounded-full ${i < (score / 8) ? 'bg-primary' : 'bg-white/10'} ${i === Math.floor(score / 8) ? 'animate-pulse' : ''}`} />
+                    <div 
+                        key={i} 
+                        className={`${styles.pulseDot} ${i < (score / 8) ? styles.pulseDotActive : ''} ${i === Math.floor(score / 8) ? styles.pulseDotCurrent : ''}`} 
+                    />
                 ))}
             </div>
         </div>
 
         {score < 100 && (
-          <div className="mt-6 p-3 rounded-lg bg-primary/5 border border-primary/20 flex gap-3 items-start">
-            <MdWarning className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-            <p className="text-[11px] text-gray-400 leading-relaxed">
-              Unlock 0-fee interoperability and higher limits by feeding the Swarm more signals. 
-              {score < 60 ? " Start with Identity Agent verification." : " Link Social Signals to reach Gold status."}
+          <div style={{ marginTop: '20px', padding: '12px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.1)', display: 'flex', gap: '12px' }}>
+            <MdWarning style={{ color: 'var(--primary)', width: '16px', height: '16px', flexShrink: 0 }} />
+            <p style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: '1.4', margin: 0 }}>
+              Unlock 0-fee interoperability by feeding the Swarm more signals. 
+              {score < 60 ? " Start with Identity verification." : " Link Social Signals for Gold status."}
             </p>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

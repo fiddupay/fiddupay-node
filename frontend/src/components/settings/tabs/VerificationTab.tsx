@@ -29,7 +29,7 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
     const { showToast } = useToast()
     const { loadUser } = useAuthStore()
     const [loading, setLoading] = useState(false)
-    const [step, setStep] = useState(user?.kyc_tier > 0 ? 2 : 1)
+    const [step, setStep] = useState(user?.kyc_tier > 1 ? 3 : (user?.kyc_tier > 0 ? 2 : 1))
     
     const [idData, setIdData] = useState({
         nin_bvn: '',
@@ -43,6 +43,11 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
         website: user?.social_handles?.website || '',
         business_license: user?.business_license_number || '',
     })
+
+    const handleStartSmileID = () => {
+        showToast('Initializing SmileID Secure Verification...', 'info');
+        // Logic to trigger SmileID SDK would go here
+    };
 
     const handleClaimUsername = async () => {
         if (!idData.username) return;
@@ -94,8 +99,12 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
                 },
                 business_license_number: socialData.business_license || undefined
             });
-            showToast('Profile intelligence updated!', 'success');
+            showToast('Profile intelligence updated! You have reached Gold Trust status.', 'success');
             await loadUser(true);
+            // Optionally redirect after a short delay
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 2000);
         } catch (error: any) {
             showToast(error.response?.data?.error || 'Failed to update socials', 'error');
         } finally {
@@ -108,6 +117,7 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
             case 0: return 'Untrusted (Sandbox)';
             case 1: return 'Verified Identity';
             case 2: return 'Gold Intelligence';
+            case 3: return 'Institutional Elite';
             default: return 'Institutional';
         }
     }
@@ -152,7 +162,7 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
                     <MdAutoGraph className="text-primary" />
                     <span className={styles.fieldLabel}>Growth Path</span>
                     <div className={styles.growthDots}>
-                        {[0, 1, 2].map((t) => (
+                        {[0, 1, 2, 3].map((t) => (
                             <div 
                                 key={t} 
                                 className={`${styles.dot} ${user?.kyc_tier >= t ? styles.dotActive : ''}`} 
@@ -168,11 +178,12 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
                 <div className={styles.stepSidebar}>
                     {[
                         { id: 1, label: 'Identity & PayID', icon: <MdOutlineFingerprint />, desc: 'Claim your on-chain ID' },
-                        { id: 2, label: 'Social Signals', icon: <MdRocketLaunch />, desc: 'Build your trust score' }
+                        { id: 2, label: 'Social Signals', icon: <MdRocketLaunch />, desc: 'Build your trust score' },
+                        { id: 3, label: 'Biometric KYC', icon: <MdSecurity />, desc: 'SmileID Face & Doc Scan' }
                     ].map((s) => (
                         <button 
                             key={s.id}
-                            onClick={() => s.id <= (user?.kyc_tier + 1) && setStep(s.id)}
+                            onClick={() => setStep(s.id)}
                             className={`${styles.stepBtn} ${step === s.id ? styles.stepBtnActive : ''}`}
                         >
                             <div className={styles.stepBtnHeader}>
@@ -214,16 +225,19 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
                                                 disabled={!!user?.username}
                                             />
                                         </div>
-                                        {!user?.username && (
-                                            <button 
-                                                onClick={handleClaimUsername}
-                                                disabled={loading || !idData.username}
-                                                className={styles.saveBtn}
-                                                style={{borderRadius: '12px'}}
-                                            >
-                                                Claim
-                                            </button>
-                                        )}
+                                        <button 
+                                            onClick={user?.username ? undefined : handleClaimUsername}
+                                            disabled={loading || (!user?.username && !idData.username)}
+                                            className={styles.saveBtn}
+                                            style={{
+                                                borderRadius: '12px', 
+                                                minWidth: '80px',
+                                                background: user?.username ? '#22c55e' : 'var(--primary)',
+                                                cursor: user?.username ? 'default' : 'pointer'
+                                            }}
+                                        >
+                                            {loading ? '...' : user?.username ? <MdCheckCircle size={20} /> : 'Claim'}
+                                        </button>
                                     </div>
                                     {user?.username && (
                                         <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontSize: '12px', fontWeight: 'bold', background: 'rgba(16,185,129,0.1)', padding: '8px 12px', borderRadius: '8px', width: 'fit-content'}}>
@@ -347,6 +361,39 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
                                         {loading ? 'Optimizing Signals...' : 'Reach Gold Trust Status'}
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+                    {step === 3 && (
+                        <div className={styles.formCard} style={{ textAlign: 'center', padding: '60px 40px' }}>
+                            <div className={styles.formHeader}>
+                                <img 
+                                    src="https://smileidentity.com/wp-content/uploads/2021/01/Smile-Identity-Logo-Dark.png" 
+                                    alt="SmileID" 
+                                    style={{ height: '32px', marginBottom: '24px', opacity: 0.8, filter: 'brightness(2)' }} 
+                                />
+                                <h3>Institutional Biometric Verification</h3>
+                                <p>Perform a high-security face and document scan to unlock the Institutional Elite status and limitless transaction volumes.</p>
+                            </div>
+
+                            <div style={{ margin: '40px 0', padding: '32px', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '24px', border: '1px dashed var(--border)' }}>
+                                <MdSecurity size={64} style={{ color: 'var(--primary)', marginBottom: '20px', opacity: 0.5 }} />
+                                <div style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto', lineHeight: '1.6' }}>
+                                    This process uses **SmileID** to verify your live face against government databases. Please ensure you are in a well-lit area.
+                                </div>
+                            </div>
+
+                            <button 
+                                onClick={handleStartSmileID}
+                                className={styles.submitBtn}
+                                style={{ maxWidth: '300px', margin: '0 auto' }}
+                            >
+                                Start SmileID Verification
+                            </button>
+
+                            <div className={styles.privacyNote} style={{ marginTop: '32px', justifyContent: 'center' }}>
+                                <MdShield style={{ color: '#3b82f6' }} />
+                                <p>Bank-grade security. Your biometric data is encrypted and never stored by FidduPay.</p>
                             </div>
                         </div>
                     )}

@@ -10,12 +10,12 @@ import {
 } from 'recharts'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
-import { merchantAPI, paymentAPI, securityAPI, walletAPI } from '@/services/apiService'
+import { merchantAPI, paymentAPI, securityAPI } from '@/services/apiService'
 import { 
   MdWarning, 
   MdArrowForward, 
-  MdRadar,
-  MdBolt
+  MdBolt,
+  MdShield
 } from 'react-icons/md'
 import { UniversalPayForm } from '@/components/ui/UniversalPayForm'
 import { SecurityAlert } from '../types'
@@ -141,10 +141,7 @@ const DashboardPage: React.FC = () => {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [alerts, setAlerts] = useState<SecurityAlert[]>([])
   const [loading, setLoading] = useState(true)
-  const [showGasModal, setShowGasModal] = useState(false)
   const [showQuickPayModal, setShowQuickPayModal] = useState(false)
-  const [gasEstimates, setGasEstimates] = useState<any>(null)
-  const [loadingGas, setLoadingGas] = useState(false)
   const [dailyVolumeUsed, setDailyVolumeUsed] = useState(0)
   const [dateRange, setDateRange] = useState(() => {
     const now = new Date();
@@ -194,18 +191,6 @@ const DashboardPage: React.FC = () => {
     }
   }
 
-  const loadGasData = async () => {
-    try {
-      setLoadingGas(true)
-      const res = await walletAPI.getGasEstimates()
-      setGasEstimates(res.data)
-      setShowGasModal(true)
-    } catch (error) {
-      console.error('Failed to load gas estimates:', error)
-    } finally {
-      setLoadingGas(false)
-    }
-  }
 
   const totalPayments = (analytics?.successful_payments || 0) + (analytics?.failed_payments || 0) + (analytics?.pending_payments || 0)
   const successRate = totalPayments > 0
@@ -265,8 +250,17 @@ const DashboardPage: React.FC = () => {
           <button className={styles.refreshBtn} onClick={() => setShowQuickPayModal(true)} title="Quick Interop Pay" style={{ color: 'var(--secondary)', background: 'rgba(245, 158, 11, 0.1)' }}>
             <MdBolt size={20} />
           </button>
-          <button className={styles.refreshBtn} onClick={loadGasData} disabled={loadingGas} title="Network Gas Radar" style={{ color: 'var(--primary)', background: 'rgba(99, 102, 241, 0.1)' }}>
-            {loadingGas ? <i className="fas fa-spinner fa-spin"></i> : <MdRadar size={20} />}
+          <button className={styles.refreshBtn} onClick={() => navigate('/app/settings?tab=verification')} title="Trust Intelligence Status" style={{ 
+            color: (user?.kyc_tier || 0) >= 2 ? '#fbbf24' : ((user?.kyc_tier || 0) === 1 ? 'var(--primary)' : '#f59e0b'), 
+            background: (user?.kyc_tier || 0) >= 2 ? 'rgba(251, 191, 36, 0.1)' : ((user?.kyc_tier || 0) === 1 ? 'rgba(99, 102, 241, 0.1)' : 'rgba(245, 158, 11, 0.1)'),
+            width: 'auto',
+            padding: '0 12px',
+            gap: '8px'
+          }}>
+            <MdShield size={18} />
+            <span style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}>
+              {(user?.kyc_tier || 0) >= 2 ? 'Gold Tier' : ((user?.kyc_tier || 0) === 1 ? 'Verified' : 'Sandbox')}
+            </span>
           </button>
           <a href="/docs" className={styles.docsLink} target="_blank" rel="noopener noreferrer">
             <i className="fas fa-book"></i>
@@ -506,6 +500,70 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Performance Charts */}
+          <div className={styles.chartContainer}>
+            <div className={styles.sectionHeader}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h2>Performance Trends</h2>
+                  <p>Transaction volume across selected period</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>Peak Volume</div>
+                  <div style={{ color: 'var(--primary)', fontWeight: 900, fontSize: '1.2rem' }}>
+                    ${Math.max(...(chartData.map(d => d.volume) || [0])).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className={styles.chartWrapper} style={{ height: '320px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                  <XAxis 
+                    dataKey="displayDate" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: 'var(--text-muted)', fontSize: 11, fontWeight: 600 }}
+                    dy={10}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: 'var(--text-muted)', fontSize: 11, fontWeight: 600 }}
+                    tickFormatter={(value) => `$${value}`}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(15, 23, 42, 0.9)', 
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '12px',
+                      backdropFilter: 'blur(10px)',
+                      color: 'white'
+                    }}
+                    itemStyle={{ color: 'var(--primary)', fontWeight: 800 }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="volume" 
+                    stroke="var(--primary)" 
+                    strokeWidth={4}
+                    fillOpacity={1} 
+                    fill="url(#colorVolume)" 
+                    animationDuration={1500}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
           {/* Daily Volume Limit */}
           {user && !user.kyc_verified && (
             <div className={styles.volumeLimitCard}>
@@ -539,51 +597,6 @@ const DashboardPage: React.FC = () => {
         </>
       )}
 
-      {/* Gas Radar Modal */}
-      {showGasModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowGasModal(false)}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <div className={styles.modalHeader}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MdRadar size={24} color="var(--primary)" />
-                <h2 style={{ margin: 0 }}>Live Network Gas Radar</h2>
-              </div>
-              <button className={styles.closeButton} onClick={() => setShowGasModal(false)}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
-                Real-time transaction fee estimates for all supported blockchains. Fees are automatically handled during merchant sweeps.
-              </p>
-              
-              {gasEstimates?.networks && Object.entries(gasEstimates.networks).map(([net, data]: [string, any]) => (
-                <div key={net} style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', textTransform: 'uppercase', fontWeight: 800, color: 'var(--text-main)', fontSize: '10px' }}>
-                      {data.native_currency}
-                    </div>
-                    <div>
-                      <h4 style={{ margin: 0, textTransform: 'capitalize', color: 'var(--text-main)', fontSize: '15px' }}>{net} Network</h4>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Fast: {(parseFloat(data.fast_fee) || 0).toLocaleString()} {data.native_currency}</span>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1.2rem', textShadow: '0 0 10px var(--primary-glow)' }}>
-                      {(parseFloat(data.standard_fee) || 0).toLocaleString()} {data.native_currency}
-                    </div>
-                    <span style={{ fontSize: '0.8rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', fontWeight: 600 }}>
-                      <span style={{ display: 'inline-block', width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }}></span>
-                      Live standard
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
       {showQuickPayModal && (
         <div className={styles.modalOverlay} onClick={() => setShowQuickPayModal(false)}>
           <div className={styles.modalContent} style={{ maxWidth: '600px', width: '95%', background: 'transparent', boxShadow: 'none' }} onClick={(e) => e.stopPropagation()}>
