@@ -12,7 +12,7 @@ import {
     MdAutoGraph,
     MdOutlineFingerprint
 } from 'react-icons/md'
-import { FaTwitter, FaInstagram, FaLinkedin, FaGlobe } from 'react-icons/fa'
+import { FaTwitter, FaLinkedin, FaGlobe } from 'react-icons/fa'
 import { merchantAPI } from '@/services/apiService'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuthStore } from '@/stores/authStore'
@@ -25,7 +25,7 @@ interface VerificationTabProps {
     styles: any;
 }
 
-const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _parentLoading, styles }) => {
+const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _parentLoading, styles: _ }) => {
     const { showToast } = useToast()
     const { loadUser } = useAuthStore()
     const [loading, setLoading] = useState(false)
