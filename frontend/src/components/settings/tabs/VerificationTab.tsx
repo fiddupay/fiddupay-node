@@ -59,7 +59,7 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
             });
             // Auto-advance step if tier increased
             if (user.kyc_tier > 1) setStep(3);
-            else if (user.kyc_tier > 0) setStep(2);
+            else if (user.has_national_id || user.kyc_tier > 0) setStep(2);
         }
     }, [user]);
 
@@ -225,7 +225,7 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
                                 <p>Verifying your identity unlocks PayID and enables zero-fee interoperability within the FidduPay ecosystem.</p>
                             </div>
                             
-                            {user?.kyc_tier >= 1 ? (
+                            {user?.has_national_id || user?.kyc_tier >= 1 ? (
                                 <div style={{ textAlign: 'center', padding: '40px 20px' }}>
                                     <div style={{ width: '80px', height: '80px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                                         <MdCheckCircle size={48} color="#22c55e" />
@@ -278,9 +278,9 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
                                                 {loading ? '...' : user?.username ? <MdCheckCircle size={20} /> : 'Claim'}
                                             </button>
                                         </div>
-                                        {user?.username && (
+                                        {user?.has_national_id && (
                                             <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontSize: '12px', fontWeight: 'bold', background: 'rgba(16,185,129,0.1)', padding: '8px 12px', borderRadius: '8px', width: 'fit-content'}}>
-                                                <MdCheckCircle /> Identity Linked: @{user.username}
+                                                <MdCheckCircle /> Identity Linked & Cryptographically Hashed
                                             </div>
                                         )}
                                     </div>

@@ -34,7 +34,8 @@ pub async fn get_merchant_profile(
                kyc_verified, daily_limit_usd, created_at, redirect_url,
                test_api_key_hash, live_api_key_hash, wallets_locked, customer_wallets_locked,
                transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled,
-               kyc_tier, social_handles, username, pay_id
+               kyc_tier, social_handles, username, pay_id,
+               fee_percentage, customer_pays_fee, business_license_number, business_certificate_url, nin_bvn_hash
         FROM merchants
         WHERE id = $1
         "#,
@@ -135,6 +136,11 @@ pub async fn get_merchant_profile(
         "username": merchant.get::<Option<String>, _>("username"),
         "pay_id": merchant.get::<Option<String>, _>("pay_id"),
         "managed_mode_only": state.config.managed_mode_only,
+        "fee_percentage": merchant.get::<Decimal, _>("fee_percentage").to_string(),
+        "customer_pays_fee": merchant.get::<bool, _>("customer_pays_fee"),
+        "business_license_number": merchant.get::<Option<String>, _>("business_license_number"),
+        "business_certificate_url": merchant.get::<Option<String>, _>("business_certificate_url"),
+        "has_national_id": merchant.get::<Option<String>, _>("nin_bvn_hash").is_some(),
         "withdrawal_fee_percentage": state.config.withdrawal_fee_percentage,
         "withdrawal_enabled": state.config.withdrawal_enabled,
         "trust_score": crate::services::trust_score_service::TrustScoreService::calculate_score(
@@ -481,6 +487,7 @@ pub async fn update_merchant_settings(
         || req.customer_pays_fee.is_some()
         || req.sandbox_mode.is_some()
         || req.redirect_url.is_some()
+        || req.low_balance_alerts_enabled.is_some()
     {
         // 0. Requirement: Must be Tier 1 to switch to LIVE mode
         if req.sandbox_mode == Some(false) {
@@ -1189,6 +1196,7 @@ pub struct UpdateKycDraftRequest {
     pub business_country: Option<String>,
     pub business_license_number: Option<String>,
     pub business_certificate_url: Option<String>,
+    pub nin_bvn: Option<String>,
 }
 
 pub async fn update_kyc_draft(
@@ -1209,6 +1217,7 @@ pub async fn update_kyc_draft(
             req.business_country,
             req.business_license_number,
             req.business_certificate_url,
+            req.nin_bvn,
         )
         .await
     {

@@ -1228,7 +1228,10 @@ impl MerchantService {
         business_country: Option<String>,
         business_license_number: Option<String>,
         business_certificate_url: Option<String>,
+        nin_bvn: Option<String>,
     ) -> Result<(), ServiceError> {
+        let nin_bvn_hash = nin_bvn.as_ref().map(|s| self.hash_id_number(s));
+
         sqlx::query(
             r#"
             UPDATE merchants 
@@ -1241,22 +1244,27 @@ impl MerchantService {
                 business_country = COALESCE($7, business_country),
                 business_license_number = COALESCE($8, business_license_number),
                 business_certificate_url = COALESCE($9, business_certificate_url),
-                kyc_tier = CASE 
-                    WHEN kyc_tier < 2 
+                nin_bvn_hash = COALESCE($10, nin_bvn_hash),
+                kyc_tier = GREATEST(kyc_tier, CASE 
+                    WHEN (COALESCE($10, nin_bvn_hash) IS NOT NULL AND COALESCE($10, nin_bvn_hash) != '') 
                          AND (COALESCE($9, business_certificate_url) IS NOT NULL AND COALESCE($9, business_certificate_url) != '')
                          AND (EXISTS (SELECT 1 FROM jsonb_each_text(COALESCE($6, social_handles)) WHERE value IS NOT NULL AND value != ''))
-                    THEN 2 
-                    ELSE kyc_tier 
-                END,
+                    THEN 2
+                    WHEN (COALESCE($10, nin_bvn_hash) IS NOT NULL AND COALESCE($10, nin_bvn_hash) != '')
+                    THEN 1
+                    ELSE 0
+                END),
                 compliance_status = CASE 
-                    WHEN kyc_tier < 2 
+                    WHEN (COALESCE($10, nin_bvn_hash) IS NOT NULL AND COALESCE($10, nin_bvn_hash) != '') 
                          AND (COALESCE($9, business_certificate_url) IS NOT NULL AND COALESCE($9, business_certificate_url) != '')
                          AND (EXISTS (SELECT 1 FROM jsonb_each_text(COALESCE($6, social_handles)) WHERE value IS NOT NULL AND value != ''))
-                    THEN 'VERIFIED' 
+                    THEN 'VERIFIED'
+                    WHEN (COALESCE($10, nin_bvn_hash) IS NOT NULL AND COALESCE($10, nin_bvn_hash) != '')
+                    THEN 'QUALIFIED'
                     ELSE compliance_status 
                 END,
-                updated_at = $10
-            WHERE id = $11
+                updated_at = $11
+            WHERE id = $12
             "#,
         )
         .bind(first_name)
@@ -1268,6 +1276,7 @@ impl MerchantService {
         .bind(business_country)
         .bind(business_license_number)
         .bind(business_certificate_url)
+        .bind(nin_bvn_hash)
         .bind(Utc::now())
         .bind(merchant_id)
         .execute(&self.db_pool)

@@ -51,7 +51,9 @@ impl BalanceMonitoringService {
             r#"
             SELECT id, business_name, low_balance_threshold_usd, last_low_balance_total_alert_at 
             FROM merchants 
-            WHERE low_balance_threshold_usd > 0 AND is_active = true
+            WHERE low_balance_threshold_usd > 0 
+              AND low_balance_alerts_enabled = true 
+              AND is_active = true
             "#,
         )
         .fetch_all(&self.db_pool)
