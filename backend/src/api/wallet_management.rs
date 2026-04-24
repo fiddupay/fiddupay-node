@@ -41,7 +41,7 @@ pub async fn get_wallets(
     State(state): State<AppState>,
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
-    let wallet_service = WalletConfigService::new(state.db_pool.clone());
+    let wallet_service = WalletConfigService::new(state.db_pool.clone(), state.config.clone());
 
     let sandbox_mode = context.sandbox_mode;
     let settlement_mode = get_merchant_settlement_mode(&state.db_pool, context.merchant_id).await;
@@ -56,12 +56,34 @@ pub async fn get_wallets(
             .await
     };
 
+    let supported_networks: Vec<&str> = [
+        "ethereum", "bsc", "polygon", "arbitrum", "solana", "bitcoin",
+    ]
+    .into_iter()
+    .filter(|n| {
+        let ct_str = match *n {
+            "ethereum" => "ETH",
+            "bsc" => "BNB",
+            "polygon" => "MATIC",
+            "arbitrum" => "ARB",
+            "solana" => "SOL",
+            "bitcoin" => "BTC",
+            _ => return false,
+        };
+        if let Ok(ct) = CryptoType::from_string(ct_str) {
+            state.config.is_blockchain_enabled(&ct)
+        } else {
+            false
+        }
+    })
+    .collect();
+
     match result {
         Ok(configs) => (
             StatusCode::OK,
             Json(json!({
                 "wallets": configs,
-                "supported_networks": ["ethereum", "bsc", "polygon", "arbitrum", "solana"]
+                "supported_networks": supported_networks
             })),
         )
             .into_response(),
@@ -74,7 +96,7 @@ pub async fn delete_wallet(
     Extension(context): Extension<MerchantContext>,
     Path(crypto_type): Path<String>,
 ) -> impl IntoResponse {
-    let wallet_service = WalletConfigService::new(state.db_pool.clone());
+    let wallet_service = WalletConfigService::new(state.db_pool.clone(), state.config.clone());
 
     let sandbox_mode = context.sandbox_mode;
     let settlement_mode = get_merchant_settlement_mode(&state.db_pool, context.merchant_id).await;
@@ -128,7 +150,7 @@ pub async fn check_gas_requirements(
     Extension(context): Extension<MerchantContext>,
     Query(params): Query<GasCheckQuery>,
 ) -> impl IntoResponse {
-    let wallet_service = WalletConfigService::new(state.db_pool.clone());
+    let wallet_service = WalletConfigService::new(state.db_pool.clone(), state.config.clone());
 
     let sandbox_mode = context.sandbox_mode;
 
@@ -196,7 +218,7 @@ pub async fn check_withdrawal_capability(
     Extension(context): Extension<MerchantContext>,
     Path(crypto_type): Path<CryptoType>,
 ) -> impl IntoResponse {
-    let wallet_service = WalletConfigService::new(state.db_pool.clone());
+    let wallet_service = WalletConfigService::new(state.db_pool.clone(), state.config.clone());
 
     let sandbox_mode = context.sandbox_mode;
 
@@ -315,7 +337,7 @@ pub async fn setup_wallet(
     Extension(context): Extension<MerchantContext>,
     Json(req): Json<UnifiedWalletSetupRequest>,
 ) -> impl IntoResponse {
-    let wallet_service = WalletConfigService::new(state.db_pool.clone());
+    let wallet_service = WalletConfigService::new(state.db_pool.clone(), state.config.clone());
 
     // 1. Requirement: Must be Tier 1 (ID Verified) to setup Live wallets
     if !context.sandbox_mode {
@@ -642,6 +664,24 @@ pub async fn get_wallet_balances(
             .bind(sandbox_mode)
             .fetch_all(&state.db_pool)
             .await
+    };
+
+    // Filter out disabled blockchains from balances
+    let result = match result {
+        Ok(wallets) => {
+            let filtered = wallets
+                .into_iter()
+                .filter(|w| {
+                    if let Ok(ct) = CryptoType::from_string(&w.crypto_type) {
+                        state.config.is_blockchain_enabled(&ct)
+                    } else {
+                        false
+                    }
+                })
+                .collect::<Vec<_>>();
+            Ok(filtered)
+        }
+        Err(e) => Err(e),
     };
 
     match result {

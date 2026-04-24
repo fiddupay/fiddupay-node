@@ -702,6 +702,18 @@ impl Config {
         Ok(())
     }
 
+    pub fn is_blockchain_enabled(&self, crypto_type: &crate::payment::models::CryptoType) -> bool {
+        use crate::payment::models::CryptoType;
+        match crypto_type {
+            CryptoType::Sol | CryptoType::UsdtSpl | CryptoType::WSol => self.solana_enabled,
+            CryptoType::Eth | CryptoType::UsdtEth => self.ethereum_enabled,
+            CryptoType::Bnb | CryptoType::UsdtBep20 | CryptoType::BusdBep20 => self.bsc_enabled,
+            CryptoType::Matic | CryptoType::UsdtPolygon => self.polygon_enabled,
+            CryptoType::Arb | CryptoType::UsdtArbitrum => self.arbitrum_enabled,
+            CryptoType::Btc => self.bitcoin_enabled,
+        }
+    }
+
     pub async fn load_from_db(&mut self, pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
         // Query all settings
         let settings = sqlx::query("SELECT key, value FROM system_settings")

@@ -166,8 +166,10 @@ pub async fn get_merchant_readiness(
     Extension(context): Extension<MerchantContext>,
 ) -> impl IntoResponse {
     let merchant_id = context.merchant_id;
-    let wallet_service =
-        crate::services::wallet_config_service::WalletConfigService::new(state.db_pool.clone());
+    let wallet_service = crate::services::wallet_config_service::WalletConfigService::new(
+        state.db_pool.clone(),
+        state.config.clone(),
+    );
     let currency_service = crate::services::currency_service::CurrencyService::new(
         state.db_pool.clone(),
         std::sync::Arc::new(state.config.clone()),

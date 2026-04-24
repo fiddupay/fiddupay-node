@@ -24,11 +24,15 @@ pub struct WalletConfig {
 
 pub struct WalletConfigService {
     db_pool: PgPool,
+    config: std::sync::Arc<crate::config::Config>,
 }
 
 impl WalletConfigService {
-    pub fn new(db_pool: PgPool) -> Self {
-        Self { db_pool }
+    pub fn new(db_pool: PgPool, config: crate::config::Config) -> Self {
+        Self {
+            db_pool,
+            config: std::sync::Arc::new(config),
+        }
     }
 
     pub async fn set_wallet_address(
@@ -40,6 +44,13 @@ impl WalletConfigService {
         sandbox_mode: bool,
         encrypted_private_key: Option<String>,
     ) -> Result<WalletConfig, ServiceError> {
+        // 0. Check if blockchain is enabled
+        if !self.config.is_blockchain_enabled(&crypto_type) {
+            return Err(ServiceError::BadRequest(format!(
+                "Blockchain {} is currently disabled by the platform owner.",
+                crypto_type.network()
+            )));
+        }
         let network = crypto_type.network().to_string();
         let crypto_type_str = crypto_type.to_string();
         let mode = if encrypted_private_key.is_some() {
@@ -312,7 +323,19 @@ impl WalletConfigService {
         .fetch_all(&self.db_pool)
         .await?;
 
-        Ok(configs)
+        // Filter out disabled blockchains
+        let filtered_configs = configs
+            .into_iter()
+            .filter(|c| {
+                if let Ok(ct) = CryptoType::from_string(&c.crypto_type) {
+                    self.config.is_blockchain_enabled(&ct)
+                } else {
+                    false
+                }
+            })
+            .collect();
+
+        Ok(filtered_configs)
     }
 
     pub async fn configure_address_only(
@@ -709,7 +732,19 @@ impl WalletConfigService {
         .fetch_all(&self.db_pool)
         .await?;
 
-        Ok(configs)
+        // Filter out disabled blockchains
+        let filtered_configs = configs
+            .into_iter()
+            .filter(|c| {
+                if let Ok(ct) = CryptoType::from_string(&c.crypto_type) {
+                    self.config.is_blockchain_enabled(&ct)
+                } else {
+                    false
+                }
+            })
+            .collect();
+
+        Ok(filtered_configs)
     }
 
     pub async fn delete_forwarding_config(

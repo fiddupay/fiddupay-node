@@ -48,7 +48,30 @@ pub async fn get_analytics(
         )
         .await
     {
-        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
+        Ok(mut response) => {
+            // Filter by_blockchain map
+            response.by_blockchain.retain(|network, _| {
+                // Network strings in analytics are usually "Solana", "Ethereum", etc.
+                // or ticker "SOL", "ETH", etc.
+                // We need to map them to CryptoType for checking.
+                let ct_str = match network.to_uppercase().as_str() {
+                    "SOLANA" | "SOL" => "SOL",
+                    "ETHEREUM" | "ETH" => "ETH",
+                    "BSC" | "BNB" => "BNB",
+                    "POLYGON" | "MATIC" => "MATIC",
+                    "ARBITRUM" | "ARB" => "ARB",
+                    "BITCOIN" | "BTC" => "BTC",
+                    _ => return true, // Keep unknown ones or handle specifically
+                };
+
+                if let Ok(ct) = crate::payment::models::CryptoType::from_string(ct_str) {
+                    state.config.is_blockchain_enabled(&ct)
+                } else {
+                    true
+                }
+            });
+            (StatusCode::OK, Json(response)).into_response()
+        }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({"error": e.to_string()})),
@@ -417,6 +440,7 @@ pub async fn get_balance(
             let balances_json: Vec<_> = balance
                 .balances
                 .into_iter()
+                .filter(|b| state.config.is_blockchain_enabled(&b.crypto_type))
                 .map(|b| {
                     let price = price_map.get(&b.crypto_type).copied().unwrap_or(0.0);
                     let price_dec = Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO);

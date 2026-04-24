@@ -9,6 +9,7 @@ use crate::models::merchant_customer::{
 use crate::payment::models::CryptoType;
 use crate::utils::encryption::Encryption;
 use crate::utils::keygen::KeyGenerator;
+use crate::utils::sanitizer::mask_email;
 use alloy_primitives::U256;
 use rust_decimal::Decimal;
 use serde_json::json;
@@ -378,9 +379,9 @@ impl MerchantCustomerService {
                     }
                 }
                 "BITCOIN" | "BTC" | "BITCOIN_MAINNET" | "BITCOIN_TESTNET" => {
-                    if !self.config.bitcoin_enabled {
+                    if !self.config.is_blockchain_enabled(&CryptoType::Btc) {
                         tracing::info!(
-                            "Skipping Bitcoin wallet provisioning - service is in maintenance"
+                            "Skipping Bitcoin wallet provisioning - blockchain is disabled"
                         );
                         continue;
                     }
@@ -634,7 +635,18 @@ impl MerchantCustomerService {
         .fetch_all(&self.db_pool)
         .await?;
 
-        Ok(balances)
+        let filtered_balances = balances
+            .into_iter()
+            .filter(|b| {
+                if let Ok(ct) = CryptoType::from_str(&b.crypto_type) {
+                    self.config.is_blockchain_enabled(&ct)
+                } else {
+                    false
+                }
+            })
+            .collect();
+
+        Ok(filtered_balances)
     }
 
     pub async fn get_customer_wallets(
@@ -669,7 +681,18 @@ impl MerchantCustomerService {
         .fetch_all(&self.db_pool)
         .await?;
 
-        Ok(wallets)
+        let filtered_wallets = wallets
+            .into_iter()
+            .filter(|w| {
+                if let Ok(ct) = CryptoType::from_str(&w.crypto_type) {
+                    self.config.is_blockchain_enabled(&ct)
+                } else {
+                    false
+                }
+            })
+            .collect();
+
+        Ok(filtered_wallets)
     }
 
     pub async fn get_deposit_address(
@@ -1718,23 +1741,6 @@ impl MerchantCustomerService {
             "recent_customers": recent_count,
             "total_balance_usd": total_balance_usd
         }))
-    }
-}
-
-fn mask_email(email: &str) -> String {
-    if let Some(pos) = email.find('@') {
-        let (name, domain) = email.split_at(pos);
-        match name.len() {
-            0 => email.to_string(),
-            1 => format!("*{}", domain),
-            2 => format!("{}*{}", &name[..1], domain),
-            _ => {
-                // Show first and last characters of the name part, e.g. j****n@example.com
-                format!("{}****{}{}", &name[..1], &name[name.len() - 1..], domain)
-            }
-        }
-    } else {
-        email.to_string()
     }
 }
 

@@ -160,7 +160,10 @@ impl AppState {
                 volume_tracking_service.clone(),
                 config.clone(),
             )),
-            wallet_config_service: Arc::new(WalletConfigService::new(db_pool.clone())),
+            wallet_config_service: Arc::new(WalletConfigService::new(
+                db_pool.clone(),
+                config.clone(),
+            )),
             currency_service: Arc::new(CurrencyService::new(
                 db_pool.clone(),
                 Arc::new(config.clone()),
