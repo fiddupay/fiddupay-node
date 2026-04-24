@@ -1,62 +1,42 @@
-.pulseBar {
-  display: flex;
-  gap: 4px;
-  height: 4px;
-  margin-top: 8px;
+/* Root container */
+.widgetRoot {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border-radius: 20px;
+  border: 1px solid var(--border);
 }
 
-.pulseDot {
-  flex: 1;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  transition: all 0.3s;
+/* Desktop: 3-column horizontal layout */
+.widgetBody {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 32px;
+  align-items: center;
 }
 
-.pulseDotActive {
-  background: var(--primary);
-  box-shadow: 0 0 8px var(--primary-glow);
+.widgetLeft {
+  min-width: 0;
 }
 
-.pulseDotCurrent {
-  animation: pulseDot 1s infinite;
-}
-
-@keyframes pulseDot {
-  0% { opacity: 0.5; }
-  50% { opacity: 1; }
-  100% { opacity: 0.5; }
-}
-
-.checklist {
+.widgetCenter {
+  padding: 0 24px;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  min-width: 180px;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  justify-content: center;
 }
 
-.checkItem {
+.widgetRight {
+  min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
 }
 
-.checkLabel {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.checkLabelActive {
-  color: var(--text-main);
-}
-
-.points {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  opacity: 0.5;
-}
-
+/* Score & Health */
 .healthSection {
   display: flex;
   align-items: flex-end;
@@ -92,4 +72,86 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--text-main);
+}
+
+/* Checklist */
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.checkItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.checkLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.checkLabelActive {
+  color: var(--text-main);
+}
+
+.points {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  opacity: 0.5;
+}
+
+/* Pulse Bar */
+.pulseBar {
+  display: flex;
+  gap: 4px;
+  height: 4px;
+  margin-top: 8px;
+}
+
+.pulseDot {
+  flex: 1;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: all 0.3s;
+}
+
+.pulseDotActive {
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary-glow);
+}
+
+.pulseDotCurrent {
+  animation: pulseDot 1s infinite;
+}
+
+@keyframes pulseDot {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+/* Mobile: Stack vertically (same as current mobile view) */
+@media (max-width: 768px) {
+  .widgetBody {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .widgetCenter {
+    padding: 16px 0 0 0;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    min-width: unset;
+  }
+
+  .widgetRight {
+    margin-top: 0;
+  }
 }

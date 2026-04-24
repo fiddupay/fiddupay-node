@@ -311,12 +311,13 @@ const DashboardPage: React.FC = () => {
             </div>
           )}
 
-          {/* Stats Grid */}
+          {/* Trust Intelligence — Full Width */}
+          <div className={styles.trustRow}>
+            <TrustScoreWidget user={user} className="h-full" />
+          </div>
+
+          {/* Stats Grid — 4 cards */}
           <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <TrustScoreWidget user={user} className="h-full" />
-            </div>
-            
             <div className={styles.statCard}>
                 <div className={styles.statHeader}>
                   <span className={styles.statLabel}>Total Payments</span>
