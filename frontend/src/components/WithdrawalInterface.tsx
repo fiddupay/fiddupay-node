@@ -107,7 +107,7 @@ export default function WithdrawalInterface() {
       const createData = await withdrawalAPI.create({
         crypto_type: selectedCrypto,
         amount: parseFloat(amount),
-        to_address: toAddress,
+        destination_address: toAddress,
         description: 'Manual withdrawal',
         pin: pin
       })

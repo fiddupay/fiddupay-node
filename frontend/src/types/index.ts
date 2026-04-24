@@ -182,11 +182,11 @@ export interface PaymentFilters {
 // Wallet Types
 export interface WalletConfig {
   crypto_type: string
-  network: string
   address: string
-  is_active: boolean
-  sandbox_mode: boolean
-  wallet_mode: string
+  network?: string
+  is_active?: boolean
+  sandbox_mode?: boolean
+  wallet_mode?: string
 }
 
 export interface Wallet {
