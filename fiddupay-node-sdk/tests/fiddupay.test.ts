@@ -100,6 +100,8 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(client.sandbox).toBeDefined();
       expect(client.contact).toBeDefined();
       expect(client.transactions).toBeDefined();
+      expect(client.addressOnly).toBeDefined();
+      expect(client.notifications).toBeDefined();
     });
 
     it('should have payment methods', () => {
@@ -159,6 +161,12 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(client.invoices.create).toBeDefined();
       expect(client.invoices.retrieve).toBeDefined();
       expect(client.invoices.list).toBeDefined();
+    });
+
+    it('should have notification methods', () => {
+      expect(client.notifications.list).toBeDefined();
+      expect(client.notifications.markRead).toBeDefined();
+      expect(client.notifications.delete).toBeDefined();
     });
 
     it('should have refund methods', () => {

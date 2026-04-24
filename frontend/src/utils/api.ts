@@ -38,7 +38,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      const isAppPath = window.location.pathname.startsWith('/');
+      // Only redirect to login if we are in the protected dashboard area
+      const isAppPath = window.location.pathname.startsWith('/app');
       const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register';
 
       if (isAppPath && !isAuthPage && !suppressAuthRedirect) {

@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.6.16
+# FidduPay Node.js SDK v2.6.17
 
-[![version](https://img.shields.io/badge/version-v2.6.16-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.6.17-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/node-sdk.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/node-sdk)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -410,13 +410,28 @@ const exportData = await client.analytics.export({
 });
 ```
 
-## Universal Transactions Feed
-
-```typescript
 // List unified cross-resource transactions feed (Payments, Withdrawals, Refunds)
 const feed = await client.transactions.list({
   limit: 20,
 });
+```
+
+## Notification Management (New in v2.6.17)
+
+```typescript
+// List recent merchant notifications
+const notifications = await client.notifications.list({
+  limit: 10,
+});
+
+// Mark a specific notification as read
+await client.notifications.markRead("notif_123");
+
+// Mark ALL notifications as read
+await client.notifications.markRead();
+
+// Delete a notification
+await client.notifications.delete("notif_123");
 ```
 
 ## Error Handling
@@ -483,9 +498,9 @@ Grouped by `client.*` resource modules for reference:
 
 | Module              | Methods                                                                                                                                                                                                                                                                            |
 | :------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`merchants`**     | `register()`, `retrieve()`, `getStatus()`, `getReadiness()`, `switchEnvironment()`, `generateApiKey()`, `rotateApiKey()`, `getFeeSetting()`, `updateSettings()`, `getSettings()`, `sendTestWebhook()`, `getIpWhitelist()`, `getBalance()`, `getAuditLogs()`, `getBalanceHistory()` |
+| **`merchants`**     | `register()`, `retrieve()`, `getStatus()`, `getReadiness()`, `switchEnvironment()`, `generateApiKey()`, `rotateApiKey()`, `getFeeSetting()`, `updateSettings()`, `getSettings()`, `sendTestWebhook()`, `getIpWhitelist()`, `getBalance()`, `getAuditLogs()`, `getBalanceHistory()`, `claimUsername()`, `updateKycDraft()` |
 | **`payments`**      | `create()`, `retrieve()`, `list()`, `cancel()`, `verify()`, `finalizeSelection()`, `simulate()`, `getAnalytics()`, `updateFeeSetting()`, `getFeeSetting()`                                                                                                                         |
-| **`addressOnly`**   | `create()`, `retrieve()`, `listCurrencies()`, `getStats()`, `getHealth()`, `getFeeSetting()`, `setFeeSetting()`                                                                                                                                                                    |
+| **`addressOnly`**   | `create()`, `getStatus()`, `getCurrencies()`, `getStats()`, `getHealth()`, `getFeeSetting()`, `updateFeeSetting()`                                                                                                                                                                 |
 | **`wallets`**       | `setup()`, `getConfigurations()`, `getBalances()`, `getGasEstimates()`, `checkGasRequirements()`, `gasCheck()`, `checkWithdrawalCapability()`, `revoke()`                                                                                                                          |
 | **`balances`**      | `get()`, `getHistory()`                                                                                                                                                                                                                                                            |
 | **`auditLogs`**     | `list()`                                                                                                                                                                                                                                                                           |

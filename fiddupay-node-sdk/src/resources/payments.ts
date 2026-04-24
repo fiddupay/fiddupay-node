@@ -193,7 +193,7 @@ export class Payments {
 
     // crypto_type is optional for multi-currency checkout
     if (data.crypto_type) {
-      const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL', 'BTC', 'BUSD_BEP20', 'WSOL'];
+      const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL', 'BTC', 'BUSD_BEP20', 'WSOL', 'USDC_ETH', 'USDC_SOL', 'USDC_POLYGON'];
       if (!validCryptoTypes.includes(data.crypto_type)) {
         throw new FidduPayValidationError(
           `Invalid crypto type. Must be one of: ${validCryptoTypes.join(', ')}`,
@@ -243,7 +243,7 @@ export class Payments {
 
     // Note: No maximum amount limit - server enforces daily volume limits based on KYC status
 
-    const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL', 'BTC', 'BUSD_BEP20', 'WSOL'];
+    const validCryptoTypes = ['SOL', 'ETH', 'BNB', 'MATIC', 'ARB', 'USDT_ETH', 'USDT_BEP20', 'USDT_POLYGON', 'USDT_ARBITRUM', 'USDT_SPL', 'BTC', 'BUSD_BEP20', 'WSOL', 'USDC_ETH', 'USDC_SOL', 'USDC_POLYGON'];
     if (!validCryptoTypes.includes(data.crypto_type)) {
       throw new FidduPayValidationError(
         `Invalid crypto type. Must be one of: ${validCryptoTypes.join(', ')}`,

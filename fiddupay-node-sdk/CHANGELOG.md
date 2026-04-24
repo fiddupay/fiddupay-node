@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.17] - 2026-04-24
+
+### Added
+- **Full Backend Parity**: Achieved 100% synchronization with the FidduPay Backend v2.6.x API handlers.
+- **Address-Only Mode**: Added dedicated `AddressOnly` resource for high-performance self-managed wallet payments.
+- **Invoices Resource**: Added `Invoices` resource for full CRUD management of merchant billing.
+- **Notifications Resource**: Added `Notifications` resource for managing dashboard alerts and read/unread status.
+- **New KYC Fields**: Expanded `MerchantRegistrationRequest` to include `first_name`, `last_name`, `gender`, `phone_number`, `country`, `applicant_role`, `website_url`, `business_license_number`, `business_certificate_url`, `nin_bvn`, `twitter_handle`, and `instagram_handle` to match backend mandatory requirements.
+- **Granular Sandbox Controls**: Added support for per-crypto sandbox toggle flags (`solana_sandbox_enabled`, `bnb_sandbox_enabled`, etc.) in `UnifiedSettingsRequest`.
+- **Compliance & Trust Fields**: Added `kyc_tier`, `compliance_status`, `username`, `pay_id`, `social_handles`, `managed_mode_only`, `withdrawal_enabled`, `trust_score`, and `withdrawal_fee_percentage` to `MerchantProfile`.
+- **Security Management**: Added `claimUsername`, `updateKycDraft`, `toggleWalletLock`, `toggleCustomerWalletLock`, and PIN management methods to the `Merchants` resource.
+- **Analytics Enhancements**: Added `getBalances` and `getBalanceHistory` to `AnalyticsResource` for unified financial reporting.
+- **New Crypto Support**: Added `USDC_ETH`, `USDC_SOL`, and `USDC_POLYGON` to supported assets.
+
+### Changed
+- **Withdrawal Fee**: Integrated `withdrawal_fee_percentage` into `UnifiedSettingsRequest` to support platform-wide fee configuration.
+- **Validation Alignment**: Updated payment validation logic to include the latest supported assets.
+- **Resource Export**: Consolidated all new resources in the main `FidduPayClient` entry point.
+
 ## [2.6.16] - 2026-04-18
 
 ### Added
@@ -11,11 +30,6 @@ All notable changes to this project will be documented in this file.
 - **New Response Types**: Introduced `WalletBalancesResponse`, `UnifiedTransactionsResponse`, and `NotificationActionResult` to provide strictly-typed response envelopes.
 
 ### Changed
-- **Consolidated Types**: Migrated all local resource type definitions to the centralized `src/types/index.ts` to ensure consistency and eliminate ambiguity.
-- **Transaction Parameter Alignment**: Updated `listUnifiedTransactions` (aliased as `getUnifiedTransactions`) with backend-consistent parameter names (`from_date`, `to_date`, `txn_type`).
-- **Standardized Return Types**: All list operations now return typed response envelopes instead of raw arrays, matching the latest API JSON responses.
-- **Documentation Overhaul**: Synchronized all JSDocs and the `NODE_SDK.md` guide with actual SDK method signatures (`getProfile` -> `retrieve`, etc.).
-
 ### Fixed
 - **Wallet Balances Structure**: Fixed an inconsistency where wallet balances were typed as a raw array instead of an object containing a `wallets` key.
 - **Import Integrity**: Cleaned up unused imports and resolved TypeScript compilation warnings across all resources.

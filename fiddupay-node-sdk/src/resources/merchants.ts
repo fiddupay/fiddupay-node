@@ -65,6 +65,17 @@ export class Merchants {
   }
 
   /**
+   * Claim a unique merchant username (PayID)
+   */
+  async claimUsername(username: string, options?: RequestOptions): Promise<{ status: string; message: string }> {
+      return this.client.post('/api/v1/merchants/claim-username', { username }, options);
+  }
+
+  async updateKycDraft(data: Record<string, any>, options?: RequestOptions): Promise<{ status: string; message: string }> {
+      return this.client.post('/api/v1/merchants/kyc-draft', data, options);
+  }
+
+  /**
    * Generate new API key
    */
   async generateApiKey(data?: {
@@ -111,6 +122,34 @@ export class Merchants {
    */
   async sendTestWebhook(options?: RequestOptions): Promise<{ status: string; message: string }> {
     return this.client.request('POST', '/api/v1/merchants/webhook/test');
+  }
+
+  /**
+   * Toggle global wallet lock status
+   */
+  async toggleWalletLock(locked: boolean): Promise<{ success: boolean; message: string }> {
+    return this.client.request('POST', '/api/v1/merchants/security/wallets/lock', { locked });
+  }
+
+  /**
+   * Toggle customer wallet lock status
+   */
+  async toggleCustomerWalletLock(locked: boolean): Promise<{ success: boolean; message: string }> {
+    return this.client.request('POST', '/api/v1/merchants/security/customers/wallets/lock', { locked });
+  }
+
+  /**
+   * Set merchant transaction PIN
+   */
+  async setTransactionPin(pin: string): Promise<{ success: boolean; message: string }> {
+    return this.client.request('POST', '/api/v1/merchants/security/transaction-pin', { pin });
+  }
+
+  /**
+   * Verify merchant transaction PIN
+   */
+  async verifyTransactionPin(pin: string): Promise<{ success: boolean; message: string }> {
+    return this.client.request('POST', '/api/v1/merchants/security/transaction-pin/verify', { pin });
   }
   
   /**

@@ -151,8 +151,8 @@ pub async fn auth_middleware(
 
                 // Read sandbox_mode from DB to ensure it's always current with the merchant's choice
                 // This ensures environment switching in the dashboard is instant.
-                let (sandbox_mode, settlement_mode, kyc_tier) = match sqlx::query(
-                    "SELECT sandbox_mode, settlement_mode, kyc_tier FROM merchants WHERE id = $1 AND is_active = true"
+                let (sandbox_mode, settlement_mode, kyc_tier, is_active) = match sqlx::query(
+                    "SELECT sandbox_mode, settlement_mode, kyc_tier, is_active FROM merchants WHERE id = $1"
                 )
                 .bind(merchant_id)
                 .fetch_optional(&state.db_pool)
@@ -162,7 +162,8 @@ pub async fn auth_middleware(
                         (
                             row.get::<bool, _>("sandbox_mode"), 
                             row.get::<String, _>("settlement_mode"),
-                            row.get::<i32, _>("kyc_tier")
+                            row.get::<i32, _>("kyc_tier"),
+                            row.get::<bool, _>("is_active")
                         )
                     },
                     Ok(None) => {
@@ -185,6 +186,16 @@ pub async fn auth_middleware(
                         ).into_response());
                     }
                 };
+
+                if !is_active {
+                    return Err((
+                        StatusCode::FORBIDDEN,
+                        axum::Json(json!({
+                            "error": "Account deactivated",
+                            "message": "Your merchant account has been deactivated. Please contact support."
+                        }))
+                    ).into_response());
+                }
 
                 let context = MerchantContext {
                     merchant_id,

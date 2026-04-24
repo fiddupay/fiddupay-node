@@ -9,60 +9,80 @@ import {
   UpdateAddressOnlyFeeSettingRequest,
 } from '../types';
 
+/**
+ * Address-Only Mode Resource
+ *
+ * Handles direct-to-address payments and management for self-managed wallets.
+ */
 export class AddressOnly {
   constructor(private client: HttpClient) {}
 
   /**
-   * Create an address-only payment
+   * Create an address-only payment request
+   * @param data Request details
    */
   async create(data: CreateAddressOnlyPaymentRequest): Promise<AddressOnlyPaymentResponse> {
-    return this.client.request<AddressOnlyPaymentResponse>('POST', '/api/v1/merchants/address-only/create', data);
+    return this.client.request<AddressOnlyPaymentResponse>(
+      'POST',
+      '/api/v1/merchants/address-only/create',
+      data
+    );
   }
 
   /**
-   * Get payment status
+   * Get status of an address-only payment
+   * @param paymentId The payment ID
    */
   async getStatus(paymentId: string): Promise<AddressOnlyPayment> {
-    return this.client.request<AddressOnlyPayment>('GET', `/api/v1/merchants/address-only/status?payment_id=${paymentId}`);
+    return this.client.request<AddressOnlyPayment>(
+      'GET',
+      `/api/v1/merchants/address-only/status?payment_id=${paymentId}`
+    );
   }
 
   /**
-   * Get supported native currencies
+   * List supported native currencies for address-only mode
    */
-  async getSupportedCurrencies(): Promise<string[]> {
+  async getCurrencies(): Promise<string[]> {
     return this.client.request<string[]>('GET', '/api/v1/merchants/address-only/currencies');
   }
 
   /**
-   * Get address-only mode statistics
+   * Get address-only mode statistics for the merchant
    */
   async getStats(): Promise<AddressOnlyStats> {
     return this.client.request<AddressOnlyStats>('GET', '/api/v1/merchants/address-only/stats');
   }
 
   /**
-   * Get fee setting (who pays the processing fee)
+   * Get address-only fee setting
    */
   async getFeeSetting(): Promise<AddressOnlyFeeSettingResponse> {
-    return this.client.request<AddressOnlyFeeSettingResponse>('GET', '/api/v1/merchants/address-only/fee-setting');
+    return this.client.request<AddressOnlyFeeSettingResponse>(
+      'GET',
+      '/api/v1/merchants/address-only/fee-setting'
+    );
   }
 
   /**
-   * Update fee setting (toggle who pays the processing fee)
-   * 
-   * @param data - The fee setting update request
-   * @returns Success status with the updated setting
+   * Update address-only fee setting
+   * @param customerPaysFee Whether the customer pays the fee
    */
-  async updateFeeSetting(data: UpdateAddressOnlyFeeSettingRequest): Promise<{ success: boolean; message: string; customer_pays_fee: boolean }> {
-    return this.client.request('PUT', '/api/v1/merchants/address-only/fee-setting', data);
+  async updateFeeSetting(customerPaysFee: boolean): Promise<AddressOnlyFeeSettingResponse> {
+    return this.client.request<AddressOnlyFeeSettingResponse>(
+      'PUT',
+      '/api/v1/merchants/address-only/fee-setting',
+      { customer_pays_fee: customerPaysFee } as UpdateAddressOnlyFeeSettingRequest
+    );
   }
 
   /**
    * Get address-only mode health status
-   * 
-   * Returns database health, monitoring status, and supported currencies.
    */
   async getHealth(): Promise<AddressOnlyHealthStatus> {
-    return this.client.request<AddressOnlyHealthStatus>('GET', '/api/v1/merchants/address-only/health');
+    return this.client.request<AddressOnlyHealthStatus>(
+      'GET',
+      '/api/v1/merchants/address-only/health'
+    );
   }
 }

@@ -1,6 +1,6 @@
 // Core types for FidduPay SDK
 
-export type CryptoType = 'SOL' | 'ETH' | 'BNB' | 'MATIC' | 'ARB' | 'USDT_ETH' | 'USDT_BEP20' | 'USDT_POLYGON' | 'USDT_ARBITRUM' | 'USDT_SPL' | 'BTC' | 'BUSD_BEP20' | 'WSOL';
+export type CryptoType = 'SOL' | 'ETH' | 'BNB' | 'MATIC' | 'ARB' | 'USDT_ETH' | 'USDT_BEP20' | 'USDT_POLYGON' | 'USDT_ARBITRUM' | 'USDT_SPL' | 'BTC' | 'BUSD_BEP20' | 'WSOL' | 'USDC_ETH' | 'USDC_SOL' | 'USDC_POLYGON';
 
 export type PaymentStatus = 'PENDING' | 'CONFIRMING' | 'CONFIRMED' | 'FAILED' | 'EXPIRED' | 'REFUNDED' | 'SELECTION_REQUIRED' | 'CANCELLED';
 
@@ -37,8 +37,13 @@ export interface MerchantRegistrationRequest {
   terms_accepted: boolean;
   // Step 2 Business
   business_country: string;
-  business_license_number?: string;
+  business_license_number: string;
   business_certificate_url?: string;
+  website_url: string;
+  // Optional Compliance
+  nin_bvn?: string;
+  twitter_handle?: string;
+  instagram_handle?: string;
 }
 
 export interface SystemStatus {
@@ -109,6 +114,8 @@ export interface MerchantProfile {
   daily_limit_usd: string | null;
   daily_volume_remaining: string;
   tier_level?: string;
+  kyc_tier?: number;
+  compliance_status?: string;
   two_factor_enabled: boolean;
   sandbox_mode: boolean;
   settlement_mode: 'forwarding' | 'managed';
@@ -124,6 +131,14 @@ export interface MerchantProfile {
   low_balance_alerts_enabled: boolean;
   webhook_signing_secret?: string;
   last_login_at?: string;
+  username?: string;
+  pay_id?: string;
+  nin_bvn_hash?: string;
+  social_handles?: Record<string, any>;
+  managed_mode_only?: boolean;
+  withdrawal_enabled?: boolean;
+  trust_score?: number;
+  withdrawal_fee_percentage?: number;
 }
 
 export interface CreatePaymentRequest {
@@ -141,6 +156,7 @@ export interface CreatePaymentRequest {
   is_invoice?: boolean;
   customer_name?: string;
   customer_email?: string;
+  customer_external_id?: string;
   items?: InvoiceItem[];
   tax?: string;
   due_date?: string;
@@ -311,12 +327,21 @@ export interface UnifiedSettingsRequest {
   settlement_mode?: 'forwarding' | 'managed';
   customer_pays_fee?: boolean;
   fee_percentage?: number;
+  withdrawal_fee_percentage?: number;
   ip_whitelist?: string[];
   sandbox_mode?: boolean;
   rotate_webhook_secret?: boolean;
   low_balance_threshold_usd?: string;
   low_balance_alerts_enabled?: boolean;
   webhook_signing_secret?: string;
+
+  // Sandbox Flags
+  solana_sandbox_enabled?: boolean;
+  bnb_sandbox_enabled?: boolean;
+  eth_sandbox_enabled?: boolean;
+  matic_sandbox_enabled?: boolean;
+  arb_sandbox_enabled?: boolean;
+  btc_sandbox_enabled?: boolean;
 }
 
 export interface MerchantSettingsUpdateResponse {
@@ -793,7 +818,6 @@ export interface CustomerWallet {
   crypto_type: string;
   network: string;
   address: string;
-  is_active: boolean;
   created_at?: string;
   sandbox_mode?: boolean;
 }

@@ -1,5 +1,5 @@
 import { HttpClient } from '../client';
-import { Analytics, RequestOptions, UnifiedTransactionsResponse } from '../types';
+import { Analytics, Balance, BalanceHistory, RequestOptions, UnifiedTransactionsResponse } from '../types';
 
 export class AnalyticsResource {
   constructor(private client: HttpClient) { }
@@ -83,5 +83,21 @@ export class AnalyticsResource {
     if (params?.txn_type) queryParams.append('txn_type', params.txn_type);
 
     return this.client.get(`/api/v1/merchants/transactions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`, options);
+  }
+
+  /**
+   * Get current aggregated merchant balances across all assets
+   */
+  async getBalances(options?: RequestOptions): Promise<Balance> {
+    return this.client.request<Balance>('GET', '/api/v1/merchants/balance');
+  }
+
+  /**
+   * Get balance history for trend analysis
+   * @param limit Number of history points to retrieve
+   */
+  async getBalanceHistory(limit?: number, options?: RequestOptions): Promise<BalanceHistory> {
+    const query = limit ? `?limit=${limit}` : '';
+    return this.client.request<BalanceHistory>('GET', `/api/v1/merchants/balance/history${query}`);
   }
 }

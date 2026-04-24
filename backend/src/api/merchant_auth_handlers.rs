@@ -16,6 +16,7 @@ use validator::Validate;
 
 use crate::middleware::validation::{validate_business_email, validate_password_strength};
 use crate::models::merchant::UserRole;
+use sqlx::Row;
 
 // ============================================================================
 // Request/Response Types
@@ -267,7 +268,7 @@ pub async fn login_merchant(
 
     // 3. Attempt Owner Login first
     let merchant_query = sqlx::query(
-        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at, nin_bvn_hash, social_handles, kyc_tier, compliance_status FROM merchants WHERE email = $1 AND is_active = true"
+        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at, nin_bvn_hash, social_handles, kyc_tier, compliance_status, is_active FROM merchants WHERE LOWER(email) = LOWER($1)"
     )
     .bind(&req.email)
     .fetch_optional(&state.db_pool)
@@ -276,7 +277,20 @@ pub async fn login_merchant(
     match merchant_query {
         Ok(Some(merchant)) => {
             use argon2::{Argon2, PasswordHash, PasswordVerifier};
-            use sqlx::Row;
+
+            // 3.1 Check if active
+            let is_active: bool = merchant.get("is_active");
+            if !is_active {
+                tracing::warn!("Login attempt for deactivated merchant: {}", req.email);
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(json!({
+                        "error": "Account deactivated",
+                        "message": "Your merchant account has been deactivated. Please contact support."
+                    })),
+                )
+                    .into_response();
+            }
 
             let m_password_hash: Option<String> = merchant.get("password_hash");
 
@@ -296,8 +310,23 @@ pub async fn login_merchant(
                             req.remember_me.unwrap_or(false),
                         )
                         .await;
+                    } else {
+                        tracing::warn!(
+                            "Login failed: Password mismatch for merchant {}",
+                            req.email
+                        );
                     }
+                } else {
+                    tracing::error!(
+                        "Login failed: Invalid password hash format for merchant {}",
+                        req.email
+                    );
                 }
+            } else {
+                tracing::warn!(
+                    "Login failed: No password hash found for merchant account {}",
+                    req.email
+                );
             }
 
             // Password failed or no hash
@@ -335,7 +364,7 @@ pub async fn login_merchant(
                 Ok(user) => {
                     // Fetch the parent merchant info for the context
                     let merchant_res = sqlx::query(
-                        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at, nin_bvn_hash, social_handles, kyc_tier, compliance_status FROM merchants WHERE id = $1"
+                        "SELECT id, business_name, email, sandbox_mode, settlement_mode, kyc_verified, created_at, role, live_api_key_hash, test_api_key_hash, password_hash, daily_limit_usd, wallets_locked, customer_wallets_locked, transaction_pin_hash, pin_setup_at, nin_bvn_hash, social_handles, kyc_tier, compliance_status, is_active FROM merchants WHERE id = $1"
                     )
                     .bind(user.merchant_id)
                     .fetch_optional(&state.db_pool)
@@ -343,6 +372,20 @@ pub async fn login_merchant(
 
                     match merchant_res {
                         Ok(Some(m_row)) => {
+                            // 3.1 Check if parent merchant is active
+                            let is_active: bool = m_row.get("is_active");
+                            if !is_active {
+                                tracing::warn!("Team member login attempt for deactivated merchant: {} (Member: {})", user.merchant_id, req.email);
+                                return (
+                                    StatusCode::FORBIDDEN,
+                                    Json(json!({
+                                        "error": "Account deactivated",
+                                        "message": "The parent merchant account has been deactivated."
+                                    })),
+                                )
+                                    .into_response();
+                            }
+
                             // SUCCESS: Team Member Login
                             finalize_login(
                                 state,
@@ -361,6 +404,10 @@ pub async fn login_merchant(
                     }
                 }
                 Err(_) => {
+                    tracing::warn!(
+                        "Login failed: Merchant account not found or inactive for {}",
+                        req.email
+                    );
                     if let Ok(true) = state
                         .account_lockout_service
                         .record_failed_attempt(&req.email, "dashboard")
