@@ -24,11 +24,21 @@ const FeesTab: React.FC<FeesTabProps> = ({ user, styles }) => {
         try {
             setLoading(true);
             await merchantAPI.updateSettings({ customer_pays_fee: newValue });
+            
+            // Update local state immediately
             setCustomerPaysFee(newValue);
-            await loadUser(true);
             showToast(`Fees will now be paid by ${newValue ? 'customers' : 'you'}`, 'success');
+
+            // Try to refresh user profile in background
+            try {
+                await loadUser(true);
+            } catch (profileErr) {
+                console.error('Profile sync failed but fee setting was saved:', profileErr);
+            }
         } catch (error: any) {
             showToast('Failed to update fee preferences', 'error');
+            // Revert on failure
+            setCustomerPaysFee(!newValue);
         } finally {
             setLoading(false);
         }

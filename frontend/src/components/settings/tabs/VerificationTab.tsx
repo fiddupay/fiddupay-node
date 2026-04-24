@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
     MdSecurity, 
     MdBusiness, 
@@ -43,6 +43,25 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
         website: user?.social_handles?.website || '',
         business_license: user?.business_license_number || '',
     })
+
+    useEffect(() => {
+        if (user) {
+            setIdData(prev => ({
+                ...prev,
+                username: user.username || prev.username
+            }));
+            setSocialData({
+                twitter: user.social_handles?.twitter || '',
+                instagram: user.social_handles?.instagram || '',
+                linkedin: user.social_handles?.linkedin || '',
+                website: user.social_handles?.website || '',
+                business_license: user.business_license_number || '',
+            });
+            // Auto-advance step if tier increased
+            if (user.kyc_tier > 1) setStep(3);
+            else if (user.kyc_tier > 0) setStep(2);
+        }
+    }, [user]);
 
     const handleStartSmileID = () => {
         showToast('Initializing SmileID Secure Verification...', 'info');
@@ -194,7 +213,6 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
                         </button>
                     ))}
                 </div>
-
                 {/* Step Content */}
                 <div className={styles.stepContent}>
                     {step === 1 && (
@@ -207,79 +225,101 @@ const VerificationTab: React.FC<VerificationTabProps> = ({ user, loading: _paren
                                 <p>Verifying your identity unlocks PayID and enables zero-fee interoperability within the FidduPay ecosystem.</p>
                             </div>
                             
-                            <div className="space-y-8" style={{display: 'flex', flexDirection: 'column', gap: '32px'}}>
-                                {/* Username Claim */}
-                                <div className={styles.fieldGroup}>
-                                    <label className={styles.fieldLabel}>Claim your @username</label>
-                                    <div style={{display: 'flex', gap: '12px'}}>
-                                        <div className={styles.inputContainer} style={{flex: 1}}>
-                                            <div className={styles.inputIcon}>
-                                                <MdPerson size={20} />
-                                            </div>
-                                            <input 
-                                                type="text" 
-                                                placeholder="e.g. techy_store"
-                                                value={idData.username}
-                                                onChange={(e) => setIdData({...idData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '')})}
-                                                className={styles.inputField}
-                                                disabled={!!user?.username}
-                                            />
-                                        </div>
-                                        <button 
-                                            onClick={user?.username ? undefined : handleClaimUsername}
-                                            disabled={loading || (!user?.username && !idData.username)}
-                                            className={styles.saveBtn}
-                                            style={{
-                                                borderRadius: '12px', 
-                                                minWidth: '80px',
-                                                background: user?.username ? '#22c55e' : 'var(--primary)',
-                                                cursor: user?.username ? 'default' : 'pointer'
-                                            }}
-                                        >
-                                            {loading ? '...' : user?.username ? <MdCheckCircle size={20} /> : 'Claim'}
+                            {user?.kyc_tier >= 1 ? (
+                                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                                    <div style={{ width: '80px', height: '80px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                                        <MdCheckCircle size={48} color="#22c55e" />
+                                    </div>
+                                    <h4 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '8px' }}>Identity Secured</h4>
+                                    <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Your national identity has been cryptographicly verified.</p>
+                                    
+                                    <div style={{ background: 'var(--surface-hover)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+                                        <MdPerson color="var(--primary)" />
+                                        <span style={{ fontWeight: 'bold' }}>@{user.username}</span>
+                                        <Badge className="bg-green-500/20 text-green-400 border-none">Verified</Badge>
+                                    </div>
+
+                                    <div style={{ marginTop: '32px' }}>
+                                        <button onClick={() => setStep(2)} className={styles.submitBtn} style={{ maxWidth: '240px', margin: '0 auto' }}>
+                                            Continue to Socials <MdArrowForward />
                                         </button>
                                     </div>
-                                    {user?.username && (
-                                        <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontSize: '12px', fontWeight: 'bold', background: 'rgba(16,185,129,0.1)', padding: '8px 12px', borderRadius: '8px', width: 'fit-content'}}>
-                                            <MdCheckCircle /> Identity Linked: @{user.username}
-                                        </div>
-                                    )}
                                 </div>
-
-                                {/* ID Number */}
-                                <div className={styles.fieldGroup}>
-                                    <label className={styles.fieldLabel}>National Identity (NIN or BVN)</label>
-                                    <div className={styles.inputContainer}>
-                                        <div className={styles.inputIcon}>
-                                            <MdSecurity size={20} />
+                            ) : (
+                                <div className="space-y-8" style={{display: 'flex', flexDirection: 'column', gap: '32px'}}>
+                                    {/* Username Claim */}
+                                    <div className={styles.fieldGroup}>
+                                        <label className={styles.fieldLabel}>Claim your @username</label>
+                                        <div style={{display: 'flex', gap: '12px'}}>
+                                            <div className={styles.inputContainer} style={{flex: 1}}>
+                                                <div className={styles.inputIcon}>
+                                                    <MdPerson size={20} />
+                                                </div>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="e.g. techy_store"
+                                                    value={idData.username}
+                                                    onChange={(e) => setIdData({...idData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '')})}
+                                                    className={styles.inputField}
+                                                    disabled={!!user?.username}
+                                                />
+                                            </div>
+                                            <button 
+                                                onClick={user?.username ? undefined : handleClaimUsername}
+                                                disabled={loading || (!user?.username && !idData.username)}
+                                                className={styles.saveBtn}
+                                                style={{
+                                                    borderRadius: '12px', 
+                                                    minWidth: '80px',
+                                                    background: user?.username ? '#22c55e' : 'var(--primary)',
+                                                    cursor: user?.username ? 'default' : 'pointer'
+                                                }}
+                                            >
+                                                {loading ? '...' : user?.username ? <MdCheckCircle size={20} /> : 'Claim'}
+                                            </button>
                                         </div>
-                                        <input 
-                                            type="password" 
-                                            placeholder="Enter 11-digit number"
-                                            value={idData.nin_bvn}
-                                            onChange={(e) => setIdData({...idData, nin_bvn: e.target.value})}
-                                            className={styles.inputField}
-                                            maxLength={11}
-                                        />
+                                        {user?.username && (
+                                            <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontSize: '12px', fontWeight: 'bold', background: 'rgba(16,185,129,0.1)', padding: '8px 12px', borderRadius: '8px', width: 'fit-content'}}>
+                                                <MdCheckCircle /> Identity Linked: @{user.username}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className={styles.privacyNote}>
-                                        <MdShield style={{color: '#3b82f6', flexShrink: 0}} />
-                                        <p>
-                                            FidduPay never stores raw ID numbers. They are immediately hashed into a one-way cryptographic signal for the Trust Intelligence Layer.
-                                        </p>
-                                    </div>
-                                </div>
 
-                                <button 
-                                    onClick={handleSubmitTier1}
-                                    disabled={loading || !idData.nin_bvn}
-                                    className={styles.submitBtn}
-                                >
-                                    {loading ? 'Processing Protocol...' : (
-                                        <>Finalize Tier 1 Verification <MdArrowForward size={20} /></>
-                                    )}
-                                </button>
-                            </div>
+                                    {/* ID Number */}
+                                    <div className={styles.fieldGroup}>
+                                        <label className={styles.fieldLabel}>National Identity (NIN or BVN)</label>
+                                        <div className={styles.inputContainer}>
+                                            <div className={styles.inputIcon}>
+                                                <MdSecurity size={20} />
+                                            </div>
+                                            <input 
+                                                type="password" 
+                                                placeholder="Enter 11-digit number"
+                                                value={idData.nin_bvn}
+                                                onChange={(e) => setIdData({...idData, nin_bvn: e.target.value})}
+                                                className={styles.inputField}
+                                                maxLength={11}
+                                            />
+                                        </div>
+                                        <div className={styles.privacyNote}>
+                                            <MdShield style={{color: '#3b82f6', flexShrink: 0}} />
+                                            <p>
+                                                FidduPay never stores raw ID numbers. They are immediately hashed into a one-way cryptographic signal for the Trust Intelligence Layer.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <button 
+                                        onClick={handleSubmitTier1}
+                                        disabled={loading || !idData.nin_bvn}
+                                        className={styles.submitBtn}
+                                    >
+                                        {loading ? 'Processing Protocol...' : (
+                                            <>Finalize Tier 1 Verification <MdArrowForward size={20} /></>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
 

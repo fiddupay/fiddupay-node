@@ -15,7 +15,8 @@ import {
   MdWarning, 
   MdArrowForward, 
   MdBolt,
-  MdShield
+  MdShield,
+  MdClose
 } from 'react-icons/md'
 import { UniversalPayForm } from '@/components/ui/UniversalPayForm'
 import { SecurityAlert } from '../types'
@@ -250,15 +251,22 @@ const DashboardPage: React.FC = () => {
           <button className={styles.refreshBtn} onClick={() => setShowQuickPayModal(true)} title="Quick Interop Pay" style={{ color: 'var(--secondary)', background: 'rgba(245, 158, 11, 0.1)' }}>
             <MdBolt size={20} />
           </button>
-          <button className={styles.refreshBtn} onClick={() => navigate('/app/settings?tab=verification')} title="Trust Intelligence Status" style={{ 
+          <button onClick={() => navigate('/app/settings?tab=verification')} title="Trust Intelligence Status" style={{ 
             color: (user?.kyc_tier || 0) >= 2 ? '#fbbf24' : ((user?.kyc_tier || 0) === 1 ? 'var(--primary)' : '#f59e0b'), 
             background: (user?.kyc_tier || 0) >= 2 ? 'rgba(251, 191, 36, 0.1)' : ((user?.kyc_tier || 0) === 1 ? 'rgba(99, 102, 241, 0.1)' : 'rgba(245, 158, 11, 0.1)'),
-            width: 'auto',
-            padding: '0 12px',
-            gap: '8px'
+            padding: '8px 16px',
+            borderRadius: '12px',
+            border: '1px solid currentColor',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            height: '42px',
+            fontWeight: 'bold'
           }}>
             <MdShield size={18} />
-            <span style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '11px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {(user?.kyc_tier || 0) >= 2 ? 'Gold Tier' : ((user?.kyc_tier || 0) === 1 ? 'Verified' : 'Sandbox')}
             </span>
           </button>
@@ -320,11 +328,11 @@ const DashboardPage: React.FC = () => {
 
             <div className={styles.statCard}>
                 <div className={styles.statHeader}>
-                  <span className={styles.statLabel}>Total Volume</span>
-                  <i className="fas fa-chart-line" style={{ color: '#10b981' }}></i>
+                  <span className={styles.statLabel}>Signal Strength</span>
+                  <i className="fas fa-satellite-dish" style={{ color: '#10b981' }}></i>
                 </div>
-                <div className={styles.statValue}>${(parseFloat(analytics?.total_volume_usd || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                <div className={styles.statFooter}>Total revenue processed</div>
+                <div className={styles.statValue}>{user?.trust_score?.score || 0}%</div>
+                <div className={styles.statFooter}>Intelligence Layer Pulse</div>
             </div>
 
             <div className={styles.statCard}>
@@ -505,7 +513,7 @@ const DashboardPage: React.FC = () => {
             <div className={styles.sectionHeader}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h2>Performance Trends</h2>
+                  <h2>Volume Intelligence</h2>
                   <p>Transaction volume across selected period</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -599,13 +607,14 @@ const DashboardPage: React.FC = () => {
 
       {showQuickPayModal && (
         <div className={styles.modalOverlay} onClick={() => setShowQuickPayModal(false)}>
-          <div className={styles.modalContent} style={{ maxWidth: '600px', width: '95%', background: 'transparent', boxShadow: 'none' }} onClick={(e) => e.stopPropagation()}>
-             <div className="flex justify-end mb-2">
+          <div className={styles.modalContent} style={{ maxWidth: '480px', background: 'transparent', border: 'none', boxShadow: 'none' }} onClick={(e) => e.stopPropagation()}>
+             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
                 <button 
                   onClick={() => setShowQuickPayModal(false)}
-                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all"
+                  className={styles.closeButton}
+                  style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', color: '#fff' }}
                 >
-                  <i className="fas fa-times"></i>
+                  <MdClose size={24} />
                 </button>
              </div>
              <UniversalPayForm />

@@ -19,6 +19,8 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
     
     const [selectedMode, setSelectedMode] = useState<'forwarding' | 'managed'>(user?.settlement_mode || 'managed');
     const [addressOnlyCustomerPaysFee, setAddressOnlyCustomerPaysFee] = useState(false);
+    const [walletsLocked, setWalletsLocked] = useState(user?.wallets_locked || false);
+    const [customerWalletsLocked, setCustomerWalletsLocked] = useState(user?.customer_wallets_locked || false);
     
     const [passwordConfirm, setPasswordConfirm] = useState<{
         show: boolean;
@@ -35,6 +37,8 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
     useEffect(() => {
         if (user) {
             setSelectedMode(user.settlement_mode || 'managed');
+            setWalletsLocked(user.wallets_locked || false);
+            setCustomerWalletsLocked(user.customer_wallets_locked || false);
             fetchExtraSettings();
         }
     }, [user]);
@@ -105,15 +109,25 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
             setLoading(true);
             if (passwordConfirm.target === 'wallet') {
                 await securityAPI.toggleWalletLock(passwordConfirm.newLockState, passwordConfirm.password);
+                setWalletsLocked(passwordConfirm.newLockState);
                 showToast(`Wallets ${passwordConfirm.newLockState ? 'locked' : 'unlocked'} successfully`, 'success');
             } else {
                 await securityAPI.toggleCustomerWalletLock(passwordConfirm.newLockState, passwordConfirm.password);
+                setCustomerWalletsLocked(passwordConfirm.newLockState);
                 showToast(`Customer wallets ${passwordConfirm.newLockState ? 'locked' : 'unlocked'} successfully`, 'success');
             }
-            await loadUser(true);
+            
+            // Clean up modal immediately
             setPasswordConfirm({ show: false, target: null, newLockState: false, password: '' });
+
+            // Try to sync, but don't crash if backend is having profile issues
+            try {
+                await loadUser(true);
+            } catch (profileErr) {
+                console.error('Profile sync failed but action succeeded:', profileErr);
+            }
         } catch (error: any) {
-            showToast(error.response?.data?.error || 'Failed to verify password', 'error');
+            showToast(error.response?.data?.error || 'Security verification failed', 'error');
         } finally {
             setLoading(false);
         }
@@ -205,12 +219,12 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
             <div className={styles.safeguardBox}>
                 <div className={styles.safeguardInfo}>
                     <div className={styles.safeguardIcon}>
-                        {user?.wallets_locked ? <MdLock color="var(--primary)" /> : <MdWarning color="#f59e0b" />}
+                        {walletsLocked ? <MdLock color="var(--primary)" /> : <MdWarning color="#f59e0b" />}
                     </div>
                     <div className={styles.safeguardText}>
                         <h3>Primary Wallet Protection</h3>
                         <p>
-                            {user?.wallets_locked 
+                            {walletsLocked 
                                 ? "Your primary wallet addresses are locked. You must unlock them before making any changes."
                                 : "Your primary wallets are currently unlocked. We recommend locking them to prevent accidental changes."
                             }
@@ -218,23 +232,23 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
                     </div>
                 </div>
                 <button 
-                    className={`${styles.lockBtn} ${user?.wallets_locked ? styles.unlocked : styles.locked}`}
+                    className={`${styles.lockBtn} ${walletsLocked ? styles.unlocked : styles.locked}`}
                     onClick={handleToggleWalletLock}
                     disabled={loading}
                 >
-                    {user?.wallets_locked ? 'Unlock Wallets' : 'Lock Wallets'}
+                    {walletsLocked ? 'Unlock Wallets' : 'Lock Wallets'}
                 </button>
             </div>
 
             <div className={styles.safeguardBox} style={{ marginTop: '20px' }}>
                 <div className={styles.safeguardInfo}>
                     <div className={styles.safeguardIcon}>
-                        {user?.customer_wallets_locked ? <MdLock color="var(--primary)" /> : <MdWarning color="#f59e0b" />}
+                        {customerWalletsLocked ? <MdLock color="var(--primary)" /> : <MdWarning color="#f59e0b" />}
                     </div>
                     <div className={styles.safeguardText}>
                         <h3>Customer Wallet Protection</h3>
                         <p>
-                            {user?.customer_wallets_locked 
+                            {customerWalletsLocked 
                                 ? "Customer deposit addresses are locked. You must unlock them before re-provisioning wallets for your users."
                                 : "Customer deposit addresses are currently unlocked. We recommend locking them for enhanced security."
                             }
@@ -242,11 +256,11 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
                     </div>
                 </div>
                 <button 
-                    className={`${styles.lockBtn} ${user?.customer_wallets_locked ? styles.unlocked : styles.locked}`}
+                    className={`${styles.lockBtn} ${customerWalletsLocked ? styles.unlocked : styles.locked}`}
                     onClick={handleToggleCustomerWalletLock}
                     disabled={loading}
                 >
-                    {user?.customer_wallets_locked ? 'Unlock Customer Wallets' : 'Lock Customer Wallets'}
+                    {customerWalletsLocked ? 'Unlock Customer Wallets' : 'Lock Customer Wallets'}
                 </button>
             </div>
 

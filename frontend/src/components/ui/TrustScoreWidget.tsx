@@ -15,7 +15,17 @@ interface TrustScoreWidgetProps {
 }
 
 export const TrustScoreWidget: React.FC<TrustScoreWidgetProps> = ({ user, className = "" }) => {
-  if (!user || !user.trust_score) return null;
+  if (!user || !user.trust_score) {
+    return (
+      <div className={className} style={{ position: 'relative', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px', textAlign: 'center' }}>
+        <MdShield style={{ color: 'var(--primary)', width: '48px', height: '48px', marginBottom: '16px', opacity: 0.2 }} className="animate-pulse" />
+        <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Syncing Trust Intelligence...
+        </div>
+        <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '8px' }}>Feeding the Swarm signals</p>
+      </div>
+    );
+  }
 
   const { score, tier, identity_verified, social_verified, business_verified } = user.trust_score;
 

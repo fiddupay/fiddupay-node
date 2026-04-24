@@ -3,9 +3,9 @@ import {
     MdCheckCircle, 
     MdError, 
     MdFingerprint, 
-    MdVpnKey, 
     MdAdd, 
-    MdSecurity
+    MdSecurity,
+    MdAutoGraph
 } from 'react-icons/md';
 import { Badge } from '@/components/ui/badge';
 import { merchantAPI } from '@/services/apiService';
@@ -78,105 +78,102 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
 
     return (
         <section className={styles.section}>
-            <h2>Security & Transaction PIN</h2>
-            <p>Manage your transaction authorization settings.</p>
-
-            <div className={styles.safeguardBox}>
-                <div className={styles.safeguardInfo}>
-                    <div className={styles.safeguardIcon}>
-                        {user?.has_transaction_pin ? <MdCheckCircle color="var(--primary)" /> : <MdError color="#ef4444" />}
-                    </div>
-                    <div className={styles.safeguardText}>
-                        <h3>4-Digit Transaction PIN</h3>
-                        <p>
-                            {user?.has_transaction_pin 
-                                ? `Your PIN is set. You will be prompted for this PIN whenever you initiate a withdrawal, sweep, or payment.`
-                                : "A 4-digit PIN is REQUIRED for all financial actions. Please set one now to enable withdrawals."
-                            }
-                        </p>
-                    </div>
-                </div>
+            <div className={styles.formHeader} style={{ marginBottom: '32px' }}>
+                <h2 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '8px' }}>Security & Transaction Logic</h2>
+                <p style={{ color: 'var(--text-muted)' }}>Manage your institutional-grade security protocols and risk thresholds.</p>
             </div>
 
-            <div className={styles.formCard} style={{ marginTop: '24px', maxWidth: '400px' }}>
-                <form onSubmit={handleSetPin}>
-                    <div className={styles.formGroup}>
-                        <label>{user?.has_transaction_pin ? 'Update Transaction PIN' : 'Set Merchant Transaction PIN'}</label>
-                        <input 
-                            type="password"
-                            className={styles.inputStyle}
-                            maxLength={4}
-                            pattern="\d*"
-                            placeholder="••••"
-                            style={{ letterSpacing: '0.5rem', textAlign: 'center', fontSize: '1.5rem', width: '100%', marginBottom: '12px' }}
-                            value={pin}
-                            onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
-                            required
-                        />
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Must be exactly 4 numeric digits.</p>
-                    </div>
-                    <div className={styles.formGroup} style={{ marginTop: '16px' }}>
-                        <label>Confirm PIN</label>
-                        <input 
-                            type="password"
-                            className={styles.inputStyle}
-                            maxLength={4}
-                            pattern="\d*"
-                            placeholder="••••"
-                            style={{ letterSpacing: '0.5rem', textAlign: 'center', fontSize: '1.5rem', width: '100%', marginBottom: '12px' }}
-                            value={confirmPin}
-                            onChange={e => setConfirmPin(e.target.value.replace(/\D/g, ''))}
-                            required
-                        />
-                    </div>
-                    <button 
-                        type="submit" 
-                        className={styles.saveBtn} 
-                        style={{ width: '100%', marginTop: '12px', background: 'var(--primary)' }}
-                        disabled={settingPin || pin.length !== 4 || pin !== confirmPin}
-                    >
-                        {settingPin ? 'Updating...' : (user?.has_transaction_pin ? 'Update Merchant PIN' : 'Set Merchant PIN')}
-                    </button>
-                    {pin !== confirmPin && confirmPin.length === 4 && (
-                        <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '8px', textAlign: 'center' }}>PINs do not match.</p>
-                    )}
-                </form>
-            </div>
-            <div style={{ marginTop: '48px', borderTop: '1px solid var(--border)', paddingTop: '32px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <MdFingerprint className="text-primary" />
-                            Passkeys & Biometrics
-                        </h2>
-                        <p>Enable secure, passwordless login using your device's fingerprint or FaceID.</p>
-                    </div>
-                    <Badge style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-                        Recommended
-                    </Badge>
-                </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+                {/* Column 1: PIN & Authentication */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div className={styles.formCard} style={{ height: '100%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                                <MdSecurity size={24} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800' }}>Transaction PIN</h3>
+                                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Required for all financial actions.</p>
+                            </div>
+                        </div>
 
-                <div className={styles.formCard} style={{ marginTop: '24px', maxWidth: '600px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                                <div style={{ width: '48px', height: '48px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-                                    <MdVpnKey size={24} />
+                        <div className={styles.safeguardBox} style={{ marginBottom: '20px', padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+                            <div className={styles.safeguardInfo}>
+                                <div className={styles.safeguardIcon}>
+                                    {user?.has_transaction_pin ? <MdCheckCircle color="#22c55e" /> : <MdError color="#ef4444" />}
+                                </div>
+                                <div className={styles.safeguardText}>
+                                    <p style={{ fontSize: '12px', margin: 0, fontWeight: '600', color: user?.has_transaction_pin ? '#22c55e' : '#ef4444' }}>
+                                        {user?.has_transaction_pin ? "Protocol Active" : "Action Required"}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleSetPin}>
+                            <div className={styles.formGroup}>
+                                <label style={{ fontSize: '13px', fontWeight: '700', marginBottom: '10px', display: 'block' }}>
+                                    {user?.has_transaction_pin ? 'Update PIN' : 'Set 4-Digit PIN'}
+                                </label>
+                                <input 
+                                    type="password"
+                                    className={styles.inputStyle}
+                                    maxLength={4}
+                                    pattern="\d*"
+                                    placeholder="••••"
+                                    style={{ letterSpacing: '0.8rem', textAlign: 'center', fontSize: '1.8rem', width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white' }}
+                                    value={pin}
+                                    onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
+                                    required
+                                />
+                                <input 
+                                    type="password"
+                                    className={styles.inputStyle}
+                                    maxLength={4}
+                                    pattern="\d*"
+                                    placeholder="Confirm PIN"
+                                    style={{ letterSpacing: '0.8rem', textAlign: 'center', fontSize: '1.2rem', width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white', marginTop: '12px' }}
+                                    value={confirmPin}
+                                    onChange={e => setConfirmPin(e.target.value.replace(/\D/g, ''))}
+                                    required
+                                />
+                            </div>
+                            <button 
+                                type="submit" 
+                                className={styles.saveBtn} 
+                                style={{ width: '100%', marginTop: '20px', height: '48px', borderRadius: '12px' }}
+                                disabled={settingPin || pin.length !== 4 || pin !== confirmPin}
+                            >
+                                {settingPin ? 'Syncing...' : (user?.has_transaction_pin ? 'Update Secure PIN' : 'Activate PIN Protection')}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div className={styles.formCard}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                                    <MdFingerprint size={24} />
                                 </div>
                                 <div>
-                                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>Biometric Login</h4>
-                                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>Use TouchID / FaceID to sign in instantly.</p>
+                                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800' }}>Biometrics</h3>
+                                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Passwordless FIDO2 login.</p>
                                 </div>
+                            </div>
+                            <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20">Elite</Badge>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '16px' }}>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '700' }}>Passkey Status</h4>
+                                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>{user?.passkey_enabled ? 'Active on this device' : 'Not configured'}</p>
                             </div>
                             <label className={styles.switch}>
                                 <input 
                                     type="checkbox" 
                                     checked={user?.passkey_enabled}
                                     onChange={async (e) => {
-                                        if (e.target.checked) {
-                                            showToast('Initializing WebAuthn Biometric Protocol...', 'info');
-                                            // Trigger passkey registration
-                                        }
+                                        if (e.target.checked) showToast('Initializing Biometric Registry...', 'info');
                                     }}
                                 />
                                 <span className={styles.slider}></span>
@@ -185,75 +182,76 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
 
                         <button 
                             className={styles.viewBtn} 
-                            style={{ width: '100%', padding: '16px', borderRadius: '16px', border: '1px dashed var(--border)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
-                            onClick={() => showToast('Registering new security key...', 'info')}
+                            style={{ width: '100%', height: '48px', borderRadius: '12px', border: '1px dashed var(--border)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+                            onClick={() => showToast('Starting WebAuthn ceremony...', 'info')}
                         >
-                            <MdAdd /> Register New Security Key / Passkey
+                            <MdAdd /> Add New Security Key
                         </button>
                     </div>
-
-                    <div className={styles.privacyNote} style={{ marginTop: '24px', background: 'rgba(99, 102, 241, 0.03)' }}>
-                        <MdSecurity size={20} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                        <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                            FidduPay uses industry-standard **FIDO2/WebAuthn**. Your biometric data never leaves your device; it is used only to unlock a cryptographic key stored on your secure hardware.
-                        </p>
-                    </div>
                 </div>
-            </div>
 
-            <div style={{ marginTop: '48px', borderTop: '1px solid var(--border)', paddingTop: '32px' }}>
-                <h2>Risk Monitoring</h2>
-                <p>Configure automated system alerts for operational balance safety.</p>
-
-                <div className={styles.formCard} style={{ marginTop: '24px', maxWidth: '500px' }}>
-                    <div className={styles.formGroup} style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                        <div>
-                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>Enable Alerts</h4>
-                            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Receive notifications when balance is low.</p>
-                        </div>
-                        <label className={styles.switch}>
-                            <input 
-                                type="checkbox" 
-                                checked={lowBalanceAlertsEnabled}
-                                disabled={loading}
-                                onChange={e => {
-                                    const newValue = e.target.checked;
-                                    setLowBalanceAlertsEnabled(newValue);
-                                    handleUpdateSettings({ low_balance_alerts_enabled: newValue });
-                                }}
-                            />
-                            <span className={styles.slider}></span>
-                        </label>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label style={{ color: 'var(--text-main)', marginBottom: '8px', display: 'block', fontSize: '14px', fontWeight: 600 }}>Low Balance Threshold (USD)</label>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch' }}>
-                            <div style={{ position: 'relative', flex: 1 }}>
-                                <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '14px', zIndex: 2 }}>$</span>
-                                <input 
-                                    type="number"
-                                    className={styles.urlInput}
-                                    style={{ paddingLeft: '32px', width: '100%', height: '48px' }}
-                                    value={lowBalanceThreshold}
-                                    onChange={e => setLowBalanceThreshold(e.target.value)}
-                                    placeholder="0.00"
-                                    disabled={loading}
-                                />
+                {/* Column 2: Risk Monitoring */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div className={styles.formCard} style={{ height: 'fit-content' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b' }}>
+                                <MdAutoGraph size={24} />
                             </div>
-                            <button 
-                                className={styles.saveBtn} 
-                                style={{ background: 'var(--primary)', whiteSpace: 'nowrap', height: '48px', padding: '0 24px', borderRadius: '12px' }}
-                                onClick={() => handleUpdateSettings({ low_balance_threshold_usd: lowBalanceThreshold })}
-                                disabled={loading}
-                            >
-                                {loading ? 'Updating...' : 'Update Threshold'}
-                            </button>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800' }}>Risk Monitoring</h3>
+                                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Balance safeguards & alerts.</p>
+                            </div>
                         </div>
-                        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '12px', lineHeight: '1.5' }}>
-                            The system will trigger <strong>balance.low</strong> webhooks and in-app alerts when your total 
-                            account balance (across all supported currencies) falls below this amount.
-                        </p>
+
+                        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '700' }}>Balance Threshold Alerts</h4>
+                                <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-muted)' }}>Webhook signal on low liquidity.</p>
+                            </div>
+                            <label className={styles.switch}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={lowBalanceAlertsEnabled}
+                                    disabled={loading}
+                                    onChange={e => {
+                                        const newValue = e.target.checked;
+                                        setLowBalanceAlertsEnabled(newValue);
+                                        handleUpdateSettings({ low_balance_alerts_enabled: newValue });
+                                    }}
+                                />
+                                <span className={styles.slider}></span>
+                            </label>
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label style={{ color: 'var(--text-main)', marginBottom: '12px', display: 'block', fontSize: '13px', fontWeight: '700' }}>Critical Threshold (USD)</label>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch' }}>
+                                <div style={{ position: 'relative', flex: 1 }}>
+                                    <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontWeight: '800', fontSize: '14px', zIndex: 2 }}>$</span>
+                                    <input 
+                                        type="number"
+                                        className={styles.urlInput}
+                                        style={{ paddingLeft: '32px', width: '100%', height: '48px', borderRadius: '12px' }}
+                                        value={lowBalanceThreshold}
+                                        onChange={e => setLowBalanceThreshold(e.target.value)}
+                                        placeholder="0.00"
+                                        disabled={loading}
+                                    />
+                                </div>
+                                <button 
+                                    className={styles.saveBtn} 
+                                    style={{ background: 'var(--primary)', height: '48px', padding: '0 20px', borderRadius: '12px', fontSize: '13px' }}
+                                    onClick={() => handleUpdateSettings({ low_balance_threshold_usd: lowBalanceThreshold })}
+                                    disabled={loading}
+                                >
+                                    {loading ? '...' : 'Save'}
+                                </button>
+                            </div>
+                            <div style={{ marginTop: '20px', padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                                <MdSecurity size={14} style={{ marginRight: '6px', color: 'var(--primary)' }} />
+                                The Swarm will trigger <strong>balance.low</strong> protocols when total liquidity falls below this marker.
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
