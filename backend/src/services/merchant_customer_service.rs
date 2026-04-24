@@ -548,9 +548,9 @@ impl MerchantCustomerService {
                     INSERT INTO merchant_wallet_history (
                         merchant_id, customer_id, owner_type, crypto_type, network, 
                         old_address, new_address, wallet_mode, 
-                        encrypted_private_key, reason
+                        encrypted_private_key, reason, changed_by
                     )
-                    VALUES ($1, $2, 'customer', $3, $4, $5, $6, 'managed', $7, $8)
+                    VALUES ($1, $2, 'customer', $3, $4, $5, $6, 'managed', $7, $8, 'merchant')
                     "#,
                 )
                 .bind(params.merchant_id)
@@ -615,6 +615,17 @@ impl MerchantCustomerService {
             FROM merchant_customer_balances mb
             JOIN merchant_customers mc ON mc.id = mb.customer_id
             WHERE mc.merchant_id = $1 AND mc.external_id = $2 AND mb.sandbox_mode = $3
+              AND (
+                  EXISTS (
+                      SELECT 1 FROM merchant_wallets mw 
+                      WHERE mw.merchant_id = $1 AND mw.crypto_type = mb.crypto_type 
+                      AND mw.sandbox_mode = $3 AND mw.is_active = true
+                  )
+                  OR NOT EXISTS (
+                      SELECT 1 FROM merchant_wallets mw 
+                      WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $3
+                  )
+              )
             "#
         )
         .bind(merchant_id)
@@ -638,6 +649,17 @@ impl MerchantCustomerService {
             FROM merchant_customer_wallets w
             JOIN merchant_customers mc ON mc.id = w.customer_id
             WHERE mc.merchant_id = $1 AND mc.external_id = $2 AND w.sandbox_mode = $3
+              AND (
+                  EXISTS (
+                      SELECT 1 FROM merchant_wallets mw 
+                      WHERE mw.merchant_id = $1 AND mw.crypto_type = w.crypto_type 
+                      AND mw.sandbox_mode = $3 AND mw.is_active = true
+                  )
+                  OR NOT EXISTS (
+                      SELECT 1 FROM merchant_wallets mw 
+                      WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $3
+                  )
+              )
             ORDER BY w.created_at
             "#
         )
@@ -661,11 +683,27 @@ impl MerchantCustomerService {
         Self::check_permissions(&customer, "view")?;
 
         let wallet = sqlx::query_as::<_, MerchantCustomerWallet>(
-            "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at, sandbox_mode FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
+            r#"
+            SELECT w.id, w.customer_id, w.merchant_id, w.crypto_type, w.network, w.address, w.encrypted_private_key, w.created_at, w.updated_at, w.sandbox_mode 
+            FROM merchant_customer_wallets w
+            WHERE w.customer_id = $1 AND w.crypto_type = $2 AND w.sandbox_mode = $3
+              AND (
+                  EXISTS (
+                      SELECT 1 FROM merchant_wallets mw 
+                      WHERE mw.merchant_id = $4 AND mw.crypto_type = w.crypto_type 
+                      AND mw.sandbox_mode = $3 AND mw.is_active = true
+                  )
+                  OR NOT EXISTS (
+                      SELECT 1 FROM merchant_wallets mw 
+                      WHERE mw.merchant_id = $4 AND mw.sandbox_mode = $3
+                  )
+              )
+            "#
         )
         .bind(customer.id)
         .bind(crypto_type_str)
         .bind(sandbox_mode)
+        .bind(merchant_id)
         .fetch_optional(&self.db_pool)
         .await?
         .ok_or_else(|| ServiceError::ValidationError(format!("No wallet found for {}", crypto_type_str)))?;

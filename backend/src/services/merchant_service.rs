@@ -564,7 +564,8 @@ impl MerchantService {
                                    role, redirect_url, first_name, last_name, gender, phone_number, 
                                    country, applicant_role, business_country, business_license_number, 
                                    business_certificate_url, terms_accepted, wallets_locked, customer_wallets_locked,
-                                   transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled
+                                   transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled,
+                                   nin_bvn_hash, social_handles, kyc_tier, compliance_status, username, pay_id
                             FROM merchants 
                             WHERE id = $1 AND is_active = true
                             "#
@@ -1009,7 +1010,11 @@ impl MerchantService {
         low_balance_alerts_enabled: Option<bool>,
     ) -> Result<(), ServiceError> {
         if let Some(ref mode) = settlement_mode {
-            if !["forwarding", "managed"].contains(&mode.as_str()) {
+            if self.config.managed_mode_only && mode != "managed" {
+                return Err(ServiceError::ValidationError(
+                    "Only 'managed' settlement mode is supported at this time.".to_string(),
+                ));
+            } else if !["forwarding", "managed", "imported"].contains(&mode.as_str()) {
                 return Err(ServiceError::ValidationError(
                     "Invalid settlement mode".to_string(),
                 ));

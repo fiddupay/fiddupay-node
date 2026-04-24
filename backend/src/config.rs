@@ -184,6 +184,7 @@ pub struct Config {
     pub fee_wallet_polygon: String,
     pub fee_wallet_arbitrum: String,
     // Additional Feature Flags
+    pub managed_mode_only: bool,
 }
 
 impl Config {
@@ -570,6 +571,10 @@ impl Config {
             fee_wallet_bsc: env::var("PLATFORM_FEE_WALLET_BSC").unwrap_or_default(),
             fee_wallet_polygon: env::var("PLATFORM_FEE_WALLET_POLYGON").unwrap_or_default(),
             fee_wallet_arbitrum: env::var("PLATFORM_FEE_WALLET_ARBITRUM").unwrap_or_default(),
+            managed_mode_only: env::var("MANAGED_MODE_ONLY")
+                .unwrap_or_else(|_| "false".to_string())
+                .parse()
+                .unwrap_or(false),
         })
     }
 
@@ -721,6 +726,7 @@ impl Config {
                     }
                 }
 
+                "MANAGED_MODE_ONLY" => self.managed_mode_only = setting.value == "true",
                 _ => warn!("Unknown system setting key: {}", setting.key),
             }
         }
@@ -887,6 +893,7 @@ impl Default for Config {
             bsc_testnet_rpc_url_backup: "".to_string(),
             arbitrum_sepolia_rpc_url_backup: "".to_string(),
             polygon_amoy_rpc_url_backup: "".to_string(),
+            managed_mode_only: false,
         }
     }
 }

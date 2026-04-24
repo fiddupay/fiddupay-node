@@ -108,9 +108,10 @@ impl WalletConfigService {
                     r#"
                     INSERT INTO merchant_wallet_history (
                         merchant_id, crypto_type, network, 
-                        old_address, new_address, changed_by, reason
+                        old_address, new_address, changed_by, reason,
+                        encrypted_private_key, wallet_mode, owner_type
                     )
-                    VALUES ($1, $2, $3, $4, $5, 'merchant', $6)
+                    VALUES ($1, $2, $3, $4, $5, 'merchant', $6, $7, $8, 'merchant')
                     "#,
                 )
                 .bind(merchant_id)
@@ -119,6 +120,8 @@ impl WalletConfigService {
                 .bind(&current_address)
                 .bind(&address)
                 .bind("Updated via wallet management")
+                .bind(&current_key)
+                .bind(&current_mode)
                 .execute(&self.db_pool)
                 .await
                 .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
@@ -185,7 +188,7 @@ impl WalletConfigService {
             .await
             .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
-            if let Some(row) = current_sister_row {
+            if let Some(ref row) = current_sister_row {
                 let current_address: String = row.get("address");
                 let current_mode: Option<String> = row.get("wallet_mode");
                 let current_key: Option<String> = row.get("encrypted_private_key");
@@ -207,9 +210,10 @@ impl WalletConfigService {
                         r#"
                         INSERT INTO merchant_wallet_history (
                             merchant_id, crypto_type, network, 
-                            old_address, new_address, changed_by, reason
+                            old_address, new_address, changed_by, reason,
+                            encrypted_private_key, wallet_mode, owner_type
                         )
-                        VALUES ($1, $2, $3, $4, $5, 'merchant', $6)
+                        VALUES ($1, $2, $3, $4, $5, 'merchant', $6, $7, $8, 'merchant')
                         "#,
                     )
                     .bind(merchant_id)
@@ -218,11 +222,20 @@ impl WalletConfigService {
                     .bind(&current_address)
                     .bind(&address)
                     .bind("Sister wallet updated")
+                    .bind(&current_key)
+                    .bind(&current_mode)
                     .execute(&self.db_pool)
                     .await
                     .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
                 }
             }
+
+            // Preserve the sister's active status if it already exists, otherwise use main coin's status
+            let sister_active = if let Some(row) = &current_sister_row {
+                row.get("is_active")
+            } else {
+                is_active
+            };
 
             sqlx::query(
                 "INSERT INTO merchant_wallets (merchant_id, crypto_type, network, address, is_active, sandbox_mode, encrypted_private_key, wallet_mode)
@@ -239,7 +252,7 @@ impl WalletConfigService {
             .bind(sister)
             .bind(&network)
             .bind(&address)
-            .bind(is_active)
+            .bind(sister_active)
             .bind(sandbox_mode)
             .bind(&encrypted_private_key)
             .bind(mode)
