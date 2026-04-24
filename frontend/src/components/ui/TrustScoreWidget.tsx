@@ -35,9 +35,9 @@ export const TrustScoreWidget: React.FC<TrustScoreWidgetProps> = ({ user, classN
   };
 
   const checklistItems = [
-    { label: 'Identity Verification (NIN/BVN)', status: identity_verified, points: 60 },
-    { label: 'Social Handles Linked', status: social_verified, points: 20 },
-    { label: 'Business Registration (Tier 2)', status: business_verified, points: 20 },
+    { label: 'Identity Agent (NIN/BVN)', status: identity_verified, points: 60 },
+    { label: 'Social Signal Agent (Handles)', status: social_verified, points: 20 },
+    { label: 'Reputation Agent (History)', status: business_verified, points: 20 },
   ];
 
   return (
@@ -46,10 +46,10 @@ export const TrustScoreWidget: React.FC<TrustScoreWidgetProps> = ({ user, classN
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center gap-2">
-            <MdShield className="w-4 h-4" />
-            Trust Intelligence
+            <MdShield className="w-4 h-4 text-primary" />
+            Trust Intelligence Layer
           </CardTitle>
-          <Badge className={`bg-gradient-to-br ${getTierColor(tier)} text-white border-none px-3 py-1 font-bold shadow-lg`}>
+          <Badge className={`bg-gradient-to-br ${getTierColor(tier)} text-white border-none px-3 py-1 font-bold shadow-lg text-[10px]`}>
             {tier} TIER
           </Badge>
         </div>
@@ -60,8 +60,8 @@ export const TrustScoreWidget: React.FC<TrustScoreWidgetProps> = ({ user, classN
             {score}<span className="text-2xl opacity-50">%</span>
           </div>
           <div className="pb-2">
-            <div className="text-xs text-gray-500 uppercase font-bold">Health Score</div>
-            <div className="text-sm text-gray-300 font-medium">Self-Governing Level</div>
+            <div className="text-xs text-gray-500 uppercase font-bold">Network Reputation</div>
+            <div className="text-sm text-gray-300 font-medium">Agent Consensus Level</div>
           </div>
         </div>
 
@@ -85,12 +85,24 @@ export const TrustScoreWidget: React.FC<TrustScoreWidgetProps> = ({ user, classN
           ))}
         </div>
 
+        <div className="mt-8 pt-6 border-t border-white/5">
+            <div className="flex items-center justify-between text-[10px] uppercase font-black tracking-widest text-gray-500 mb-4">
+                <span>Swarm Pulse</span>
+                <span className="text-primary">LIVE SIGNAL</span>
+            </div>
+            <div className="flex gap-1 h-1">
+                {[...Array(12)].map((_, i) => (
+                    <div key={i} className={`flex-1 rounded-full ${i < (score / 8) ? 'bg-primary' : 'bg-white/10'} ${i === Math.floor(score / 8) ? 'animate-pulse' : ''}`} />
+                ))}
+            </div>
+        </div>
+
         {score < 100 && (
-          <div className="mt-8 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex gap-3 items-start">
-            <MdWarning className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-200/80 leading-relaxed">
-              Unlock 0-fee interoperability and higher limits by completing your profile. 
-              {score < 60 ? " Start with Identity Verification to reach Silver status immediately." : " Link your social handles to reach Gold."}
+          <div className="mt-6 p-3 rounded-lg bg-primary/5 border border-primary/20 flex gap-3 items-start">
+            <MdWarning className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              Unlock 0-fee interoperability and higher limits by feeding the Swarm more signals. 
+              {score < 60 ? " Start with Identity Agent verification." : " Link Social Signals to reach Gold status."}
             </p>
           </div>
         )}

@@ -23,6 +23,7 @@ import styles from '@/styles/pages/DashboardPage.module.css'
 import { ActivityListSkeleton, DashboardSkeleton } from '@/components/layout/PageSkeletons'
 import SEO from '@/components/ui/SEO'
 import { TrustScoreWidget } from '@/components/ui/TrustScoreWidget'
+import { SwarmIntelligenceWidget } from '@/components/ui/SwarmIntelligenceWidget'
 import { Badge } from '@/components/ui/badge'
 
 // Recent Activity Component
@@ -309,40 +310,39 @@ const DashboardPage: React.FC = () => {
           )}
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
-            <div className="xl:col-span-1">
+          <div className={styles.statsGrid}>
+            <div className={styles.statCard}>
               <TrustScoreWidget user={user} className="h-full" />
             </div>
             
-            <div className="xl:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className={styles.statCard}>
+            <div className={styles.statCard}>
                 <div className={styles.statHeader}>
                   <span className={styles.statLabel}>Total Payments</span>
                   <i className="fas fa-receipt" style={{ color: 'var(--primary)' }}></i>
                 </div>
                 <div className={styles.statValue}>{totalPayments.toLocaleString()}</div>
                 <div className={styles.statFooter}>{analytics?.successful_payments || 0} successful / {analytics?.failed_payments || 0} failed</div>
-              </div>
+            </div>
 
-              <div className={styles.statCard}>
+            <div className={styles.statCard}>
                 <div className={styles.statHeader}>
                   <span className={styles.statLabel}>Total Volume</span>
                   <i className="fas fa-chart-line" style={{ color: '#10b981' }}></i>
                 </div>
                 <div className={styles.statValue}>${(parseFloat(analytics?.total_volume_usd || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                 <div className={styles.statFooter}>Total revenue processed</div>
-              </div>
+            </div>
 
-              <div className={styles.statCard}>
+            <div className={styles.statCard}>
                 <div className={styles.statHeader}>
                   <span className={styles.statLabel}>Success Rate</span>
                   <i className="fas fa-check-circle" style={{ color: '#22c55e' }}></i>
                 </div>
                 <div className={styles.statValue}>{successRate}%</div>
                 <div className={styles.statFooter}>Payment completion rate</div>
-              </div>
+            </div>
 
-              <div className={styles.statCard}>
+            <div className={styles.statCard}>
                 <div className={styles.statHeader}>
                   <span className={styles.statLabel}>Available Balance</span>
                   <i className="fas fa-wallet" style={{ color: 'var(--secondary)' }}></i>
@@ -355,7 +355,6 @@ const DashboardPage: React.FC = () => {
                     ${(parseFloat(balance?.available_usd || '0') || 0).toLocaleString()}
                   </span>
                 </div>
-              </div>
             </div>
           </div>
 
@@ -502,29 +501,8 @@ const DashboardPage: React.FC = () => {
               <RecentActivityList />
             </div>
 
-            <div className={styles.sectionCard}>
-              <div className={styles.sectionHeader}>
-                <h2>Performance</h2>
-                <p>Key metrics summary</p>
-              </div>
-              <div className={styles.performanceList}>
-                <div className={styles.perfItem}>
-                  <span className={styles.perfLabel}>Successful</span>
-                  <span className={`${styles.perfValue} ${styles.positive}`}>{analytics?.successful_payments || 0}</span>
-                </div>
-                <div className={styles.perfItem}>
-                  <span className={styles.perfLabel}>Failed / Expired</span>
-                  <span className={`${styles.perfValue} ${styles.negative}`}>{analytics?.failed_payments || 0}</span>
-                </div>
-                <div className={styles.perfItem}>
-                  <span className={styles.perfLabel}>Avg. Transaction</span>
-                  <span className={styles.perfValue}>${(parseFloat(analytics?.average_transaction_value || analytics?.average_payment_usd || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-                <div className={styles.perfItem}>
-                  <span className={styles.perfLabel}>Total Fees</span>
-                  <span className={styles.perfValue}>${(parseFloat(analytics?.total_fees_paid || '0') || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-              </div>
+            <div className="xl:col-span-1">
+              <SwarmIntelligenceWidget />
             </div>
           </div>
 

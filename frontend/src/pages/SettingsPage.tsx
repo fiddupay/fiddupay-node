@@ -34,7 +34,12 @@ const SettingsPage: React.FC = () => {
     useEffect(() => {
         // Initial load
         loadUser(true)
-    }, [loadUser])
+        
+        // Ensure URL has tab param if it's missing
+        if (!searchParams.get('tab')) {
+            setSearchParams({ tab: 'settlement' }, { replace: true })
+        }
+    }, [loadUser, searchParams, setSearchParams])
 
     const handleTabChange = (tab: TabType) => {
         setSearchParams({ tab })
