@@ -308,11 +308,13 @@ const DashboardPage: React.FC = () => {
             </div>
           )}
 
-          {/* Stats Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-            <TrustScoreWidget user={user} className="lg:col-span-1 h-full" />
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
+            <div className="xl:col-span-1">
+              <TrustScoreWidget user={user} className="h-full" />
+            </div>
             
-            <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+            <div className="xl:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className={styles.statCard}>
                 <div className={styles.statHeader}>
                   <span className={styles.statLabel}>Total Payments</span>

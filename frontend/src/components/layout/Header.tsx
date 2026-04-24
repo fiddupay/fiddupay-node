@@ -151,19 +151,19 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                   </div>
                 </div>
 
-                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/dashboard/settings?tab=settlement')}>
+                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/app/settings?tab=settlement')}>
                   <MdPerson /> My Profile
                 </button>
-                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/dashboard/settings?tab=verification')}>
+                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/app/settings?tab=verification')}>
                   <MdSecurity /> Verification
                 </button>
-                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/dashboard/settings?tab=api')}>
+                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/app/settings?tab=api')}>
                   <MdVpnKey /> API Settings
                 </button>
                 
                 <div className={styles.dropdownDivider} />
                 
-                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/dashboard/settings')}>
+                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/app/settings')}>
                   <MdSettings /> Settings
                 </button>
                 <button className={`${styles.dropdownLink} ${styles.logoutBtn}`} onClick={handleLogout}>

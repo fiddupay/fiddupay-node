@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import {
     MdAccountBalanceWallet,
     MdCode,
@@ -7,7 +7,7 @@ import {
     MdLock,
     MdShield
 } from 'react-icons/md'
-import { useLocation } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { SettingsSkeleton } from '@/components/layout/PageSkeletons'
 import styles from '@/styles/pages/SettingsPage.module.css'
@@ -26,20 +26,19 @@ type TabType = 'settlement' | 'fees' | 'api' | 'webhooks' | 'security' | 'widget
 
 const SettingsPage: React.FC = () => {
     const { user, loadUser, loading: authLoading } = useAuthStore()
-    const [activeTab, setActiveTab] = useState<TabType>('settlement')
-    const location = useLocation()
+    const [searchParams, setSearchParams] = useSearchParams()
+    
+    // Get active tab from URL or default to 'settlement'
+    const activeTab = (searchParams.get('tab') as TabType) || 'settlement'
 
     useEffect(() => {
         // Initial load
         loadUser(true)
-        
-        // Handle tab deep-linking
-        const params = new URLSearchParams(location.search)
-        const tab = params.get('tab') as TabType
-        if (tab && ['settlement', 'fees', 'api', 'webhooks', 'security', 'widget', 'verification'].includes(tab)) {
-            setActiveTab(tab)
-        }
-    }, [location.search])
+    }, [loadUser])
+
+    const handleTabChange = (tab: TabType) => {
+        setSearchParams({ tab })
+    }
 
     if (authLoading && !user) {
         return <SettingsSkeleton />
@@ -59,43 +58,43 @@ const SettingsPage: React.FC = () => {
             <div className={styles.tabs}>
                 <button
                     className={`${styles.tabBtn} ${activeTab === 'settlement' ? styles.activeTab : ''}`}
-                    onClick={() => setActiveTab('settlement')}
+                    onClick={() => handleTabChange('settlement')}
                 >
                     <MdAccountBalanceWallet /> Settlement Mode
                 </button>
                 <button
                     className={`${styles.tabBtn} ${activeTab === 'fees' ? styles.activeTab : ''}`}
-                    onClick={() => setActiveTab('fees')}
+                    onClick={() => handleTabChange('fees')}
                 >
                     <MdPayment /> Fee Preferences
                 </button>
                 <button
                     className={`${styles.tabBtn} ${activeTab === 'api' ? styles.activeTab : ''}`}
-                    onClick={() => setActiveTab('api')}
+                    onClick={() => handleTabChange('api')}
                 >
                     <MdCode /> API Settings
                 </button>
                 <button
                     className={`${styles.tabBtn} ${activeTab === 'webhooks' ? styles.activeTab : ''}`}
-                    onClick={() => setActiveTab('webhooks')}
+                    onClick={() => handleTabChange('webhooks')}
                 >
                     <MdNotificationsActive /> Webhooks
                 </button>
                 <button
                     className={`${styles.tabBtn} ${activeTab === 'widget' ? styles.activeTab : ''}`}
-                    onClick={() => setActiveTab('widget')}
+                    onClick={() => handleTabChange('widget')}
                 >
                     <MdCode /> Checkout Widget
                 </button>
                 <button
                     className={`${styles.tabBtn} ${activeTab === 'security' ? styles.activeTab : ''}`}
-                    onClick={() => setActiveTab('security')}
+                    onClick={() => handleTabChange('security')}
                 >
                     <MdLock /> Security
                 </button>
                 <button
                     className={`${styles.tabBtn} ${activeTab === 'verification' ? styles.activeTab : ''}`}
-                    onClick={() => setActiveTab('verification')}
+                    onClick={() => handleTabChange('verification')}
                 >
                     <MdShield /> Verification
                 </button>

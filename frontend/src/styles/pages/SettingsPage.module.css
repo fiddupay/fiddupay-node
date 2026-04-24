@@ -4,7 +4,7 @@
 
 .header {
     margin-bottom: 24px;
-    border-bottom: 1px solid var(--fiddu-border);
+    border-bottom: 1px solid var(--border);
     padding-bottom: 16px;
 }
 
@@ -184,7 +184,7 @@
     position: absolute;
     top: 12px;
     right: 12px;
-    color: var(--fiddu-brand-primary);
+    color: var(--primary);
     font-size: 20px;
 }
 
@@ -215,7 +215,7 @@
 
 .saveBtn {
     padding: 10px 24px;
-    background-color: var(--fiddu-brand-primary);
+    background-color: var(--primary);
     color: white;
     border: none;
     border-radius: 6px;
@@ -295,7 +295,7 @@
 }
 
 input:checked+.slider {
-    background-color: var(--fiddu-brand-primary);
+    background-color: var(--primary);
 }
 
 input:focus+.slider {
@@ -409,9 +409,9 @@ input:checked+.slider:before {
 .formatBtn {
     padding: 8px 16px;
     border-radius: 6px;
-    border: 1px solid var(--fiddu-border);
-    background: var(--fiddu-bg-primary);
-    color: var(--fiddu-text-secondary);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -419,8 +419,8 @@ input:checked+.slider:before {
 }
 
 .formatBtn:hover {
-    border-color: var(--fiddu-brand-primary);
-    color: var(--fiddu-brand-primary);
+    border-color: var(--primary);
+    color: var(--primary);
 }
 
 .activeFormat {
@@ -455,7 +455,7 @@ input:checked+.slider:before {
 
 .redirectNote {
     font-size: 13px;
-    color: var(--fiddu-text-secondary);
+    color: var(--text-muted);
     margin-bottom: 16px;
 }
 
@@ -496,7 +496,7 @@ input:checked+.slider:before {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: var(--fiddu-brand-primary);
+    color: var(--primary);
 }
 
 .docGrid {
@@ -618,7 +618,7 @@ input:checked+.slider:before {
 .secretHeader h4 {
     font-size: 14px;
     font-weight: 600;
-    color: var(--fiddu-text-primary);
+    color: var(--text-main);
 }
 
 .secretWrapper {
@@ -628,13 +628,13 @@ input:checked+.slider:before {
 
 .secretDisplay {
     flex: 1;
-    background: var(--fiddu-bg-secondary);
+    background: var(--surface-hover);
     padding: 10px 16px;
     border-radius: 8px;
     font-family: monospace;
     font-size: 13px;
-    color: var(--fiddu-text-primary);
-    border: 1px solid var(--fiddu-border);
+    color: var(--text-main);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     min-width: 0;
@@ -645,11 +645,11 @@ input:checked+.slider:before {
 
 .viewBtn {
     background: transparent;
-    border: 1px solid var(--fiddu-border);
+    border: 1px solid var(--border);
     padding: 8px 12px;
     border-radius: 6px;
     cursor: pointer;
-    color: var(--fiddu-text-secondary);
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -658,9 +658,9 @@ input:checked+.slider:before {
 }
 
 .viewBtn:hover {
-    background: var(--fiddu-bg-secondary);
-    color: var(--fiddu-brand-primary);
-    border-color: var(--fiddu-brand-primary);
+    background: var(--surface-hover);
+    color: var(--primary);
+    border-color: var(--primary);
 }
 
 .copyBtn,
@@ -712,7 +712,7 @@ input:checked+.slider:before {
 
 .keyNote {
     font-size: 12px;
-    color: var(--fiddu-text-secondary);
+    color: var(--text-muted);
     font-style: italic;
 }
 
@@ -743,7 +743,7 @@ input:checked+.slider:before {
 
 .modalHeader {
     padding: 20px 24px;
-    border-bottom: 1px solid var(--fiddu-border);
+    border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -762,7 +762,7 @@ input:checked+.slider:before {
 .closeBtn {
     background: none;
     border: none;
-    color: var(--fiddu-text-secondary);
+    color: var(--text-muted);
     font-size: 20px;
     cursor: pointer;
     display: flex;
@@ -774,8 +774,8 @@ input:checked+.slider:before {
 }
 
 .closeBtn:hover {
-    background: var(--fiddu-bg-secondary);
-    color: var(--fiddu-text-primary);
+    background: var(--surface-hover);
+    color: var(--text-main);
 }
 
 .modalBody {
@@ -785,7 +785,7 @@ input:checked+.slider:before {
 .modalBody p {
     font-size: 14px;
     line-height: 1.6;
-    color: var(--fiddu-text-primary);
+    color: var(--text-main);
     margin-bottom: 20px;
 }
 
@@ -816,15 +816,15 @@ input:checked+.slider:before {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    background: var(--fiddu-bg-secondary);
+    background: var(--surface-hover);
     border-radius: 0 0 12px 12px;
 }
 
 .cancelBtn {
     padding: 8px 20px;
     background: white;
-    border: 1px solid var(--fiddu-border);
-    color: var(--fiddu-text-primary);
+    border: 1px solid var(--border);
+    color: var(--text-main);
     border-radius: 6px;
     font-weight: 600;
     font-size: 14px;
