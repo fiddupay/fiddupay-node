@@ -24,7 +24,7 @@ export interface User {
   has_transaction_pin: boolean
   pin_setup_at?: string
   // Intelligence & Compliance
-  nin_bvn_hash?: string
+  has_national_id?: boolean
   social_handles?: {
     twitter?: string
     instagram?: string

@@ -365,15 +365,35 @@ impl EvmMonitor {
         }
     }
 
-    /// Listen for new transactions using WebSockets (Optimized Push Model)
+    /// Listen for new transactions using WebSockets (Global Filter Architecture)
+    ///
+    /// Instead of creating N per-address subscriptions (which hits provider limits at ~100-1000),
+    /// we use ONE global subscription for all Transfer events on the token contract and filter
+    /// incoming events locally against a HashSet of monitored addresses.
+    ///
+    /// Architecture:
+    ///   - 1x `eth_subscribe("newHeads")` for native transfers (BNB/ETH/etc.)
+    ///   - 1x `eth_subscribe("logs")` for ALL token Transfer events (global, unfiltered by recipient)
+    ///   - Local `HashSet<String>` for O(1) address matching per event
+    ///
+    /// This scales to unlimited addresses on a single WebSocket connection.
     async fn listen_for_events(
         &self,
         addresses: Vec<String>,
         mut new_addresses_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
         callback: std::sync::Arc<dyn Fn(String, String) + Send + Sync>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // === Global Filter: Local address set for O(1) lookups ===
+        let mut monitored_set: std::collections::HashSet<String> =
+            addresses.iter().map(|a| a.to_lowercase()).collect();
+
+        info!(
+            "📡 {} WS: Initializing Global Filter with {} monitored addresses",
+            self.chain_name,
+            monitored_set.len()
+        );
+
         let mut ws_stream_opt = None;
-        let connected_ws_url;
 
         for url in &self.ws_urls {
             let safe_url = redact_url(url);
@@ -384,11 +404,9 @@ impl EvmMonitor {
             match connect_async(url.as_str()).await {
                 Ok((stream, _)) => {
                     ws_stream_opt = Some(stream);
-                    connected_ws_url = url.clone();
                     info!(
                         "✅ Successfully connected to {} WebSocket: {}",
-                        self.chain_name,
-                        redact_url(&connected_ws_url)
+                        self.chain_name, safe_url
                     );
                     break;
                 }
@@ -397,7 +415,6 @@ impl EvmMonitor {
                         "❌ Failed to connect to {} WebSocket {}: {}",
                         self.chain_name, safe_url, e
                     );
-                    // Add a small delay between connection attempts to prevent hammering providers
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                     continue;
                 }
@@ -415,61 +432,55 @@ impl EvmMonitor {
 
         let (mut write, mut read) = ws_stream.split();
 
-        // Map of subscription_id -> monitored_address
-        let mut subscription_map = std::collections::HashMap::new();
-        let mut active_subscriptions = std::collections::HashMap::new();
         let mut next_request_id = 1u64;
 
-        // 1. Subscribe to newHeads (to catch Native transfers)
-        let request_id = next_request_id;
+        // 1. Subscribe to newHeads (catches native transfers like BNB/ETH)
+        let head_request_id = next_request_id;
         next_request_id += 1;
         let head_sub_msg = serde_json::json!({
             "jsonrpc": "2.0",
-            "id": request_id,
+            "id": head_request_id,
             "method": "eth_subscribe",
             "params": ["newHeads"]
         });
         write.send(Message::Text(head_sub_msg.to_string())).await?;
-        subscription_map.insert(request_id, "NEW_HEADS".to_string());
 
-        // 2. Subscribe to Tokens (via Logs) if we are monitoring a token
+        // 2. ONE global subscription for ALL Transfer events on the token contract
+        //    No per-address topic filtering — we filter locally against `monitored_set`.
+        let mut token_request_id: Option<u64> = None;
         if let Some(ref token) = self.token_address {
-            for address in &addresses {
-                let request_id = next_request_id;
-                next_request_id += 1;
+            let rid = next_request_id;
+            next_request_id += 1;
+            token_request_id = Some(rid);
 
-                // Transfer event signature
-                let transfer_topic =
-                    "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-                let padded_address = pad_evm_address_to_32_bytes(address);
+            let transfer_topic =
+                "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 
-                let subscribe_msg = serde_json::json!({
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                    "method": "eth_subscribe",
-                    "params": [
-                        "logs",
-                        {
-                            "address": token,
-                            "topics": [transfer_topic, null, padded_address]
-                        }
-                    ]
-                });
-                write.send(Message::Text(subscribe_msg.to_string())).await?;
-                subscription_map.insert(request_id, address.clone());
-            }
+            let subscribe_msg = serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": rid,
+                "method": "eth_subscribe",
+                "params": [
+                    "logs",
+                    {
+                        "address": token,
+                        "topics": [transfer_topic]
+                    }
+                ]
+            });
+            write.send(Message::Text(subscribe_msg.to_string())).await?;
             info!(
-                "📡 {} WS: Sent {} token log subscription requests",
-                self.chain_name,
-                addresses.len()
+                "📡 {} WS: Sent 1 global token log subscription for {} (filtering {} addresses locally)",
+                self.chain_name, token, monitored_set.len()
             );
         }
 
-        // --- CATCH-UP BACKFILL REMOVED (Per User Request - Manual Only) ---
-        // History backfill is now handled manually by administrators to reduce RPC load.
+        // Suppress unused warning — next_request_id is kept available for future subscription types
+        let _ = next_request_id;
 
         let mut ping_interval = tokio::time::interval(std::time::Duration::from_secs(15));
         let mut head_sub_id: Option<String> = None;
+        let mut token_sub_id: Option<String> = None;
 
         loop {
             tokio::select! {
@@ -479,38 +490,20 @@ impl EvmMonitor {
                     }
                 }
                 Some(new_addr) = new_addresses_rx.recv() => {
-                    // Subscribe to logs for new address if monitoring tokens
-                    if let Some(ref token) = self.token_address {
-                        let request_id = next_request_id;
-                        next_request_id += 1;
-
-                        let transfer_topic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-                        let padded_address = pad_evm_address_to_32_bytes(&new_addr);
-
-                        let subscribe_msg = serde_json::json!({
-                            "jsonrpc": "2.0",
-                            "id": request_id,
-                            "method": "eth_subscribe",
-                            "params": [
-                                "logs",
-                                {
-                                    "address": token,
-                                    "topics": [transfer_topic, null, padded_address]
-                                }
-                            ]
-                        });
-                        if let Err(e) = write.send(Message::Text(subscribe_msg.to_string())).await {
-                            warn!("Failed to send dynamic WS subscription for {}: {}", new_addr, e);
-                        } else {
-                            subscription_map.insert(request_id, new_addr.clone());
-                        }
+                    // Global Filter: just insert into local HashSet — NO new WS subscription needed
+                    let lower = new_addr.to_lowercase();
+                    if monitored_set.insert(lower) {
+                        info!(
+                            "📡 {} WS: Added address to local filter (total: {})",
+                            self.chain_name, monitored_set.len()
+                        );
                     }
 
-                    // Quick backfill for new address
+                    // Quick backfill for the new address (check last 5 minutes of history)
                     let cb_clone = callback.clone();
                     let addr_clone = new_addr.clone();
                     let min_ts = Utc::now() - chrono::Duration::minutes(5);
-                    let monitor_clone = self.clone_for_ws(); // Helper to clone without some fields if needed
+                    let monitor_clone = self.clone_for_ws();
                     tokio::spawn(async move {
                         if let Ok(txs) = monitor_clone.get_transactions_to_address(&addr_clone, 5, Some(min_ts)).await {
                             for tx in txs {
@@ -529,15 +522,15 @@ impl EvmMonitor {
                         Ok(Message::Text(text)) => {
                             let v: serde_json::Value = serde_json::from_str(&text).unwrap_or(serde_json::Value::Null);
 
-                            // Handle subscription responses
+                            // Handle subscription confirmations
                             if let Some(id) = v["id"].as_u64() {
-                                if let Some(address) = subscription_map.remove(&id) {
-                                    if let Some(sub_id) = v["result"].as_str() {
-                                        if address == "NEW_HEADS" {
-                                            head_sub_id = Some(sub_id.to_string());
-                                        } else {
-                                            active_subscriptions.insert(sub_id.to_string(), address.clone());
-                                        }
+                                if let Some(sub_id) = v["result"].as_str() {
+                                    if id == head_request_id {
+                                        head_sub_id = Some(sub_id.to_string());
+                                        info!("✅ {} WS: newHeads subscription confirmed ({})", self.chain_name, sub_id);
+                                    } else if token_request_id == Some(id) {
+                                        token_sub_id = Some(sub_id.to_string());
+                                        info!("✅ {} WS: Global token logs subscription confirmed ({})", self.chain_name, sub_id);
                                     }
                                 }
                             }
@@ -548,43 +541,53 @@ impl EvmMonitor {
                                     let params = &v["params"];
                                     let sub_id = params["subscription"].as_str().unwrap_or("");
 
-                                    // Scenario A: Native Transfer (New Head)
-                                    if Some(sub_id.to_string()) == head_sub_id {
-                                        // A new block arrived. If monitoring native, we should check it.
-                                        // Note: For native monitoring, it's more efficient to check addresses in run_evm_monitor
-                                        // when a new block is detected. Here we just notify by triggering a "check".
-                                        // For simplicity, we can just trigger a general scan or fetch block transactions.
-                                        // Triggering a poll for all current addresses is a safe fallback.
-                                        // (Actually, the background task will catch it on next poll if we skip WS native)
-                                        // BUT we want it instant. So we should fetch the block.
+                                    // Scenario A: Native Transfer (New Block Head)
+                                    // Fetch block transactions and check tx.to against our monitored set
+                                    if head_sub_id.as_deref() == Some(sub_id) {
                                         if self.token_address.is_none() {
                                             let block_hash = params["result"]["hash"].as_str().unwrap_or("");
                                             if !block_hash.is_empty() {
-                                                // Fetch block with transactions
                                                 if let Ok(block_data) = self.rpc_request("eth_getBlockByHash", serde_json::json!([block_hash, true])).await {
                                                     if let Some(txs) = block_data["result"]["transactions"].as_array() {
                                                         for tx in txs {
                                                             let to = tx["to"].as_str().unwrap_or("").to_lowercase();
                                                             let hash = tx["hash"].as_str().unwrap_or("").to_string();
-                                                            // Check if 'to' is one of our addresses
-                                                            // (This requires having the address list updated live)
-                                                            // We'll pass the hash to the callback if matched
-                                                            // For now, let's keep it simple: any transaction hash detected
-                                                            // will be validated by the verifier anyway if we send it.
-                                                            // But we need to know WHICH address it was for.
-                                                            callback(hash, to);
+                                                            // Local filter: only fire callback for monitored addresses
+                                                            if monitored_set.contains(&to) {
+                                                                callback(hash, to);
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
                                         }
                                     }
-                                    // Scenario B: Token Transfer (Log)
-                                    else if let Some(address) = active_subscriptions.get(sub_id) {
-                                        let tx_hash = params["result"]["transactionHash"].as_str().unwrap_or("").to_string();
+                                    // Scenario B: Token Transfer (Global Log — extract recipient from topic[2])
+                                    // Transfer(address indexed from, address indexed to, uint256 value)
+                                    // topic[0] = event signature, topic[1] = from, topic[2] = to
+                                    else if token_sub_id.as_deref() == Some(sub_id) {
+                                        let result = &params["result"];
+                                        let tx_hash = result["transactionHash"].as_str().unwrap_or("").to_string();
+
                                         if !tx_hash.is_empty() {
-                                            info!("🚀 {} WS: Detected token transfer for {} in tx {}", self.chain_name, address, tx_hash);
-                                            callback(tx_hash, address.clone());
+                                            if let Some(topics) = result["topics"].as_array() {
+                                                if topics.len() >= 3 {
+                                                    if let Some(to_topic) = topics[2].as_str() {
+                                                        // topic[2] is 32-byte padded: 0x + 24 zero-chars + 20-byte address
+                                                        // e.g. "0x000000000000000000000000abcdef1234567890abcdef1234567890abcdef12"
+                                                        if to_topic.len() >= 42 {
+                                                            let to_addr = format!("0x{}", &to_topic[26..]).to_lowercase();
+                                                            if monitored_set.contains(&to_addr) {
+                                                                info!(
+                                                                    "🚀 {} WS: Detected token transfer for {} in tx {}",
+                                                                    self.chain_name, to_addr, tx_hash
+                                                                );
+                                                                callback(tx_hash, to_addr);
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }

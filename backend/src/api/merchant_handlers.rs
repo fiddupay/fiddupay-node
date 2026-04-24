@@ -2,7 +2,7 @@
 // Re-exports for merchant-specific request handlers used by merchant_routes.rs
 
 // Auth handlers
-pub use crate::api::merchant_auth_handlers::{debug_auth, login_merchant, register_merchant};
+pub use crate::api::merchant_auth_handlers::{login_merchant, register_merchant};
 
 // Settings handlers
 pub use crate::api::settings_handlers::{

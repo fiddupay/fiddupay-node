@@ -16,6 +16,7 @@ use validator::Validate;
 
 use crate::middleware::validation::{validate_business_email, validate_password_strength};
 use crate::models::merchant::UserRole;
+use crate::utils::sanitizer::mask_email;
 use sqlx::Row;
 
 // ============================================================================
@@ -91,7 +92,7 @@ pub struct MerchantProfile {
     pub has_transaction_pin: bool,
     pub pin_setup_at: Option<String>,
     // Intelligence & Compliance
-    pub nin_bvn_hash: Option<String>,
+    pub has_national_id: bool,
     pub social_handles: serde_json::Value,
     pub kyc_tier: i32,
     pub compliance_status: String,
@@ -173,12 +174,20 @@ pub async fn register_merchant(
             };
 
             let secret = &state.config.jwt_secret;
-            let token = encode(
+            let token = match encode(
                 &Header::default(),
                 &claims,
                 &EncodingKey::from_secret(secret.as_bytes()),
-            )
-            .unwrap_or_default();
+            ) {
+                Ok(t) => t,
+                Err(e) => {
+                    tracing::error!("Failed to encode JWT for new merchant: {:?}", e);
+                    return crate::error::ServiceError::InternalError(
+                        "Registration failed".to_string(),
+                    )
+                    .into_response();
+                }
+            };
 
             let auth_response = AuthResponse {
                 user: MerchantProfile {
@@ -196,7 +205,7 @@ pub async fn register_merchant(
                     settlement_mode: "managed".to_string(),
                     has_transaction_pin: false,
                     pin_setup_at: None,
-                    nin_bvn_hash: None,
+                    has_national_id: false,
                     social_handles: json!({}),
                     kyc_tier: 0,
                     compliance_status: "PENDING".to_string(),
@@ -211,17 +220,17 @@ pub async fn register_merchant(
                     response.merchant_id,
                     "registration",
                     Some("Successfully registered new merchant"),
-                    Some(json!({"email": req.email, "business_name": req.business_name})),
+                    Some(json!({"email": mask_email(&req.email), "business_name": req.business_name})),
                 )
                 .await;
             tracing::info!(
                 "EVENT: registration | Merchant: {} | Email: {}",
                 response.merchant_id,
-                req.email
+                mask_email(&req.email)
             );
 
             let cookie = format!(
-                "dashboard_token={}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400",
+                "dashboard_token={}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400",
                 token
             );
 
@@ -281,7 +290,10 @@ pub async fn login_merchant(
             // 3.1 Check if active
             let is_active: bool = merchant.get("is_active");
             if !is_active {
-                tracing::warn!("Login attempt for deactivated merchant: {}", req.email);
+                tracing::warn!(
+                    "Login attempt for deactivated merchant: {}",
+                    mask_email(&req.email)
+                );
                 return (
                     StatusCode::FORBIDDEN,
                     Json(json!({
@@ -313,19 +325,19 @@ pub async fn login_merchant(
                     } else {
                         tracing::warn!(
                             "Login failed: Password mismatch for merchant {}",
-                            req.email
+                            mask_email(&req.email)
                         );
                     }
                 } else {
                     tracing::error!(
                         "Login failed: Invalid password hash format for merchant {}",
-                        req.email
+                        mask_email(&req.email)
                     );
                 }
             } else {
                 tracing::warn!(
                     "Login failed: No password hash found for merchant account {}",
-                    req.email
+                    mask_email(&req.email)
                 );
             }
 
@@ -340,7 +352,7 @@ pub async fn login_merchant(
                     event_type: "security.account_locked".to_string(),
                     severity: "HIGH".to_string(),
                     source_ip: "dashboard".to_string(),
-                    details: serde_json::json!({ "email": req.email, "reason": "Consecutive failed login attempts" }),
+                    details: serde_json::json!({ "email": mask_email(&req.email), "reason": "Consecutive failed login attempts" }),
                     timestamp: chrono::Utc::now(),
                 }).await;
             }
@@ -375,7 +387,7 @@ pub async fn login_merchant(
                             // 3.1 Check if parent merchant is active
                             let is_active: bool = m_row.get("is_active");
                             if !is_active {
-                                tracing::warn!("Team member login attempt for deactivated merchant: {} (Member: {})", user.merchant_id, req.email);
+                                tracing::warn!("Team member login attempt for deactivated merchant: {} (Member: {})", user.merchant_id, mask_email(&req.email));
                                 return (
                                     StatusCode::FORBIDDEN,
                                     Json(json!({
@@ -406,7 +418,7 @@ pub async fn login_merchant(
                 Err(_) => {
                     tracing::warn!(
                         "Login failed: Merchant account not found or inactive for {}",
-                        req.email
+                        mask_email(&req.email)
                     );
                     if let Ok(true) = state
                         .account_lockout_service
@@ -418,7 +430,7 @@ pub async fn login_merchant(
                             event_type: "security.account_locked_attempt".to_string(),
                             severity: "HIGH".to_string(),
                             source_ip: "dashboard".to_string(),
-                            details: serde_json::json!({ "email": req.email, "reason": "Consecutive failed team member login attempts" }),
+                            details: serde_json::json!({ "email": mask_email(&req.email), "reason": "Consecutive failed team member login attempts" }),
                             timestamp: chrono::Utc::now(),
                         }).await;
                     }
@@ -554,12 +566,18 @@ async fn finalize_login(
         sandbox_mode: m.sandbox_mode,
     };
 
-    let token = encode(
+    let token = match encode(
         &Header::default(),
         &claims,
         &EncodingKey::from_secret(state.config.jwt_secret.as_bytes()),
-    )
-    .unwrap_or_default();
+    ) {
+        Ok(t) => t,
+        Err(e) => {
+            tracing::error!("Failed to encode JWT for merchant {}: {:?}", m.id, e);
+            return crate::error::ServiceError::InternalError("Authentication failed".to_string())
+                .into_response();
+        }
+    };
 
     // Refresh display key logic
     let display_key = if m.sandbox_mode {
@@ -582,7 +600,7 @@ async fn finalize_login(
                 role
             )),
             Some(json!({
-                "email": m.email,
+                "email": mask_email(&m.email),
                 "user_id": user_id,
                 "role": role
             })),
@@ -592,7 +610,7 @@ async fn finalize_login(
     tracing::info!(
         "EVENT: login | Merchant: {} | Email: {} | Role: {:?} | User: {:?}",
         m.id,
-        m.email,
+        mask_email(&m.email),
         role,
         user_id
     );
@@ -619,9 +637,8 @@ async fn finalize_login(
     });
 
     // 6. Build response with HttpOnly cookie (Fortress Layer)
-    // Note: Secure flag removed for dev compatibility. SameSite=Lax for security.
     let cookie = format!(
-        "dashboard_token={}; HttpOnly; SameSite=Lax; Path=/; Max-Age={}",
+        "dashboard_token={}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age={}",
         token,
         if remember_me { 86400 * 30 } else { 86400 }
     );
@@ -651,13 +668,7 @@ async fn finalize_login(
                 settlement_mode: m.settlement_mode,
                 has_transaction_pin: m.transaction_pin_hash.is_some(),
                 pin_setup_at: m.pin_setup_at.map(|d| d.to_rfc3339()),
-                nin_bvn_hash: m.nin_bvn_hash.map(|h| {
-                    if h.len() > 8 {
-                        format!("{}...", &h[..8])
-                    } else {
-                        "****".to_string()
-                    }
-                }),
+                has_national_id: m.nin_bvn_hash.is_some(),
                 social_handles: m.social_handles,
                 kyc_tier: m.kyc_tier,
                 compliance_status: m.compliance_status,

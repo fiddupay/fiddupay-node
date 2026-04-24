@@ -20,6 +20,8 @@ use axum::{
 use serde_json::{json, Value};
 use validator::Validate;
 
+use crate::utils::sanitizer::mask_email;
+
 // Helper removed, now using state.merchant_service.verify_transaction_pin
 
 pub async fn register_customer(
@@ -55,7 +57,7 @@ pub async fn register_customer(
                     Some(&format!("Registered customer {}", customer.external_id)),
                     Some(json!({
                         "external_id": customer.external_id,
-                        "email": customer.email,
+                        "email": customer.email.as_deref().map(mask_email).unwrap_or_else(|| "***".to_string()),
                         "sandbox_mode": context.sandbox_mode
                     })),
                 )

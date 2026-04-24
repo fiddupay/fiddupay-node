@@ -17,7 +17,6 @@ use axum::{
     Router,
 };
 use tower_http::cors::CorsLayer;
-use tower_http::trace::TraceLayer;
 
 pub fn create_router(state: AppState) -> Router {
     // Create rate limiter
@@ -137,6 +136,8 @@ pub fn create_router(state: AppState) -> Router {
                 "../frontend/public/binance-usd-busd-logo.png",
             )),
         )
-        .layer(TraceLayer::new_for_http())
+        .layer(axum_middleware::from_fn(
+            crate::middleware::logging::request_logger,
+        ))
         .with_state(state)
 }
