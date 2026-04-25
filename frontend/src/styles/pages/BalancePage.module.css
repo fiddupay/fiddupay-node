@@ -329,6 +329,10 @@
     color: var(--fiddu-text-primary);
 }
 
+.hidden {
+    display: none;
+}
+
 .assetBadge {
     padding: 4px 10px;
     background: #f1f5f9;

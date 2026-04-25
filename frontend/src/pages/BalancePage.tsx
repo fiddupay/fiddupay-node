@@ -47,6 +47,31 @@ const NETWORK_LABELS: Record<string, { name: string, sandbox: string }> = {
     BTC: { name: 'Bitcoin', sandbox: 'BTC Testnet' },
 };
 
+const CRYPTO_ICONS: Record<string, string> = {
+    SOL: '/solana-sol-logo.png',
+    WSOL: '/solana-sol-logo.png',
+    USDT_SPL: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+    USDT_ETH: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+    USDT_BEP20: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+    USDT_POLYGON: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+    USDT_ARBITRUM: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+    USDT: 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+    BNB: 'https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png',
+    BUSD_BEP20: '/binance-usd-busd-logo.png',
+    ETH: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
+    BTC: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
+    MATIC: 'https://assets.coingecko.com/coins/images/4713/small/polygon.png',
+    ARB: '/arbitrum-arb-logo.png',
+    USDC: 'https://assets.coingecko.com/coins/images/6319/small/usdc.png',
+};
+
+const getCryptoIcon = (cryptoType: string): string | null => {
+    if (CRYPTO_ICONS[cryptoType]) return CRYPTO_ICONS[cryptoType];
+    // Try partial match for compound types like USDT_SPL
+    const base = cryptoType.split('_')[0];
+    return CRYPTO_ICONS[base] || null;
+};
+
 const getNetworkLabel = (cryptoType: string, isSandbox: boolean): string => {
     const entry = NETWORK_LABELS[cryptoType]
     if (entry) return isSandbox ? entry.sandbox : entry.name
@@ -302,17 +327,20 @@ const BalancePage: React.FC = () => {
                                     >
                                         <div className={styles.assetHeader}>
                                             <div className={styles.assetIconWrapper}>
-                                                {(asset.crypto_type.includes('SOL') || asset.crypto_type.includes('BUSD')) ? (
+                                                {getCryptoIcon(asset.crypto_type) ? (
                                                     <img 
-                                                        src={asset.crypto_type.includes('SOL') ? '/solana-sol-logo.png' : '/binance-usd-busd-logo.png'} 
+                                                        src={getCryptoIcon(asset.crypto_type)!} 
                                                         alt={asset.crypto_type}
                                                         className={styles.assetIconImage}
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).style.display = 'none';
+                                                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove(styles.hidden);
+                                                        }}
                                                     />
-                                                ) : (
-                                                    <div className={styles.fallbackIcon}>
-                                                        <i className={getIconForCrypto(asset.crypto_type)}></i>
-                                                    </div>
-                                                )}
+                                                ) : null}
+                                                <div className={`${styles.fallbackIcon} ${getCryptoIcon(asset.crypto_type) ? styles.hidden : ''}`}>
+                                                    <i className={getIconForCrypto(asset.crypto_type)}></i>
+                                                </div>
                                             </div>
                                             <div className={styles.assetBadge}>
                                                 {getNetworkLabel(asset.crypto_type, !!user?.sandbox_mode)}

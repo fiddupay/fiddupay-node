@@ -155,7 +155,7 @@ const ApiSettingsTab: React.FC<ApiSettingsTabProps> = ({
                     </div>
                     <div className={styles.keyInputGroup}>
                         <div className={styles.keyDisplay}>
-                            {showApiKey ? apiKey : '•'.repeat(40)}
+                            {showApiKey ? apiKey : '•'.repeat(20)}
                         </div>
                         <button className={styles.viewBtn} onClick={() => setShowApiKey(!showApiKey)}>
                             {showApiKey ? 'Hide' : 'Show'}
