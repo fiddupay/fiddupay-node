@@ -68,7 +68,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                         )}
                       </div>
                       <div className={styles.assetMetaGroup}>
-                        <span className={styles.assetCode}>{asset.crypto_type}</span>
+                        <span className={styles.assetCode}>{asset.crypto_type.includes('_') ? asset.crypto_type.split('_')[0] : asset.crypto_type}</span>
                         <span className={styles.assetNetworkName}>{asset.network}</span>
                       </div>
                     </div>

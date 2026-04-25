@@ -149,39 +149,39 @@ impl BalanceService {
 
         // 1. Fetch configured crypto types for this merchant first to know what MUST be included
         // We include both active and inactive wallets if include_zero is true for better visibility
-        let configured_types: Vec<String> = if include_zero {
-            sqlx::query_scalar(
-                r#"
-                SELECT DISTINCT crypto_type FROM merchant_wallets 
-                WHERE merchant_id = $1 AND is_active = true 
-                AND (sandbox_mode = $2 OR (crypto_type != 'BTC' AND crypto_type != 'BITCOIN'))
-                "#,
-            )
-            .bind(merchant_id)
-            .bind(sandbox_mode)
-            .fetch_all(&self.db_pool)
-            .await?
-        } else {
-            sqlx::query_scalar(
-                "SELECT DISTINCT crypto_type FROM merchant_wallets WHERE merchant_id = $1 AND sandbox_mode = $2 AND is_active = true"
-            )
-            .bind(merchant_id)
-            .bind(sandbox_mode)
-            .fetch_all(&self.db_pool)
-            .await?
-        };
+        let configured_types: Vec<String> = sqlx::query_scalar(
+            r#"
+            SELECT DISTINCT crypto_type FROM merchant_wallets 
+            WHERE merchant_id = $1 AND sandbox_mode = $2 AND is_active = true
+            UNION
+            SELECT DISTINCT crypto_type FROM merchant_forwarding_wallets 
+            WHERE merchant_id = $1 AND sandbox_mode = $2 AND is_active = true
+            "#,
+        )
+        .bind(merchant_id)
+        .bind(sandbox_mode)
+        .fetch_all(&self.db_pool)
+        .await?;
 
         // 2. Fetch all balance records
         let rows = sqlx::query(
             r#"
             SELECT 
-                crypto_type,
-                total_balance,
-                available_balance,
-                reserved_balance,
-                last_updated
-            FROM merchant_balances 
-            WHERE merchant_id = $1 AND sandbox_mode = $2
+                mb.crypto_type,
+                mb.total_balance,
+                mb.available_balance,
+                mb.reserved_balance,
+                mb.last_updated
+            FROM merchant_balances mb
+            WHERE mb.merchant_id = $1 AND mb.sandbox_mode = $2
+              AND (
+                  EXISTS (SELECT 1 FROM merchant_wallets mw WHERE mw.merchant_id = mb.merchant_id AND mw.crypto_type = mb.crypto_type AND mw.sandbox_mode = mb.sandbox_mode AND mw.is_active = true)
+                  OR EXISTS (SELECT 1 FROM merchant_forwarding_wallets mfw WHERE mfw.merchant_id = mb.merchant_id AND mfw.crypto_type = mb.crypto_type AND mfw.sandbox_mode = mb.sandbox_mode AND mfw.is_active = true)
+                  OR (
+                      NOT EXISTS (SELECT 1 FROM merchant_wallets mw WHERE mw.merchant_id = mb.merchant_id AND mw.sandbox_mode = mb.sandbox_mode)
+                      AND NOT EXISTS (SELECT 1 FROM merchant_forwarding_wallets mfw WHERE mfw.merchant_id = mb.merchant_id AND mfw.sandbox_mode = mb.sandbox_mode)
+                  )
+              )
             "#,
         )
         .bind(merchant_id)
@@ -223,7 +223,9 @@ impl BalanceService {
         let mut crypto_types = Vec::new();
         for ct_str in all_found_types {
             if let Ok(ct) = CryptoType::from_string(&ct_str) {
-                crypto_types.push(ct);
+                if self.config.is_blockchain_enabled(&ct) {
+                    crypto_types.push(ct);
+                }
             }
         }
 

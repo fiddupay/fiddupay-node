@@ -622,9 +622,14 @@ impl MerchantCustomerService {
                       WHERE mw.merchant_id = $1 AND mw.crypto_type = mb.crypto_type 
                       AND mw.sandbox_mode = $3 AND mw.is_active = true
                   )
-                  OR NOT EXISTS (
-                      SELECT 1 FROM merchant_wallets mw 
-                      WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $3
+                  OR EXISTS (
+                      SELECT 1 FROM merchant_forwarding_wallets mfw
+                      WHERE mfw.merchant_id = $1 AND mfw.crypto_type = mb.crypto_type
+                      AND mfw.sandbox_mode = $3 AND mfw.is_active = true
+                  )
+                  OR (
+                      NOT EXISTS (SELECT 1 FROM merchant_wallets mw WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $3)
+                      AND NOT EXISTS (SELECT 1 FROM merchant_forwarding_wallets mfw WHERE mfw.merchant_id = $1 AND mfw.sandbox_mode = $3)
                   )
               )
             "#
@@ -638,7 +643,7 @@ impl MerchantCustomerService {
         let filtered_balances = balances
             .into_iter()
             .filter(|b| {
-                if let Ok(ct) = CryptoType::from_str(&b.crypto_type) {
+                if let Ok(ct) = CryptoType::from_string(&b.crypto_type) {
                     self.config.is_blockchain_enabled(&ct)
                 } else {
                     false
@@ -667,9 +672,14 @@ impl MerchantCustomerService {
                       WHERE mw.merchant_id = $1 AND mw.crypto_type = w.crypto_type 
                       AND mw.sandbox_mode = $3 AND mw.is_active = true
                   )
-                  OR NOT EXISTS (
-                      SELECT 1 FROM merchant_wallets mw 
-                      WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $3
+                  OR EXISTS (
+                      SELECT 1 FROM merchant_forwarding_wallets mfw
+                      WHERE mfw.merchant_id = $1 AND mfw.crypto_type = w.crypto_type
+                      AND mfw.sandbox_mode = $3 AND mfw.is_active = true
+                  )
+                  OR (
+                      NOT EXISTS (SELECT 1 FROM merchant_wallets mw WHERE mw.merchant_id = $1 AND mw.sandbox_mode = $3)
+                      AND NOT EXISTS (SELECT 1 FROM merchant_forwarding_wallets mfw WHERE mfw.merchant_id = $1 AND mfw.sandbox_mode = $3)
                   )
               )
             ORDER BY w.created_at
@@ -684,7 +694,7 @@ impl MerchantCustomerService {
         let filtered_wallets = wallets
             .into_iter()
             .filter(|w| {
-                if let Ok(ct) = CryptoType::from_str(&w.crypto_type) {
+                if let Ok(ct) = CryptoType::from_string(&w.crypto_type) {
                     self.config.is_blockchain_enabled(&ct)
                 } else {
                     false
@@ -716,9 +726,14 @@ impl MerchantCustomerService {
                       WHERE mw.merchant_id = $4 AND mw.crypto_type = w.crypto_type 
                       AND mw.sandbox_mode = $3 AND mw.is_active = true
                   )
-                  OR NOT EXISTS (
-                      SELECT 1 FROM merchant_wallets mw 
-                      WHERE mw.merchant_id = $4 AND mw.sandbox_mode = $3
+                  OR EXISTS (
+                      SELECT 1 FROM merchant_forwarding_wallets mfw
+                      WHERE mfw.merchant_id = $4 AND mfw.crypto_type = w.crypto_type
+                      AND mfw.sandbox_mode = $3 AND mfw.is_active = true
+                  )
+                  OR (
+                      NOT EXISTS (SELECT 1 FROM merchant_wallets mw WHERE mw.merchant_id = $4 AND mw.sandbox_mode = $3)
+                      AND NOT EXISTS (SELECT 1 FROM merchant_forwarding_wallets mfw WHERE mfw.merchant_id = $4 AND mfw.sandbox_mode = $3)
                   )
               )
             "#
@@ -1707,10 +1722,18 @@ impl MerchantCustomerService {
         // Aggregate customer balances
         let balance_rows = sqlx::query(
             r#"
-            SELECT crypto_type, SUM(available_balance + locked_balance) as total_amount
-            FROM merchant_customer_balances
-            WHERE merchant_id = $1 AND sandbox_mode = $2
-            GROUP BY crypto_type
+            SELECT mb.crypto_type, SUM(mb.available_balance + mb.locked_balance) as total_amount
+            FROM merchant_customer_balances mb
+            WHERE mb.merchant_id = $1 AND mb.sandbox_mode = $2
+              AND (
+                  EXISTS (SELECT 1 FROM merchant_wallets mw WHERE mw.merchant_id = mb.merchant_id AND mw.crypto_type = mb.crypto_type AND mw.sandbox_mode = mb.sandbox_mode AND mw.is_active = true)
+                  OR EXISTS (SELECT 1 FROM merchant_forwarding_wallets mfw WHERE mfw.merchant_id = mb.merchant_id AND mfw.crypto_type = mb.crypto_type AND mfw.sandbox_mode = mb.sandbox_mode AND mfw.is_active = true)
+                  OR (
+                      NOT EXISTS (SELECT 1 FROM merchant_wallets mw WHERE mw.merchant_id = mb.merchant_id AND mw.sandbox_mode = mb.sandbox_mode)
+                      AND NOT EXISTS (SELECT 1 FROM merchant_forwarding_wallets mfw WHERE mfw.merchant_id = mb.merchant_id AND mfw.sandbox_mode = mb.sandbox_mode)
+                  )
+              )
+            GROUP BY mb.crypto_type
             "#,
         )
         .bind(merchant_id)
@@ -1724,6 +1747,9 @@ impl MerchantCustomerService {
             let amount: Decimal = row.get("total_amount");
 
             if let Ok(crypto_type) = CryptoType::from_string(&crypto_type_str) {
+                if !self.config.is_blockchain_enabled(&crypto_type) {
+                    continue;
+                }
                 let price = self
                     .price_service
                     .get_price(crypto_type)
