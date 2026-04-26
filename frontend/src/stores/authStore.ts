@@ -140,6 +140,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           set({ token: fallbackToken })
         }
 
+        // If there's no token at all, the user is not logged in — skip the profile call
+        const currentToken = _get().token || fallbackToken
+        if (!currentToken) {
+          set({ loading: false })
+          return
+        }
+
         try {
           if (!silent) set({ loading: true })
           const response = await merchantAPI.getProfile()
