@@ -255,3 +255,57 @@ pub async fn toggle_maintenance_mode(
     }))
     .into_response()
 }
+
+#[derive(Deserialize)]
+pub struct UnblockIpRequest {
+    pub ip: String,
+}
+
+/// Get currently banned IPs (Wall of Shame)
+pub async fn get_banned_ips(
+    State(state): State<AppState>,
+    Extension(context): Extension<AdminContext>,
+) -> impl IntoResponse {
+    if let Err(response) = verify_admin_access(&state, &context).await {
+        return response.into_response();
+    }
+
+    let threat_detector =
+        crate::middleware::advanced_security::ThreatDetector::new(state.redis_client.clone());
+    let banned_ips = threat_detector.get_banned_ips().await;
+
+    Json(json!({
+        "banned_ips": banned_ips,
+        "total": banned_ips.len()
+    }))
+    .into_response()
+}
+
+/// Unblock an IP address
+pub async fn unblock_ip(
+    State(state): State<AppState>,
+    Extension(context): Extension<AdminContext>,
+    Json(payload): Json<UnblockIpRequest>,
+) -> impl IntoResponse {
+    if let Err(response) = verify_admin_access(&state, &context).await {
+        return response.into_response();
+    }
+
+    let threat_detector =
+        crate::middleware::advanced_security::ThreatDetector::new(state.redis_client.clone());
+
+    if threat_detector.unban_ip(&payload.ip).await {
+        Json(json!({
+            "message": format!("IP address {} unblocked successfully", payload.ip)
+        }))
+        .into_response()
+    } else {
+        (
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "error": "IP not found in blacklist or already unblocked"
+            })),
+        )
+            .into_response()
+    }
+}

@@ -16,6 +16,7 @@ use axum::{
     routing::{get, get_service, post},
     Router,
 };
+use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
 pub fn create_router(state: AppState) -> Router {
@@ -136,6 +137,14 @@ pub fn create_router(state: AppState) -> Router {
                 "../frontend/public/binance-usd-busd-logo.png",
             )),
         )
+        .layer(axum_middleware::from_fn_with_state(
+            Arc::new(
+                crate::middleware::advanced_security::AdvancedSecurityMiddleware::new(
+                    state.redis_client.clone(),
+                ),
+            ),
+            crate::middleware::advanced_security::advanced_security_middleware,
+        ))
         .layer(axum_middleware::from_fn(
             crate::middleware::logging::request_logger,
         ))

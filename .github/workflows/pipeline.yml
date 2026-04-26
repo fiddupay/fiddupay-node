@@ -196,5 +196,5 @@ jobs:
 
             # Cleanup
             cd $BASE_DIR/deployments
-            ls -1tr | grep "build_" | head -n -2 | xargs -r rm -rf
+            ls -1tr | grep "build_" | head -n -3 | xargs -r rm -rf
             echo "🚀 DEPLOYMENT SUCCESSFUL"

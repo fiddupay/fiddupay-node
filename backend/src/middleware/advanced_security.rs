@@ -38,9 +38,13 @@ pub struct ApiKeyValidator;
 
 impl ApiKeyValidator {
     pub fn validate_format(&self, api_key: &str) -> Result<ApiKeyType, SecurityError> {
-        if api_key.starts_with("pk_live_") && api_key.len() >= 40 {
+        if (api_key.starts_with("pk_live_") || api_key.starts_with("sk_live_"))
+            && api_key.len() >= 32
+        {
             Ok(ApiKeyType::Live)
-        } else if api_key.starts_with("pk_test_") && api_key.len() >= 40 {
+        } else if (api_key.starts_with("pk_test_") || api_key.starts_with("sk_test_"))
+            && api_key.len() >= 32
+        {
             Ok(ApiKeyType::Test)
         } else {
             Err(SecurityError::InvalidApiKeyFormat)
@@ -126,9 +130,26 @@ impl ThreatDetector {
         // Critical Threats (Immediate block candidates)
         patterns.insert("/etc/passwd".to_string(), ThreatLevel::Critical);
         patterns.insert("/.env".to_string(), ThreatLevel::Critical);
+        patterns.insert(".env.production".to_string(), ThreatLevel::Critical);
+        patterns.insert(".env.example".to_string(), ThreatLevel::Critical);
         patterns.insert("/.git".to_string(), ThreatLevel::Critical);
         patterns.insert("/wp-admin".to_string(), ThreatLevel::Critical);
         patterns.insert("phpinfo".to_string(), ThreatLevel::Critical);
+        patterns.insert(".sql".to_string(), ThreatLevel::Critical);
+        patterns.insert(".sqlite".to_string(), ThreatLevel::Critical);
+        patterns.insert("config.php".to_string(), ThreatLevel::Critical);
+        patterns.insert("/boaform".to_string(), ThreatLevel::Critical);
+        patterns.insert("/admin/formLogin".to_string(), ThreatLevel::Critical);
+        patterns.insert(".log".to_string(), ThreatLevel::Critical);
+        patterns.insert("error_log".to_string(), ThreatLevel::Critical);
+        patterns.insert("access_log".to_string(), ThreatLevel::Critical);
+        patterns.insert("/logs/".to_string(), ThreatLevel::Critical);
+        patterns.insert("Caddyfile".to_string(), ThreatLevel::Critical);
+        patterns.insert(".service".to_string(), ThreatLevel::Critical);
+        patterns.insert("ecosystem.config.js".to_string(), ThreatLevel::Critical);
+        patterns.insert("fiddupay.api.log".to_string(), ThreatLevel::Critical);
+        patterns.insert("fiddupay.pay.log".to_string(), ThreatLevel::Critical);
+        patterns.insert("fiddupay.frontend.log".to_string(), ThreatLevel::Critical);
 
         // High Threats (Deep inspection required)
         patterns.insert("debug".to_string(), ThreatLevel::High);
@@ -220,6 +241,69 @@ impl ThreatDetector {
 
         count
     }
+
+    /// Check if an IP is currently banned
+    pub async fn is_ip_banned(&self, ip: &str) -> bool {
+        let mut conn = match self.redis_client.get_multiplexed_async_connection().await {
+            Ok(c) => c,
+            Err(_) => return false,
+        };
+
+        let key = format!("banned:ip:{}", ip);
+        let exists: bool = conn.exists(key).await.unwrap_or(false);
+        exists
+    }
+
+    /// Ban an IP for a specified duration (default 24 hours)
+    pub async fn ban_ip(&self, ip: &str, reason: &str) {
+        let mut conn = match self.redis_client.get_multiplexed_async_connection().await {
+            Ok(c) => c,
+            Err(_) => return,
+        };
+
+        let key = format!("banned:ip:{}", ip);
+        let _: () = conn.set_ex(&key, reason, 86400).await.unwrap_or(()); // 24 hours
+        tracing::warn!(
+            "IP BLACKLISTED (Wall of Shame): {} - Reason: {}",
+            ip,
+            reason
+        );
+    }
+
+    /// Unban an IP address
+    pub async fn unban_ip(&self, ip: &str) -> bool {
+        let mut conn = match self.redis_client.get_multiplexed_async_connection().await {
+            Ok(c) => c,
+            Err(_) => return false,
+        };
+
+        let key = format!("banned:ip:{}", ip);
+        let deleted_count: i32 = conn.del(key).await.unwrap_or(0);
+        deleted_count > 0
+    }
+
+    /// List all currently banned IPs
+    pub async fn get_banned_ips(&self) -> Vec<String> {
+        let mut conn = match self.redis_client.get_multiplexed_async_connection().await {
+            Ok(c) => c,
+            Err(_) => return Vec::new(),
+        };
+
+        // Scan for keys with the banned prefix
+        let keys: Vec<String> = match redis::cmd("KEYS")
+            .arg("banned:ip:*")
+            .query_async(&mut conn)
+            .await
+        {
+            Ok(k) => k,
+            Err(_) => return Vec::new(),
+        };
+
+        // Strip the prefix to get just the IPs
+        keys.into_iter()
+            .map(|k| k.replace("banned:ip:", ""))
+            .collect()
+    }
 }
 
 /// Advanced Rate Limiter with Burst Protection
@@ -292,23 +376,62 @@ pub async fn advanced_security_middleware(
     next: Next,
 ) -> Result<Response, impl IntoResponse> {
     // Extract request info
-    let api_key = extract_api_key(&headers)?;
     let ip_address = extract_ip_address(&headers);
     let endpoint = request.uri().path().to_string();
 
-    // 1. Validate API key format
-    security
-        .api_validator
-        .validate_format(&api_key)
-        .map_err(|_| {
-            (
-                StatusCode::UNAUTHORIZED,
+    // 0. Check for existing ban (Wall of Shame)
+    if security.threat_detector.is_ip_banned(&ip_address).await {
+        tracing::debug!("Rejected request from banned IP: {}", ip_address);
+        return Err((
+            StatusCode::FORBIDDEN,
+            Json(json!({
+                "error": "Access denied",
+                "message": "Your IP has been blacklisted due to suspicious activity."
+            })),
+        ));
+    }
+
+    // 1. Check for immediate critical threats (No API key required for this check)
+    // This allows us to catch bots scanning for /.env even if they don't have a key.
+    let patterns = security.threat_detector.suspicious_patterns.read().await;
+    let endpoint_lower = endpoint.to_lowercase();
+    for (pattern, level) in patterns.iter() {
+        if matches!(level, ThreatLevel::Critical)
+            && endpoint_lower.contains(&pattern.to_lowercase())
+        {
+            security
+                .threat_detector
+                .ban_ip(
+                    &ip_address,
+                    &format!("Attempted to access forbidden path: {}", endpoint),
+                )
+                .await;
+            return Err((
+                StatusCode::FORBIDDEN,
                 Json(json!({
-                    "error": "Invalid API key format",
-                    "message": "API key must be in format: pk_live_xxx or pk_test_xxx"
+                    "error": "Security threat detected",
+                    "message": "Your IP has been blacklisted."
                 })),
-            )
-        })?;
+            ));
+        }
+    }
+
+    // 2. Validate API key format (For legitimate API requests)
+    let api_key = match extract_api_key(&headers) {
+        Ok(key) => {
+            security.api_validator.validate_format(&key).map_err(|_| {
+                (
+                    StatusCode::UNAUTHORIZED,
+                    Json(json!({
+                        "error": "Invalid API key format",
+                        "message": "API key must be in format: sk_live_xxx or sk_test_xxx"
+                    })),
+                )
+            })?;
+            key
+        }
+        Err(_) => "anonymous".to_string(), // Allow anonymous requests for threat detection/public routes
+    };
 
     // 2. Start request tracking
     let request_id = security

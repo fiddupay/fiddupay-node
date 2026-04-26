@@ -56,6 +56,11 @@ pub fn create_admin_router(state: AppState) -> Router<AppState> {
             "/api/v1/admin/security/settings",
             get(admin::get_security_settings),
         )
+        .route(
+            "/api/v1/admin/security/banned-ips",
+            get(admin::get_banned_ips),
+        )
+        .route("/api/v1/admin/security/unblock-ip", post(admin::unblock_ip))
         // Unified Admin Configuration (single PATCH for all config updates)
         .route(
             "/api/v1/admin/config",
