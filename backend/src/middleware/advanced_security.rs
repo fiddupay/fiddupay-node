@@ -417,17 +417,23 @@ pub async fn advanced_security_middleware(
     }
 
     // 2. Validate API key format (For legitimate API requests)
+    // JWT dashboard tokens are NOT API keys — they should pass through to the auth middleware.
     let api_key = match extract_api_key(&headers) {
         Ok(key) => {
-            security.api_validator.validate_format(&key).map_err(|_| {
-                (
-                    StatusCode::UNAUTHORIZED,
-                    Json(json!({
-                        "error": "Invalid API key format",
-                        "message": "API key must be in format: sk_live_xxx or sk_test_xxx"
-                    })),
-                )
-            })?;
+            // Only validate format for actual API keys (sk_/pk_ prefix).
+            // JWT tokens from the dashboard don't match this format and should
+            // be handled by the downstream auth middleware, not rejected here.
+            if key.starts_with("sk_") || key.starts_with("pk_") {
+                security.api_validator.validate_format(&key).map_err(|_| {
+                    (
+                        StatusCode::UNAUTHORIZED,
+                        Json(json!({
+                            "error": "Invalid API key format",
+                            "message": "API key must be in format: sk_live_xxx or sk_test_xxx"
+                        })),
+                    )
+                })?;
+            }
             key
         }
         Err(_) => "anonymous".to_string(), // Allow anonymous requests for threat detection/public routes

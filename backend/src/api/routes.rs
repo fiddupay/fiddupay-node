@@ -124,7 +124,6 @@ pub fn create_router(state: AppState) -> Router {
             rate_limiter,
             rate_limit_middleware,
         ))
-        .layer(cors)
         .route(
             "/solana-sol-logo.png",
             get_service(tower_http::services::ServeFile::new(
@@ -148,5 +147,9 @@ pub fn create_router(state: AppState) -> Router {
         .layer(axum_middleware::from_fn(
             crate::middleware::logging::request_logger,
         ))
+        // CORS must be the outermost layer so ALL responses (including 401/403 from
+        // security middleware) include Access-Control-Allow-Origin headers.
+        // In axum, the last .layer() call executes first (outermost).
+        .layer(cors)
         .with_state(state)
 }
