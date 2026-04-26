@@ -249,23 +249,53 @@ impl MonitoringService {
             .unwrap();
 
         let start = std::time::Instant::now();
-        let result = client.get(url).send().await;
+
+        // For EVM-based nodes, send a proper JSON-RPC POST request instead of a bare GET.
+        // A bare GET to many RPC providers returns non-standard errors (403, connection reset)
+        // that make the node appear down when it's actually healthy.
+        let is_evm_node = matches!(
+            name,
+            "Ethereum Node" | "BNB Node" | "Polygon Node" | "Arbitrum Node"
+        );
+
+        let result = if is_evm_node {
+            client
+                .post(url)
+                .header("Content-Type", "application/json")
+                .body(r#"{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}"#)
+                .send()
+                .await
+        } else {
+            client.get(url).send().await
+        };
+
         let latency = start.elapsed().as_millis() as u32;
 
         let status = match result {
-            Ok(resp)
-                if resp.status().is_success()
-                    || resp.status().as_u16() == 405
-                    || resp.status().as_u16() == 401 =>
-            {
-                // Many RPCs return 405 Method Not Allowed on a naked GET, but they are UP
-                if latency > 1000 {
-                    "degraded".to_string()
+            Ok(resp) => {
+                let code = resp.status().as_u16();
+                // Consider the node alive if we got ANY valid HTTP response from it.
+                // 200 = success, 405 = wrong method but reachable, 401/403 = auth issue but reachable,
+                // 400 = bad request but reachable. Only true network failures = outage.
+                if code == 200 || code == 405 || code == 401 || code == 403 || code == 400 {
+                    if latency > 1000 {
+                        "degraded".to_string()
+                    } else {
+                        "operational".to_string()
+                    }
+                } else if resp.status().is_success() || resp.status().is_client_error() {
+                    // Any 2xx or 4xx means the server is alive
+                    if latency > 1000 {
+                        "degraded".to_string()
+                    } else {
+                        "operational".to_string()
+                    }
                 } else {
-                    "operational".to_string()
+                    // 5xx errors indicate actual server problems
+                    "outage".to_string()
                 }
             }
-            _ => "outage".to_string(),
+            Err(_) => "outage".to_string(),
         };
 
         ServiceHealth {
