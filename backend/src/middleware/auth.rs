@@ -121,12 +121,16 @@ pub async fn auth_middleware(
                 Ok(next.run(request).await)
             }
             Err(e) => {
-                let prefix = if api_key.len() > 10 {
-                    &api_key[..10]
+                let prefix = if api_key.len() > 7 {
+                    &api_key[..7]
                 } else {
                     &api_key
                 };
-                tracing::warn!("API Key authentication failed: {} - {:?}", prefix, e);
+                tracing::warn!(
+                    "API Key authentication failed for key starting with: {} - Error: {:?}",
+                    prefix,
+                    e
+                );
                 Err((
                     StatusCode::UNAUTHORIZED,
                     axum::Json(json!({
