@@ -31,7 +31,7 @@ const formatDate = (dateString: string) => {
     }
 }
 
-type TabType = 'alerts' | 'events' | 'config'
+type TabType = 'alerts' | 'events' | 'overview'
 
 const SecurityPage: React.FC = () => {
     const { showToast } = useToast()
@@ -125,8 +125,8 @@ const SecurityPage: React.FC = () => {
                     <MdHistory /> Security Events
                 </button>
                 <button 
-                    className={`${styles.tabBtn} ${activeTab === 'config' ? styles.activeTab : ''}`}
-                    onClick={() => setActiveTab('config')}
+                    className={`${styles.tabBtn} ${activeTab === 'overview' ? styles.activeTab : ''}`}
+                    onClick={() => setActiveTab('overview')}
                 >
                     <MdSettings /> Security Overview
                 </button>
@@ -211,76 +211,124 @@ const SecurityPage: React.FC = () => {
                     </div>
                 )}
 
-                {activeTab === 'config' && (
-                    <div className={styles.settingsSection}>
-                        <div className="p-8 bg-gradient-to-br from-[#0f172a] to-[#1e293b] border border-slate-700/50 rounded-2xl shadow-xl">
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
-                                    <MdSecurity className="text-blue-400 text-2xl" />
+                {activeTab === 'overview' && (
+                    <div className={styles.settingsSection} style={{ maxWidth: '100%', padding: '2rem' }}>
+                        <div style={{
+                            padding: '2rem',
+                            background: 'linear-gradient(to bottom right, rgba(15, 23, 42, 1), rgba(30, 41, 59, 1))',
+                            border: '1px solid rgba(51, 65, 85, 0.5)',
+                            borderRadius: '1rem',
+                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                                <div style={{
+                                    width: '3rem', height: '3rem', borderRadius: '0.75rem',
+                                    background: 'rgba(59, 130, 246, 0.2)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    border: '1px solid rgba(59, 130, 246, 0.3)'
+                                }}>
+                                    <MdSecurity style={{ color: '#60a5fa', fontSize: '1.5rem' }} />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-slate-100 m-0">Proactive System Security</h3>
-                                    <p className="text-slate-400 text-sm mt-1 mb-0">
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f1f5f9', margin: 0 }}>Proactive System Security</h3>
+                                    <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginTop: '0.25rem', marginBottom: 0 }}>
                                         FidduPay employs automated risk mitigation protocols to protect your institutional account.
                                     </p>
                                 </div>
                             </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                                gap: '1.5rem'
+                            }}>
                                 {/* Brute-Force Card */}
-                                <div className="group relative overflow-hidden bg-slate-900/50 rounded-xl border border-slate-700 hover:border-blue-500/50 transition-all duration-300">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                    <div className="p-6 relative z-10">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-emerald-400 ring-1 ring-emerald-400/20 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
-                                                <MdCheckCircle size={20} />
-                                            </div>
-                                            <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">Active</span>
+                                <div style={{
+                                    position: 'relative', overflow: 'hidden', background: 'rgba(15, 23, 42, 0.5)',
+                                    borderRadius: '0.75rem', border: '1px solid #334155', padding: '1.5rem',
+                                    transition: 'all 0.3s'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                        <div style={{
+                                            width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#1e293b',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#34d399',
+                                            boxShadow: '0 0 15px rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)'
+                                        }}>
+                                            <MdCheckCircle size={20} />
                                         </div>
-                                        <h4 className="text-base font-bold text-slate-200 m-0 mb-2">Brute-Force Shield</h4>
-                                        <p className="text-sm text-slate-400 m-0">Automatic IP blacklisting after 5 failed login attempts within 10 minutes.</p>
+                                        <span style={{
+                                            fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700,
+                                            color: '#34d399', background: 'rgba(52, 211, 153, 0.1)', padding: '0.25rem 0.5rem', borderRadius: '0.375rem'
+                                        }}>Active</span>
                                     </div>
+                                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#e2e8f0', margin: '0 0 0.5rem 0' }}>Brute-Force Shield</h4>
+                                    <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: 0 }}>Automatic IP blacklisting after 5 failed login attempts within 10 minutes.</p>
                                 </div>
 
                                 {/* Session Integrity Card */}
-                                <div className="group relative overflow-hidden bg-slate-900/50 rounded-xl border border-slate-700 hover:border-purple-500/50 transition-all duration-300">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                    <div className="p-6 relative z-10">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-emerald-400 ring-1 ring-emerald-400/20 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
-                                                <MdCheckCircle size={20} />
-                                            </div>
-                                            <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">Active</span>
+                                <div style={{
+                                    position: 'relative', overflow: 'hidden', background: 'rgba(15, 23, 42, 0.5)',
+                                    borderRadius: '0.75rem', border: '1px solid #334155', padding: '1.5rem',
+                                    transition: 'all 0.3s'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                        <div style={{
+                                            width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#1e293b',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#34d399',
+                                            boxShadow: '0 0 15px rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)'
+                                        }}>
+                                            <MdCheckCircle size={20} />
                                         </div>
-                                        <h4 className="text-base font-bold text-slate-200 m-0 mb-2">Session Integrity</h4>
-                                        <p className="text-sm text-slate-400 m-0">Immediate revocation of all active sessions when API keys or passwords are rotated.</p>
+                                        <span style={{
+                                            fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700,
+                                            color: '#34d399', background: 'rgba(52, 211, 153, 0.1)', padding: '0.25rem 0.5rem', borderRadius: '0.375rem'
+                                        }}>Active</span>
                                     </div>
+                                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#e2e8f0', margin: '0 0 0.5rem 0' }}>Session Integrity</h4>
+                                    <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: 0 }}>Immediate revocation of all active sessions when API keys or passwords are rotated.</p>
                                 </div>
 
                                 {/* Webhook Verification Card */}
-                                <div className="group relative overflow-hidden bg-slate-900/50 rounded-xl border border-slate-700 hover:border-cyan-500/50 transition-all duration-300">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                    <div className="p-6 relative z-10">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-emerald-400 ring-1 ring-emerald-400/20 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
-                                                <MdCheckCircle size={20} />
-                                            </div>
-                                            <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">Active</span>
+                                <div style={{
+                                    position: 'relative', overflow: 'hidden', background: 'rgba(15, 23, 42, 0.5)',
+                                    borderRadius: '0.75rem', border: '1px solid #334155', padding: '1.5rem',
+                                    transition: 'all 0.3s'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                        <div style={{
+                                            width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#1e293b',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#34d399',
+                                            boxShadow: '0 0 15px rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.2)'
+                                        }}>
+                                            <MdCheckCircle size={20} />
                                         </div>
-                                        <h4 className="text-base font-bold text-slate-200 m-0 mb-2">Payload Verification</h4>
-                                        <p className="text-sm text-slate-400 m-0">Strict HMAC-SHA256 signature validation required for all inbound webhook signals.</p>
+                                        <span style={{
+                                            fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700,
+                                            color: '#34d399', background: 'rgba(52, 211, 153, 0.1)', padding: '0.25rem 0.5rem', borderRadius: '0.375rem'
+                                        }}>Active</span>
                                     </div>
+                                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#e2e8f0', margin: '0 0 0.5rem 0' }}>Payload Verification</h4>
+                                    <p style={{ fontSize: '0.875rem', color: '#94a3b8', margin: 0 }}>Strict HMAC-SHA256 signature validation required for all inbound webhook signals.</p>
                                 </div>
                             </div>
 
-                            <div className="mt-8 flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700 rounded-xl">
-                                <div className="flex items-center gap-3 text-sm text-slate-300">
-                                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400">
+                            <div style={{
+                                marginTop: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                padding: '1rem', background: 'rgba(30, 41, 59, 0.5)', border: '1px solid #334155', borderRadius: '0.75rem', flexWrap: 'wrap', gap: '1rem'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#cbd5e1' }}>
+                                    <div style={{
+                                        width: '2rem', height: '2rem', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa'
+                                    }}>
                                         <MdInfo size={16} />
                                     </div>
                                     <span>To configure threshold alerts or update security credentials, visit your Account Settings.</span>
                                 </div>
-                                <a href="/app/settings?tab=security" className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_20px_rgba(37,99,235,0.5)]">
+                                <a href="/app/settings?tab=security" style={{
+                                    padding: '0.5rem 1rem', background: '#2563eb', color: 'white', fontSize: '0.875rem', fontWeight: 700,
+                                    borderRadius: '0.5rem', textDecoration: 'none', boxShadow: '0 0 15px rgba(37, 99, 235, 0.3)', transition: 'all 0.3s'
+                                }}>
                                     Go to Settings
                                 </a>
                             </div>

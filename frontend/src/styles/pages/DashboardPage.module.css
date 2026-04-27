@@ -55,8 +55,25 @@
   letter-spacing: 0.08em;
 }
 
+.dateInputContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.dateInputContainer i {
+  position: absolute;
+  left: 12px;
+  color: var(--primary);
+  pointer-events: none;
+  font-size: 0.85rem;
+  z-index: 1;
+}
+
 .dateInput input {
-  padding: 10px 14px;
+  width: 100%;
+  padding: 10px 14px 10px 34px;
   border: 1px solid var(--border);
   border-radius: 12px;
   font-size: 13px;

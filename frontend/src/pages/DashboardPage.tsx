@@ -229,19 +229,25 @@ const DashboardPage: React.FC = () => {
         <div className={styles.filters}>
           <div className={styles.dateInput}>
             <label>From</label>
-            <input
-              type="date"
-              value={dateRange.from_date}
-              onChange={(e) => setDateRange(prev => ({ ...prev, from_date: e.target.value }))}
-            />
+            <div className={styles.dateInputContainer}>
+              <i className="fas fa-calendar-alt"></i>
+              <input
+                type="date"
+                value={dateRange.from_date}
+                onChange={(e) => setDateRange(prev => ({ ...prev, from_date: e.target.value }))}
+              />
+            </div>
           </div>
           <div className={styles.dateInput}>
             <label>To</label>
-            <input
-              type="date"
-              value={dateRange.to_date}
-              onChange={(e) => setDateRange(prev => ({ ...prev, to_date: e.target.value }))}
-            />
+            <div className={styles.dateInputContainer}>
+              <i className="fas fa-calendar-alt"></i>
+              <input
+                type="date"
+                value={dateRange.to_date}
+                onChange={(e) => setDateRange(prev => ({ ...prev, to_date: e.target.value }))}
+              />
+            </div>
           </div>
           <button className={styles.refreshBtn} onClick={loadDashboardData} disabled={loading} title="Refresh Dashboard">
             <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>

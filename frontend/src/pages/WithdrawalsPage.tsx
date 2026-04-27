@@ -567,12 +567,12 @@ const WithdrawalsPage: React.FC = () => {
                                     fontSize: '0.9rem',
                                     fontFamily: 'monospace',
                                     fontWeight: 500,
-                                    color: '#374151'
+                                    color: 'var(--text-main)'
                                 }}>{destinationAddress}</span>
                             </div>
 
-                            <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '0.5rem' }}>
+                            <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
                                     Merchant Transaction PIN
                                 </label>
                                 <input
@@ -581,15 +581,17 @@ const WithdrawalsPage: React.FC = () => {
                                     value={transactionPin}
                                     onChange={e => setTransactionPin(e.target.value.replace(/\D/g, ''))}
                                     placeholder="Merchant Transaction PIN"
+                                    className={styles.pinInput}
                                     style={{
                                         width: '100%',
                                         padding: '0.75rem',
                                         borderRadius: '0.5rem',
-                                        border: '1px solid #d1d5db',
+                                        border: '1px solid var(--border)',
                                         textAlign: 'center',
                                         fontSize: '1.25rem',
-                                        letterSpacing: '0.5rem',
-                                        fontWeight: 700
+                                        fontWeight: 700,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                        color: 'var(--text-main)'
                                     }}
                                 />
                             </div>

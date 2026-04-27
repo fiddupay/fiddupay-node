@@ -253,7 +253,7 @@
 
 .historyItemHeader strong {
     font-size: 0.95rem;
-    color: #1f2937;
+    color: var(--text-main);
 }
 
 .historyDate {
@@ -271,11 +271,11 @@
     display: flex;
     justify-content: space-between;
     padding: 0.2rem 0;
-    color: #6b7280;
+    color: var(--text-muted);
 }
 
 .historyDetailRow strong {
-    color: #1f2937;
+    color: var(--text-main);
 }
 
 .addressFull {
@@ -283,7 +283,7 @@
     font-family: monospace;
     font-size: 0.85rem;
     line-height: 1.4;
-    color: #4b5563;
+    color: var(--text-muted);
 }
 
 .copyableText {
@@ -305,7 +305,7 @@
 .iconBtn {
     background: transparent;
     border: none;
-    color: #6b7280;
+    color: var(--text-muted);
     cursor: pointer;
     padding: 0.15rem;
     font-size: 0.9rem;
@@ -532,14 +532,14 @@
 .modalHeader h2 {
     font-size: 1.15rem;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--text-main);
     margin: 0;
 }
 
 .closeButton {
     background: none;
     border: none;
-    color: #9ca3af;
+    color: var(--text-muted);
     font-size: 1.1rem;
     cursor: pointer;
     padding: 0.25rem;
@@ -559,12 +559,12 @@
     align-items: center;
     padding: 0.5rem 0;
     font-size: 0.9rem;
-    color: #6b7280;
-    border-bottom: 1px solid #f9fafb;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
 }
 
 .confirmRow strong {
-    color: #1f2937;
+    color: var(--text-main);
 }
 
 .confirmRow:last-child {
@@ -573,15 +573,15 @@
 
 .confirmWarning {
     margin: 0 1.5rem 1rem;
-    background: #fef2f2;
-    border: 1px solid #fee2e2;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
     border-radius: 0.5rem;
     padding: 0.75rem 1rem;
     display: flex;
     gap: 0.75rem;
     align-items: flex-start;
     font-size: 0.8rem;
-    color: #991b1b;
+    color: #fca5a5;
 }
 
 .confirmWarning i {
@@ -600,9 +600,9 @@
 .cancelBtn {
     flex: 1;
     padding: 0.75rem;
-    background: white;
-    border: 1px solid #d1d5db;
-    color: #374151;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--text-main);
     border-radius: 0.5rem;
     font-weight: 600;
     cursor: pointer;
@@ -610,7 +610,7 @@
 }
 
 .cancelBtn:hover {
-    background: #f9fafb;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .confirmBtn {
@@ -632,4 +632,14 @@
 .confirmBtn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.pinInput {
+    letter-spacing: 0.5rem;
+}
+
+.pinInput::placeholder {
+    letter-spacing: normal;
+    font-size: 0.95rem;
+    font-weight: 500;
 }
