@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { 
     MdNotificationsActive, 
     MdHistory, 
@@ -34,7 +35,14 @@ type TabType = 'alerts' | 'events' | 'config'
 
 const SecurityPage: React.FC = () => {
     const { showToast } = useToast()
-    const [activeTab, setActiveTab] = useState<TabType>('alerts')
+    const [searchParams, setSearchParams] = useSearchParams()
+    
+    // Sync active tab with URL search parameter
+    const activeTab = (searchParams.get('tab') as TabType) || 'alerts'
+    const setActiveTab = (tab: TabType) => {
+        setSearchParams({ tab })
+    }
+
     const [loading, setLoading] = useState(false)
     const [alerts, setAlerts] = useState<SecurityAlert[]>([])
     const [events, setEvents] = useState<SecurityEvent[]>([])
@@ -205,50 +213,76 @@ const SecurityPage: React.FC = () => {
 
                 {activeTab === 'config' && (
                     <div className={styles.settingsSection}>
-                        <div className="p-6 bg-slate-900/50 border border-slate-800 rounded-xl">
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                <MdSecurity className="text-blue-400" /> Proactive System Security
-                            </h3>
-                            <p className="text-slate-400 text-sm mb-6">
-                                FidduPay employs automated risk mitigation protocols to protect your institutional account.
-                            </p>
+                        <div className="p-8 bg-gradient-to-br from-[#0f172a] to-[#1e293b] border border-slate-700/50 rounded-2xl shadow-xl">
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                                    <MdSecurity className="text-blue-400 text-2xl" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-100 m-0">Proactive System Security</h3>
+                                    <p className="text-slate-400 text-sm mt-1 mb-0">
+                                        FidduPay employs automated risk mitigation protocols to protect your institutional account.
+                                    </p>
+                                </div>
+                            </div>
                             
-                            <div className="space-y-4">
-                                <div className="flex items-start gap-4 p-4 bg-slate-800/30 rounded-lg border border-slate-800">
-                                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
-                                        <MdCheckCircle size={18} />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold m-0">Brute-Force Protection</h4>
-                                        <p className="text-xs text-slate-500 m-0 mt-1">Automatic IP blacklisting after 5 failed login attempts within 10 minutes.</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-start gap-4 p-4 bg-slate-800/30 rounded-lg border border-slate-800">
-                                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
-                                        <MdCheckCircle size={18} />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold m-0">Session Integrity</h4>
-                                        <p className="text-xs text-slate-500 m-0 mt-1">Immediate revocation of all active sessions when API keys are rotated.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {/* Brute-Force Card */}
+                                <div className="group relative overflow-hidden bg-slate-900/50 rounded-xl border border-slate-700 hover:border-blue-500/50 transition-all duration-300">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <div className="p-6 relative z-10">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-emerald-400 ring-1 ring-emerald-400/20 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
+                                                <MdCheckCircle size={20} />
+                                            </div>
+                                            <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">Active</span>
+                                        </div>
+                                        <h4 className="text-base font-bold text-slate-200 m-0 mb-2">Brute-Force Shield</h4>
+                                        <p className="text-sm text-slate-400 m-0">Automatic IP blacklisting after 5 failed login attempts within 10 minutes.</p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-start gap-4 p-4 bg-slate-800/30 rounded-lg border border-slate-800">
-                                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
-                                        <MdCheckCircle size={18} />
+                                {/* Session Integrity Card */}
+                                <div className="group relative overflow-hidden bg-slate-900/50 rounded-xl border border-slate-700 hover:border-purple-500/50 transition-all duration-300">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <div className="p-6 relative z-10">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-emerald-400 ring-1 ring-emerald-400/20 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
+                                                <MdCheckCircle size={20} />
+                                            </div>
+                                            <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">Active</span>
+                                        </div>
+                                        <h4 className="text-base font-bold text-slate-200 m-0 mb-2">Session Integrity</h4>
+                                        <p className="text-sm text-slate-400 m-0">Immediate revocation of all active sessions when API keys or passwords are rotated.</p>
                                     </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold m-0">Webhook Verification</h4>
-                                        <p className="text-xs text-slate-500 m-0 mt-1">Strict HMAC-SHA256 signature validation required for all inbound signals.</p>
+                                </div>
+
+                                {/* Webhook Verification Card */}
+                                <div className="group relative overflow-hidden bg-slate-900/50 rounded-xl border border-slate-700 hover:border-cyan-500/50 transition-all duration-300">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <div className="p-6 relative z-10">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-emerald-400 ring-1 ring-emerald-400/20 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
+                                                <MdCheckCircle size={20} />
+                                            </div>
+                                            <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">Active</span>
+                                        </div>
+                                        <h4 className="text-base font-bold text-slate-200 m-0 mb-2">Payload Verification</h4>
+                                        <p className="text-sm text-slate-400 m-0">Strict HMAC-SHA256 signature validation required for all inbound webhook signals.</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="mt-8 p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                                <p className="text-xs text-blue-400 m-0 flex items-center gap-2">
-                                    <MdInfo size={16} /> To configure threshold alerts or update security credentials, please visit the <strong>Account Settings</strong>.
-                                </p>
+                            <div className="mt-8 flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700 rounded-xl">
+                                <div className="flex items-center gap-3 text-sm text-slate-300">
+                                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                        <MdInfo size={16} />
+                                    </div>
+                                    <span>To configure threshold alerts or update security credentials, visit your Account Settings.</span>
+                                </div>
+                                <a href="/app/settings?tab=security" className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_20px_rgba(37,99,235,0.5)]">
+                                    Go to Settings
+                                </a>
                             </div>
                         </div>
                     </div>

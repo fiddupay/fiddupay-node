@@ -146,12 +146,10 @@ const DashboardPage: React.FC = () => {
   const [dailyVolumeUsed, setDailyVolumeUsed] = useState(0)
   const [dateRange, setDateRange] = useState(() => {
     const now = new Date();
-    const dayOfWeek = now.getDay(); // 0 (Sun) to 6 (Sat)
-    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust to Monday
-    const monday = new Date(now.setDate(diff));
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     return {
-      from_date: monday.toISOString().split('T')[0],
+      from_date: firstDayOfMonth.toISOString().split('T')[0],
       to_date: new Date().toISOString().split('T')[0]
     };
   })

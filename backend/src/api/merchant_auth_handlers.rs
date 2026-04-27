@@ -96,6 +96,7 @@ pub struct MerchantProfile {
     pub social_handles: serde_json::Value,
     pub kyc_tier: i32,
     pub compliance_status: String,
+    pub trust_score: crate::services::trust_score_service::TrustScore,
 }
 
 // ============================================================================
@@ -209,6 +210,11 @@ pub async fn register_merchant(
                     social_handles: json!({}),
                     kyc_tier: 0,
                     compliance_status: "PENDING".to_string(),
+                    trust_score:
+                        crate::services::trust_score_service::TrustScoreService::calculate_score(
+                            0,
+                            &json!({}),
+                        ),
                 },
                 dashboard_token: token.clone(),
             };
@@ -669,9 +675,14 @@ async fn finalize_login(
                 has_transaction_pin: m.transaction_pin_hash.is_some(),
                 pin_setup_at: m.pin_setup_at.map(|d| d.to_rfc3339()),
                 has_national_id: m.nin_bvn_hash.is_some(),
-                social_handles: m.social_handles,
+                social_handles: m.social_handles.clone(),
                 kyc_tier: m.kyc_tier,
                 compliance_status: m.compliance_status,
+                trust_score:
+                    crate::services::trust_score_service::TrustScoreService::calculate_score(
+                        m.kyc_tier,
+                        &m.social_handles,
+                    ),
             },
             dashboard_token: token, // Kept for legacy support but frontend should move to cookies
         }),

@@ -213,10 +213,23 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                                     type="checkbox" 
                                     checked={lowBalanceAlertsEnabled}
                                     disabled={loading}
-                                    onChange={e => {
+                                    onChange={async (e) => {
                                         const newValue = e.target.checked;
+                                        const previousValue = lowBalanceAlertsEnabled;
                                         setLowBalanceAlertsEnabled(newValue);
-                                        handleUpdateSettings({ low_balance_alerts_enabled: newValue });
+                                        
+                                        try {
+                                            setLoading(true);
+                                            await merchantAPI.updateSettings({ low_balance_alerts_enabled: newValue });
+                                            await loadUser(true); // force a refetch to guarantee the UI is in sync with DB
+                                            showToast('Alert preferences updated', 'success');
+                                        } catch (error: any) {
+                                            setLowBalanceAlertsEnabled(previousValue);
+                                            showToast('Failed to update alert preferences', 'error');
+                                            console.error(error);
+                                        } finally {
+                                            setLoading(false);
+                                        }
                                     }}
                                 />
                                 <span className={styles.slider}></span>
