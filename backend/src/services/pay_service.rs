@@ -36,8 +36,11 @@ impl PayService {
     ) -> Result<ResolvedMerchantProfile, ServiceError> {
         let identifier = identifier.trim();
 
-        // Normalize username identifier (remove @ if present)
-        let clean_id = identifier.strip_prefix('@').unwrap_or(identifier);
+        // Normalize username identifier (remove @ if present) and lowercase for case-insensitive lookup
+        let clean_id = identifier
+            .strip_prefix('@')
+            .unwrap_or(identifier)
+            .to_lowercase();
 
         // Try to find by PayID, Email, or Username
         let merchant = sqlx::query_as::<_, Merchant>(

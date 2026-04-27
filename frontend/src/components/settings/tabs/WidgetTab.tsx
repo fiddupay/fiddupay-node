@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import CustomSelect from '@/components/ui/CustomSelect'
+import { MdVisibility } from 'react-icons/md'
 
 interface WidgetTabProps {
     styles: any;
@@ -79,6 +80,32 @@ const WidgetTab: React.FC<WidgetTabProps> = ({ styles }) => {
                     <li><strong style={{ color: 'var(--text-main)' }}>Launch Widget:</strong> Use <code>FidduPay.open({'{'} amount: 50, publicKey: '${pubKeyDisplay}' {'}'})</code> on any button click.</li>
                     <li><strong style={{ color: 'var(--text-main)' }}>Secure Webhooks:</strong> Set up Webhooks in the Developer Dashboard so your pure-HTML site knows when items are securely paid for!</li>
                 </ol>
+            </div>
+
+            {/* Live Preview */}
+            <div style={{ marginTop: '32px' }}>
+                <h4 style={{ fontWeight: 600, fontSize: '15px', marginBottom: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <MdVisibility style={{ color: 'var(--primary)' }} size={20} />
+                    Live Widget Preview
+                </h4>
+                <div style={{ 
+                    width: '100%', 
+                    height: '650px', 
+                    border: '1px solid var(--border)', 
+                    borderRadius: '16px', 
+                    overflow: 'hidden', 
+                    background: 'rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)'
+                }}>
+                    <iframe 
+                        src={`${import.meta.env.VITE_API_URL || ''}/preview/widget`} 
+                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        title="Widget Preview"
+                    />
+                </div>
             </div>
         </div>
     )

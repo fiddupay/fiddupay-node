@@ -878,6 +878,45 @@ pub async fn verify_payment_trigger(
 }
 
 // ============================================================================
+// Widget Preview (Public)
+// ============================================================================
+
+pub async fn preview_payment_page() -> impl IntoResponse {
+    use axum::response::Html;
+    // Render with dummy data
+    let html = render_payment_page(PaymentPageData {
+        payment_id: "PREVIEW_12345678".to_string(),
+        amount: "1.234567".to_string(),
+        amount_usd: "500.00".to_string(),
+        crypto_type: "SOL".to_string(),
+        network: "SOLANA".to_string(),
+        deposit_address: "B9f...G8j".to_string(),
+        fee_amount_usd: "3.75".to_string(),
+        qr_code: "".to_string(),
+        time_remaining: "15m 00s".to_string(),
+        expires_at: (chrono::Utc::now() + chrono::Duration::minutes(15)).to_rfc3339(),
+        transaction_hash: None,
+        is_pending: true,
+        is_confirming: false,
+        is_confirmed: false,
+        is_expired: false,
+        is_cancelled: false,
+        is_selection_required: false,
+        sandbox: true,
+        redirect_url: None,
+        supported_currencies: vec![
+            ("SOL".to_string(), "SOLANA".to_string()),
+            ("USDT".to_string(), "SOLANA".to_string()),
+            ("ETH".to_string(), "ETHEREUM".to_string()),
+            ("BNB".to_string(), "BINANCE".to_string()),
+        ],
+        customer_pays_fee: true,
+    });
+
+    (StatusCode::OK, Html(html)).into_response()
+}
+
+// ============================================================================
 // Template Engine (Manual)
 // ============================================================================
 

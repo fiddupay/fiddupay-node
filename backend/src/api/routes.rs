@@ -57,7 +57,11 @@ pub fn create_router(state: AppState) -> Router {
             "/api/v1/contact",
             post(public_handlers::submit_contact_form),
         )
-        .route("/api/v1/pricing", get(public_handlers::get_pricing_info));
+        .route("/api/v1/pricing", get(public_handlers::get_pricing_info))
+        .route(
+            "/preview/widget",
+            get(payment_handlers::preview_payment_page),
+        );
 
     // 3. Modular routers
     let merchant_router = merchant_routes::create_merchant_router(state.clone());
