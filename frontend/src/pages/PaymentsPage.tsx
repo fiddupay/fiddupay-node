@@ -13,6 +13,10 @@ import { StatCardSkeletons, TableSkeleton } from '@/components/layout/PageSkelet
 const PaymentsPage: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Currencies from global cache
+  const { currencies: currenciesCache } = useDataStore()
+  const supportedCryptos = currenciesCache.data || []
   const [stats, setStats] = useState({
     totalPayments: 0,
     totalVolume: '$0.00',
@@ -121,9 +125,6 @@ const PaymentsPage: React.FC = () => {
     }
   }, [newPayment.amount, newPayment.amount_usd, newPayment.crypto_type, newPayment.is_invoice, supportedCryptos]);
 
-  // Currencies from global cache
-  const { currencies: currenciesCache, fetchCurrencies: fetchCurrenciesFromStore } = useDataStore()
-  const supportedCryptos = currenciesCache.data || []
 
   const loadPayments = async (silent = false) => {
     if (!silent) setLoading(true)
