@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useToast } from '@/contexts/ToastContext'
-import { merchantAPI, paymentAPI, publicAPI } from '@/services/apiService'
+import { merchantAPI, paymentAPI } from '@/services/apiService'
+import { useDataStore } from '@/stores/dataStore'
 import { useAuthStore } from '@/stores/authStore'
 import { Payment, PaymentFilters } from '@/types'
 import styles from '@/styles/pages/PaymentsPage.module.css'
@@ -11,7 +12,6 @@ import { StatCardSkeletons, TableSkeleton } from '@/components/layout/PageSkelet
 
 const PaymentsPage: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([])
-  const [supportedCryptos, setSupportedCryptos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     totalPayments: 0,
@@ -57,7 +57,7 @@ const PaymentsPage: React.FC = () => {
       // Don't set global loading to true here, just let them load in background
       await Promise.all([
         loadStats(),
-        loadSupportedCurrencies()
+        useDataStore.getState().fetchCurrencies()
       ])
     }
     loadStaticData()
@@ -121,21 +121,9 @@ const PaymentsPage: React.FC = () => {
     }
   }, [newPayment.amount, newPayment.amount_usd, newPayment.crypto_type, newPayment.is_invoice, supportedCryptos]);
 
-  const loadSupportedCurrencies = async () => {
-    try {
-      const response = await publicAPI.getSupportedCurrencies(user?.id)
-      const groups = response.data.currency_groups
-      const flattenedCurrencies = Object.values(groups).flat() as any[]
-      setSupportedCryptos(flattenedCurrencies)
-
-      // Auto-select first available currency
-      if (flattenedCurrencies.length > 0) {
-        setNewPayment(prev => ({ ...prev, crypto_type: flattenedCurrencies[0].crypto_type }))
-      }
-    } catch (error) {
-      console.error('Failed to load supported currencies', error)
-    }
-  }
+  // Currencies from global cache
+  const { currencies: currenciesCache, fetchCurrencies: fetchCurrenciesFromStore } = useDataStore()
+  const supportedCryptos = currenciesCache.data || []
 
   const loadPayments = async (silent = false) => {
     if (!silent) setLoading(true)

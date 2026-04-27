@@ -1,6 +1,9 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Outlet, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { useDataStore } from '@/stores/dataStore'
+import { useBalanceStore } from '@/stores/balanceStore'
+import { useNotificationStore } from '@/stores/notificationStore'
 import Sidebar from './Sidebar'
 import Header from './Header'
 import { LiveDropToast } from './LiveDropToast'
@@ -13,6 +16,31 @@ const AppLayout: React.FC = () => {
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen)
   const closeMobileMenu = () => setIsMobileMenuOpen(false)
+
+  // Boot-time prefetch: warm the global cache when the merchant enters the app shell.
+  // This ensures currencies, balance, and notifications are already loaded
+  // before the user navigates to any specific page.
+  useEffect(() => {
+    if (isAuthenticated) {
+      const store = useDataStore.getState()
+      
+      // 1. Critical Base Data
+      store.fetchCurrencies()
+      useBalanceStore.getState().fetchBalance()
+      useNotificationStore.getState().fetchNotifications()
+
+      // 2. Dashboard Warm-up (Background)
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      store.fetchAnalytics({
+        from_date: firstDayOfMonth.toISOString(),
+        to_date: new Date().toISOString()
+      })
+      store.fetchCustomerSummary()
+      store.fetchSecurityAlerts()
+      store.fetchRecentActivity()
+    }
+  }, [isAuthenticated])
 
   if (loading) {
     return <DashboardSkeleton />
@@ -44,3 +72,4 @@ const AppLayout: React.FC = () => {
 }
 
 export default AppLayout
+

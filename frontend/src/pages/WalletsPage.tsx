@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { walletAPI, publicAPI } from '@/services/apiService'
-import { Wallet, WalletConfig } from '../types'
+import { walletAPI } from '@/services/apiService'
+import { useDataStore } from '@/stores/dataStore'
+import { WalletConfig } from '../types'
 import styles from '@/styles/pages/WalletsPage.module.css'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuthStore } from '@/stores/authStore'
@@ -10,7 +11,6 @@ import SEO from '@/components/ui/SEO'
 import { WalletGridSkeleton } from '@/components/layout/PageSkeletons'
 
 const WalletsPage: React.FC = () => {
-  const [wallets, setWallets] = useState<Wallet[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [showConfigModal, setShowConfigModal] = useState(false)
@@ -24,6 +24,13 @@ const WalletsPage: React.FC = () => {
     address: ''
   })
 
+  // Use global dataStore for currencies and wallets
+  const {
+    wallets: walletsCache,
+    fetchCurrencies,
+    fetchWallets: fetchWalletsFromStore,
+  } = useDataStore()
+  const wallets = walletsCache.data || []
   const [supportedCryptos, setSupportedCryptos] = useState<any[]>([])
 
   useEffect(() => {
@@ -33,30 +40,26 @@ const WalletsPage: React.FC = () => {
   const fetchInitialData = async () => {
     try {
       setLoading(true)
-      const [walletsRes, currenciesRes] = await Promise.all([
-        walletAPI.getAll(),
-        publicAPI.getSupportedCurrencies()
+      const [, currenciesData] = await Promise.all([
+        fetchWalletsFromStore(true),
+        fetchCurrencies()
       ])
 
-      setWallets(Array.isArray(walletsRes.data.wallets) ? walletsRes.data.wallets : [])
-
-      const groups = currenciesRes.data.currency_groups
-      const networksMap: { [key: string]: any } = {}
-
-      Object.values(groups).flat().forEach((crypto: any) => {
+      const groups: { [key: string]: any } = {}
+      ;(currenciesData || []).forEach((crypto: any) => {
         const networkName = crypto.network.split(' (')[0]
-        if (!networksMap[networkName]) {
-          networksMap[networkName] = {
+        if (!groups[networkName]) {
+          groups[networkName] = {
             name: networkName,
             fullName: crypto.network,
             icon_url: crypto.icon_url,
             cryptos: []
           }
         }
-        networksMap[networkName].cryptos.push(crypto)
+        groups[networkName].cryptos.push(crypto)
       })
 
-      setSupportedCryptos(Object.values(networksMap))
+      setSupportedCryptos(Object.values(groups))
     } catch (error) {
       console.error('Failed to load data:', error)
       showToast('Failed to load wallet data', 'error')
@@ -67,8 +70,7 @@ const WalletsPage: React.FC = () => {
 
   const loadWallets = async () => {
     try {
-      const walletsData = await walletAPI.getAll()
-      setWallets(Array.isArray(walletsData.data.wallets) ? walletsData.data.wallets : [])
+      await fetchWalletsFromStore(true)
     } catch (error) {
       console.error('Failed to load wallets:', error)
     }
@@ -181,12 +183,14 @@ const WalletsPage: React.FC = () => {
     const network = supportedCryptos.find(n => n.name === networkName);
     if (!network) return;
 
-    // Optimistically update all wallets on this network in the local state
+    // Optimistically update all wallets on this network in the store
     const cryptosOnNetwork = network.cryptos.map((c: any) => c.crypto_type);
     const updatedWallets = wallets.map(w =>
       cryptosOnNetwork.includes(w.crypto_type) ? { ...w, is_active: isActive } : w
     );
-    setWallets(updatedWallets);
+    useDataStore.setState((s) => ({
+      wallets: { ...s.wallets, data: updatedWallets, lastFetched: Date.now() }
+    }));
 
     try {
       setRefreshing(true)

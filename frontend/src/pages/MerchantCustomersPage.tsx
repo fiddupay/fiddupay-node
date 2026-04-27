@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { customerAPI, publicAPI } from "@/services/apiService";
+import { customerAPI } from "@/services/apiService";
+import { useDataStore } from "@/stores/dataStore";
 import styles from "@/styles/pages/MerchantCustomersPage.module.css";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuthStore } from "@/stores/authStore";
@@ -19,8 +20,6 @@ import { Customer, Wallet, CustomerTx } from "@/components/customers/types";
 const MerchantCustomersPage: React.FC = () => {
   const { user } = useAuthStore();
   const { showToast } = useToast();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
@@ -39,7 +38,6 @@ const MerchantCustomersPage: React.FC = () => {
     last_name: "",
   });
   const [submitting, setSubmitting] = useState(false);
-  const [detailsLoading, setDetailsLoading] = useState(false);
   const [customerWallets, setCustomerWallets] = useState<Wallet[]>([]);
   const [customerBalances, setCustomerBalances] = useState<any>(null);
   const [customerTransactions, setCustomerTransactions] = useState<CustomerTx[]>([]);
@@ -62,53 +60,43 @@ const MerchantCustomersPage: React.FC = () => {
 
   // Permission states
   const [permUpdating, setPermUpdating] = useState(false);
-  const [supportedCurrencies, setSupportedCurrencies] = useState<any[]>([]);
   const [customerSummary, setCustomerSummary] = useState<any>(null);
 
+  // Use global dataStore for currencies, customers, customer summary
+  const {
+    currencies: currenciesCache,
+    customers: customersCache,
+    customerDetails: detailsMap,
+    fetchCurrencies,
+    fetchCustomers: fetchCustomersFromStore,
+    fetchCustomerSummary: fetchSummaryFromStore,
+    setCustomers: setCustomersInStore,
+  } = useDataStore();
+  const supportedCurrencies = currenciesCache.data || [];
+  const customers = customersCache.data || [];
+
+  // Determine global loading state
+  const loading = customersCache.loading && customers.length === 0;
+  
+  // Use store's detail loading state for the specific customer
+  const detailsLoading = selectedCustomer 
+    ? (detailsMap[selectedCustomer.external_id]?.loading || false) 
+    : false;
+
   useEffect(() => {
-    fetchCustomers();
-    fetchSupportedCurrencies();
-    fetchCustomerSummary();
+    fetchCustomersFromStore();
+    fetchCurrencies();
+    fetchSummaryFromStore().then((data: any) => {
+      if (data) setCustomerSummary(data);
+    });
   }, [user?.sandbox_mode]);
 
-  const fetchCustomerSummary = async () => {
-    try {
-      const res = await customerAPI.getSummary();
-      if (res.data) {
-        setCustomerSummary(res.data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch customer summary", err);
-    }
-  };
-
-  const fetchSupportedCurrencies = async () => {
-    try {
-      const res = await publicAPI.getSupportedCurrencies();
-      if (res.data?.currency_groups) {
-        const flattened = Object.values(res.data.currency_groups).flat() as any[];
-        setSupportedCurrencies(flattened);
-        if (flattened.length > 0) {
-          if (!sweepCryptoType) setSweepCryptoType(flattened[0].crypto_type);
-          if (!payMerchantCryptoType) setPayMerchantCryptoType(flattened[0].crypto_type);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch currencies", err);
-    }
-  };
 
   const fetchCustomers = async () => {
     try {
-      setLoading(true);
-      const res = await customerAPI.list();
-      if (res.data?.customers) {
-        setCustomers(res.data.customers);
-      }
+      await fetchCustomersFromStore(true);
     } catch (error: any) {
       showToast(extractErrorMessage(error, "Failed to list customers"), "error");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -165,18 +153,17 @@ const MerchantCustomersPage: React.FC = () => {
   };
 
   const fetchCustomerDetails = async (externalId: string) => {
-    setDetailsLoading(true);
     try {
-      const [walletRes, balRes, txRes] = await Promise.allSettled([
-        customerAPI.getWallets(externalId),
-        customerAPI.getBalances(externalId),
-        customerAPI.getTransactions(externalId, { limit: 20 }),
-      ]);
-      if (walletRes.status === "fulfilled") setCustomerWallets(walletRes.value.data?.wallets || []);
-      if (balRes.status === "fulfilled") setCustomerBalances(balRes.value.data?.balances);
-      if (txRes.status === "fulfilled") setCustomerTransactions(txRes.value.data?.transactions || []);
-    } catch { /* silent */ } finally {
-      setDetailsLoading(false);
+      // Use global store for caching customer details
+      const data = await useDataStore.getState().fetchCustomerDetails(externalId);
+      if (data) {
+        setCustomerWallets(data.wallets);
+        setCustomerBalances(data.balances);
+        setCustomerTransactions(data.transactions);
+      }
+    } catch (error) {
+      console.error("Failed to fetch customer details", error);
+      showToast("Failed to load customer details", "error");
     }
   };
 
@@ -200,7 +187,7 @@ const MerchantCustomersPage: React.FC = () => {
       const updated = res.data?.customer;
       if (updated) {
         setSelectedCustomer(updated);
-        setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        setCustomersInStore(customers.map((c) => (c.id === updated.id ? updated : c)));
       }
       showToast(`Customer status changed to ${newStatus}`, "success");
       setShowStatusModal(null);
@@ -222,7 +209,7 @@ const MerchantCustomersPage: React.FC = () => {
       const updated = res.data?.customer;
       if (updated) {
         setSelectedCustomer(updated);
-        setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        setCustomersInStore(customers.map((c) => (c.id === updated.id ? updated : c)));
       }
       showToast(`Withdrawals ${!selectedCustomer.can_withdraw ? "enabled" : "disabled"}`, "success");
     } catch (error: any) {

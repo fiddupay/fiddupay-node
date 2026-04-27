@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
-import { merchantAPI, paymentAPI, securityAPI } from '@/services/apiService'
+import { useDataStore } from '@/stores/dataStore'
 import { 
   MdWarning, 
   MdArrowForward, 
@@ -19,7 +19,6 @@ import {
   MdClose
 } from 'react-icons/md'
 import { UniversalPayForm } from '@/components/ui/UniversalPayForm'
-import { SecurityAlert } from '../types'
 import styles from '@/styles/pages/DashboardPage.module.css'
 import { ActivityListSkeleton, DashboardSkeleton } from '@/components/layout/PageSkeletons'
 import SEO from '@/components/ui/SEO'
@@ -30,28 +29,13 @@ import { Badge } from '@/components/ui/badge'
 // Recent Activity Component
 const RecentActivityList: React.FC = () => {
   const { user } = useAuthStore()
-  const [activities, setActivities] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const { recentActivity: activityCache, fetchRecentActivity } = useDataStore()
+  const activities = activityCache.data || []
+  const loading = activityCache.loading && activities.length === 0
 
   useEffect(() => {
-    loadRecentActivity()
+    fetchRecentActivity()
   }, [user?.sandbox_mode])
-
-  const loadRecentActivity = async () => {
-    try {
-      const response = await paymentAPI.getUnifiedTransactions({ limit: 5 })
-      if (response.data && Array.isArray(response.data.transactions)) {
-        setActivities(response.data.transactions)
-      } else {
-        setActivities([])
-      }
-    } catch (error) {
-      console.error('Failed to load activity:', error)
-      setActivities([])
-    } finally {
-      setLoading(false)
-    }
-  }
 
   if (loading) {
     return <ActivityListSkeleton />
@@ -138,10 +122,16 @@ import { useBalanceStore } from '@/stores/balanceStore'
 const DashboardPage: React.FC = () => {
   const { user } = useAuthStore()
   const { balance, fetchBalance } = useBalanceStore()
+  const { 
+    analytics: analyticsCache,
+    securityAlerts: alertsCache,
+    fetchAnalytics,
+    fetchSecurityAlerts 
+  } = useDataStore()
   const navigate = useNavigate()
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
-  const [alerts, setAlerts] = useState<SecurityAlert[]>([])
-  const [loading, setLoading] = useState(true)
+  const analytics = analyticsCache.data as AnalyticsData | null
+  const alerts = alertsCache.data || []
+  const loading = analyticsCache.loading && !analytics
   const [showQuickPayModal, setShowQuickPayModal] = useState(false)
   const [dailyVolumeUsed, setDailyVolumeUsed] = useState(0)
   const [dateRange, setDateRange] = useState(() => {
@@ -169,24 +159,17 @@ const DashboardPage: React.FC = () => {
 
   const loadDashboardData = async () => {
     try {
-      setLoading(true)
-      const [analyticsData, alertsData] = await Promise.all([
-        merchantAPI.getAnalytics({
+      // Use the global data store — SWR pattern handles caching automatically
+      await Promise.all([
+        fetchAnalytics({
           from_date: new Date(dateRange.from_date).toISOString(),
           to_date: new Date(dateRange.to_date + 'T23:59:59Z').toISOString()
         }),
-        securityAPI.getAlerts()
+        fetchSecurityAlerts(),
+        fetchBalance()
       ])
-
-      // Load balance through store
-      await fetchBalance()
-
-      setAnalytics(analyticsData.data)
-      setAlerts(alertsData.data?.alerts || [])
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
-    } finally {
-      setLoading(false)
     }
   }
 

@@ -1,6 +1,4 @@
 import React, { useEffect, useState, useMemo } from 'react'
-import { merchantAPI } from '@/services/apiService'
-import { BalanceHistory } from '@/types'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuthStore } from '@/stores/authStore'
 import styles from '@/styles/pages/BalancePage.module.css'
@@ -79,10 +77,18 @@ const getNetworkLabel = (cryptoType: string, isSandbox: boolean): string => {
 };
 
 import { useBalanceStore } from '@/stores/balanceStore'
+import { useDataStore } from '@/stores/dataStore'
+
+interface BalanceHistoryPoint {
+    date: string;
+    total_usd: string;
+    balances: Record<string, string>;
+}
 
 const BalancePage: React.FC = () => {
     const { balance, fetchBalance } = useBalanceStore()
-    const [history, setHistory] = useState<BalanceHistory | null>(null)
+    const { balanceHistory: historyCache, fetchBalanceHistory } = useDataStore()
+    const history = historyCache.data
     const [loading, setLoading] = useState(true)
     const [selectedAsset, setSelectedAsset] = useState<string | null>(null) // null means 'Total'
     const { showToast } = useToast()
@@ -99,13 +105,10 @@ const BalancePage: React.FC = () => {
             // Load balance through store
             await fetchBalance()
 
-            // Balance history is non-critical — don't let it block the page
-            try {
-                const histRes = await merchantAPI.getBalanceHistory({ limit: 30 })
-                if (histRes.data) setHistory(histRes.data)
-            } catch (histErr) {
-                console.warn('Balance history unavailable:', histErr)
-            }
+            // Balance history via global data store — SWR handles caching
+            await fetchBalanceHistory({ limit: 30 }).catch(() => {
+                console.warn('Balance history unavailable')
+            })
         } catch (error) {
             console.error('Failed to load balance data:', error)
             showToast('Failed to load balance data', 'error')
@@ -127,7 +130,7 @@ const BalancePage: React.FC = () => {
 
     const chartData = useMemo(() => {
         if (!history?.points) return []
-        return history.points.map(p => ({
+        return history.points.map((p: BalanceHistoryPoint) => ({
             date: new Date(p.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
             total: safeFloat(p.total_usd),
             [selectedAsset || 'total']: selectedAsset

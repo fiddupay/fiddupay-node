@@ -8,10 +8,10 @@ import {
     AreaChart,
     Area
 } from 'recharts'
-import { merchantAPI } from '@/services/apiService'
 import { useToast } from '@/contexts/ToastContext'
 import styles from '@/styles/pages/AnalyticsPage.module.css'
 import { useAuthStore } from '@/stores/authStore'
+import { useDataStore } from '@/stores/dataStore'
 
 interface TimeSeriesPoint {
     date: string;
@@ -35,8 +35,9 @@ interface AnalyticsData {
 import { AnalyticsSkeleton } from '@/components/layout/PageSkeletons'
 
 const AnalyticsPage: React.FC = () => {
-    const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
-    const [loading, setLoading] = useState(true)
+    const { analytics: analyticsCache, fetchAnalytics } = useDataStore()
+    const analytics = analyticsCache.data as AnalyticsData | null
+    const loading = analyticsCache.loading && !analytics
     const [dateRange, setDateRange] = useState({
         from_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         to_date: new Date().toISOString().split('T')[0]
@@ -50,19 +51,13 @@ const AnalyticsPage: React.FC = () => {
 
     const loadAnalytics = async () => {
         try {
-            setLoading(true)
-            const response = await merchantAPI.getAnalytics({
+            await fetchAnalytics({
                 from_date: new Date(dateRange.from_date).toISOString(),
                 to_date: new Date(dateRange.to_date + 'T23:59:59Z').toISOString()
             })
-            if (response.data) {
-                setAnalytics(response.data)
-            }
         } catch (error) {
             console.error('Failed to load analytics:', error)
             showToast('Failed to load analytics data', 'error')
-        } finally {
-            setLoading(false)
         }
     }
 

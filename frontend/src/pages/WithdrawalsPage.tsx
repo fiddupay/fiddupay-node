@@ -1,11 +1,11 @@
 import { useToast } from '@/contexts/ToastContext'
-import { publicAPI, withdrawalAPI, walletAPI } from '@/services/apiService'
+import { withdrawalAPI } from '@/services/apiService'
+import { useDataStore } from '@/stores/dataStore'
 import { WithdrawalFormSkeleton } from '@/components/layout/PageSkeletons'
 import { useAuthStore } from '@/stores/authStore'
 import styles from '@/styles/pages/WithdrawalsPage.module.css'
 import CustomSelect from '@/components/ui/CustomSelect'
 import SEO from '@/components/ui/SEO'
-import { Withdrawal } from '@/types'
 import { extractErrorMessage } from '@/utils/errorUtils'
 import React, { useEffect, useState } from 'react'
 
@@ -19,7 +19,6 @@ const WithdrawalsPage: React.FC = () => {
     const settlementMode = user?.settlement_mode || 'managed'
 
     const walletBalances = balance?.balances || []
-    const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([])
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
     const [refreshingId, setRefreshingId] = useState<string | null>(null)
@@ -33,16 +32,26 @@ const WithdrawalsPage: React.FC = () => {
     const [showConfirm, setShowConfirm] = useState(false)
     const [balanceError, setBalanceError] = useState<string | null>(null)
     const [transactionPin, setTransactionPin] = useState('')
-    const [supportedCurrencies, setSupportedCurrencies] = useState<any[]>([])
     const [configuredWallets, setConfiguredWallets] = useState<any[]>([])
+    
+    // Use global dataStore for currencies and withdrawals
+    const { 
+        currencies: currenciesCache,
+        withdrawals: withdrawalsCache,
+        wallets: walletsCache,
+        fetchCurrencies,
+        fetchWithdrawals,
+        fetchWallets,
+    } = useDataStore()
+    const supportedCurrencies = currenciesCache.data || []
+    const withdrawals = withdrawalsCache.data || []
 
     useEffect(() => {
         fetchData()
-        fetchPrices()
 
         const interval = setInterval(() => {
-            fetchWithdrawalsBackground()
-            fetchPrices()
+            fetchWithdrawals()
+            fetchCurrencies()
         }, 15000)
         return () => clearInterval(interval)
     }, [user?.sandbox_mode])
@@ -59,22 +68,9 @@ const WithdrawalsPage: React.FC = () => {
         return true
     })
 
-    const fetchPrices = async () => {
-        try {
-            const res = await publicAPI.getSupportedCurrencies()
-            if (res.data?.currency_groups) {
-                const flattened = Object.values(res.data.currency_groups).flat() as any[]
-                setSupportedCurrencies(flattened)
-            }
-        } catch (err) {
-            console.error('Failed to fetch prices', err)
-        }
-    }
-
     const fetchWithdrawalsBackground = async () => {
         try {
-            const histRes = await withdrawalAPI.getHistory()
-            setWithdrawals(Array.isArray(histRes.data) ? histRes.data : [])
+            await fetchWithdrawals()
         } catch {
             // silent fail on auto-refresh
         }
@@ -110,15 +106,16 @@ const WithdrawalsPage: React.FC = () => {
             setBalanceError(null)
 
             // Parallelize all initial data fetching
-            const [histRes, walletsRes, _] = await Promise.all([
-                withdrawalAPI.getHistory().catch(() => ({ data: [] })),
-                walletAPI.getAll().catch(() => ({ data: { wallets: [] } })),
-                fetchBalance().catch(() => null),
-                fetchPrices().catch(() => null)
+            const [_currencies, _withdrawals, walletsRes, _balance] = await Promise.all([
+                fetchCurrencies().catch(() => []),
+                fetchWithdrawals().catch(() => []),
+                fetchWallets().catch(() => []),
+                fetchBalance().catch(() => null)
             ])
 
-            const activeWallets = Array.isArray(walletsRes.data.wallets) 
-                ? walletsRes.data.wallets.filter((w: any) => {
+            const allWallets = walletsCache.data || walletsRes || []
+            const activeWallets = Array.isArray(allWallets) 
+                ? allWallets.filter((w: any) => {
                     if (!w.is_active) return false
                     
                     const upType = w.crypto_type.toUpperCase()
@@ -140,7 +137,6 @@ const WithdrawalsPage: React.FC = () => {
                 setSelectedCrypto(withBalance?.crypto_type || activeWallets[0].crypto_type)
             }
 
-            setWithdrawals(Array.isArray(histRes.data) ? histRes.data : [])
         } catch (error) {
             console.error('Failed to load data:', error)
         } finally {

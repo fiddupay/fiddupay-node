@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { 
     MdNotificationsActive, 
@@ -11,8 +11,8 @@ import {
     MdSecurity
 } from 'react-icons/md'
 import { securityAPI } from '@/services/apiService'
+import { useDataStore } from '@/stores/dataStore'
 import { useToast } from '@/contexts/ToastContext'
-import { SecurityEvent, SecurityAlert } from '@/types'
 import { SecurityHubSkeleton, TableSkeleton } from '@/components/layout/PageSkeletons'
 import styles from '@/styles/pages/SecurityPage.module.css'
 import SEO from '@/components/ui/SEO'
@@ -43,37 +43,27 @@ const SecurityPage: React.FC = () => {
         setSearchParams({ tab })
     }
 
-    const [loading, setLoading] = useState(false)
-    const [alerts, setAlerts] = useState<SecurityAlert[]>([])
-    const [events, setEvents] = useState<SecurityEvent[]>([])
+    // Use global dataStore for alerts and events
+    const {
+        securityAlerts: alertsCache,
+        securityEvents: eventsCache,
+        fetchSecurityAlerts,
+        fetchSecurityEvents,
+        setSecurityAlerts,
+    } = useDataStore()
+    const alerts = alertsCache.data || []
+    const events = eventsCache.data || []
+    const loading = (alertsCache.loading && alerts.length === 0) || (eventsCache.loading && events.length === 0)
 
     useEffect(() => {
-        fetchData()
+        fetchSecurityAlerts()
+        fetchSecurityEvents()
     }, [])
-
-    const fetchData = async () => {
-        try {
-            setLoading(true)
-            // Fetch everything in parallel for better responsiveness
-            const [alertsRes, eventsRes] = await Promise.all([
-                securityAPI.getAlerts().catch(() => ({ data: { alerts: [] } })),
-                securityAPI.getEvents({ limit: 50 }).catch(() => ({ data: { events: [] } }))
-            ])
-
-            setAlerts(alertsRes.data?.alerts || [])
-            setEvents(eventsRes.data?.events || [])
-        } catch (error) {
-            console.error('Failed to fetch security data', error)
-            showToast('Failed to load security data', 'error')
-        } finally {
-            setLoading(false)
-        }
-    }
 
     const handleAcknowledgeAlert = async (alertId: string) => {
         try {
             await securityAPI.acknowledgeAlert(alertId)
-            setAlerts(prev => prev.filter(a => a.id !== alertId))
+            setSecurityAlerts(alerts.filter(a => a.id !== alertId))
             showToast('Alert acknowledged', 'success')
         } catch (error) {
             showToast('Failed to acknowledge alert', 'error')
