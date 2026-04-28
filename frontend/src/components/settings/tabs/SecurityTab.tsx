@@ -242,45 +242,6 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                         </form>
                     </div>
 
-                    <div className={styles.formCard}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-                                    <MdFingerprint size={24} />
-                                </div>
-                                <div>
-                                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800' }}>Biometrics</h3>
-                                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Passwordless FIDO2 login.</p>
-                                </div>
-                            </div>
-                            <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20">Elite</Badge>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '16px' }}>
-                            <div>
-                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '700' }}>Passkey Status</h4>
-                                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>{user?.passkey_enabled ? 'Active on this device' : 'Not configured'}</p>
-                            </div>
-                            <label className={styles.switch}>
-                                <input 
-                                    type="checkbox" 
-                                    checked={user?.passkey_enabled}
-                                    onChange={async (e) => {
-                                        if (e.target.checked) showToast('Initializing Biometric Registry...', 'info');
-                                    }}
-                                />
-                                <span className={styles.slider}></span>
-                            </label>
-                        </div>
-
-                        <button 
-                            className={styles.viewBtn} 
-                            style={{ width: '100%', height: '48px', borderRadius: '12px', border: '1px dashed var(--border)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
-                            onClick={() => showToast('Starting WebAuthn ceremony...', 'info')}
-                        >
-                            <MdAdd /> Add New Security Key
-                        </button>
-                    </div>
                 </div>
 
                 {/* Column 2: Risk Monitoring */}
@@ -358,6 +319,46 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                                 The Swarm will trigger <strong>balance.low</strong> protocols when total liquidity falls below this marker.
                             </div>
                         </div>
+                    </div>
+
+                    <div className={styles.formCard}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                                    <MdFingerprint size={24} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800' }}>Biometrics</h3>
+                                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Passwordless FIDO2 login.</p>
+                                </div>
+                            </div>
+                            <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20">Elite</Badge>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '16px' }}>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '700' }}>Passkey Status</h4>
+                                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>{user?.passkey_enabled ? 'Active on this device' : 'Not configured'}</p>
+                            </div>
+                            <label className={styles.switch}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={user?.passkey_enabled}
+                                    onChange={async (e) => {
+                                        if (e.target.checked) showToast('Initializing Biometric Registry...', 'info');
+                                    }}
+                                />
+                                <span className={styles.slider}></span>
+                            </label>
+                        </div>
+
+                        <button 
+                            className={styles.viewBtn} 
+                            style={{ width: '100%', height: '48px', borderRadius: '12px', border: '1px dashed var(--border)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+                            onClick={() => showToast('Starting WebAuthn ceremony...', 'info')}
+                        >
+                            <MdAdd /> Add New Security Key
+                        </button>
                     </div>
                 </div>
             </div>
