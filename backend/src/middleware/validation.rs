@@ -90,13 +90,23 @@ pub async fn request_size_middleware(
 
 /// Security headers middleware
 pub async fn security_headers_middleware(request: Request, next: Next) -> Response {
+    let path = request.uri().path().to_owned();
     let mut response = next.run(request).await;
 
     let headers = response.headers_mut();
 
     // Prevent XSS attacks
     headers.insert("X-Content-Type-Options", "nosniff".parse().unwrap());
-    headers.insert("X-Frame-Options", "DENY".parse().unwrap());
+
+    // Conditional X-Frame-Options: Allow framing for widget preview and payment pages
+    if path == "/preview/widget" || (path.len() > 1 && !path.starts_with("/api/")) {
+        // For public payment pages and previews, we allow framing so the widget can work
+        // Note: Modern browsers prioritize Content-Security-Policy frame-ancestors over X-Frame-Options
+        headers.remove("X-Frame-Options");
+    } else {
+        headers.insert("X-Frame-Options", "DENY".parse().unwrap());
+    }
+
     headers.insert("X-XSS-Protection", "1; mode=block".parse().unwrap());
 
     // HTTPS enforcement
@@ -105,13 +115,13 @@ pub async fn security_headers_middleware(request: Request, next: Next) -> Respon
         "max-age=31536000; includeSubDomains".parse().unwrap(),
     );
 
-    // Content Security Policy
-    headers.insert(
-        "Content-Security-Policy",
+    // Content Security Policy: Allow framing from same origin for previews
+    let csp = if path == "/preview/widget" {
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*; style-src 'self' 'unsafe-inline'; frame-ancestors 'self' *"
+    } else {
         "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
-            .parse()
-            .unwrap(),
-    );
+    };
+    headers.insert("Content-Security-Policy", csp.parse().unwrap());
 
     // Referrer policy
     headers.insert(

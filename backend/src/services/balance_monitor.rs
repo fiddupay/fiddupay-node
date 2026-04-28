@@ -67,7 +67,7 @@ impl BalanceMonitor {
             .await;
 
         let merchant = sqlx::query(
-            "SELECT id, business_name, low_balance_threshold_usd FROM merchants WHERE id = $1 AND is_active = true"
+            "SELECT id, business_name, low_balance_threshold_usd, low_balance_alerts_enabled FROM merchants WHERE id = $1 AND is_active = true"
         )
         .bind(merchant_id)
         .fetch_optional(&self.db_pool)
@@ -75,6 +75,11 @@ impl BalanceMonitor {
         .map_err(|e| ServiceError::DatabaseError(e.to_string()))?;
 
         if let Some(row) = merchant {
+            let alerts_enabled: bool = row.get("low_balance_alerts_enabled");
+            if !alerts_enabled {
+                return Ok(());
+            }
+
             let threshold: Decimal = row.get("low_balance_threshold_usd");
             if threshold.is_zero() {
                 return Ok(());
