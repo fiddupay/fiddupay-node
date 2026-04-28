@@ -1323,4 +1323,67 @@ impl MerchantService {
         let result = hasher.finalize();
         hex::encode(result)
     }
+
+    /// Update merchant password
+    pub async fn update_password(
+        &self,
+        merchant_id: i64,
+        current_password: &str,
+        new_password: &str,
+    ) -> Result<(), ServiceError> {
+        // 1. Fetch current password hash
+        let password_hash: Option<String> = sqlx::query_scalar::<_, Option<String>>(
+            "SELECT password_hash FROM merchants WHERE id = $1",
+        )
+        .bind(merchant_id)
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        let hash_str = password_hash.ok_or_else(|| {
+            ServiceError::InternalError("Merchant has no password hash".to_string())
+        })?;
+
+        // 2. Verify current password
+        let parsed_hash = PasswordHash::new(&hash_str).map_err(|_| {
+            ServiceError::InternalError("Invalid stored password format".to_string())
+        })?;
+
+        if Argon2::default()
+            .verify_password(current_password.as_bytes(), &parsed_hash)
+            .is_err()
+        {
+            return Err(ServiceError::ValidationError(
+                "Incorrect current password".to_string(),
+            ));
+        }
+
+        // 3. Hash new password
+        use argon2::{password_hash::SaltString, PasswordHasher};
+        use rand::rngs::OsRng;
+        let salt = SaltString::generate(&mut OsRng);
+        let new_hash = Argon2::default()
+            .hash_password(new_password.as_bytes(), &salt)
+            .map_err(|_| ServiceError::InternalError("Failed to hash new password".to_string()))?
+            .to_string();
+
+        // 4. Update in database
+        sqlx::query("UPDATE merchants SET password_hash = $1, updated_at = NOW() WHERE id = $2")
+            .bind(new_hash)
+            .bind(merchant_id)
+            .execute(&self.db_pool)
+            .await?;
+
+        // 5. Log audit event
+        let _ = self
+            .audit_service
+            .log_event(
+                merchant_id,
+                "password_update",
+                Some("Merchant updated login password"),
+                None,
+            )
+            .await;
+
+        Ok(())
+    }
 }

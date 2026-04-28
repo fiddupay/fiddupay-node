@@ -8,7 +8,7 @@ import {
     MdAutoGraph
 } from 'react-icons/md';
 import { Badge } from '@/components/ui/badge';
-import { merchantAPI } from '@/services/apiService';
+import { merchantAPI, authAPI } from '@/services/apiService';
 import { useToast } from '@/contexts/ToastContext';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -30,6 +30,12 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
     const [settingPin, setSettingPin] = useState(false);
     const [lowBalanceThreshold, setLowBalanceThreshold] = useState(user?.low_balance_threshold_usd || '0');
     const [lowBalanceAlertsEnabled, setLowBalanceAlertsEnabled] = useState(user?.low_balance_alerts_enabled !== false);
+    
+    // Password state
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [updatingPassword, setUpdatingPassword] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -73,6 +79,34 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
             showToast('Failed to update security settings', 'error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleUpdatePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newPassword !== confirmPassword) {
+            showToast('New passwords do not match', 'error');
+            return;
+        }
+        if (newPassword.length < 8) {
+            showToast('New password must be at least 8 characters', 'warning');
+            return;
+        }
+
+        try {
+            setUpdatingPassword(true);
+            await authAPI.updatePassword({
+                current_password: currentPassword,
+                new_password: newPassword
+            });
+            showToast('Password updated successfully', 'success');
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (error: any) {
+            showToast(error.response?.data?.error || 'Failed to update password', 'error');
+        } finally {
+            setUpdatingPassword(false);
         }
     };
 
@@ -187,6 +221,65 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                         >
                             <MdAdd /> Add New Security Key
                         </button>
+                    </div>
+
+                    <div className={styles.formCard}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                                <MdSecurity size={24} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800' }}>Password Management</h3>
+                                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Rotate your login credentials regularly.</p>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleUpdatePassword}>
+                            <div className={styles.formGroup}>
+                                <label style={{ fontSize: '13px', fontWeight: '700', marginBottom: '8px', display: 'block' }}>Current Password</label>
+                                <input 
+                                    type="password"
+                                    className={styles.inputStyle}
+                                    placeholder="Confirm current identity"
+                                    style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white' }}
+                                    value={currentPassword}
+                                    onChange={e => setCurrentPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className={styles.formGroup} style={{ marginTop: '16px' }}>
+                                <label style={{ fontSize: '13px', fontWeight: '700', marginBottom: '8px', display: 'block' }}>New Secure Password</label>
+                                <input 
+                                    type="password"
+                                    className={styles.inputStyle}
+                                    placeholder="Minimum 8 characters"
+                                    style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white' }}
+                                    value={newPassword}
+                                    onChange={e => setNewPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className={styles.formGroup} style={{ marginTop: '16px' }}>
+                                <label style={{ fontSize: '13px', fontWeight: '700', marginBottom: '8px', display: 'block' }}>Confirm New Password</label>
+                                <input 
+                                    type="password"
+                                    className={styles.inputStyle}
+                                    placeholder="Match new password"
+                                    style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white' }}
+                                    value={confirmPassword}
+                                    onChange={e => setConfirmPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <button 
+                                type="submit" 
+                                className={styles.saveBtn} 
+                                style={{ width: '100%', marginTop: '20px', height: '48px', borderRadius: '12px' }}
+                                disabled={updatingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword}
+                            >
+                                {updatingPassword ? 'Updating Vault...' : 'Change Password'}
+                            </button>
+                        </form>
                     </div>
                 </div>
 

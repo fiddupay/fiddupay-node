@@ -42,6 +42,10 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
             post(merchant_handlers::rotate_api_key),
         )
         .route(
+            "/api/v1/merchants/security/password",
+            post(crate::api::merchant_auth_handlers::update_password),
+        )
+        .route(
             "/api/v1/merchants/settings",
             get(merchant_handlers::get_merchant_settings)
                 .patch(merchant_handlers::update_merchant_settings),

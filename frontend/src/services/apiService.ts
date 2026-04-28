@@ -14,6 +14,9 @@ export const authAPI = {
 
   logout: () =>
     api.post('/api/v1/merchants/logout'),
+  
+  updatePassword: (data: any) =>
+    api.post('/api/v1/merchants/security/password', data),
 }
 
 const cleanParams = (params: any) => {

@@ -3,7 +3,9 @@
 
 use crate::api::state::AppState;
 use crate::error::ServiceError;
+use crate::middleware::auth::MerchantContext;
 use axum::{
+    extract::Extension,
     extract::{ConnectInfo, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Json},
@@ -67,6 +69,15 @@ pub struct LoginMerchantRequest {
     pub two_factor_code: Option<String>,
 
     pub remember_me: Option<bool>,
+}
+
+#[derive(Deserialize, Validate)]
+pub struct UpdatePasswordRequest {
+    #[validate(length(min = 1))]
+    pub current_password: String,
+
+    #[validate(length(min = 8))]
+    pub new_password: String,
 }
 
 #[derive(Serialize)]
@@ -449,6 +460,38 @@ pub async fn login_merchant(
             }
         }
         Err(e) => ServiceError::Database(e).into_response(),
+    }
+}
+
+pub async fn update_password(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<UpdatePasswordRequest>,
+) -> impl IntoResponse {
+    // 1. Validate input
+    if let Err(e) = req.validate() {
+        return ServiceError::ValidationError(e.to_string()).into_response();
+    }
+
+    // 2. Custom Password Strength check
+    if let Err(e) = validate_password_strength(&req.new_password) {
+        return ServiceError::ValidationError(e.to_string()).into_response();
+    }
+
+    let merchant_id: i64 = context.merchant_id;
+
+    // 3. Update password
+    match state
+        .merchant_service
+        .update_password(merchant_id, &req.current_password, &req.new_password)
+        .await
+    {
+        Ok(_) => (
+            StatusCode::OK,
+            Json(json!({"status": "success", "message": "Password updated successfully"})),
+        )
+            .into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
