@@ -113,14 +113,73 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
     return (
         <section className={styles.section}>
             <div className={styles.formHeader} style={{ marginBottom: '32px' }}>
-                <h2 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '8px' }}>Security & Transaction Logic</h2>
-                <p style={{ color: 'var(--text-muted)' }}>Manage your institutional-grade security protocols and risk thresholds.</p>
+                <h2 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '8px' }}>Account & Security Protocols</h2>
+                <p style={{ color: 'var(--text-muted)' }}>Manage your institutional-grade security, credentials, and risk thresholds.</p>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '24px' }}>
-                {/* Column 1: PIN & Authentication */}
+                {/* Column 1: Account & Authentication */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    <div className={styles.formCard} style={{ height: '100%' }}>
+                    <div className={styles.formCard}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                                <MdSecurity size={24} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800' }}>Password Management</h3>
+                                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Rotate your login credentials regularly.</p>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleUpdatePassword}>
+                            <div className={styles.formGroup}>
+                                <label style={{ fontSize: '13px', fontWeight: '700', marginBottom: '8px', display: 'block' }}>Current Password</label>
+                                <input 
+                                    type="password"
+                                    className={styles.inputStyle}
+                                    placeholder="Confirm current identity"
+                                    style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white' }}
+                                    value={currentPassword}
+                                    onChange={e => setCurrentPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className={styles.formGroup} style={{ marginTop: '16px' }}>
+                                <label style={{ fontSize: '13px', fontWeight: '700', marginBottom: '8px', display: 'block' }}>New Secure Password</label>
+                                <input 
+                                    type="password"
+                                    className={styles.inputStyle}
+                                    placeholder="Minimum 8 characters"
+                                    style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white' }}
+                                    value={newPassword}
+                                    onChange={e => setNewPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className={styles.formGroup} style={{ marginTop: '16px' }}>
+                                <label style={{ fontSize: '13px', fontWeight: '700', marginBottom: '8px', display: 'block' }}>Confirm New Password</label>
+                                <input 
+                                    type="password"
+                                    className={styles.inputStyle}
+                                    placeholder="Match new password"
+                                    style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white' }}
+                                    value={confirmPassword}
+                                    onChange={e => setConfirmPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <button 
+                                type="submit" 
+                                className={styles.saveBtn} 
+                                style={{ width: '100%', marginTop: '20px', height: '48px', borderRadius: '12px' }}
+                                disabled={updatingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword}
+                            >
+                                {updatingPassword ? 'Updating Vault...' : 'Change Password'}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div className={styles.formCard}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
                             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
                                 <MdSecurity size={24} />
@@ -221,65 +280,6 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                         >
                             <MdAdd /> Add New Security Key
                         </button>
-                    </div>
-
-                    <div className={styles.formCard}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-                                <MdSecurity size={24} />
-                            </div>
-                            <div>
-                                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800' }}>Password Management</h3>
-                                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Rotate your login credentials regularly.</p>
-                            </div>
-                        </div>
-
-                        <form onSubmit={handleUpdatePassword}>
-                            <div className={styles.formGroup}>
-                                <label style={{ fontSize: '13px', fontWeight: '700', marginBottom: '8px', display: 'block' }}>Current Password</label>
-                                <input 
-                                    type="password"
-                                    className={styles.inputStyle}
-                                    placeholder="Confirm current identity"
-                                    style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white' }}
-                                    value={currentPassword}
-                                    onChange={e => setCurrentPassword(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <div className={styles.formGroup} style={{ marginTop: '16px' }}>
-                                <label style={{ fontSize: '13px', fontWeight: '700', marginBottom: '8px', display: 'block' }}>New Secure Password</label>
-                                <input 
-                                    type="password"
-                                    className={styles.inputStyle}
-                                    placeholder="Minimum 8 characters"
-                                    style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white' }}
-                                    value={newPassword}
-                                    onChange={e => setNewPassword(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <div className={styles.formGroup} style={{ marginTop: '16px' }}>
-                                <label style={{ fontSize: '13px', fontWeight: '700', marginBottom: '8px', display: 'block' }}>Confirm New Password</label>
-                                <input 
-                                    type="password"
-                                    className={styles.inputStyle}
-                                    placeholder="Match new password"
-                                    style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'white' }}
-                                    value={confirmPassword}
-                                    onChange={e => setConfirmPassword(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <button 
-                                type="submit" 
-                                className={styles.saveBtn} 
-                                style={{ width: '100%', marginTop: '20px', height: '48px', borderRadius: '12px' }}
-                                disabled={updatingPassword || !currentPassword || !newPassword || newPassword !== confirmPassword}
-                            >
-                                {updatingPassword ? 'Updating Vault...' : 'Change Password'}
-                            </button>
-                        </form>
                     </div>
                 </div>
 

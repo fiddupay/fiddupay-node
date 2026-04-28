@@ -151,7 +151,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                   </div>
                 </div>
 
-                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/app/settings?tab=settlement')}>
+                <button className={styles.dropdownLink} onClick={() => handleMenuAction('/app/settings?tab=security')}>
                   <MdPerson /> My Profile
                 </button>
                 <button className={styles.dropdownLink} onClick={() => handleMenuAction('/app/settings?tab=verification')}>

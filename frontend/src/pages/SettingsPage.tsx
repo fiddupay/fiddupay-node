@@ -95,7 +95,7 @@ const SettingsPage: React.FC = () => {
                     className={`${styles.tabBtn} ${activeTab === 'security' ? styles.activeTab : ''}`}
                     onClick={() => handleTabChange('security')}
                 >
-                    <MdLock /> Security
+                    <MdLock /> Account & Security
                 </button>
                 <button
                     className={`${styles.tabBtn} ${activeTab === 'verification' ? styles.activeTab : ''}`}
