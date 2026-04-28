@@ -1,20 +1,3 @@
-:root {
-    --fiddu-primary: #2563eb;
-    --fiddu-primary-hover: #1d4ed8;
-    --fiddu-success: #10b981;
-    --fiddu-warning: #f59e0b;
-    --fiddu-danger: #ef4444;
-    --fiddu-bg-page: #f8fafc;
-    --fiddu-bg-card: #ffffff;
-    --fiddu-text-primary: #1e293b;
-    --fiddu-text-secondary: #64748b;
-    --fiddu-border: #e2e8f0;
-    --fiddu-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --fiddu-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --fiddu-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --radius-lg: 16px;
-    --radius-xl: 24px;
-}
 
 .actionBtn {
     background: var(--fiddu-primary);
