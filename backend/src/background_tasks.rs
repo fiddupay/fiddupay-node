@@ -165,10 +165,10 @@ impl BackgroundTasks {
         // --- EVM Production Monitors ---
         // Monitor both native currencies and major tokens for each network
         let evm_configs = [
-            ("ETH", vec!["ETH", "USDT_ETH"]),
-            ("BNB", vec!["BNB", "USDT_BEP20", "BUSD_BEP20"]),
-            ("MATIC", vec!["MATIC", "USDT_POLYGON"]),
-            ("ARB", vec!["ARB", "USDT_ARBITRUM"]),
+            ("ETH", vec!["ETH"]),
+            ("BNB", vec!["BNB"]),
+            ("MATIC", vec!["MATIC"]),
+            ("ARB", vec!["ARB"]),
         ];
 
         let evm_configs_prod = evm_configs.clone();
