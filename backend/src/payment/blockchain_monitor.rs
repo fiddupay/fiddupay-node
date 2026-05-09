@@ -1048,76 +1048,74 @@ impl BlockchainMonitor for EvmMonitor {
 
         let input = result.get("input").and_then(|v| v.as_str()).unwrap_or("0x");
 
-        let mut amount = Decimal::ZERO;
-
-        // Check if this is an ERC20 token transfer
-        if let Some(ref token) = self.token_address {
-            // Verify 'to' is the contract address
-            if to_address.trim().to_lowercase() == token.trim().to_lowercase() {
-                if input.starts_with("0x") && input.len() >= 138 {
-                    let sig = &input[2..10];
-                    if sig == "a9059cbb" {
-                        // transfer(address,uint256)
-                        let recipient_hex = &input[34..74]; // skip 2 (0x) + 8 (sig) + 24 (padding)
-                        let amount_hex = &input[74..138];
-
-                        if let Ok(value_u128) = u128::from_str_radix(amount_hex, 16) {
-                            amount =
-                                Decimal::from(value_u128) / Decimal::from(10u64.pow(self.decimals));
-                            to_address = format!("0x{}", recipient_hex);
-                            info!(
-                                "Parsed ERC20 Transfer: to={}, amount={}",
-                                to_address, amount
-                            );
-                        }
-                    }
-                }
-            } else {
-                warn!(
-                    "EVM ERC20 monitor expects to_address to be contract {}, got {}",
-                    token, to_address
-                );
-            }
-        } else {
-            // Native currency transfer
-            // Convert hex value to decimal
-            let value_u128 =
-                u128::from_str_radix(value_hex.trim_start_matches("0x"), 16).unwrap_or(0);
-            amount = Decimal::from(value_u128) / Decimal::from(10u64.pow(self.decimals));
-        }
-
-        // Get transaction receipt for confirmation status
         let block_number = result
             .get("blockNumber")
             .and_then(|v| v.as_str())
             .and_then(|s| u64::from_str_radix(s.trim_start_matches("0x"), 16).ok());
 
-        // Get current block to calculate confirmations
-        let current_block = self.get_current_block().await?;
-        let confirmations = if let Some(tx_block) = block_number {
-            if current_block > tx_block {
-                (current_block - tx_block) as u32
-            } else {
-                0
+        let amount;
+
+        // Check if this is an ERC20/BEP20 token transfer by inspecting function signature
+        let is_token_call =
+            input.starts_with("0x") && input.len() >= 138 && &input[2..10] == "a9059cbb"; // transfer(address,uint256)
+
+        if is_token_call {
+            let recipient_hex = &input[34..74]; // skip 2 (0x) + 8 (sig) + 24 (padding)
+            let amount_hex = &input[74..138];
+
+            if let Ok(value_u128) = u128::from_str_radix(amount_hex, 16) {
+                // Determine decimals: use configured decimals if contract matches, otherwise default to 18 for BEP20/ERC20
+                let actual_decimals = if let Some(ref expected_token) = self.token_address {
+                    if to_address.trim().to_lowercase() == expected_token.trim().to_lowercase() {
+                        self.decimals
+                    } else {
+                        // For cross-token detection, we assume standard 18 decimals for most BEP20/ERC20
+                        // (USDT is 6 on ETH but 18 on BSC, so this is generally safe for BSC)
+                        18
+                    }
+                } else {
+                    18
+                };
+
+                amount = Decimal::from(value_u128) / Decimal::from(10u64.pow(actual_decimals));
+                let actual_recipient = format!("0x{}", recipient_hex);
+
+                info!(
+                    "Parsed Universal ERC20 Transfer: contract={}, recipient={}, amount={}",
+                    to_address, actual_recipient, amount
+                );
+
+                // In token transfers, the 'to_address' in our model should be the RECIPIENT,
+                // and 'token_mint' should be the CONTRACT.
+                let token_contract = to_address;
+                to_address = actual_recipient;
+
+                return Ok(BlockchainTransaction {
+                    hash: tx_hash.to_string(),
+                    from_address,
+                    to_address,
+                    amount,
+                    confirmations: self.get_confirmations(block_number).await?,
+                    block_number,
+                    timestamp: Some(self.get_timestamp_or_now(block_number).await),
+                    success: self.check_transaction_success(tx_hash).await?,
+                    token_mint: Some(token_contract),
+                });
             }
-        } else {
-            0
-        };
+        }
+
+        // Native currency transfer
+        let value_u128 = u128::from_str_radix(value_hex.trim_start_matches("0x"), 16).unwrap_or(0);
+        amount = Decimal::from(value_u128) / Decimal::from(10u64.pow(self.decimals));
+
+        // Get current block to calculate confirmations
+        let confirmations = self.get_confirmations(block_number).await?;
 
         // Check if transaction succeeded
         let success = self.check_transaction_success(tx_hash).await?;
 
-        // Get actual block timestamp if block number is available
-        let timestamp = if let Some(block_num) = block_number {
-            self.get_block_timestamp(block_num)
-                .await
-                .unwrap_or_else(|e| {
-                    warn!("Failed to get block timestamp: {}, using current time", e);
-                    chrono::Utc::now()
-                })
-        } else {
-            chrono::Utc::now()
-        };
+        // Get actual block timestamp
+        let timestamp = self.get_timestamp_or_now(block_number).await;
 
         Ok(BlockchainTransaction {
             hash: tx_hash.to_string(),
@@ -1269,6 +1267,38 @@ impl EvmMonitor {
         let timestamp_secs = u64::from_str_radix(timestamp_hex.trim_start_matches("0x"), 16)?;
         chrono::DateTime::from_timestamp(timestamp_secs as i64, 0)
             .ok_or_else(|| "Invalid timestamp".into())
+    }
+
+    async fn get_confirmations(
+        &self,
+        block_number: Option<u64>,
+    ) -> Result<u32, Box<dyn std::error::Error + Send + Sync>> {
+        let current_block = self.get_current_block().await?;
+        if let Some(tx_block) = block_number {
+            if current_block > tx_block {
+                Ok((current_block - tx_block) as u32)
+            } else {
+                Ok(0)
+            }
+        } else {
+            Ok(0)
+        }
+    }
+
+    async fn get_timestamp_or_now(
+        &self,
+        block_number: Option<u64>,
+    ) -> chrono::DateTime<chrono::Utc> {
+        if let Some(block_num) = block_number {
+            self.get_block_timestamp(block_num)
+                .await
+                .unwrap_or_else(|e| {
+                    warn!("Failed to get block timestamp: {}, using current time", e);
+                    chrono::Utc::now()
+                })
+        } else {
+            chrono::Utc::now()
+        }
     }
 }
 
