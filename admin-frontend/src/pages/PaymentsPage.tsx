@@ -8,8 +8,10 @@ import {
     Clock, 
     RotateCcw,
     Zap,
-    Download
+    Download,
+    ShieldCheck
 } from 'lucide-react';
+import RectifyModal from '../components/RectifyModal';
 
 interface Transaction {
     id: string;
@@ -23,6 +25,7 @@ interface Transaction {
 
 const PaymentsPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [isRectifyModalOpen, setIsRectifyModalOpen] = useState(false);
 
     const transactions: Transaction[] = [
         { id: 'pay_7x2v9k', merchant: 'TechStore Global', amount: '$120.50', crypto: '0.045 ETH', status: 'completed', timestamp: '2024-03-27 10:45', hash: '0x7a2...f8e' },
@@ -59,6 +62,13 @@ const PaymentsPage: React.FC = () => {
                     <p className="text-slate-500 text-sm mt-1">Monitor all incoming crypto transactions across the platform.</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <button 
+                        onClick={() => setIsRectifyModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-200"
+                    >
+                        <ShieldCheck size={16} />
+                        Manual Audit
+                    </button>
                     <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
                         <Download size={16} />
                         Export
@@ -131,6 +141,11 @@ const PaymentsPage: React.FC = () => {
                     </table>
                 </div>
             </div>
+
+            <RectifyModal 
+                isOpen={isRectifyModalOpen} 
+                onClose={() => setIsRectifyModalOpen(false)} 
+            />
         </div>
     );
 };

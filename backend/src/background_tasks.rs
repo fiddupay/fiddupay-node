@@ -879,8 +879,8 @@ impl BackgroundTasks {
                 use rand::Rng;
 
                 loop {
-                    // Jittered sleep: 20s +/- 5s
-                    let sleep_secs = rand::thread_rng().gen_range(15..25);
+                    // Jittered sleep: 5 minutes +/- 30s (To save RPC/Moralis/Alchemy credits)
+                    let sleep_secs = rand::thread_rng().gen_range(270..330);
                     tokio::time::sleep(Duration::from_secs(sleep_secs)).await;
 
                     let current =

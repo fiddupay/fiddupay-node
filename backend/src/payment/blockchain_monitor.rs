@@ -11,6 +11,7 @@ use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
 
 use governor::{DefaultDirectRateLimiter, Quota, RateLimiter};
+use rand::Rng;
 use std::num::NonZeroU32;
 use std::sync::Arc;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -517,6 +518,10 @@ impl EvmMonitor {
                     let min_ts = Utc::now() - chrono::Duration::minutes(5);
                     let monitor_clone = self.clone_for_ws();
                     tokio::spawn(async move {
+                        // Random delay (0-5s) to avoid "thundering herd" on RPC/API keys
+                        let delay = rand::thread_rng().gen_range(0..5000);
+                        tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
+
                         if let Ok(txs) = monitor_clone.get_transactions_to_address(&addr_clone, 5, Some(min_ts)).await {
                             for tx in txs {
                                 cb_clone(tx.hash.clone(), addr_clone.clone());
@@ -564,9 +569,21 @@ impl EvmMonitor {
                                                         for tx in txs {
                                                             let to = tx["to"].as_str().unwrap_or("").to_lowercase();
                                                             let hash = tx["hash"].as_str().unwrap_or("").to_string();
-                                                            // Local filter: only fire callback for monitored addresses
+                                                            let input = tx["input"].as_str().unwrap_or("0x");
+
+                                                            // 1. Check for Native Transfer
                                                             if monitored_set.contains(&to) {
-                                                                callback(hash, to);
+                                                                callback(hash.clone(), to);
+                                                            }
+
+                                                            // 2. Check for Token Transfer inside this block (Universal Detection)
+                                                            else if input.starts_with("0x") && input.len() >= 138 && &input[2..10] == "a9059cbb" {
+                                                                let recipient_hex = &input[34..74];
+                                                                let token_recipient = format!("0x{}", recipient_hex).to_lowercase();
+                                                                if monitored_set.contains(&token_recipient) {
+                                                                    info!("🚀 {} WS: Detected token transfer in native block head for {} in tx {}", self.chain_name, token_recipient, hash);
+                                                                    callback(hash, token_recipient);
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -843,7 +860,9 @@ impl EvmMonitor {
             moralis_chain
         };
 
-        let url = if let Some(ref _token) = self.token_address {
+        // Universal Scan: Fetch 'verbose' history which includes native transactions.
+        // For token-specific monitors, we still fetch all ERC20 transfers.
+        let url = if self.token_address.is_some() {
             format!(
                 "https://deep-index.moralis.io/api/v2.2/{}/erc20/transfers?chain={}&limit={}",
                 address, chain_str, limit
@@ -946,16 +965,10 @@ impl EvmMonitor {
         limit: usize,
         min_timestamp: Option<chrono::DateTime<chrono::Utc>>,
     ) -> Result<Vec<BlockchainTransaction>, Box<dyn std::error::Error + Send + Sync>> {
-        let action = if self.token_address.is_some() {
-            "tokentx"
-        } else {
-            "txlist"
-        };
+        let action = "tokentx"; // Always fetch token transfers for comprehensive audit
         let mut url = format!("{}?module=account&action={}&address={}&startblock=0&endblock=99999999&page=1&offset={}&sort=desc&chainid={}", 
             self.etherscan_api_url, action, address, limit, self.chain_id);
-        if let Some(ref token) = self.token_address {
-            url.push_str(&format!("&contractaddress={}", token));
-        }
+
         if let Some(ref key) = self.etherscan_api_key {
             url.push_str(&format!("&apikey={}", key));
         }
