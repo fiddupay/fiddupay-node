@@ -876,8 +876,13 @@ impl BackgroundTasks {
 
             // Background task to discovery newly added wallets or payments
             tokio::spawn(async move {
+                use rand::Rng;
+
                 loop {
-                    tokio::time::sleep(Duration::from_secs(20)).await;
+                    // Jittered sleep: 20s +/- 5s
+                    let sleep_secs = rand::thread_rng().gen_range(15..25);
+                    tokio::time::sleep(Duration::from_secs(sleep_secs)).await;
+
                     let current =
                         BackgroundTasks::fetch_evm_addresses(&db_clone, crypto_id, sandbox_mode)
                             .await;
