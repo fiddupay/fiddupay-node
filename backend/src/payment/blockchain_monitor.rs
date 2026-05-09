@@ -71,6 +71,8 @@ pub struct EvmMonitor {
     is_sandbox: bool,
     rate_limiter: Arc<DefaultDirectRateLimiter>,
     rpc_blacklist: Arc<tokio::sync::RwLock<std::collections::HashMap<String, std::time::Instant>>>,
+    moralis_blacklist:
+        Arc<tokio::sync::RwLock<std::collections::HashMap<String, std::time::Instant>>>,
 }
 
 impl EvmMonitor {
@@ -263,6 +265,7 @@ impl EvmMonitor {
                 NonZeroU32::new(25).unwrap(),
             ))),
             rpc_blacklist: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            moralis_blacklist: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         }
     }
 
@@ -307,6 +310,7 @@ impl EvmMonitor {
                 NonZeroU32::new(25).unwrap(),
             ))),
             rpc_blacklist: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            moralis_blacklist: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         }
     }
 
@@ -352,6 +356,7 @@ impl EvmMonitor {
                 NonZeroU32::new(25).unwrap(),
             ))),
             rpc_blacklist: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            moralis_blacklist: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         }
     }
 
@@ -409,6 +414,7 @@ impl EvmMonitor {
                 NonZeroU32::new(25).unwrap(),
             ))),
             rpc_blacklist: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            moralis_blacklist: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         }
     }
 
@@ -442,25 +448,32 @@ impl EvmMonitor {
 
         let mut ws_stream_opt = None;
 
-        for url in &self.ws_urls {
+        for (i, url) in self.ws_urls.iter().enumerate() {
             let safe_url = redact_url(url);
             info!(
-                "🔌 Attempting connection to {} WebSocket: {}",
-                self.chain_name, safe_url
+                "🔌 [Key #{}] Attempting connection to {} WebSocket: {}",
+                i + 1,
+                self.chain_name,
+                safe_url
             );
             match connect_async(url.as_str()).await {
                 Ok((stream, _)) => {
                     ws_stream_opt = Some(stream);
                     info!(
-                        "✅ Successfully connected to {} WebSocket: {}",
-                        self.chain_name, safe_url
+                        "✅ [Key #{}] Successfully connected to {} WebSocket: {}",
+                        i + 1,
+                        self.chain_name,
+                        safe_url
                     );
                     break;
                 }
                 Err(e) => {
                     warn!(
-                        "❌ Failed to connect to {} WebSocket {}: {}",
-                        self.chain_name, safe_url, e
+                        "❌ [Key #{}] Failed to connect to {} WebSocket {}: {}",
+                        i + 1,
+                        self.chain_name,
+                        safe_url,
+                        e
                     );
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                     continue;
@@ -687,6 +700,7 @@ impl EvmMonitor {
             is_sandbox: self.is_sandbox,
             rate_limiter: self.rate_limiter.clone(),
             rpc_blacklist: self.rpc_blacklist.clone(),
+            moralis_blacklist: self.moralis_blacklist.clone(),
         }
     }
 }
@@ -764,7 +778,7 @@ impl EvmMonitor {
         // Apply global rate limit before any RPC request
         self.rate_limiter.until_ready().await;
 
-        for url in &self.rpc_urls {
+        for (i, url) in self.rpc_urls.iter().enumerate() {
             // Check if node is blacklisted
             {
                 let blacklist = self.rpc_blacklist.read().await;
@@ -780,7 +794,8 @@ impl EvmMonitor {
                     let status = response.status();
                     if status == 429 {
                         warn!(
-                            "Rate limit (429) hit on {}, blacklisting for 5 mins...",
+                            "Rate limit (429) hit on [Key #{} - {}], blacklisting for 5 mins...",
+                            i + 1,
                             redact_url(url)
                         );
                         {
@@ -795,8 +810,9 @@ impl EvmMonitor {
                     }
                     if status == 401 || status == 403 {
                         warn!(
-                            "Auth error ({}) for {}, blacklisting for 10 mins...",
+                            "Auth error ({}) for [Key #{} - {}], blacklisting for 10 mins...",
                             status,
+                            i + 1,
                             redact_url(url)
                         );
                         {
@@ -819,7 +835,8 @@ impl EvmMonitor {
                                     || err_msg.to_lowercase().contains("too many")
                                 {
                                     warn!(
-                                        "Rate limit payload from {}, trying next RPC...",
+                                        "Rate limit payload from [Key #{} - {}], trying next RPC...",
+                                        i + 1,
                                         redact_url(url)
                                     );
                                     last_error = Some(format!("Rate limit: {}", err_msg));
@@ -931,12 +948,35 @@ impl EvmMonitor {
             )
         };
 
-        for key in &self.moralis_keys {
+        for (i, key) in self.moralis_keys.iter().enumerate() {
+            // Check blacklist
+            {
+                let blacklist = self.moralis_blacklist.read().await;
+                if let Some(expiry) = blacklist.get(key) {
+                    if std::time::Instant::now() < *expiry {
+                        continue;
+                    }
+                }
+            }
+
             if let Ok(response) = self.client.get(&url).header("X-API-Key", key).send().await {
-                if response.status() == 429 {
+                let status = response.status();
+                if status == 429 || status == 401 || status == 403 {
+                    warn!(
+                        "Moralis key error ({}) on [Key #{}], blacklisting for 10 mins...",
+                        status,
+                        i + 1
+                    );
+                    {
+                        let mut blacklist = self.moralis_blacklist.write().await;
+                        blacklist.insert(
+                            key.clone(),
+                            std::time::Instant::now() + std::time::Duration::from_secs(600),
+                        );
+                    }
                     continue;
                 }
-                if response.status().is_success() {
+                if status.is_success() {
                     let data = response.json::<serde_json::Value>().await?;
                     let mut transactions = Vec::new();
                     if let Some(result_arr) = data.get("result").and_then(|v| v.as_array()) {
