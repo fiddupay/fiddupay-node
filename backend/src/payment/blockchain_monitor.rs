@@ -70,6 +70,7 @@ pub struct EvmMonitor {
     internal_chain_identifier: &'static str,
     is_sandbox: bool,
     rate_limiter: Arc<DefaultDirectRateLimiter>,
+    rpc_blacklist: Arc<tokio::sync::RwLock<std::collections::HashMap<String, std::time::Instant>>>,
 }
 
 impl EvmMonitor {
@@ -261,6 +262,7 @@ impl EvmMonitor {
             rate_limiter: Arc::new(RateLimiter::direct(Quota::per_second(
                 NonZeroU32::new(25).unwrap(),
             ))),
+            rpc_blacklist: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         }
     }
 
@@ -304,6 +306,7 @@ impl EvmMonitor {
             rate_limiter: Arc::new(RateLimiter::direct(Quota::per_second(
                 NonZeroU32::new(25).unwrap(),
             ))),
+            rpc_blacklist: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         }
     }
 
@@ -348,6 +351,7 @@ impl EvmMonitor {
             rate_limiter: Arc::new(RateLimiter::direct(Quota::per_second(
                 NonZeroU32::new(25).unwrap(),
             ))),
+            rpc_blacklist: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         }
     }
 
@@ -404,6 +408,7 @@ impl EvmMonitor {
             rate_limiter: Arc::new(RateLimiter::direct(Quota::per_second(
                 NonZeroU32::new(25).unwrap(),
             ))),
+            rpc_blacklist: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         }
     }
 
@@ -681,6 +686,7 @@ impl EvmMonitor {
             internal_chain_identifier: self.internal_chain_identifier,
             is_sandbox: self.is_sandbox,
             rate_limiter: self.rate_limiter.clone(),
+            rpc_blacklist: self.rpc_blacklist.clone(),
         }
     }
 }
@@ -759,25 +765,47 @@ impl EvmMonitor {
         self.rate_limiter.until_ready().await;
 
         for url in &self.rpc_urls {
+            // Check if node is blacklisted
+            {
+                let blacklist = self.rpc_blacklist.read().await;
+                if let Some(expiry) = blacklist.get(url) {
+                    if std::time::Instant::now() < *expiry {
+                        continue;
+                    }
+                }
+            }
+
             match self.client.post(url).json(&payload).send().await {
                 Ok(response) => {
                     let status = response.status();
                     if status == 429 {
                         warn!(
-                            "Rate limit (429) hit on {}, applying backoff delay (2s)...",
+                            "Rate limit (429) hit on {}, blacklisting for 5 mins...",
                             redact_url(url)
                         );
+                        {
+                            let mut blacklist = self.rpc_blacklist.write().await;
+                            blacklist.insert(
+                                url.clone(),
+                                std::time::Instant::now() + std::time::Duration::from_secs(300),
+                            );
+                        }
                         last_error = Some("Rate limit hit".to_string());
-                        // Apply substantial backoff delay to allow provider throttle to clear
-                        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
                         continue;
                     }
                     if status == 401 || status == 403 {
                         warn!(
-                            "Auth error ({}) for {}, skipping provider...",
+                            "Auth error ({}) for {}, blacklisting for 10 mins...",
                             status,
                             redact_url(url)
                         );
+                        {
+                            let mut blacklist = self.rpc_blacklist.write().await;
+                            blacklist.insert(
+                                url.clone(),
+                                std::time::Instant::now() + std::time::Duration::from_secs(600),
+                            );
+                        }
                         last_error = Some(format!("Auth error: {}", status));
                         continue;
                     }
