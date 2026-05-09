@@ -156,12 +156,6 @@ impl BackgroundTasks {
             });
         }
 
-        let _tasks_btc_sandbox = self.clone();
-        tokio::spawn(async move {
-            // Disabled BTC Testnet monitor to reduce API usage as requested
-            // _tasks_btc_sandbox.run_btc_monitor(true).await;
-        });
-
         // --- EVM Production Monitors ---
         // Monitor both native currencies and major tokens for each network
         let evm_configs = [
@@ -860,6 +854,7 @@ impl BackgroundTasks {
             crypto_id, cluster_name
         );
 
+        let mut backoff = 15;
         loop {
             // 1. Initial address fetch
             let addresses = Self::fetch_evm_addresses(&self.db_pool, crypto_id, sandbox_mode).await;
@@ -932,9 +927,6 @@ impl BackgroundTasks {
                     // Optimized: Only hit DB if the address is in our monitored set
                     {
                         let lock = monitored.read().await;
-                        // For EVM, to_address in DB is usually stored lowercase or compared lowercase
-                        // Most internal addresses are added to the list in their original format,
-                        // but the monitor callback provides the address from the blockchain.
                         if !lock.contains(&address) && !lock.contains(&addr_lwr) {
                             return;
                         }
@@ -1034,10 +1026,13 @@ impl BackgroundTasks {
             // 5. Start listener (blocks until error or disconnect)
             if let Err(e) = monitor.listen_for_events(addresses, rx, callback).await {
                 error!(
-                    "[EVM-{}] WebSocket listener crashed: {}. Restarting in 10s...",
-                    crypto_id, e
+                    "[EVM-{}] WebSocket listener crashed: {}. Restarting in {}s...",
+                    crypto_id, e, backoff
                 );
-                tokio::time::sleep(Duration::from_secs(10)).await;
+                tokio::time::sleep(Duration::from_secs(backoff)).await;
+                backoff = std::cmp::min(backoff * 2, 300);
+            } else {
+                backoff = 15;
             }
         }
     }
@@ -1047,6 +1042,7 @@ impl BackgroundTasks {
         let cluster_name = if sandbox_mode { "Devnet" } else { "Mainnet" };
         info!("Starting Solana {} real-time monitor...", cluster_name);
 
+        let mut backoff = 15;
         loop {
             // Get all unique addresses for pending Solana payments
             let addresses = Self::fetch_solana_addresses(&self.db_pool, sandbox_mode).await;
@@ -1170,7 +1166,6 @@ impl BackgroundTasks {
                                         }
                                     }
                                     Ok(None) => {
-                                        // Check if this is a static merchant address
                                         // Check if this is a static merchant address across any environment (Must be active)
                                         let merchant_wallet_res = sqlx::query(
                                             "SELECT merchant_id, crypto_type FROM merchant_wallets WHERE address = $1 AND is_active = true"
@@ -1229,10 +1224,13 @@ impl BackgroundTasks {
             // Start listening (this block is long-running)
             if let Err(e) = monitor.listen_for_events(addresses, rx, callback).await {
                 error!(
-                    "Solana WebSocket monitor crashed: {}. Reconnecting in 2s...",
-                    e
+                    "Solana WebSocket monitor crashed: {}. Reconnecting in {}s...",
+                    e, backoff
                 );
-                tokio::time::sleep(Duration::from_secs(2)).await;
+                tokio::time::sleep(Duration::from_secs(backoff)).await;
+                backoff = std::cmp::min(backoff * 2, 300);
+            } else {
+                backoff = 15;
             }
         }
     }

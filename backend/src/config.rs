@@ -18,8 +18,8 @@ pub struct Config {
     pub ankr_api_keys: Vec<String>,
     pub getblock_eth_keys: Vec<String>,
     pub getblock_bsc_keys: Vec<String>,
-    pub chainstack_eth_url: Option<String>,
-    pub chainstack_bsc_url: Option<String>,
+    pub chainstack_eth_keys: Vec<String>,
+    pub chainstack_bsc_keys: Vec<String>,
     pub infura_api_keys: Vec<String>,
     pub moralis_api_keys: Vec<String>,
     pub svs_api_keys: Vec<String>,
@@ -261,8 +261,20 @@ impl Config {
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty())
                 .collect(),
-            chainstack_eth_url: env::var("CHAINSTACK_ETH_URL").ok(),
-            chainstack_bsc_url: env::var("CHAINSTACK_BSC_URL").ok(),
+            chainstack_eth_keys: env::var("CHAINSTACK_ETH_KEYS")
+                .or_else(|_| env::var("CHAINSTACK_ETH_URL"))
+                .unwrap_or_default()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
+            chainstack_bsc_keys: env::var("CHAINSTACK_BSC_KEYS")
+                .or_else(|_| env::var("CHAINSTACK_BSC_URL"))
+                .unwrap_or_default()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect(),
             infura_api_keys: env::var("INFURA_API_KEYS")
                 .unwrap_or_default()
                 .split(',')
@@ -846,8 +858,8 @@ impl Default for Config {
             ankr_api_keys: vec![],
             getblock_eth_keys: vec![],
             getblock_bsc_keys: vec![],
-            chainstack_eth_url: None,
-            chainstack_bsc_url: None,
+            chainstack_eth_keys: vec![],
+            chainstack_bsc_keys: vec![],
             infura_api_keys: vec![],
             moralis_api_keys: vec![],
             svs_api_keys: vec![],

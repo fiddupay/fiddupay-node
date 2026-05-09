@@ -81,14 +81,22 @@ impl EvmMonitor {
         let mut urls = Vec::new();
         // --- 1. PRIMARY PROVIDER: Chainstack (User's preferred high-limit provider) ---
         if chain == "ETH" && !is_sandbox {
-            if let Some(ref url) = config.chainstack_eth_url {
-                urls.push(url.clone());
-            }
+            urls.extend(config.chainstack_eth_keys.iter().map(|k| {
+                if k.starts_with("http") {
+                    k.clone()
+                } else {
+                    format!("https://ethereum-mainnet.core.chainstack.com/{}", k)
+                }
+            }));
         }
         if chain == "BSC" && !is_sandbox {
-            if let Some(ref url) = config.chainstack_bsc_url {
-                urls.push(url.clone());
-            }
+            urls.extend(config.chainstack_bsc_keys.iter().map(|k| {
+                if k.starts_with("http") {
+                    k.clone()
+                } else {
+                    format!("https://bsc-mainnet.core.chainstack.com/{}", k)
+                }
+            }));
         }
 
         // --- 2. SECONDARY PROVIDERS: Ankr, Infura (Solid backups) ---
@@ -211,8 +219,13 @@ impl EvmMonitor {
 
         // Prioritize Chainstack WSS if available
         if !is_sandbox {
-            if let Some(ref url) = config.chainstack_bsc_url {
-                ws_urls.push(url.replace("https://", "wss://"));
+            for key in &config.chainstack_bsc_keys {
+                let url = if key.starts_with("http") {
+                    key.replace("https://", "wss://")
+                } else {
+                    format!("wss://bsc-mainnet.core.chainstack.com/{}", key)
+                };
+                ws_urls.push(url);
             }
         }
 
@@ -351,8 +364,24 @@ impl EvmMonitor {
         };
         let rpc_urls = Self::build_rpc_urls("ETH", is_sandbox, config);
         let mut ws_urls = Vec::new();
+
+        // Prioritize Chainstack WSS if available
+        if !is_sandbox {
+            for key in &config.chainstack_eth_keys {
+                let url = if key.starts_with("http") {
+                    key.replace("https://", "wss://")
+                } else {
+                    format!("wss://ethereum-mainnet.core.chainstack.com/{}", key)
+                };
+                ws_urls.push(url);
+            }
+        }
+
         for rpc in &rpc_urls {
-            ws_urls.push(get_evm_ws_url(config, rpc));
+            let ws = get_evm_ws_url(config, rpc);
+            if !ws_urls.contains(&ws) {
+                ws_urls.push(ws);
+            }
         }
 
         Self {
