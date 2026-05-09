@@ -235,7 +235,11 @@ impl EvmMonitor {
             rpc_urls,
             ws_urls,
             moralis_keys: config.moralis_api_keys.clone(),
-            etherscan_api_url: "https://api.etherscan.io/v2/api".to_string(),
+            etherscan_api_url: if is_sandbox {
+                "https://api-testnet.bscscan.com/api".to_string()
+            } else {
+                "https://api.bscscan.com/api".to_string()
+            },
             etherscan_api_key: config.etherscan_api_key.clone(),
             internal_chain_identifier: "BSC",
             is_sandbox,
@@ -275,7 +279,11 @@ impl EvmMonitor {
             rpc_urls,
             ws_urls,
             moralis_keys: config.moralis_api_keys.clone(),
-            etherscan_api_url: "https://api.etherscan.io/v2/api".to_string(),
+            etherscan_api_url: if is_sandbox {
+                "https://api-sepolia.arbiscan.io/api".to_string()
+            } else {
+                "https://api.arbiscan.io/api".to_string()
+            },
             etherscan_api_key: config.etherscan_api_key.clone(),
             internal_chain_identifier: "ARBITRUM",
             is_sandbox,
@@ -315,7 +323,11 @@ impl EvmMonitor {
             rpc_urls,
             ws_urls,
             moralis_keys: config.moralis_api_keys.clone(),
-            etherscan_api_url: "https://api.etherscan.io/v2/api".to_string(),
+            etherscan_api_url: if is_sandbox {
+                "https://api-amoy.polygonscan.com/api".to_string()
+            } else {
+                "https://api.polygonscan.com/api".to_string()
+            },
             etherscan_api_key: config.etherscan_api_key.clone(),
             internal_chain_identifier: "POLYGON",
             is_sandbox,

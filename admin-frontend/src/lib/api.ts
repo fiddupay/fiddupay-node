@@ -40,6 +40,16 @@ export const adminAPI = {
   getSystemHealth: () => api.get('/api/v1/admin/system/health'),
   getSystemLogs: () => api.get('/api/v1/admin/system/logs'),
   getAuditLogs: () => api.get('/api/v1/admin/system/audit'),
+
+  // Rectification
+  rectifyOnchain: (data: { 
+    address: string, 
+    crypto_type: string, 
+    dry_run?: boolean, 
+    signature_limit?: number, 
+    sandbox_mode?: boolean,
+    rectify_type?: string 
+  }) => api.post('/api/v1/admin/rectify/onchain', data),
 };
 
 export default api;

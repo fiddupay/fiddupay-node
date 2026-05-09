@@ -1902,7 +1902,7 @@
           }
         },
         {
-          "name": "Manual Rectify Solana",
+          "name": "Manual On-Chain Rectification",
           "request": {
             "method": "POST",
             "header": [
@@ -1917,7 +1917,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/rectify/solana",
+              "raw": "{{baseUrl}}/api/v1/admin/rectify/onchain",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1926,13 +1926,14 @@
                 "v1",
                 "admin",
                 "rectify",
-                "solana"
+                "onchain"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"address\": \"Aa...\",\n  \"dry_run\": true\n}"
-            }
+              "raw": "{\n  \"address\": \"0x...\",\n  \"crypto_type\": \"BNB\",\n  \"dry_run\": true,\n  \"signature_limit\": 100,\n  \"rectify_type\": \"BOTH\"\n}"
+            },
+            "description": "Scans the blockchain for the given address and reconciles the database balance. Works for BSC, ETH, SOL, etc."
           }
         }
       ]

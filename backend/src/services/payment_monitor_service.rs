@@ -2,6 +2,7 @@
 // Monitors deposit addresses for incoming payments and triggers auto-forwarding
 
 use crate::error::ServiceError;
+use crate::payment::models::CryptoType;
 use crate::services::address_only_service::AddressOnlyService;
 use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
@@ -133,11 +134,67 @@ impl PaymentMonitorService {
             "ARB" => self.get_arb_balance(address).await,
             "SOL" => self.get_sol_balance(address).await,
             "BTC" => self.get_btc_balance(address).await,
+            "USDT_BEP20" | "BUSD_BEP20" | "USDT_ETH" | "USDT_POLYGON" | "USDT_ARBITRUM" => {
+                self.get_token_balance(crypto_type, address).await
+            }
             _ => Err(ServiceError::ValidationError(format!(
                 "Unsupported crypto type: {}",
                 crypto_type
             ))),
         }
+    }
+
+    async fn get_token_balance(
+        &self,
+        crypto_id: &str,
+        address: &str,
+    ) -> Result<Decimal, ServiceError> {
+        use std::str::FromStr;
+        let crypto_type = CryptoType::from_str(crypto_id)
+            .map_err(|e| ServiceError::ValidationError(e.to_string()))?;
+
+        let rpc_url = crypto_type.rpc_url_from_config(&self.config);
+        let token_addr_str = crypto_type
+            .token_address()
+            .ok_or_else(|| ServiceError::ValidationError("Not a token type".to_string()))?;
+
+        let provider =
+            ProviderBuilder::new()
+                .network::<Ethereum>()
+                .connect_http(rpc_url.parse().map_err(|e| {
+                    ServiceError::Internal(format!("Invalid RPC URL: {} ({})", rpc_url, e))
+                })?);
+
+        let addr: Address = address
+            .parse()
+            .map_err(|_| ServiceError::ValidationError("Invalid user address".to_string()))?;
+        let token_addr: Address = token_addr_str
+            .parse()
+            .map_err(|_| ServiceError::ValidationError("Invalid token address".to_string()))?;
+
+        // 0x70a08231: balanceOf(address)
+        let mut call_data = Vec::with_capacity(36);
+        call_data.extend_from_slice(&[0x70, 0xa0, 0x82, 0x31]);
+        let mut padded_addr = [0u8; 32];
+        padded_addr[12..32].copy_from_slice(addr.as_slice());
+        call_data.extend_from_slice(&padded_addr);
+
+        let tx = alloy::rpc::types::TransactionRequest::default()
+            .to(token_addr)
+            .input(alloy::rpc::types::TransactionInput::new(call_data.into()));
+
+        let result = provider
+            .call(tx)
+            .await
+            .map_err(|e| ServiceError::Internal(format!("Token balance RPC error: {}", e)))?;
+
+        let balance_u256 = alloy::primitives::U256::from_be_slice(&result);
+        let balance_u128 = balance_u256.to::<u128>();
+
+        let decimals = crypto_type.decimals();
+        let mut dec = Decimal::from_i128_with_scale(balance_u128 as i128, decimals);
+        dec.rescale(decimals);
+        Ok(dec)
     }
 
     async fn get_eth_balance(&self, address: &str) -> Result<Decimal, ServiceError> {

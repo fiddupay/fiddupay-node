@@ -163,10 +163,18 @@ impl BackgroundTasks {
         });
 
         // --- EVM Production Monitors ---
-        let networks = ["ETH", "BNB", "MATIC", "ARB"];
+        // Monitor both native currencies and major tokens for each network
+        let evm_configs = [
+            ("ETH", vec!["ETH", "USDT_ETH"]),
+            ("BNB", vec!["BNB", "USDT_BEP20", "BUSD_BEP20"]),
+            ("MATIC", vec!["MATIC", "USDT_POLYGON"]),
+            ("ARB", vec!["ARB", "USDT_ARBITRUM"]),
+        ];
+
+        let evm_configs_prod = evm_configs.clone();
         let tasks_prod = self.clone();
         tokio::spawn(async move {
-            for net in networks {
+            for (net, cryptos) in evm_configs_prod {
                 let is_enabled = match net {
                     "ETH" => tasks_prod.config.ethereum_enabled,
                     "BNB" => tasks_prod.config.bsc_enabled,
@@ -176,13 +184,17 @@ impl BackgroundTasks {
                 };
 
                 if is_enabled {
-                    let tasks = tasks_prod.clone();
-                    tokio::spawn(async move {
-                        tasks.run_evm_monitor(net, false).await;
-                    });
+                    for crypto_id in cryptos {
+                        let tasks = tasks_prod.clone();
+                        tokio::spawn(async move {
+                            tasks.run_evm_monitor(crypto_id, false).await;
+                        });
+                        // Small stagger between tokens
+                        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                    }
                 }
-                // Stagger monitor starts to prevent RPC request spikes
-                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                // Stagger network starts
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
             }
         });
 
@@ -190,8 +202,9 @@ impl BackgroundTasks {
 
         if enable_sandbox {
             let tasks_sandbox = self.clone();
+            let evm_configs_sandbox = evm_configs; // Last use, can be moved
             tokio::spawn(async move {
-                for net in networks {
+                for (net, cryptos) in evm_configs_sandbox {
                     let is_enabled = match net {
                         "ETH" => {
                             tasks_sandbox.config.ethereum_enabled
@@ -213,13 +226,16 @@ impl BackgroundTasks {
                     };
 
                     if is_enabled {
-                        let tasks = tasks_sandbox.clone();
-                        tokio::spawn(async move {
-                            tasks.run_evm_monitor(net, true).await;
-                        });
+                        for crypto_id in cryptos {
+                            let tasks = tasks_sandbox.clone();
+                            tokio::spawn(async move {
+                                tasks.run_evm_monitor(crypto_id, true).await;
+                            });
+                            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                        }
                     }
-                    // Stagger sandbox starts as well
-                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                    // Stagger sandbox network starts
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 }
             });
         } else {
@@ -837,16 +853,16 @@ impl BackgroundTasks {
     }
 
     /// Run EVM real-time monitor
-    async fn run_evm_monitor(&self, network: &'static str, sandbox_mode: bool) {
+    async fn run_evm_monitor(&self, crypto_id: &'static str, sandbox_mode: bool) {
         let cluster_name = if sandbox_mode { "Sandbox" } else { "Mainnet" };
         info!(
             "Starting EVM {} ({}) real-time WebSocket monitor...",
-            network, cluster_name
+            crypto_id, cluster_name
         );
 
         loop {
             // 1. Initial address fetch
-            let addresses = Self::fetch_evm_addresses(&self.db_pool, network, sandbox_mode).await;
+            let addresses = Self::fetch_evm_addresses(&self.db_pool, crypto_id, sandbox_mode).await;
 
             // Initial monitored address set
             let monitored_addresses = Arc::new(RwLock::new(
@@ -856,19 +872,15 @@ impl BackgroundTasks {
             // Setup dynamic address channel
             let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<String>();
             let db_clone = self.db_pool.clone();
-            let network_clone = network;
             let monitored_addresses_sync = monitored_addresses.clone();
 
             // Background task to discovery newly added wallets or payments
             tokio::spawn(async move {
                 loop {
                     tokio::time::sleep(Duration::from_secs(20)).await;
-                    let current = BackgroundTasks::fetch_evm_addresses(
-                        &db_clone,
-                        network_clone,
-                        sandbox_mode,
-                    )
-                    .await;
+                    let current =
+                        BackgroundTasks::fetch_evm_addresses(&db_clone, crypto_id, sandbox_mode)
+                            .await;
 
                     let mut lock = monitored_addresses_sync.write().await;
                     for a in current {
@@ -881,13 +893,7 @@ impl BackgroundTasks {
             });
 
             // 3. Initialize monitor and verifier
-            let crypto_type = match network {
-                "ETH" => CryptoType::Eth,
-                "BNB" => CryptoType::Bnb,
-                "MATIC" => CryptoType::Matic,
-                "ARB" => CryptoType::Arb,
-                _ => CryptoType::Eth,
-            };
+            let crypto_type = CryptoType::from_string(crypto_id).unwrap_or(CryptoType::Eth);
 
             let monitor = crate::payment::blockchain_monitor::get_blockchain_monitor(
                 &crypto_type,
@@ -907,7 +913,7 @@ impl BackgroundTasks {
 
             let db_clone = self.db_pool.clone();
             let verifier_clone = verifier.clone();
-            let net_name = network;
+            let net_name = crypto_id;
 
             // 4. Verification Callback
             let monitored_addresses_callback = monitored_addresses.clone();
@@ -1024,7 +1030,7 @@ impl BackgroundTasks {
             if let Err(e) = monitor.listen_for_events(addresses, rx, callback).await {
                 error!(
                     "[EVM-{}] WebSocket listener crashed: {}. Restarting in 10s...",
-                    network, e
+                    crypto_id, e
                 );
                 tokio::time::sleep(Duration::from_secs(10)).await;
             }

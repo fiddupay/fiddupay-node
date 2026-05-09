@@ -1,5 +1,5 @@
 // Address-Only Mode with Auto-Forwarding (Phase 1)
-// Supports native currencies only: ETH, BNB, MATIC, ARB, SOL
+// Supports native and major tokens: ETH, BNB, MATIC, ARB, SOL, USDT, BUSD
 
 use crate::error::ServiceError;
 use crate::payment::models::CryptoType;
@@ -75,10 +75,10 @@ impl AddressOnlyService {
         merchant_address: String,
         requested_amount: Decimal,
     ) -> Result<AddressOnlyPayment, ServiceError> {
-        // Validate native currency only
-        if !self.is_native_currency(crypto_type) {
+        // Validate supported currency
+        if !self.is_supported_currency(crypto_type) {
             return Err(ServiceError::ValidationError(
-                "Address-only mode currently supports native currencies only (ETH, BNB, MATIC, ARB, SOL)".to_string()
+                "Address-only mode currently supports ETH, BNB, MATIC, ARB, SOL, BTC, USDT, and BUSD".to_string()
             ));
         }
 
@@ -356,8 +356,8 @@ impl AddressOnlyService {
         Ok(wallet.address)
     }
 
-    /// Check if crypto type is native currency (Phase 1 support only)
-    fn is_native_currency(&self, crypto_type: CryptoType) -> bool {
+    /// Check if crypto type is supported (Phase 1+)
+    fn is_supported_currency(&self, crypto_type: CryptoType) -> bool {
         matches!(
             crypto_type,
             CryptoType::Eth
@@ -366,6 +366,11 @@ impl AddressOnlyService {
                 | CryptoType::Arb
                 | CryptoType::Sol
                 | CryptoType::Btc
+                | CryptoType::UsdtBep20
+                | CryptoType::BusdBep20
+                | CryptoType::UsdtEth
+                | CryptoType::UsdtPolygon
+                | CryptoType::UsdtArbitrum
         )
     }
 

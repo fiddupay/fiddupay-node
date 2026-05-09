@@ -1035,7 +1035,7 @@ impl BalanceService {
                         }));
 
                         if !dry_run {
-                            tracing::warn!("[RECTIFY-ZOMBIE] Resurrecting failed-but-onchain withdrawal {}: {} SOL", tx_id, amount);
+                            tracing::warn!("[RECTIFY-ZOMBIE] Resurrecting failed-but-onchain withdrawal {}: {} {}", tx_id, amount, crypto_type_str);
                             let mut zombie_tx = self.db_pool.begin().await?;
 
                             // Re-deduct from balance because 'FAILED' status likely returned it
@@ -1181,7 +1181,7 @@ impl BalanceService {
         }
 
         // Expected On-chain Balance = (Confirmed Onchain Deposits - Fees) - (Completed Withdrawals)
-        let expected_onchain_sol =
+        let expected_onchain_balance =
             (db_confirmed_onchain_deposits - db_platform_fees_deducted) - db_confirmed_withdrawals;
 
         // Ledger total balance (for merchant's awareness)
@@ -1196,10 +1196,10 @@ impl BalanceService {
             "mode": if active_sandbox_mode { "SANDBOX" } else { "LIVE" },
             "wallet_reconciliation": {
                 "actual_rpc_balance": actual_rpc_balance,
-                "expected_onchain_sol": expected_onchain_sol,
+                "expected_onchain_balance": expected_onchain_balance,
                 "total_db_ledger_balance": total_db_ledger_balance,
                 "current_dashboard_balance_cache": current_balance_after,
-                "onchain_out_of_sync": (actual_rpc_balance - expected_onchain_sol).abs() > Decimal::new(1, 4),
+                "onchain_out_of_sync": (actual_rpc_balance - expected_onchain_balance).abs() > Decimal::new(1, 4),
                 "ledger_out_of_sync": (total_db_ledger_balance - current_balance_after).abs() > Decimal::new(1, 4)
             },
             "audit_summary": {

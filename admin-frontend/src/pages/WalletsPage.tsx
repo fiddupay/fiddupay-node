@@ -9,6 +9,7 @@ import {
     Copy,
     ChevronRight
 } from 'lucide-react';
+import RectifyModal from '../components/RectifyModal';
 
 interface WalletInfo {
     crypto: string;
@@ -28,6 +29,8 @@ const WalletsPage: React.FC = () => {
     ];
 
     const [sweeping, setSweeping] = useState<string | null>(null);
+    const [isRectifyOpen, setIsRectifyOpen] = useState(false);
+    const [selectedWallet, setSelectedWallet] = useState<WalletInfo | null>(null);
 
     const handleSweep = (crypto: string) => {
         setSweeping(crypto);
@@ -115,20 +118,32 @@ const WalletsPage: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+                            <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between gap-3">
                                 <span className="text-xs text-slate-500 italic">Sweep threshold: 0.05 {wallet.crypto}</span>
-                                <button 
-                                    onClick={() => handleSweep(wallet.crypto)}
-                                    disabled={sweeping === wallet.crypto}
-                                    className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
-                                        sweeping === wallet.crypto 
-                                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed' 
-                                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-200'
-                                    }`}
-                                >
-                                    <RefreshCcw size={14} className={sweeping === wallet.crypto ? 'animate-spin' : ''} />
-                                    {sweeping === wallet.crypto ? 'Sweeping...' : 'Trigger Manual Sweep'}
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={() => {
+                                            setSelectedWallet(wallet);
+                                            setIsRectifyOpen(true);
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm"
+                                    >
+                                        <ShieldCheck size={14} />
+                                        Rectify On-chain
+                                    </button>
+                                    <button 
+                                        onClick={() => handleSweep(wallet.crypto)}
+                                        disabled={sweeping === wallet.crypto}
+                                        className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                                            sweeping === wallet.crypto 
+                                            ? 'bg-slate-200 text-slate-500 cursor-not-allowed' 
+                                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-200'
+                                        }`}
+                                    >
+                                        <RefreshCcw size={14} className={sweeping === wallet.crypto ? 'animate-spin' : ''} />
+                                        {sweeping === wallet.crypto ? 'Sweeping...' : 'Trigger Manual Sweep'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -178,6 +193,15 @@ const WalletsPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {selectedWallet && (
+                <RectifyModal 
+                    isOpen={isRectifyOpen}
+                    onClose={() => setIsRectifyOpen(false)}
+                    initialAddress={selectedWallet.address}
+                    initialCrypto={selectedWallet.crypto}
+                />
+            )}
         </div>
     );
 };
