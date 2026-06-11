@@ -157,6 +157,12 @@ cargo test
 
 To sync code AND push a version tag manually (triggering the automated pipeline):
 
+```bash
+# Tag and push version in the main repository
+git tag -a v2.6.18 -m "Release v2.6.18"
+git push origin v2.6.18
+```
+
 To delete a version on github:
 
 ```bash
