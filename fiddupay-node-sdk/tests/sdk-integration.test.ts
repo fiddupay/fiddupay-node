@@ -21,7 +21,6 @@ describe('FidduPay SDK - Integration Test Suite', () => {
       expect(client.analytics).toBeDefined();
       expect(client.security).toBeDefined();
       expect(client.withdrawals).toBeDefined();
-      expect(client.sandbox).toBeDefined();
       expect(client.webhooks).toBeDefined();
     });
 
@@ -105,9 +104,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
       expect(typeof client.withdrawals.cancel).toBe('function');
     });
 
-    it('should have all sandbox methods available', () => {
-      expect(typeof client.sandbox.simulatePayment).toBe('function');
-    });
+
 
     it('should have all webhook methods available', () => {
       expect(typeof client.webhooks.verifySignature).toBe('function');
@@ -201,7 +198,6 @@ describe('FidduPay SDK - Integration Test Suite', () => {
         'analytics',
         'security',
         'withdrawals',
-        'sandbox',
         'webhooks',
         'invoices',
         'customers',
@@ -343,13 +339,7 @@ describe('FidduPay SDK - Integration Test Suite', () => {
       });
     });
 
-    it('should provide comprehensive sandbox operations', () => {
-      const sandboxMethods = ['simulatePayment'];
-      sandboxMethods.forEach(method => {
-        expect(client.sandbox).toHaveProperty(method);
-        expect(typeof client.sandbox[method as keyof typeof client.sandbox]).toBe('function');
-      });
-    });
+
 
     it('should provide comprehensive contact operations', () => {
       const contactMethods = ['submit'];

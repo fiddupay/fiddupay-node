@@ -1020,10 +1020,11 @@ paths:
                   mode:
                     type: string
                     example: "forwarding"
-        '401':
-          description: Unauthorized
         '400':
           description: Invalid mode provided
+          content:
+            application/json:
+              schema:
                 $ref: '#/components/schemas/Error'
 
   /api/v1/merchants/environment/switch:
@@ -1509,12 +1510,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+
         '401':
           description: Unauthorized
           content:
@@ -2064,48 +2060,6 @@ paths:
                     type: string
                     example: "Sandbox environment enabled"
 
-  /api/v1/merchants/sandbox/payments/{payment_id}/simulate:
-    post:
-      tags:
-        - Sandbox
-      summary: Simulate payment
-      description: Simulate payment confirmation in sandbox
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: payment_id
-          in: path
-          required: true
-          description: Payment ID
-          schema:
-            type: string
-            example: "payment_123"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - success
-              properties:
-                success:
-                  type: boolean
-                  example: true
-      responses:
-        '200':
-          description: Payment simulation completed
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: "Payment simulated successfully"
 
   /api/v1/merchants/security/events:
     get:

@@ -28,7 +28,6 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(fiddupay.security).toBeDefined();
       expect(fiddupay.balances).toBeDefined();
       expect(fiddupay.auditLogs).toBeDefined();
-      expect(fiddupay.sandbox).toBeDefined();
     });
 
     it('should support all crypto types', () => {
@@ -97,7 +96,6 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(client.customers).toBeDefined();
       expect(client.balances).toBeDefined();
       expect(client.auditLogs).toBeDefined();
-      expect(client.sandbox).toBeDefined();
       expect(client.contact).toBeDefined();
       expect(client.transactions).toBeDefined();
       expect(client.addressOnly).toBeDefined();
@@ -221,9 +219,7 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(client.auditLogs.list).toBeDefined();
     });
 
-    it('should have sandbox methods', () => {
-      expect(client.sandbox.simulatePayment).toBeDefined();
-    });
+
 
     it('should have contact methods', () => {
       expect(client.contact.submit).toBeDefined();
@@ -234,17 +230,7 @@ describe('FidduPay SDK - Core Functionality', () => {
     });
   });
 
-  it('should validate sandbox simulation request', () => {
-    expect(() => {
-      const request = {
-        success: true,
-        transaction_hash: '0x123...',
-        from_address: '0xsender...'
-      };
-      expect(request.transaction_hash).toBe('0x123...');
-      expect(request.from_address).toBe('0xsender...');
-    }).not.toThrow();
-  });
+
 
 
   describe('3-Mode Wallet System Support', () => {
@@ -481,7 +467,6 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(client.security).toBe(client.security);
       expect(client.balances).toBe(client.balances);
       expect(client.auditLogs).toBe(client.auditLogs);
-      expect(client.sandbox).toBe(client.sandbox);
     });
 
     it('should have different instances for different clients', () => {

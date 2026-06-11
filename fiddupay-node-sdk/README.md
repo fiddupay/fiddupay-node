@@ -59,13 +59,6 @@ const payment = await client.payments.create({
 });
 
 console.log("Payment created:", payment.id);
-
-// Sandbox Simulation (in sandbox environment)
-await client.sandbox.simulatePayment(payment.id, {
-  success: true,
-  transaction_hash: "0xabc...",
-  from_address: "0xsender...",
-});
 ```
 
 ### Public Widget (No-Code Integration)
@@ -499,7 +492,7 @@ Grouped by `client.*` resource modules for reference:
 | Module              | Methods                                                                                                                                                                                                                                                                            |
 | :------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`merchants`**     | `register()`, `retrieve()`, `getStatus()`, `getReadiness()`, `switchEnvironment()`, `generateApiKey()`, `rotateApiKey()`, `getFeeSetting()`, `updateSettings()`, `getSettings()`, `sendTestWebhook()`, `getIpWhitelist()`, `getBalance()`, `getAuditLogs()`, `getBalanceHistory()`, `claimUsername()`, `updateKycDraft()` |
-| **`payments`**      | `create()`, `retrieve()`, `list()`, `cancel()`, `verify()`, `finalizeSelection()`, `simulate()`, `getAnalytics()`, `updateFeeSetting()`, `getFeeSetting()`                                                                                                                         |
+| **`payments`**      | `create()`, `retrieve()`, `list()`, `cancel()`, `verify()`, `finalizeSelection()`, `getAnalytics()`, `updateFeeSetting()`, `getFeeSetting()`                                                                                                                         |
 | **`addressOnly`**   | `create()`, `getStatus()`, `getCurrencies()`, `getStats()`, `getHealth()`, `getFeeSetting()`, `updateFeeSetting()`                                                                                                                                                                 |
 | **`wallets`**       | `setup()`, `getConfigurations()`, `getBalances()`, `getGasEstimates()`, `checkGasRequirements()`, `gasCheck()`, `checkWithdrawalCapability()`, `revoke()`                                                                                                                          |
 | **`balances`**      | `get()`, `getHistory()`                                                                                                                                                                                                                                                            |

@@ -4,11 +4,13 @@ import { HttpClient } from '../src/client';
 import { MerchantRegistrationRequest, UnifiedSettingsRequest } from '../src/types';
 import { AddressOnly } from '../src/resources/address_only';
 import { Invoices } from '../src/resources/invoices';
+import { Security } from '../src/resources/security';
 
 describe('Compliance and Synchronization (v2.6.17)', () => {
   let mockHttpClient: any;
   let merchants: Merchants;
   let payments: Payments;
+  let security: Security;
 
   beforeEach(() => {
     mockHttpClient = {
@@ -20,6 +22,7 @@ describe('Compliance and Synchronization (v2.6.17)', () => {
     };
     merchants = new Merchants(mockHttpClient);
     payments = new Payments(mockHttpClient);
+    security = new Security(mockHttpClient);
     (merchants as any).addressOnly = new AddressOnly(mockHttpClient);
     (merchants as any).invoices = new Invoices(mockHttpClient);
   });
@@ -52,12 +55,13 @@ describe('Compliance and Synchronization (v2.6.17)', () => {
     );
   });
 
-  test('UnifiedSettingsRequest supports sandbox flags and withdrawal fee', async () => {
+  test('UnifiedSettingsRequest supports webhook settings and sandbox mode', async () => {
     const settingsData: UnifiedSettingsRequest = {
-      withdrawal_fee_percentage: 0.5,
-      solana_sandbox_enabled: true,
-      bnb_sandbox_enabled: false,
-      eth_sandbox_enabled: true
+      webhook_url: 'https://test.com/webhook',
+      settlement_mode: 'forwarding',
+      customer_pays_fee: true,
+      sandbox_mode: false,
+      low_balance_threshold_usd: '10.00'
     };
 
     mockHttpClient.request.mockResolvedValue({ status: 'success', message: 'Updated' });
@@ -108,13 +112,13 @@ describe('Compliance and Synchronization (v2.6.17)', () => {
     expect(mockHttpClient.request).toHaveBeenCalledWith('POST', '/api/v1/merchants/address-only/create', data);
   });
 
-  test('Merchant security methods parity', async () => {
-    mockHttpClient.request.mockResolvedValue({ success: true });
+  test('Security resource parity', async () => {
+    mockHttpClient.post.mockResolvedValue({ success: true });
     
-    await merchants.toggleWalletLock(true);
-    expect(mockHttpClient.request).toHaveBeenCalledWith('POST', '/api/v1/merchants/security/wallets/lock', { locked: true });
+    await security.toggleWalletLock(true, 'password123');
+    expect(mockHttpClient.post).toHaveBeenCalledWith('/api/v1/merchants/security/wallets/lock', { locked: true, password: 'password123' }, undefined);
     
-    await merchants.setTransactionPin('1234');
-    expect(mockHttpClient.request).toHaveBeenCalledWith('POST', '/api/v1/merchants/security/transaction-pin', { pin: '1234' });
+    await security.setTransactionPin('1234');
+    expect(mockHttpClient.post).toHaveBeenCalledWith('/api/v1/merchants/security/transaction-pin', { pin: '1234' }, undefined);
   });
 });

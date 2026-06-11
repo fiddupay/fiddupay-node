@@ -2882,46 +2882,6 @@
       ]
     },
     {
-      "name": "Sandbox Testing",
-      "item": [
-        {
-          "name": "Simulate Confirmation",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/sandbox/payments/pay_123/simulate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "sandbox",
-                "payments",
-                "pay_123",
-                "simulate"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"completed\",\n  \"transaction_hash\": \"0x...\",\n  \"from_address\": \"0x...\"\n}"
-            }
-          }
-        }
-      ]
-    },
-    {
       "name": "Public API",
       "item": [
         {

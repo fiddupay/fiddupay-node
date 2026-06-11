@@ -3,7 +3,10 @@ import {
   Withdrawal,
   CreateWithdrawalRequest,
   ListWithdrawalsParams,
-  PaginatedResponse
+  PaginatedResponse,
+  GasCheckResponse,
+  GasEstimatesResponse,
+  WithdrawalCapability
 } from '../types';
 
 export class Withdrawals {
@@ -58,21 +61,21 @@ export class Withdrawals {
   /**
    * Validate gas requirements for a withdrawal
    */
-  async validateGas(cryptoType: string, amount: string): Promise<any> {
-    return this.client.request('GET', `/api/v1/merchants/wallets/gas-check?crypto_type=${cryptoType}&amount=${amount}`);
+  async validateGas(cryptoType: string, amount: string): Promise<GasCheckResponse> {
+    return this.client.request<GasCheckResponse>('GET', `/api/v1/merchants/wallets/gas-check?crypto_type=${cryptoType}&amount=${amount}`);
   }
 
   /**
    * Get gas price estimates for all supported networks
    */
-  async getGasEstimates(): Promise<any> {
-    return this.client.request('GET', '/api/v1/merchants/wallets/gas-estimates');
+  async getGasEstimates(): Promise<GasEstimatesResponse> {
+    return this.client.request<GasEstimatesResponse>('GET', '/api/v1/merchants/wallets/gas-estimates');
   }
 
   /**
    * Check if withdrawal is possible for a specific cryptocurrency
    */
-  async checkCapability(cryptoType: string): Promise<any> {
-    return this.client.request('GET', `/api/v1/merchants/wallets/withdrawal-capability/${cryptoType}`);
+  async checkCapability(cryptoType: string): Promise<WithdrawalCapability> {
+    return this.client.request<WithdrawalCapability>('GET', `/api/v1/merchants/wallets/withdrawal-capability/${cryptoType}`);
   }
 }

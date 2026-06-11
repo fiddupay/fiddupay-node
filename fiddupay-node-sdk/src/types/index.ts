@@ -191,10 +191,6 @@ export interface CreateAddressOnlyPaymentRequest {
   requested_amount: string;
   crypto_type: CryptoType;
   merchant_address: string;
-  description?: string;
-  metadata?: Record<string, any>;
-  expiration_minutes?: number;
-  webhook_url?: string;
 }
 
 export interface Payment {
@@ -339,21 +335,12 @@ export interface UnifiedSettingsRequest {
   settlement_mode?: 'forwarding' | 'managed';
   customer_pays_fee?: boolean;
   fee_percentage?: number;
-  withdrawal_fee_percentage?: number;
   ip_whitelist?: string[];
   sandbox_mode?: boolean;
   rotate_webhook_secret?: boolean;
   low_balance_threshold_usd?: string;
   low_balance_alerts_enabled?: boolean;
   webhook_signing_secret?: string;
-
-  // Sandbox Flags
-  solana_sandbox_enabled?: boolean;
-  bnb_sandbox_enabled?: boolean;
-  eth_sandbox_enabled?: boolean;
-  matic_sandbox_enabled?: boolean;
-  arb_sandbox_enabled?: boolean;
-  btc_sandbox_enabled?: boolean;
 }
 
 export interface MerchantSettingsUpdateResponse {
@@ -617,6 +604,11 @@ export interface ListSecurityAlertsParams {
   severity?: string;
 }
 
+export interface UpdatePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
 // Balance Types
 export interface BalanceEntry {
   crypto_type: string; // Changed to string for flexibility on some endpoints
@@ -689,20 +681,6 @@ export interface ListAuditLogsParams {
   to?: string;
   action_type?: string;
   limit?: number;
-}
-
-// Sandbox Types
-export interface SandboxPaymentSimulation {
-  payment_id: string;
-  simulated_status: PaymentStatus;
-  transaction_hash?: string;
-  message: string;
-}
-
-export interface SimulatePaymentRequest {
-  success: boolean;
-  transaction_hash?: string;
-  from_address?: string;
 }
 
 // Invoice Types
@@ -996,4 +974,30 @@ export interface AddressOnlyFeeSettingResponse {
 
 export interface UpdateAddressOnlyFeeSettingRequest {
   customer_pays_fee: boolean;
+}
+
+export interface GasCheckResponse {
+  status: 'sufficient' | 'insufficient';
+  message: string;
+  can_withdraw: boolean;
+}
+
+export interface GasEstimatesResponse {
+  networks: Record<string, {
+    crypto_type: string;
+    estimated_gas_fee: string;
+    gas_price: string;
+    gas_limit: number;
+  }>;
+  notes: string[];
+}
+
+export interface GasBalancesResponse {
+  gas_balances: Array<{
+    crypto_type: string;
+    balance: string;
+    balance_usd: string;
+    is_sufficient: boolean;
+  }>;
+  total: number;
 }

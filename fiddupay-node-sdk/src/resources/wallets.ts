@@ -1,5 +1,13 @@
 import { HttpClient } from '../client';
-import { RequestOptions, WalletBalancesResponse } from '../types';
+import {
+  RequestOptions,
+  WalletBalancesResponse,
+  WalletConfig,
+  GeneratedWalletResponse,
+  GasCheckResponse,
+  GasEstimatesResponse,
+  WithdrawalCapability
+} from '../types';
 
 export class Wallets {
   constructor(private client: HttpClient) { }
@@ -7,8 +15,8 @@ export class Wallets {
   /**
    * Get wallet configurations
    */
-  async getConfigurations(options?: RequestOptions): Promise<any> {
-    return this.client.request('GET', '/api/v1/merchants/wallets');
+  async getConfigurations(options?: RequestOptions): Promise<WalletConfig[]> {
+    return this.client.request<WalletConfig[]>('GET', '/api/v1/merchants/wallets');
   }
 
   /**
@@ -28,15 +36,15 @@ export class Wallets {
     mode: 'address' | 'generate';
     address?: string;
     is_active?: boolean;
-  }, options?: RequestOptions): Promise<any> {
-    return this.client.request('POST', '/api/v1/merchants/wallets', data);
+  }, options?: RequestOptions): Promise<GeneratedWalletResponse> {
+    return this.client.request<GeneratedWalletResponse>('POST', '/api/v1/merchants/wallets', data);
   }
 
   /**
    * Generate a new wallet for a cryptocurrency
    * @deprecated Use setup with mode 'generate' instead
    */
-  async generate(data: { crypto_type: string }, options?: RequestOptions): Promise<any> {
+  async generate(data: { crypto_type: string }, options?: RequestOptions): Promise<GeneratedWalletResponse> {
     return this.setup({ crypto_type: data.crypto_type, mode: 'generate' }, options);
   }
 
@@ -49,7 +57,7 @@ export class Wallets {
     crypto_type: string;
     address: string;
     is_active?: boolean;
-  }, options?: RequestOptions): Promise<any> {
+  }, options?: RequestOptions): Promise<GeneratedWalletResponse> {
     return this.setup({ crypto_type: data.crypto_type, mode: 'address', address: data.address, is_active: data.is_active }, options);
   }
 
@@ -57,8 +65,8 @@ export class Wallets {
   /**
    * Get gas estimates
    */
-  async getGasEstimates(options?: RequestOptions): Promise<any> {
-    return this.client.request('GET', '/api/v1/merchants/wallets/gas-estimates');
+  async getGasEstimates(options?: RequestOptions): Promise<GasEstimatesResponse> {
+    return this.client.request<GasEstimatesResponse>('GET', '/api/v1/merchants/wallets/gas-estimates');
   }
 
   /**
@@ -67,25 +75,25 @@ export class Wallets {
   async checkGasRequirements(params: {
     crypto_type: string;
     amount: number;
-  }, options?: RequestOptions): Promise<any> {
+  }, options?: RequestOptions): Promise<GasCheckResponse> {
     const queryParams = new URLSearchParams();
     queryParams.append('crypto_type', params.crypto_type);
     queryParams.append('amount', params.amount.toString());
 
-    return this.client.request('GET', `/api/v1/merchants/wallets/gas-check?${queryParams.toString()}`);
+    return this.client.request<GasCheckResponse>('GET', `/api/v1/merchants/wallets/gas-check?${queryParams.toString()}`);
   }
 
   /**
    * Check withdrawal capability for crypto type
    */
-  async checkWithdrawalCapability(cryptoType: string, options?: RequestOptions): Promise<any> {
-    return this.client.request('GET', `/api/v1/merchants/wallets/withdrawal-capability/${cryptoType}`);
+  async checkWithdrawalCapability(cryptoType: string, options?: RequestOptions): Promise<WithdrawalCapability> {
+    return this.client.request<WithdrawalCapability>('GET', `/api/v1/merchants/wallets/withdrawal-capability/${cryptoType}`);
   }
 
   /**
    * Revoke/Remove wallet configuration
    */
-  async revoke(cryptoType: string, options?: RequestOptions): Promise<any> {
-    return this.client.request('DELETE', `/api/v1/merchants/wallets/${cryptoType}`);
+  async revoke(cryptoType: string, options?: RequestOptions): Promise<{ success: boolean; message: string }> {
+    return this.client.request<{ success: boolean; message: string }>('DELETE', `/api/v1/merchants/wallets/${cryptoType}`);
   }
 }

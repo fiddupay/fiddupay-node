@@ -6,7 +6,9 @@ import {
   RequestOptions,
   SecurityAlert,
   SecurityEvent,
-  SecuritySettings
+  SecuritySettings,
+  UpdatePasswordRequest,
+  GasBalancesResponse
 } from '../types';
 
 export class Security {
@@ -54,11 +56,8 @@ export class Security {
     return this.client.put<SecuritySettings>('/api/v1/merchants/security/settings', data, options);
   }
 
-  /**
-   * Check gas balances
-   */
-  async checkGasBalances(options?: RequestOptions): Promise<any> {
-    return this.client.request('GET', '/api/v1/merchants/security/gas-check');
+  async checkGasBalances(options?: RequestOptions): Promise<GasBalancesResponse> {
+    return this.client.request<GasBalancesResponse>('GET', '/api/v1/merchants/security/gas-check');
   }
 
   /**
@@ -108,5 +107,12 @@ export class Security {
    */
   async verifyTransactionPin(pin: string, options?: RequestOptions): Promise<{ valid: boolean }> {
     return this.client.post('/api/v1/merchants/security/transaction-pin/verify', { pin }, options);
+  }
+
+  /**
+   * Update the merchant's account password
+   */
+  async updatePassword(data: UpdatePasswordRequest, options?: RequestOptions): Promise<{ message: string }> {
+    return this.client.post('/api/v1/merchants/security/password', data, options);
   }
 }

@@ -72,7 +72,6 @@
 - `fiddupay.payments.cancel()`
 - `fiddupay.payments.verify()`
 - `fiddupay.payments.finalizeSelection()`
-- `fiddupay.payments.simulate()` (Sandbox only)
 
 ## Refunds (`fiddupay.refunds`)
 - `fiddupay.refunds.create()`
@@ -80,8 +79,7 @@
 - `fiddupay.refunds.retrieve()`
 - `fiddupay.refunds.complete()`
 
-## Sandbox (`fiddupay.sandbox`)
-- `fiddupay.sandbox.simulatePayment()`
+
 
 ## Security (`fiddupay.security`)
 - `fiddupay.security.getEvents()`

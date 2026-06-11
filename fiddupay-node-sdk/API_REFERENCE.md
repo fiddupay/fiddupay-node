@@ -467,30 +467,6 @@ GET /api/v1/merchants/invoices/{invoice_id}
 Authorization: Bearer {api_key}
 ```
 
-## Sandbox Endpoints
-
-### Simulate Payment
-```http
-POST /api/v1/merchants/sandbox/payments/{payment_id}/simulate
-Authorization: Bearer {api_key}
-Content-Type: application/json
-
-{
-  "success": true,
-  "transaction_hash": "0xabc...",
-  "from_address": "0xsender..."
-}
-```
-
-#### Node SDK Example
-```javascript
-await fiddupay.payments.simulate('payment_123', {
-  success: true,
-  transaction_hash: '0xabc...',
-  from_address: '0xsender...'
-});
-```
-
 ## Security Endpoints
 
 ### Set IP Whitelist (Legacy)

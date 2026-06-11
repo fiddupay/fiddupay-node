@@ -70,7 +70,7 @@ export class Payments {
     if (!paymentId) {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
-    return this.client.post(`/api/v1/merchants/payments/${paymentId}/verify_trigger`, {}, options);
+    return this.client.post(`/${paymentId}/verify`, {}, options);
   }
 
   /**
@@ -101,20 +101,6 @@ export class Payments {
       throw new FidduPayValidationError('Payment ID is required', 'payment_id');
     }
     return this.client.post<Payment>(`/api/v1/merchants/payments/${paymentId}/cancel`, {}, options);
-  }
-
-  /**
-   * Simulate a payment (Sandbox only)
-   */
-  async simulate(paymentId: string, data: {
-    success: boolean;
-    transaction_hash?: string;
-    from_address?: string;
-  }, options?: RequestOptions): Promise<any> {
-    if (!paymentId) {
-      throw new FidduPayValidationError('Payment ID is required', 'payment_id');
-    }
-    return this.client.post(`/api/v1/merchants/sandbox/payments/${paymentId}/simulate`, data, options);
   }
 
   /**
@@ -248,22 +234,6 @@ export class Payments {
       throw new FidduPayValidationError(
         `Invalid crypto type. Must be one of: ${validCryptoTypes.join(', ')}`,
         'crypto_type'
-      );
-    }
-
-    if (data.expiration_minutes !== undefined) {
-      if (data.expiration_minutes < 5 || data.expiration_minutes > 1440) {
-        throw new FidduPayValidationError(
-          'Expiration must be between 5 and 1440 minutes',
-          'expiration_minutes'
-        );
-      }
-    }
-
-    if (data.description && data.description.length > 500) {
-      throw new FidduPayValidationError(
-        'Description must be 500 characters or less',
-        'description'
       );
     }
 

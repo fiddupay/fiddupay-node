@@ -26,14 +26,14 @@ export class Refunds {
   /**
    * Complete a refund
    */
-  async complete(refundId: string, transactionHash: string, options?: RequestOptions): Promise<any> {
+  async complete(refundId: string, transactionHash: string, options?: RequestOptions): Promise<{ success: boolean }> {
     if (!refundId) {
       throw new FidduPayValidationError('Refund ID is required', 'refund_id');
     }
     if (!transactionHash) {
       throw new FidduPayValidationError('Transaction hash is required', 'transaction_hash');
     }
-    return this.client.request('POST', `/api/v1/merchants/refunds/${refundId}/complete`, { transaction_hash: transactionHash });
+    return this.client.request<{ success: boolean }>('POST', `/api/v1/merchants/refunds/${refundId}/complete`, { transaction_hash: transactionHash });
   }
 
   /**

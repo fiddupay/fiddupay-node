@@ -88,9 +88,9 @@ app.post('/wallets/generate', async (req: Request, res: Response) => {
     res.json({
       success: true,
       wallet: {
-        crypto_type: wallet.crypto_type,
-        address: wallet.address,
-        network: wallet.network
+        crypto_type: wallet.wallet.crypto_type,
+        address: wallet.wallet.address,
+        network: wallet.wallet.network
       }
     });
   } catch (error) {
@@ -110,9 +110,9 @@ app.post('/wallets/import', async (req: Request, res: Response) => {
     res.json({
       success: true,
       wallet: {
-        crypto_type: wallet.crypto_type,
-        address: wallet.address,
-        network: wallet.network
+        crypto_type: wallet.wallet.crypto_type,
+        address: wallet.wallet.address,
+        network: wallet.wallet.network
       }
     });
   } catch (error) {

@@ -10,7 +10,9 @@ import {
   MerchantReadiness,
   MerchantRegistrationRequest,
   MerchantSettingsUpdateResponse,
+  PricingResponse,
   RequestOptions,
+  SupportedCurrenciesResponse,
   SystemStatus,
   UnifiedSettingsRequest,
 } from '../types';
@@ -35,6 +37,13 @@ export class Merchants {
   }
 
   /**
+   * Logout merchant
+   */
+  async logout(options?: RequestOptions): Promise<{ message: string }> {
+    return this.client.request('POST', '/api/v1/merchants/logout', {}, options);
+  }
+
+  /**
    * Get current merchant profile
    */
   async retrieve(options?: RequestOptions): Promise<MerchantProfile> {
@@ -53,7 +62,7 @@ export class Merchants {
    * Get merchant readiness status (legacy)
    * @deprecated Use getReadiness() instead
    */
-  async getStatus(options?: RequestOptions): Promise<any> {
+  async getStatus(options?: RequestOptions): Promise<MerchantReadiness> {
     return this.getReadiness(options);
   }
 
@@ -123,34 +132,6 @@ export class Merchants {
   async sendTestWebhook(options?: RequestOptions): Promise<{ status: string; message: string }> {
     return this.client.request('POST', '/api/v1/merchants/webhook/test');
   }
-
-  /**
-   * Toggle global wallet lock status
-   */
-  async toggleWalletLock(locked: boolean): Promise<{ success: boolean; message: string }> {
-    return this.client.request('POST', '/api/v1/merchants/security/wallets/lock', { locked });
-  }
-
-  /**
-   * Toggle customer wallet lock status
-   */
-  async toggleCustomerWalletLock(locked: boolean): Promise<{ success: boolean; message: string }> {
-    return this.client.request('POST', '/api/v1/merchants/security/customers/wallets/lock', { locked });
-  }
-
-  /**
-   * Set merchant transaction PIN
-   */
-  async setTransactionPin(pin: string): Promise<{ success: boolean; message: string }> {
-    return this.client.request('POST', '/api/v1/merchants/security/transaction-pin', { pin });
-  }
-
-  /**
-   * Verify merchant transaction PIN
-   */
-  async verifyTransactionPin(pin: string): Promise<{ success: boolean; message: string }> {
-    return this.client.request('POST', '/api/v1/merchants/security/transaction-pin/verify', { pin });
-  }
   
   /**
    * Get IP whitelist for the merchant
@@ -207,16 +188,16 @@ export class Merchants {
   /**
    * Get supported currencies (public endpoint)
    */
-  async getSupportedCurrencies(merchantId?: number): Promise<{ currency_groups: any; description: string }> {
+  async getSupportedCurrencies(merchantId?: number): Promise<SupportedCurrenciesResponse> {
     const query = merchantId ? `?merchant_id=${merchantId}` : '';
-    return this.client.request('GET', `/api/v1/currencies/supported${query}`);
+    return this.client.request<SupportedCurrenciesResponse>('GET', `/api/v1/currencies/supported${query}`);
   }
 
   /**
    * Get pricing information (public endpoint)
    */
-  async getPricing(): Promise<any> {
-    return this.client.request('GET', '/api/v1/pricing');
+  async getPricing(): Promise<PricingResponse> {
+    return this.client.request<PricingResponse>('GET', '/api/v1/pricing');
   }
 
   /**

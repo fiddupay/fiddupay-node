@@ -2,17 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.6.18] - 2026-04-24
+## [2.6.18] - 2026-06-12
+
+### Added
+- **Merchant Security Password Update**: Added `updatePassword` method to the `Security` resource to rotate account passwords.
+- **Merchant Session Termination**: Integrated a dedicated `logout` method on the `Merchants` resource.
+- **Enhanced Type Definitions**: Expanded interface properties to align with backend type definitions, including gas checking types, `TrustScore` interface, and new `MerchantProfile` fields (`fee_percentage`, `has_national_id`, etc.) for improved type safety.
 
 ### Fixed
+- **Security Lock Alignment**: Cleaned up the redundant lock methods on `Merchants` in favor of secure password-verified methods (`toggleWalletLock`, `toggleCustomerWalletLock`) on the `Security` resource.
+- **Wallet Response Type Handling**: Corrected `GeneratedWalletResponse` property access across SDK usage examples.
 - **Merchant Profile Stabilization**: Resolved an issue where metadata fields (fee preferences, business info) were missing from the profile response after a refresh.
 - **KYC Tier Advancement**: Corrected the logic to ensure merchants advance to Tier 1 (Silver) and Tier 2 (Gold) correctly upon valid identity/business submission.
 - **Trust Score Data Structure**: Refactored `trust_score` from a number to a flat object with `score`, `tier`, and specific verification flags for full dashboard parity.
 - **Alert Suppression**: Fixed the low balance alert toggle persistence and background monitoring logic to correctly honor merchant preferences.
 - **National Identity Privacy**: Implemented SHA-256 hashing for NIN/BVN storage to ensure sensitive data is not stored in plain text.
 
-### Added
-- **Enhanced Types**: Added `TrustScore` interface and expanded `MerchantProfile` with new fields (`fee_percentage`, `has_national_id`, etc.) for improved type safety.
+### Removed
+- **Deprecated Sandbox Simulator**: Completely pruned payment simulation endpoints, types, tests, documentation references, and Postman testing collections following backend deprecation of sandbox simulators.
+
 
 ## [2.6.17] - 2026-04-24
 

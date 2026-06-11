@@ -13,7 +13,6 @@ import { Security } from './resources/security';
 import { Balances, AuditLogs } from './resources/balances';
 import { Customers } from './resources/customers';
 import { WebSockets } from './resources/websockets';
-import { Sandbox } from './resources/sandbox';
 import { Contact } from './resources/contact';
 import { Transactions } from './resources/transactions';
 import { Public } from './resources/public';
@@ -49,7 +48,6 @@ export class FidduPayClient {
   public readonly customers: Customers;
   public readonly balances: Balances;
   public readonly auditLogs: AuditLogs;
-  public readonly sandbox: Sandbox;
   public readonly contact: Contact;
   public readonly transactions: Transactions;
   public readonly public: Public;
@@ -74,7 +72,6 @@ export class FidduPayClient {
     this.customers = new Customers(this.client);
     this.balances = new Balances(this.client);
     this.auditLogs = new AuditLogs(this.client);
-    this.sandbox = new Sandbox(this.client);
     this.contact = new Contact(this.client);
     this.transactions = new Transactions(this.client);
     this.public = new Public(this.client);
