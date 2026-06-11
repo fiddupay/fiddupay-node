@@ -141,10 +141,16 @@ To sync specific code changes strictly to their respective GitHub repositories u
 
 #### Manual SDK Sync
 
-To sync code changes to the standalone SDK repository without creating a release tag:
+To sync code changes to the standalone SDK repository, you can use the Unix sync script or run the Git subtree command directly (e.g. in PowerShell/CMD):
 
+##### Bash Script:
 ```bash
 bash ./scripts/push-sdk.sh main
+```
+
+##### Direct Git Subtree Command (PowerShell / Windows CMD):
+```bash
+git subtree push --prefix fiddupay-node-sdk https://github.com/fiddupay/fiddupay-node.git main
 ```
 
 Precheck before pushing to github:
@@ -155,12 +161,24 @@ cargo clippy -- -D warnings
 cargo check --bin fiddupay
 cargo test
 
-To sync code AND push a version tag manually (triggering the automated pipeline):
+To sync code AND push a version tag manually:
 
 ```bash
-# Tag and push version in the main repository
+# 1. Tag and push in the main repository
 git tag -a v2.6.18 -m "Release v2.6.18"
 git push origin v2.6.18
+
+# 2. Push subtree changes to the standalone repository
+git subtree push --prefix fiddupay-node-sdk https://github.com/fiddupay/fiddupay-node.git main
+
+# 3. Create and push the release tag to the standalone SDK repository
+# (Bash/macOS/Linux):
+CURRENT_COMMIT=$(git rev-parse HEAD)
+git push https://github.com/fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.18"
+
+# (PowerShell/Windows):
+$CURRENT_COMMIT = git rev-parse HEAD
+git push https://github.com/fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.18"
 ```
 
 To delete a version on github:
@@ -170,7 +188,6 @@ git push https://github.com/fiddupay/fiddupay-node.git --delete v2.6.14
 ```
 
 ```bash
-sudo bash ./scripts/push-sdk.sh main v2.6.15
 cd fiddupay-node-sdk
 npm publish --access public
 ```
