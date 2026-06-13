@@ -47,12 +47,13 @@ const WalletsPage: React.FC = () => {
 
       const groups: { [key: string]: any } = {}
       ;(currenciesData || []).forEach((crypto: any) => {
+        if (!crypto || !crypto.network) return
         const networkName = crypto.network.split(' (')[0]
         if (!groups[networkName]) {
           groups[networkName] = {
             name: networkName,
             fullName: crypto.network,
-            icon_url: crypto.icon_url,
+            icon_url: crypto.icon_url || '',
             cryptos: []
           }
         }

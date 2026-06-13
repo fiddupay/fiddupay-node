@@ -394,25 +394,8 @@ sequenceDiagram
 
 ## Testing
 
-### Sandbox Mode
-```bash
-# Enable sandbox
-curl -X POST https://api.fiddupay.com/api/v1/merchants/sandbox/enable \
-  -H "Authorization: Bearer your_api_key"
-
-# Simulate payment
-curl -X POST https://api.fiddupay.com/api/v1/merchants/sandbox/payments/pay_abc123/simulate \
-  -H "Authorization: Bearer your_api_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "status": "completed",
-    "transaction_hash": "0xabc...",
-    "from_address": "0xsender..."
-  }'
-```
-
 ### Test Addresses
-Use these addresses for sandbox testing:
+Use these addresses for testing:
 - **Ethereum**: `0x742d35Cc6634C0532925a3b8D4C9db96590c6C87`
 - **Solana**: `9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM`
 
@@ -1431,10 +1414,6 @@ GET    /api/v1/refunds/:refund_id
 # Analytics
 GET    /api/v1/analytics
 GET    /api/v1/analytics/export
-
-# Sandbox
-POST   /api/v1/sandbox/enable
-POST   /api/v1/sandbox/payments/:payment_id/simulate
 ```
 
 ### Status Codes
@@ -1457,9 +1436,8 @@ POST   /api/v1/sandbox/payments/:payment_id/simulate
 1.  Register account
 2.  Configure wallet addresses
 3.  Set webhook URL
-4.  Test in sandbox mode
-5.  Integrate API
-6.  Go live!
+4.  Integrate API
+5.  Go live!
 
 **Support:** support@yourdomain.com
 **Documentation:** https://docs.yourdomain.com

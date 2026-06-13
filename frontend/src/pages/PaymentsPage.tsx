@@ -52,31 +52,70 @@ const PaymentsPage: React.FC = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [selectedPaymentForDetails, setSelectedPaymentForDetails] = useState<Payment | null>(null)
 
+  const [dateRangeOption, setDateRangeOption] = useState<'all' | 'this_month' | 'this_week' | 'today' | 'custom'>('all')
+  const [customStartDate, setCustomStartDate] = useState('')
+  const [customEndDate, setCustomEndDate] = useState('')
+
   const { showToast } = useToast()
   const { user } = useAuthStore()
 
-  // 1. Initial Load: Stats and Currencies (Only on mount or sandbox switch)
-  useEffect(() => {
-    const loadStaticData = async () => {
-      // Don't set global loading to true here, just let them load in background
-      await Promise.all([
-        loadStats(),
-        useDataStore.getState().fetchCurrencies()
-      ])
-    }
-    loadStaticData()
+  // Helper to resolve ISO start/end dates from select options
+  const getDateRange = (option: string, start?: string, end?: string) => {
+    const now = new Date()
+    let startDate: string | undefined = undefined
+    let endDate: string | undefined = undefined
 
-    // Background refresh: stats every 60s
-    const statsInterval = setInterval(() => loadStats(), 60000)
-    return () => clearInterval(statsInterval)
+    if (option === 'today') {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      startDate = today.toISOString()
+      endDate = now.toISOString()
+    } else if (option === 'this_week') {
+      const dayOfWeek = now.getDay()
+      const diff = now.getDate() - dayOfWeek
+      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff)
+      startDate = startOfWeek.toISOString()
+      endDate = now.toISOString()
+    } else if (option === 'this_month') {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      startDate = startOfMonth.toISOString()
+      endDate = now.toISOString()
+    } else if (option === 'custom') {
+      if (start) {
+        startDate = new Date(start + 'T00:00:00').toISOString()
+      }
+      if (end) {
+        endDate = new Date(end + 'T23:59:59.999').toISOString()
+      }
+    }
+    return { startDate, endDate }
+  }
+
+  // Update query filters when date range filter parameters change
+  useEffect(() => {
+    const { startDate, endDate } = getDateRange(dateRangeOption, customStartDate, customEndDate)
+    setFilters(prev => ({
+      ...prev,
+      start_date: startDate,
+      end_date: endDate,
+      page: 1
+    }))
+  }, [dateRangeOption, customStartDate, customEndDate])
+
+  // 1. Initial Load: Currencies (Only on mount or sandbox switch)
+  useEffect(() => {
+    useDataStore.getState().fetchCurrencies()
   }, [user?.sandbox_mode])
 
-  // 2. Dynamic Load: Payments (On filter or sandbox change)
+  // 2. Dynamic Load: Payments & Stats (On filter or sandbox change)
   useEffect(() => {
     loadPayments(false)
+    loadStats()
 
-    // Background refresh: payments every 15s
-    const paymentsInterval = setInterval(() => loadPayments(true), 15000)
+    // Background refresh: payments and stats every 15s
+    const paymentsInterval = setInterval(() => {
+      loadPayments(true)
+      loadStats()
+    }, 15000)
     return () => clearInterval(paymentsInterval)
   }, [filters, user?.sandbox_mode])
 
@@ -144,9 +183,12 @@ const PaymentsPage: React.FC = () => {
 
   const loadStats = async () => {
     try {
+      // Respect user's selected date filters or default to broad window (since 2025)
       const analytics = await merchantAPI.getAnalytics({
         status: filters.status,
-        blockchain: filters.blockchain
+        blockchain: filters.blockchain,
+        from_date: filters.start_date || '2025-01-01T00:00:00.000Z',
+        to_date: filters.end_date || new Date().toISOString()
       })
       if (analytics.data) {
         const successfulPayments = analytics.data.successful_payments || 0
@@ -396,7 +438,7 @@ const PaymentsPage: React.FC = () => {
       <div className={styles.tableContainer}>
         <div className={styles.tableHeader}>
           <h2>Recent Payments</h2>
-          <div className={styles.filters}>
+          <div className={styles.filters} style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
             <select
               value={filters.status || ''}
               onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value || undefined, page: 1 }))}
@@ -410,6 +452,38 @@ const PaymentsPage: React.FC = () => {
               <option value="EXPIRED">Expired</option>
               <option value="CANCELLED">Cancelled</option>
             </select>
+
+            <select
+              value={dateRangeOption}
+              onChange={(e) => setDateRangeOption(e.target.value as any)}
+              className={styles.filterSelect}
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="this_week">This Week</option>
+              <option value="this_month">This Month</option>
+              <option value="custom">Custom Range</option>
+            </select>
+
+            {dateRangeOption === 'custom' && (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className={styles.filterSelect}
+                  style={{ colorScheme: 'dark' }}
+                />
+                <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>to</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className={styles.filterSelect}
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
+            )}
           </div>
         </div>
 
