@@ -1001,3 +1001,119 @@ export interface GasBalancesResponse {
   }>;
   total: number;
 }
+
+// ── Delora Cross-Chain Types ────────────────────────────────────────────────
+
+export type CrossChainPaymentStatus =
+  | 'quote_requested'
+  | 'tx_submitted'
+  | 'tx_confirmed'
+  | 'bridge_pending'
+  | 'bridge_complete'
+  | 'completed'
+  | 'failed'
+  | 'expired';
+
+export interface CrossChainQuoteRequest {
+  link_id: string;
+  sender_address: string;
+  origin_chain_id: number;
+  origin_currency: string;
+}
+
+export interface CrossChainQuoteResponse {
+  quote_id: string;
+  origin_chain_id: number;
+  destination_chain_id: number;
+  origin_currency: CurrencySummary;
+  destination_currency: CurrencySummary;
+  input_amount: string;
+  input_amount_display: string;
+  output_amount: string;
+  output_amount_display: string;
+  min_output_amount: string;
+  fees: QuoteFeeBreakdown;
+  estimated_time_sec?: number;
+  calldata: CrossChainCalldata;
+  gas?: CrossChainGasInfo;
+  approval_address?: string;
+  warnings: DeloraWarning[];
+  expires_at: string;
+  route?: AdvancedRouteSummary;
+}
+
+export interface CrossChainCalldata {
+  to: string;
+  value: string;
+  data: string;
+}
+
+export interface CrossChainGasInfo {
+  gas_price?: string;
+  gas_limit?: string;
+  max_fee_per_gas?: string;
+  max_priority_fee_per_gas?: string;
+}
+
+export interface CurrencySummary {
+  symbol: string;
+  name: string;
+  address: string;
+  chain_id: number;
+  chain_name: string;
+  decimals: number;
+}
+
+export interface QuoteFeeBreakdown {
+  delora_fee: string;
+  delora_fee_usd: string;
+  integrator_fee: string;
+  integrator_fee_usd: string;
+  gas_fee_estimate: string;
+  gas_fee_estimate_usd: string;
+  total_fee: string;
+  total_fee_usd: string;
+}
+
+export interface DeloraWarning {
+  code: string;
+  message: string;
+}
+
+export interface AdvancedRouteSummary {
+  route_id: string;
+  adapter: string;
+  is_multistep: boolean;
+  steps_count: number;
+}
+
+export interface CrossChainRegisterRequest {
+  quote_id: string;
+  tx_hash: string;
+  sender_address: string;
+}
+
+export interface CrossChainStatusResponse {
+  payment_id: string;
+  status: CrossChainPaymentStatus;
+  origin_tx_hash?: string;
+  destination_tx_hash?: string;
+  bridge_scan_url?: string;
+  confirmations?: number;
+  estimated_completion_sec?: number;
+}
+
+export interface ChainSummary {
+  chain_id: number;
+  name: string;
+  native_symbol: string;
+  enabled: boolean;
+}
+
+export interface TokenSummary {
+  address: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+  chain_id: number;
+}

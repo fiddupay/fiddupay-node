@@ -99,6 +99,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     background_tasks.start();
     tracing::info!(" Background tasks started");
 
+    // Start Delora bridge monitor (only if Delora is enabled)
+    if app_state.config.delora.enabled {
+        tracing::info!(" Starting Delora bridge monitor...");
+        let bridge_monitor = fiddupay::delora::bridge_monitor::BridgeMonitor::new(
+            db_pool.clone(),
+            // Reuse the same delora client from state
+            // We can't access Arc<DeloraClient> directly, but the bridge monitor
+            // needs its own client. We'll recreate one with the same config.
+            std::sync::Arc::new(fiddupay::delora::DeloraClient::new(
+                fiddupay::delora::client::DeloraClientConfig {
+                    base_url: config.delora.base_url.clone(),
+                    api_key: config.delora.api_key.clone(),
+                    pool_max_idle_per_host: config.delora.pool_max_idle_per_host,
+                    pool_idle_timeout_secs: config.delora.pool_idle_timeout_secs,
+                    request_timeout_secs: config.delora.request_timeout_secs,
+                    connect_timeout_secs: config.delora.connect_timeout_secs,
+                    tcp_keepalive_secs: config.delora.tcp_keepalive_secs,
+                    rate_limit_per_minute: config.delora.rate_limit_per_minute,
+                    max_retries: config.delora.max_retries,
+                    circuit_breaker_threshold: config.delora.circuit_breaker_threshold,
+                    circuit_breaker_timeout_secs: config.delora.circuit_breaker_timeout_secs,
+                },
+            )),
+            config.delora.bridge_poll_interval_secs,
+            config.delora.bridge_max_concurrent_checks,
+        );
+        bridge_monitor.start();
+        tracing::info!(" Delora bridge monitor started");
+    }
+
     // Create router
     let app = routes::create_router(app_state);
 

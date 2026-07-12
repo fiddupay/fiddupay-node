@@ -18,6 +18,7 @@ import { Transactions } from './resources/transactions';
 import { Public } from './resources/public';
 import { AddressOnly } from './resources/address_only';
 import { Notifications } from './resources/notifications';
+import { CrossChain } from './resources/cross_chain';
 
 export class FidduPayClient {
   private client: HttpClient;
@@ -54,6 +55,7 @@ export class FidduPayClient {
   public readonly addressOnly: AddressOnly;
   public readonly websockets: WebSockets;
   public readonly notifications: Notifications;
+  public readonly crossChain: CrossChain;
 
   constructor(config: FidduPayConfig) {
     this.validateConfig(config);
@@ -78,6 +80,7 @@ export class FidduPayClient {
     this.addressOnly = new AddressOnly(this.client);
     this.websockets = new WebSockets(this.client);
     this.notifications = new Notifications(this.client);
+    this.crossChain = new CrossChain(this.client);
   }
 
   private validateConfig(config: FidduPayConfig): void {

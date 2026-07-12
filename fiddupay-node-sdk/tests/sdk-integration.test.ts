@@ -208,7 +208,8 @@ describe('FidduPay SDK - Integration Test Suite', () => {
         'addressOnly',
         'websockets',
         'public',
-        'notifications'
+        'notifications',
+        'crossChain'
       ];
 
       expectedResources.forEach(resource => {

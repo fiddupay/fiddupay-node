@@ -193,6 +193,60 @@ pub struct Config {
     pub matic_sandbox_enabled: bool,
     pub arb_sandbox_enabled: bool,
     pub btc_sandbox_enabled: bool,
+
+    // Delora
+    pub delora: DeloraConfig,
+}
+
+#[derive(Debug, Clone)]
+pub struct DeloraConfig {
+    pub enabled: bool,
+    pub base_url: String,
+    pub api_key: Option<String>,
+    pub integrator_id: String,
+    pub default_integrator_fee: f64,
+    pub default_slippage: f64,
+    pub sandbox_mode: bool,
+    pub request_timeout_secs: u64,
+    pub connect_timeout_secs: u64,
+    pub pool_max_idle_per_host: usize,
+    pub pool_idle_timeout_secs: u64,
+    pub tcp_keepalive_secs: u64,
+    pub rate_limit_per_minute: u32,
+    pub max_retries: u32,
+    pub circuit_breaker_threshold: u32,
+    pub circuit_breaker_timeout_secs: u64,
+    pub max_quote_amount_usd: f64,
+    pub min_quote_amount_usd: f64,
+    pub bridge_poll_interval_secs: u64,
+    pub bridge_max_concurrent_checks: usize,
+}
+
+impl Default for DeloraConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            base_url: "https://api.delora.build".into(),
+            api_key: None,
+            integrator_id: "fiddupay".into(),
+            default_integrator_fee: 0.005,
+            default_slippage: 0.005,
+            sandbox_mode: false,
+            request_timeout_secs: 30,
+            connect_timeout_secs: 10,
+            pool_max_idle_per_host: 10,
+            pool_idle_timeout_secs: 90,
+            tcp_keepalive_secs: 60,
+            rate_limit_per_minute: 180,
+            max_retries: 3,
+            circuit_breaker_threshold: 5,
+            circuit_breaker_timeout_secs: 60,
+            max_quote_amount_usd: 10000.0,
+            min_quote_amount_usd: 1.0,
+            bridge_poll_interval_secs: 30,
+            bridge_max_concurrent_checks: 10,
+        }
+    }
 }
 
 impl Config {
@@ -639,6 +693,83 @@ impl Config {
                     .parse()
                     .unwrap_or(false)
             },
+
+            // Delora cross-chain swap integration
+            delora: DeloraConfig {
+                enabled: env::var("DELORA_ENABLED")
+                    .unwrap_or_else(|_| "false".to_string())
+                    .parse()
+                    .unwrap_or(false),
+                base_url: env::var("DELORA_API_BASE_URL")
+                    .unwrap_or_else(|_| "https://api.delora.build".into()),
+                api_key: env::var("DELORA_API_KEY").ok(),
+                integrator_id: env::var("DELORA_INTEGRATOR_ID")
+                    .unwrap_or_else(|_| "fiddupay".into()),
+                default_integrator_fee: env::var("DELORA_DEFAULT_FEE")
+                    .unwrap_or_else(|_| "0.005".into())
+                    .parse()
+                    .unwrap_or(0.005),
+                default_slippage: env::var("DELORA_DEFAULT_SLIPPAGE")
+                    .unwrap_or_else(|_| "0.005".into())
+                    .parse()
+                    .unwrap_or(0.005),
+                sandbox_mode: env::var("DELORA_SANDBOX")
+                    .unwrap_or_else(|_| "false".into())
+                    .parse()
+                    .unwrap_or(false),
+                request_timeout_secs: env::var("DELORA_TIMEOUT_SECS")
+                    .unwrap_or_else(|_| "30".into())
+                    .parse()
+                    .unwrap_or(30),
+                connect_timeout_secs: env::var("DELORA_CONNECT_TIMEOUT_SECS")
+                    .unwrap_or_else(|_| "10".into())
+                    .parse()
+                    .unwrap_or(10),
+                pool_max_idle_per_host: env::var("DELORA_POOL_MAX_IDLE")
+                    .unwrap_or_else(|_| "10".into())
+                    .parse()
+                    .unwrap_or(10),
+                pool_idle_timeout_secs: env::var("DELORA_POOL_IDLE_TIMEOUT_SECS")
+                    .unwrap_or_else(|_| "90".into())
+                    .parse()
+                    .unwrap_or(90),
+                tcp_keepalive_secs: env::var("DELORA_TCP_KEEPALIVE_SECS")
+                    .unwrap_or_else(|_| "60".into())
+                    .parse()
+                    .unwrap_or(60),
+                rate_limit_per_minute: env::var("DELORA_RATE_LIMIT_PER_MIN")
+                    .unwrap_or_else(|_| "180".into())
+                    .parse()
+                    .unwrap_or(180),
+                max_retries: env::var("DELORA_MAX_RETRIES")
+                    .unwrap_or_else(|_| "3".into())
+                    .parse()
+                    .unwrap_or(3),
+                circuit_breaker_threshold: env::var("DELORA_CB_THRESHOLD")
+                    .unwrap_or_else(|_| "5".into())
+                    .parse()
+                    .unwrap_or(5),
+                circuit_breaker_timeout_secs: env::var("DELORA_CB_TIMEOUT_SECS")
+                    .unwrap_or_else(|_| "60".into())
+                    .parse()
+                    .unwrap_or(60),
+                max_quote_amount_usd: env::var("DELORA_MAX_QUOTE_USD")
+                    .unwrap_or_else(|_| "10000".into())
+                    .parse()
+                    .unwrap_or(10000.0),
+                min_quote_amount_usd: env::var("DELORA_MIN_QUOTE_USD")
+                    .unwrap_or_else(|_| "1".into())
+                    .parse()
+                    .unwrap_or(1.0),
+                bridge_poll_interval_secs: env::var("DELORA_BRIDGE_POLL_SECS")
+                    .unwrap_or_else(|_| "30".into())
+                    .parse()
+                    .unwrap_or(30),
+                bridge_max_concurrent_checks: env::var("DELORA_BRIDGE_MAX_CONCURRENT")
+                    .unwrap_or_else(|_| "10".into())
+                    .parse()
+                    .unwrap_or(10),
+            },
         })
     }
 
@@ -983,6 +1114,7 @@ impl Default for Config {
             matic_sandbox_enabled: false,
             arb_sandbox_enabled: false,
             btc_sandbox_enabled: false,
+            delora: DeloraConfig::default(),
         }
     }
 }

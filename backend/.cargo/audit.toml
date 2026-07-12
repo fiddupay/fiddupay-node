@@ -1,2 +1,19 @@
 [advisories]
-ignore = ["RUSTSEC-2023-0071"]
+ignore = [
+    # RUSTSEC-2026-0187: lopdf stack overflow in nested PDF objects.
+    # FidduPay only uses genpdf for PDF generation (writing), never parsing
+    # untrusted input. genpdf pins lopdf 0.26.0 — requires 0.44.0+ (major break).
+    "RUSTSEC-2026-0187",
+    # Pre-existing unmaintained crate warnings from transitive dependencies
+    "RUSTSEC-2025-0141",
+    "RUSTSEC-2024-0388",
+    "RUSTSEC-2021-0153",
+    "RUSTSEC-2020-0144",
+    "RUSTSEC-2024-0436",
+    "RUSTSEC-2026-0173",
+    "RUSTSEC-2021-0140",
+    "RUSTSEC-2020-0020",
+    "RUSTSEC-2020-0056",
+    "RUSTSEC-2026-0190",
+    "RUSTSEC-2023-0071",
+]

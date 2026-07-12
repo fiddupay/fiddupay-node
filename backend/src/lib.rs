@@ -4,6 +4,7 @@
 pub mod api;
 pub mod background_tasks;
 pub mod config;
+pub mod delora;
 pub mod error;
 pub mod middleware;
 pub mod models;

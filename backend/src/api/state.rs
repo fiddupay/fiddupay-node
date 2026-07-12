@@ -2,6 +2,7 @@
 // Shared application state
 
 use crate::config::Config;
+use crate::delora::{DeloraCache, DeloraClient, DeloraService};
 use crate::services::{
     account_lockout_service::AccountLockoutService, address_only_service::AddressOnlyService,
     admin_service::AdminService, analytics_service::AnalyticsService, audit_service::AuditService,
@@ -54,6 +55,8 @@ pub struct AppState {
     pub address_only_service: Arc<AddressOnlyService>,
     pub pay_service: Arc<PayService>,
     pub redis_client: RedisClient,
+    pub delora_service: Arc<DeloraService>,
+    pub delora_rate_limiter: Option<Arc<crate::delora::rate_limiter::DeloraRateLimiter>>,
 }
 
 impl AppState {
@@ -127,6 +130,40 @@ impl AppState {
         let address_only_manager = Arc::new(tokio::sync::Mutex::new(manager));
 
         let address_only_service = address_only_manager.lock().await.address_service.clone();
+
+        // Delora cross-chain swap integration
+        let delora_client = Arc::new(DeloraClient::new(
+            crate::delora::client::DeloraClientConfig {
+                base_url: config.delora.base_url.clone(),
+                api_key: config.delora.api_key.clone(),
+                pool_max_idle_per_host: config.delora.pool_max_idle_per_host,
+                pool_idle_timeout_secs: config.delora.pool_idle_timeout_secs,
+                request_timeout_secs: config.delora.request_timeout_secs,
+                connect_timeout_secs: config.delora.connect_timeout_secs,
+                tcp_keepalive_secs: config.delora.tcp_keepalive_secs,
+                rate_limit_per_minute: config.delora.rate_limit_per_minute,
+                max_retries: config.delora.max_retries,
+                circuit_breaker_threshold: config.delora.circuit_breaker_threshold,
+                circuit_breaker_timeout_secs: config.delora.circuit_breaker_timeout_secs,
+            },
+        ));
+        let delora_cache = Arc::new(DeloraCache::new(redis_client.clone()));
+        let delora_service = Arc::new(DeloraService::new(
+            delora_client.clone(),
+            delora_cache.clone(),
+            db_pool.clone(),
+            config.delora.clone(),
+        ));
+
+        // Delora per-endpoint rate limiter (Redis-backed, only if Delora is enabled)
+        let delora_rate_limiter = if config.delora.enabled {
+            Some(Arc::new(
+                crate::delora::rate_limiter::DeloraRateLimiter::new(redis_client.clone()),
+            ))
+        } else {
+            None
+        };
+
         Self {
             merchant_service,
             payment_service: Arc::new(PaymentService::new(
@@ -186,6 +223,8 @@ impl AppState {
             address_only_manager,
             pay_service: Arc::new(PayService::new(db_pool.clone())),
             redis_client,
+            delora_service,
+            delora_rate_limiter,
         }
     }
 }

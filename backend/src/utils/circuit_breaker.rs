@@ -61,7 +61,7 @@ impl CircuitBreaker {
         }
     }
 
-    async fn on_success(&self) {
+    pub async fn record_success(&self) {
         let state = *self.state.read().await;
         if state == CircuitState::HalfOpen {
             info!("Circuit breaker closing after successful call");
@@ -70,7 +70,7 @@ impl CircuitBreaker {
         *self.failure_count.write().await = 0;
     }
 
-    async fn on_failure(&self) {
+    pub async fn record_failure(&self) {
         let mut count = self.failure_count.write().await;
         *count += 1;
 
@@ -79,6 +79,30 @@ impl CircuitBreaker {
             *self.state.write().await = CircuitState::Open;
             *self.last_failure_time.write().await = Some(Instant::now());
         }
+    }
+
+    pub async fn try_half_open(&self) -> bool {
+        let state = *self.state.read().await;
+        if state == CircuitState::Open {
+            let last_failure = self.last_failure_time.read().await;
+            if let Some(time) = *last_failure {
+                if time.elapsed() >= self.timeout {
+                    info!("Circuit breaker transitioning to half-open");
+                    *self.state.write().await = CircuitState::HalfOpen;
+                    return true;
+                }
+            }
+            return false;
+        }
+        true // Closed or HalfOpen — allow
+    }
+
+    async fn on_success(&self) {
+        self.record_success().await;
+    }
+
+    async fn on_failure(&self) {
+        self.record_failure().await;
     }
 
     pub async fn is_open(&self) -> bool {

@@ -7,6 +7,7 @@ use crate::api::{admin_routes, merchant_routes, p2p_routes, public_routes};
 use crate::api::{
     blog, careers, merchant_auth_handlers, payment_handlers, public_handlers, status,
 };
+use crate::delora::handlers as delora_handlers;
 use axum::{
     http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
@@ -61,6 +62,29 @@ pub fn create_router(state: AppState) -> Router {
         .route(
             "/preview/widget",
             get(payment_handlers::preview_payment_page),
+        );
+
+    // 2b. Delora cross-chain swap routes
+    let delora_routes = Router::new()
+        .route(
+            "/api/v1/payments/cross-chain-quote",
+            get(delora_handlers::get_cross_chain_quote),
+        )
+        .route(
+            "/api/v1/payments/cross-chain-register",
+            post(delora_handlers::register_cross_chain_tx),
+        )
+        .route(
+            "/api/v1/payments/cross-chain-status/:link_id",
+            get(delora_handlers::get_cross_chain_status),
+        )
+        .route(
+            "/api/v1/payments/cross-chain/chains",
+            get(delora_handlers::get_supported_chains),
+        )
+        .route(
+            "/api/v1/payments/cross-chain/tokens/:chain_id",
+            get(delora_handlers::get_supported_tokens),
         );
 
     // 3. Modular routers
@@ -118,6 +142,7 @@ pub fn create_router(state: AppState) -> Router {
 
     api_public_routes
         .merge(additional_public_routes)
+        .merge(delora_routes)
         .merge(merchant_router)
         .merge(admin_router)
         .merge(p2p_router)
