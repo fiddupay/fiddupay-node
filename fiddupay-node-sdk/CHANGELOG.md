@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.19] - 2026-07-14
+
+### Added
+- **Wallet Health Audit**: New `customers.auditWallets()` method (`GET /api/v1/merchants/customers/wallets-audit`) that returns a full snapshot of all customer wallets, split into `active` (currently designated) and `historical` (previously re-provisioned) records. Includes `external_id`, `email`, `address`, `crypto_type`, `network`, `sandbox_mode`, `status`, and `created_at` per entry. Historical entries also include a `reason` field.
+- **Verify & Repair Wallets**: New `customers.verifyAndRepairWallets()` method (`POST /api/v1/merchants/customers/verify-wallets`) that scans all customers linked to the merchant, detects missing wallet designations, and auto-provisions any absent wallets on-the-fly. Returns `{ status, checked_customers, repaired_wallets }`.
+- **Address Lookup**: New `customers.lookupAddress(address)` method (`GET /api/v1/merchants/customers/lookup-address/:address`) that resolves any wallet address back to the owning customer, reporting `found`, `status` (`ACTIVE` or `HISTORICAL`), `customer` object, and `wallet` object. Returns `{ found: false }` when the address is not associated with any of the merchant's customers.
+- **Auto-Provisioning on Deposit Address Request**: `customers.getDepositAddress(externalId, cryptoType)` now returns a structured object `{ address, crypto_type, external_id, provisioned }` instead of a plain string. If no designated wallet exists for the requested crypto/network, one is automatically provisioned before the response is sent, and `provisioned: true` is included in the result.
+- **SDK Tests**: New `tests/wallet-health.test.ts` with 28 unit tests covering all three new methods and the updated `getDepositAddress` response shape including backward-compatibility for missing `provisioned` field.
+
+### Changed
+- **`customers.getDepositAddress()` return type**: Updated from `string` to `DepositAddressResponse { address: string; crypto_type: string; external_id: string; provisioned: boolean }`. This ensures the calling code always knows whether the address was freshly generated or retrieved from an existing record.
+- **Customer wallet integrity enforced at request time**: Merchants will no longer inadvertently hand out an address that is not actively linked to them. If a previously linked wallet is missing on the designated-wallet table, a new one is created before the address is returned.
+
+### Fixed
+- **Fund loss prevention**: Addresses that were de-linked from a merchant (e.g. re-provisioned or manually removed) can no longer be returned to end-customers. The auto-provision path ensures the returned address is always the current, merchant-linked designation.
+
 ## [2.6.18] - 2026-06-12
 
 ### Added

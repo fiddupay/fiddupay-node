@@ -153,6 +153,10 @@ describe('FidduPay SDK - Core Functionality', () => {
       expect(client.customers.updatePermissions).toBeDefined();
       expect(client.customers.getDepositAddress).toBeDefined();
       expect(client.customers.payMerchant).toBeDefined();
+      // Wallet health methods
+      expect(client.customers.verifyAndRepairWallets).toBeDefined();
+      expect(client.customers.lookupAddress).toBeDefined();
+      expect(client.customers.auditWallets).toBeDefined();
     });
 
     it('should have invoice methods', () => {

@@ -215,6 +215,9 @@ export const customerAPI = {
   sweep: (externalId: string, data: { sweep_mode: string; crypto_types?: string[]; amount?: string; pin: string }) => api.post(`/api/v1/merchants/customers/${externalId}/sweep`, data),
   deactivate: (externalId: string) => api.post(`/api/v1/merchants/customers/${externalId}/deactivate`),
   getSummary: () => api.get('/api/v1/merchants/customers/summary'),
+  verifyAndRepairWallets: () => api.post('/api/v1/merchants/customers/verify-wallets', {}),
+  lookupAddress: (address: string) => api.get(`/api/v1/merchants/customers/lookup-address/${encodeURIComponent(address)}`),
+  auditWallets: () => api.get('/api/v1/merchants/customers/wallets-audit'),
 }
 
 export const notificationAPI = {

@@ -306,6 +306,18 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
             "/api/v1/merchants/customers/:external_id/deactivate",
             post(crate::api::customer_handlers::deactivate_customer),
         )
+        .route(
+            "/api/v1/merchants/customers/verify-wallets",
+            post(crate::api::customer_handlers::verify_and_repair_customer_wallets),
+        )
+        .route(
+            "/api/v1/merchants/customers/lookup-address/:address",
+            get(crate::api::customer_handlers::lookup_customer_address),
+        )
+        .route(
+            "/api/v1/merchants/customers/wallets-audit",
+            get(crate::api::customer_handlers::audit_customer_wallets),
+        )
         // Invoice management
         .route(
             "/api/v1/merchants/invoices",

@@ -948,14 +948,16 @@ export const API_DATA: DocSection[] = [
                 method: 'GET',
                 path: '/api/v1/merchants/customers/:id/deposit-address/:crypto_type',
                 title: 'Get Deposit Address',
-                description: 'Retrieve the specific on-chain deposit address for a customer and asset.',
+                description: 'Retrieve the verified, merchant-linked deposit address for a customer and asset. If no wallet exists for the requested network, one is automatically provisioned before the response is returned. The `provisioned` flag indicates whether the wallet was just created on-the-fly.',
                 request: {
                     curl: 'curl https://api.fiddupay.com/api/v1/merchants/customers/user_1234/deposit-address/SOL \\\n  -H "Authorization: Bearer sk_live_..."',
-                    node: 'const { address } = await fiddupay.customers.getDepositAddress("user_1234", "SOL");'
+                    node: 'const { address, provisioned } = await fiddupay.customers.getDepositAddress("user_1234", "SOL");\n// provisioned = true if wallet was just auto-created'
                 },
                 response: JSON.stringify({
-                    address: "7x...",
-                    crypto_type: "SOL"
+                    external_id: "user_1234",
+                    crypto_type: "SOL",
+                    deposit_address: "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+                    provisioned: false
                 }, null, 2)
             },
             {
@@ -989,6 +991,91 @@ export const API_DATA: DocSection[] = [
                 },
                 response: JSON.stringify({
                     message: "Customer deactivated successfully"
+                }, null, 2)
+            },
+            // ── Wallet Health (v2.6.19) ────────────────────────────────────────────
+            {
+                id: 'verify-repair-wallets',
+                method: 'POST',
+                path: '/api/v1/merchants/customers/verify-wallets',
+                title: 'Verify & Repair Wallets',
+                description: 'Scan every customer linked to your account and auto-provision any missing wallet designations on-the-fly. This is the fastest way to audit and repair wallet gaps before they cause fund-loss events. Returns a summary of how many customers were checked and how many wallets were auto-created.',
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/verify-wallets \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const result = await fiddupay.customers.verifyAndRepairWallets();\n// { status: "completed", checked_customers: 177, repaired_wallets: 3 }'
+                },
+                response: JSON.stringify({
+                    status: "completed",
+                    checked_customers: 177,
+                    repaired_wallets: 3
+                }, null, 2)
+            },
+            {
+                id: 'lookup-customer-address',
+                method: 'GET',
+                path: '/api/v1/merchants/customers/lookup-address/:address',
+                title: 'Lookup Address Owner',
+                description: 'Resolve any EVM, Solana, or Bitcoin wallet address back to its owning customer. Returns the customer profile and wallet metadata, plus a status of ACTIVE (currently designated) or HISTORICAL (previously assigned but now re-provisioned). Returns `found: false` with HTTP 404 if the address is not associated with any of your customers.',
+                parameters: [
+                    { name: 'address', type: 'string', required: true, description: 'On-chain address to resolve (EVM 0x..., Solana base58, BTC)' }
+                ],
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/customers/lookup-address/0x742d35Cc6634C0532925a3b844Bc454f4C87 \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const result = await fiddupay.customers.lookupAddress("0x742d35Cc...");\n// { found: true, status: "ACTIVE", customer: {...}, wallet: {...} }'
+                },
+                response: JSON.stringify({
+                    found: true,
+                    status: "ACTIVE",
+                    customer: {
+                        id: 42,
+                        external_id: "user_1234",
+                        email: "cust@example.com"
+                    },
+                    wallet: {
+                        address: "0x742d35Cc6634C0532925a3b844Bc454f4C87",
+                        crypto_type: "USDT_ETH",
+                        network: "ETHEREUM",
+                        sandbox_mode: false,
+                        created_at: "2026-01-15T10:00:00Z"
+                    }
+                }, null, 2)
+            },
+            {
+                id: 'audit-customer-wallets',
+                method: 'GET',
+                path: '/api/v1/merchants/customers/wallets-audit',
+                title: 'Wallet Audit Report',
+                description: 'Returns a full snapshot of all customer wallets linked to your merchant account, split into `active` (currently designated) and `historical` (previously re-provisioned) records. Use this for compliance audits, to spot gaps, or to verify that every customer has a valid designated wallet on every network you support.',
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/customers/wallets-audit \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const audit = await fiddupay.customers.auditWallets();\n// { active: [...], historical: [...] }'
+                },
+                response: JSON.stringify({
+                    active: [
+                        {
+                            external_id: "user_1234",
+                            email: "cust@example.com",
+                            address: "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+                            crypto_type: "SOL",
+                            network: "SOLANA",
+                            sandbox_mode: false,
+                            status: "ACTIVE",
+                            created_at: "2026-01-15T10:00:00Z"
+                        }
+                    ],
+                    historical: [
+                        {
+                            external_id: "user_5678",
+                            email: "old@example.com",
+                            address: "0xOldAddress123",
+                            crypto_type: "USDT_ETH",
+                            network: "ETHEREUM",
+                            sandbox_mode: false,
+                            status: "HISTORICAL",
+                            reason: "Customer wallet re-provisioned",
+                            created_at: "2025-06-01T08:00:00Z"
+                        }
+                    ]
                 }, null, 2)
             }
         ]

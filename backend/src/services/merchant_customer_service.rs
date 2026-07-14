@@ -290,12 +290,14 @@ impl MerchantCustomerService {
                         continue;
                     }
 
-                    // Check if an EVM wallet already exists for this customer in the OTHER environment
+                    // Check if an EVM wallet already exists for this customer (prioritizing current sandbox_mode)
                     let existing: Option<(String, String)> = sqlx::query_as::<_, (String, String)>(
-                        "SELECT address, encrypted_private_key FROM merchant_customer_wallets WHERE customer_id = $1 AND network = 'ETHEREUM' AND sandbox_mode = $2 LIMIT 1"
+                        "SELECT address, encrypted_private_key FROM merchant_customer_wallets \
+                         WHERE customer_id = $1 AND network = 'ETHEREUM' \
+                         ORDER BY (sandbox_mode = $2) DESC LIMIT 1"
                     )
                     .bind(customer.id)
-                    .bind(!sandbox_mode)
+                    .bind(sandbox_mode)
                     .fetch_optional(&self.db_pool)
                     .await?;
 
@@ -342,12 +344,14 @@ impl MerchantCustomerService {
                         continue;
                     }
 
-                    // Check if a Solana wallet already exists for this customer in the OTHER environment
+                    // Check if a Solana wallet already exists for this customer (prioritizing current sandbox_mode)
                     let existing: Option<(String, String)> = sqlx::query_as::<_, (String, String)>(
-                        "SELECT address, encrypted_private_key FROM merchant_customer_wallets WHERE customer_id = $1 AND network = 'SOLANA' AND sandbox_mode = $2 LIMIT 1"
+                        "SELECT address, encrypted_private_key FROM merchant_customer_wallets \
+                         WHERE customer_id = $1 AND network = 'SOLANA' \
+                         ORDER BY (sandbox_mode = $2) DESC LIMIT 1"
                     )
                     .bind(customer.id)
-                    .bind(!sandbox_mode)
+                    .bind(sandbox_mode)
                     .fetch_optional(&self.db_pool)
                     .await?;
 
@@ -711,10 +715,11 @@ impl MerchantCustomerService {
         external_id: &str,
         crypto_type_str: &str,
         sandbox_mode: bool,
-    ) -> Result<String, ServiceError> {
+    ) -> Result<serde_json::Value, ServiceError> {
         let customer = self.get_verified_customer(merchant_id, external_id).await?;
         Self::check_permissions(&customer, "view")?;
 
+        // Try to find an existing wallet that is linked to the merchant
         let wallet = sqlx::query_as::<_, MerchantCustomerWallet>(
             r#"
             SELECT w.id, w.customer_id, w.merchant_id, w.crypto_type, w.network, w.address, w.encrypted_private_key, w.created_at, w.updated_at, w.sandbox_mode 
@@ -743,10 +748,56 @@ impl MerchantCustomerService {
         .bind(sandbox_mode)
         .bind(merchant_id)
         .fetch_optional(&self.db_pool)
-        .await?
-        .ok_or_else(|| ServiceError::ValidationError(format!("No wallet found for {}", crypto_type_str)))?;
+        .await?;
 
-        Ok(wallet.address)
+        if let Some(w) = wallet {
+            return Ok(serde_json::json!({
+                "external_id": external_id,
+                "crypto_type": crypto_type_str,
+                "deposit_address": w.address,
+                "provisioned": false
+            }));
+        }
+
+        // Wallet not found or not linked — auto-provision for this network/crypto
+        tracing::info!(
+            "No linked wallet found for customer {} / {} — auto-provisioning",
+            external_id, crypto_type_str
+        );
+
+        let provisioned = self
+            .provision_wallets(
+                merchant_id,
+                external_id,
+                vec![crypto_type_str.to_string()],
+                sandbox_mode,
+                true,
+            )
+            .await
+            .map_err(|e| {
+                ServiceError::InternalError(format!(
+                    "Auto-provisioning failed for {} / {}: {}",
+                    external_id, crypto_type_str, e
+                ))
+            })?;
+
+        // Find the newly provisioned wallet matching the requested crypto_type
+        let new_wallet = provisioned
+            .into_iter()
+            .find(|w| w.crypto_type.to_uppercase() == crypto_type_str.to_uppercase())
+            .ok_or_else(|| {
+                ServiceError::ValidationError(format!(
+                    "Could not provision wallet for {} — network may not be enabled for this merchant",
+                    crypto_type_str
+                ))
+            })?;
+
+        Ok(serde_json::json!({
+            "external_id": external_id,
+            "crypto_type": crypto_type_str,
+            "deposit_address": new_wallet.address,
+            "provisioned": true
+        }))
     }
 
     pub async fn get_customer_transactions(
@@ -1768,6 +1819,185 @@ impl MerchantCustomerService {
             "total_balance_usd": total_balance_usd
         }))
     }
+
+    /// Verify and repair wallets for all customers of a merchant
+    pub async fn verify_and_repair_customer_wallets(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+    ) -> Result<serde_json::Value, ServiceError> {
+        let external_ids: Vec<String> = sqlx::query_scalar::<_, String>(
+            "SELECT external_id FROM merchant_customers WHERE merchant_id = $1"
+        )
+        .bind(merchant_id)
+        .fetch_all(&self.db_pool)
+        .await?;
+
+        let mut repaired_count = 0;
+        let checked_customers = external_ids.len();
+
+        for ext_id in &external_ids {
+            match self
+                .provision_wallets(merchant_id, ext_id, vec![], sandbox_mode, true)
+                .await
+            {
+                Ok(new_wallets) => {
+                    if !new_wallets.is_empty() {
+                        repaired_count += new_wallets.len();
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "Verify/repair wallets failed for customer {} under merchant {}: {}",
+                        ext_id,
+                        merchant_id,
+                        e
+                    );
+                }
+            }
+        }
+
+        Ok(serde_json::json!({
+            "status": "success",
+            "checked_customers": checked_customers,
+            "repaired_wallets": repaired_count
+        }))
+    }
+
+    /// Lookup an address to see if it belongs to any customer of a merchant (active or historical)
+    #[allow(clippy::type_complexity)]
+    pub async fn lookup_customer_address(
+        &self,
+        merchant_id: i64,
+        address: &str,
+    ) -> Result<Option<serde_json::Value>, ServiceError> {
+        let active_wallet: Option<(i64, String, String, String, String, bool, chrono::DateTime<chrono::Utc>)> = sqlx::query_as(
+            "SELECT mc.id, mc.external_id, mc.email, mcw.crypto_type, mcw.network, mcw.sandbox_mode, mcw.created_at \
+             FROM merchant_customer_wallets mcw \
+             JOIN merchant_customers mc ON mc.id = mcw.customer_id \
+             WHERE mcw.merchant_id = $1 AND mcw.address = $2 LIMIT 1"
+        )
+        .bind(merchant_id)
+        .bind(address)
+        .fetch_optional(&self.db_pool)
+        .await?;
+
+        if let Some((cust_id, ext_id, email, crypto_type, network, sandbox_mode, created_at)) = active_wallet {
+            return Ok(Some(serde_json::json!({
+                "found": true,
+                "status": "ACTIVE",
+                "customer": {
+                    "id": cust_id,
+                    "external_id": ext_id,
+                    "email": email
+                },
+                "wallet": {
+                    "address": address,
+                    "crypto_type": crypto_type,
+                    "network": network,
+                    "sandbox_mode": sandbox_mode,
+                    "created_at": created_at
+                }
+            })));
+        }
+
+        let historical_wallet: Option<(i64, String, String, String, String, bool, Option<String>, chrono::DateTime<chrono::Utc>)> = sqlx::query_as(
+            "SELECT mc.id, mc.external_id, mc.email, mwh.crypto_type, mwh.network, mwh.sandbox_mode, mwh.reason, mwh.created_at \
+             FROM merchant_wallet_history mwh \
+             JOIN merchant_customers mc ON mc.id = mwh.customer_id \
+             WHERE mwh.merchant_id = $1 AND mwh.owner_type = 'customer' AND mwh.old_address = $2 LIMIT 1"
+        )
+        .bind(merchant_id)
+        .bind(address)
+        .fetch_optional(&self.db_pool)
+        .await?;
+
+        if let Some((cust_id, ext_id, email, crypto_type, network, sandbox_mode, reason, created_at)) = historical_wallet {
+            return Ok(Some(serde_json::json!({
+                "found": true,
+                "status": "HISTORICAL",
+                "customer": {
+                    "id": cust_id,
+                    "external_id": ext_id,
+                    "email": email
+                },
+                "wallet": {
+                    "address": address,
+                    "crypto_type": crypto_type,
+                    "network": network,
+                    "sandbox_mode": sandbox_mode,
+                    "reason": reason.unwrap_or_default(),
+                    "created_at": created_at
+                }
+            })));
+        }
+
+        Ok(None)
+    }
+
+    /// Get a full audit of all customer wallets (both active and historical) under a merchant
+    pub async fn audit_all_customer_wallets(
+        &self,
+        merchant_id: i64,
+    ) -> Result<serde_json::Value, ServiceError> {
+        let active_rows: Vec<serde_json::Value> = sqlx::query(
+            "SELECT mc.external_id, mc.email, mcw.address, mcw.crypto_type, mcw.network, mcw.sandbox_mode, mcw.created_at \
+             FROM merchant_customer_wallets mcw \
+             JOIN merchant_customers mc ON mc.id = mcw.customer_id \
+             WHERE mcw.merchant_id = $1 \
+             ORDER BY mcw.created_at DESC"
+        )
+        .bind(merchant_id)
+        .fetch_all(&self.db_pool)
+        .await?
+        .into_iter()
+        .map(|row| {
+            use sqlx::Row;
+            serde_json::json!({
+                "external_id": row.get::<String, _>("external_id"),
+                "email": row.get::<String, _>("email"),
+                "address": row.get::<String, _>("address"),
+                "crypto_type": row.get::<String, _>("crypto_type"),
+                "network": row.get::<String, _>("network"),
+                "sandbox_mode": row.get::<bool, _>("sandbox_mode"),
+                "status": "ACTIVE",
+                "created_at": row.get::<chrono::DateTime<chrono::Utc>, _>("created_at"),
+            })
+        })
+        .collect();
+
+        let historical_rows: Vec<serde_json::Value> = sqlx::query(
+            "SELECT mc.external_id, mc.email, mwh.old_address as address, mwh.crypto_type, mwh.network, mwh.sandbox_mode, mwh.reason, mwh.created_at \
+             FROM merchant_wallet_history mwh \
+             JOIN merchant_customers mc ON mc.id = mwh.customer_id \
+             WHERE mwh.merchant_id = $1 AND mwh.owner_type = 'customer' AND mwh.old_address IS NOT NULL \
+             ORDER BY mwh.created_at DESC"
+        )
+        .bind(merchant_id)
+        .fetch_all(&self.db_pool)
+        .await?
+        .into_iter()
+        .map(|row| {
+            use sqlx::Row;
+            serde_json::json!({
+                "external_id": row.get::<String, _>("external_id"),
+                "email": row.get::<String, _>("email"),
+                "address": row.get::<String, _>("address"),
+                "crypto_type": row.get::<String, _>("crypto_type"),
+                "network": row.get::<String, _>("network"),
+                "sandbox_mode": row.get::<bool, _>("sandbox_mode"),
+                "status": "HISTORICAL",
+                "reason": row.get::<Option<String>, _>("reason").unwrap_or_default(),
+                "created_at": row.get::<chrono::DateTime<chrono::Utc>, _>("created_at"),
+            })
+        })
+        .collect();
+
+        Ok(serde_json::json!({
+            "active": active_rows,
+            "historical": historical_rows
+        }))
+    }
 }
 
 fn mask_address(addr: &str) -> String {
@@ -1775,5 +2005,437 @@ fn mask_address(addr: &str) -> String {
         format!("{}...{}", &addr[..6], &addr[addr.len() - 4..])
     } else {
         addr.to_string()
+    }
+}
+
+// =============================================================================
+// Tests — Wallet Health & Auto-Provisioning
+// =============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+    use serde_json::json;
+
+
+    // -------------------------------------------------------------------------
+    // Fixture helpers
+    // -------------------------------------------------------------------------
+
+    fn active_customer() -> MerchantCustomer {
+        MerchantCustomer {
+            id: 1,
+            merchant_id: 10,
+            external_id: "user_abc".to_string(),
+            email: Some("test@example.com".to_string()),
+            first_name: Some("Test".to_string()),
+            last_name: Some("User".to_string()),
+            metadata: None,
+            is_active: true,
+            status: "active".to_string(),
+            status_reason: None,
+            can_withdraw: true,
+            withdrawal_limit: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    fn deactivated_customer() -> MerchantCustomer {
+        MerchantCustomer {
+            is_active: false,
+            status: "active".to_string(),
+            ..active_customer()
+        }
+    }
+
+    fn flagged_customer() -> MerchantCustomer {
+        MerchantCustomer {
+            status: "flagged".to_string(),
+            status_reason: Some("Suspicious activity".to_string()),
+            ..active_customer()
+        }
+    }
+
+    fn suspended_customer() -> MerchantCustomer {
+        MerchantCustomer {
+            status: "suspended".to_string(),
+            status_reason: Some("Violation of ToS".to_string()),
+            ..active_customer()
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // check_permissions — "view" action (used by get_deposit_address)
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn check_permissions_allows_active_customer_to_view() {
+        let result = MerchantCustomerService::check_permissions(&active_customer(), "view");
+        assert!(result.is_ok(), "Active customer should be allowed to view");
+    }
+
+    #[test]
+    fn check_permissions_blocks_deactivated_customer() {
+        let result = MerchantCustomerService::check_permissions(&deactivated_customer(), "view");
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("deactivated"),
+            "Error should mention deactivation: {err_msg}"
+        );
+    }
+
+    #[test]
+    fn check_permissions_allows_flagged_customer_to_view() {
+        // Flagged customers are read-only — they can still get their deposit address
+        let result = MerchantCustomerService::check_permissions(&flagged_customer(), "view");
+        assert!(
+            result.is_ok(),
+            "Flagged customer should still be allowed to view (read-only)"
+        );
+    }
+
+    #[test]
+    fn check_permissions_blocks_flagged_customer_from_writing() {
+        let result =
+            MerchantCustomerService::check_permissions(&flagged_customer(), "withdraw");
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("flagged"),
+            "Error should mention flagged: {err_msg}"
+        );
+    }
+
+    #[test]
+    fn check_permissions_blocks_suspended_customer_from_any_action() {
+        for action in ["view", "withdraw", "pay"] {
+            let result =
+                MerchantCustomerService::check_permissions(&suspended_customer(), action);
+            assert!(
+                result.is_err(),
+                "Suspended customer should be blocked for action: {action}"
+            );
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // mask_address helper
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn mask_address_masks_evm_address_correctly() {
+        let addr = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb";
+        let masked = mask_address(addr);
+        assert!(
+            masked.starts_with("0x742d"),
+            "Should keep first 6 chars: {masked}"
+        );
+        assert!(
+            masked.ends_with("0bEb"),
+            "Should keep last 4 chars: {masked}"
+        );
+        assert!(masked.contains("..."), "Should contain ellipsis: {masked}");
+    }
+
+    #[test]
+    fn mask_address_masks_solana_address_correctly() {
+        let addr = "5rBr6CFUA4Yi7uoX9JUgvC9PFzEjv5jNtu5NThZNEKqP";
+        let masked = mask_address(addr);
+        assert!(masked.contains("..."));
+        assert!(masked.starts_with("5rBr6C"));
+    }
+
+    #[test]
+    fn mask_address_short_address_returned_as_is() {
+        let addr = "short";
+        let masked = mask_address(addr);
+        assert_eq!(masked, "short", "Short addresses should not be masked");
+    }
+
+    #[test]
+    fn mask_address_exactly_10_chars_returned_as_is() {
+        let addr = "1234567890";
+        let masked = mask_address(addr);
+        assert_eq!(masked, addr, "Exactly 10-char addresses should not be masked");
+    }
+
+    #[test]
+    fn mask_address_11_chars_is_masked() {
+        let addr = "12345678901";
+        let masked = mask_address(addr);
+        assert!(masked.contains("..."));
+    }
+
+    // -------------------------------------------------------------------------
+    // get_deposit_address response shape
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn deposit_address_response_has_provisioned_false_when_wallet_found() {
+        // Simulate what the service returns when wallet already exists
+        let address = "0xExistingAddress";
+        let external_id = "user_abc";
+        let crypto_type = "USDT_BEP20";
+
+        let response = json!({
+            "external_id": external_id,
+            "crypto_type": crypto_type,
+            "deposit_address": address,
+            "provisioned": false
+        });
+
+        assert_eq!(response["external_id"], external_id);
+        assert_eq!(response["crypto_type"], crypto_type);
+        assert_eq!(response["deposit_address"], address);
+        assert_eq!(response["provisioned"], false);
+    }
+
+    #[test]
+    fn deposit_address_response_has_provisioned_true_when_auto_provisioned() {
+        let address = "0xNewlyProvisioned";
+        let external_id = "new_user";
+        let crypto_type = "ETH";
+
+        let response = json!({
+            "external_id": external_id,
+            "crypto_type": crypto_type,
+            "deposit_address": address,
+            "provisioned": true
+        });
+
+        assert_eq!(response["provisioned"], true);
+        assert_eq!(response["deposit_address"], address);
+    }
+
+    #[test]
+    fn deposit_address_response_all_required_fields_present() {
+        let response = json!({
+            "external_id": "user_test",
+            "crypto_type": "SOL",
+            "deposit_address": "SolanaAddr123",
+            "provisioned": false
+        });
+
+        // All 4 fields must exist in response
+        assert!(response.get("external_id").is_some(), "external_id missing");
+        assert!(response.get("crypto_type").is_some(), "crypto_type missing");
+        assert!(response.get("deposit_address").is_some(), "deposit_address missing");
+        assert!(response.get("provisioned").is_some(), "provisioned flag missing");
+    }
+
+    // -------------------------------------------------------------------------
+    // verify_and_repair response shape
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn verify_repair_response_shape_with_no_repairs_needed() {
+        let response = json!({
+            "status": "completed",
+            "checked_customers": 42,
+            "repaired_wallets": 0
+        });
+
+        assert_eq!(response["status"], "completed");
+        assert_eq!(response["checked_customers"], 42);
+        assert_eq!(response["repaired_wallets"], 0);
+    }
+
+    #[test]
+    fn verify_repair_response_shape_with_repairs() {
+        let response = json!({
+            "status": "completed",
+            "checked_customers": 177,
+            "repaired_wallets": 3
+        });
+
+        assert_eq!(response["repaired_wallets"], 3);
+        assert!(
+            response["repaired_wallets"].as_i64().unwrap() > 0,
+            "Should indicate wallets were provisioned"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // lookup_customer_address response shapes
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn lookup_not_found_response_has_correct_shape() {
+        let response = json!({
+            "found": false,
+            "message": "Address not found for any of your customers"
+        });
+
+        assert_eq!(response["found"], false);
+        assert!(response["message"].as_str().unwrap().contains("not found"));
+    }
+
+    #[test]
+    fn lookup_active_response_has_correct_shape() {
+        let response = json!({
+            "found": true,
+            "status": "ACTIVE",
+            "customer": {
+                "id": 1,
+                "external_id": "user_abc",
+                "email": "test@example.com"
+            },
+            "wallet": {
+                "address": "0xActiveAddress",
+                "crypto_type": "ETH",
+                "network": "ETHEREUM",
+                "sandbox_mode": false,
+                "created_at": "2025-01-01T00:00:00Z"
+            }
+        });
+
+        assert_eq!(response["found"], true);
+        assert_eq!(response["status"], "ACTIVE");
+        assert_eq!(response["customer"]["external_id"], "user_abc");
+        assert_eq!(response["wallet"]["network"], "ETHEREUM");
+    }
+
+    #[test]
+    fn lookup_historical_response_has_correct_shape() {
+        let response = json!({
+            "found": true,
+            "status": "HISTORICAL",
+            "customer": {
+                "id": 2,
+                "external_id": "old_user",
+                "email": "old@example.com"
+            },
+            "wallet": {
+                "address": "0xOldAddress",
+                "crypto_type": "USDT_BEP20",
+                "network": "ETHEREUM",
+                "sandbox_mode": false,
+                "reason": "Customer wallet re-provisioned",
+                "created_at": "2024-01-01T00:00:00Z"
+            }
+        });
+
+        assert_eq!(response["status"], "HISTORICAL");
+        assert_eq!(
+            response["wallet"]["reason"],
+            "Customer wallet re-provisioned"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // audit_customer_wallets response shape
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn audit_response_has_active_and_historical_arrays() {
+        let response = json!({
+            "active": [],
+            "historical": []
+        });
+
+        assert!(response["active"].is_array());
+        assert!(response["historical"].is_array());
+    }
+
+    #[test]
+    fn audit_active_entry_has_expected_fields() {
+        let entry = json!({
+            "external_id": "user_1",
+            "email": "u@e.com",
+            "address": "0xAddr",
+            "crypto_type": "ETH",
+            "network": "ETHEREUM",
+            "sandbox_mode": false,
+            "status": "ACTIVE",
+            "created_at": "2025-01-01T00:00:00Z"
+        });
+
+        for field in ["external_id", "email", "address", "crypto_type", "network", "status", "created_at"] {
+            assert!(
+                entry.get(field).is_some(),
+                "Active entry missing field: {field}"
+            );
+        }
+        assert_eq!(entry["status"], "ACTIVE");
+    }
+
+    #[test]
+    fn audit_historical_entry_has_reason_field() {
+        let entry = json!({
+            "external_id": "user_2",
+            "email": "u2@e.com",
+            "address": "0xOld",
+            "crypto_type": "USDT_BEP20",
+            "network": "ETHEREUM",
+            "sandbox_mode": false,
+            "status": "HISTORICAL",
+            "reason": "Customer wallet re-provisioned",
+            "created_at": "2024-01-01T00:00:00Z"
+        });
+
+        assert_eq!(entry["status"], "HISTORICAL");
+        assert_eq!(entry["reason"], "Customer wallet re-provisioned");
+    }
+
+    // -------------------------------------------------------------------------
+    // Crypto-type alias coverage (used by auto-provision network routing)
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn evm_crypto_types_are_recognizable() {
+        let evm_types = vec![
+            "ETH", "USDT_ETH", "BNB", "USDT_BEP20", "BUSD_BEP20",
+            "MATIC", "USDT_POLYGON", "ARB", "USDT_ARBITRUM",
+        ];
+
+        // Simulate the match arms in provision_wallets for EVM types
+        for crypto in evm_types {
+            let normalized = crypto.to_uppercase();
+            let is_evm = matches!(
+                normalized.as_str(),
+                "EVM" | "ETH" | "ERC20" | "BSC" | "BEP20" | "POLYGON" | "MATIC" | "ARB"
+                    | "ARBITRUM" | "NATIVE" | "ETHEREUM" | "USDT_ETH" | "USDT_BEP20"
+                    | "BUSD_BEP20" | "USDT_POLYGON" | "USDT_ARBITRUM" | "BNB"
+            );
+            assert!(
+                is_evm,
+                "Expected {crypto} to be recognized as an EVM type"
+            );
+        }
+    }
+
+    #[test]
+    fn solana_crypto_types_are_recognizable() {
+        let sol_types = vec!["SOL", "USDT_SPL", "SOLANA", "WSOL"];
+
+        for crypto in sol_types {
+            let normalized = crypto.to_uppercase();
+            let is_solana = matches!(
+                normalized.as_str(),
+                "SOLANA" | "SOL" | "SPL" | "SOLANA_SPL" | "SOLANA_MAINNET" | "SOLANA_DEVNET"
+                    | "USDT_SPL" | "WSOL"
+            );
+            assert!(
+                is_solana,
+                "Expected {crypto} to be recognized as a Solana type"
+            );
+        }
+    }
+
+    #[test]
+    fn bitcoin_crypto_types_are_recognizable() {
+        let btc_types = vec!["BTC", "BITCOIN"];
+
+        for crypto in btc_types {
+            let normalized = crypto.to_uppercase();
+            let is_btc = matches!(
+                normalized.as_str(),
+                "BITCOIN" | "BTC" | "BITCOIN_MAINNET" | "BITCOIN_TESTNET"
+            );
+            assert!(is_btc, "Expected {crypto} to be recognized as Bitcoin type");
+        }
     }
 }

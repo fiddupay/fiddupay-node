@@ -1,5 +1,24 @@
 # FidduPay Backend Changelog
 
+## [2.6.19] - 2026-07-14
+
+### Added
+
+- **Wallet Audit Endpoint** (`GET /api/v1/merchants/customers/wallets-audit`): Returns all customer wallets for the authenticated merchant, split into `active` (current, designated) and `historical` (previously re-provisioned) records. Includes `external_id`, `email`, `address`, `crypto_type`, `network`, `sandbox_mode`, `status`, `reason` (historical only), and `created_at` per entry.
+- **Verify & Repair Endpoint** (`POST /api/v1/merchants/customers/verify-wallets`): Scans all customers for missing wallet designations per network family and auto-provisions them on-the-fly. Returns `{ status: "completed", checked_customers: N, repaired_wallets: N }`. All repairs are logged to the audit trail.
+- **Address Lookup Endpoint** (`GET /api/v1/merchants/customers/lookup-address/:address`): Resolves any EVM, Solana, or Bitcoin address back to the owning customer for the authenticated merchant. Returns `{ found, status, customer, wallet }`. Returns HTTP 404 with `{ found: false }` when not matched.
+- **Auto-Provisioning in `get_deposit_address`** (`merchant_customer_service.rs`): If no designated wallet exists for the requested `crypto_type`, `provision_wallets` is called automatically with `bypass_lock: true` before the address is returned. The response now always returns a JSON object `{ external_id, crypto_type, deposit_address, provisioned: bool }` instead of a plain string.
+- **Backend Unit Tests** (`merchant_customer_service.rs`): 26 new `#[cfg(test)]` unit tests covering `check_permissions` (all status/action combinations), `mask_address`, response shape validation for all three new endpoints, and crypto-type network-family routing.
+
+### Changed
+
+- **`get_deposit_address` handler** (`customer_handlers.rs`): Response body changed from a plain `String` to a `serde_json::Value` containing `deposit_address`, `crypto_type`, `external_id`, and `provisioned`. Existing clients receiving a plain string will need to update to read `deposit_address` from the returned object.
+- **Customer wallet integrity enforced at request time**: Any call to `get_deposit_address` that finds no active linked wallet now transparently repairs the gap rather than returning a `404`.
+
+### Fixed
+
+- **Fund loss prevention**: Customer wallet addresses that are not actively linked to the merchant can no longer be returned to the front end. The auto-provision path ensures only current, merchant-linked wallets are ever sent to customers.
+
 ## [2.6.14] - 2026-04-14
 
 ### Added

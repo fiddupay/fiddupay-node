@@ -2,7 +2,7 @@
   "info": {
     "name": "FidduPay Merchant API SDK",
     "description": "Official Merchant API documentation for FidduPay Node.js SDK users.",
-    "version": "2.6.0",
+    "version": "2.6.19",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -501,7 +501,8 @@
                 "deposit-address",
                 "SOL"
               ]
-            }
+            },
+            "description": "Returns the verified, merchant-linked deposit address for the customer. If no wallet exists for the requested crypto_type/network, one is automatically provisioned. Response: { external_id, crypto_type, deposit_address, provisioned }. provisioned=true means the wallet was just auto-created."
           }
         },
         {
@@ -762,6 +763,85 @@
               "mode": "raw",
               "raw": "{\n  \"all_customers\": true\n}"
             }
+          }
+        },
+        {
+          "name": "Verify & Repair Wallets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/verify-wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "verify-wallets"
+              ]
+            },
+            "description": "Scans ALL customers linked to your merchant account and auto-provisions any missing wallet designations. Returns { status, checked_customers, repaired_wallets }. Run this after onboarding migrations or if you suspect fund-loss from unlinked wallets."
+          }
+        },
+        {
+          "name": "Lookup Address Owner",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/lookup-address/0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "lookup-address",
+                "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+              ]
+            },
+            "description": "Resolves an on-chain address back to the owning customer. Returns { found, status (ACTIVE|HISTORICAL), customer, wallet }. HISTORICAL means the address was previously linked but the customer now has a new designated wallet. Returns 404 + { found: false } if not matched."
+          }
+        },
+        {
+          "name": "Wallet Audit Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/wallets-audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "wallets-audit"
+              ]
+            },
+            "description": "Full snapshot of all customer wallets. Returns { active: [...], historical: [...] }. Active = currently designated wallets. Historical = re-provisioned wallets with a reason field. Use for compliance audits and gap detection."
           }
         }
       ]

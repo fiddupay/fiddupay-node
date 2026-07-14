@@ -174,11 +174,11 @@ git subtree push --prefix fiddupay-node-sdk https://github.com/fiddupay/fiddupay
 # 3. Create and push the release tag to the standalone SDK repository
 # (Bash/macOS/Linux):
 CURRENT_COMMIT=$(git rev-parse HEAD)
-git push https://github.com/fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.18"
+git push https://github.com/fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.19"
 
 # (PowerShell/Windows):
 $CURRENT_COMMIT = git rev-parse HEAD
-git push https://github.com/fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.18"
+git push https://github.com/fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.19"
 ```
 
 To delete a version on github:

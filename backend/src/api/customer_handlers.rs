@@ -334,15 +334,7 @@ pub async fn get_deposit_address(
         )
         .await
     {
-        Ok(address) => (
-            StatusCode::OK,
-            Json(json!({
-                "external_id": external_id,
-                "crypto_type": crypto_type,
-                "deposit_address": address
-            })),
-        )
-            .into_response(),
+        Ok(result) => (StatusCode::OK, Json(result)).into_response(),
         Err(e) => e.into_response(),
     }
 }
@@ -826,6 +818,93 @@ pub async fn deactivate_customer(
             )
                 .into_response()
         }
+        Err(e) => e.into_response(),
+    }
+}
+
+pub async fn verify_and_repair_customer_wallets(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(
+        state.db_pool.clone(),
+        state.price_service.clone(),
+        state.volume_tracking_service.clone(),
+        state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
+    );
+
+    match service
+        .verify_and_repair_customer_wallets(context.merchant_id, context.sandbox_mode)
+        .await
+    {
+        Ok(summary) => {
+            let _ = state
+                .audit_service
+                .log_event(
+                    context.merchant_id,
+                    "customer_wallets_verify_repair",
+                    Some("Verified and repaired customer wallets"),
+                    Some(summary.clone()),
+                )
+                .await;
+
+            (StatusCode::OK, Json(summary)).into_response()
+        }
+        Err(e) => e.into_response(),
+    }
+}
+
+pub async fn lookup_customer_address(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Path(address): Path<String>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(
+        state.db_pool.clone(),
+        state.price_service.clone(),
+        state.volume_tracking_service.clone(),
+        state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
+    );
+
+    match service
+        .lookup_customer_address(context.merchant_id, &address)
+        .await
+    {
+        Ok(Some(result)) => (StatusCode::OK, Json(result)).into_response(),
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({
+                "found": false,
+                "message": "Address not found for any of your customers"
+            })),
+        )
+            .into_response(),
+        Err(e) => e.into_response(),
+    }
+}
+
+pub async fn audit_customer_wallets(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(
+        state.db_pool.clone(),
+        state.price_service.clone(),
+        state.volume_tracking_service.clone(),
+        state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
+    );
+
+    match service
+        .audit_all_customer_wallets(context.merchant_id)
+        .await
+    {
+        Ok(result) => (StatusCode::OK, Json(result)).into_response(),
         Err(e) => e.into_response(),
     }
 }

@@ -62,6 +62,14 @@ const MerchantCustomersPage: React.FC = () => {
   const [permUpdating, setPermUpdating] = useState(false);
   const [customerSummary, setCustomerSummary] = useState<any>(null);
 
+  // Wallet Health Panel State
+  const [lookupAddress, setLookupAddress] = useState("");
+  const [lookupResult, setLookupResult] = useState<any>(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [repairLoading, setRepairLoading] = useState(false);
+  const [repairResult, setRepairResult] = useState<any>(null);
+  const [showWalletHealth, setShowWalletHealth] = useState(false);
+
   // Use global dataStore for currencies, customers, customer summary
   const {
     currencies: currenciesCache,
@@ -304,6 +312,38 @@ const MerchantCustomersPage: React.FC = () => {
     showToast("Copied to clipboard", "success");
   };
 
+  const handleLookupAddress = async () => {
+    if (!lookupAddress.trim()) return;
+    setLookupLoading(true);
+    setLookupResult(null);
+    try {
+      const res = await customerAPI.lookupAddress(lookupAddress.trim());
+      setLookupResult(res.data);
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        setLookupResult({ found: false, message: "Address not found for any of your customers" });
+      } else {
+        showToast(extractErrorMessage(err, "Lookup failed"), "error");
+      }
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
+  const handleVerifyAndRepair = async () => {
+    setRepairLoading(true);
+    setRepairResult(null);
+    try {
+      const res = await customerAPI.verifyAndRepairWallets();
+      setRepairResult(res.data);
+      showToast(`Repair complete — ${res.data.repaired_wallets} wallets provisioned across ${res.data.checked_customers} customers`, "success");
+    } catch (err: any) {
+      showToast(extractErrorMessage(err, "Verify & repair failed"), "error");
+    } finally {
+      setRepairLoading(false);
+    }
+  };
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -319,6 +359,86 @@ const MerchantCustomersPage: React.FC = () => {
       </header>
 
       <CustomerStatsCards stats={stats} />
+
+      {/* Wallet Health Panel */}
+      <div style={{ margin: "0 0 1.5rem 0", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "12px", overflow: "hidden" }}>
+        <button
+          onClick={() => setShowWalletHealth(v => !v)}
+          style={{ width: "100%", background: "none", border: "none", padding: "0.9rem 1.5rem", display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer", color: "var(--text-main)" }}
+        >
+          <i className="fas fa-shield-alt" style={{ color: "#f59e0b" }}></i>
+          <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>Wallet Health Tools</span>
+          <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginLeft: "auto" }}>{showWalletHealth ? "Hide" : "Show"}</span>
+        </button>
+        {showWalletHealth && (
+          <div style={{ padding: "0 1.5rem 1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem", borderTop: "1px solid var(--border)" }}>
+            {/* Address Lookup */}
+            <div style={{ paddingTop: "1.25rem" }}>
+              <p style={{ fontWeight: 600, marginBottom: "0.5rem", fontSize: "0.875rem" }}>
+                <i className="fas fa-search" style={{ marginRight: "0.5rem", color: "#3b82f6" }}></i>Address Lookup
+              </p>
+              <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.75rem" }}>Check if a wallet address is linked to any of your customers (active or historical).</p>
+              <div style={{ display: "flex", gap: "0.75rem" }}>
+                <input
+                  id="wallet-lookup-input"
+                  type="text"
+                  value={lookupAddress}
+                  onChange={e => setLookupAddress(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleLookupAddress()}
+                  placeholder="Paste a wallet address..."
+                  style={{ flex: 1, padding: "0.6rem 1rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--bg-main)", color: "var(--text-main)", fontSize: "0.875rem", fontFamily: "monospace" }}
+                />
+                <button
+                  id="wallet-lookup-btn"
+                  onClick={handleLookupAddress}
+                  disabled={lookupLoading}
+                  style={{ padding: "0.6rem 1.25rem", borderRadius: "8px", border: "none", background: "#3b82f6", color: "white", fontWeight: 600, cursor: "pointer", opacity: lookupLoading ? 0.6 : 1 }}
+                >
+                  {lookupLoading ? <i className="fas fa-spinner fa-spin"></i> : "Lookup"}
+                </button>
+              </div>
+              {lookupResult && (
+                <div style={{ marginTop: "0.75rem", padding: "0.9rem 1rem", borderRadius: "8px", border: `1px solid ${lookupResult.found ? (lookupResult.status === "ACTIVE" ? "#059669" : "#f59e0b") : "#dc2626"}30`, background: `${lookupResult.found ? (lookupResult.status === "ACTIVE" ? "#05966910" : "#f59e0b10") : "#dc262610"}` }}>
+                  {lookupResult.found ? (
+                    <>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                        <span style={{ fontWeight: 700, fontSize: "0.875rem", color: lookupResult.status === "ACTIVE" ? "#059669" : "#f59e0b" }}>
+                          <i className={`fas fa-${lookupResult.status === "ACTIVE" ? "check-circle" : "history"}`} style={{ marginRight: "0.4rem" }}></i>
+                          {lookupResult.status}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: "0.825rem", margin: "0.25rem 0" }}><b>Customer:</b> {lookupResult.customer?.email} ({lookupResult.customer?.external_id})</p>
+                      <p style={{ fontSize: "0.825rem", margin: "0.25rem 0" }}><b>Network:</b> {lookupResult.wallet?.network} / {lookupResult.wallet?.crypto_type}</p>
+                      {lookupResult.status === "HISTORICAL" && <p style={{ fontSize: "0.8rem", color: "#f59e0b", marginTop: "0.4rem" }}>⚠ This is an old address. The customer has a new active address.</p>}
+                    </>
+                  ) : (
+                    <p style={{ fontSize: "0.875rem", color: "#dc2626" }}><i className="fas fa-times-circle" style={{ marginRight: "0.4rem" }}></i>Not found for any of your customers.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Verify & Repair */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.9rem 1rem", background: "var(--bg-main)", borderRadius: "10px", border: "1px solid var(--border)" }}>
+              <div>
+                <p style={{ fontWeight: 600, fontSize: "0.875rem", margin: 0 }}>
+                  <i className="fas fa-wrench" style={{ marginRight: "0.5rem", color: "#8b5cf6" }}></i>Verify & Repair Wallets
+                </p>
+                <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: "0.25rem 0 0" }}>Auto-provision any missing wallets for all customers across all active networks.</p>
+                {repairResult && <p style={{ fontSize: "0.8rem", color: "#059669", marginTop: "0.4rem" }}>✓ Checked {repairResult.checked_customers} customers — {repairResult.repaired_wallets} wallets provisioned.</p>}
+              </div>
+              <button
+                id="verify-repair-btn"
+                onClick={handleVerifyAndRepair}
+                disabled={repairLoading}
+                style={{ padding: "0.6rem 1.25rem", borderRadius: "8px", border: "none", background: "#8b5cf6", color: "white", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", opacity: repairLoading ? 0.6 : 1 }}
+              >
+                {repairLoading ? <><i className="fas fa-spinner fa-spin" style={{ marginRight: "0.4rem" }}></i>Running...</> : "Run Repair"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <CustomerFilterBar
         searchTerm={searchTerm}

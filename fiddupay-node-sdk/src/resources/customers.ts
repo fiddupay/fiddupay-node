@@ -153,11 +153,30 @@ export class Customers {
 
     /**
      * Get the specific deposit address for a customer for a given cryptocurrency.
+     * 
+     * If the customer does not have an existing wallet linked to your merchant account
+     * for the requested network, one will be **automatically provisioned** and returned.
+     * Check `provisioned === true` to know if a new wallet was just created.
      */
-    async getDepositAddress(externalId: string, cryptoType: string, options?: RequestOptions): Promise<{ address: string; crypto_type: string }> {
-        const response = await this.client.get<{ deposit_address: string; crypto_type: string }>(`/api/v1/merchants/customers/${externalId}/deposit-address/${cryptoType}`, options);
-        return { address: response.deposit_address, crypto_type: response.crypto_type };
+    async getDepositAddress(
+        externalId: string,
+        cryptoType: string,
+        options?: RequestOptions
+    ): Promise<{ address: string; crypto_type: string; external_id: string; provisioned: boolean }> {
+        const response = await this.client.get<{
+            deposit_address: string;
+            crypto_type: string;
+            external_id: string;
+            provisioned: boolean;
+        }>(`/api/v1/merchants/customers/${externalId}/deposit-address/${cryptoType}`, options);
+        return {
+            address: response.deposit_address,
+            crypto_type: response.crypto_type,
+            external_id: response.external_id,
+            provisioned: response.provisioned ?? false,
+        };
     }
+
 
     /**
      * Initiate an internal payment from a customer's designated wallet balance to the merchant's master balance.
@@ -188,5 +207,70 @@ export class Customers {
      */
     async getSummary(options?: RequestOptions): Promise<CustomerSummaryResponse> {
         return this.client.get('/api/v1/merchants/customers/summary', options);
+    }
+
+    /**
+     * Verify and repair wallets for all registered customers.
+     * Checks if any customer is missing wallets for enabled networks,
+     * and automatically provisions them to prevent loss of funds.
+     */
+    async verifyAndRepairWallets(options?: RequestOptions): Promise<{
+        status: string;
+        checked_customers: number;
+        repaired_wallets: number;
+    }> {
+        return this.client.post('/api/v1/merchants/customers/verify-wallets', {}, options);
+    }
+
+    /**
+     * Look up a specific wallet address to see if it belongs to any customer (active or historical).
+     */
+    async lookupAddress(address: string, options?: RequestOptions): Promise<{
+        found: boolean;
+        status: 'ACTIVE' | 'HISTORICAL';
+        customer: {
+            id: number;
+            external_id: string;
+            email: string;
+        };
+        wallet: {
+            address: string;
+            crypto_type: string;
+            network: string;
+            sandbox_mode: boolean;
+            reason?: string;
+            created_at: string;
+        };
+    }> {
+        return this.client.get(`/api/v1/merchants/customers/lookup-address/${address}`, options);
+    }
+
+    /**
+     * Perform a wallet audit of all customer wallets (both active and historical).
+     */
+    async auditWallets(options?: RequestOptions): Promise<{
+        active: Array<{
+            external_id: string;
+            email: string;
+            address: string;
+            crypto_type: string;
+            network: string;
+            sandbox_mode: boolean;
+            status: string;
+            created_at: string;
+        }>;
+        historical: Array<{
+            external_id: string;
+            email: string;
+            address: string;
+            crypto_type: string;
+            network: string;
+            sandbox_mode: boolean;
+            status: string;
+            reason: string;
+            created_at: string;
+        }>;
+    }> {
+        return this.client.get('/api/v1/merchants/customers/wallets-audit', options);
     }
 }
