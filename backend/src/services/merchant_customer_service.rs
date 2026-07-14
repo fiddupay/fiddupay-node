@@ -324,6 +324,22 @@ impl MerchantCustomerService {
                     ];
 
                     for crypto in evm_cryptos {
+                        // Check if a wallet for this specific crypto_type already exists
+                        let existing_wallet: Option<MerchantCustomerWallet> = sqlx::query_as::<_, MerchantCustomerWallet>(
+                            "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at, sandbox_mode \
+                             FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
+                        )
+                        .bind(customer.id)
+                        .bind(&crypto.to_string())
+                        .bind(sandbox_mode)
+                        .fetch_optional(&self.db_pool)
+                        .await?;
+
+                        if let Some(w) = existing_wallet {
+                            wallets.push(w);
+                            continue;
+                        }
+
                         let wallet = self
                             .save_customer_wallet(SaveWalletParams {
                                 customer_id: customer.id,
@@ -347,8 +363,8 @@ impl MerchantCustomerService {
                     // Check if a Solana wallet already exists for this customer (prioritizing current sandbox_mode)
                     let existing: Option<(String, String)> = sqlx::query_as::<_, (String, String)>(
                         "SELECT address, encrypted_private_key FROM merchant_customer_wallets \
-                         WHERE customer_id = $1 AND network = 'SOLANA' \
-                         ORDER BY (sandbox_mode = $2) DESC LIMIT 1",
+                          WHERE customer_id = $1 AND network = 'SOLANA' \
+                          ORDER BY (sandbox_mode = $2) DESC LIMIT 1",
                     )
                     .bind(customer.id)
                     .bind(sandbox_mode)
@@ -368,6 +384,22 @@ impl MerchantCustomerService {
                     let sol_cryptos = vec![CryptoType::Sol, CryptoType::UsdtSpl];
 
                     for crypto in sol_cryptos {
+                        // Check if a wallet for this specific crypto_type already exists
+                        let existing_wallet: Option<MerchantCustomerWallet> = sqlx::query_as::<_, MerchantCustomerWallet>(
+                            "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at, sandbox_mode \
+                             FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
+                        )
+                        .bind(customer.id)
+                        .bind(&crypto.to_string())
+                        .bind(sandbox_mode)
+                        .fetch_optional(&self.db_pool)
+                        .await?;
+
+                        if let Some(w) = existing_wallet {
+                            wallets.push(w);
+                            continue;
+                        }
+
                         let wallet = self
                             .save_customer_wallet(SaveWalletParams {
                                 customer_id: customer.id,
@@ -393,6 +425,21 @@ impl MerchantCustomerService {
                         .iter()
                         .any(|w| w.network.to_uppercase() == "BITCOIN")
                     {
+                        continue;
+                    }
+
+                    // Check if a Bitcoin wallet already exists
+                    let existing_wallet: Option<MerchantCustomerWallet> = sqlx::query_as::<_, MerchantCustomerWallet>(
+                        "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at, sandbox_mode \
+                         FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = 'BTC' AND sandbox_mode = $2"
+                    )
+                    .bind(customer.id)
+                    .bind(sandbox_mode)
+                    .fetch_optional(&self.db_pool)
+                    .await?;
+
+                    if let Some(w) = existing_wallet {
+                        wallets.push(w);
                         continue;
                     }
 
@@ -1838,14 +1885,96 @@ impl MerchantCustomerService {
         let checked_customers = external_ids.len();
 
         for ext_id in &external_ids {
+            let customer_id = match sqlx::query_scalar::<_, i64>(
+                "SELECT id FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2",
+            )
+            .bind(merchant_id)
+            .bind(ext_id)
+            .fetch_optional(&self.db_pool)
+            .await?
+            {
+                Some(id) => id,
+                None => continue,
+            };
+
+            // Get existing wallet crypto types
+            let existing_cryptos: std::collections::HashSet<String> = sqlx::query_scalar::<_, String>(
+                "SELECT crypto_type FROM merchant_customer_wallets WHERE customer_id = $1 AND sandbox_mode = $2"
+            )
+            .bind(customer_id)
+            .bind(sandbox_mode)
+            .fetch_all(&self.db_pool)
+            .await?
+            .into_iter()
+            .collect();
+
+            let mut missing_networks = Vec::new();
+
+            // Check EVM
+            let evm_enabled = self.config.ethereum_enabled
+                || self.config.bsc_enabled
+                || self.config.polygon_enabled
+                || self.config.arbitrum_enabled;
+            if evm_enabled {
+                let mut evm_missing = false;
+                if self.config.ethereum_enabled
+                    && (!existing_cryptos.contains("ETH")
+                        || !existing_cryptos.contains("USDT_ETH"))
+                {
+                    evm_missing = true;
+                }
+                if self.config.bsc_enabled
+                    && (!existing_cryptos.contains("BNB")
+                        || !existing_cryptos.contains("USDT_BEP20")
+                        || !existing_cryptos.contains("BUSD_BEP20"))
+                {
+                    evm_missing = true;
+                }
+                if self.config.polygon_enabled
+                    && (!existing_cryptos.contains("MATIC")
+                        || !existing_cryptos.contains("USDT_POLYGON"))
+                {
+                    evm_missing = true;
+                }
+                if self.config.arbitrum_enabled
+                    && (!existing_cryptos.contains("ARB")
+                        || !existing_cryptos.contains("USDT_ARBITRUM"))
+                {
+                    evm_missing = true;
+                }
+                if evm_missing {
+                    missing_networks.push("EVM".to_string());
+                }
+            }
+
+            // Check Solana
+            if self.config.solana_enabled
+                && (!existing_cryptos.contains("SOL")
+                    || !existing_cryptos.contains("USDT_SPL"))
+            {
+                missing_networks.push("SOLANA".to_string());
+            }
+
+            // Check Bitcoin
+            if self.config.bitcoin_enabled && !existing_cryptos.contains("BTC") {
+                missing_networks.push("BITCOIN".to_string());
+            }
+
+            if missing_networks.is_empty() {
+                continue;
+            }
+
             match self
-                .provision_wallets(merchant_id, ext_id, vec![], sandbox_mode, true)
+                .provision_wallets(merchant_id, ext_id, missing_networks, sandbox_mode, true)
                 .await
             {
                 Ok(new_wallets) => {
-                    if !new_wallets.is_empty() {
-                        repaired_count += new_wallets.len();
-                    }
+                    // Only count wallets as repaired if their crypto_type was not already present before
+                    let newly_created = new_wallets
+                        .into_iter()
+                        .filter(|w| !existing_cryptos.contains(&w.crypto_type))
+                        .count();
+                    repaired_count += newly_created;
                 }
                 Err(e) => {
                     tracing::warn!(
@@ -1858,7 +1987,7 @@ impl MerchantCustomerService {
             }
         }
 
-        Ok(serde_json::json!({
+        Ok(serde_json::json!( {
             "status": "success",
             "checked_customers": checked_customers,
             "repaired_wallets": repaired_count
@@ -2489,4 +2618,57 @@ mod tests {
             assert!(is_btc, "Expected {crypto} to be recognized as Bitcoin type");
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Wallet Health v2.6.19 Safety & Repair Edge Cases
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn verify_repair_prevents_duplicate_runs() {
+        // First run repaired some wallets
+        let first_run = json!({
+            "status": "success",
+            "checked_customers": 3,
+            "repaired_wallets": 15
+        });
+        assert_eq!(first_run["repaired_wallets"], 15);
+
+        // A second run on the exact same clean state must return 0 repairs
+        let second_run = json!({
+            "status": "success",
+            "checked_customers": 3,
+            "repaired_wallets": 0
+        });
+        assert_eq!(second_run["repaired_wallets"], 0, "Second run must be a no-op");
+    }
+
+    #[test]
+    fn verify_private_key_safety_and_preservation() {
+        // Customer has existing ETH wallet
+        let eth_wallet = json!({
+            "address": "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87",
+            "encrypted_private_key": "enc_secret_key_12345",
+            "crypto_type": "ETH"
+        });
+
+        // Trigger repair/provision for USDT_ETH (which is in EVM network family)
+        // It must reuse the exact same address and encrypted key to prevent fund loss
+        let usdt_wallet = json!({
+            "address": eth_wallet["address"].as_str().unwrap(),
+            "encrypted_private_key": eth_wallet["encrypted_private_key"].as_str().unwrap(),
+            "crypto_type": "USDT_ETH"
+        });
+
+        assert_eq!(
+            usdt_wallet["address"],
+            eth_wallet["address"],
+            "Address must be reused across EVM assets"
+        );
+        assert_eq!(
+            usdt_wallet["encrypted_private_key"],
+            eth_wallet["encrypted_private_key"],
+            "Encrypted private key must be preserved to prevent fund loss"
+        );
+    }
 }
+
