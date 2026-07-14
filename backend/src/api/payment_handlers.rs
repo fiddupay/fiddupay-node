@@ -531,7 +531,12 @@ pub async fn payment_page(
         customer_pays_fee,
     });
 
-    (StatusCode::OK, Html(html)).into_response()
+    (
+        StatusCode::OK,
+        [("Cache-Control", "no-cache, no-store, must-revalidate")],
+        Html(html),
+    )
+        .into_response()
 }
 
 // ============================================================================

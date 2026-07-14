@@ -120,7 +120,7 @@ interface AnalyticsData {
 import { useBalanceStore } from '@/stores/balanceStore'
 
 const DashboardPage: React.FC = () => {
-  const { user } = useAuthStore()
+  const { user, loadUser } = useAuthStore()
   const { balance, fetchBalance } = useBalanceStore()
   const { 
     analytics: analyticsCache,
@@ -154,6 +154,8 @@ const DashboardPage: React.FC = () => {
       const limit = user.daily_limit_usd ? (parseFloat(user.daily_limit_usd) || 0) : 0
       const used = limit > 0 ? Math.max(0, limit - remaining) : 0
       setDailyVolumeUsed(used)
+    } else {
+      setDailyVolumeUsed(0)
     }
   }, [user])
 
@@ -161,6 +163,7 @@ const DashboardPage: React.FC = () => {
     try {
       // Use the global data store — SWR pattern handles caching automatically
       await Promise.all([
+        loadUser(true), // Fetch latest user details (e.g., daily volume remaining) silently
         fetchAnalytics({
           from_date: new Date(dateRange.from_date).toISOString(),
           to_date: new Date(dateRange.to_date + 'T23:59:59Z').toISOString()
