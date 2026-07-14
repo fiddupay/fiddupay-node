@@ -32,6 +32,13 @@ pub struct PriceService {
     failure_threshold: u32,
     failure_reset_duration: Duration,
     in_flight_requests: PriceInFlightMap,
+    // Network-enabled flags — only warm up prices for active networks
+    solana_enabled: bool,
+    bitcoin_enabled: bool,
+    ethereum_enabled: bool,
+    bsc_enabled: bool,
+    polygon_enabled: bool,
+    arbitrum_enabled: bool,
 }
 
 impl PriceService {
@@ -44,6 +51,12 @@ impl PriceService {
             failure_threshold: 3,
             failure_reset_duration: Duration::from_secs(900), // 15 minutes
             in_flight_requests: Arc::new(RwLock::new(HashMap::new())),
+            solana_enabled: config.solana_enabled,
+            bitcoin_enabled: config.bitcoin_enabled,
+            ethereum_enabled: config.ethereum_enabled,
+            bsc_enabled: config.bsc_enabled,
+            polygon_enabled: config.polygon_enabled,
+            arbitrum_enabled: config.arbitrum_enabled,
         }
     }
 
@@ -126,17 +139,41 @@ impl PriceService {
     }
 
     async fn warmup_prices(&self) -> Result<(), String> {
-        let cryptos = vec![
-            CryptoType::Sol,
-            CryptoType::Eth,
-            CryptoType::Arb,
-            CryptoType::Matic,
-            CryptoType::Bnb,
-            CryptoType::Btc,
-        ];
+        // Build a list of only the cryptos whose network is enabled in config.
+        // Stablecoins (price = 1.0) are always skipped — they don't need a fetch.
+        let mut cryptos: Vec<CryptoType> = Vec::new();
+
+        if self.solana_enabled {
+            cryptos.push(CryptoType::Sol);
+        }
+        if self.bitcoin_enabled {
+            cryptos.push(CryptoType::Btc);
+        }
+        if self.ethereum_enabled {
+            cryptos.push(CryptoType::Eth);
+        }
+        if self.bsc_enabled {
+            cryptos.push(CryptoType::Bnb);
+        }
+        if self.polygon_enabled {
+            cryptos.push(CryptoType::Matic);
+        }
+        if self.arbitrum_enabled {
+            cryptos.push(CryptoType::Arb);
+        }
+
+        if cryptos.is_empty() {
+            info!("[PRICE] All networks disabled — skipping price warmup");
+            return Ok(());
+        }
+
+        info!(
+            "[PRICE] Warming up prices for {} enabled network(s): {:?}",
+            cryptos.len(),
+            cryptos
+        );
 
         for crypto in cryptos {
-            // Fetch fresh price
             match self.fetch_price(crypto).await {
                 Ok(price) => {
                     let mut prices = self.prices.write().await;
@@ -146,7 +183,7 @@ impl PriceService {
                     warn!("[PRICE] Warmup failed for {:?}: {}", crypto, e);
                 }
             }
-            // Stagger requests
+            // Stagger requests to avoid hammering the price APIs
             tokio::time::sleep(Duration::from_millis(500)).await;
         }
         Ok(())
@@ -371,6 +408,12 @@ impl Clone for PriceService {
             failure_threshold: self.failure_threshold,
             failure_reset_duration: self.failure_reset_duration,
             in_flight_requests: Arc::clone(&self.in_flight_requests),
+            solana_enabled: self.solana_enabled,
+            bitcoin_enabled: self.bitcoin_enabled,
+            ethereum_enabled: self.ethereum_enabled,
+            bsc_enabled: self.bsc_enabled,
+            polygon_enabled: self.polygon_enabled,
+            arbitrum_enabled: self.arbitrum_enabled,
         }
     }
 }
