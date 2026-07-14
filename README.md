@@ -165,8 +165,8 @@ To sync code AND push a version tag manually:
 
 ```bash
 # 1. Tag and push in the main repository
-git tag -a v2.6.18 -m "Release v2.6.18"
-git push origin v2.6.18
+git tag -a v2.6.19 -m "Release v2.6.19"
+git push origin v2.6.19
 
 # 2. Push subtree changes to the standalone repository
 git subtree push --prefix fiddupay-node-sdk https://github.com/fiddupay/fiddupay-node.git main
@@ -176,7 +176,7 @@ git subtree push --prefix fiddupay-node-sdk https://github.com/fiddupay/fiddupay
 CURRENT_COMMIT=$(git rev-parse HEAD)
 git push https://github.com/fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.19"
 
-# (PowerShell/Windows):
+# (PowerShell/Windows) — run as TWO separate commands:
 $CURRENT_COMMIT = git rev-parse HEAD
 git push https://github.com/fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.19"
 ```

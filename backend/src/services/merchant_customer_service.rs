@@ -294,7 +294,7 @@ impl MerchantCustomerService {
                     let existing: Option<(String, String)> = sqlx::query_as::<_, (String, String)>(
                         "SELECT address, encrypted_private_key FROM merchant_customer_wallets \
                          WHERE customer_id = $1 AND network = 'ETHEREUM' \
-                         ORDER BY (sandbox_mode = $2) DESC LIMIT 1"
+                         ORDER BY (sandbox_mode = $2) DESC LIMIT 1",
                     )
                     .bind(customer.id)
                     .bind(sandbox_mode)
@@ -348,7 +348,7 @@ impl MerchantCustomerService {
                     let existing: Option<(String, String)> = sqlx::query_as::<_, (String, String)>(
                         "SELECT address, encrypted_private_key FROM merchant_customer_wallets \
                          WHERE customer_id = $1 AND network = 'SOLANA' \
-                         ORDER BY (sandbox_mode = $2) DESC LIMIT 1"
+                         ORDER BY (sandbox_mode = $2) DESC LIMIT 1",
                     )
                     .bind(customer.id)
                     .bind(sandbox_mode)
@@ -762,7 +762,8 @@ impl MerchantCustomerService {
         // Wallet not found or not linked — auto-provision for this network/crypto
         tracing::info!(
             "No linked wallet found for customer {} / {} — auto-provisioning",
-            external_id, crypto_type_str
+            external_id,
+            crypto_type_str
         );
 
         let provisioned = self
@@ -1827,7 +1828,7 @@ impl MerchantCustomerService {
         sandbox_mode: bool,
     ) -> Result<serde_json::Value, ServiceError> {
         let external_ids: Vec<String> = sqlx::query_scalar::<_, String>(
-            "SELECT external_id FROM merchant_customers WHERE merchant_id = $1"
+            "SELECT external_id FROM merchant_customers WHERE merchant_id = $1",
         )
         .bind(merchant_id)
         .fetch_all(&self.db_pool)
@@ -1882,7 +1883,9 @@ impl MerchantCustomerService {
         .fetch_optional(&self.db_pool)
         .await?;
 
-        if let Some((cust_id, ext_id, email, crypto_type, network, sandbox_mode, created_at)) = active_wallet {
+        if let Some((cust_id, ext_id, email, crypto_type, network, sandbox_mode, created_at)) =
+            active_wallet
+        {
             return Ok(Some(serde_json::json!({
                 "found": true,
                 "status": "ACTIVE",
@@ -1912,7 +1915,17 @@ impl MerchantCustomerService {
         .fetch_optional(&self.db_pool)
         .await?;
 
-        if let Some((cust_id, ext_id, email, crypto_type, network, sandbox_mode, reason, created_at)) = historical_wallet {
+        if let Some((
+            cust_id,
+            ext_id,
+            email,
+            crypto_type,
+            network,
+            sandbox_mode,
+            reason,
+            created_at,
+        )) = historical_wallet
+        {
             return Ok(Some(serde_json::json!({
                 "found": true,
                 "status": "HISTORICAL",
@@ -2018,7 +2031,6 @@ mod tests {
     use chrono::Utc;
     use serde_json::json;
 
-
     // -------------------------------------------------------------------------
     // Fixture helpers
     // -------------------------------------------------------------------------
@@ -2099,8 +2111,7 @@ mod tests {
 
     #[test]
     fn check_permissions_blocks_flagged_customer_from_writing() {
-        let result =
-            MerchantCustomerService::check_permissions(&flagged_customer(), "withdraw");
+        let result = MerchantCustomerService::check_permissions(&flagged_customer(), "withdraw");
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();
         assert!(
@@ -2112,8 +2123,7 @@ mod tests {
     #[test]
     fn check_permissions_blocks_suspended_customer_from_any_action() {
         for action in ["view", "withdraw", "pay"] {
-            let result =
-                MerchantCustomerService::check_permissions(&suspended_customer(), action);
+            let result = MerchantCustomerService::check_permissions(&suspended_customer(), action);
             assert!(
                 result.is_err(),
                 "Suspended customer should be blocked for action: {action}"
@@ -2159,7 +2169,10 @@ mod tests {
     fn mask_address_exactly_10_chars_returned_as_is() {
         let addr = "1234567890";
         let masked = mask_address(addr);
-        assert_eq!(masked, addr, "Exactly 10-char addresses should not be masked");
+        assert_eq!(
+            masked, addr,
+            "Exactly 10-char addresses should not be masked"
+        );
     }
 
     #[test]
@@ -2222,8 +2235,14 @@ mod tests {
         // All 4 fields must exist in response
         assert!(response.get("external_id").is_some(), "external_id missing");
         assert!(response.get("crypto_type").is_some(), "crypto_type missing");
-        assert!(response.get("deposit_address").is_some(), "deposit_address missing");
-        assert!(response.get("provisioned").is_some(), "provisioned flag missing");
+        assert!(
+            response.get("deposit_address").is_some(),
+            "deposit_address missing"
+        );
+        assert!(
+            response.get("provisioned").is_some(),
+            "provisioned flag missing"
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -2353,7 +2372,15 @@ mod tests {
             "created_at": "2025-01-01T00:00:00Z"
         });
 
-        for field in ["external_id", "email", "address", "crypto_type", "network", "status", "created_at"] {
+        for field in [
+            "external_id",
+            "email",
+            "address",
+            "crypto_type",
+            "network",
+            "status",
+            "created_at",
+        ] {
             assert!(
                 entry.get(field).is_some(),
                 "Active entry missing field: {field}"
@@ -2387,8 +2414,15 @@ mod tests {
     #[test]
     fn evm_crypto_types_are_recognizable() {
         let evm_types = vec![
-            "ETH", "USDT_ETH", "BNB", "USDT_BEP20", "BUSD_BEP20",
-            "MATIC", "USDT_POLYGON", "ARB", "USDT_ARBITRUM",
+            "ETH",
+            "USDT_ETH",
+            "BNB",
+            "USDT_BEP20",
+            "BUSD_BEP20",
+            "MATIC",
+            "USDT_POLYGON",
+            "ARB",
+            "USDT_ARBITRUM",
         ];
 
         // Simulate the match arms in provision_wallets for EVM types
@@ -2396,14 +2430,25 @@ mod tests {
             let normalized = crypto.to_uppercase();
             let is_evm = matches!(
                 normalized.as_str(),
-                "EVM" | "ETH" | "ERC20" | "BSC" | "BEP20" | "POLYGON" | "MATIC" | "ARB"
-                    | "ARBITRUM" | "NATIVE" | "ETHEREUM" | "USDT_ETH" | "USDT_BEP20"
-                    | "BUSD_BEP20" | "USDT_POLYGON" | "USDT_ARBITRUM" | "BNB"
+                "EVM"
+                    | "ETH"
+                    | "ERC20"
+                    | "BSC"
+                    | "BEP20"
+                    | "POLYGON"
+                    | "MATIC"
+                    | "ARB"
+                    | "ARBITRUM"
+                    | "NATIVE"
+                    | "ETHEREUM"
+                    | "USDT_ETH"
+                    | "USDT_BEP20"
+                    | "BUSD_BEP20"
+                    | "USDT_POLYGON"
+                    | "USDT_ARBITRUM"
+                    | "BNB"
             );
-            assert!(
-                is_evm,
-                "Expected {crypto} to be recognized as an EVM type"
-            );
+            assert!(is_evm, "Expected {crypto} to be recognized as an EVM type");
         }
     }
 
@@ -2415,8 +2460,14 @@ mod tests {
             let normalized = crypto.to_uppercase();
             let is_solana = matches!(
                 normalized.as_str(),
-                "SOLANA" | "SOL" | "SPL" | "SOLANA_SPL" | "SOLANA_MAINNET" | "SOLANA_DEVNET"
-                    | "USDT_SPL" | "WSOL"
+                "SOLANA"
+                    | "SOL"
+                    | "SPL"
+                    | "SOLANA_SPL"
+                    | "SOLANA_MAINNET"
+                    | "SOLANA_DEVNET"
+                    | "USDT_SPL"
+                    | "WSOL"
             );
             assert!(
                 is_solana,
