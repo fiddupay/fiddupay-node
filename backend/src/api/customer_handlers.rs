@@ -742,7 +742,7 @@ pub async fn list_customers(
         state.balance_service.clone(),
         Arc::new(state.config.clone()),
     );
-    let limit = params.limit.unwrap_or(50);
+    let limit = params.limit.unwrap_or(1000000);
     let offset = params.offset.unwrap_or(0);
 
     match service

@@ -219,7 +219,7 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
       () => get().customers,
       (patch) => set((s) => ({ customers: { ...s.customers, ...patch } })),
       async () => {
-        const res = await customerAPI.list()
+        const res = await customerAPI.list({ limit: 1000000 })
         return res.data?.customers || []
       },
       TTL.CUSTOMERS,
