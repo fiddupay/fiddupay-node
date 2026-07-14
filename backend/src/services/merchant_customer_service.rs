@@ -293,8 +293,8 @@ impl MerchantCustomerService {
                     // Check if an EVM wallet already exists for this customer (prioritizing current sandbox_mode)
                     let existing: Option<(String, String)> = sqlx::query_as::<_, (String, String)>(
                         "SELECT address, encrypted_private_key FROM merchant_customer_wallets \
-                         WHERE customer_id = $1 AND network = 'ETHEREUM' \
-                         ORDER BY (sandbox_mode = $2) DESC LIMIT 1",
+                          WHERE customer_id = $1 AND network = 'ETHEREUM' \
+                          ORDER BY (sandbox_mode = $2) DESC LIMIT 1",
                     )
                     .bind(customer.id)
                     .bind(sandbox_mode)
@@ -302,7 +302,37 @@ impl MerchantCustomerService {
                     .await?;
 
                     let (address, encrypted_key) = if let Some((addr, key)) = existing {
-                        (addr, key)
+                        if key.trim().is_empty() {
+                            tracing::warn!("Customer {} has EVM wallet with missing/broken private key! Generating fresh keypair and archiving.", customer.id);
+
+                            // Archive to history (for audit trail)
+                            let _ = sqlx::query(
+                                r#"
+                                INSERT INTO merchant_wallet_history (
+                                    merchant_id, customer_id, owner_type, crypto_type, network, 
+                                    old_address, new_address, wallet_mode, 
+                                    encrypted_private_key, reason, changed_by
+                                )
+                                VALUES ($1, $2, 'customer', 'ETH', 'ETHEREUM', $3, $4, 'managed', $5, 'Broken key replaced during repair', 'system')
+                                "#
+                            )
+                            .bind(merchant_id)
+                            .bind(customer.id)
+                            .bind(&addr)
+                            .bind("")
+                            .bind(&key)
+                            .execute(&self.db_pool)
+                            .await;
+
+                            let keypair = KeyGenerator::generate_evm_wallet()?;
+                            let enc_key =
+                                encryption.encrypt(&keypair.private_key).map_err(|e| {
+                                    ServiceError::InternalError(format!("Encryption failed: {}", e))
+                                })?;
+                            (keypair.address, enc_key)
+                        } else {
+                            (addr, key)
+                        }
                     } else {
                         let keypair = KeyGenerator::generate_evm_wallet()?;
                         let enc_key = encryption.encrypt(&keypair.private_key).map_err(|e| {
@@ -330,14 +360,17 @@ impl MerchantCustomerService {
                              FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
                         )
                         .bind(customer.id)
-                        .bind(&crypto.to_string())
+                        .bind(crypto.to_string())
                         .bind(sandbox_mode)
                         .fetch_optional(&self.db_pool)
                         .await?;
 
+                        // Only reuse the existing record if the address matches our target address (meaning it is not broken/mismatched)
                         if let Some(w) = existing_wallet {
-                            wallets.push(w);
-                            continue;
+                            if w.address == address && !w.encrypted_private_key.trim().is_empty() {
+                                wallets.push(w);
+                                continue;
+                            }
                         }
 
                         let wallet = self
@@ -372,7 +405,37 @@ impl MerchantCustomerService {
                     .await?;
 
                     let (address, encrypted_key) = if let Some((addr, key)) = existing {
-                        (addr, key)
+                        if key.trim().is_empty() {
+                            tracing::warn!("Customer {} has Solana wallet with missing/broken private key! Generating fresh keypair and archiving.", customer.id);
+
+                            // Archive to history
+                            let _ = sqlx::query(
+                                r#"
+                                INSERT INTO merchant_wallet_history (
+                                    merchant_id, customer_id, owner_type, crypto_type, network, 
+                                    old_address, new_address, wallet_mode, 
+                                    encrypted_private_key, reason, changed_by
+                                )
+                                VALUES ($1, $2, 'customer', 'SOL', 'SOLANA', $3, $4, 'managed', $5, 'Broken key replaced during repair', 'system')
+                                "#
+                            )
+                            .bind(merchant_id)
+                            .bind(customer.id)
+                            .bind(&addr)
+                            .bind("")
+                            .bind(&key)
+                            .execute(&self.db_pool)
+                            .await;
+
+                            let keypair = KeyGenerator::generate_solana_wallet()?;
+                            let enc_key =
+                                encryption.encrypt(&keypair.private_key).map_err(|e| {
+                                    ServiceError::InternalError(format!("Encryption failed: {}", e))
+                                })?;
+                            (keypair.address, enc_key)
+                        } else {
+                            (addr, key)
+                        }
                     } else {
                         let keypair = KeyGenerator::generate_solana_wallet()?;
                         let enc_key = encryption.encrypt(&keypair.private_key).map_err(|e| {
@@ -381,7 +444,7 @@ impl MerchantCustomerService {
                         (keypair.address, enc_key)
                     };
 
-                    let sol_cryptos = vec![CryptoType::Sol, CryptoType::UsdtSpl];
+                    let sol_cryptos = vec![CryptoType::Sol, CryptoType::UsdtSpl, CryptoType::WSol];
 
                     for crypto in sol_cryptos {
                         // Check if a wallet for this specific crypto_type already exists
@@ -390,14 +453,17 @@ impl MerchantCustomerService {
                              FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
                         )
                         .bind(customer.id)
-                        .bind(&crypto.to_string())
+                        .bind(crypto.to_string())
                         .bind(sandbox_mode)
                         .fetch_optional(&self.db_pool)
                         .await?;
 
+                        // Only reuse the existing record if the address matches our target address (meaning it is not broken/mismatched)
                         if let Some(w) = existing_wallet {
-                            wallets.push(w);
-                            continue;
+                            if w.address == address && !w.encrypted_private_key.trim().is_empty() {
+                                wallets.push(w);
+                                continue;
+                            }
                         }
 
                         let wallet = self
@@ -439,8 +505,10 @@ impl MerchantCustomerService {
                     .await?;
 
                     if let Some(w) = existing_wallet {
-                        wallets.push(w);
-                        continue;
+                        if !w.encrypted_private_key.trim().is_empty() {
+                            wallets.push(w);
+                            continue;
+                        }
                     }
 
                     let keypair = KeyGenerator::generate_btc_wallet(sandbox_mode)?;
@@ -1918,8 +1986,7 @@ impl MerchantCustomerService {
             if evm_enabled {
                 let mut evm_missing = false;
                 if self.config.ethereum_enabled
-                    && (!existing_cryptos.contains("ETH")
-                        || !existing_cryptos.contains("USDT_ETH"))
+                    && (!existing_cryptos.contains("ETH") || !existing_cryptos.contains("USDT_ETH"))
                 {
                     evm_missing = true;
                 }
@@ -1950,7 +2017,8 @@ impl MerchantCustomerService {
             // Check Solana
             if self.config.solana_enabled
                 && (!existing_cryptos.contains("SOL")
-                    || !existing_cryptos.contains("USDT_SPL"))
+                    || !existing_cryptos.contains("USDT_SPL")
+                    || !existing_cryptos.contains("WSOL"))
             {
                 missing_networks.push("SOLANA".to_string());
             }
@@ -2639,7 +2707,10 @@ mod tests {
             "checked_customers": 3,
             "repaired_wallets": 0
         });
-        assert_eq!(second_run["repaired_wallets"], 0, "Second run must be a no-op");
+        assert_eq!(
+            second_run["repaired_wallets"], 0,
+            "Second run must be a no-op"
+        );
     }
 
     #[test]
@@ -2660,15 +2731,12 @@ mod tests {
         });
 
         assert_eq!(
-            usdt_wallet["address"],
-            eth_wallet["address"],
+            usdt_wallet["address"], eth_wallet["address"],
             "Address must be reused across EVM assets"
         );
         assert_eq!(
-            usdt_wallet["encrypted_private_key"],
-            eth_wallet["encrypted_private_key"],
+            usdt_wallet["encrypted_private_key"], eth_wallet["encrypted_private_key"],
             "Encrypted private key must be preserved to prevent fund loss"
         );
     }
 }
-
