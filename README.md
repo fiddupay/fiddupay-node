@@ -143,6 +143,15 @@ To sync specific code changes strictly to their respective GitHub repositories u
 
 To sync code changes to the standalone SDK repository, you can use the Unix sync script or run the Git subtree command directly (e.g. in PowerShell/CMD):
 
+##### PowerShell Script:
+```powershell
+# Push SDK code only
+.\scripts\push-sdk.ps1 -Branch main
+
+# Push SDK code + tag in one command
+.\scripts\push-sdk.ps1 -Branch main -Tag v2.6.19
+```
+
 ##### Bash Script:
 ```bash
 bash ./scripts/push-sdk.sh main
