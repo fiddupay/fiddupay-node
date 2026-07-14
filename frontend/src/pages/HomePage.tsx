@@ -64,14 +64,17 @@ const HomePage: React.FC = () => {
           
           <div className={`${styles.heroVisual} animate-slide-in-right`}>
             <div className={styles.heroImageWrapper}>
-              <img 
-                src="/hero3.png" 
-                alt="FidduPay Dashboard floating with crypto coins" 
-                className={styles.heroImage}
-                onError={(e) => {
-                  e.currentTarget.src = "https://images.unsplash.com/photo-1639762681485-074b7f4ec651?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
-                }}
-              />
+              <picture>
+                <source srcSet="/hero3.webp" type="image/webp" />
+                <img 
+                  src="/hero3.png" 
+                  alt="FidduPay Dashboard floating with crypto coins" 
+                  className={styles.heroImage}
+                  onError={(e) => {
+                    e.currentTarget.src = "https://images.unsplash.com/photo-1639762681485-074b7f4ec651?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
+                  }}
+                />
+              </picture>
             </div>
             
             <div className={styles.floatingCard}>

@@ -35,7 +35,10 @@ const AboutPage: React.FC = () => {
           </div>
           <div className={styles.heroVisual}>
             <div className={styles.heroImageWrapper}>
-              <img src="/about-hero-Photoroom.png" alt="Global Crypto Network" className={styles.heroImage} />
+              <picture>
+                <source srcSet="/about-hero-Photoroom.webp" type="image/webp" />
+                <img src="/about-hero-Photoroom.png" alt="Global Crypto Network" className={styles.heroImage} />
+              </picture>
               <div className={styles.imageOverlay}></div>
             </div>
             <div className={styles.floatingCard}>
