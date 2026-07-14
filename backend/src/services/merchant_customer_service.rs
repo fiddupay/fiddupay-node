@@ -538,6 +538,13 @@ impl MerchantCustomerService {
             }
         }
 
+        if !wallets.is_empty() {
+            let _ = self
+                .balance_service
+                .broadcast_balance_update(merchant_id, sandbox_mode)
+                .await;
+        }
+
         Ok(wallets)
     }
 
@@ -2053,6 +2060,13 @@ impl MerchantCustomerService {
                     );
                 }
             }
+        }
+
+        if repaired_count > 0 {
+            let _ = self
+                .balance_service
+                .broadcast_balance_update(merchant_id, sandbox_mode)
+                .await;
         }
 
         Ok(serde_json::json!( {
