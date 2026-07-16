@@ -4,6 +4,8 @@
 use chrono::Utc;
 use rust_decimal::Decimal;
 use serde_json::json;
+use solana_sdk::pubkey::Pubkey;
+use spl_associated_token_account::get_associated_token_address;
 use sqlx::{PgPool, Row};
 use std::str::FromStr;
 use tracing::{error, info, warn};
@@ -45,6 +47,13 @@ impl PaymentVerifier {
             notification_service,
             balance_service,
         }
+    }
+
+    fn get_solana_ata(&self, owner: &str, mint: &str) -> Option<String> {
+        let owner_pubkey = Pubkey::from_str(owner).ok()?;
+        let mint_pubkey = Pubkey::from_str(mint).ok()?;
+        let ata_pubkey = get_associated_token_address(&owner_pubkey, &mint_pubkey);
+        Some(ata_pubkey.to_string())
     }
 
     /// Verify a payment using public payment_id and transaction hash
@@ -472,7 +481,17 @@ impl PaymentVerifier {
             .unwrap_or(false)
         {
             // Solana addresses are case-sensitive (Base58)
-            blockchain_tx.to_address.trim() == payment_to_address.trim()
+            let matches_primary = blockchain_tx.to_address.trim() == payment_to_address.trim();
+            let matches_ata = if let Some(mint) = crypto_type.token_address() {
+                if let Some(ata) = self.get_solana_ata(payment_to_address, mint) {
+                    blockchain_tx.to_address.trim() == ata.trim()
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+            matches_primary || matches_ata
         } else {
             // Ethereum/EVM addresses are case-insensitive
             blockchain_tx.to_address.trim().to_lowercase()
@@ -931,7 +950,17 @@ impl PaymentVerifier {
         }
 
         let addresses_match = if crypto_str.to_lowercase().contains("sol") {
-            blockchain_tx.to_address.trim() == customer_wallet_address.trim()
+            let matches_primary = blockchain_tx.to_address.trim() == customer_wallet_address.trim();
+            let matches_ata = if let Some(mint) = crypto_type.token_address() {
+                if let Some(ata) = self.get_solana_ata(&customer_wallet_address, mint) {
+                    blockchain_tx.to_address.trim() == ata.trim()
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+            matches_primary || matches_ata
         } else {
             blockchain_tx.to_address.trim().to_lowercase()
                 == customer_wallet_address.trim().to_lowercase()
@@ -1224,7 +1253,17 @@ impl PaymentVerifier {
         }
 
         let addresses_match = if crypto_str.to_lowercase().contains("sol") {
-            blockchain_tx.to_address.trim() == expected_address.trim()
+            let matches_primary = blockchain_tx.to_address.trim() == expected_address.trim();
+            let matches_ata = if let Some(mint) = crypto_type.token_address() {
+                if let Some(ata) = self.get_solana_ata(&expected_address, mint) {
+                    blockchain_tx.to_address.trim() == ata.trim()
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+            matches_primary || matches_ata
         } else {
             blockchain_tx.to_address.trim().to_lowercase() == expected_address.trim().to_lowercase()
         };
