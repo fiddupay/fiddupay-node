@@ -282,7 +282,7 @@ impl MerchantCustomerService {
             match normalized.as_str() {
                 "EVM" | "ETH" | "ERC20" | "BSC" | "BEP20" | "POLYGON" | "MATIC" | "ARB"
                 | "ARBITRUM" | "NATIVE" | "ETHEREUM" | "USDT_ETH" | "USDT_BEP20" | "BUSD_BEP20"
-                | "USDT_POLYGON" | "USDT_ARBITRUM" | "BNB" => {
+                | "USDT_POLYGON" | "USDT_ARBITRUM" | "BNB" | "BINANCE" => {
                     if wallets
                         .iter()
                         .any(|w| w.network.to_uppercase() == "ETHEREUM")
@@ -354,6 +354,14 @@ impl MerchantCustomerService {
                     ];
 
                     for crypto in evm_cryptos {
+                        if !self.config.is_blockchain_enabled(&crypto) {
+                            tracing::info!(
+                                "Skipping EVM token/chain {} wallet provisioning - blockchain is disabled",
+                                crypto
+                            );
+                            continue;
+                        }
+
                         // Check if a wallet for this specific crypto_type already exists
                         let existing_wallet: Option<MerchantCustomerWallet> = sqlx::query_as::<_, MerchantCustomerWallet>(
                             "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at, sandbox_mode \
@@ -447,6 +455,14 @@ impl MerchantCustomerService {
                     let sol_cryptos = vec![CryptoType::Sol, CryptoType::UsdtSpl, CryptoType::WSol];
 
                     for crypto in sol_cryptos {
+                        if !self.config.is_blockchain_enabled(&crypto) {
+                            tracing::info!(
+                                "Skipping Solana token/chain {} wallet provisioning - blockchain is disabled",
+                                crypto
+                            );
+                            continue;
+                        }
+
                         // Check if a wallet for this specific crypto_type already exists
                         let existing_wallet: Option<MerchantCustomerWallet> = sqlx::query_as::<_, MerchantCustomerWallet>(
                             "SELECT id, customer_id, merchant_id, crypto_type, network, address, encrypted_private_key, created_at, updated_at, sandbox_mode \
