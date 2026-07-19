@@ -21,7 +21,7 @@ export default {
         border: 'rgba(255, 255, 255, 0.08)',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Bricolage Grotesque', 'Inter', 'sans-serif'],
       },
       boxShadow: {
         glow: '0 0 15px rgba(59, 130, 246, 0.15)',

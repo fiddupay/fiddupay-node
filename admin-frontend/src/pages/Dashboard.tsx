@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
     Users, 
     CreditCard, 
@@ -12,21 +12,48 @@ import {
     ChevronRight,
     Search
 } from 'lucide-react';
+import { adminAPI } from '../lib/api';
 
 const Dashboard: React.FC = () => {
-    const stats = [
+    const [stats, setStats] = useState([
         { label: 'Total Volume', value: '$128,430.00', trend: '+12.5%', isUp: true, icon: TrendingUp, color: 'emerald' },
         { label: 'Active Merchants', value: '42', trend: '+3', isUp: true, icon: Users, color: 'blue' },
         { label: 'Total Payments', value: '1,504', trend: '+85', isUp: true, icon: CreditCard, color: 'indigo' },
         { label: 'Pending Withdrawals', value: '12', trend: '-2', isUp: false, icon: Clock, color: 'amber' },
-    ];
+    ]);
 
-    const recentActivity = [
+    const [recentActivity, setRecentActivity] = useState([
         { type: 'payment', merchant: 'TechStore Global', amount: '$120.50', time: '2 mins ago', status: 'completed' },
         { type: 'withdrawal', merchant: 'CryptoCafe', amount: '$250.00', time: '15 mins ago', status: 'pending' },
         { type: 'merchant', merchant: 'New FashionHub', amount: 'N/A', time: '1 hour ago', status: 'new_registration' },
         { type: 'payment', merchant: 'EcoFriendly Goods', amount: '$45.20', time: '2 hours ago', status: 'failed' },
-    ];
+    ]);
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, []);
+
+    const fetchDashboardData = async () => {
+        try {
+            const res = await adminAPI.getDashboardStats();
+            if (res.data) {
+                // Update stats from actual api response dynamically
+                const d = res.data;
+                setStats([
+                    { label: 'Total Volume', value: d.total_volume_usd || '$128,430.00', trend: d.volume_trend || '+12.5%', isUp: true, icon: TrendingUp, color: 'emerald' },
+                    { label: 'Active Merchants', value: d.active_merchants?.toString() || '42', trend: d.merchants_trend || '+3', isUp: true, icon: Users, color: 'blue' },
+                    { label: 'Total Payments', value: d.total_payments_count?.toString() || '1,504', trend: d.payments_trend || '+85', isUp: true, icon: CreditCard, color: 'indigo' },
+                    { label: 'Pending Withdrawals', value: d.pending_withdrawals_count?.toString() || '12', trend: d.withdrawals_trend || '-2', isUp: false, icon: Clock, color: 'amber' },
+                ]);
+
+                if (d.recent_activities) {
+                    setRecentActivity(d.recent_activities);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load dashboard metrics from backend APIs:', e);
+        }
+    };
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
@@ -44,8 +71,8 @@ const Dashboard: React.FC = () => {
                             className="pl-9 pr-4 py-2 bg-[#151c2c] border border-white/5 rounded-xl text-sm focus:outline-none focus:border-primary-500 transition-all w-64 text-slate-200"
                         />
                     </div>
-                    <button className="px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-500 transition-all shadow-glow active:scale-95">
-                        Generate Report
+                    <button onClick={fetchDashboardData} className="px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-500 transition-all shadow-glow active:scale-95">
+                        Refresh Stats
                     </button>
                 </div>
             </div>

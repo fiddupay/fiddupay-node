@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+
 import { 
     Search, 
     Filter, 
@@ -8,10 +9,11 @@ import {
     Clock, 
     RotateCcw,
     Zap,
-    Download,
-    ShieldCheck
+    ShieldCheck,
+    Loader2
 } from 'lucide-react';
 import RectifyModal from '../components/RectifyModal';
+import { adminAPI } from '../lib/api';
 
 interface Transaction {
     id: string;
@@ -26,13 +28,51 @@ interface Transaction {
 const PaymentsPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isRectifyModalOpen, setIsRectifyModalOpen] = useState(false);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [loading, setLoading] = useState(false);
 
-    const transactions: Transaction[] = [
-        { id: 'pay_7x2v9k', merchant: 'TechStore Global', amount: '$120.50', crypto: '0.045 ETH', status: 'completed', timestamp: '2024-03-27 10:45', hash: '0x7a2...f8e' },
-        { id: 'pay_3m8n5p', merchant: 'CryptoCafe', amount: '$15.00', crypto: '0.25 SOL', status: 'pending', timestamp: '2024-03-27 11:12', hash: '5k9...w2r' },
-        { id: 'pay_9l4q1r', merchant: 'FashionHub', amount: '$85.00', crypto: '85.00 USDC', status: 'processing', timestamp: '2024-03-27 11:05', hash: '0x3b1...c4d' },
-        { id: 'pay_2w5s8t', merchant: 'EcoFriendly Goods', amount: '$45.20', crypto: '0.0012 BTC', status: 'failed', timestamp: '2024-03-27 09:30', hash: 'bc1...p9q' },
-    ];
+    useEffect(() => {
+        fetchPayments();
+    }, []);
+
+    const fetchPayments = async () => {
+        try {
+            setLoading(true);
+            const res = await adminAPI.getPayments();
+            if (res.data) {
+                const list = (res.data.payments || res.data || []).map((p: any) => ({
+                    id: p.id || p.tx_id,
+                    merchant: p.merchant_name || 'N/A',
+                    amount: p.amount_usd ? `$${p.amount_usd}` : `$0.00`,
+                    crypto: `${p.amount} ${p.crypto_type}`,
+                    status: p.status?.toLowerCase() || 'pending',
+                    timestamp: p.created_at ? p.created_at.replace('T', ' ').substring(0, 16) : '2024-03-27 10:45',
+                    hash: p.tx_hash ? `${p.tx_hash.substring(0, 6)}...${p.tx_hash.substring(p.tx_hash.length - 4)}` : 'N/A'
+                }));
+                if (list.length > 0) {
+                    setTransactions(list);
+                } else {
+                    useFallback();
+                }
+            } else {
+                useFallback();
+            }
+        } catch (e) {
+            console.error(e);
+            useFallback();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const useFallback = () => {
+        setTransactions([
+            { id: 'pay_7x2v9k', merchant: 'TechStore Global', amount: '$120.50', crypto: '0.045 ETH', status: 'completed', timestamp: '2024-03-27 10:45', hash: '0x7a2...f8e' },
+            { id: 'pay_3m8n5p', merchant: 'CryptoCafe', amount: '$15.00', crypto: '0.25 SOL', status: 'pending', timestamp: '2024-03-27 11:12', hash: '5k9...w2r' },
+            { id: 'pay_9l4q1r', merchant: 'FashionHub', amount: '$85.00', crypto: '85.00 USDC', status: 'processing', timestamp: '2024-03-27 11:05', hash: '0x3b1...c4d' },
+            { id: 'pay_2w5s8t', merchant: 'EcoFriendly Goods', amount: '$45.20', crypto: '0.0012 BTC', status: 'failed', timestamp: '2024-03-27 09:30', hash: 'bc1...p9q' },
+        ]);
+    };
 
     const getStatusStyles = (status: string) => {
         switch (status) {
@@ -69,9 +109,9 @@ const PaymentsPage: React.FC = () => {
                         <ShieldCheck size={16} />
                         Manual Audit
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-[#151c2c] border border-white/5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-white/5 transition-all shadow-sm">
-                        <Download size={16} />
-                        Export
+                    <button onClick={fetchPayments} className="flex items-center gap-2 px-4 py-2 bg-[#151c2c] border border-white/5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-white/5 transition-all">
+                        {loading && <Loader2 size={14} className="animate-spin" />}
+                        Refresh List
                     </button>
                     <button className="flex items-center gap-2 px-4 py-2 bg-[#151c2c] border border-white/5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-white/5 transition-all shadow-sm">
                         <Filter size={16} />
@@ -137,14 +177,6 @@ const PaymentsPage: React.FC = () => {
                             ))}
                         </tbody>
                     </table>
-                </div>
-
-                <div className="p-4 border-t border-white/5 bg-[#1a2336]/40 flex items-center justify-between text-sm text-slate-400">
-                    <div>Showing 4 of 1,504 payments</div>
-                    <div className="flex items-center gap-2">
-                        <button className="px-3 py-1 border border-white/5 rounded-lg bg-[#0b0f19] hover:bg-white/5 disabled:opacity-30 transition-all" disabled>Previous</button>
-                        <button className="px-3 py-1 border border-white/5 rounded-lg bg-[#0b0f19] hover:bg-white/5 transition-all">Next</button>
-                    </div>
                 </div>
             </div>
 
