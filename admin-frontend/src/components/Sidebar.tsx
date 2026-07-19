@@ -12,7 +12,11 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+    user: any;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ user }) => {
     const navItems = [
         { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { to: '/merchants', label: 'Merchants', icon: Users },
@@ -51,11 +55,11 @@ const Sidebar: React.FC = () => {
             <div className="p-4 border-t border-white/10 bg-[#070b14]">
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-primary-600/20 border border-primary-500/30 flex items-center justify-center text-sm font-bold text-primary-400">
-                        SA
+                        {user?.username?.charAt(0).toUpperCase() || 'A'}
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-sm font-bold text-slate-200">Super Admin</span>
-                        <span className="text-xs text-slate-500 font-medium">admin@fiddupay.com</span>
+                        <span className="text-sm font-bold text-slate-200">{user?.username || 'Admin'}</span>
+                        <span className="text-xs text-slate-500 font-semibold">{user?.role || 'Super Admin'}</span>
                     </div>
                 </div>
             </div>

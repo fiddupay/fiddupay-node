@@ -6,6 +6,15 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Add bearer token if present in localStorage
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('admin_session_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const adminAPI = {
   // Auth
   login: (data: any) => api.post('/api/v1/admin/login', data),
@@ -50,6 +59,15 @@ export const adminAPI = {
     sandbox_mode?: boolean,
     rectify_type?: string 
   }) => api.post('/api/v1/admin/rectify/onchain', data),
+
+  // Manual Re-verify for Static Deposit Transaction
+  reverifyTransaction: (data: {
+    hash: string,
+    tx_type: string, // "customer" or "merchant"
+    id: number,      // customer_id or merchant_id
+    crypto_type: string,
+    sandbox_mode: boolean
+  }) => api.post('/api/v1/admin/transactions/reverify', data),
 };
 
 export default api;
