@@ -949,18 +949,42 @@ impl PaymentVerifier {
             return Ok(false);
         }
 
-        let addresses_match = if crypto_str.to_lowercase().contains("sol") {
+        let addresses_match = if crypto_str.to_lowercase().contains("sol")
+            || crypto_str.to_lowercase().contains("usdt_spl")
+        {
             let matches_primary = blockchain_tx.to_address.trim() == customer_wallet_address.trim();
-            let matches_ata = if let Some(mint) = crypto_type.token_address() {
-                if let Some(ata) = self.get_solana_ata(&customer_wallet_address, mint) {
-                    blockchain_tx.to_address.trim() == ata.trim()
+
+            // Check ATA for USDT_SPL
+            let matches_usdt_ata = if let Ok(usdt_type) = CryptoType::from_string("USDT_SPL") {
+                if let Some(mint) = usdt_type.token_address() {
+                    if let Some(ata) = self.get_solana_ata(&customer_wallet_address, mint) {
+                        blockchain_tx.to_address.trim() == ata.trim()
+                    } else {
+                        false
+                    }
                 } else {
                     false
                 }
             } else {
                 false
             };
-            matches_primary || matches_ata
+
+            // Check ATA for WSOL
+            let matches_wsol_ata = if let Ok(wsol_type) = CryptoType::from_string("WSOL") {
+                if let Some(mint) = wsol_type.token_address() {
+                    if let Some(ata) = self.get_solana_ata(&customer_wallet_address, mint) {
+                        blockchain_tx.to_address.trim() == ata.trim()
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+
+            matches_primary || matches_usdt_ata || matches_wsol_ata
         } else {
             blockchain_tx.to_address.trim().to_lowercase()
                 == customer_wallet_address.trim().to_lowercase()
@@ -1449,5 +1473,93 @@ impl PaymentVerifier {
         }
 
         Ok(true)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_solana_address_matching_rules() {
+        let customer_wallet_address = "GmMQxPVEY8SSncaWsLXytZAMN2aTR1JifkKYnS5WyNWQ";
+
+        // Helper inline matching replica
+        let check_match = |crypto_str: &str, to_address: &str| -> bool {
+            if crypto_str.to_lowercase().contains("sol")
+                || crypto_str.to_lowercase().contains("usdt_spl")
+            {
+                let matches_primary = to_address.trim() == customer_wallet_address.trim();
+
+                // Get ATA for USDT_SPL
+                let matches_usdt_ata = if let Ok(usdt_type) = CryptoType::from_string("USDT_SPL") {
+                    if let Some(mint) = usdt_type.token_address() {
+                        let owner_pubkey = Pubkey::from_str(customer_wallet_address).unwrap();
+                        let mint_pubkey = Pubkey::from_str(mint).unwrap();
+                        let ata =
+                            get_associated_token_address(&owner_pubkey, &mint_pubkey).to_string();
+                        to_address.trim() == ata.trim()
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+
+                // Get ATA for WSOL
+                let matches_wsol_ata = if let Ok(wsol_type) = CryptoType::from_string("SOL") {
+                    // WSOL uses base SOL token address check
+                    if let Ok(real_wsol) = CryptoType::from_string("WSOL") {
+                        if let Some(mint) = real_wsol.token_address() {
+                            let owner_pubkey = Pubkey::from_str(customer_wallet_address).unwrap();
+                            let mint_pubkey = Pubkey::from_str(mint).unwrap();
+                            let ata = get_associated_token_address(&owner_pubkey, &mint_pubkey)
+                                .to_string();
+                            to_address.trim() == ata.trim()
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+
+                matches_primary || matches_usdt_ata || matches_wsol_ata
+            } else {
+                to_address.trim().to_lowercase() == customer_wallet_address.trim().to_lowercase()
+            }
+        };
+
+        // 1. Must match if deposit is native SOL directly to primary wallet
+        assert!(check_match(
+            "SOL",
+            "GmMQxPVEY8SSncaWsLXytZAMN2aTR1JifkKYnS5WyNWQ"
+        ));
+
+        // 2. Must match if deposit is USDT_SPL sent to the computed ATA
+        // Customer USDT ATA: 35mFTnKHBKVcFtAKjjjhgPNnyPQnab6EFjKdhD5xBh8b
+        assert!(check_match(
+            "SOL",
+            "35mFTnKHBKVcFtAKjjjhgPNnyPQnab6EFjKdhD5xBh8b"
+        ));
+        assert!(check_match(
+            "USDT_SPL",
+            "35mFTnKHBKVcFtAKjjjhgPNnyPQnab6EFjKdhD5xBh8b"
+        ));
+
+        // 3. Must match if deposit is WSOL sent to computed ATA
+        // Customer WSOL ATA: HtUXPoerTtyHo8Jk4zAaaXgqoioEK7fpduJamiFj6mFc
+        assert!(check_match(
+            "SOL",
+            "HtUXPoerTtyHo8Jk4zAaaXgqoioEK7fpduJamiFj6mFc"
+        ));
+
+        // 4. Must NOT match if sent to a random address
+        assert!(!check_match(
+            "SOL",
+            "7mFYbQ6no72bDtm5aawekvxLqjDwX1WHiqoVCxeZ7SxZ"
+        ));
     }
 }
