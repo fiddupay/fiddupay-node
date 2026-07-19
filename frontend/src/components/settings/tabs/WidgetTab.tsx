@@ -101,7 +101,7 @@ const WidgetTab: React.FC<WidgetTabProps> = ({ styles }) => {
                     boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)'
                 }}>
                     <iframe 
-                        src={`${import.meta.env.VITE_API_URL || ''}/preview/widget`} 
+                        src={`${import.meta.env.VITE_API_URL || 'https://api.fiddupay.com'}/preview/widget`} 
                         style={{ width: '100%', height: '100%', border: 'none' }}
                         title="Widget Preview"
                     />

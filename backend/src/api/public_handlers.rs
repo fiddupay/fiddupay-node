@@ -254,6 +254,12 @@ pub async fn get_pricing_info(State(state): State<AppState>) -> impl IntoRespons
     // Get dynamic list of supported currencies from service
     let supported = state.currency_service.get_supported_currencies().await;
 
+    let unique_networks: std::collections::HashSet<&str> = supported
+        .iter()
+        .map(|&(_, _, network, _)| network)
+        .collect();
+    let supported_networks_count = unique_networks.len();
+
     // Group networks by coin group (e.g., USDT -> [ERC-20, SPL, ...])
     let mut groups: std::collections::BTreeMap<String, Vec<String>> =
         std::collections::BTreeMap::new();
@@ -294,7 +300,7 @@ pub async fn get_pricing_info(State(state): State<AppState>) -> impl IntoRespons
     let pricing_data = json!({
         "transaction_fee_percentage": state.config.default_fee_percentage,
         "daily_volume_limit_non_kyc_usd": limit_str,
-        "supported_networks": display_currencies.len(), // Approximation
+        "supported_networks": supported_networks_count,
         "supported_cryptocurrencies": display_currencies,
         "features": {
             "instant_settlements": true,
