@@ -89,9 +89,9 @@ const Settings: React.FC = () => {
     };
 
     if (loading) return (
-        <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400 space-y-4">
-            <SettingsIcon className="w-12 h-12 animate-spin" />
-            <span className="text-sm font-medium">Loading platform configurations...</span>
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400 space-y-4 font-sans">
+            <SettingsIcon className="w-12 h-12 animate-spin text-primary-500" />
+            <span className="text-sm font-semibold">Loading platform configurations...</span>
         </div>
     );
 
@@ -105,16 +105,16 @@ const Settings: React.FC = () => {
         <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    <h1 className="text-2xl font-bold text-slate-100 tracking-tight flex items-center gap-2">
                         System Configuration
                     </h1>
-                    <p className="text-slate-500 text-sm mt-1">Manage global platform behaviors, monitoring thresholds, and manual execution.</p>
+                    <p className="text-slate-400 text-sm mt-1">Manage global platform behaviors, monitoring thresholds, and manual execution.</p>
                 </div>
                 {activeTab !== 'manual' && (
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-700 transition-all shadow-md active:scale-95 disabled:opacity-50"
+                        className="flex items-center gap-2 px-6 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-500 transition-all shadow-glow active:scale-95 disabled:opacity-50"
                     >
                         <Save size={18} />
                         {saving ? 'Saving...' : 'Save Changes'}
@@ -122,16 +122,16 @@ const Settings: React.FC = () => {
                 )}
             </div>
 
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden min-h-[500px] flex flex-col md:flex-row">
-                <div className="w-full md:w-64 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 p-4 space-y-1">
+            <div className="bg-[#151c2c] rounded-3xl border border-white/5 shadow-xl overflow-hidden min-h-[500px] flex flex-col md:flex-row">
+                <div className="w-full md:w-64 bg-[#0d1321]/50 border-b md:border-b-0 md:border-r border-white/5 p-4 space-y-1">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
                                 activeTab === tab.id 
-                                ? 'bg-white text-primary-600 shadow-md ring-1 ring-slate-200' 
-                                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                                ? 'bg-primary-600 text-white shadow-glow border border-primary-500/30' 
+                                : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
                             }`}
                         >
                             <tab.icon size={18} />
@@ -140,7 +140,7 @@ const Settings: React.FC = () => {
                     ))}
                 </div>
 
-                <div className="flex-1 min-h-[400px]">
+                <div className="flex-1 min-h-[400px] bg-[#151c2c]">
                     <form onSubmit={handleSave}>
                         {activeTab === 'sweep' && (
                             <FeeSweepTab settings={settings} onChange={handleChange} />

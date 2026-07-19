@@ -23,6 +23,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      admin: ${{ steps.filter.outputs.admin }}
       sdk: ${{ steps.filter.outputs.sdk }}
       shared: ${{ steps.filter.outputs.shared }}
     steps:
@@ -36,6 +37,9 @@ jobs:
               - '.github/workflows/pipeline.yml'
             frontend:
               - 'frontend/**'
+              - '.github/workflows/pipeline.yml'
+            admin:
+              - 'admin-frontend/**'
               - '.github/workflows/pipeline.yml'
             shared:
               - 'README.md'
@@ -102,22 +106,43 @@ jobs:
           npm audit --audit-level high
           npm run build
 
+  admin-ci:
+    name: Admin Frontend CI
+    needs: changes
+    if: ${{ needs.changes.outputs.admin == 'true' || needs.changes.outputs.shared == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: admin-frontend/package-lock.json
+      - name: Build & Audit
+        working-directory: admin-frontend
+        run: |
+          npm ci
+          npm audit --audit-level high
+          npm run build
+
   deploy:
     name: Atomic VPS Deploy
-    needs: [changes, backend-ci, frontend-ci]
+    needs: [changes, backend-ci, frontend-ci, admin-ci]
     # Deploy if on main and CI was either successful or skipped
     if: |
       always() &&
       github.event_name == 'push' && 
       github.ref == 'refs/heads/main' &&
       !contains(needs.*.result, 'cancelled') &&
-      (needs.backend-ci.result == 'success' || needs.frontend-ci.result == 'success')
+      (needs.backend-ci.result == 'success' || needs.frontend-ci.result == 'success' || needs.admin-ci.result == 'success')
     runs-on: ubuntu-latest
     env:
       BACKEND_CHANGED: ${{ needs.changes.outputs.backend }}
       FRONTEND_CHANGED: ${{ needs.changes.outputs.frontend }}
+      ADMIN_CHANGED: ${{ needs.changes.outputs.admin }}
       BACKEND_SUCCESS: ${{ needs.backend-ci.result == 'success' }}
       FRONTEND_SUCCESS: ${{ needs.frontend-ci.result == 'success' }}
+      ADMIN_SUCCESS: ${{ needs.admin-ci.result == 'success' }}
 
     steps:
       - name: Deploy via SSH
@@ -128,7 +153,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
           command_timeout: 45m
-          envs: BACKEND_CHANGED,FRONTEND_CHANGED,BACKEND_SUCCESS,FRONTEND_SUCCESS
+          envs: BACKEND_CHANGED,FRONTEND_CHANGED,ADMIN_CHANGED,BACKEND_SUCCESS,FRONTEND_SUCCESS,ADMIN_SUCCESS
           script: |
             set -e
             export PATH="$HOME/.cargo/bin:$PATH"
@@ -170,6 +195,27 @@ jobs:
               echo "[BUILD] Reusing Existing Frontend Build..."
               mkdir -p $DEPLOY_DIR/frontend
               cp -r $CURRENT_LINK/frontend/dist $DEPLOY_DIR/frontend/dist
+            fi
+
+            # 2.5 Admin Frontend Build (Only if changed AND passed)
+            if [ "$ADMIN_CHANGED" == "true" ] && [ "$ADMIN_SUCCESS" == "true" ]; then
+              echo "[BUILD] Compiling Admin Frontend..."
+              cd $DEPLOY_DIR/admin-frontend
+              echo "VITE_API_URL=https://api.fiddupay.com" > .env.production
+              npm install
+              npm run build
+            else
+              echo "[BUILD] Reusing Existing Admin Frontend Build..."
+              mkdir -p $DEPLOY_DIR/admin-frontend
+              if [ -d "$CURRENT_LINK/admin-frontend/dist" ]; then
+                cp -r $CURRENT_LINK/admin-frontend/dist $DEPLOY_DIR/admin-frontend/dist
+              else
+                echo "[BUILD] No previous build found, executing initial build..."
+                cd $DEPLOY_DIR/admin-frontend
+                echo "VITE_API_URL=https://api.fiddupay.com" > .env.production
+                npm install
+                npm run build
+              fi
             fi
 
             # 3. Backend Build (Only if changed AND passed)

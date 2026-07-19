@@ -36,11 +36,11 @@ const PaymentsPage: React.FC = () => {
 
     const getStatusStyles = (status: string) => {
         switch (status) {
-            case 'completed': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-            case 'pending': return 'bg-amber-50 text-amber-600 border-amber-100';
-            case 'processing': return 'bg-blue-50 text-blue-600 border-blue-100';
-            case 'failed': return 'bg-rose-50 text-rose-600 border-rose-100';
-            default: return 'bg-slate-50 text-slate-600 border-slate-100';
+            case 'completed': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+            case 'pending': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+            case 'processing': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+            case 'failed': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+            default: return 'bg-white/5 text-slate-400 border-white/10';
         }
     };
 
@@ -58,36 +58,36 @@ const PaymentsPage: React.FC = () => {
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Payments</h1>
-                    <p className="text-slate-500 text-sm mt-1">Monitor all incoming crypto transactions across the platform.</p>
+                    <h1 className="text-2xl font-bold text-slate-100 tracking-tight">Payments</h1>
+                    <p className="text-slate-400 text-sm mt-1">Monitor all incoming crypto transactions across the platform.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button 
                         onClick={() => setIsRectifyModalOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-200"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-500 transition-all shadow-glow active:scale-95"
                     >
                         <ShieldCheck size={16} />
                         Manual Audit
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+                    <button className="flex items-center gap-2 px-4 py-2 bg-[#151c2c] border border-white/5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-white/5 transition-all shadow-sm">
                         <Download size={16} />
                         Export
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+                    <button className="flex items-center gap-2 px-4 py-2 bg-[#151c2c] border border-white/5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-white/5 transition-all shadow-sm">
                         <Filter size={16} />
                         Filters
                     </button>
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap gap-4">
+            <div className="bg-[#151c2c] rounded-2xl border border-white/5 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-white/5 bg-[#1a2336]/40 flex flex-wrap gap-4">
                     <div className="relative flex-1 min-w-[300px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                         <input 
                             type="text" 
                             placeholder="Search by ID, Merchant or TX Hash..." 
-                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+                            className="w-full pl-10 pr-4 py-2 bg-[#0b0f19] border border-white/5 rounded-xl text-sm focus:outline-none focus:border-primary-500 transition-all text-slate-200"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -97,40 +97,38 @@ const PaymentsPage: React.FC = () => {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-50/50 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                            <tr className="bg-[#1a2336]/20 text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-white/5">
                                 <th className="px-6 py-4">Transaction ID</th>
                                 <th className="px-6 py-4">Merchant</th>
                                 <th className="px-6 py-4 text-right">Amount</th>
-                                <th className="px-6 py-4 text-right">Crypto</th>
-                                <th className="px-6 py-4 text-center">Status</th>
-                                <th className="px-6 py-4">Date & Time</th>
-                                <th className="px-6 py-4">Actions</th>
+                                <th className="px-6 py-4">Crypto Asset</th>
+                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4">Timestamp</th>
+                                <th className="px-6 py-4">TX Hash</th>
+                                <th className="px-6 py-4 text-center">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-white/5">
                             {transactions.map((tx) => (
-                                <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
+                                <tr key={tx.id} className="hover:bg-white/5 transition-colors group">
+                                    <td className="px-6 py-4 text-sm font-semibold text-slate-300">{tx.id}</td>
+                                    <td className="px-6 py-4 text-sm font-bold text-slate-200">{tx.merchant}</td>
+                                    <td className="px-6 py-4 text-right text-sm font-bold text-slate-200">{tx.amount}</td>
+                                    <td className="px-6 py-4 text-sm font-semibold text-primary-400">{tx.crypto}</td>
                                     <td className="px-6 py-4">
-                                        <div className="font-mono text-xs text-slate-900 bg-slate-100 px-2 py-1 rounded inline-block">
-                                            {tx.id}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm font-medium text-slate-700">{tx.merchant}</td>
-                                    <td className="px-6 py-4 text-sm font-bold text-slate-900 text-right">{tx.amount}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-600 text-right">{tx.crypto}</td>
-                                    <td className="px-6 py-4 text-center">
-                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border capitalize ${getStatusStyles(tx.status)}`}>
+                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getStatusStyles(tx.status)}`}>
                                             {getStatusIcon(tx.status)}
                                             {tx.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-xs text-slate-500">{tx.timestamp}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-400 font-semibold">{tx.timestamp}</td>
+                                    <td className="px-6 py-4 text-sm font-mono text-slate-500 font-medium">{tx.hash}</td>
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <button title="Re-verify" className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <button className="p-2 text-slate-400 hover:text-primary-400 hover:bg-white/5 rounded-xl transition-all">
                                                 <RotateCcw size={16} />
                                             </button>
-                                            <button title="Options" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
+                                            <button className="p-2 text-slate-400 hover:text-slate-200 hover:bg-white/5 rounded-xl transition-all">
                                                 <MoreHorizontal size={16} />
                                             </button>
                                         </div>
@@ -140,12 +138,17 @@ const PaymentsPage: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+
+                <div className="p-4 border-t border-white/5 bg-[#1a2336]/40 flex items-center justify-between text-sm text-slate-400">
+                    <div>Showing 4 of 1,504 payments</div>
+                    <div className="flex items-center gap-2">
+                        <button className="px-3 py-1 border border-white/5 rounded-lg bg-[#0b0f19] hover:bg-white/5 disabled:opacity-30 transition-all" disabled>Previous</button>
+                        <button className="px-3 py-1 border border-white/5 rounded-lg bg-[#0b0f19] hover:bg-white/5 transition-all">Next</button>
+                    </div>
+                </div>
             </div>
 
-            <RectifyModal 
-                isOpen={isRectifyModalOpen} 
-                onClose={() => setIsRectifyModalOpen(false)} 
-            />
+            <RectifyModal isOpen={isRectifyModalOpen} onClose={() => setIsRectifyModalOpen(false)} />
         </div>
     );
 };

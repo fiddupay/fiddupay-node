@@ -62,3 +62,27 @@ api.fiddupay.com {
 		output file /var/log/caddy/fiddupay.api.log
 	}
 }
+
+# Admin Dashboard
+admin.fiddupay.com {
+	root * /home/vibes/apps/current/admin-frontend/dist
+	encode gzip
+	file_server
+
+	# SPA Routing: If file doesn't exist, serve index.html
+	handle {
+		try_files {path} /index.html
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000;"
+		X-XSS-Protection "1; mode=block"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+
+	log {
+		output file /var/log/caddy/fiddupay.admin.log
+	}
+}
