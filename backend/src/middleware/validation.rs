@@ -115,8 +115,9 @@ pub async fn security_headers_middleware(request: Request, next: Next) -> Respon
         "max-age=31536000; includeSubDomains".parse().unwrap(),
     );
 
-    // Content Security Policy: Allow framing from same origin for previews
-    let csp = if path == "/preview/widget" {
+    // Content Security Policy: Allow framing for widget preview and payment pages
+    let is_framable = path == "/preview/widget" || (path.len() > 1 && !path.starts_with("/api/"));
+    let csp = if is_framable {
         "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*; style-src 'self' 'unsafe-inline'; frame-ancestors 'self' *"
     } else {
         "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"

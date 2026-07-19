@@ -39,7 +39,6 @@ pay.fiddupay.com {
 	header {
 		Strict-Transport-Security "max-age=31536000;"
 		X-XSS-Protection "1; mode=block"
-		X-Frame-Options "DENY"
 		X-Content-Type-Options "nosniff"
 		-Server
 	}
