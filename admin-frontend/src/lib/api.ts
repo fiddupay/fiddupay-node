@@ -30,7 +30,7 @@ export const adminAPI = {
   updateMerchantStatus: (id: string, status: string) => api.put(`/api/v1/admin/merchants/${id}/status`, { status }),
 
   // Payments
-  getPayments: () => api.get('/api/v1/admin/payments'),
+  getPayments: (params?: { limit?: number, offset?: number }) => api.get('/api/v1/admin/payments', { params }),
   getPaymentDetails: (id: string) => api.get(`/api/v1/admin/payments/${id}`),
   forceConfirmPayment: (id: string) => api.post(`/api/v1/admin/payments/${id}/confirm`),
 

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-
 import { 
     Search, 
     Filter, 
@@ -31,16 +30,21 @@ const PaymentsPage: React.FC = () => {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(false);
 
+    // Pagination States
+    const [limit] = useState(10);
+    const [offset, setOffset] = useState(0);
+    const [totalCount, setTotalCount] = useState(0);
+
     useEffect(() => {
         fetchPayments();
-    }, []);
+    }, [offset]);
 
     const fetchPayments = async () => {
         try {
             setLoading(true);
-            const res = await adminAPI.getPayments();
+            const res = await adminAPI.getPayments({ limit, offset });
             if (res.data) {
-                const list = (res.data.payments || res.data || []).map((p: any) => ({
+                const list = (res.data.payments || res.data.data || []).map((p: any) => ({
                     id: p.id || p.tx_id,
                     merchant: p.merchant_name || 'N/A',
                     amount: p.amount_usd ? `$${p.amount_usd}` : `$0.00`,
@@ -49,6 +53,10 @@ const PaymentsPage: React.FC = () => {
                     timestamp: p.created_at ? p.created_at.replace('T', ' ').substring(0, 16) : '2024-03-27 10:45',
                     hash: p.tx_hash ? `${p.tx_hash.substring(0, 6)}...${p.tx_hash.substring(p.tx_hash.length - 4)}` : 'N/A'
                 }));
+                
+                // Get count from response
+                setTotalCount(res.data.total || 0);
+
                 if (list.length > 0) {
                     setTransactions(list);
                 } else {
@@ -72,6 +80,7 @@ const PaymentsPage: React.FC = () => {
             { id: 'pay_9l4q1r', merchant: 'FashionHub', amount: '$85.00', crypto: '85.00 USDC', status: 'processing', timestamp: '2024-03-27 11:05', hash: '0x3b1...c4d' },
             { id: 'pay_2w5s8t', merchant: 'EcoFriendly Goods', amount: '$45.20', crypto: '0.0012 BTC', status: 'failed', timestamp: '2024-03-27 09:30', hash: 'bc1...p9q' },
         ]);
+        setTotalCount(4);
     };
 
     const getStatusStyles = (status: string) => {
@@ -91,6 +100,18 @@ const PaymentsPage: React.FC = () => {
             case 'processing': return <Zap size={14} className="animate-pulse" />;
             case 'failed': return <XCircle size={14} />;
             default: return null;
+        }
+    };
+
+    const handleNextPage = () => {
+        if (offset + limit < totalCount) {
+            setOffset(prev => prev + limit);
+        }
+    };
+
+    const handlePrevPage = () => {
+        if (offset - limit >= 0) {
+            setOffset(prev => prev - limit);
         }
     };
 
@@ -177,6 +198,29 @@ const PaymentsPage: React.FC = () => {
                             ))}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="p-4 border-t border-white/5 bg-[#1a2336]/40 flex items-center justify-between text-sm text-slate-400">
+                    <div>
+                        Showing <span className="text-slate-200 font-bold">{offset + 1}</span> to <span className="text-slate-200 font-bold">{Math.min(offset + limit, totalCount)}</span> of <span className="text-slate-200 font-bold">{totalCount}</span> payments
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={handlePrevPage} 
+                            disabled={offset === 0} 
+                            className="px-3 py-1 border border-white/5 rounded-lg bg-[#0b0f19] hover:bg-white/5 disabled:opacity-30 transition-all font-semibold"
+                        >
+                            Previous
+                        </button>
+                        <button 
+                            onClick={handleNextPage} 
+                            disabled={offset + limit >= totalCount} 
+                            className="px-3 py-1 border border-white/5 rounded-lg bg-[#0b0f19] hover:bg-white/5 disabled:opacity-30 transition-all font-semibold"
+                        >
+                            Next
+                        </button>
+                    </div>
                 </div>
             </div>
 
