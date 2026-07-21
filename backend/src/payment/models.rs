@@ -333,6 +333,10 @@ pub struct CreatePaymentRequest {
     pub expiration_minutes: Option<i32>,
     #[serde(default)]
     pub partial_payments_enabled: Option<bool>,
+    #[serde(default)]
+    pub customer_id: Option<i64>,
+    #[serde(default)]
+    pub customer_external_id: Option<String>,
 
     // Invoice-specific fields
     #[serde(default)]

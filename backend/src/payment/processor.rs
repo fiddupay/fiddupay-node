@@ -99,6 +99,21 @@ impl PaymentProcessor {
         // Validate fee percentage is within acceptable bounds (0.1% - 5%)
         FeeCalculator::validate_fee_percentage(fee_percentage)?;
 
+        // Check if payment is for a specific merchant customer (designated customer wallet)
+        let mut resolved_customer_id: Option<i64> = request.customer_id;
+        if resolved_customer_id.is_none() {
+            if let Some(ref ext_id) = request.customer_external_id {
+                resolved_customer_id = sqlx::query_scalar::<_, i64>(
+                    "SELECT id FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2",
+                )
+                .bind(merchant_id)
+                .bind(ext_id)
+                .fetch_optional(&self.db_pool)
+                .await
+                .unwrap_or(None);
+            }
+        }
+
         let (
             crypto_amount,
             amount_usd,
@@ -110,11 +125,29 @@ impl PaymentProcessor {
         ) = if let Some(crypto_type) = request.crypto_type {
             // Case A: Specific crypto type provided - normal flow
 
-            // Get merchant's wallet address for this crypto type
-            let wallet = self
-                .merchant_service
-                .get_wallet_address(merchant_id, crypto_type)
-                .await?;
+            let mut customer_wallet: Option<String> = None;
+            if let Some(c_id) = resolved_customer_id {
+                let crypto_str = crypto_type.to_string();
+                customer_wallet = sqlx::query_scalar::<_, String>(
+                    "SELECT address FROM merchant_customer_wallets WHERE customer_id = $1 AND crypto_type = $2 AND sandbox_mode = $3"
+                )
+                .bind(c_id)
+                .bind(&crypto_str)
+                .bind(is_sandbox)
+                .fetch_optional(&self.db_pool)
+                .await
+                .unwrap_or(None);
+            }
+
+            // Use customer's designated wallet if present, otherwise default to merchant master wallet
+            let wallet = match customer_wallet {
+                Some(cw) => cw,
+                None => {
+                    self.merchant_service
+                        .get_wallet_address(merchant_id, crypto_type)
+                        .await?
+                }
+            };
 
             // Calculate amounts based on the required amount input
             let crypto_amt = request.amount.unwrap_or(Decimal::ZERO); // Validation ensures it exists
@@ -233,9 +266,9 @@ impl PaymentProcessor {
             INSERT INTO payment_transactions (
                 payment_id, merchant_id, crypto_type, amount, amount_usd, to_address,
                 status, expires_at, fee_percentage, fee_amount, fee_amount_usd, network,
-                required_confirmations, webhook_url, description, sandbox_mode
+                required_confirmations, webhook_url, description, sandbox_mode, customer_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING id, payment_id, merchant_id, crypto_type, amount, amount_usd, to_address,
                      status, expires_at, created_at, confirmed_at, description, metadata,
                      confirmations, required_confirmations, transaction_hash, from_address, webhook_url,
@@ -264,6 +297,7 @@ impl PaymentProcessor {
         .bind(&request.webhook_url)
         .bind(&request.description)
         .bind(is_sandbox)
+        .bind(resolved_customer_id)
         .fetch_one(&self.db_pool)
         .await?;
 

@@ -461,6 +461,10 @@
   gap: 6px;
 }
 
+.detailItem span.statusBadge {
+  color: inherit;
+}
+
 .statusPending {
   background: #fff7ed;
   color: #c2410c;

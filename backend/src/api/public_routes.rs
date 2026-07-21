@@ -80,6 +80,8 @@ async fn create_public_payment(
         expires_in: None,
         expiration_minutes: None,
         partial_payments_enabled: None,
+        customer_id: None,
+        customer_external_id: None,
         is_invoice: false,
         customer_name: None,
         customer_email: None,

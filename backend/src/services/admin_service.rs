@@ -139,19 +139,32 @@ impl AdminService {
                 .fetch_one(&self.db_pool)
                 .await?;
 
-        let total_payments: i64 =
-            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM payment_transactions")
-                .fetch_one(&self.db_pool)
-                .await?;
+        let total_payments: i64 = sqlx::query_scalar::<_, i64>(
+            "SELECT (SELECT COUNT(*) FROM payment_transactions WHERE sandbox_mode = false) + (SELECT COUNT(*) FROM customer_transactions WHERE sandbox_mode = false)"
+        )
+        .fetch_one(&self.db_pool)
+        .await?;
 
         let total_volume: Decimal = sqlx::query_scalar::<_, Decimal>(
-            "SELECT COALESCE(SUM(amount_usd), 0) FROM payment_transactions WHERE status = 'CONFIRMED'"
+            r#"
+            SELECT COALESCE(SUM(amount_usd), 0) FROM (
+                SELECT amount_usd FROM payment_transactions WHERE status = 'CONFIRMED' AND sandbox_mode = false
+                UNION ALL
+                SELECT amount_usd FROM customer_transactions WHERE sandbox_mode = false
+            ) v
+            "#
         )
         .fetch_one(&self.db_pool)
         .await?;
 
         let platform_revenue: Decimal = sqlx::query_scalar::<_, Decimal>(
-            "SELECT COALESCE(SUM(fee_amount_usd), 0) FROM payment_transactions WHERE status = 'CONFIRMED'"
+            r#"
+            SELECT COALESCE(SUM(fee_usd), 0) FROM (
+                SELECT fee_amount_usd as fee_usd FROM payment_transactions WHERE status = 'CONFIRMED' AND sandbox_mode = false
+                UNION ALL
+                SELECT (amount_usd * (fee / NULLIF(amount, 0))) as fee_usd FROM customer_transactions WHERE fee > 0 AND sandbox_mode = false
+            ) r
+            "#
         )
         .fetch_one(&self.db_pool)
         .await?;
@@ -178,12 +191,21 @@ impl AdminService {
                 m.is_active,
                 m.sandbox_mode,
                 m.created_at,
-                COUNT(p.payment_id) as total_payments,
-                COALESCE(SUM(p.amount_usd), 0) as total_volume,
-                MAX(p.created_at) as last_payment
+                (
+                    COALESCE((SELECT COUNT(*) FROM payment_transactions WHERE merchant_id = m.id AND sandbox_mode = false), 0) +
+                    COALESCE((SELECT COUNT(*) FROM customer_transactions WHERE merchant_id = m.id AND sandbox_mode = false), 0)
+                ) as total_payments,
+                (
+                    COALESCE((SELECT SUM(amount_usd) FROM payment_transactions WHERE merchant_id = m.id AND status = 'CONFIRMED' AND sandbox_mode = false), 0) +
+                    COALESCE((SELECT SUM(amount_usd) FROM customer_transactions WHERE merchant_id = m.id AND sandbox_mode = false), 0)
+                ) as total_volume,
+                (
+                    SELECT GREATEST(
+                        (SELECT MAX(created_at) FROM payment_transactions WHERE merchant_id = m.id AND sandbox_mode = false),
+                        (SELECT MAX(created_at) FROM customer_transactions WHERE merchant_id = m.id AND sandbox_mode = false)
+                    )
+                ) as last_payment
             FROM merchants m
-            LEFT JOIN payment_transactions p ON m.id = p.merchant_id
-            GROUP BY m.id, m.email, m.business_name, m.role, m.is_active, m.sandbox_mode, m.created_at
             ORDER BY m.created_at DESC
             "#
         )
