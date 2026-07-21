@@ -105,11 +105,11 @@ const client = new FidduPayClient({
 ```typescript
 const payment = await client.payments.create({
   amount_usd: "100.50",
-  crypto_type: "ETH",
+  crypto_type: "SOL",
+  customer_external_id: "OC-8218F8", // Designated customer deposit wallet
   description: "Order #12345",
   metadata: {
     orderId: "12345",
-    customerId: "cust_123",
   },
 });
 ```

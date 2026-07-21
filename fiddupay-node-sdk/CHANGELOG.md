@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.20] - 2026-07-21
+
+### Added
+- **Customer Designated Wallet Checkout**: Added `customer_id` and `customer_external_id` optional fields to `CreatePaymentRequest` interface. When passed during `payments.create()`, the backend automatically resolves the customer's designated static deposit wallet address (`customer_wallet_address`) instead of defaulting to the merchant master wallet address.
+
 ## [2.6.19] - 2026-07-14
 
 ### Added

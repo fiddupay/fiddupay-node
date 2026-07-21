@@ -1450,7 +1450,39 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": \"100.0\",\n  \"crypto_type\": \"USDT_ETH\",\n  \"description\": \"Fixed currency payment\"\n}"
+              "raw": "{\n  \"amount\": \"100.0\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Fixed currency\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Customer Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "payments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_usd\": \"100.0\",\n  \"crypto_type\": \"SOL\",\n  \"customer_external_id\": \"OC-8218F8\",\n  \"description\": \"Designated customer checkout\"\n}"
             }
           }
         },

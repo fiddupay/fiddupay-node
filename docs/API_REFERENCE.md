@@ -36,6 +36,9 @@ All requests must include a Bearer token in the `Authorization` header:
 |--------|----------|-------------|
 | GET | `/api/v1/merchants/security/settings` | Get merchant security specs |
 | PUT | `/api/v1/merchants/security/settings` | Update merchant security settings |
+| POST | `/api/v1/merchants/security/password` | Update account password |
+| POST | `/api/v1/merchants/security/transaction-pin` | Set merchant transaction PIN |
+| POST | `/api/v1/merchants/security/transaction-pin/verify` | Verify transaction PIN |
 | POST | `/api/v1/merchants/security/wallets/lock` | Toggle master wallet lock |
 | POST | `/api/v1/merchants/security/customers/wallets/lock` | Toggle customer wallet lock |
 | GET | `/api/v1/merchants/security/alerts` | Get security alerts |
@@ -51,7 +54,11 @@ All requests must include a Bearer token in the `Authorization` header:
 |--------|----------|-------------|
 | POST | `/api/v1/merchants/customers` | Register a new customer |
 | GET | `/api/v1/merchants/customers` | List all registered customers |
-| POST | `/api/v1/merchants/customers/bulk-provision` | **Bulk provision wallets** (v2.5.5) |
+| GET | `/api/v1/merchants/customers/summary` | Get customer directory summary stats |
+| POST | `/api/v1/merchants/customers/bulk-provision` | Bulk provision customer wallets |
+| POST | `/api/v1/merchants/customers/verify-wallets` | Verify & auto-repair customer wallets |
+| GET | `/api/v1/merchants/customers/lookup-address/:address` | Reverse lookup wallet address to customer |
+| GET | `/api/v1/merchants/customers/wallets-audit` | Full audit of active vs historical customer wallets |
 | POST | `/api/v1/merchants/customers/:external_id/wallets` | Provision customer wallets |
 | GET | `/api/v1/merchants/customers/:external_id/wallets` | Get customer wallets |
 | GET | `/api/v1/merchants/customers/:external_id/balances` | Get customer wallet balances |

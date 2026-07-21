@@ -283,6 +283,14 @@ components:
         partial_payments_enabled:
           type: boolean
           example: false
+        customer_id:
+          type: integer
+          example: 58
+          description: "Internal customer ID in merchant customer directory"
+        customer_external_id:
+          type: string
+          example: "OC-8218F8"
+          description: "External customer ID in merchant platform"
       oneOf:
         - required: [amount]
         - required: [amount_usd]

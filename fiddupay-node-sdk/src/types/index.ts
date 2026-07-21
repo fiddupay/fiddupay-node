@@ -164,11 +164,14 @@ export interface CreatePaymentRequest {
   webhook_url?: string;
   partial_payments_enabled?: boolean;
 
+  // Customer-specific fields (Supported by backend)
+  customer_id?: number;
+  customer_external_id?: string;
+
   // Invoice-specific fields (Supported by backend)
   is_invoice?: boolean;
   customer_name?: string;
   customer_email?: string;
-  customer_external_id?: string;
   items?: InvoiceItem[];
   tax?: string;
   due_date?: string;

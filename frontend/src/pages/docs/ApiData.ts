@@ -276,12 +276,14 @@ export const API_DATA: DocSection[] = [
                     { name: 'amount', type: 'string', required: false, description: 'Required for all fixed single-currency links (e.g. SOL, USDT)' },
                     { name: 'amount_usd', type: 'string', required: false, description: 'Required for multi-currency checkout links only (where crypto_type is omitted)' },
                     { name: 'crypto_type', type: 'string', required: false, description: 'SOL, BTC, USDT_ETH, USDT_SPL, etc. (Omit for multi-currency link)' },
+                    { name: 'customer_id', type: 'integer', required: false, description: 'Internal customer ID from merchant directory. Assigns customer designated static wallet address.' },
+                    { name: 'customer_external_id', type: 'string', required: false, description: 'External customer ID from merchant platform. Auto-resolves customer designated wallet.' },
                     { name: 'webhook_url', type: 'string', required: false, description: 'Override default webhook' },
                     { name: 'expiration_minutes', type: 'integer', required: false, description: 'Defaults to 20 mins' }
                 ],
                 request: {
-                    curl: '# Create Fixed Currency Payment (Supports any coin including USDT)\ncurl -X POST https://api.fiddupay.com/api/v1/merchants/payments \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"amount": "100.00", "crypto_type": "USDT_ETH"}\'\n\n# Create Multi-currency Checkout link\ncurl -X POST https://api.fiddupay.com/api/v1/merchants/payments \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"amount_usd": "100.00"}\'',
-                    node: '// Create Fixed Currency Payment\nconst p1 = await fiddupay.payments.create({ amount: "100.00", crypto_type: "USDT_ETH" });\n\n// Create Multi-currency Checkout\nconst p2 = await fiddupay.payments.create({ amount_usd: "100.00" });'
+                    curl: '# Create Customer Designated Wallet Checkout\ncurl -X POST https://api.fiddupay.com/api/v1/merchants/payments \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"amount": "100.00", "crypto_type": "SOL", "customer_external_id": "OC-8218F8"}\'\n\n# Create Multi-currency Checkout link\ncurl -X POST https://api.fiddupay.com/api/v1/merchants/payments \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{"amount_usd": "100.00"}\'',
+                    node: '// Create Customer Designated Wallet Checkout\nconst p1 = await fiddupay.payments.create({ amount: "100.00", crypto_type: "SOL", customer_external_id: "OC-8218F8" });\n\n// Create Multi-currency Checkout\nconst p2 = await fiddupay.payments.create({ amount_usd: "100.00" });'
                 },
                 response: JSON.stringify({
                     payment_id: "pay_123",
