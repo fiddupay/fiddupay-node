@@ -162,12 +162,14 @@ impl SolanaMonitor {
             for key in &config.svs_api_keys {
                 let svs_live_url =
                     format!("https://basic.rpc.solanavibestation.com/?api_key={}", key);
+                let svs_historical_url = format!(
+                    "https://basic.rpc.solanavibestation.com/historical?api_key={}",
+                    key
+                );
                 // Live endpoint
-                rpc_urls.push(svs_live_url.clone());
-                // Set historical endpoint to the live endpoint as well.
-                // SVS automatically falls back to historical for getTransaction
-                // if it's not present on the fast live node cache.
-                historical_rpc_urls.push(svs_live_url);
+                rpc_urls.push(svs_live_url);
+                // Historical endpoint for deep queries / getTransaction / getSignaturesForAddress
+                historical_rpc_urls.push(svs_historical_url);
             }
 
             // Helius - Priority 2 (Backup)
@@ -367,6 +369,73 @@ impl SolanaMonitor {
         Ok(blockchain_txs)
     }
 
+    async fn rpc_request_transaction(
+        &self,
+        signature: &str,
+    ) -> Result<RpcResponse<Option<TransactionResult>>, Box<dyn std::error::Error + Send + Sync>>
+    {
+        let request = RpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: 1,
+            method: "getTransaction".to_string(),
+            params: serde_json::json!([
+                signature,
+                {
+                    "encoding": "json",
+                    "maxSupportedTransactionVersion": 0,
+                    "commitment": "confirmed"
+                }
+            ]),
+        };
+        let mut last_error = None;
+        let mut last_response = None;
+
+        for url in &self.historical_rpc_urls {
+            match self.client.post(url).json(&request).send().await {
+                Ok(response) => {
+                    if response.status() == 429 {
+                        warn!(
+                            "Solana rate limit hit on {}, trying next RPC...",
+                            redact_url(url)
+                        );
+                        last_error = Some("Rate limit hit".to_string());
+                        continue;
+                    }
+                    match response
+                        .json::<RpcResponse<Option<TransactionResult>>>()
+                        .await
+                    {
+                        Ok(data) => {
+                            if data.error.is_none() && matches!(data.result, Some(Some(_))) {
+                                return Ok(data);
+                            }
+                            last_response = Some(data);
+                            warn!(
+                                "Solana transaction {} returned null on {}, trying next fallback RPC...",
+                                signature,
+                                redact_url(url)
+                            );
+                        }
+                        Err(e) => {
+                            warn!("Solana RPC JSON parse error on {}: {}", redact_url(url), e);
+                            last_error = Some(e.to_string());
+                        }
+                    }
+                }
+                Err(e) => {
+                    warn!("Network error connecting to {}: {}", redact_url(url), e);
+                    last_error = Some(e.to_string());
+                }
+            }
+        }
+
+        if let Some(resp) = last_response {
+            Ok(resp)
+        } else {
+            Err(format!("All Solana RPC nodes failed. Last error: {:?}", last_error).into())
+        }
+    }
+
     /// Get transaction details with optional current slot for optimization
     pub async fn get_transaction_details_with_slot(
         &self,
@@ -378,20 +447,7 @@ impl SolanaMonitor {
         let max_retries = 3;
 
         while retry_count <= max_retries {
-            let rpc_response: Result<RpcResponse<Option<TransactionResult>>, _> = self
-                .rpc_request(
-                    "getTransaction",
-                    serde_json::json!([
-                        signature,
-                        {
-                            "encoding": "json",
-                            "maxSupportedTransactionVersion": 0,
-                            "commitment": "confirmed"
-                        }
-                    ]),
-                    true,
-                )
-                .await;
+            let rpc_response = self.rpc_request_transaction(signature).await;
 
             match rpc_response {
                 Ok(res) => {
