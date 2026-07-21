@@ -12,7 +12,7 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.1.0",
     "@hookform/resolvers": "^3.3.2",
-    "axios": "^1.17.0",
+    "axios": "^1.7.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.48.2",
@@ -31,7 +31,7 @@
     "vite": "^7.3.5"
   },
   "overrides": {
-    "axios": "^1.17.0",
+    "axios": "^1.7.9",
     "react-router-dom": "^6.30.4",
     "react-router": "^6.30.4",
     "esbuild": "^0.28.1",
