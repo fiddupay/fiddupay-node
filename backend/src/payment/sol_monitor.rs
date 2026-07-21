@@ -20,13 +20,12 @@ use super::models::{BlockchainTransaction, CryptoType};
 // Redact queries from URLs to prevent leaking API keys
 fn redact_url(url: &str) -> String {
     if let Some(idx) = url.find('?') {
-        format!("{}?***REDACTED***", &url[..idx])
-    } else {
-        match url.find("alchemy.com/v2/") {
-            Some(idx) => format!("{}alchemy.com/v2/***REDACTED***", &url[..idx]),
-            None => url.to_string(),
-        }
+        return format!("{}?***REDACTED***", &url[..idx]);
     }
+    if let Some(idx) = url.find("alchemy.com/v2/") {
+        return format!("{}alchemy.com/v2/***REDACTED***", &url[..idx]);
+    }
+    url.to_string()
 }
 
 // Get Solana WS URL from config based on the selected RPC node
@@ -390,7 +389,7 @@ impl SolanaMonitor {
                             "commitment": "confirmed"
                         }
                     ]),
-                    false,
+                    true,
                 )
                 .await;
 
