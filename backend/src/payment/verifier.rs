@@ -951,14 +951,37 @@ impl PaymentVerifier {
 
         let addresses_match = if crypto_str.to_lowercase().contains("sol")
             || crypto_str.to_lowercase().contains("usdt_spl")
+            || crypto_str.to_lowercase().contains("spl")
         {
-            let matches_primary = blockchain_tx.to_address.trim() == customer_wallet_address.trim();
+            let matches_primary = blockchain_tx.to_address.trim().to_lowercase()
+                == customer_wallet_address.trim().to_lowercase();
 
-            // Check ATA for USDT_SPL
+            // Check ATA matching dynamically for the target token or token_mint
+            let matches_ata = if let Some(ref mint) = blockchain_tx.token_mint {
+                if let Some(ata) = self.get_solana_ata(&customer_wallet_address, mint) {
+                    blockchain_tx.to_address.trim().to_lowercase() == ata.trim().to_lowercase()
+                } else {
+                    false
+                }
+            } else if let Ok(target_crypto) = CryptoType::from_string(crypto_str) {
+                if let Some(mint) = target_crypto.token_address() {
+                    if let Some(ata) = self.get_solana_ata(&customer_wallet_address, mint) {
+                        blockchain_tx.to_address.trim().to_lowercase() == ata.trim().to_lowercase()
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+
+            // Check specific fallback ATAs (USDT_SPL, WSOL)
             let matches_usdt_ata = if let Ok(usdt_type) = CryptoType::from_string("USDT_SPL") {
                 if let Some(mint) = usdt_type.token_address() {
                     if let Some(ata) = self.get_solana_ata(&customer_wallet_address, mint) {
-                        blockchain_tx.to_address.trim() == ata.trim()
+                        blockchain_tx.to_address.trim().to_lowercase() == ata.trim().to_lowercase()
                     } else {
                         false
                     }
@@ -969,11 +992,10 @@ impl PaymentVerifier {
                 false
             };
 
-            // Check ATA for WSOL
             let matches_wsol_ata = if let Ok(wsol_type) = CryptoType::from_string("WSOL") {
                 if let Some(mint) = wsol_type.token_address() {
                     if let Some(ata) = self.get_solana_ata(&customer_wallet_address, mint) {
-                        blockchain_tx.to_address.trim() == ata.trim()
+                        blockchain_tx.to_address.trim().to_lowercase() == ata.trim().to_lowercase()
                     } else {
                         false
                     }
@@ -984,7 +1006,7 @@ impl PaymentVerifier {
                 false
             };
 
-            matches_primary || matches_usdt_ata || matches_wsol_ata
+            matches_primary || matches_ata || matches_usdt_ata || matches_wsol_ata
         } else {
             blockchain_tx.to_address.trim().to_lowercase()
                 == customer_wallet_address.trim().to_lowercase()

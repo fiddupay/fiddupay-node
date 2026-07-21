@@ -511,8 +511,9 @@ fn extract_ip_address(headers: &HeaderMap) -> String {
         .get("x-forwarded-for")
         .or_else(|| headers.get("x-real-ip"))
         .and_then(|value| value.to_str().ok())
-        .unwrap_or("unknown")
-        .to_string()
+        .and_then(|value| value.split(',').next())
+        .map(|ip| ip.trim().to_string())
+        .unwrap_or_else(|| "unknown".to_string())
 }
 
 /// API Version Security Manager

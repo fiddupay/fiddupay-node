@@ -23,8 +23,8 @@ pub struct AdminQuery {
 #[derive(Deserialize)]
 pub struct ReverifyTransactionRequest {
     pub hash: String,
-    pub tx_type: String, // "customer" or "merchant"
-    pub id: i64,         // customer_id or merchant_id
+    pub tx_type: String,       // "customer" or "merchant"
+    pub id: serde_json::Value, // Can be integer (internal ID) or string (external_id)
     pub crypto_type: String,
     pub sandbox_mode: bool,
 }
@@ -118,20 +118,41 @@ pub async fn reverify_transaction(
     );
 
     let result = if req.tx_type == "customer" {
-        // Need merchant_id for customer deposits
-        let merchant_id_res = sqlx::query_scalar::<_, i64>(
-            "SELECT merchant_id FROM merchant_customers WHERE id = $1",
-        )
-        .bind(req.id)
-        .fetch_optional(&state.db_pool)
-        .await;
+        // Resolve customer_id and merchant_id whether 'id' is a integer or string (external_id)
+        let customer_row = if let Some(int_id) = req.id.as_i64() {
+            sqlx::query_as::<_, (i64, i64)>(
+                "SELECT id, merchant_id FROM merchant_customers WHERE id = $1",
+            )
+            .bind(int_id)
+            .fetch_optional(&state.db_pool)
+            .await
+        } else if let Some(str_id) = req.id.as_str() {
+            if let Ok(parsed_int) = str_id.parse::<i64>() {
+                sqlx::query_as::<_, (i64, i64)>(
+                    "SELECT id, merchant_id FROM merchant_customers WHERE id = $1 OR external_id = $2",
+                )
+                .bind(parsed_int)
+                .bind(str_id)
+                .fetch_optional(&state.db_pool)
+                .await
+            } else {
+                sqlx::query_as::<_, (i64, i64)>(
+                    "SELECT id, merchant_id FROM merchant_customers WHERE external_id = $1",
+                )
+                .bind(str_id)
+                .fetch_optional(&state.db_pool)
+                .await
+            }
+        } else {
+            Ok(None)
+        };
 
-        match merchant_id_res {
-            Ok(Some(m_id)) => {
+        match customer_row {
+            Ok(Some((c_id, m_id))) => {
                 state
                     .payment_service
                     .verify_customer_deposit(
-                        req.id,
+                        c_id,
                         &req.hash,
                         m_id,
                         &req.crypto_type,
@@ -155,10 +176,30 @@ pub async fn reverify_transaction(
             }
         }
     } else {
-        state
-            .payment_service
-            .verify_merchant_deposit(req.id, &req.hash, &req.crypto_type, req.sandbox_mode)
-            .await
+        // Resolve merchant_id whether 'id' is an integer or string
+        let resolved_m_id = if let Some(int_id) = req.id.as_i64() {
+            Some(int_id)
+        } else if let Some(str_id) = req.id.as_str() {
+            str_id.parse::<i64>().ok()
+        } else {
+            None
+        };
+
+        match resolved_m_id {
+            Some(m_id) => {
+                state
+                    .payment_service
+                    .verify_merchant_deposit(m_id, &req.hash, &req.crypto_type, req.sandbox_mode)
+                    .await
+            }
+            None => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({"error": "Invalid merchant ID format"})),
+                )
+                    .into_response()
+            }
+        }
     };
 
     match result {
