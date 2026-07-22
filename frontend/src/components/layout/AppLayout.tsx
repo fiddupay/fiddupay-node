@@ -30,12 +30,7 @@ const AppLayout: React.FC = () => {
       useNotificationStore.getState().fetchNotifications()
 
       // 2. Dashboard Warm-up (Background)
-      const now = new Date();
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      store.fetchAnalytics({
-        from_date: firstDayOfMonth.toISOString(),
-        to_date: new Date().toISOString()
-      })
+      store.fetchAnalytics()
       store.fetchCustomerSummary()
       store.fetchSecurityAlerts()
       store.fetchRecentActivity()

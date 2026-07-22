@@ -761,14 +761,16 @@ export const API_DATA: DocSection[] = [
                 method: 'GET',
                 path: '/api/v1/merchants/customers',
                 title: 'List Customers',
-                description: 'Retrieve registered customer sub-profiles with pagination filters.',
+                description: 'Retrieve registered customer sub-profiles with pagination (`limit`, `offset`), case-insensitive search (`search`), and status filtering (`status`).',
                 parameters: [
-                    { name: 'limit', type: 'integer', required: false, description: 'Number of records to return' },
-                    { name: 'offset', type: 'integer', required: false, description: 'Pagination offset' }
+                    { name: 'limit', type: 'integer', required: false, description: 'Number of records to return (defaults to 10)' },
+                    { name: 'offset', type: 'integer', required: false, description: 'Pagination offset (defaults to 0)' },
+                    { name: 'search', type: 'string', required: false, description: 'Case-insensitive search query (external_id, email, first_name, last_name)' },
+                    { name: 'status', type: 'string', required: false, description: 'Filter by customer status: active, flagged, or deactivated' }
                 ],
                 request: {
-                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/customers \\\n  -H "Authorization: Bearer sk_live_..."',
-                    node: 'const customers = await fiddupay.customers.list();'
+                    curl: 'curl "https://api.fiddupay.com/api/v1/merchants/customers?limit=10&offset=0&search=john" \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const customers = await fiddupay.customers.list({\n  limit: 10,\n  offset: 0,\n  search: "john"\n});'
                 },
                 response: JSON.stringify([
                     {
@@ -835,15 +837,16 @@ export const API_DATA: DocSection[] = [
                 id: 'sweep-customer',
                 method: 'POST',
                 path: '/api/v1/merchants/customers/:id/sweep',
-                title: 'Sweep Funds',
-                description: 'Trigger a transfer of funds from a customer\'s sub-account directly into your main merchant balance.',
+                title: 'Manual Auto-Settlement (Sweep)',
+                description: 'Consolidate sub-wallet deposits into your merchant Master Wallet. Sweeps strictly target your registered Master Wallet address and require no transaction PIN.',
                 body: [
-                    { name: 'crypto_type', type: 'string', required: true, description: 'SOL, WSOL, USDT, etc.' },
-                    { name: 'amount', type: 'string', required: false, description: 'Amount to sweep (omitted for entire balance)' }
+                    { name: 'sweep_mode', type: 'string', required: true, description: 'ALL, NATIVE_ONLY, STABLE_ONLY, or SPECIFIC' },
+                    { name: 'crypto_types', type: 'array', required: false, description: 'Array of crypto types if sweep_mode is SPECIFIC' },
+                    { name: 'amount', type: 'string', required: false, description: 'Specific amount or blank for MAX' }
                 ],
                 request: {
-                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_1234/sweep \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "crypto_type": "USDT",\n    "amount": "100.0"\n  }\'',
-                    node: 'await fiddupay.customers.sweep("user_1234", {\n  crypto_type: "USDT",\n  amount: "100.0"\n});'
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/customers/user_1234/sweep \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "sweep_mode": "ALL"\n  }\'',
+                    node: 'await fiddupay.customers.sweep("user_1234", {\n  sweep_mode: "ALL"\n});'
                 },
                 response: JSON.stringify({
                     success: true,

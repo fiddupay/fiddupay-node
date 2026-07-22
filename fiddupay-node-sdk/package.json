@@ -1,6 +1,6 @@
 {
   "name": "@fiddupay/node-sdk",
-  "version": "2.6.20",
+  "version": "2.6.21",
   "description": "FidduPay payment gateway Node.js SDK",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

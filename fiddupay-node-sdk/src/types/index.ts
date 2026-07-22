@@ -736,6 +736,8 @@ export interface PaginatedResponse<T> {
 export interface ListCustomersParams {
   limit?: number;
   offset?: number;
+  search?: string;
+  status?: string;
   [key: string]: any;
 }
 
@@ -743,7 +745,7 @@ export interface CustomerSweepRequest {
   sweep_mode: 'ALL' | 'NATIVE_ONLY' | 'STABLE_ONLY' | 'SPECIFIC';
   crypto_types?: CryptoType[];
   amount?: string;
-  pin: string;
+  pin?: string;
 }
 
 export interface MerchantCustomer {

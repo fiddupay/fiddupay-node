@@ -1103,25 +1103,46 @@ impl PaymentVerifier {
         let fee_amount = (actual_amount * (fee_percentage / Decimal::from(100))).round_dp(8);
         let net_amount = actual_amount - fee_amount;
 
-        // 4. Credit ledger atomically
+        // 4. Credit ledger atomically (Paystack-like instant merchant settlement)
         let mut tx = self.db_pool.begin().await?;
 
-        // Update balance
+        // 4a. Credit customer sub-account locked_balance (funds received, pending on-chain auto-sweep)
         sqlx::query(
             r#"
             INSERT INTO merchant_customer_balances (
-                customer_id, merchant_id, crypto_type, available_balance, 
+                customer_id, merchant_id, crypto_type, locked_balance, 
                 total_balance, last_updated_at, sandbox_mode
             )
             VALUES ($1, $2, $3, $4, $4, NOW(), $5)
             ON CONFLICT (customer_id, crypto_type, sandbox_mode)
             DO UPDATE SET
-                available_balance = merchant_customer_balances.available_balance + EXCLUDED.available_balance,
+                locked_balance = merchant_customer_balances.locked_balance + EXCLUDED.locked_balance,
                 total_balance = merchant_customer_balances.total_balance + EXCLUDED.total_balance,
                 last_updated_at = NOW()
             "#
         )
         .bind(customer_id)
+        .bind(merchant_id)
+        .bind(&final_crypto_str)
+        .bind(net_amount)
+        .bind(sandbox_mode)
+        .execute(&mut *tx)
+        .await?;
+
+        // 4b. Instantly credit merchant available balance off-chain
+        sqlx::query(
+            r#"
+            INSERT INTO merchant_balances (
+                merchant_id, crypto_type, available_balance, total_balance, last_updated, sandbox_mode
+            )
+            VALUES ($1, $2, $3, $3, NOW(), $4)
+            ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
+            DO UPDATE SET
+                available_balance = merchant_balances.available_balance + EXCLUDED.available_balance,
+                total_balance = merchant_balances.total_balance + EXCLUDED.total_balance,
+                last_updated = NOW()
+            "#
+        )
         .bind(merchant_id)
         .bind(&final_crypto_str)
         .bind(net_amount)
@@ -1139,7 +1160,7 @@ impl PaymentVerifier {
             * Decimal::from_f64_retain(crypto_price).unwrap_or(Decimal::ONE))
         .round_dp(2);
 
-        // Record Ledger transaction
+        // Record Customer DEPOSIT transaction
         sqlx::query(
             r#"
             INSERT INTO customer_transactions (

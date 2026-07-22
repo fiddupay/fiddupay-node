@@ -507,6 +507,28 @@ impl WithdrawalProcessor {
         .execute(&self.db_pool)
         .await?;
 
+        // If this was a sweep withdrawal, deduct locked_balance from merchant_customer_balances
+        if withdrawal_id.contains("swp") {
+            let _ = sqlx::query(
+                r#"
+                UPDATE merchant_customer_balances
+                SET locked_balance = GREATEST(0, locked_balance - $1),
+                    total_balance = GREATEST(0, total_balance - $1),
+                    last_updated_at = NOW()
+                WHERE customer_id = (
+                    SELECT customer_id FROM customer_transactions WHERE reference_id = $2 LIMIT 1
+                )
+                  AND crypto_type = $3 AND sandbox_mode = $4
+                "#,
+            )
+            .bind(amount)
+            .bind(withdrawal_id)
+            .bind(crypto_type)
+            .bind(sandbox_mode)
+            .execute(&self.db_pool)
+            .await;
+        }
+
         tracing::info!("Withdrawal {} fully finalized in DB", withdrawal_id);
 
         // 3. Trigger real-time UI update and invalidate dashboard cache

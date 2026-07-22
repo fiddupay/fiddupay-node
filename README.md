@@ -16,6 +16,14 @@ fiddupay/
   package.json       # Monorepo scripts
 ```
 
+## Key Features
+
+- **Instant Paystack-Style Auto-Settlement**: Customer deposits to sub-wallets immediately credit the merchant's available balance off-chain (after platform fee deduction), making funds instantly withdrawable.
+- **Gas-Efficient On-Chain Consolidation**: Eliminates wasted gas fees on micro-deposits by enabling merchants to manually trigger bulk on-chain sweeps into their master wallet when desired.
+- **Master-Wallet Security & PIN-Free Sweeps**: Sweeps are strictly hardcoded to target the merchant's registered active Master Wallet address, removing transaction PIN friction.
+- **Server-Side Pagination & URL-Driven State**: Efficient server-side customer paging (`limit`, `offset`), case-insensitive ILIKE search, and status filters preserved across browser navigation.
+- **West Africa Timezone (Africa/Lagos)**: All dashboard timestamps and reporting dates are displayed in `Africa/Lagos` (WAT, UTC+1).
+
 > [!NOTE]
 > The `fiddupay-node-sdk` folder is the source of truth for the [@fiddupay/node-sdk](https://github.com/fiddupay/fiddupay-node) standalone repository. Use `./scripts/push-sdk.sh` to sync changes.
 
@@ -150,7 +158,7 @@ To sync code changes to the standalone SDK repository, you can use the Unix sync
 .\scripts\push-sdk.ps1 -Branch main
 
 # Push SDK code + tag in one command
-.\scripts\push-sdk.ps1 -Branch main -Tag v2.6.20
+.\scripts\push-sdk.ps1 -Branch main -Tag v2.6.21
 ```
 
 ##### Bash Script:
@@ -177,8 +185,8 @@ To sync code AND push a version tag manually:
 
 ```bash
 # 1. Tag (or force update existing tag) and push in the main repository
-git tag -fa v2.6.20 -m "Release v2.6.20"
-git push origin v2.6.20 --force
+git tag -fa v2.6.21 -m "Release v2.6.21"
+git push origin v2.6.21 --force
 
 # 2. Push subtree changes to the standalone repository
 git subtree push --prefix fiddupay-node-sdk git@github.com:fiddupay/fiddupay-node.git main
@@ -186,17 +194,17 @@ git subtree push --prefix fiddupay-node-sdk git@github.com:fiddupay/fiddupay-nod
 # 3. Create and push the release tag to the standalone SDK repository
 # (Bash/macOS/Linux):
 CURRENT_COMMIT=$(git rev-parse HEAD)
-git push git@github.com:fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.20" --force
+git push git@github.com:fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.21" --force
 
 # (PowerShell/Windows) — run as TWO separate commands:
 $CURRENT_COMMIT = git rev-parse HEAD
-git push git@github.com:fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.20" --force
+git push git@github.com:fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.21" --force
 ```
 
 To delete a version on github:
 
 ```bash
-git push git@github.com:fiddupay/fiddupay-node.git --delete v2.6.20
+git push git@github.com:fiddupay/fiddupay-node.git --delete v2.6.21
 ```
 
 ```bash

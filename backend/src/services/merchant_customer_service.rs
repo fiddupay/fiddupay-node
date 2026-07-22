@@ -1568,8 +1568,12 @@ impl MerchantCustomerService {
             .fetch_optional(&mut *tx)
             .await?;
 
-            let merchant_address =
-                merchant_wallet_address.unwrap_or_else(|| "Internal Ledger".to_string());
+            let merchant_address = merchant_wallet_address.ok_or_else(|| {
+                ServiceError::ValidationError(format!(
+                    "No active merchant master wallet configured for {}. Configure a wallet first.",
+                    normalized_crypto
+                ))
+            })?;
 
             let withdrawal_id =
                 format!("swp_{}", uuid::Uuid::new_v4().to_string().replace("-", ""));

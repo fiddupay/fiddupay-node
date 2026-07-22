@@ -637,15 +637,6 @@ pub async fn sweep_customer_wallet(
     Path(external_id): Path<String>,
     Json(req): Json<crate::models::merchant_customer::SweepCustomerRequest>,
 ) -> impl IntoResponse {
-    // 1. Verify Transaction PIN (Merchant)
-    if let Err(e) = state
-        .merchant_service
-        .verify_transaction_pin(context.merchant_id, &req.pin)
-        .await
-    {
-        return e.into_response();
-    }
-
     let req_mode = req.sweep_mode.clone();
     let req_types = req.crypto_types.clone();
 

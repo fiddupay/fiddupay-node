@@ -33,8 +33,6 @@ interface DetailDrawerProps {
   setSweepCryptoType: (type: string) => void;
   sweepAmount: string;
   setSweepAmount: (amt: string) => void;
-  sweepPin: string;
-  setSweepPin: (pin: string) => void;
   sweeping: boolean;
   onSweep: (e: React.FormEvent) => void;
   payMerchantAmount: string;
@@ -71,8 +69,6 @@ const CustomerDetailDrawer: React.FC<DetailDrawerProps> = ({
   setSweepCryptoType,
   sweepAmount,
   setSweepAmount,
-  sweepPin,
-  setSweepPin,
   sweeping,
   onSweep,
   payMerchantAmount,
@@ -159,8 +155,6 @@ const CustomerDetailDrawer: React.FC<DetailDrawerProps> = ({
                   setSweepCryptoType={setSweepCryptoType}
                   sweepAmount={sweepAmount}
                   setSweepAmount={setSweepAmount}
-                  sweepPin={sweepPin}
-                  setSweepPin={setSweepPin}
                   sweeping={sweeping}
                   onSweep={onSweep}
                   payMerchantAmount={payMerchantAmount}

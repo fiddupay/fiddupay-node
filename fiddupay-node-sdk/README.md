@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.6.20
+# FidduPay Node.js SDK v2.6.21
 
-[![version](https://img.shields.io/badge/version-v2.6.20-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.6.21-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/node-sdk.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/node-sdk)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

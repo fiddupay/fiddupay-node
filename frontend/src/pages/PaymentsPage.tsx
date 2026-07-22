@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useToast } from '@/contexts/ToastContext'
 import { merchantAPI, paymentAPI } from '@/services/apiService'
@@ -76,13 +76,13 @@ const PaymentsPage: React.FC = () => {
     }, { replace: false })
   }, [setSearchParams])
 
-  // Derive filters object from URL params
-  const filters: PaymentFilters = {
+  // Derive filters object from URL params (memoized to maintain stable object reference)
+  const filters: PaymentFilters = useMemo(() => ({
     page: urlPage,
     page_size: 20,
     ...(urlStatus ? { status: urlStatus } : {}),
     ...(urlCrypto ? { crypto_type: urlCrypto } : {}),
-  }
+  }), [urlPage, urlStatus, urlCrypto])
 
   const dateRangeOption = urlDateRange
   const customStartDate = urlCustomStart
@@ -100,17 +100,17 @@ const PaymentsPage: React.FC = () => {
     if (option === 'today') {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       startDate = today.toISOString()
-      endDate = now.toISOString()
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString()
     } else if (option === 'this_week') {
       const dayOfWeek = now.getDay()
       const diff = now.getDate() - dayOfWeek
       const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff)
       startDate = startOfWeek.toISOString()
-      endDate = now.toISOString()
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString()
     } else if (option === 'this_month') {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       startDate = startOfMonth.toISOString()
-      endDate = now.toISOString()
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString()
     } else if (option === 'custom') {
       if (start) {
         startDate = new Date(start + 'T00:00:00').toISOString()
@@ -140,7 +140,7 @@ const PaymentsPage: React.FC = () => {
       loadStats()
     }, 15000)
     return () => clearInterval(paymentsInterval)
-  }, [filters, user?.sandbox_mode])
+  }, [urlPage, urlStatus, urlCrypto, dateRangeOption, customStartDate, customEndDate, user?.sandbox_mode])
 
   // Reset payment type if user is in incompatible settlement mode
   useEffect(() => {
@@ -176,7 +176,7 @@ const PaymentsPage: React.FC = () => {
       
       if (isStable) {
          if (newPayment.amount_usd !== newPayment.amount) {
-           setNewPayment(prev => ({ ...prev, amount_usd: prev.amount }));
+           setNewPayment(prev => ({ ...prev, amount_usd: newPayment.amount }));
          }
       } else {
          const usdVal = cryptoAmt > 0 && price > 0 ? (cryptoAmt * price).toFixed(2) : '';
@@ -211,12 +211,13 @@ const PaymentsPage: React.FC = () => {
 
   const loadStats = async () => {
     try {
+      const { startDate, endDate } = getDateRange(dateRangeOption, customStartDate, customEndDate)
       // Respect user's selected date filters or default to broad window (since 2025)
       const analytics = await merchantAPI.getAnalytics({
         status: filters.status,
-        blockchain: filters.blockchain,
-        from_date: filters.start_date || '2025-01-01T00:00:00.000Z',
-        to_date: filters.end_date || new Date().toISOString()
+        blockchain: (filters as any).blockchain,
+        from_date: startDate || '2025-01-01T00:00:00.000Z',
+        ...(endDate ? { to_date: endDate } : {})
       })
       if (analytics.data) {
         const successfulPayments = analytics.data.successful_payments || 0
@@ -400,12 +401,14 @@ const PaymentsPage: React.FC = () => {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleString('en-US', {
+      timeZone: 'Africa/Lagos',
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: true,
     })
   }
 

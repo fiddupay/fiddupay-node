@@ -8,8 +8,6 @@ interface ActionsTabProps {
   setSweepCryptoType: (val: string) => void;
   sweepAmount: string;
   setSweepAmount: (val: string) => void;
-  sweepPin: string;
-  setSweepPin: (val: string) => void;
   sweeping: boolean;
   onSweep: (e: React.FormEvent) => void;
   payMerchantAmount: string;
@@ -29,8 +27,6 @@ const ActionsTab: React.FC<ActionsTabProps> = ({
   setSweepCryptoType,
   sweepAmount,
   setSweepAmount,
-  sweepPin,
-  setSweepPin,
   sweeping,
   onSweep,
   payMerchantAmount,
@@ -44,22 +40,22 @@ const ActionsTab: React.FC<ActionsTabProps> = ({
 }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
-      {/* Sweep Sub-Wallet Balances */}
+      {/* Auto Settlement Sub-Wallet Balances */}
       <div className={styles.drawerSection} style={{ padding: 0, border: 'none', background: 'transparent', boxShadow: 'none' }}>
         <h3 style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.25rem", padding: '0 1rem' }}>
           <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(37, 99, 235, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <i className="fas fa-broom" style={{ color: "#3b82f6", fontSize: '0.9rem' }}></i>
+            <i className="fas fa-magic" style={{ color: "#3b82f6", fontSize: '0.9rem' }}></i>
           </div>
-          Sweep Sub-Wallet Balances
+          Auto-Settlement / Manual Settlement
         </h3>
         <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", padding: '0 1rem', lineHeight: 1.5 }}>
-          Sweep funds internally to your merchant Master Wallet. Gas fees are seamlessly deducted directly from your ledger balance.
+          Settle customer deposits to your merchant Master Wallet. Customer deposits are automatically settled to your available balance upon confirmation after platform fees are deducted.
         </p>
 
         <form onSubmit={onSweep} className={styles.financialForm}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
             <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-              <label>Sweep Mode</label>
+              <label>Settlement Mode</label>
               <div className={styles.inputGroup} style={{ position: 'relative' }}>
                 <i className="fas fa-layer-group" style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.9rem' }}></i>
                 <select
@@ -68,7 +64,7 @@ const ActionsTab: React.FC<ActionsTabProps> = ({
                   onChange={(e) => setSweepMode(e.target.value as any)}
                   style={{ paddingLeft: '3rem' }}
                 >
-                  <option value="ALL">Sweep All Assets</option>
+                  <option value="ALL">Settle All Assets</option>
                   <option value="NATIVE_ONLY">Native Coins Only</option>
                   <option value="STABLE_ONLY">Stablecoins Only</option>
                   <option value="SPECIFIC">Specific Asset</option>
@@ -78,7 +74,7 @@ const ActionsTab: React.FC<ActionsTabProps> = ({
             
             <div className={styles.formGroup} style={{ marginBottom: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ margin: 0 }}>{sweepMode === "SPECIFIC" ? "Target Asset" : "Sweep Summary"}</label>
+                <label style={{ margin: 0 }}>{sweepMode === "SPECIFIC" ? "Target Asset" : "Settlement Summary"}</label>
               </div>
               
               {sweepMode === "SPECIFIC" ? (
@@ -134,7 +130,7 @@ const ActionsTab: React.FC<ActionsTabProps> = ({
 
           <div className={styles.formGroup} style={{ marginBottom: sweepMode === "SPECIFIC" ? '2rem' : '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ margin: 0 }}>{sweepMode === "SPECIFIC" ? "Amount to Sweep" : "Instructions"}</label>
+                <label style={{ margin: 0 }}>{sweepMode === "SPECIFIC" ? "Amount to Settle" : "Instructions"}</label>
                 {sweepMode === "SPECIFIC" && customerBalances && (
                    <span className={styles.usdSmall} style={{ color: 'var(--primary)' }}>
                       Available: {parseFloat(customerBalances.find((b: any) => b.crypto_type === sweepCryptoType)?.locked_balance || "0").toFixed(6)}
@@ -177,34 +173,16 @@ const ActionsTab: React.FC<ActionsTabProps> = ({
               ) : (
                 <div className={styles.infoBox}>
                   <i className="fas fa-info-circle"></i>
-                  Bulk sweep will process all confirmed sub-wallet balances in the selected category.
+                  Bulk settlement will process all confirmed sub-wallet balances in the selected category.
                 </div>
               )}
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label>Merchant Transaction PIN</label>
-            <div className={styles.inputGroup} style={{ position: 'relative' }}>
-              <i className="fas fa-lock" style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.9rem' }}></i>
-              <input
-                className={styles.inputStyle}
-                type="password"
-                maxLength={4}
-                pattern="\d*"
-                style={{ letterSpacing: "0.8rem", textAlign: "center", paddingLeft: '1.5rem', paddingRight: '1.5rem' }}
-                placeholder="••••"
-                value={sweepPin}
-                onChange={(e) => setSweepPin(e.target.value.replace(/\D/g, ""))}
-                required
-              />
-            </div>
           </div>
           
           <button type="submit" className={styles.addBtn} style={{ width: "100%", height: '56px' }} disabled={sweeping}>
             {sweeping ? <i className="fas fa-spinner fa-spin"></i> : (
               <>
                 <i className="fas fa-rocket"></i>
-                Execute Sweep
+                Confirm & Settle Balances
               </>
             )}
           </button>

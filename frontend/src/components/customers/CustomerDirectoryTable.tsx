@@ -166,7 +166,8 @@ const CustomerDirectoryTable: React.FC<TableProps> = ({
                         </span>
                       </td>
                       <td>
-                        {new Date(c.created_at).toLocaleDateString(undefined, {
+                        {new Date(c.created_at).toLocaleDateString('en-US', {
+                          timeZone: 'Africa/Lagos',
                           month: "short",
                           day: "numeric",
                           year: "numeric",

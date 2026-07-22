@@ -39,7 +39,7 @@ const TransactionsTab: React.FC<TransactionsTabProps> = ({ customerTransactions 
                     {tx.type.replace("_", " ")}
                   </span>
                   <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
-                    {new Date(tx.created_at).toLocaleString()}
+                    {new Date(tx.created_at).toLocaleString('en-US', { timeZone: 'Africa/Lagos', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                   </span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

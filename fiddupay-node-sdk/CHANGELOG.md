@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.21] - 2026-07-22
+
+### Added
+- **Search & Status Filtering on Customer List**: Added optional `search` (case-insensitive query) and `status` (`active`, `flagged`, `deactivated`) parameters to `ListCustomersParams` in `customers.list()`.
+
+### Changed
+- **PIN-Free Customer Sweeps**: Made `pin` optional in `CustomerSweepRequest` (`customers.sweep()`), aligning with backend security rules where sweeps strictly target the merchant's registered active Master Wallet address without requiring PIN authorization.
+
 ## [2.6.20] - 2026-07-21
 
 ### Added

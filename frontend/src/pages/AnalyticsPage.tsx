@@ -69,13 +69,13 @@ const AnalyticsPage: React.FC = () => {
 
     useEffect(() => {
         loadAnalytics()
-    }, [dateRange, user?.sandbox_mode])
+    }, [fromDate, toDate, user?.sandbox_mode])
 
     const loadAnalytics = async (force = false) => {
         try {
             await fetchAnalytics({
-                from_date: new Date(dateRange.from_date).toISOString(),
-                to_date: new Date(dateRange.to_date + 'T23:59:59Z').toISOString()
+                from_date: new Date(fromDate).toISOString(),
+                to_date: new Date(toDate + 'T23:59:59Z').toISOString()
             }, force)
         } catch (error) {
             console.error('Failed to load analytics:', error)

@@ -480,7 +480,7 @@ const WithdrawalsPage: React.FC = () => {
                                                 <strong>{w.crypto_type}</strong>
                                             </div>
                                                 <span className={styles.historyDate}>
-                                                    {new Date(w.created_at).toLocaleDateString()} {new Date(w.created_at).toLocaleTimeString()}
+                                                    {new Date(w.created_at).toLocaleString('en-US', { timeZone: 'Africa/Lagos', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                                                 </span>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

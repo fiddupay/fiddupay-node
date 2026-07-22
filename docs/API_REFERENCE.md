@@ -1,6 +1,6 @@
 # FidduPay API Reference v2.5.6
 > [!IMPORTANT]
-> **Security Model (v2.5.6)**: All high-risk operations including Merchant Withdrawals and Customer-scoped actions (`/sweep` and `/withdraw`) now require the **Merchant's Transaction PIN** in the request body. Customer-specific PINs have been deprecated and removed. Note: `/pay-merchant` is customer-initiated and does not require a PIN in this model.
+> **Security Model (v2.6.0)**: Sub-account `/sweep` operations transfer customer sub-wallet funds directly to the merchant's registered active Master Wallet (PIN-free manual auto-settlement). External sweep destinations are prohibited. Merchant Withdrawals continue to require PIN or security authorization. Note: `/pay-merchant` is customer-initiated and does not require a PIN in this model.
 
 Official technical specification for the FidduPay cryptocurrency payment gateway API.
 
@@ -53,7 +53,7 @@ All requests must include a Bearer token in the `Authorization` header:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/v1/merchants/customers` | Register a new customer |
-| GET | `/api/v1/merchants/customers` | List all registered customers |
+| GET | `/api/v1/merchants/customers` | List all registered customers (supports limit, offset, search, status) |
 | GET | `/api/v1/merchants/customers/summary` | Get customer directory summary stats |
 | POST | `/api/v1/merchants/customers/bulk-provision` | Bulk provision customer wallets |
 | POST | `/api/v1/merchants/customers/verify-wallets` | Verify & auto-repair customer wallets |
@@ -62,7 +62,7 @@ All requests must include a Bearer token in the `Authorization` header:
 | POST | `/api/v1/merchants/customers/:external_id/wallets` | Provision customer wallets |
 | GET | `/api/v1/merchants/customers/:external_id/wallets` | Get customer wallets |
 | GET | `/api/v1/merchants/customers/:external_id/balances` | Get customer wallet balances |
-| POST | `/api/v1/merchants/customers/:external_id/sweep` | Sweep funds to master balance |
+| POST | `/api/v1/merchants/customers/:external_id/sweep` | Manual auto-settlement of sub-wallet funds to master wallet (PIN-free) |
 | POST | `/api/v1/merchants/customers/:external_id/withdraw` | Withdraw from customer wallet |
 | POST | `/api/v1/merchants/customers/:external_id/pay-merchant` | Internal payment from customer to merchant |
 | PATCH | `/api/v1/merchants/customers/:external_id/permissions` | Update customer permissions |

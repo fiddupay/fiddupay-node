@@ -78,7 +78,6 @@ const MerchantCustomersPage: React.FC = () => {
   const [sweepMode, setSweepMode] = useState<"ALL" | "NATIVE_ONLY" | "STABLE_ONLY" | "SPECIFIC">("ALL");
   const [sweepCryptoType, setSweepCryptoType] = useState("USDT");
   const [sweepAmount, setSweepAmount] = useState("");
-  const [sweepPin, setSweepPin] = useState("");
   const [sweeping, setSweeping] = useState(false);
   const [provisioning, setProvisioning] = useState(false);
 
@@ -258,8 +257,7 @@ const MerchantCustomersPage: React.FC = () => {
 
   const handleSweep = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCustomer || !sweepPin) {
-      showToast("Please enter your Merchant Transaction PIN", "warning");
+    if (!selectedCustomer) {
       return;
     }
     try {
@@ -268,11 +266,9 @@ const MerchantCustomersPage: React.FC = () => {
         sweep_mode: sweepMode,
         crypto_types: sweepMode === "SPECIFIC" ? [sweepCryptoType] : undefined,
         amount: sweepAmount ? sweepAmount : undefined,
-        pin: sweepPin,
       });
-      showToast("Sweep operation initiated successfully", "success");
+      showToast("Settlement operation initiated successfully", "success");
       setSweepAmount("");
-      setSweepPin("");
       // Force refresh customer details, customer lists, and merchant balance immediately
       fetchCustomerDetails(selectedCustomer.external_id, true);
       fetchCustomersFromStore(page, 10, searchTerm || undefined, statusFilter !== 'all' ? statusFilter : undefined, true);
@@ -535,8 +531,6 @@ const MerchantCustomersPage: React.FC = () => {
         setSweepCryptoType={setSweepCryptoType}
         sweepAmount={sweepAmount}
         setSweepAmount={setSweepAmount}
-        sweepPin={sweepPin}
-        setSweepPin={setSweepPin}
         sweeping={sweeping}
         onSweep={handleSweep}
         payMerchantAmount={payMerchantAmount}

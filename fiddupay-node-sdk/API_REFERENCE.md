@@ -233,6 +233,40 @@ Content-Type: application/json
 > [!WARNING]
 > Deprecated in favor of `PATCH /api/v1/merchants/settings`.
 
+### Customer Sub-Accounts & Auto-Settlement
+
+#### List Customers (Paginated)
+```http
+GET /api/v1/merchants/customers?limit=10&offset=0&search=john&status=active
+Authorization: Bearer {api_key}
+```
+
+#### Register Customer
+```http
+POST /api/v1/merchants/customers
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "external_id": "cust_101",
+  "email": "user@example.com",
+  "first_name": "John",
+  "last_name": "Doe"
+}
+```
+
+#### Manual Auto-Settlement (Sweep)
+Sweeps strictly target your registered Master Wallet address. Transaction PIN is not required.
+```http
+POST /api/v1/merchants/customers/{external_id}/sweep
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "sweep_mode": "ALL"
+}
+```
+
 ### Notification Management
 
 ### List Notifications

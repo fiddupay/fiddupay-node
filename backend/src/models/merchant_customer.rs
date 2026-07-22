@@ -108,7 +108,7 @@ pub struct SweepCustomerRequest {
     pub sweep_mode: String,
     pub crypto_types: Option<Vec<String>>,
     pub amount: Option<String>,
-    pub pin: String,
+    pub pin: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
