@@ -21,8 +21,11 @@ const api = axios.create({
 // but we also include the Authorization header as a fallback (Hybrid Auth).
 api.interceptors.request.use(
   (config) => {
-    // Check sessionStorage for the fallback token
-    const dashboardToken = sessionStorage.getItem('fiddupay_dashboard_token');
+    // Check sessionStorage, localStorage, or Zustand store for the fallback token
+    const dashboardToken = 
+      sessionStorage.getItem('fiddupay_dashboard_token') ||
+      localStorage.getItem('fiddupay_dashboard_token') ||
+      useAuthStore.getState().token;
 
     if (dashboardToken) {
       config.headers.Authorization = `Bearer ${dashboardToken}`;

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware'
 import { User, LoginCredentials, RegisterData } from '@/types'
 import { authAPI, merchantAPI } from '@/services/apiService'
+import { backgroundPoller } from './backgroundPoller'
 
 interface AuthState {
   user: User | null
@@ -69,6 +70,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
           // Dashboard token fallback for environments where HttpOnly cookies are blocked/rejected (Fortress Layer)
           sessionStorage.setItem('fiddupay_dashboard_token', response.data.dashboard_token)
+          if (rememberMe) {
+            localStorage.setItem('fiddupay_dashboard_token', response.data.dashboard_token)
+          }
 
           set({
             user: response.data.user,
@@ -93,6 +97,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
           // DASHBOARD_TOKEN handled via HttpOnly Cookies + Fallback Header
           sessionStorage.setItem('fiddupay_dashboard_token', response.data.dashboard_token)
+          localStorage.setItem('fiddupay_dashboard_token', response.data.dashboard_token)
 
           set({
             user: response.data.user,
@@ -111,6 +116,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
 
       logout: () => {
+        // Stop background polling immediately
+        backgroundPoller.stop()
+
         // Hit backend logout to clear HttpOnly cookies
         authAPI.logout().catch((err: any) => console.error("Logout failed:", err));
 
@@ -135,7 +143,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       loadUser: async (silent: boolean = false) => {
         // Fallback for browsers blocking HttpOnly cookies
-        const fallbackToken = sessionStorage.getItem('fiddupay_dashboard_token')
+        const fallbackToken = sessionStorage.getItem('fiddupay_dashboard_token') || localStorage.getItem('fiddupay_dashboard_token')
         if (fallbackToken && !_get().token) {
           set({ token: fallbackToken })
         }

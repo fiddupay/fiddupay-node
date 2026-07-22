@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
     XAxis,
     YAxis,
@@ -38,10 +39,31 @@ const AnalyticsPage: React.FC = () => {
     const { analytics: analyticsCache, fetchAnalytics } = useDataStore()
     const analytics = analyticsCache.data as AnalyticsData | null
     const loading = analyticsCache.loading && !analytics
-    const [dateRange, setDateRange] = useState({
-        from_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        to_date: new Date().toISOString().split('T')[0]
-    })
+
+    // --- URL-driven date range ---
+    const [searchParams, setSearchParams] = useSearchParams()
+    const defaultFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const defaultTo = new Date().toISOString().split('T')[0]
+    const fromDate = searchParams.get('from') ?? defaultFrom
+    const toDate = searchParams.get('to') ?? defaultTo
+
+    const setFromDate = useCallback((val: string) => {
+        setSearchParams((prev) => {
+            const next = new URLSearchParams(prev)
+            if (val) next.set('from', val); else next.delete('from')
+            return next
+        }, { replace: true })
+    }, [setSearchParams])
+
+    const setToDate = useCallback((val: string) => {
+        setSearchParams((prev) => {
+            const next = new URLSearchParams(prev)
+            if (val) next.set('to', val); else next.delete('to')
+            return next
+        }, { replace: true })
+    }, [setSearchParams])
+
+    const dateRange = { from_date: fromDate, to_date: toDate }
     const { showToast } = useToast()
     const { user } = useAuthStore()
 
@@ -49,12 +71,12 @@ const AnalyticsPage: React.FC = () => {
         loadAnalytics()
     }, [dateRange, user?.sandbox_mode])
 
-    const loadAnalytics = async () => {
+    const loadAnalytics = async (force = false) => {
         try {
             await fetchAnalytics({
                 from_date: new Date(dateRange.from_date).toISOString(),
                 to_date: new Date(dateRange.to_date + 'T23:59:59Z').toISOString()
-            })
+            }, force)
         } catch (error) {
             console.error('Failed to load analytics:', error)
             showToast('Failed to load analytics data', 'error')
@@ -88,7 +110,7 @@ const AnalyticsPage: React.FC = () => {
                             <input
                                 type="date"
                                 value={dateRange.from_date}
-                                onChange={(e) => setDateRange(prev => ({ ...prev, from_date: e.target.value }))}
+                                onChange={(e) => setFromDate(e.target.value)}
                             />
                         </div>
                     </div>
@@ -99,11 +121,11 @@ const AnalyticsPage: React.FC = () => {
                             <input
                                 type="date"
                                 value={dateRange.to_date}
-                                onChange={(e) => setDateRange(prev => ({ ...prev, to_date: e.target.value }))}
+                                onChange={(e) => setToDate(e.target.value)}
                             />
                         </div>
                     </div>
-                    <button className={styles.refreshBtn} onClick={loadAnalytics} disabled={loading}>
+                    <button className={styles.refreshBtn} onClick={() => loadAnalytics(true)} disabled={loading}>
                         <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
                     </button>
                 </div>

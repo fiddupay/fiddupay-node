@@ -7,7 +7,8 @@ import styles from '@/styles/pages/WithdrawalsPage.module.css'
 import CustomSelect from '@/components/ui/CustomSelect'
 import SEO from '@/components/ui/SEO'
 import { extractErrorMessage } from '@/utils/errorUtils'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 
 import { useBalanceStore } from '@/stores/balanceStore'
@@ -22,8 +23,27 @@ const WithdrawalsPage: React.FC = () => {
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
     const [refreshingId, setRefreshingId] = useState<string | null>(null)
-    const [dateFrom, setDateFrom] = useState('')
-    const [dateTo, setDateTo] = useState('')
+
+    // --- URL-driven date filter state ---
+    const [searchParams, setSearchParams] = useSearchParams()
+    const dateFrom = searchParams.get('from') ?? ''
+    const dateTo = searchParams.get('to') ?? ''
+
+    const setDateFrom = useCallback((val: string) => {
+        setSearchParams((prev) => {
+            const next = new URLSearchParams(prev)
+            if (val) next.set('from', val); else next.delete('from')
+            return next
+        }, { replace: true })
+    }, [setSearchParams])
+
+    const setDateTo = useCallback((val: string) => {
+        setSearchParams((prev) => {
+            const next = new URLSearchParams(prev)
+            if (val) next.set('to', val); else next.delete('to')
+            return next
+        }, { replace: true })
+    }, [setSearchParams])
 
     // Form state
     const [selectedCrypto, setSelectedCrypto] = useState('')

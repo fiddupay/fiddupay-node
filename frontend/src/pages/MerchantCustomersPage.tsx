@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { customerAPI } from "@/services/apiService";
 import { useDataStore } from "@/stores/dataStore";
+import { useBalanceStore } from "@/stores/balanceStore";
 import styles from "@/styles/pages/MerchantCustomersPage.module.css";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuthStore } from "@/stores/authStore";
@@ -20,8 +22,40 @@ import { Customer, Wallet, CustomerTx } from "@/components/customers/types";
 const MerchantCustomersPage: React.FC = () => {
   const { user } = useAuthStore();
   const { showToast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // --- URL-driven state (page, search, status) ---
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const searchTerm = searchParams.get("search") ?? "";
+  const statusFilter = searchParams.get("status") ?? "all";
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+
+  const setSearchTerm = useCallback((val: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (val) next.set("search", val); else next.delete("search");
+      next.set("page", "1"); // reset to page 1 on new search
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const setStatusFilter = useCallback((val: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (val && val !== "all") next.set("status", val); else next.delete("status");
+      next.set("page", "1"); // reset to page 1 on filter change
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const setPage = useCallback((p: number) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("page", String(p));
+      return next;
+    }, { replace: false }); // push so Back button navigates pages
+  }, [setSearchParams]);
+
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
 
   // Drawer States
@@ -74,6 +108,7 @@ const MerchantCustomersPage: React.FC = () => {
   const {
     currencies: currenciesCache,
     customers: customersCache,
+    customersTotal,
     customerDetails: detailsMap,
     fetchCurrencies,
     fetchCustomers: fetchCustomersFromStore,
@@ -91,23 +126,25 @@ const MerchantCustomersPage: React.FC = () => {
     ? (detailsMap[selectedCustomer.external_id]?.loading || false) 
     : false;
 
+  // Fetch when page, search, status, or sandbox mode changes
   useEffect(() => {
-    fetchCustomersFromStore();
+    fetchCustomersFromStore(page, 10, searchTerm || undefined, statusFilter !== 'all' ? statusFilter : undefined);
     fetchCurrencies();
     fetchSummaryFromStore().then((data: any) => {
       if (data) setCustomerSummary(data);
     });
-  }, [user?.sandbox_mode]);
+  }, [page, searchTerm, statusFilter, user?.sandbox_mode]);
 
 
   const fetchCustomers = async () => {
     try {
-      await fetchCustomersFromStore(true);
+      await fetchCustomersFromStore(page, 10, searchTerm || undefined, statusFilter !== 'all' ? statusFilter : undefined, true);
     } catch (error: any) {
       showToast(extractErrorMessage(error, "Failed to list customers"), "error");
     }
   };
 
+  // Stats are computed from customerSummary (server-provided) or from the current customers list
   const stats = useMemo(() => {
     if (customerSummary) {
       return {
@@ -129,16 +166,8 @@ const MerchantCustomersPage: React.FC = () => {
     return { total, active, flagged, recent, totalBalanceUsd: 0 };
   }, [customers, customerSummary]);
 
-  const filteredCustomers = useMemo(() => {
-    return customers.filter((c) => {
-      const matchesSearch =
-        c.external_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        `${c.first_name || ""} ${c.last_name || ""}`.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "all" || c.status === statusFilter || (statusFilter === "inactive" && !c.is_active);
-      return matchesSearch && matchesStatus;
-    });
-  }, [customers, searchTerm, statusFilter]);
+  // No client-side filtering — search/status filtering is done server-side via the API.
+  // customers from the store is already the correct page of filtered results.
 
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,10 +189,10 @@ const MerchantCustomersPage: React.FC = () => {
     }
   };
 
-  const fetchCustomerDetails = async (externalId: string) => {
+  const fetchCustomerDetails = async (externalId: string, force: boolean = false) => {
     try {
       // Use global store for caching customer details
-      const data = await useDataStore.getState().fetchCustomerDetails(externalId);
+      const data = await useDataStore.getState().fetchCustomerDetails(externalId, force);
       if (data) {
         setCustomerWallets(data.wallets);
         setCustomerBalances(data.balances);
@@ -244,7 +273,15 @@ const MerchantCustomersPage: React.FC = () => {
       showToast("Sweep operation initiated successfully", "success");
       setSweepAmount("");
       setSweepPin("");
-      fetchCustomerDetails(selectedCustomer.external_id);
+      // Force refresh customer details, customer lists, and merchant balance immediately
+      fetchCustomerDetails(selectedCustomer.external_id, true);
+      fetchCustomersFromStore(page, 10, searchTerm || undefined, statusFilter !== 'all' ? statusFilter : undefined, true);
+      fetchSummaryFromStore(true);
+      useBalanceStore.getState().fetchBalance(true);
+      const dataStore = useDataStore.getState();
+      dataStore.invalidate('analytics');
+      dataStore.invalidate('balanceHistory');
+      dataStore.invalidate('recentActivity');
     } catch (error: any) {
       showToast(extractErrorMessage(error, "Failed to sweep funds"), "error");
     } finally {
@@ -450,13 +487,17 @@ const MerchantCustomersPage: React.FC = () => {
 
       <CustomerDirectoryTable
         loading={loading}
-        filteredCustomers={filteredCustomers}
+        customers={customers}
+        total={customersTotal}
+        pageSize={10}
         searchTerm={searchTerm}
         selectedCustomerIds={selectedCustomerIds}
         setSelectedCustomerIds={setSelectedCustomerIds}
         onCustomerClick={openCustomerDetails}
         onBulkProvision={handleBulkProvision}
         provisioning={provisioning}
+        page={page}
+        onPageChange={setPage}
       />
 
       <CreateCustomerDrawer

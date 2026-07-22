@@ -98,15 +98,15 @@ const BalancePage: React.FC = () => {
         loadData()
     }, [user?.sandbox_mode])
 
-    const loadData = async () => {
+    const loadData = async (force = false) => {
         try {
             setLoading(true)
             
             // Load balance through store
-            await fetchBalance()
+            await fetchBalance(force)
 
-            // Balance history via global data store — SWR handles caching
-            await fetchBalanceHistory({ limit: 30 }).catch(() => {
+            // Balance history via global data store
+            await fetchBalanceHistory({ limit: 30 }, force).catch(() => {
                 console.warn('Balance history unavailable')
             })
         } catch (error) {
@@ -152,7 +152,7 @@ const BalancePage: React.FC = () => {
                 </div>
                 <button
                     className={styles.refreshBtn}
-                    onClick={loadData}
+                    onClick={() => loadData(true)}
                     disabled={loading}
                 >
                     <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>

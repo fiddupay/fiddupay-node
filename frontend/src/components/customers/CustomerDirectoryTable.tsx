@@ -6,37 +6,35 @@ import { TableSkeleton } from '@/components/layout/PageSkeletons';
 
 interface TableProps {
   loading: boolean;
-  filteredCustomers: Customer[];
+  customers: Customer[];          // already paginated by server
+  total: number;                  // server total count (for page controls)
+  pageSize: number;
   searchTerm: string;
   selectedCustomerIds: string[];
   setSelectedCustomerIds: (ids: string[]) => void;
   onCustomerClick: (customer: Customer) => void;
   onBulkProvision: (all: boolean) => void;
   provisioning: boolean;
+  page: number;
+  onPageChange: (page: number) => void;
 }
 
 const CustomerDirectoryTable: React.FC<TableProps> = ({
   loading,
-  filteredCustomers,
+  customers,
+  total,
+  pageSize,
   searchTerm,
   selectedCustomerIds,
   setSelectedCustomerIds,
   onCustomerClick,
   onBulkProvision,
-  provisioning
+  provisioning,
+  page,
+  onPageChange,
 }) => {
-  const [page, setPage] = React.useState(1);
-
-  React.useEffect(() => {
-    setPage(1);
-  }, [searchTerm, filteredCustomers.length]);
-
-  const totalPages = Math.ceil(filteredCustomers.length / 10) || 1;
-
-  const paginatedCustomers = React.useMemo(() => {
-    const start = (page - 1) * 10;
-    return filteredCustomers.slice(start, start + 10);
-  }, [filteredCustomers, page]);
+  // totalPages comes from server-reported total — no local slicing needed
+  const totalPages = Math.ceil(total / pageSize) || 1;
 
   return (
     <div className={styles.contentCard}>
@@ -44,10 +42,10 @@ const CustomerDirectoryTable: React.FC<TableProps> = ({
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <h2>Registered Entities</h2>
           <span style={{ fontSize: "0.875rem", color: "#64748b", fontWeight: 600 }}>
-            {filteredCustomers.length} results found
+            {total} results found
           </span>
         </div>
-        {(selectedCustomerIds.length > 0 || filteredCustomers.length > 0) && (
+        {(selectedCustomerIds.length > 0 || customers.length > 0) && (
           <div style={{ display: "flex", gap: "0.5rem" }}>
             {selectedCustomerIds.length > 0 && (
               <button
@@ -75,7 +73,7 @@ const CustomerDirectoryTable: React.FC<TableProps> = ({
 
       {loading ? (
         <TableSkeleton rows={8} columns={6} />
-      ) : filteredCustomers.length === 0 ? (
+      ) : customers.length === 0 ? (
         <div className={styles.noData}>
           <i className="fas fa-users-slash"></i>
           <p>{searchTerm ? "No results match your search" : "No customers registered yet"}</p>
@@ -89,18 +87,18 @@ const CustomerDirectoryTable: React.FC<TableProps> = ({
                   <th style={{ width: "40px" }}>
                     <input
                       type="checkbox"
-                      checked={paginatedCustomers.length > 0 && paginatedCustomers.every((c) => selectedCustomerIds.includes(c.external_id))}
+                      checked={customers.length > 0 && customers.every((c) => selectedCustomerIds.includes(c.external_id))}
                       onChange={(e) => {
                         if (e.target.checked) {
                           const newSelected = [...selectedCustomerIds];
-                          paginatedCustomers.forEach((c) => {
+                          customers.forEach((c) => {
                             if (!newSelected.includes(c.external_id)) {
                               newSelected.push(c.external_id);
                             }
                           });
                           setSelectedCustomerIds(newSelected);
                         } else {
-                          const currentIds = paginatedCustomers.map(c => c.external_id);
+                          const currentIds = customers.map(c => c.external_id);
                           setSelectedCustomerIds(selectedCustomerIds.filter(id => !currentIds.includes(id)));
                         }
                       }}
@@ -115,7 +113,7 @@ const CustomerDirectoryTable: React.FC<TableProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {paginatedCustomers.map((c) => {
+                {customers.map((c) => {
                   const st = getStatusStyle(c.status || "active");
                   return (
                     <tr key={c.id} className={styles.customerRow} onClick={() => onCustomerClick(c)}>
@@ -188,13 +186,13 @@ const CustomerDirectoryTable: React.FC<TableProps> = ({
 
           <div className={styles.pagination}>
             <div className={styles.paginationInfo}>
-              Showing <b>{Math.min(filteredCustomers.length, (page - 1) * 10 + 1)}</b> to <b>{Math.min(filteredCustomers.length, page * 10)}</b> of <b>{filteredCustomers.length}</b> customers
+              Showing <b>{total === 0 ? 0 : (page - 1) * pageSize + 1}</b> to <b>{Math.min(total, page * pageSize)}</b> of <b>{total}</b> customers
             </div>
             {totalPages > 1 && (
               <div className={styles.paginationGroup}>
                 <button
                   className={styles.paginationBtn}
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  onClick={() => onPageChange(Math.max(1, page - 1))}
                   disabled={page === 1}
                 >
                   <i className="fas fa-chevron-left"></i> Prev
@@ -210,7 +208,7 @@ const CustomerDirectoryTable: React.FC<TableProps> = ({
                     <button
                       key={p}
                       className={`${styles.paginationBtn} ${page === p ? styles.activePageBtn : ""}`}
-                      onClick={() => setPage(p)}
+                      onClick={() => onPageChange(p)}
                     >
                       {p}
                     </button>
@@ -219,7 +217,7 @@ const CustomerDirectoryTable: React.FC<TableProps> = ({
 
                 <button
                   className={styles.paginationBtn}
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => onPageChange(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
                 >
                   Next <i className="fas fa-chevron-right"></i>

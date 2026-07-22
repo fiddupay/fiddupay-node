@@ -719,6 +719,8 @@ pub async fn sweep_customer_wallet(
 pub struct ListCustomersQuery {
     pub limit: Option<i64>,
     pub offset: Option<i64>,
+    pub search: Option<String>,
+    pub status: Option<String>,
 }
 
 pub async fn list_customers(
@@ -734,11 +736,13 @@ pub async fn list_customers(
         state.balance_service.clone(),
         Arc::new(state.config.clone()),
     );
-    let limit = params.limit.unwrap_or(1000000);
+    let limit = params.limit.unwrap_or(10).min(100); // cap at 100 per page
     let offset = params.offset.unwrap_or(0);
+    let search = params.search;
+    let status = params.status;
 
     match service
-        .list_customers(context.merchant_id, limit, offset)
+        .list_customers(context.merchant_id, limit, offset, search, status)
         .await
     {
         Ok((customers, total)) => (

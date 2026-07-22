@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import ScrollToTop from '@/components/ScrollToTop'
 import { useAuthStore } from '@/stores/authStore'
+import { backgroundPoller } from '@/stores/backgroundPoller'
 import { ToastProvider } from '@/contexts/ToastContext'
 import { LoadingProvider } from '@/contexts/LoadingContext'
 import Layout from '@/components/Layout'
@@ -60,11 +61,24 @@ const PublicPayPage = lazyWithRetry(() => import('@/pages/PublicPayPage'))
 
 
 const App: React.FC = () => {
-  const { loadUser, loading } = useAuthStore()
+  const { loadUser, loading, isAuthenticated } = useAuthStore()
 
   useEffect(() => {
     loadUser()
   }, [loadUser])
+
+  // Start/stop background polling based on auth state
+  useEffect(() => {
+    if (isAuthenticated) {
+      backgroundPoller.start()
+    } else {
+      backgroundPoller.stop()
+    }
+    return () => {
+      // Cleanup on unmount (e.g., during hot-reload in dev)
+      backgroundPoller.stop()
+    }
+  }, [isAuthenticated])
 
   if (loading) {
     return <DashboardSkeleton />

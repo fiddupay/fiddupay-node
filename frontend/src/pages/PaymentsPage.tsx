@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useToast } from '@/contexts/ToastContext'
 import { merchantAPI, paymentAPI } from '@/services/apiService'
 import { useDataStore } from '@/stores/dataStore'
@@ -28,10 +29,6 @@ const PaymentsPage: React.FC = () => {
     total_pages: 1,
     total_count: 0
   })
-  const [filters, setFilters] = useState<PaymentFilters>({
-    page: 1,
-    page_size: 20
-  })
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [paymentType, setPaymentType] = useState<'standard' | 'address-only'>('standard')
   const [newPayment, setNewPayment] = useState({
@@ -52,9 +49,44 @@ const PaymentsPage: React.FC = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [selectedPaymentForDetails, setSelectedPaymentForDetails] = useState<Payment | null>(null)
 
-  const [dateRangeOption, setDateRangeOption] = useState<'all' | 'this_month' | 'this_week' | 'today' | 'custom'>('all')
-  const [customStartDate, setCustomStartDate] = useState('')
-  const [customEndDate, setCustomEndDate] = useState('')
+  // --- URL-driven filter state ---
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlPage = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
+  const urlDateRange = (searchParams.get('date') ?? 'all') as 'all' | 'this_month' | 'this_week' | 'today' | 'custom'
+  const urlCustomStart = searchParams.get('from') ?? ''
+  const urlCustomEnd = searchParams.get('to') ?? ''
+  const urlStatus = searchParams.get('status') ?? ''
+  const urlCrypto = searchParams.get('crypto') ?? ''
+
+  const setUrlParam = useCallback((updates: Record<string, string | null>) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      Object.entries(updates).forEach(([k, v]) => {
+        if (v !== null && v !== '') next.set(k, v); else next.delete(k)
+      })
+      return next
+    }, { replace: true })
+  }, [setSearchParams])
+
+  const setPage = useCallback((p: number) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('page', String(p))
+      return next
+    }, { replace: false })
+  }, [setSearchParams])
+
+  // Derive filters object from URL params
+  const filters: PaymentFilters = {
+    page: urlPage,
+    page_size: 20,
+    ...(urlStatus ? { status: urlStatus } : {}),
+    ...(urlCrypto ? { crypto_type: urlCrypto } : {}),
+  }
+
+  const dateRangeOption = urlDateRange
+  const customStartDate = urlCustomStart
+  const customEndDate = urlCustomEnd
 
   const { showToast } = useToast()
   const { user } = useAuthStore()
@@ -90,16 +122,7 @@ const PaymentsPage: React.FC = () => {
     return { startDate, endDate }
   }
 
-  // Update query filters when date range filter parameters change
-  useEffect(() => {
-    const { startDate, endDate } = getDateRange(dateRangeOption, customStartDate, customEndDate)
-    setFilters(prev => ({
-      ...prev,
-      start_date: startDate,
-      end_date: endDate,
-      page: 1
-    }))
-  }, [dateRangeOption, customStartDate, customEndDate])
+  // Date range effect is now a no-op — dates are computed inline inside loadPayments from URL params
 
   // 1. Initial Load: Currencies (Only on mount or sandbox switch)
   useEffect(() => {
@@ -168,13 +191,18 @@ const PaymentsPage: React.FC = () => {
   const loadPayments = async (silent = false) => {
     if (!silent) setLoading(true)
     try {
-      const response = await paymentAPI.getHistory(filters)
+      // Compute date range from URL params inline
+      const { startDate, endDate } = getDateRange(dateRangeOption, customStartDate, customEndDate)
+      const response = await paymentAPI.getHistory({
+        ...filters,
+        start_date: startDate,
+        end_date: endDate,
+      })
       setPayments(response.data.data || [])
       if (response.data.pagination) {
         setPagination(response.data.pagination)
       }
     } catch (error) {
-      // Only show toast on user-initiated loads, not background polls
       if (!silent) showToast('Failed to load payments', 'error')
     } finally {
       if (!silent) setLoading(false)
@@ -278,7 +306,7 @@ const PaymentsPage: React.FC = () => {
       }
 
       setShowCreateModal(false)
-      setFilters(prev => ({ ...prev, page: 1 }))
+      setPage(1)
       setNewPayment({
         amount_usd: '',
         amount: '',
@@ -441,7 +469,7 @@ const PaymentsPage: React.FC = () => {
           <div className={styles.filters} style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
             <select
               value={filters.status || ''}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value || undefined, page: 1 }))}
+              onChange={(e) => setUrlParam({ status: e.target.value || null, page: null })}
               className={styles.filterSelect}
             >
               <option value="">All Statuses</option>
@@ -455,7 +483,7 @@ const PaymentsPage: React.FC = () => {
 
             <select
               value={dateRangeOption}
-              onChange={(e) => setDateRangeOption(e.target.value as any)}
+              onChange={(e) => setUrlParam({ date: e.target.value, page: null, from: null, to: null })}
               className={styles.filterSelect}
             >
               <option value="all">All Time</option>
@@ -470,7 +498,7 @@ const PaymentsPage: React.FC = () => {
                 <input
                   type="date"
                   value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  onChange={(e) => setUrlParam({ from: e.target.value || null, page: null })}
                   className={styles.filterSelect}
                   style={{ colorScheme: 'dark' }}
                 />
@@ -478,7 +506,7 @@ const PaymentsPage: React.FC = () => {
                 <input
                   type="date"
                   value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  onChange={(e) => setUrlParam({ to: e.target.value || null, page: null })}
                   className={styles.filterSelect}
                   style={{ colorScheme: 'dark' }}
                 />
@@ -602,7 +630,7 @@ const PaymentsPage: React.FC = () => {
               <button
                 className={styles.pageBtn}
                 disabled={pagination.page <= 1 || loading}
-                onClick={() => setFilters(prev => ({ ...prev, page: pagination.page - 1 }))}
+                onClick={() => setPage(pagination.page - 1)}
               >
                 <i className="fas fa-chevron-left"></i> Previous
               </button>
@@ -610,7 +638,6 @@ const PaymentsPage: React.FC = () => {
               <div className={styles.pageNumbers}>
                 {[...Array(pagination.total_pages)].map((_, i) => {
                   const p = i + 1;
-                  // Only show current page, 1, last page, and neighbors
                   if (
                     p === 1 ||
                     p === pagination.total_pages ||
@@ -620,7 +647,7 @@ const PaymentsPage: React.FC = () => {
                       <button
                         key={p}
                         className={`${styles.pageNumber} ${pagination.page === p ? styles.activePage : ''}`}
-                        onClick={() => setFilters(prev => ({ ...prev, page: p }))}
+                        onClick={() => setPage(p)}
                         disabled={loading}
                       >
                         {p}
@@ -639,7 +666,7 @@ const PaymentsPage: React.FC = () => {
               <button
                 className={styles.pageBtn}
                 disabled={pagination.page >= pagination.total_pages || loading}
-                onClick={() => setFilters(prev => ({ ...prev, page: pagination.page + 1 }))}
+                onClick={() => setPage(pagination.page + 1)}
               >
                 Next <i className="fas fa-chevron-right"></i>
               </button>

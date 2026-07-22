@@ -169,6 +169,16 @@ impl MerchantCustomerService {
         req: CreateCustomerRequest,
         sandbox_mode: bool,
     ) -> Result<(MerchantCustomer, Vec<MerchantCustomerWallet>), ServiceError> {
+        // Check if this is a genuinely new customer BEFORE the upsert
+        let already_exists: bool = sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS(SELECT 1 FROM merchant_customers WHERE merchant_id = $1 AND external_id = $2)"
+        )
+        .bind(merchant_id)
+        .bind(&req.external_id)
+        .fetch_one(&self.db_pool)
+        .await
+        .unwrap_or(false);
+
         let customer = sqlx::query_as::<_, MerchantCustomer>(
             &format!(r#"
             INSERT INTO merchant_customers (merchant_id, external_id, email, first_name, last_name, metadata, is_active)
@@ -193,7 +203,7 @@ impl MerchantCustomerService {
         .await?;
 
         // Auto-provision wallets using merchant's supported networks
-        let wallets = self
+        let wallets = match self
             .provision_wallets(
                 merchant_id,
                 &customer.external_id,
@@ -202,30 +212,38 @@ impl MerchantCustomerService {
                 true,
             )
             .await
-            .unwrap_or_else(|e| {
+        {
+            Ok(w) => w,
+            Err(e) => {
                 tracing::warn!(
                     "Auto-provision wallets failed for customer {}: {}",
                     customer.external_id,
                     e
                 );
-                vec![]
-            });
+                Vec::new()
+            }
+        };
 
-        let _ = self
-            .notification_service
-            .create_notification(
-                merchant_id,
-                "🎉 New Customer Registered",
-                &format!(
-                    "Customer {} ({}) has been successfully registered.",
-                    req.external_id,
-                    mask_email(req.email.as_deref().unwrap_or("No email"))
-                ),
-                "success",
-                "customer.registered",
-                sandbox_mode,
-            )
-            .await;
+        // Only send "New Customer Registered" notification on genuine first-time registration.
+        // If the customer already existed (ON CONFLICT DO UPDATE path), skip the notification
+        // to avoid spamming merchants when customers pay again using the same external_id.
+        if !already_exists {
+            let _ = self
+                .notification_service
+                .create_notification(
+                    merchant_id,
+                    "🎉 New Customer Registered",
+                    &format!(
+                        "Customer {} ({}) has been successfully registered.",
+                        req.external_id,
+                        mask_email(req.email.as_deref().unwrap_or("No email"))
+                    ),
+                    "success",
+                    "customer.registered",
+                    sandbox_mode,
+                )
+                .await;
+        }
 
         Ok((customer, wallets))
     }
@@ -986,25 +1004,50 @@ impl MerchantCustomerService {
         merchant_id: i64,
         limit: i64,
         offset: i64,
+        search: Option<String>,
+        status: Option<String>,
     ) -> Result<(Vec<MerchantCustomer>, i64), ServiceError> {
+        // Build optional WHERE clauses for search and status
+        let search_pattern = search.as_deref().map(|s| format!("%{}%", s.to_lowercase()));
+        let status_filter = status.as_deref().map(|s| s.to_lowercase());
+
         let total_count: i64 = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM merchant_customers WHERE merchant_id = $1",
+            r#"
+            SELECT COUNT(*) FROM merchant_customers
+            WHERE merchant_id = $1
+              AND ($2::text IS NULL OR (
+                    LOWER(external_id) LIKE $2
+                    OR LOWER(COALESCE(email, '')) LIKE $2
+                    OR LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE $2
+                  ))
+              AND ($3::text IS NULL OR LOWER(status) = $3)
+            "#,
         )
         .bind(merchant_id)
+        .bind(&search_pattern)
+        .bind(&status_filter)
         .fetch_one(&self.db_pool)
         .await?;
 
         let customers = sqlx::query_as::<_, MerchantCustomer>(&format!(
             r#"
-            SELECT {} 
-            FROM merchant_customers 
+            SELECT {}
+            FROM merchant_customers
             WHERE merchant_id = $1
-            ORDER BY created_at DESC 
-            LIMIT $2 OFFSET $3
+              AND ($2::text IS NULL OR (
+                    LOWER(external_id) LIKE $2
+                    OR LOWER(COALESCE(email, '')) LIKE $2
+                    OR LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE $2
+                  ))
+              AND ($3::text IS NULL OR LOWER(status) = $3)
+            ORDER BY created_at DESC
+            LIMIT $4 OFFSET $5
             "#,
             CUSTOMER_COLS
         ))
         .bind(merchant_id)
+        .bind(&search_pattern)
+        .bind(&status_filter)
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.db_pool)

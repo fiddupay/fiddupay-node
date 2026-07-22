@@ -49,6 +49,8 @@ interface DataState {
   withdrawals: CacheEntry<any[]>
   wallets: CacheEntry<any[]>
   customers: CacheEntry<any[]>
+  customersTotal: number          // server-reported total (for pagination controls)
+  customersPage: number           // last fetched page
   customerSummary: CacheEntry<any>
   customerDetails: Record<string, CacheEntry<{ wallets: any[], balances: any, transactions: any[] }>>
   securityAlerts: CacheEntry<any[]>
@@ -63,7 +65,7 @@ interface DataActions {
   fetchAnalytics: (params?: any, force?: boolean) => Promise<any>
   fetchWithdrawals: (force?: boolean) => Promise<any[]>
   fetchWallets: (force?: boolean) => Promise<any[]>
-  fetchCustomers: (force?: boolean) => Promise<any[]>
+  fetchCustomers: (page?: number, limit?: number, search?: string, status?: string, force?: boolean) => Promise<any[]>
   fetchCustomerSummary: (force?: boolean) => Promise<any>
   fetchCustomerDetails: (externalId: string, force?: boolean) => Promise<any>
   fetchSecurityAlerts: (force?: boolean) => Promise<any[]>
@@ -80,13 +82,18 @@ interface DataActions {
   invalidateAll: () => void
 }
 
+// In-flight promises to deduplicate requests across components
+const inFlightPromises: Record<string, Promise<any> | undefined> = {}
+
 /**
  * Core SWR fetch helper.
  * - If data is cached and fresh: return immediately.
+ * - If request is already in-flight: return existing Promise.
  * - If data is cached but stale: return cached, refetch in background.
- * - If no data: fetch and await.
+ * - If no data or force refresh: fetch and await.
  */
 async function swrFetch<T>(
+  key: string,
   get: () => CacheEntry<T>,
   set: (patch: Partial<CacheEntry<T>>) => void,
   apiFn: () => Promise<T>,
@@ -97,44 +104,55 @@ async function swrFetch<T>(
   const now = Date.now()
   const isFresh = current.lastFetched > 0 && (now - current.lastFetched < ttl)
 
-  // If fresh and not forced, return cached
+  // 1. If fresh and not forced, return cached data immediately
   if (isFresh && !force && current.data !== null) {
     return current.data
   }
 
-  // If stale but has data, return cached and refresh in background
+  // 2. If an identical request is ALREADY in flight, return that same Promise!
+  const existingPromise = inFlightPromises[key]
+  if (existingPromise !== undefined) {
+    return existingPromise
+  }
+
+  // 3. If stale but has data and not forced, return cached data and fetch background update
   if (current.data !== null && !force) {
-    // Don't double-fetch
-    if (!current.loading) {
-      set({ loading: true })
-      apiFn()
-        .then((data) => set({ data, lastFetched: Date.now(), loading: false, error: null }))
-        .catch((err) => {
-          console.warn('Background refresh failed:', err)
-          set({ loading: false, error: err?.message || 'Refresh failed' })
-        })
-    }
+    set({ loading: true })
+    inFlightPromises[key] = apiFn()
+      .then((data) => {
+        set({ data, lastFetched: Date.now(), loading: false, error: null })
+        return data
+      })
+      .catch((err) => {
+        console.warn(`Background refresh failed for ${key}:`, err)
+        set({ loading: false, error: err?.message || 'Refresh failed' })
+        return current.data as T
+      })
+      .finally(() => {
+        delete inFlightPromises[key]
+      })
+
     return current.data
   }
 
-  // No cached data or forced — await the result
-  if (current.loading) {
-    // Already fetching, wait a bit and return whatever we have
-    return current.data as T
-  }
-
+  // 4. No cached data or forced refresh — fetch and await
   set({ loading: true, error: null })
-  try {
-    const data = await apiFn()
-    set({ data, lastFetched: Date.now(), loading: false, error: null })
-    return data
-  } catch (err: any) {
-    const errorMsg = err?.message || 'Fetch failed'
-    set({ loading: false, error: errorMsg })
-    // Return cached data even on error (if available)
-    if (current.data !== null) return current.data
-    throw err
-  }
+  inFlightPromises[key] = (async () => {
+    try {
+      const data = await apiFn()
+      set({ data, lastFetched: Date.now(), loading: false, error: null })
+      return data
+    } catch (err: any) {
+      const errorMsg = err?.message || 'Fetch failed'
+      set({ loading: false, error: errorMsg })
+      if (current.data !== null) return current.data
+      throw err
+    } finally {
+      delete inFlightPromises[key]
+    }
+  })()
+
+  return inFlightPromises[key]
 }
 
 export const useDataStore = create<DataState & DataActions>((set, get) => ({
@@ -144,17 +162,20 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
   withdrawals: freshEntry<any[]>([]),
   wallets: freshEntry<any[]>([]),
   customers: freshEntry<any[]>([]),
+  customersTotal: 0,
+  customersPage: 1,
   customerSummary: freshEntry<any>(),
   customerDetails: {},
   securityAlerts: freshEntry<any[]>([]),
   securityEvents: freshEntry<any[]>([]),
-  balanceHistory: freshEntry<any>(),
+  balanceHistory: freshEntry<any[]>([]),
   recentActivity: freshEntry<any[]>([]),
 
   // --- Fetch Actions ---
 
   fetchCurrencies: async (force = false) => {
     return swrFetch(
+      'currencies',
       () => get().currencies,
       (patch) => set((s) => ({ currencies: { ...s.currencies, ...patch } })),
       async () => {
@@ -177,6 +198,7 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
     }
 
     return swrFetch(
+      `analytics_${dateKey}`,
       () => get().analytics,
       (patch) => set((s) => ({ analytics: { ...s.analytics, ...patch, dateKey } })),
       async () => {
@@ -190,6 +212,7 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
 
   fetchWithdrawals: async (force = false) => {
     return swrFetch(
+      'withdrawals',
       () => get().withdrawals,
       (patch) => set((s) => ({ withdrawals: { ...s.withdrawals, ...patch } })),
       async () => {
@@ -203,6 +226,7 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
 
   fetchWallets: async (force = false) => {
     return swrFetch(
+      'wallets',
       () => get().wallets,
       (patch) => set((s) => ({ wallets: { ...s.wallets, ...patch } })),
       async () => {
@@ -214,13 +238,24 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
     )
   },
 
-  fetchCustomers: async (force = false) => {
+  fetchCustomers: async (page = 1, limit = 10, search?: string, status?: string, force = false) => {
+    const cacheKey = `customers_p${page}_l${limit}_s${search ?? ''}_st${status ?? ''}`
     return swrFetch(
+      cacheKey,
       () => get().customers,
-      (patch) => set((s) => ({ customers: { ...s.customers, ...patch } })),
+      (patch) => {
+        set((s) => ({ customers: { ...s.customers, ...patch } }))
+      },
       async () => {
-        const res = await customerAPI.list({ limit: 1000000 })
-        return res.data?.customers || []
+        const params: any = { limit, offset: (page - 1) * limit }
+        if (search) params.search = search
+        if (status && status !== 'all') params.status = status
+        const res = await customerAPI.list(params)
+        const list = res.data?.customers || []
+        const total = res.data?.total ?? 0
+        // Store total and current page alongside the data
+        set({ customersTotal: total, customersPage: page })
+        return list
       },
       TTL.CUSTOMERS,
       force
@@ -229,6 +264,7 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
 
   fetchCustomerSummary: async (force = false) => {
     return swrFetch(
+      'customerSummary',
       () => get().customerSummary,
       (patch) => set((s) => ({ customerSummary: { ...s.customerSummary, ...patch } })),
       async () => {
@@ -242,6 +278,7 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
 
   fetchCustomerDetails: async (externalId: string, force = false) => {
     return swrFetch(
+      `customerDetails_${externalId}`,
       () => get().customerDetails[externalId] || freshEntry(),
       (patch) => set((s) => ({
         customerDetails: {
@@ -268,6 +305,7 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
 
   fetchSecurityAlerts: async (force = false) => {
     return swrFetch(
+      'securityAlerts',
       () => get().securityAlerts,
       (patch) => set((s) => ({ securityAlerts: { ...s.securityAlerts, ...patch } })),
       async () => {
@@ -281,6 +319,7 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
 
   fetchSecurityEvents: async (force = false) => {
     return swrFetch(
+      'securityEvents',
       () => get().securityEvents,
       (patch) => set((s) => ({ securityEvents: { ...s.securityEvents, ...patch } })),
       async () => {
@@ -293,7 +332,9 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
   },
 
   fetchBalanceHistory: async (params?: any, force = false) => {
+    const key = params ? `balanceHistory_${JSON.stringify(params)}` : 'balanceHistory'
     return swrFetch(
+      key,
       () => get().balanceHistory,
       (patch) => set((s) => ({ balanceHistory: { ...s.balanceHistory, ...patch } })),
       async () => {
@@ -307,6 +348,7 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
 
   fetchRecentActivity: async (force = false) => {
     return swrFetch(
+      'recentActivity',
       () => get().recentActivity,
       (patch) => set((s) => ({ recentActivity: { ...s.recentActivity, ...patch } })),
       async () => {
@@ -332,9 +374,15 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
   })),
 
   // --- Invalidation ---
-  invalidate: (key) => set((s) => ({
-    [key]: { ...s[key], lastFetched: 0 }
-  })),
+  invalidate: (key) => set((s) => {
+    const entry = s[key];
+    if (entry && typeof entry === 'object' && 'lastFetched' in entry) {
+      return {
+        [key]: { ...(entry as any), lastFetched: 0 }
+      } as any;
+    }
+    return {};
+  }),
 
   invalidateCustomerDetail: (externalId) => set((s) => {
     const next = { ...s.customerDetails }

@@ -159,17 +159,16 @@ const DashboardPage: React.FC = () => {
     }
   }, [user])
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (force = false) => {
     try {
-      // Use the global data store — SWR pattern handles caching automatically
       await Promise.all([
-        loadUser(true), // Fetch latest user details (e.g., daily volume remaining) silently
+        loadUser(true),
         fetchAnalytics({
           from_date: new Date(dateRange.from_date).toISOString(),
           to_date: new Date(dateRange.to_date + 'T23:59:59Z').toISOString()
-        }),
-        fetchSecurityAlerts(),
-        fetchBalance()
+        }, force),
+        fetchSecurityAlerts(force),
+        fetchBalance(force)
       ])
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
@@ -235,7 +234,7 @@ const DashboardPage: React.FC = () => {
               />
             </div>
           </div>
-          <button className={styles.refreshBtn} onClick={loadDashboardData} disabled={loading} title="Refresh Dashboard">
+          <button className={styles.refreshBtn} onClick={() => loadDashboardData(true)} disabled={loading} title="Refresh Dashboard">
             <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
           </button>
           <button className={styles.refreshBtn} onClick={() => setShowQuickPayModal(true)} title="Quick Interop Pay" style={{ color: 'var(--secondary)', background: 'rgba(245, 158, 11, 0.1)' }}>
