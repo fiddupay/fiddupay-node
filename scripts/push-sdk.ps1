@@ -7,7 +7,7 @@ param (
     [string]$Tag = ""
 )
 
-$RemoteUrl = "https://github.com/fiddupay/fiddupay-node.git"
+$RemoteUrl = "git@github.com:fiddupay/fiddupay-node.git"
 
 Write-Host "Pushing 'fiddupay-node-sdk' folder to $RemoteUrl branch '$Branch'..." -ForegroundColor Cyan
 
@@ -27,7 +27,7 @@ if ($LASTEXITCODE -eq 0) {
     if ($Tag) {
         Write-Host "Pushing tag '$Tag' to $RemoteUrl..." -ForegroundColor Cyan
         $CurrentCommit = git rev-parse HEAD
-        git push "$RemoteUrl" "${CurrentCommit}:refs/tags/${Tag}"
+        git push "$RemoteUrl" "${CurrentCommit}:refs/tags/${Tag}" --force
         if ($LASTEXITCODE -eq 0) {
             Write-Host "SDK Tag Push Successful!" -ForegroundColor Green
         } else {

@@ -16,7 +16,7 @@ fi
 
 BRANCH=${1:-main}
 TAG=$2
-REMOTE_URL="https://github.com/fiddupay/fiddupay-node.git"
+REMOTE_URL="git@github.com:fiddupay/fiddupay-node.git"
 
 echo "Pushing 'fiddupay-node-sdk' folder to $REMOTE_URL branch '$BRANCH'..."
 
@@ -39,7 +39,7 @@ if git subtree push --prefix fiddupay-node-sdk "$REMOTE_URL" "$BRANCH"; then
     # We need to push the tag to the remote. 
     # Since we can't easily 'subtree push' a tag, we'll push the current commit as a tag to the remote.
     CURRENT_COMMIT=$(git rev-parse HEAD)
-    if git push "$REMOTE_URL" "$CURRENT_COMMIT:refs/tags/$TAG"; then
+    if git push "$REMOTE_URL" "$CURRENT_COMMIT:refs/tags/$TAG" --force; then
       echo "✅ SDK Tag Push Successful!"
     else
       echo "❌ SDK Tag Push Failed."

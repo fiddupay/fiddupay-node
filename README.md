@@ -144,22 +144,25 @@ To sync specific code changes strictly to their respective GitHub repositories u
 To sync code changes to the standalone SDK repository, you can use the Unix sync script or run the Git subtree command directly (e.g. in PowerShell/CMD):
 
 ##### PowerShell Script:
+
 ```powershell
 # Push SDK code only
 .\scripts\push-sdk.ps1 -Branch main
 
 # Push SDK code + tag in one command
-.\scripts\push-sdk.ps1 -Branch main -Tag v2.6.19
+.\scripts\push-sdk.ps1 -Branch main -Tag v2.6.20
 ```
 
 ##### Bash Script:
+
 ```bash
 bash ./scripts/push-sdk.sh main
 ```
 
 ##### Direct Git Subtree Command (PowerShell / Windows CMD):
+
 ```bash
-git subtree push --prefix fiddupay-node-sdk https://github.com/fiddupay/fiddupay-node.git main
+git subtree push --prefix fiddupay-node-sdk git@github.com:fiddupay/fiddupay-node.git main
 ```
 
 Precheck before pushing to github:
@@ -173,27 +176,27 @@ cargo test
 To sync code AND push a version tag manually:
 
 ```bash
-# 1. Tag and push in the main repository
-git tag -a v2.6.19 -m "Release v2.6.19"
-git push origin v2.6.19
+# 1. Tag (or force update existing tag) and push in the main repository
+git tag -fa v2.6.20 -m "Release v2.6.20"
+git push origin v2.6.20 --force
 
 # 2. Push subtree changes to the standalone repository
-git subtree push --prefix fiddupay-node-sdk https://github.com/fiddupay/fiddupay-node.git main
+git subtree push --prefix fiddupay-node-sdk git@github.com:fiddupay/fiddupay-node.git main
 
 # 3. Create and push the release tag to the standalone SDK repository
 # (Bash/macOS/Linux):
 CURRENT_COMMIT=$(git rev-parse HEAD)
-git push https://github.com/fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.19"
+git push git@github.com:fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.20" --force
 
 # (PowerShell/Windows) — run as TWO separate commands:
 $CURRENT_COMMIT = git rev-parse HEAD
-git push https://github.com/fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.19"
+git push git@github.com:fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.20" --force
 ```
 
 To delete a version on github:
 
 ```bash
-git push https://github.com/fiddupay/fiddupay-node.git --delete v2.6.14
+git push git@github.com:fiddupay/fiddupay-node.git --delete v2.6.20
 ```
 
 ```bash
