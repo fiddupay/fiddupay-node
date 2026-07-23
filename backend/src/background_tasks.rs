@@ -1327,6 +1327,51 @@ impl BackgroundTasks {
 
                 match monitor.get_transactions_to_address(address, 5, None).await {
                     Ok(transactions) => {
+                        if transactions.is_empty() {
+                            continue;
+                        }
+
+                        // Pre-fetch wallet owner ONCE per address (Eliminated N+1 DB Queries per TX!)
+                        let merchant_owner: Option<i64> = if is_full_cycle {
+                            let m_res = sqlx::query(
+                                "SELECT merchant_id FROM merchant_wallets WHERE address = $1 AND crypto_type = 'BTC' AND sandbox_mode = $2 AND is_active = true"
+                            )
+                            .bind(address)
+                            .bind(sandbox_mode)
+                            .fetch_optional(&self.db_pool)
+                            .await;
+
+                            if let Ok(Some(m_row)) = m_res {
+                                use sqlx::Row;
+                                Some(m_row.get("merchant_id"))
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        };
+
+                        let customer_owner: Option<(i64, i64)> = if is_full_cycle
+                            && merchant_owner.is_none()
+                        {
+                            let c_res = sqlx::query(
+                                "SELECT customer_id, merchant_id FROM merchant_customer_wallets WHERE address = $1 AND crypto_type = 'BTC' AND sandbox_mode = $2"
+                            )
+                            .bind(address)
+                            .bind(sandbox_mode)
+                            .fetch_optional(&self.db_pool)
+                            .await;
+
+                            if let Ok(Some(c_row)) = c_res {
+                                use sqlx::Row;
+                                Some((c_row.get("customer_id"), c_row.get("merchant_id")))
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        };
+
                         for tx in transactions {
                             // Check for pending invoice payments
                             let pending_res = sqlx::query(
@@ -1357,19 +1402,7 @@ impl BackgroundTasks {
                                             }
                                         }
                                     } else if is_full_cycle {
-                                        // No pending payments — this is a static wallet
-                                        // Check if it's a merchant static deposit
-                                        let merchant_wallet = sqlx::query(
-                                            "SELECT merchant_id FROM merchant_wallets WHERE address = $1 AND crypto_type = 'BTC' AND sandbox_mode = $2 AND is_active = true"
-                                        )
-                                        .bind(address)
-                                        .bind(sandbox_mode)
-                                        .fetch_optional(&self.db_pool)
-                                        .await;
-
-                                        if let Ok(Some(row)) = merchant_wallet {
-                                            use sqlx::Row;
-                                            let m_id: i64 = row.get("merchant_id");
+                                        if let Some(m_id) = merchant_owner {
                                             if let Err(e) = verifier
                                                 .verify_merchant_deposit(
                                                     m_id,
@@ -1385,44 +1418,33 @@ impl BackgroundTasks {
                                                     e
                                                 );
                                             }
-                                        } else {
-                                            // Check if it's a customer static deposit
-                                            let customer_wallet = sqlx::query(
-                                                "SELECT customer_id, merchant_id FROM merchant_customer_wallets WHERE address = $1 AND crypto_type = 'BTC' AND sandbox_mode = $2"
-                                            )
-                                            .bind(address)
-                                            .bind(sandbox_mode)
-                                            .fetch_optional(&self.db_pool)
-                                            .await;
-
-                                            if let Ok(Some(row)) = customer_wallet {
-                                                use sqlx::Row;
-                                                let c_id: i64 = row.get("customer_id");
-                                                let m_id: i64 = row.get("merchant_id");
-                                                if let Err(e) = verifier
-                                                    .verify_customer_deposit(
-                                                        c_id,
-                                                        &tx.hash,
-                                                        m_id,
-                                                        "BTC",
-                                                        sandbox_mode,
-                                                    )
-                                                    .await
-                                                {
-                                                    tracing::trace!(
-                                                        "BTC static customer deposit {}: {}",
-                                                        tx.hash,
-                                                        e
-                                                    );
-                                                }
+                                        } else if let Some((c_id, m_id)) = customer_owner {
+                                            if let Err(e) = verifier
+                                                .verify_customer_deposit(
+                                                    c_id,
+                                                    &tx.hash,
+                                                    m_id,
+                                                    "BTC",
+                                                    sandbox_mode,
+                                                )
+                                                .await
+                                            {
+                                                tracing::trace!(
+                                                    "BTC static customer deposit {}: {}",
+                                                    tx.hash,
+                                                    e
+                                                );
                                             }
                                         }
                                     }
                                 }
-                                Err(e) => error!(
-                                    "Failed to query pending BTC payments for {}: {}",
-                                    address, e
-                                ),
+                                Err(e) => {
+                                    tracing::error!(
+                                        "Failed to query pending BTC payments for {}: {}",
+                                        address,
+                                        e
+                                    );
+                                }
                             }
                         }
                     }
@@ -1595,83 +1617,103 @@ impl BackgroundTasks {
         }
     }
 
-    /// Periodic worker checking for merchants with auto_settlement_enabled = true
-    /// and reconciling any un-credited customer sub-account balances into merchant available balance.
+    /// High-performance hourly background worker for auto-settlement reconciliation.
+    /// Uses a single indexed JOIN query to fetch only pending customer sub-account balances
+    /// for active merchants with auto_settlement_enabled = true.
     pub async fn run_auto_settlement_reconciler(&self) {
-        let mut check_interval = interval(Duration::from_secs(60));
+        let mut check_interval = interval(Duration::from_secs(3600)); // Every 1 hour
         tracing::info!(
-            "🔄 Auto-Settlement Reconciliation background worker initialized (60s tick)."
+            "🔄 Auto-Settlement Reconciliation background worker initialized (1h tick)."
         );
 
         loop {
             check_interval.tick().await;
 
-            // Fetch all merchants with auto_settlement_enabled = true
-            let enabled_merchants = match sqlx::query_as::<_, (i64, rust_decimal::Decimal, bool)>(
-                "SELECT id, fee_percentage, sandbox_mode FROM merchants WHERE COALESCE(auto_settlement_enabled, true) = true AND is_active = true"
+            // Single JOIN query fetching ONLY pending customer balances (> 0) for active merchants with auto-settlement enabled
+            let pending_settlements = match sqlx::query_as::<
+                _,
+                (
+                    i64,
+                    i64,
+                    String,
+                    rust_decimal::Decimal,
+                    bool,
+                    rust_decimal::Decimal,
+                ),
+            >(
+                r#"
+                SELECT 
+                    mcb.customer_id, 
+                    mcb.merchant_id, 
+                    mcb.crypto_type, 
+                    mcb.total_balance, 
+                    mcb.sandbox_mode, 
+                    m.fee_percentage
+                FROM merchant_customer_balances mcb
+                JOIN merchants m ON m.id = mcb.merchant_id
+                WHERE COALESCE(m.auto_settlement_enabled, true) = true
+                  AND m.is_active = true
+                  AND mcb.total_balance > 0
+                LIMIT 500
+                "#,
             )
             .fetch_all(&self.db_pool)
-            .await {
-                Ok(m) => m,
+            .await
+            {
+                Ok(items) => items,
                 Err(e) => {
-                    tracing::error!("Failed to fetch merchants for auto-settlement reconciliation: {}", e);
+                    tracing::error!("Failed to fetch pending auto-settlement items: {}", e);
                     continue;
                 }
             };
 
-            for (merchant_id, fee_percentage, sandbox_mode) in enabled_merchants {
-                // Find any customer balances in merchant_customer_balances with total_balance > 0
-                let customer_balances = match sqlx::query_as::<_, (i64, String, rust_decimal::Decimal)>(
-                    "SELECT customer_id, crypto_type, total_balance FROM merchant_customer_balances WHERE merchant_id = $1 AND sandbox_mode = $2 AND total_balance > 0"
-                )
-                .bind(merchant_id)
-                .bind(sandbox_mode)
-                .fetch_all(&self.db_pool)
-                .await {
-                    Ok(b) => b,
+            if pending_settlements.is_empty() {
+                continue;
+            }
+
+            tracing::info!(
+                "🔄 Auto-Settlement reconciler processing {} pending customer sub-account balances...",
+                pending_settlements.len()
+            );
+
+            for (customer_id, merchant_id, crypto_type, total_bal, sandbox_mode, fee_percentage) in
+                pending_settlements
+            {
+                let fee_amount =
+                    (total_bal * (fee_percentage / rust_decimal::Decimal::from(100))).round_dp(8);
+                let net_amount = total_bal - fee_amount;
+
+                let mut tx = match self.db_pool.begin().await {
+                    Ok(t) => t,
                     Err(_) => continue,
                 };
 
-                for (customer_id, crypto_type, total_bal) in customer_balances {
-                    // Reconcile if customer has balance
-                    let fee_amount = (total_bal
-                        * (fee_percentage / rust_decimal::Decimal::from(100)))
-                    .round_dp(8);
-                    let net_amount = total_bal - fee_amount;
-
-                    let mut tx = match self.db_pool.begin().await {
-                        Ok(t) => t,
-                        Err(_) => continue,
-                    };
-
-                    // Credit merchant available balance
-                    let credit_res = sqlx::query(
-                        r#"
-                        INSERT INTO merchant_balances (
-                            merchant_id, crypto_type, available_balance, total_balance, last_updated, sandbox_mode
-                        )
-                        VALUES ($1, $2, $3, $3, NOW(), $4)
-                        ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
-                        DO UPDATE SET
-                            available_balance = merchant_balances.available_balance + EXCLUDED.available_balance,
-                            total_balance = merchant_balances.total_balance + EXCLUDED.total_balance,
-                            last_updated = NOW()
-                        "#
+                let credit_res = sqlx::query(
+                    r#"
+                    INSERT INTO merchant_balances (
+                        merchant_id, crypto_type, available_balance, total_balance, last_updated, sandbox_mode
                     )
-                    .bind(merchant_id)
-                    .bind(&crypto_type)
-                    .bind(net_amount)
-                    .bind(sandbox_mode)
-                    .execute(&mut *tx)
-                    .await;
+                    VALUES ($1, $2, $3, $3, NOW(), $4)
+                    ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
+                    DO UPDATE SET
+                        available_balance = merchant_balances.available_balance + EXCLUDED.available_balance,
+                        total_balance = merchant_balances.total_balance + EXCLUDED.total_balance,
+                        last_updated = NOW()
+                    "#,
+                )
+                .bind(merchant_id)
+                .bind(&crypto_type)
+                .bind(net_amount)
+                .bind(sandbox_mode)
+                .execute(&mut *tx)
+                .await;
 
-                    if credit_res.is_ok() {
-                        let _ = tx.commit().await;
-                        tracing::info!(
-                            "✅ Auto-Settled customer balance | Merchant: {} | Customer: {} | Crypto: {} | Net: {}",
-                            merchant_id, customer_id, crypto_type, net_amount
-                        );
-                    }
+                if credit_res.is_ok() {
+                    let _ = tx.commit().await;
+                    tracing::info!(
+                        "✅ Hourly Auto-Settled customer balance | Merchant: {} | Customer: {} | Crypto: {} | Net: {}",
+                        merchant_id, customer_id, crypto_type, net_amount
+                    );
                 }
             }
         }

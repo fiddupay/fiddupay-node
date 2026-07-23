@@ -46,53 +46,67 @@ impl BalanceMonitoringService {
     pub async fn check_low_balances(&self) -> Result<Vec<BalanceAlert>, ServiceError> {
         info!("Running USD-based low balance check for all merchants...");
 
-        // 1. Fetch merchants with active thresholds
-        let merchants = sqlx::query(
+        // Single JOIN query to fetch merchants and their balances in 1 query (Eliminated N+1 DB Queries!)
+        let rows = sqlx::query(
             r#"
-            SELECT id, business_name, low_balance_threshold_usd, last_low_balance_total_alert_at 
-            FROM merchants 
-            WHERE low_balance_threshold_usd > 0 
-              AND low_balance_alerts_enabled = true 
-              AND is_active = true
+            SELECT 
+                m.id as merchant_id, 
+                m.business_name, 
+                m.low_balance_threshold_usd, 
+                m.last_low_balance_total_alert_at,
+                mb.crypto_type,
+                mb.available_balance as balance
+            FROM merchants m
+            LEFT JOIN merchant_balances mb ON mb.merchant_id = m.id
+            WHERE m.low_balance_threshold_usd > 0 
+              AND m.low_balance_alerts_enabled = true 
+              AND m.is_active = true
             "#,
         )
         .fetch_all(&self.db_pool)
         .await?;
 
+        use std::collections::HashMap;
+
+        struct MerchantBalanceGroup {
+            low_balance_threshold_usd: Option<Decimal>,
+            last_alert: Option<DateTime<Utc>>,
+            balances: Vec<(String, Decimal)>,
+        }
+
+        let mut grouped: HashMap<i64, MerchantBalanceGroup> = HashMap::new();
+
+        for row in rows {
+            let m_id: i64 = row.get("merchant_id");
+            let threshold: Option<Decimal> = row.get("low_balance_threshold_usd");
+            let last_alert: Option<DateTime<Utc>> = row.get("last_low_balance_total_alert_at");
+            let crypto_opt: Option<String> = row.get("crypto_type");
+            let balance_opt: Option<Decimal> = row.get("balance");
+
+            let entry = grouped.entry(m_id).or_insert_with(|| MerchantBalanceGroup {
+                low_balance_threshold_usd: threshold,
+                last_alert,
+                balances: Vec::new(),
+            });
+
+            if let (Some(c), Some(b)) = (crypto_opt, balance_opt) {
+                entry.balances.push((c, b));
+            }
+        }
+
         let mut alerts = Vec::new();
 
-        for merchant in merchants {
-            let merchant_id: i64 = merchant.get("id");
-            let low_balance_threshold_usd: Option<Decimal> =
-                merchant.get("low_balance_threshold_usd");
-            let last_alert: Option<DateTime<Utc>> = merchant.get("last_low_balance_total_alert_at");
-
+        for (merchant_id, group) in grouped {
             // Cooldown logic (12 hours)
-            if let Some(last) = last_alert {
+            if let Some(last) = group.last_alert {
                 if Utc::now().signed_duration_since(last).num_hours() < 12 {
                     continue;
                 }
             }
 
-            // 2. Fetch balances for this merchant
-            let balances = sqlx::query(
-                r#"
-                SELECT crypto_type, available_balance as balance 
-                FROM merchant_balances 
-                WHERE merchant_id = $1
-                "#,
-            )
-            .bind(merchant_id)
-            .fetch_all(&self.db_pool)
-            .await?;
-
             let mut total_usd_value = Decimal::ZERO;
 
-            // 3. Calculate total USD value
-            for bal_row in balances {
-                let crypto_type: String = bal_row.get("crypto_type");
-                let balance: Decimal = bal_row.get("balance");
-
+            for (crypto_type, balance) in group.balances {
                 if let Ok(crypto) = CryptoType::from_str(&crypto_type) {
                     if let Ok(price) = self.price_service.get_price(crypto).await {
                         let crypto_price =
@@ -102,14 +116,14 @@ impl BalanceMonitoringService {
                 }
             }
 
-            // 4. Compare against threshold
-            if total_usd_value < low_balance_threshold_usd.unwrap_or_default() {
+            let threshold = group.low_balance_threshold_usd.unwrap_or_default();
+            if total_usd_value < threshold {
                 let alert = BalanceAlert {
                     merchant_id,
                     alert_type: "LOW_BALANCE_USD".to_string(),
                     crypto_type: "USD_TOTAL".to_string(),
                     current_balance: total_usd_value,
-                    threshold: low_balance_threshold_usd.unwrap_or_default(),
+                    threshold,
                     created_at: Utc::now(),
                 };
 
