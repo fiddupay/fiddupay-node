@@ -1093,20 +1093,23 @@ impl PaymentVerifier {
             return Ok(false);
         }
 
-        // Fetch merchant's dynamic fee percentage
-        let fee_percentage =
-            sqlx::query_scalar::<_, Decimal>("SELECT fee_percentage FROM merchants WHERE id = $1")
-                .bind(merchant_id)
-                .fetch_one(&self.db_pool)
-                .await?;
+        // Fetch merchant's dynamic fee percentage & auto settlement preference
+        let (fee_percentage, auto_settlement_enabled) =
+            sqlx::query_as::<_, (Decimal, Option<bool>)>(
+                "SELECT fee_percentage, auto_settlement_enabled FROM merchants WHERE id = $1",
+            )
+            .bind(merchant_id)
+            .fetch_one(&self.db_pool)
+            .await?;
 
+        let is_auto_settle = auto_settlement_enabled.unwrap_or(true);
         let fee_amount = (actual_amount * (fee_percentage / Decimal::from(100))).round_dp(8);
         let net_amount = actual_amount - fee_amount;
 
-        // 4. Credit ledger atomically (Paystack-like instant merchant settlement)
+        // 4. Credit ledger atomically (Paystack-like instant merchant settlement if enabled)
         let mut tx = self.db_pool.begin().await?;
 
-        // 4a. Credit customer sub-account locked_balance (funds received, pending on-chain auto-sweep)
+        // 4a. Credit customer sub-account locked_balance (funds received)
         sqlx::query(
             r#"
             INSERT INTO merchant_customer_balances (
@@ -1124,31 +1127,33 @@ impl PaymentVerifier {
         .bind(customer_id)
         .bind(merchant_id)
         .bind(&final_crypto_str)
-        .bind(net_amount)
+        .bind(if is_auto_settle { net_amount } else { actual_amount })
         .bind(sandbox_mode)
         .execute(&mut *tx)
         .await?;
 
-        // 4b. Instantly credit merchant available balance off-chain
-        sqlx::query(
-            r#"
-            INSERT INTO merchant_balances (
-                merchant_id, crypto_type, available_balance, total_balance, last_updated, sandbox_mode
+        // 4b. If auto_settlement is enabled, instantly credit merchant available balance off-chain
+        if is_auto_settle {
+            sqlx::query(
+                r#"
+                INSERT INTO merchant_balances (
+                    merchant_id, crypto_type, available_balance, total_balance, last_updated, sandbox_mode
+                )
+                VALUES ($1, $2, $3, $3, NOW(), $4)
+                ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
+                DO UPDATE SET
+                    available_balance = merchant_balances.available_balance + EXCLUDED.available_balance,
+                    total_balance = merchant_balances.total_balance + EXCLUDED.total_balance,
+                    last_updated = NOW()
+                "#
             )
-            VALUES ($1, $2, $3, $3, NOW(), $4)
-            ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
-            DO UPDATE SET
-                available_balance = merchant_balances.available_balance + EXCLUDED.available_balance,
-                total_balance = merchant_balances.total_balance + EXCLUDED.total_balance,
-                last_updated = NOW()
-            "#
-        )
-        .bind(merchant_id)
-        .bind(&final_crypto_str)
-        .bind(net_amount)
-        .bind(sandbox_mode)
-        .execute(&mut *tx)
-        .await?;
+            .bind(merchant_id)
+            .bind(&final_crypto_str)
+            .bind(net_amount)
+            .bind(sandbox_mode)
+            .execute(&mut *tx)
+            .await?;
+        }
 
         // Calculate USD amount for ledger
         let crypto_price = self

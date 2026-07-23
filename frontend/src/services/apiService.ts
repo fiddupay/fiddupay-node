@@ -77,6 +77,7 @@ export const merchantAPI = {
     rotate_webhook_secret?: boolean;
     low_balance_alerts_enabled?: boolean;
     low_balance_threshold_usd?: string;
+    auto_settlement_enabled?: boolean;
     transaction_pin?: string;
   }) => api.patch('/api/v1/merchants/settings', data),
   setTransactionPin: (pin: string) => api.post('/api/v1/merchants/security/transaction-pin', { pin }),

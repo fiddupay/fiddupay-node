@@ -343,6 +343,7 @@ export interface UnifiedSettingsRequest {
   rotate_webhook_secret?: boolean;
   low_balance_threshold_usd?: string;
   low_balance_alerts_enabled?: boolean;
+  auto_settlement_enabled?: boolean;
   webhook_signing_secret?: string;
 }
 

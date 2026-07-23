@@ -111,11 +111,12 @@ export const API_DATA: DocSection[] = [
                     { name: 'ip_whitelist', type: 'string[]', required: false, description: 'Array of allowed IP addresses' },
                     { name: 'sandbox_mode', type: 'boolean', required: false, description: 'Toggle sandbox environment' },
                     { name: 'low_balance_threshold_usd', type: 'string', required: false, description: 'USD threshold for balance alerts (e.g. "50.00")' },
-                    { name: 'low_balance_alerts_enabled', type: 'boolean', required: false, description: 'Toggle real-time low balance notifications' }
+                    { name: 'low_balance_alerts_enabled', type: 'boolean', required: false, description: 'Toggle real-time low balance notifications' },
+                    { name: 'auto_settlement_enabled', type: 'boolean', required: false, description: 'Toggle automatic off-chain settlement (default: true)' }
                 ],
                 request: {
-                    curl: 'curl -X PATCH https://api.fiddupay.com/api/v1/merchants/settings \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "webhook_url": "https://example.com/webhook",\n    "low_balance_alerts_enabled": true,\n    "low_balance_threshold_usd": "100.00"\n  }\'',
-                    node: 'await fiddupay.merchants.updateSettings({\n  webhook_url: "https://example.com/webhook",\n  low_balance_alerts_enabled: true,\n  low_balance_threshold_usd: "100.00"\n});'
+                    curl: 'curl -X PATCH https://api.fiddupay.com/api/v1/merchants/settings \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "webhook_url": "https://example.com/webhook",\n    "auto_settlement_enabled": true,\n    "low_balance_alerts_enabled": true\n  }\'',
+                    node: 'await fiddupay.merchants.updateSettings({\n  webhook_url: "https://example.com/webhook",\n  auto_settlement_enabled: true,\n  low_balance_alerts_enabled: true\n});'
                 },
                 response: JSON.stringify({
                     status: "success",

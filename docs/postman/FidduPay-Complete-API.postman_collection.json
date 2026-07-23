@@ -2366,7 +2366,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"webhook_url\": \"https://example.com/webhook\",\n  \"settlement_mode\": \"forwarding\",\n  \"customer_pays_fee\": true,\n  \"fee_percentage\": 1.5,\n  \"sandbox_mode\": true\n}"
+              "raw": "{\n  \"webhook_url\": \"https://example.com/webhook\",\n  \"settlement_mode\": \"managed\",\n  \"auto_settlement_enabled\": true,\n  \"customer_pays_fee\": true,\n  \"fee_percentage\": 1.5,\n  \"sandbox_mode\": true\n}"
             }
           }
         },

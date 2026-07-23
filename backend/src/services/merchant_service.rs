@@ -1005,6 +1005,7 @@ impl MerchantService {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn update_settings(
         &self,
         merchant_id: i64,
@@ -1013,6 +1014,7 @@ impl MerchantService {
         sandbox_mode: Option<bool>,
         redirect_url: Option<String>,
         low_balance_alerts_enabled: Option<bool>,
+        auto_settlement_enabled: Option<bool>,
     ) -> Result<(), ServiceError> {
         if let Some(ref mode) = settlement_mode {
             if self.config.managed_mode_only && mode != "managed" {
@@ -1035,8 +1037,9 @@ impl MerchantService {
                 sandbox_mode = COALESCE($3, sandbox_mode),
                 redirect_url = COALESCE($4, redirect_url),
                 low_balance_alerts_enabled = COALESCE($5, low_balance_alerts_enabled),
-                updated_at = $6
-            WHERE id = $7
+                auto_settlement_enabled = COALESCE($6, auto_settlement_enabled),
+                updated_at = $7
+            WHERE id = $8
             "#,
         )
         .bind(&settlement_mode)
@@ -1044,6 +1047,7 @@ impl MerchantService {
         .bind(sandbox_mode)
         .bind(&redirect_url)
         .bind(low_balance_alerts_enabled)
+        .bind(auto_settlement_enabled)
         .bind(Utc::now())
         .bind(merchant_id)
         .execute(&self.db_pool)

@@ -473,6 +473,7 @@ pub struct UnifiedSettingsRequest {
     pub rotate_webhook_secret: Option<bool>,
     pub low_balance_threshold_usd: Option<Decimal>,
     pub low_balance_alerts_enabled: Option<bool>,
+    pub auto_settlement_enabled: Option<bool>,
 }
 
 fn validate_optional_webhook_url(url: &str) -> Result<(), validator::ValidationError> {
@@ -490,6 +491,7 @@ pub async fn update_merchant_settings(
         || req.sandbox_mode.is_some()
         || req.redirect_url.is_some()
         || req.low_balance_alerts_enabled.is_some()
+        || req.auto_settlement_enabled.is_some()
     {
         // 0. Requirement: Must be Tier 1 to switch to LIVE mode
         if req.sandbox_mode == Some(false) {
@@ -506,6 +508,7 @@ pub async fn update_merchant_settings(
                 req.sandbox_mode,
                 req.redirect_url.clone(),
                 req.low_balance_alerts_enabled,
+                req.auto_settlement_enabled,
             )
             .await
         {
@@ -633,7 +636,7 @@ pub async fn get_merchant_settings(
 
     // 1. Get core merchant settings
     let merchant = match sqlx::query(
-        "SELECT settlement_mode, customer_pays_fee, sandbox_mode, redirect_url, low_balance_alerts_enabled FROM merchants WHERE id = $1"
+        "SELECT settlement_mode, customer_pays_fee, sandbox_mode, redirect_url, low_balance_alerts_enabled, COALESCE(auto_settlement_enabled, true) as auto_settlement_enabled FROM merchants WHERE id = $1"
     )
     .bind(merchant_id)
     .fetch_one(&state.db_pool)
@@ -664,6 +667,7 @@ pub async fn get_merchant_settings(
     let m_customer_pays_fee: bool = merchant.get("customer_pays_fee");
     let m_sandbox_mode: bool = merchant.get("sandbox_mode");
     let m_redirect_url: Option<String> = merchant.get("redirect_url");
+    let m_auto_settlement_enabled: bool = merchant.get("auto_settlement_enabled");
 
     (
         StatusCode::OK,
@@ -684,6 +688,7 @@ pub async fn get_merchant_settings(
             "sandbox_mode": m_sandbox_mode,
             "redirect_url": m_redirect_url,
             "low_balance_alerts_enabled": merchant.get::<bool, _>("low_balance_alerts_enabled"),
+            "auto_settlement_enabled": m_auto_settlement_enabled,
             "ip_whitelist": ip_whitelist
         })),
     )

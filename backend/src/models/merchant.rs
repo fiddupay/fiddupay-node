@@ -6,6 +6,10 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
+fn default_auto_settlement_enabled() -> bool {
+    true
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, sqlx::Type)]
 #[sqlx(type_name = "user_role", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum UserRole {
@@ -66,6 +70,8 @@ pub struct Merchant {
     pub is_active: bool,
     pub sandbox_mode: bool,
     pub settlement_mode: String,
+    #[serde(default = "default_auto_settlement_enabled")]
+    pub auto_settlement_enabled: bool,
     pub kyc_verified: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

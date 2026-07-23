@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.22] - 2026-07-23
+
+### Added
+- **Merchant Auto-Settlement Preference**: Added `auto_settlement_enabled?: boolean` to `UnifiedSettingsRequest` in `merchants.updateSettings()` and `merchants.getSettings()`, allowing merchants to control off-chain instant deposit auto-settlement.
+
 ## [2.6.21] - 2026-07-22
 
 ### Added

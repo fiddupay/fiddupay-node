@@ -265,6 +265,11 @@ impl BackgroundTasks {
             balance_tasks.run_balance_monitor().await;
         });
 
+        let auto_settle_tasks = self.clone();
+        tokio::spawn(async move {
+            auto_settle_tasks.run_auto_settlement_reconciler().await;
+        });
+
         let idempotency_pool = self.db_pool.clone();
         tokio::spawn(async move {
             let mut cleanup_interval = interval(Duration::from_secs(3600)); // Every hour
@@ -1585,6 +1590,88 @@ impl BackgroundTasks {
                         "FATAL: Maintenance cron failed to clean metrics table: {}",
                         e
                     );
+                }
+            }
+        }
+    }
+
+    /// Periodic worker checking for merchants with auto_settlement_enabled = true
+    /// and reconciling any un-credited customer sub-account balances into merchant available balance.
+    pub async fn run_auto_settlement_reconciler(&self) {
+        let mut check_interval = interval(Duration::from_secs(60));
+        tracing::info!(
+            "🔄 Auto-Settlement Reconciliation background worker initialized (60s tick)."
+        );
+
+        loop {
+            check_interval.tick().await;
+
+            // Fetch all merchants with auto_settlement_enabled = true
+            let enabled_merchants = match sqlx::query_as::<_, (i64, rust_decimal::Decimal, bool)>(
+                "SELECT id, fee_percentage, sandbox_mode FROM merchants WHERE COALESCE(auto_settlement_enabled, true) = true AND is_active = true"
+            )
+            .fetch_all(&self.db_pool)
+            .await {
+                Ok(m) => m,
+                Err(e) => {
+                    tracing::error!("Failed to fetch merchants for auto-settlement reconciliation: {}", e);
+                    continue;
+                }
+            };
+
+            for (merchant_id, fee_percentage, sandbox_mode) in enabled_merchants {
+                // Find any customer balances in merchant_customer_balances with total_balance > 0
+                let customer_balances = match sqlx::query_as::<_, (i64, String, rust_decimal::Decimal)>(
+                    "SELECT customer_id, crypto_type, total_balance FROM merchant_customer_balances WHERE merchant_id = $1 AND sandbox_mode = $2 AND total_balance > 0"
+                )
+                .bind(merchant_id)
+                .bind(sandbox_mode)
+                .fetch_all(&self.db_pool)
+                .await {
+                    Ok(b) => b,
+                    Err(_) => continue,
+                };
+
+                for (customer_id, crypto_type, total_bal) in customer_balances {
+                    // Reconcile if customer has balance
+                    let fee_amount = (total_bal
+                        * (fee_percentage / rust_decimal::Decimal::from(100)))
+                    .round_dp(8);
+                    let net_amount = total_bal - fee_amount;
+
+                    let mut tx = match self.db_pool.begin().await {
+                        Ok(t) => t,
+                        Err(_) => continue,
+                    };
+
+                    // Credit merchant available balance
+                    let credit_res = sqlx::query(
+                        r#"
+                        INSERT INTO merchant_balances (
+                            merchant_id, crypto_type, available_balance, total_balance, last_updated, sandbox_mode
+                        )
+                        VALUES ($1, $2, $3, $3, NOW(), $4)
+                        ON CONFLICT (merchant_id, crypto_type, sandbox_mode)
+                        DO UPDATE SET
+                            available_balance = merchant_balances.available_balance + EXCLUDED.available_balance,
+                            total_balance = merchant_balances.total_balance + EXCLUDED.total_balance,
+                            last_updated = NOW()
+                        "#
+                    )
+                    .bind(merchant_id)
+                    .bind(&crypto_type)
+                    .bind(net_amount)
+                    .bind(sandbox_mode)
+                    .execute(&mut *tx)
+                    .await;
+
+                    if credit_res.is_ok() {
+                        let _ = tx.commit().await;
+                        tracing::info!(
+                            "✅ Auto-Settled customer balance | Merchant: {} | Customer: {} | Crypto: {} | Net: {}",
+                            merchant_id, customer_id, crypto_type, net_amount
+                        );
+                    }
                 }
             }
         }

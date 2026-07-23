@@ -18,6 +18,7 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
     const [loading, setLoading] = useState(false);
     
     const [selectedMode, setSelectedMode] = useState<'forwarding' | 'managed'>(user?.settlement_mode || 'managed');
+    const [autoSettlementEnabled, setAutoSettlementEnabled] = useState(user?.auto_settlement_enabled ?? true);
     const [addressOnlyCustomerPaysFee, setAddressOnlyCustomerPaysFee] = useState(false);
     const [walletsLocked, setWalletsLocked] = useState(user?.wallets_locked || false);
     const [customerWalletsLocked, setCustomerWalletsLocked] = useState(user?.customer_wallets_locked || false);
@@ -37,6 +38,7 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
     useEffect(() => {
         if (user) {
             setSelectedMode(user.settlement_mode || 'managed');
+            setAutoSettlementEnabled(user.auto_settlement_enabled ?? true);
             setWalletsLocked(user.wallets_locked || false);
             setCustomerWalletsLocked(user.customer_wallets_locked || false);
             fetchExtraSettings();
@@ -49,6 +51,20 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
             setAddressOnlyCustomerPaysFee(aoFeeRes.data.customer_pays_fee);
         } catch (err) {
             console.warn('Address-only settings not available:', err);
+        }
+    };
+
+    const handleToggleAutoSettlement = async (enabled: boolean) => {
+        try {
+            setLoading(true);
+            await merchantAPI.updateSettings({ auto_settlement_enabled: enabled });
+            setAutoSettlementEnabled(enabled);
+            await loadUser(true);
+            showToast(`Auto-settlement ${enabled ? 'enabled' : 'disabled'} successfully`, 'success');
+        } catch (error: any) {
+            showToast(error.response?.data?.error || 'Failed to update auto-settlement preference', 'error');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -217,6 +233,49 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
                     </div>
                 </div>
             )}
+
+            {/* Auto-Settlement Control Switch */}
+            <div style={{ marginTop: '24px', padding: '20px', background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '16px', fontWeight: 600 }}>
+                            Automatic Off-Chain Settlement
+                        </h3>
+                        <p style={{ margin: '4px 0 0', fontSize: '14px', color: 'var(--text-muted)', maxWidth: '520px' }}>
+                            Automatically deduct platform fees and credit customer deposits directly into your available balance off-chain as soon as on-chain transactions are confirmed.
+                        </p>
+                    </div>
+                    <label style={{ position: 'relative', display: 'inline-block', width: '50px', height: '26px' }}>
+                        <input
+                            type="checkbox"
+                            checked={autoSettlementEnabled}
+                            onChange={(e) => handleToggleAutoSettlement(e.target.checked)}
+                            disabled={loading}
+                            style={{ opacity: 0, width: 0, height: 0 }}
+                        />
+                        <span style={{
+                            position: 'absolute',
+                            cursor: 'pointer',
+                            top: 0, left: 0, right: 0, bottom: 0,
+                            backgroundColor: autoSettlementEnabled ? 'var(--primary)' : '#4b5563',
+                            transition: '.3s',
+                            borderRadius: '34px'
+                        }}>
+                            <span style={{
+                                position: 'absolute',
+                                content: '""',
+                                height: '18px',
+                                width: '18px',
+                                left: autoSettlementEnabled ? '26px' : '4px',
+                                bottom: '4px',
+                                backgroundColor: 'white',
+                                transition: '.3s',
+                                borderRadius: '50%'
+                            }} />
+                        </span>
+                    </label>
+                </div>
+            </div>
 
             <div className={styles.safeguardBox}>
                 <div className={styles.safeguardInfo}>

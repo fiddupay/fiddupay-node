@@ -158,7 +158,7 @@ To sync code changes to the standalone SDK repository, you can use the Unix sync
 .\scripts\push-sdk.ps1 -Branch main
 
 # Push SDK code + tag in one command
-.\scripts\push-sdk.ps1 -Branch main -Tag v2.6.21
+.\scripts\push-sdk.ps1 -Branch main -Tag v2.6.22
 ```
 
 ##### Bash Script:
@@ -185,8 +185,8 @@ To sync code AND push a version tag manually:
 
 ```bash
 # 1. Tag (or force update existing tag) and push in the main repository
-git tag -fa v2.6.21 -m "Release v2.6.21"
-git push origin v2.6.21 --force
+git tag -fa v2.6.22 -m "Release v2.6.22"
+git push origin v2.6.22 --force
 
 # 2. Push subtree changes to the standalone repository
 git subtree push --prefix fiddupay-node-sdk git@github.com:fiddupay/fiddupay-node.git main
@@ -194,17 +194,17 @@ git subtree push --prefix fiddupay-node-sdk git@github.com:fiddupay/fiddupay-nod
 # 3. Create and push the release tag to the standalone SDK repository
 # (Bash/macOS/Linux):
 CURRENT_COMMIT=$(git rev-parse HEAD)
-git push git@github.com:fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.21" --force
+git push git@github.com:fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.22" --force
 
 # (PowerShell/Windows) — run as TWO separate commands:
 $CURRENT_COMMIT = git rev-parse HEAD
-git push git@github.com:fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.21" --force
+git push git@github.com:fiddupay/fiddupay-node.git "${CURRENT_COMMIT}:refs/tags/v2.6.22" --force
 ```
 
 To delete a version on github:
 
 ```bash
-git push git@github.com:fiddupay/fiddupay-node.git --delete v2.6.21
+git push git@github.com:fiddupay/fiddupay-node.git --delete v2.6.22
 ```
 
 ```bash

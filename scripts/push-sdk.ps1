@@ -1,6 +1,6 @@
 # Script to push SDK changes to the isolated SDK repository
 # Usage: .\scripts\push-sdk.ps1 -Branch main
-# Usage with tag: .\scripts\push-sdk.ps1 -Branch main -Tag v2.6.21
+# Usage with tag: .\scripts\push-sdk.ps1 -Branch main -Tag v2.6.22
 
 param (
     [string]$Branch = "main",
