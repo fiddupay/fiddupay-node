@@ -34,6 +34,7 @@ pub async fn get_merchant_profile(
                kyc_verified, daily_limit_usd, created_at, redirect_url,
                test_api_key_hash, live_api_key_hash, wallets_locked, customer_wallets_locked,
                transaction_pin_hash, pin_setup_at, low_balance_threshold_usd, low_balance_alerts_enabled,
+               COALESCE(auto_settlement_enabled, true) as auto_settlement_enabled,
                kyc_tier, social_handles, username, pay_id,
                fee_percentage, customer_pays_fee, business_license_number, business_certificate_url, nin_bvn_hash
         FROM merchants
@@ -85,6 +86,7 @@ pub async fn get_merchant_profile(
     let m_pin_setup_at: Option<chrono::DateTime<chrono::Utc>> = merchant.get("pin_setup_at");
     let m_low_balance_threshold_usd: Decimal = merchant.get("low_balance_threshold_usd");
     let m_low_balance_alerts_enabled: bool = merchant.get("low_balance_alerts_enabled");
+    let m_auto_settlement_enabled: bool = merchant.get("auto_settlement_enabled");
 
     let display_key = if context.api_key == "DASHBOARD_SESSION" {
         let hash_opt = if m_sandbox_mode {
@@ -131,6 +133,7 @@ pub async fn get_merchant_profile(
         "pin_setup_at": m_pin_setup_at.map(|d| d.to_rfc3339()),
         "low_balance_threshold_usd": m_low_balance_threshold_usd.to_string(),
         "low_balance_alerts_enabled": m_low_balance_alerts_enabled,
+        "auto_settlement_enabled": m_auto_settlement_enabled,
         "kyc_tier": merchant.get::<i32, _>("kyc_tier"),
         "social_handles": merchant.get::<serde_json::Value, _>("social_handles"),
         "username": merchant.get::<Option<String>, _>("username"),
