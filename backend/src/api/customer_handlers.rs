@@ -903,3 +903,53 @@ pub async fn audit_customer_wallets(
         Err(e) => e.into_response(),
     }
 }
+
+pub async fn get_unswept_assets_summary(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(
+        state.db_pool.clone(),
+        state.price_service.clone(),
+        state.volume_tracking_service.clone(),
+        state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
+    );
+
+    match service
+        .get_unswept_assets_summary(context.merchant_id, context.sandbox_mode)
+        .await
+    {
+        Ok(res) => (StatusCode::OK, Json(res)).into_response(),
+        Err(e) => e.into_response(),
+    }
+}
+
+pub async fn execute_batch_asset_sweep(
+    State(state): State<AppState>,
+    Extension(context): Extension<MerchantContext>,
+    Json(req): Json<crate::models::merchant_customer::BatchSweepRequest>,
+) -> impl IntoResponse {
+    let service = MerchantCustomerService::new(
+        state.db_pool.clone(),
+        state.price_service.clone(),
+        state.volume_tracking_service.clone(),
+        state.notification_service.clone(),
+        state.balance_service.clone(),
+        Arc::new(state.config.clone()),
+    );
+
+    match service
+        .batch_sweep_assets(
+            context.merchant_id,
+            req,
+            context.sandbox_mode,
+            &state.config,
+        )
+        .await
+    {
+        Ok(res) => (StatusCode::OK, Json(res)).into_response(),
+        Err(e) => e.into_response(),
+    }
+}

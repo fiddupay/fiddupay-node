@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { customerAPI } from "@/services/apiService";
+import { customerAPI, merchantAPI } from "@/services/apiService";
 import { useDataStore } from "@/stores/dataStore";
 import { useBalanceStore } from "@/stores/balanceStore";
 import styles from "@/styles/pages/MerchantCustomersPage.module.css";
@@ -103,6 +103,32 @@ const MerchantCustomersPage: React.FC = () => {
   const [repairResult, setRepairResult] = useState<any>(null);
   const [showWalletHealth, setShowWalletHealth] = useState(false);
 
+  // Unswept customer on-chain assets state
+  const [unsweptSummary, setUnsweptSummary] = useState<any>(null);
+  const [sweepingAll, setSweepingAll] = useState(false);
+
+  const fetchUnsweptSummary = async () => {
+    try {
+      const res = await merchantAPI.getUnsweptAssetsSummary();
+      setUnsweptSummary(res.data);
+    } catch (err) {
+      console.warn("Failed to fetch unswept assets summary:", err);
+    }
+  };
+
+  const handleGlobalBatchSweep = async () => {
+    try {
+      setSweepingAll(true);
+      const res = await merchantAPI.executeBatchSweep({ sweep_scope: 'ALL' });
+      showToast(res.data.message || 'On-chain batch sweep completed successfully', 'success');
+      fetchUnsweptSummary();
+    } catch (err: any) {
+      showToast(extractErrorMessage(err, 'Failed to batch sweep on-chain funds'), 'error');
+    } finally {
+      setSweepingAll(false);
+    }
+  };
+
   // Use global dataStore for currencies, customers, customer summary
   const {
     currencies: currenciesCache,
@@ -132,6 +158,7 @@ const MerchantCustomersPage: React.FC = () => {
     fetchSummaryFromStore().then((data: any) => {
       if (data) setCustomerSummary(data);
     });
+    fetchUnsweptSummary();
   }, [page, searchTerm, statusFilter, user?.sandbox_mode]);
 
 
@@ -390,6 +417,83 @@ const MerchantCustomersPage: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {/* On-Chain Customer Unswept Assets Banner */}
+      {unsweptSummary && unsweptSummary.assets && unsweptSummary.assets.length > 0 && (
+        <div style={{
+          marginBottom: "1.5rem",
+          padding: "16px 24px",
+          borderRadius: "16px",
+          background: "linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%)",
+          border: "1px solid rgba(99, 102, 241, 0.25)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "16px"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+            <div style={{
+              width: "44px",
+              height: "44px",
+              borderRadius: "14px",
+              background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "white",
+              fontSize: "20px"
+            }}>
+              <i className="fas fa-layer-group"></i>
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--text-main)" }}>
+                  Unswept Customer On-Chain Funds
+                </h3>
+                <span style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  padding: "2px 8px",
+                  borderRadius: "10px",
+                  background: "rgba(56, 189, 248, 0.15)",
+                  color: "#38bdf8",
+                  border: "1px solid rgba(56, 189, 248, 0.3)"
+                }}>
+                  {unsweptSummary.total_wallets_count} Customer Wallets Pending Sweep
+                </span>
+              </div>
+              <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--text-muted)" }}>
+                ${unsweptSummary.total_unswept_usd} USD available across {unsweptSummary.assets.length} crypto network{unsweptSummary.assets.length > 1 ? 's' : ''} in customer deposit addresses.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <button
+              onClick={handleGlobalBatchSweep}
+              disabled={sweepingAll}
+              style={{
+                padding: "10px 18px",
+                borderRadius: "10px",
+                border: "none",
+                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                color: "white",
+                fontWeight: 700,
+                fontSize: "13.5px",
+                cursor: sweepingAll ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                boxShadow: "0 4px 14px rgba(16, 185, 129, 0.35)"
+              }}
+            >
+              <i className={sweepingAll ? "fas fa-spinner fa-spin" : "fas fa-paper-plane"}></i>
+              {sweepingAll ? "Sweeping Funds..." : "Consolidate All Funds"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <CustomerStatsCards stats={stats} />
 

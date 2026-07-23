@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.23] - 2026-07-23
+
+### Added
+- **On-Chain Asset Consolidation & Batch Sweeps**: Added `getUnsweptAssetsSummary()` (`GET /api/v1/merchants/sweeps/summary`) and `batchSweep()` (`POST /api/v1/merchants/sweeps/batch`) to `customers` resource. Enables single-click on-chain asset sweeps categorized by currency and blockchain network across all customer deposit wallets.
+
 ## [2.6.22] - 2026-07-23
 
 ### Added

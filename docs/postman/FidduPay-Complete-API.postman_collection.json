@@ -4182,6 +4182,71 @@
       ]
     },
     {
+      "name": "Merchant On-Chain Sweeps",
+      "item": [
+        {
+          "name": "Get Unswept On-Chain Assets Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/sweeps/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "sweeps",
+                "summary"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Execute Batch On-Chain Sweep",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/sweeps/batch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "sweeps",
+                "batch"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sweep_scope\": \"ALL\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Sandbox Testing",
       "item": [
         {

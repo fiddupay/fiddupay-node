@@ -11,7 +11,10 @@ import {
     MdAutorenew,
     MdArrowForward,
     MdShield,
-    MdForward
+    MdForward,
+    MdAccountBalanceWallet,
+    MdCallMade,
+    MdLayers
 } from 'react-icons/md';
 import { merchantAPI, securityAPI, addressOnlyAPI } from '@/services/apiService';
 import { useToast } from '@/contexts/ToastContext';
@@ -36,6 +39,11 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
     const [walletsLocked, setWalletsLocked] = useState(user?.wallets_locked || false);
     const [customerWalletsLocked, setCustomerWalletsLocked] = useState(user?.customer_wallets_locked || false);
     
+    // Batch Sweep State
+    const [unsweptSummary, setUnsweptSummary] = useState<any>(null);
+    const [loadingSweeps, setLoadingSweeps] = useState(false);
+    const [sweepingAsset, setSweepingAsset] = useState<string | null>(null);
+
     const [passwordConfirm, setPasswordConfirm] = useState<{
         show: boolean;
         target: 'wallet' | 'customer' | null;
@@ -55,6 +63,7 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
             setWalletsLocked(user.wallets_locked || false);
             setCustomerWalletsLocked(user.customer_wallets_locked || false);
             fetchExtraSettings();
+            fetchUnsweptSummary();
         }
     }, [user]);
 
@@ -64,6 +73,34 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
             setAddressOnlyCustomerPaysFee(aoFeeRes.data.customer_pays_fee);
         } catch (err) {
             console.warn('Address-only settings not available:', err);
+        }
+    };
+
+    const fetchUnsweptSummary = async () => {
+        try {
+            setLoadingSweeps(true);
+            const res = await merchantAPI.getUnsweptAssetsSummary();
+            setUnsweptSummary(res.data);
+        } catch (err) {
+            console.warn('Failed to fetch unswept assets summary:', err);
+        } finally {
+            setLoadingSweeps(false);
+        }
+    };
+
+    const handleBatchSweep = async (scope: 'NETWORK_CURRENCY' | 'ALL', cryptoType?: string) => {
+        try {
+            setSweepingAsset(cryptoType || 'ALL');
+            const res = await merchantAPI.executeBatchSweep({
+                sweep_scope: scope,
+                crypto_type: cryptoType
+            });
+            showToast(res.data.message || 'On-chain batch sweep executed successfully', 'success');
+            await fetchUnsweptSummary();
+        } catch (error: any) {
+            showToast(error.response?.data?.error || 'Failed to execute batch on-chain sweep', 'error');
+        } finally {
+            setSweepingAsset(null);
         }
     };
 
@@ -443,6 +480,251 @@ const SettlementTab: React.FC<SettlementTabProps> = ({
                         <span>Instant Available Balance Credit</span>
                     </div>
                 </div>
+            </div>
+
+            {/* On-Chain Asset Consolidation Hub Card */}
+            <div style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--border)',
+                borderRadius: '20px',
+                padding: '24px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{
+                            width: '44px',
+                            height: '44px',
+                            borderRadius: '14px',
+                            background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontSize: '22px',
+                            boxShadow: '0 4px 14px rgba(6, 182, 212, 0.35)'
+                        }}>
+                            <MdLayers />
+                        </div>
+                        <div>
+                            <h3 style={{ margin: '0 0 4px', fontSize: '17px', fontWeight: 700, color: 'var(--text-main)' }}>
+                                On-Chain Asset Consolidation (Sweeps)
+                            </h3>
+                            <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--text-muted)' }}>
+                                Unswept crypto funds sitting across customer deposit wallets aggregated by currency & network.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <button
+                            onClick={fetchUnsweptSummary}
+                            disabled={loadingSweeps}
+                            style={{
+                                padding: '8px 12px',
+                                borderRadius: '10px',
+                                border: '1px solid var(--border)',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontSize: '13px',
+                                fontWeight: 600
+                            }}
+                        >
+                            <MdRefresh className={loadingSweeps ? 'animate-spin' : ''} /> Refresh
+                        </button>
+
+                        <button
+                            onClick={() => handleBatchSweep('ALL')}
+                            disabled={loadingSweeps || sweepingAsset === 'ALL' || !unsweptSummary?.assets?.length}
+                            style={{
+                                padding: '10px 20px',
+                                borderRadius: '10px',
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                                color: 'white',
+                                cursor: (loadingSweeps || sweepingAsset === 'ALL' || !unsweptSummary?.assets?.length) ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '13.5px',
+                                fontWeight: 700,
+                                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+                                opacity: (!unsweptSummary?.assets?.length) ? 0.5 : 1
+                            }}
+                        >
+                            {sweepingAsset === 'ALL' ? (
+                                <>
+                                    <MdRefresh className="animate-spin" /> Sweeping All...
+                                </>
+                            ) : (
+                                <>
+                                    <MdCallMade /> Consolidate All On-Chain Funds
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Hero Stats */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gap: '16px',
+                    padding: '16px 20px',
+                    borderRadius: '16px',
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)'
+                }}>
+                    <div>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                            TOTAL UNSWEPT ON-CHAIN ASSETS
+                        </span>
+                        <span style={{ fontSize: '22px', fontWeight: 800, color: '#38bdf8' }}>
+                            ${unsweptSummary?.total_unswept_usd || '0.00'}
+                        </span>
+                    </div>
+
+                    <div>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                            CUSTOMER WALLETS WITH FUNDS
+                        </span>
+                        <span style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-main)' }}>
+                            {unsweptSummary?.total_wallets_count || 0} Wallets
+                        </span>
+                    </div>
+
+                    <div>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                            ON-CHAIN ASSET TYPES
+                        </span>
+                        <span style={{ fontSize: '22px', fontWeight: 800, color: '#a78bfa' }}>
+                            {unsweptSummary?.assets?.length || 0} Cryptos/Chains
+                        </span>
+                    </div>
+                </div>
+
+                {/* Breakdown List */}
+                {!unsweptSummary?.assets?.length ? (
+                    <div style={{
+                        padding: '32px',
+                        textAlign: 'center',
+                        color: 'var(--text-muted)',
+                        fontSize: '14px',
+                        background: 'rgba(0, 0, 0, 0.15)',
+                        borderRadius: '14px',
+                        border: '1px dashed var(--border)'
+                    }}>
+                        <MdAccountBalanceWallet style={{ fontSize: '32px', color: '#64748b', marginBottom: '8px' }} />
+                        <p style={{ margin: 0, fontWeight: 600 }}>All customer on-chain funds are consolidated.</p>
+                        <span style={{ fontSize: '12.5px' }}>There are no unswept customer deposit balances pending on-chain.</span>
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {unsweptSummary.assets.map((asset: any, idx: number) => (
+                            <div
+                                key={idx}
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '16px 20px',
+                                    borderRadius: '14px',
+                                    background: 'rgba(255, 255, 255, 0.02)',
+                                    border: '1px solid var(--border)',
+                                    flexWrap: 'wrap',
+                                    gap: '12px'
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                    <div style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '12px',
+                                        background: 'rgba(99, 102, 241, 0.12)',
+                                        border: '1px solid rgba(99, 102, 241, 0.25)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#818cf8',
+                                        fontSize: '18px',
+                                        fontWeight: 800
+                                    }}>
+                                        {asset.currency.slice(0, 3)}
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                            <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>
+                                                {asset.currency}
+                                            </h4>
+                                            <span style={{
+                                                fontSize: '11px',
+                                                fontWeight: 700,
+                                                padding: '2px 8px',
+                                                borderRadius: '10px',
+                                                background: 'rgba(56, 189, 248, 0.12)',
+                                                color: '#38bdf8',
+                                                border: '1px solid rgba(56, 189, 248, 0.25)'
+                                            }}>
+                                                {asset.network}
+                                            </span>
+                                        </div>
+                                        <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                                            {asset.wallet_count} customer wallet{asset.wallet_count > 1 ? 's' : ''} containing funds
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)', display: 'block' }}>
+                                            {asset.total_crypto_amount} {asset.currency}
+                                        </span>
+                                        <span style={{ fontSize: '12.5px', color: '#34d399', fontWeight: 600 }}>
+                                            ≈ ${asset.total_usd_amount} USD
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        onClick={() => handleBatchSweep('NETWORK_CURRENCY', asset.crypto_type)}
+                                        disabled={loadingSweeps || sweepingAsset === asset.crypto_type}
+                                        style={{
+                                            padding: '8px 16px',
+                                            borderRadius: '10px',
+                                            border: 'none',
+                                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                            color: 'white',
+                                            cursor: (loadingSweeps || sweepingAsset === asset.crypto_type) ? 'not-allowed' : 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            fontSize: '13px',
+                                            fontWeight: 700,
+                                            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
+                                        {sweepingAsset === asset.crypto_type ? (
+                                            <>
+                                                <MdRefresh className="animate-spin" /> Sweeping...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <MdCallMade /> Sweep Funds
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Security Safeguards Section */}

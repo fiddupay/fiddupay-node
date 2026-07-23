@@ -257,6 +257,14 @@ pub fn create_merchant_router(state: AppState) -> Router<AppState> {
         )
         // Customer management (Sub-Account Designated Wallets)
         .route(
+            "/api/v1/merchants/sweeps/summary",
+            get(crate::api::customer_handlers::get_unswept_assets_summary),
+        )
+        .route(
+            "/api/v1/merchants/sweeps/batch",
+            post(crate::api::customer_handlers::execute_batch_asset_sweep),
+        )
+        .route(
             "/api/v1/merchants/customers/summary",
             get(crate::api::customer_handlers::get_customers_summary),
         )

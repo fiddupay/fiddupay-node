@@ -1123,3 +1123,36 @@ export interface TokenSummary {
   decimals: number;
   chain_id: number;
 }
+
+export interface UnsweptAssetItem {
+  crypto_type: string;
+  currency: string;
+  network: string;
+  total_crypto_amount: string;
+  total_usd_amount: string;
+  wallet_count: number;
+  target_master_address?: string;
+  has_sufficient_gas: boolean;
+}
+
+export interface UnsweptAssetsSummaryResponse {
+  assets: UnsweptAssetItem[];
+  total_unswept_usd: string;
+  total_wallets_count: number;
+}
+
+export interface BatchSweepRequest {
+  sweep_scope: 'NETWORK_CURRENCY' | 'ALL';
+  crypto_type?: string;
+  pin?: string;
+}
+
+export interface BatchSweepResponse {
+  status: string;
+  swept_wallets_count: number;
+  total_crypto_swept: string;
+  total_usd_swept: string;
+  swept_cryptos: string[];
+  message: string;
+}
+

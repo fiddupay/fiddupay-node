@@ -51,6 +51,7 @@ interface DataState {
   customers: CacheEntry<any[]>
   customersTotal: number          // server-reported total (for pagination controls)
   customersPage: number           // last fetched page
+  lastCustomerCacheKey: string
   customerSummary: CacheEntry<any>
   customerDetails: Record<string, CacheEntry<{ wallets: any[], balances: any, transactions: any[] }>>
   securityAlerts: CacheEntry<any[]>
@@ -164,6 +165,7 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
   customers: freshEntry<any[]>([]),
   customersTotal: 0,
   customersPage: 1,
+  lastCustomerCacheKey: '',
   customerSummary: freshEntry<any>(),
   customerDetails: {},
   securityAlerts: freshEntry<any[]>([]),
@@ -240,11 +242,17 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
 
   fetchCustomers: async (page = 1, limit = 10, search?: string, status?: string, force = false) => {
     const cacheKey = `customers_p${page}_l${limit}_s${search ?? ''}_st${status ?? ''}`
+    const isNewKey = get().lastCustomerCacheKey !== cacheKey
+    if (isNewKey) {
+      force = true
+      // Clear old page data immediately so UI shows loading skeleton for the new page
+      set({ customers: { data: [], lastFetched: 0, loading: true, error: null } })
+    }
     return swrFetch(
       cacheKey,
       () => get().customers,
       (patch) => {
-        set((s) => ({ customers: { ...s.customers, ...patch } }))
+        set((s) => ({ customers: { ...s.customers, ...patch }, lastCustomerCacheKey: cacheKey }))
       },
       async () => {
         const params: any = { limit, offset: (page - 1) * limit }
@@ -254,7 +262,7 @@ export const useDataStore = create<DataState & DataActions>((set, get) => ({
         const list = res.data?.customers || []
         const total = res.data?.total ?? 0
         // Store total and current page alongside the data
-        set({ customersTotal: total, customersPage: page })
+        set({ customersTotal: total, customersPage: page, lastCustomerCacheKey: cacheKey })
         return list
       },
       TTL.CUSTOMERS,

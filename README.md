@@ -1,4 +1,4 @@
-# FidduPay - Cryptocurrency Payment Gateway v2.6.0
+# FidduPay - Cryptocurrency Payment Gateway v2.6.23
 
 **A TechyTro Software Product**
 
@@ -158,7 +158,7 @@ To sync code changes to the standalone SDK repository, you can use the Unix sync
 .\scripts\push-sdk.ps1 -Branch main
 
 # Push SDK code + tag in one command
-.\scripts\push-sdk.ps1 -Branch main -Tag v2.6.22
+.\scripts\push-sdk.ps1 -Branch main -Tag v2.6.23
 ```
 
 ##### Bash Script:

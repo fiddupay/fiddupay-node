@@ -8,7 +8,6 @@ import {
     CustomerBalanceResponse,
     CustomerSweepRequest,
     ListCustomersParams,
-    PaginatedResponse,
     RequestOptions,
     CustomerTransaction,
     CustomerStatusRequest,
@@ -16,7 +15,10 @@ import {
     CustomerWalletsResponse,
     CustomerWallet,
     CustomerPayMerchantRequest,
-    CustomerSummaryResponse
+    CustomerSummaryResponse,
+    UnsweptAssetsSummaryResponse,
+    BatchSweepRequest,
+    BatchSweepResponse
 } from '../types';
 
 /**
@@ -273,4 +275,19 @@ export class Customers {
     }> {
         return this.client.get('/api/v1/merchants/customers/wallets-audit', options);
     }
+
+    /**
+     * Get aggregate summary of all unswept customer on-chain funds categorized by currency and network.
+     */
+    async getUnsweptAssetsSummary(options?: RequestOptions): Promise<UnsweptAssetsSummaryResponse> {
+        return this.client.get('/api/v1/merchants/sweeps/summary', options);
+    }
+
+    /**
+     * Initiate a single-click batch on-chain sweep for a specific currency/network or across all customer deposit wallets.
+     */
+    async batchSweep(data: BatchSweepRequest, options?: RequestOptions): Promise<BatchSweepResponse> {
+        return this.client.post('/api/v1/merchants/sweeps/batch', data, options);
+    }
 }
+

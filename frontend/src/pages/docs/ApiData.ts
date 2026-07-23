@@ -1651,6 +1651,57 @@ export const API_DATA: DocSection[] = [
                 response: JSON.stringify([
                     { date: "2026-02-03", crypto_type: "USDT_ETH", balance: "1500.00" }
                 ], null, 2)
+            },
+            {
+                id: 'get-unswept-sweeps-summary',
+                method: 'GET',
+                path: '/api/v1/merchants/sweeps/summary',
+                title: 'Get Unswept Assets Summary',
+                description: 'Retrieve an aggregate breakdown of all physical on-chain funds sitting in customer deposit wallets, grouped by currency and network.',
+                request: {
+                    curl: 'curl https://api.fiddupay.com/api/v1/merchants/sweeps/summary \\\n  -H "Authorization: Bearer sk_live_..."',
+                    node: 'const summary = await fiddupay.customers.getUnsweptAssetsSummary();'
+                },
+                response: JSON.stringify({
+                    assets: [
+                        {
+                            crypto_type: "USDT_BEP20",
+                            currency: "USDT",
+                            network: "BINANCE",
+                            total_crypto_amount: "100.50",
+                            total_usd_amount: "100.50",
+                            wallet_count: 5,
+                            target_master_address: "0x123...",
+                            has_sufficient_gas: true
+                        }
+                    ],
+                    total_unswept_usd: "100.50",
+                    total_wallets_count: 5
+                }, null, 2)
+            },
+            {
+                id: 'execute-batch-sweep',
+                method: 'POST',
+                path: '/api/v1/merchants/sweeps/batch',
+                title: 'Execute Batch On-Chain Sweep',
+                description: 'Consolidate unswept customer deposit wallet balances on-chain to your registered active Master Wallet. Supports sweeping a single currency/network or all assets across all chains simultaneously.',
+                body: [
+                    { name: 'sweep_scope', type: 'string', required: true, description: '"NETWORK_CURRENCY" or "ALL"' },
+                    { name: 'crypto_type', type: 'string', required: false, description: 'Target asset e.g. "USDT_BEP20" (required if scope is NETWORK_CURRENCY)' },
+                    { name: 'pin', type: 'string', required: false, description: 'Optional PIN security authorization' }
+                ],
+                request: {
+                    curl: 'curl -X POST https://api.fiddupay.com/api/v1/merchants/sweeps/batch \\\n  -H "Authorization: Bearer sk_live_..." \\\n  -d \'{\n    "sweep_scope": "ALL"\n  }\'',
+                    node: 'const result = await fiddupay.customers.batchSweep({\n  sweep_scope: "ALL"\n});'
+                },
+                response: JSON.stringify({
+                    status: "COMPLETED",
+                    swept_wallets_count: 5,
+                    total_crypto_swept: "100.50",
+                    total_usd_swept: "100.50",
+                    swept_cryptos: ["USDT_BEP20"],
+                    message: "Successfully swept 5 customer wallet balances on-chain"
+                }, null, 2)
             }
         ]
     },

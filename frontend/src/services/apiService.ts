@@ -106,6 +106,14 @@ export const merchantAPI = {
     amount: number;
     pin: string;
   }) => api.post('/api/v1/merchants/pay/execute', data),
+
+  // Batch On-Chain Asset Sweeps
+  getUnsweptAssetsSummary: () => api.get('/api/v1/merchants/sweeps/summary'),
+  executeBatchSweep: (data: {
+    sweep_scope: 'NETWORK_CURRENCY' | 'ALL';
+    crypto_type?: string;
+    pin?: string;
+  }) => api.post('/api/v1/merchants/sweeps/batch', data),
 }
 
 export const paymentAPI = {

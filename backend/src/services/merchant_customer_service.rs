@@ -2285,6 +2285,185 @@ impl MerchantCustomerService {
             "historical": historical_rows
         }))
     }
+
+    // =========================================================================
+    // Batch On-Chain Asset Sweeping & Summaries
+    // =========================================================================
+
+    pub async fn get_unswept_assets_summary(
+        &self,
+        merchant_id: i64,
+        sandbox_mode: bool,
+    ) -> Result<crate::models::merchant_customer::UnsweptAssetsSummaryResponse, ServiceError> {
+        let rows = sqlx::query(
+            r#"
+            SELECT 
+                crypto_type,
+                SUM(locked_balance) as total_locked,
+                COUNT(DISTINCT customer_id) as wallet_count
+            FROM merchant_customer_balances
+            WHERE merchant_id = $1 AND sandbox_mode = $2 AND locked_balance > 0
+            GROUP BY crypto_type
+            ORDER BY total_locked DESC
+            "#,
+        )
+        .bind(merchant_id)
+        .bind(sandbox_mode)
+        .fetch_all(&self.db_pool)
+        .await?;
+
+        let mut items = Vec::new();
+        let mut total_unswept_usd = Decimal::ZERO;
+        let mut total_wallets_count: i64 = 0;
+
+        for row in rows {
+            use sqlx::Row;
+            let crypto_type: String = row.get("crypto_type");
+            let total_locked: Decimal = row.get("total_locked");
+            let wallet_count: i64 = row.get("wallet_count");
+
+            let crypto_enum = CryptoType::from_string(&crypto_type).unwrap_or(CryptoType::Eth);
+            let price = self
+                .price_service
+                .get_price(crypto_enum)
+                .await
+                .unwrap_or(0.0);
+            let usd_val = (total_locked * Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO))
+                .round_dp(2);
+
+            total_unswept_usd += usd_val;
+            total_wallets_count += wallet_count;
+
+            let target_master_address: Option<String> = sqlx::query_scalar(
+                "SELECT address FROM merchant_wallets WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND is_active = true LIMIT 1"
+            )
+            .bind(merchant_id)
+            .bind(&crypto_type)
+            .bind(sandbox_mode)
+            .fetch_optional(&self.db_pool)
+            .await?;
+
+            items.push(crate::models::merchant_customer::UnsweptAssetItem {
+                crypto_type: crypto_type.clone(),
+                currency: crypto_enum.as_str().to_string(),
+                network: crypto_enum.network().to_string(),
+                total_crypto_amount: total_locked.to_string(),
+                total_usd_amount: usd_val.to_string(),
+                wallet_count,
+                target_master_address,
+                has_sufficient_gas: true,
+            });
+        }
+
+        Ok(
+            crate::models::merchant_customer::UnsweptAssetsSummaryResponse {
+                assets: items,
+                total_unswept_usd: total_unswept_usd.to_string(),
+                total_wallets_count,
+            },
+        )
+    }
+
+    pub async fn batch_sweep_assets(
+        &self,
+        merchant_id: i64,
+        req: crate::models::merchant_customer::BatchSweepRequest,
+        sandbox_mode: bool,
+        config: &crate::config::Config,
+    ) -> Result<crate::models::merchant_customer::BatchSweepResponse, ServiceError> {
+        let scope = req.sweep_scope.to_uppercase();
+
+        let target_balances = if scope == "NETWORK_CURRENCY" {
+            let target_crypto = req.crypto_type.ok_or_else(|| {
+                ServiceError::ValidationError(
+                    "crypto_type required when sweep_scope is NETWORK_CURRENCY".to_string(),
+                )
+            })?;
+            sqlx::query_as::<_, MerchantCustomerBalance>(
+                "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at, sandbox_mode FROM merchant_customer_balances WHERE merchant_id = $1 AND crypto_type = $2 AND sandbox_mode = $3 AND locked_balance > 0"
+            )
+            .bind(merchant_id)
+            .bind(&target_crypto)
+            .bind(sandbox_mode)
+            .fetch_all(&self.db_pool)
+            .await?
+        } else {
+            sqlx::query_as::<_, MerchantCustomerBalance>(
+                "SELECT id, customer_id, merchant_id, crypto_type, available_balance, locked_balance, total_balance, last_updated_at, sandbox_mode FROM merchant_customer_balances WHERE merchant_id = $1 AND sandbox_mode = $2 AND locked_balance > 0"
+            )
+            .bind(merchant_id)
+            .bind(sandbox_mode)
+            .fetch_all(&self.db_pool)
+            .await?
+        };
+
+        if target_balances.is_empty() {
+            return Err(ServiceError::ValidationError(
+                "No locked funds available to sweep".to_string(),
+            ));
+        }
+
+        let mut swept_wallets_count: i64 = 0;
+        let mut total_crypto_swept = Decimal::ZERO;
+        let mut total_usd_swept = Decimal::ZERO;
+        let mut swept_cryptos_set = std::collections::HashSet::new();
+
+        for bal in target_balances {
+            let customer_row =
+                sqlx::query("SELECT external_id FROM merchant_customers WHERE id = $1")
+                    .bind(bal.customer_id)
+                    .fetch_optional(&self.db_pool)
+                    .await?;
+
+            if let Some(c_row) = customer_row {
+                use sqlx::Row;
+                let ext_id: String = c_row.get("external_id");
+                let sweep_req = crate::models::merchant_customer::SweepCustomerRequest {
+                    sweep_mode: "SPECIFIC".to_string(),
+                    crypto_types: Some(vec![bal.crypto_type.clone()]),
+                    amount: Some(bal.locked_balance.to_string()),
+                    pin: req.pin.clone(),
+                };
+
+                match self
+                    .sweep_customer_wallet(merchant_id, &ext_id, sweep_req, sandbox_mode, config)
+                    .await
+                {
+                    Ok(swept_items) => {
+                        for (c_type, amt) in swept_items {
+                            swept_wallets_count += 1;
+                            total_crypto_swept += amt;
+                            swept_cryptos_set.insert(c_type.clone());
+
+                            let c_enum =
+                                CryptoType::from_string(&c_type).unwrap_or(CryptoType::Eth);
+                            let price = self.price_service.get_price(c_enum).await.unwrap_or(0.0);
+                            total_usd_swept += (amt
+                                * Decimal::from_f64_retain(price).unwrap_or(Decimal::ZERO))
+                            .round_dp(2);
+                        }
+                    }
+                    Err(e) => {
+                        tracing::warn!(error = ?e, customer_id = bal.customer_id, crypto_type = %bal.crypto_type, "Failed individual wallet sweep during batch operation");
+                    }
+                }
+            }
+        }
+
+        let swept_cryptos: Vec<String> = swept_cryptos_set.into_iter().collect();
+
+        Ok(crate::models::merchant_customer::BatchSweepResponse {
+            status: "COMPLETED".to_string(),
+            swept_wallets_count,
+            total_crypto_swept: total_crypto_swept.to_string(),
+            total_usd_swept: total_usd_swept.to_string(),
+            swept_cryptos,
+            message: format!(
+                "Successfully swept {} customer wallet balances on-chain",
+                swept_wallets_count
+            ),
+        })
+    }
 }
 
 fn mask_address(addr: &str) -> String {

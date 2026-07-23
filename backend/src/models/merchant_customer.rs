@@ -130,3 +130,43 @@ pub struct UpdateCustomerPermissionsRequest {
     pub can_withdraw: Option<bool>,
     pub withdrawal_limit: Option<String>, // decimal as string
 }
+
+// ============================================================================
+// Batch On-Chain Consolidation Structs
+// ============================================================================
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UnsweptAssetItem {
+    pub crypto_type: String,
+    pub currency: String,
+    pub network: String,
+    pub total_crypto_amount: String,
+    pub total_usd_amount: String,
+    pub wallet_count: i64,
+    pub target_master_address: Option<String>,
+    pub has_sufficient_gas: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UnsweptAssetsSummaryResponse {
+    pub assets: Vec<UnsweptAssetItem>,
+    pub total_unswept_usd: String,
+    pub total_wallets_count: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BatchSweepRequest {
+    pub sweep_scope: String, // "NETWORK_CURRENCY" or "ALL"
+    pub crypto_type: Option<String>,
+    pub pin: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BatchSweepResponse {
+    pub status: String,
+    pub swept_wallets_count: i64,
+    pub total_crypto_swept: String,
+    pub total_usd_swept: String,
+    pub swept_cryptos: Vec<String>,
+    pub message: String,
+}
