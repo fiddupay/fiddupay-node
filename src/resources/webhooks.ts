@@ -166,12 +166,10 @@ export class Webhooks {
   }
 
   private static validateWebhookEvent(event: any): void {
-    if (!event.id || typeof event.id !== 'string') {
-      throw new FidduPayError('Invalid webhook event: missing or invalid id', 'webhook_event_invalid');
-    }
+    const eventType = event.type || event.event_type;
 
-    if (!event.type || typeof event.type !== 'string') {
-      throw new FidduPayError('Invalid webhook event: missing or invalid type', 'webhook_event_invalid');
+    if (!eventType || typeof eventType !== 'string') {
+      throw new FidduPayError('Invalid webhook event: missing or invalid type or event_type', 'webhook_event_invalid');
     }
 
     const validTypes: WebhookEventType[] = [
@@ -184,16 +182,8 @@ export class Webhooks {
       'webhook.test'
     ];
 
-    if (!validTypes.includes(event.type as WebhookEventType)) {
-      throw new FidduPayError(`Invalid webhook event type: ${event.type}`, 'webhook_event_invalid');
-    }
-
-    if (!event.data) {
-      throw new FidduPayError('Invalid webhook event: missing data', 'webhook_event_invalid');
-    }
-
-    if (!event.created_at || typeof event.created_at !== 'string') {
-      throw new FidduPayError('Invalid webhook event: missing or invalid created_at', 'webhook_event_invalid');
+    if (!validTypes.includes(eventType as WebhookEventType)) {
+      throw new FidduPayError(`Invalid webhook event type: ${eventType}`, 'webhook_event_invalid');
     }
   }
 }
