@@ -53,6 +53,29 @@ describe('Webhooks', () => {
       expect(event.data).toBeDefined();
     });
 
+    it('should construct valid direct WebhookPayload with sandbox_mode', () => {
+      const directPayload = JSON.stringify({
+        event_type: 'payment.confirmed',
+        payment_id: 'pay_test_999',
+        merchant_id: 22,
+        status: 'Confirmed',
+        amount: '100.00',
+        crypto_type: 'USDT_SPL',
+        transaction_hash: '0xhash123',
+        customer_external_id: 'cust_101',
+        timestamp: 1774900000,
+        sandbox_mode: true
+      });
+
+      const signature = Webhooks.generateSignature(directPayload, secret);
+      const event = Webhooks.constructEvent(directPayload, signature, secret) as any;
+
+      expect(event.event_type).toBe('payment.confirmed');
+      expect(event.payment_id).toBe('pay_test_999');
+      expect(event.sandbox_mode).toBe(true);
+      expect(event.amount).toBe('100.00');
+    });
+
     it('should throw error for invalid signature', () => {
       const invalidSignature = 't=1234567890,v1=invalid';
       
