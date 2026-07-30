@@ -165,6 +165,11 @@ app.post(
         "your-webhook-secret",
       );
 
+      // Inspect if event is from Sandbox or Production
+      if (event.sandbox_mode) {
+        console.log("Processing Sandbox Webhook Event");
+      }
+
       switch (event.type) {
         case "payment.detected":
           console.log("Payment detected (0-conf):", event.data);
