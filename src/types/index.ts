@@ -376,11 +376,25 @@ export interface MerchantReadiness {
   sandbox_mode: boolean;
 }
 
+export interface WebhookPayload {
+  event_type: string;
+  payment_id: string;
+  merchant_id: number;
+  status: string;
+  amount: string;
+  crypto_type: string;
+  transaction_hash?: string | null;
+  customer_external_id?: string | null;
+  timestamp: number;
+  sandbox_mode: boolean;
+}
+
 export interface WebhookEvent {
   id: string;
   type: WebhookEventType;
   data: Payment | Refund;
   created_at: string;
+  sandbox_mode?: boolean;
 }
 
 export interface TimeSeriesPoint {
