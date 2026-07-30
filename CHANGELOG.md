@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.24] - 2026-07-30
+
+### Added
+- **`sandbox_mode` Webhook Field**: Added `sandbox_mode: boolean` to `WebhookPayload` and `sandbox_mode?: boolean` to `WebhookEvent` interface to allow merchants to inspect if an event originated from Sandbox or Live.
+- **Flexible Webhook Event Parsing**: Enhanced `Webhooks.constructEvent()` and `validateWebhookEvent()` to accept both root `WebhookPayload` (`event_type`, `payment_id`) and wrapped event envelope formats.
+
 ## [2.6.23] - 2026-07-23
 
 ### Added
