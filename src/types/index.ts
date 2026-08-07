@@ -12,6 +12,9 @@ export type WebhookEventType =
   | 'refund.completed'
   | 'merchant.deposit'
   | 'customer.deposit'
+  | 'withdrawal.completed'
+  | 'withdrawal.failed'
+  | 'withdrawal_failed'
   | 'address_only_payment_status'
   | 'webhook.test';
 
