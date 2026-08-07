@@ -178,6 +178,9 @@ export class Webhooks {
       'refund.completed',
       'merchant.deposit',
       'customer.deposit',
+      'withdrawal.completed',
+      'withdrawal.failed',
+      'withdrawal_failed',
       'address_only_payment_status',
       'webhook.test'
     ];
