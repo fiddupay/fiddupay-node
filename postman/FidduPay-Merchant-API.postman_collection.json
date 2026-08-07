@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FidduPay Merchant API SDK",
-    "description": "Official Merchant API documentation for FidduPay Node.js SDK users.",
+    "description": "Official Merchant API collection for FidduPay Node.js SDK users.",
     "version": "2.6.24",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -82,16 +82,820 @@
       ]
     },
     {
-      "name": "Merchant Settings",
+      "name": "Merchant Customers",
       "item": [
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_id\": \"cust_user_12345\",\n  \"email\": \"user@example.com\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"metadata\": {\n    \"plan\": \"premium\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List Customers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers?limit=50&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Provision Wallets (Auto)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "wallets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"networks\": [\n    \"evm\",\n    \"solana\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Customer Balances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/balances",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "balances"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sweep Funds",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/sweep",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "sweep"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sweep_mode\": \"full\",\n  \"crypto_types\": [\n    \"USDT_SPL\",\n    \"SOL\"\n  ],\n  \"pin\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Withdraw Funds",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/withdraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "withdraw"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"USDT\",\n  \"amount\": \"5.0\",\n  \"destination_address\": \"0x123...\",\n  \"pin\": \"1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Pay Merchant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/pay-merchant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "pay-merchant"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"USDT\",\n  \"amount\": \"1.5\",\n  \"description\": \"Internal fee\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Deactivate Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/deactivate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "deactivate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Customers Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "summary"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bulk Provision Wallets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/bulk-provision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "bulk-provision"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_ids\": [\n    \"cust_123\",\n    \"cust_456\"\n  ],\n  \"all_customers\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Deposit Address",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/deposit-address/ETH",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "deposit-address",
+                "ETH"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Customer Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "transactions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Customer Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"flagged\",\n  \"reason\": \"Suspicious transaction velocity\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update Customer Permissions",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "customers",
+                "user_1234",
+                "permissions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"can_withdraw\": true,\n  \"withdrawal_limit\": \"500.00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Invoices",
+      "item": [
+        {
+          "name": "Create Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "invoices"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": \"50.0\",\n  \"customer_email\": \"hello@fiddupay.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Invoices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "invoices"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Invoice Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/invoices/:invoice_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "invoices",
+                ":invoice_id"
+              ],
+              "variable": [
+                {
+                  "key": "invoice_id",
+                  "value": "inv_123"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Authentication",
+      "item": [
+        {
+          "name": "Register Merchant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_name\": \"Acme Store\",\n  \"email\": \"merchant@example.com\",\n  \"password\": \"Password123!\",\n  \"country\": \"US\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login Merchant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"merchant@example.com\",\n  \"password\": \"Password123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Switch Environment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/environment/switch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "environment",
+                "switch"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sandbox_mode\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Rotate API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/api-keys/rotate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "api-keys",
+                "rotate"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"environment\": \"sandbox\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "settings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"webhook_url\": \"https://example.com/webhook\",\n  \"redirect_url\": \"https://example.com/thanks\",\n  \"webhook_format\": \"json\",\n  \"settlement_mode\": \"managed\",\n  \"customer_pays_fee\": true,\n  \"auto_settlement_enabled\": true,\n  \"ip_whitelist\": [\n    \"105.112.0.1\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
         {
           "name": "Get Settings",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -109,21 +913,18 @@
           }
         },
         {
-          "name": "Update Settings",
+          "name": "Get Readiness Status",
           "request": {
-            "method": "PATCH",
+            "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/settings",
+              "raw": "{{baseUrl}}/api/v1/merchants/status",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -131,14 +932,147 @@
                 "api",
                 "v1",
                 "merchants",
-                "settings"
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Generate API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/api-keys/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "api-keys",
+                "generate"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"webhook_url\": \"https://example.com/webhook\",\n  \"auto_settlement_enabled\": true,\n  \"low_balance_alerts_enabled\": true\n}"
+              "raw": "{\n  \"environment\": \"sandbox\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
+        },
+        {
+          "name": "Webhook Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/webhook/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "webhook",
+                "test"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"webhook_url\": \"https://example.com/webhook\",\n  \"event_type\": \"payment.confirmed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Fee Setting",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/fee-setting",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "fee-setting"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Logout Merchant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "logout"
+              ]
+            },
+            "description": "Logout merchant session"
+          },
+          "response": []
         }
       ]
     },
@@ -151,8 +1085,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -178,11 +1113,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -199,7 +1136,12 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"external_id\": \"user_1234\",\n  \"email\": \"customer@example.com\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"metadata\": {\n    \"tier\": \"gold\",\n    \"internal_id\": 8877\n  }\n}"
+              "raw": "{\n  \"external_id\": \"cust_user_12345\",\n  \"email\": \"user@example.com\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"metadata\": {\n    \"plan\": \"premium\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -209,8 +1151,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -252,11 +1195,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -275,7 +1220,12 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"networks\": []\n}"
+              "raw": "{\n  \"networks\": [\n    \"evm\",\n    \"solana\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -285,8 +1235,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -312,11 +1263,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -335,14 +1288,14 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sweep_mode\": \"ALL\"\n}",
+              "raw": "{\n  \"sweep_mode\": \"full\",\n  \"crypto_types\": [\n    \"USDT_SPL\",\n    \"SOL\"\n  ],\n  \"pin\": \"123456\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "description": "Sweeps ALL locked assets from the customer sub-wallet to your Master Wallet. Gas fees are automatically deducted from your native ledger balance. For EVM, the system auto-funds gas dust internally — customers never see gas transactions.\n\nSweep modes:\n- ALL (default): sweeps every asset\n- NATIVE_ONLY: sweeps only native coins (ETH, BNB, SOL…)\n- STABLE_ONLY: sweeps only stablecoins (USDT, BUSD…)\n- SPECIFIC: sweeps a single crypto_type (requires crypto_types array)"
+            "description": "Sweeps ALL locked assets from the customer sub-wallet to your Master Wallet. Gas fees are automatically deducted from your native ledger balance."
           }
         },
         {
@@ -352,11 +1305,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -375,229 +1330,14 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sweep_mode\": \"SPECIFIC\",\n  \"crypto_types\": [\"USDT_ETH\"],\n  \"amount\": \"50.0\"\n}",
+              "raw": "{\n  \"sweep_mode\": \"full\",\n  \"crypto_types\": [\n    \"USDT_SPL\",\n    \"SOL\"\n  ],\n  \"pin\": \"123456\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "description": "Sweep a specific asset from the customer sub-wallet. Omit 'amount' to sweep the maximum available locked balance."
-          }
-        },
-        {
-          "name": "Pay Merchant",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/pay-merchant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "customers",
-                "user_1234",
-                "pay-merchant"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"USDT\",\n  \"amount\": \"1.5\",\n  \"description\": \"Internal fee\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Bulk Provision Wallets",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/customers/bulk-provision",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "customers",
-                "bulk-provision"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"customer_ids\": [\"user_1234\"],\n  \"all_customers\": false\n}"
-            }
-          }
-        },
-        {
-          "name": "Update Customer Status",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/status",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "customers",
-                "user_1234",
-                "status"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"suspended\",\n  \"reason\": \"Investigation\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Update Customer Permissions",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/permissions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "customers",
-                "user_1234",
-                "permissions"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"can_withdraw\": true,\n  \"withdrawal_limit\": \"500.0\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Deactivate Customer",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/deactivate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "customers",
-                "user_1234",
-                "deactivate"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Customer Deposit Address",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/deposit-address/SOL",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "customers",
-                "user_1234",
-                "deposit-address",
-                "SOL"
-              ]
-            },
-            "description": "Returns the verified, merchant-linked deposit address for the customer. If no wallet exists for the requested crypto_type/network, one is automatically provisioned. Response: { external_id, crypto_type, deposit_address, provisioned }. provisioned=true means the wallet was just auto-created."
-          }
-        },
-        {
-          "name": "List Customer Transactions",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/customers/user_1234/transactions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "customers",
-                "user_1234",
-                "transactions"
-              ]
-            }
+            "description": "Sweep a specific asset from the customer sub-wallet."
           }
         },
         {
@@ -607,11 +1347,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -630,14 +1372,14 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sweep_mode\": \"STABLE_ONLY\"\n}",
+              "raw": "{\n  \"sweep_mode\": \"full\",\n  \"crypto_types\": [\n    \"USDT_SPL\",\n    \"SOL\"\n  ],\n  \"pin\": \"123456\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "description": "Sweep only stablecoin balances (USDT, BUSD, etc.) locked by the customer to your Master Wallet. This non-custodial sweep deducts gas fees from your merchant native ledger — no external transfers visible to the customer."
+            "description": "Sweep only stablecoin balances to your Master Wallet."
           }
         },
         {
@@ -646,8 +1388,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -667,17 +1410,19 @@
           }
         },
         {
-          "name": "Bulk Provision All Customers",
+          "name": "Bulk Provision Wallets",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -695,7 +1440,12 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"all_customers\": true\n}"
+              "raw": "{\n  \"customer_ids\": [\n    \"cust_123\",\n    \"cust_456\"\n  ],\n  \"all_customers\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -705,8 +1455,14 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -722,7 +1478,16 @@
                 "verify-wallets"
               ]
             },
-            "description": "Scans ALL customers linked to your merchant account and auto-provisions any missing wallet designations. Returns { status, checked_customers, repaired_wallets }. Run this after onboarding migrations or if you suspect fund-loss from unlinked wallets."
+            "description": "Scans ALL customers linked to your merchant account and auto-provisions missing wallets.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fix\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         },
         {
@@ -731,8 +1496,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -749,7 +1515,7 @@
                 "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
               ]
             },
-            "description": "Resolves an on-chain address back to the owning customer. Returns { found, status (ACTIVE|HISTORICAL), customer, wallet }. HISTORICAL means the address was previously linked but the customer now has a new designated wallet. Returns 404 + { found: false } if not matched."
+            "description": "Resolves an on-chain address back to the owning customer."
           }
         },
         {
@@ -758,8 +1524,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -775,548 +1542,7 @@
                 "wallets-audit"
               ]
             },
-            "description": "Full snapshot of all customer wallets. Returns { active: [...], historical: [...] }. Active = currently designated wallets. Historical = re-provisioned wallets with a reason field. Use for compliance audits and gap detection."
-          }
-        }
-      ]
-    },
-    {
-      "name": "Wallet Security Locks",
-      "item": [
-        {
-          "name": "Toggle Master Wallet Lock",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/security/wallets/lock",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "security",
-                "wallets",
-                "lock"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"locked\": true\n}"
-            }
-          }
-        },
-        {
-          "name": "Toggle Customer Wallet Lock",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/security/customers/wallets/lock",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "security",
-                "customers",
-                "wallets",
-                "lock"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"locked\": true\n}"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Merchant Invoices",
-      "item": [
-        {
-          "name": "Create Invoice",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/invoices",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "invoices"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"amount_usd\": \"150.00\",\n  \"description\": \"Consulting services\",\n  \"customer_email\": \"client@example.com\"\n}"
-            }
-          }
-        },
-        {
-          "name": "List Invoices",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/invoices",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "invoices"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Invoice Details",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/invoices/:invoice_id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "invoices",
-                ":invoice_id"
-              ],
-              "variable": [
-                {
-                  "key": "invoice_id",
-                  "value": "inv_12345"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Account & Compliance",
-      "item": [
-        {
-          "name": "Get Audit Logs",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/audit-logs?limit=50&offset=0",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "audit-logs"
-              ],
-              "query": [
-                {
-                  "key": "limit",
-                  "value": "50"
-                },
-                {
-                  "key": "offset",
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Balance History",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/balance/history?limit=50&offset=0",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "balance",
-                "history"
-              ],
-              "query": [
-                {
-                  "key": "limit",
-                  "value": "50"
-                },
-                {
-                  "key": "offset",
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Merchant Authentication",
-      "item": [
-        {
-          "name": "Register Merchant",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "register"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"m@e.com\",\n  \"business_name\": \"Store\",\n  \"password\": \"p123\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Login Merchant",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "login"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"m@e.com\",\n  \"password\": \"p123\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Logout Merchant",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/logout",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "logout"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Update Security Password",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/security/password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "security",
-                "password"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"current_password\": \"old_p123\",\n  \"new_password\": \"new_p456\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Get Profile",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "profile"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Switch Environment",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/environment/switch",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "environment",
-                "switch"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Rotate API Key",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/api-keys/rotate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "api-keys",
-                "rotate"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Generate API Key",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/api-keys/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "api-keys",
-                "generate"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"is_live\": true\n}"
-            }
-          }
-        },
-        {
-          "name": "Test Webhook",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/webhook/test",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "webhook",
-                "test"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Fee Setting",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/fee-setting",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "fee-setting"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Readiness Status",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/status",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "status"
-              ]
-            }
+            "description": "Full snapshot of all customer active vs historical wallets."
           }
         }
       ]
@@ -1325,18 +1551,19 @@
       "name": "Merchant Payments",
       "item": [
         {
-          "name": "Create Payment (Managed Mode Only)",
-          "description": "Initialize a multi-chain payment. Returns 403 in Forwarding mode.",
+          "name": "Create Payment",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1353,7 +1580,12 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount_usd\": \"100.0\",\n  \"description\": \"Multi-currency checkout\"\n}"
+              "raw": "{\n  \"amount_usd\": \"25.00\",\n  \"description\": \"Order #98765\",\n  \"webhook_url\": \"https://example.com/webhook\",\n  \"customer_external_id\": \"cust_user_12345\",\n  \"expiration_minutes\": 60\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -1364,11 +1596,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1385,7 +1619,12 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": \"100.0\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Fixed currency\"\n}"
+              "raw": "{\n  \"amount\": \"0.1\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"0.1 SOL Fixed Deposit\",\n  \"webhook_url\": \"https://example.com/webhook\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -1396,11 +1635,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1417,39 +1658,12 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount_usd\": \"100.0\",\n  \"crypto_type\": \"SOL\",\n  \"customer_external_id\": \"OC-8218F8\",\n  \"description\": \"Designated customer checkout\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Create Crypto Amount Payment",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+              "raw": "{\n  \"amount_usd\": \"19.99\",\n  \"description\": \"Customer Wallet Deposit\",\n  \"customer_external_id\": \"cust_user_12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
               }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/payments",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "payments"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"amount\": \"2.5\",\n  \"crypto_type\": \"SOL\",\n  \"description\": \"Volatile asset payment (Uses amount)\"\n}"
             }
           }
         },
@@ -1459,8 +1673,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1483,8 +1698,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1509,11 +1725,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1539,11 +1757,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1562,7 +1782,12 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"SOL\"\n}"
+              "raw": "{\n  \"selected_currency\": \"USDT_SPL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -1572,12 +1797,18 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/payments/:payment_id/cancel",
+              "raw": "{{baseUrl}}/api/v1/merchants/payments/pay_12345/cancel",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1586,317 +1817,13 @@
                 "v1",
                 "merchants",
                 "payments",
-                ":payment_id",
+                "pay_12345",
                 "cancel"
-              ],
-              "variable": [
-                {
-                  "key": "payment_id",
-                  "value": "p_123"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Address-Only Mode (WIP)",
-      "description": "WORK IN PROGRESS: Endpoints exclusive to merchants in Forwarding mode for native-only payments. Currently in beta.",
-      "item": [
-        {
-          "name": "Create Address-Only Payment",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/address-only/create",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "address-only",
-                "create"
               ]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"merchant_address\": \"your_external_address\",\n  \"requested_amount\": \"1.0\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Get Address-Only Status",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/address-only/status?payment_id=addr_123",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "address-only",
-                "status"
-              ],
-              "query": [
-                {
-                  "key": "payment_id",
-                  "value": "addr_123"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "List Supported Currencies",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/address-only/currencies",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "address-only",
-                "currencies"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Address-Only Monitoring",
-      "item": [
-        {
-          "name": "Get Address-Only Stats",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/address-only/stats",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "address-only",
-                "stats"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Address-Only Health",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/address-only/health",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "address-only",
-                "health"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Address-Only Fee Setting",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/address-only/fee-setting",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "address-only",
-                "fee-setting"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Update Address-Only Fee Setting",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/address-only/fee-setting",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "address-only",
-                "fee-setting"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"customer_pays_fee\": true\n}"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Merchant Invoices",
-      "item": [
-        {
-          "name": "Create Invoice",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/invoices",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "invoices"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"amount\": \"50.0\",\n  \"customer_email\": \"hello@fiddupay.com\"\n}"
-            }
-          }
-        },
-        {
-          "name": "List Invoices",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/invoices",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "invoices"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Invoice Details",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/invoices/:invoice_id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "invoices",
-                ":invoice_id"
-              ],
-              "variable": [
-                {
-                  "key": "invoice_id",
-                  "value": "inv_123"
-                }
-              ]
-            }
-          }
+            "description": "Cancel an active payment link"
+          },
+          "response": []
         }
       ]
     },
@@ -1910,11 +1837,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1931,31 +1860,12 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"payment_id\": \"p_123\",\n  \"amount\": \"10.0\",\n  \"reason\": \"Refund\"\n}"
-            }
-          }
-        },
-        {
-          "name": "List Refunds",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+              "raw": "{\n  \"payment_id\": \"pay_12345\",\n  \"amount\": \"25.00\",\n  \"reason\": \"Customer cancellation request\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
               }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/refunds",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "refunds"
-              ]
             }
           }
         },
@@ -1965,8 +1875,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -1991,11 +1902,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2011,30 +1924,15 @@
                 "r_123",
                 "complete"
               ]
-            }
-          }
-        },
-        {
-          "name": "List Refunds",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_hash\": \"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
               }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/refunds",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "refunds"
-              ]
             }
           }
         }
@@ -2050,11 +1948,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2071,7 +1971,12 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"ETH\",\n  \"mode\": \"generate\"\n}"
+              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"mode\": \"generate\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -2081,8 +1986,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2100,17 +2006,53 @@
           }
         },
         {
+          "name": "Export Private Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/export-key",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "export-key"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"SOL\"\n}"
+            }
+          }
+        },
+        {
           "name": "Check Wallet Gas Status",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/wallets/gas-check?crypto_type=SOL&amount=1.0",
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/gas-check",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2120,51 +2062,6 @@
                 "merchants",
                 "wallets",
                 "gas-check"
-              ],
-              "query": [
-                {
-                  "key": "crypto_type",
-                  "value": "SOL"
-                },
-                {
-                  "key": "amount",
-                  "value": "1.0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Validate Gas Requirements",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/wallets/gas-check?crypto_type=SOL&amount=5.0",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "wallets",
-                "gas-check"
-              ],
-              "query": [
-                {
-                  "key": "crypto_type",
-                  "value": "SOL"
-                },
-                {
-                  "key": "amount",
-                  "value": "5.0"
-                }
               ]
             }
           }
@@ -2175,8 +2072,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2200,8 +2098,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2225,6 +2124,60 @@
               ]
             }
           }
+        },
+        {
+          "name": "Delete Wallet",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/ETH",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "ETH"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Wallet Balances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/wallets/balances",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "wallets",
+                "balances"
+              ]
+            },
+            "description": "Fetch on-chain balances across all master merchant wallets"
+          },
+          "response": []
         }
       ]
     },
@@ -2238,11 +2191,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2259,7 +2214,12 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"amount\": \"1.0\",\n  \"destination_address\": \"...\",\n  \"pin\": \"1234\"\n}"
+              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"amount\": \"1.50\",\n  \"destination_address\": \"HbNQfZJamojQU6325JjqQvabNAwwdfBD8jBzminpqDM1\",\n  \"pin\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -2269,8 +2229,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2293,8 +2254,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2319,11 +2281,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2341,67 +2305,6 @@
               ]
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "Merchant Wallet Monitoring",
-      "item": [
-        {
-          "name": "Get Wallet Balances",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/wallets/balances",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "wallets",
-                "balances"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Revoke Wallet",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/wallets/:crypto_type",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "wallets",
-                ":crypto_type"
-              ],
-              "variable": [
-                {
-                  "key": "crypto_type",
-                  "value": "ETH"
-                }
-              ]
-            }
-          }
         },
         {
           "name": "Process Withdrawal",
@@ -2410,15 +2313,17 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/withdrawals/:withdrawal_id/process",
+              "raw": "{{baseUrl}}/api/v1/merchants/withdrawals/w_123/process",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2427,19 +2332,18 @@
                 "v1",
                 "merchants",
                 "withdrawals",
-                ":withdrawal_id",
+                "w_123",
                 "process"
-              ],
-              "variable": [
-                {
-                  "key": "withdrawal_id",
-                  "value": "w_123"
-                }
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"encryption_password\": \"your_wallet_password\"\n}"
+              "raw": "{\n  \"encryption_password\": \"master_password_123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         }
@@ -2454,8 +2358,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2478,8 +2383,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2502,8 +2408,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2527,8 +2434,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2556,8 +2464,39 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/ip-whitelist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "ip-whitelist"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Set IP Whitelist",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2580,8 +2519,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2604,8 +2544,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2624,13 +2565,54 @@
           }
         },
         {
+          "name": "Update Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "settings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"webhook_url\": \"https://example.com/webhook\",\n  \"redirect_url\": \"https://example.com/thanks\",\n  \"webhook_format\": \"json\",\n  \"settlement_mode\": \"managed\",\n  \"customer_pays_fee\": true,\n  \"auto_settlement_enabled\": true,\n  \"ip_whitelist\": [\n    \"105.112.0.1\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "List Security Events",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2654,8 +2636,14 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2687,8 +2675,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2712,8 +2701,14 @@
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2745,8 +2740,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2765,17 +2761,102 @@
           }
         },
         {
-          "name": "Set Transaction PIN",
+          "name": "Lock Merchant Wallet",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/wallets/lock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "wallets",
+                "lock"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_locked\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Lock Customers Wallets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/security/customers/wallets/lock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "security",
+                "customers",
+                "wallets",
+                "lock"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_locked\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Set Transaction Pin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2793,22 +2874,29 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pin\": \"123456\"\n}"
+              "raw": "{\n  \"pin\": \"123456\",\n  \"confirm_pin\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
         {
-          "name": "Verify Transaction PIN",
+          "name": "Verify Transaction Pin",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2827,22 +2915,33 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pin\": \"123456\"\n}"
+              "raw": "{\n  \"pin\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
         {
-          "name": "Get Security Settings",
+          "name": "Update Password",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/security/settings",
+              "raw": "{{baseUrl}}/api/v1/merchants/security/password",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2851,23 +2950,31 @@
                 "v1",
                 "merchants",
                 "security",
-                "settings"
+                "password"
               ]
+            },
+            "description": "Update merchant account password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"Password123!\",\n  \"new_password\": \"NewSecurePassword456!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "response": []
         },
         {
-          "name": "Update Security Settings",
+          "name": "Get Security Settings",
           "request": {
-            "method": "PUT",
+            "method": "GET",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2883,35 +2990,9 @@
                 "settings"
               ]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"enable_notifications\": true,\n  \"alert_thresholds\": {\n    \"low_balance\": \"10.0\",\n    \"failed_transactions\": 5\n  }\n}"
-            }
-          }
-        },
-        {
-          "name": "Get Audit Logs",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/audit-logs",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "audit-logs"
-              ]
-            }
-          }
+            "description": "Fetch merchant security configuration"
+          },
+          "response": []
         }
       ]
     },
@@ -2924,8 +3005,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2948,8 +3030,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -2978,8 +3061,9 @@
             "method": "GET",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3004,11 +3088,13 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -3026,154 +3112,12 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sweep_scope\": \"ALL\"\n}"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Trust & Identity",
-      "item": [
-        {
-          "name": "Claim Custom Username",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
+              "raw": "{\n  \"sweep_scope\": \"ALL\",\n  \"crypto_type\": \"USDT_SPL\",\n  \"pin\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
               }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/claim-username",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "claim-username"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"cyberhot_store\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Update KYC Verification Draft",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/kyc-draft",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "kyc-draft"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"step\": 1,\n  \"data\": {\n    \"business_type\": \"llc\"\n  }\n}"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Merchant Notifications",
-      "item": [
-        {
-          "name": "List Notifications",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/notifications",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "notifications"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Mark Notification Read",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/notifications/mark-read",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "notifications",
-                "mark-read"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Delete All Notifications",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/merchants/notifications",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "merchants",
-                "notifications"
-              ]
             }
           }
         }
@@ -3186,12 +3130,7 @@
           "name": "Supported Currencies",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/currencies/supported",
               "host": [
@@ -3210,12 +3149,7 @@
           "name": "Blog",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/blog",
               "host": [
@@ -3233,12 +3167,7 @@
           "name": "Careers",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{apiKey}}"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/careers",
               "host": [
@@ -3271,31 +3200,14 @@
           }
         },
         {
-          "name": "Pricing",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/pricing",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "pricing"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Contact Form",
+          "name": "Contact Support",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "url": {
@@ -3311,9 +3223,674 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"subject\": \"Integration Help\",\n  \"message\": \"I need help with the SDK integration.\"\n}"
+              "raw": "{\n  \"name\": \"A\",\n  \"email\": \"a@a.com\",\n  \"message\": \"Hi\"\n}"
             }
           }
+        },
+        {
+          "name": "Pricing Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pricing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pricing"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant Notifications",
+      "item": [
+        {
+          "name": "WebSocket Connection",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/ws",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "ws"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "notifications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark All Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/notifications/mark-read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "notifications",
+                "mark-read"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark One Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/notifications/123/mark-read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "notifications",
+                "123",
+                "mark-read"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete All",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "notifications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete One",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/notifications/123",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "notifications",
+                "123"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Address-Only Mode",
+      "item": [
+        {
+          "name": "Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/address-only/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "address-only",
+                "create"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crypto_type\": \"SOL\",\n  \"merchant_address\": \"7mFYbQ6no72bDtm5aawekvxLqjDwX1WHiqoVCxeZ7SxZ\",\n  \"requested_amount\": \"10.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/address-only/status?payment_id=xxx",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "address-only",
+                "status?payment_id=xxx"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Currencies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/address-only/currencies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "address-only",
+                "currencies"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/address-only/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "address-only",
+                "stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Fee Setting",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/address-only/fee-setting",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "address-only",
+                "fee-setting"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Fee Setting",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/address-only/fee-setting",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "address-only",
+                "fee-setting"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_pays_fee\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/address-only/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "address-only",
+                "health"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delora Cross-Chain Swaps",
+      "item": [
+        {
+          "name": "Get Cross-Chain Quote",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/cross-chain-quote?link_id=pay_12345&sender_address=0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb&origin_chain_id=1&origin_currency=ETH",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "cross-chain-quote"
+              ]
+            },
+            "description": "Fetch cross-chain swap quote from Delora DEX aggregator"
+          },
+          "response": []
+        },
+        {
+          "name": "Register Cross-Chain Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/cross-chain-register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "cross-chain-register"
+              ]
+            },
+            "description": "Register on-chain cross-chain swap transaction for verification",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quote_id\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"tx_hash\": \"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\n  \"sender_address\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cross-Chain Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/cross-chain-status/pay_12345",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "cross-chain-status",
+                "pay_12345"
+              ]
+            },
+            "description": "Track status of cross-chain payment swap"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Supported Cross-Chain Networks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/cross-chain/chains",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "cross-chain",
+                "chains"
+              ]
+            },
+            "description": "List all EVM/Solana networks supported by Delora cross-chain router"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Supported Tokens for Chain",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/cross-chain/tokens/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "cross-chain",
+                "tokens",
+                "1"
+              ]
+            },
+            "description": "List supported tokens for a specific chain ID"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Merchant Settings",
+      "item": [
+        {
+          "name": "Claim Custom Username Handle",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/claim-username",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "claim-username"
+              ]
+            },
+            "description": "Claim a custom username for payment link handle",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"acme_store\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update KYC Draft",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/kyc-draft",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "kyc-draft"
+              ]
+            },
+            "description": "Save draft KYC details for identity verification",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_type\": \"LLC\",\n  \"registration_number\": \"REG-99201\",\n  \"tax_id\": \"TAX-12345\",\n  \"document_type\": \"passport\",\n  \"document_url\": \"https://s3.amazonaws.com/kyc/doc1.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Merchant Interoperability",
+      "item": [
+        {
+          "name": "Execute Interoperable P2P Transfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/pay/execute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "pay",
+                "execute"
+              ]
+            },
+            "description": "Transfer funds directly to another merchant or external crypto wallet",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient_address\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\",\n  \"crypto_type\": \"USDT_SPL\",\n  \"amount\": \"50.00\",\n  \"pin\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
         }
       ]
     }
