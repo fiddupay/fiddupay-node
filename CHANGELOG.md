@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.25] - 2026-08-12
+
+### Added
+- **Webhook Delivery Management**: Added `webhooks.listDeliveries()` (`GET /api/v1/merchants/webhooks/deliveries`) and `webhooks.retryDelivery()` (`POST /api/v1/merchants/webhooks/deliveries/:delivery_id/retry`) to list historic webhook delivery attempts and trigger manual re-delivery.
+- **Documentation & Index Updates**: Fully updated `METHODS_INDEX.md` and `API_REFERENCE.md` to reflect all backend endpoints including customer wallet audits, batch sweeps, and merchant auth management.
+
 ## [2.6.24] - 2026-07-30
 
 ### Added

@@ -93,4 +93,35 @@ describe('Webhooks', () => {
       }).toThrow(FidduPayError);
     });
   });
+
+  describe('listDeliveries and retryDelivery', () => {
+    let mockClient: any;
+    let webhooks: Webhooks;
+
+    beforeEach(() => {
+      mockClient = {
+        get: jest.fn().mockResolvedValue({ deliveries: [], status: 'success' }),
+        post: jest.fn().mockResolvedValue({ status: 'success', message: 'Webhook delivery re-queued for retry' })
+      };
+      webhooks = new Webhooks(mockClient);
+    });
+
+    it('should call get on listDeliveries', async () => {
+      const result = await webhooks.listDeliveries({ limit: 10, offset: 0 });
+      expect(mockClient.get).toHaveBeenCalledWith('/api/v1/merchants/webhooks/deliveries?limit=10&offset=0', undefined);
+      expect(result.status).toBe('success');
+    });
+
+    it('should call post on retryDelivery', async () => {
+      const result = await webhooks.retryDelivery(180);
+      expect(mockClient.post).toHaveBeenCalledWith('/api/v1/merchants/webhooks/deliveries/180/retry', {}, undefined);
+      expect(result.status).toBe('success');
+    });
+
+    it('should throw error if called without HttpClient', async () => {
+      const uninitializedWebhooks = new Webhooks();
+      await expect(uninitializedWebhooks.listDeliveries()).rejects.toThrow(FidduPayError);
+      await expect(uninitializedWebhooks.retryDelivery(180)).rejects.toThrow(FidduPayError);
+    });
+  });
 });

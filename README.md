@@ -1,6 +1,6 @@
-# FidduPay Node.js SDK v2.6.24
+# FidduPay Node.js SDK v2.6.25
 
-[![version](https://img.shields.io/badge/version-v2.6.24-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
+[![version](https://img.shields.io/badge/version-v2.6.25-blue.svg?style=flat-square)](https://github.com/fiddupay/fiddupay-node)
 [![npm downloads](https://img.shields.io/npm/dm/@fiddupay/node-sdk.svg?style=flat-square)](https://www.npmjs.com/package/@fiddupay/node-sdk)
 [![Build Status](https://github.com/fiddupay/fiddupay-node/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/fiddupay/fiddupay-node/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -205,8 +205,16 @@ app.post(
       console.error("Webhook error:", error);
       res.status(400).send("Invalid signature");
     }
-  },
-);
+```
+
+### Webhook Delivery Logs & Retries
+
+```typescript
+// List historic webhook delivery attempts for your account
+const { deliveries } = await client.webhooks.listDeliveries({ limit: 20 });
+
+// Trigger an immediate manual retry for a specific failed delivery
+await client.webhooks.retryDelivery(180);
 ```
 
 ## Merchant Operations

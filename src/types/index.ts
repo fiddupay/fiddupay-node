@@ -18,6 +18,22 @@ export type WebhookEventType =
   | 'address_only_payment_status'
   | 'webhook.test';
 
+export interface WebhookDelivery {
+  id: number;
+  merchant_id: number;
+  payment_id?: string;
+  event_type: string;
+  url: string;
+  payload: Record<string, any>;
+  status: 'pending' | 'delivered' | 'failed';
+  attempts: number;
+  last_attempt_at?: string;
+  next_retry_at?: string;
+  response_status?: number;
+  response_body?: string;
+  created_at: string;
+}
+
 export interface FidduPayConfig {
   apiKey: string;
   apiVersion?: string;

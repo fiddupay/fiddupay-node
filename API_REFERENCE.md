@@ -1,4 +1,4 @@
-# FidduPay API Reference v2.6.16
+# FidduPay API Reference v2.6.25
 
 ## Base URL
 - **Sandbox**: `https://api-sandbox.fiddupay.com`
@@ -966,3 +966,54 @@ FidduPay sends webhook notifications for payment events:
 Webhooks include a `signature` header in the format: `t={timestamp},v1={hmac_signature}`
 
 Verify by computing `HMAC-SHA256(signing_secret, "{timestamp}.{payload_json}")`.
+
+### Webhook Delivery Management
+
+#### List Webhook Deliveries
+```http
+GET /api/v1/merchants/webhooks/deliveries?limit=20&offset=0
+Authorization: Bearer {api_key}
+```
+
+Response:
+```json
+{
+  "deliveries": [
+    {
+      "id": 180,
+      "merchant_id": 12,
+      "event_type": "customer.deposit",
+      "url": "https://example.com/webhook",
+      "status": "failed",
+      "attempts": 7,
+      "response_status": 400,
+      "created_at": "2026-08-12T14:30:00Z"
+    }
+  ],
+  "status": "success"
+}
+```
+
+##### Node SDK Example
+```typescript
+const { deliveries } = await fiddupay.webhooks.listDeliveries({ limit: 20, offset: 0 });
+```
+
+#### Retry Webhook Delivery
+```http
+POST /api/v1/merchants/webhooks/deliveries/:delivery_id/retry
+Authorization: Bearer {api_key}
+```
+
+Response:
+```json
+{
+  "status": "success",
+  "message": "Webhook delivery re-queued for retry"
+}
+```
+
+##### Node SDK Example
+```typescript
+await fiddupay.webhooks.retryDelivery(180);
+```

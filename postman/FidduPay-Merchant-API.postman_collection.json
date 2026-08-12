@@ -1018,6 +1018,78 @@
           }
         },
         {
+          "name": "List Webhook Deliveries",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/webhooks/deliveries?limit=20&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "webhooks",
+                "deliveries"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Lists historic webhook delivery attempts for the authenticated merchant."
+          }
+        },
+        {
+          "name": "Retry Webhook Delivery",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/merchants/webhooks/deliveries/:delivery_id/retry",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "merchants",
+                "webhooks",
+                "deliveries",
+                ":delivery_id",
+                "retry"
+              ],
+              "variable": [
+                {
+                  "key": "delivery_id",
+                  "value": "180"
+                }
+              ]
+            },
+            "description": "Re-queues a specific webhook delivery attempt for immediate retry by the background worker."
+          }
+        },
+        {
           "name": "Get Fee Setting",
           "request": {
             "method": "GET",

@@ -28,7 +28,7 @@ export class FidduPayClient {
   public readonly refunds: Refunds;
   public readonly analytics: AnalyticsResource;
   public readonly invoices: Invoices;
-  public readonly webhooks = Webhooks;
+  public readonly webhooks: Webhooks;
   public readonly wallets: Wallets;
   /**
    * Merchant's own withdrawal operations (withdraw from merchant main balance
@@ -68,6 +68,7 @@ export class FidduPayClient {
     this.refunds = new Refunds(this.client);
     this.analytics = new AnalyticsResource(this.client);
     this.invoices = new Invoices(this.client);
+    this.webhooks = new Webhooks(this.client);
     this.wallets = new Wallets(this.client);
     this.withdrawals = new Withdrawals(this.client);
     this.security = new Security(this.client);

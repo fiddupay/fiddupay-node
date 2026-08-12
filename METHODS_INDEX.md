@@ -32,7 +32,7 @@
 - `fiddupay.customers.createWallets()` (Provision Wallets)
 - `fiddupay.customers.updateStatus()`
 - `fiddupay.customers.updatePermissions()`
-- `fiddupay.customers.sweep({ sweep_mode: 'ALL' })` — sweep all assets to Master Wallet *(replaces deprecated `withdraw()`)*
+- `fiddupay.customers.sweep({ sweep_mode: 'ALL' })` — sweep all assets to Master Wallet
 - `fiddupay.customers.sweep({ sweep_mode: 'NATIVE_ONLY' })` — sweep native coins only (ETH, BNB, SOL…)
 - `fiddupay.customers.sweep({ sweep_mode: 'STABLE_ONLY' })` — sweep stablecoins only (USDT…)
 - `fiddupay.customers.sweep({ sweep_mode: 'SPECIFIC', crypto_types: [...] })` — sweep a specific asset
@@ -42,6 +42,11 @@
 - `fiddupay.customers.deactivate()`
 - `fiddupay.customers.bulkProvision()` — provision wallets for multiple customers at once
 - `fiddupay.customers.getSummary()` — retrieve aggregate platform customer statistics
+- `fiddupay.customers.verifyAndRepairWallets()` — verify and auto-repair customer deposit wallets
+- `fiddupay.customers.lookupAddress()` — reverse lookup on-chain wallet address to customer
+- `fiddupay.customers.auditWallets()` — generate active vs historical wallet audit report
+- `fiddupay.customers.getUnsweptAssetsSummary()` — aggregate summary of unswept customer assets
+- `fiddupay.customers.batchSweep()` — single-click batch sweep of unswept customer assets
 
 ## Invoices (`fiddupay.invoices`)
 - `fiddupay.invoices.create()`
@@ -50,10 +55,14 @@
 
 ## Merchants (`fiddupay.merchants`)
 - `fiddupay.merchants.register()`
+- `fiddupay.merchants.login()`
+- `fiddupay.merchants.logout()`
 - `fiddupay.merchants.retrieve()` (Profile)
 - `fiddupay.merchants.getStatus()`
 - `fiddupay.merchants.getReadiness()` (aliasing `getStatus`)
 - `fiddupay.merchants.switchEnvironment()`
+- `fiddupay.merchants.claimUsername()`
+- `fiddupay.merchants.updateKycDraft()`
 - `fiddupay.merchants.generateApiKey()`
 - `fiddupay.merchants.rotateApiKey()`
 - `fiddupay.merchants.getFeeSetting()`
@@ -64,6 +73,11 @@
 - `fiddupay.merchants.getBalance()`
 - `fiddupay.merchants.getAuditLogs()`
 - `fiddupay.merchants.getBalanceHistory()`
+
+## Notifications (`fiddupay.notifications`)
+- `fiddupay.notifications.list()`
+- `fiddupay.notifications.markRead()`
+- `fiddupay.notifications.delete()`
 
 ## Payments (`fiddupay.payments`)
 - `fiddupay.payments.create()`
@@ -78,8 +92,6 @@
 - `fiddupay.refunds.list()`
 - `fiddupay.refunds.retrieve()`
 - `fiddupay.refunds.complete()`
-
-
 
 ## Security (`fiddupay.security`)
 - `fiddupay.security.getEvents()`
@@ -105,6 +117,13 @@
 - `fiddupay.wallets.getGasEstimates()`
 - `fiddupay.wallets.checkWithdrawalCapability()`
 
+## Webhooks (`fiddupay.webhooks` / `Webhooks`)
+- `fiddupay.webhooks.listDeliveries()` — list historic webhook delivery attempts
+- `fiddupay.webhooks.retryDelivery()` — re-queue webhook delivery for immediate retry
+- `Webhooks.constructEvent()` (Static Utility & Instance Method)
+- `Webhooks.verifySignature()` (Static Utility & Instance Method)
+- `Webhooks.generateSignature()` (Static Utility & Instance Method)
+
 ## Withdrawals (`fiddupay.withdrawals`)
 - `fiddupay.withdrawals.create()`
 - `fiddupay.withdrawals.list()`
@@ -114,11 +133,3 @@
 - `fiddupay.withdrawals.validateGas()`
 - `fiddupay.withdrawals.getGasEstimates()`
 - `fiddupay.withdrawals.checkCapability()`
-
-## Notifications (`fiddupay.notifications`)
-- `fiddupay.notifications.list()`
-- `fiddupay.notifications.markRead()`
-- `fiddupay.notifications.delete()`
-
-## Webhooks (`Webhooks`)
-- `Webhooks.constructEvent()` (Static Utility)

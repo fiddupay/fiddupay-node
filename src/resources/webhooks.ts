@@ -1,5 +1,6 @@
 import * as crypto from 'crypto';
-import { WebhookEvent, WebhookEventType } from '../types';
+import { HttpClient } from '../client';
+import { WebhookEvent, WebhookEventType, WebhookDelivery, RequestOptions } from '../types';
 import { FidduPayError } from '../errors';
 
 export interface WebhookSignatureComponents {
@@ -8,6 +9,45 @@ export interface WebhookSignatureComponents {
 }
 
 export class Webhooks {
+  constructor(private client?: HttpClient) {}
+
+  /**
+   * List historic webhook delivery attempts for the authenticated merchant.
+   */
+  async listDeliveries(params?: { limit?: number; offset?: number }, options?: RequestOptions): Promise<{ deliveries: WebhookDelivery[]; status: string }> {
+    if (!this.client) {
+      throw new FidduPayError('HttpClient is required to call listDeliveries()', 'client_missing');
+    }
+    const queryParams = new URLSearchParams();
+    if (params?.limit !== undefined && params?.limit !== null) queryParams.append('limit', params.limit.toString());
+    if (params?.offset !== undefined && params?.offset !== null) queryParams.append('offset', params.offset.toString());
+    const query = queryParams.toString();
+    const path = query ? `/api/v1/merchants/webhooks/deliveries?${query}` : '/api/v1/merchants/webhooks/deliveries';
+    return this.client.get(path, options);
+  }
+
+  /**
+   * Re-queue a specific webhook delivery attempt for immediate retry.
+   */
+  async retryDelivery(deliveryId: number | string, options?: RequestOptions): Promise<{ status: string; message: string }> {
+    if (!this.client) {
+      throw new FidduPayError('HttpClient is required to call retryDelivery()', 'client_missing');
+    }
+    return this.client.post(`/api/v1/merchants/webhooks/deliveries/${deliveryId}/retry`, {}, options);
+  }
+
+  constructEvent(payload: string | Buffer, signature: string, secret: string, tolerance: number = 300): WebhookEvent {
+    return Webhooks.constructEvent(payload, signature, secret, tolerance);
+  }
+
+  verifySignature(payload: string, signature: string, secret: string, tolerance: number = 300): boolean {
+    return Webhooks.verifySignature(payload, signature, secret, tolerance);
+  }
+
+  generateSignature(payload: string, secret: string, timestamp?: number): string {
+    return Webhooks.generateSignature(payload, secret, timestamp);
+  }
+
   /**
    * Construct and verify a webhook event from the request body and signature.
    * 
